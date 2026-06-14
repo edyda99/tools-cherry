@@ -233,6 +233,11 @@ async function main() {
   );
   urls.push(`${SITE.url}/passport-photo-maker/`);
 
+  // public machine-readable copy of the live tax data (for the drift monitor +
+  // transparency). Always reflects the deployed figures — single source of truth.
+  await mkdir(join(DIST, 'data'), { recursive: true });
+  await cp(join(SRC, 'data', 'tax-data-2026.json'), join(DIST, 'data', 'tax-data-2026.json'));
+
   // 404 (Cloudflare Pages serves /404.html on miss)
   await writeFile(
     join(DIST, '404.html'),

@@ -10,7 +10,12 @@ name: Tax data monitor
 on:
   schedule:
     - cron: '0 13 * * 1'   # Mondays 13:00 UTC
-  workflow_dispatch: {}     # allow manual runs from the Actions tab
+  workflow_dispatch:        # allow manual runs from the Actions tab
+    inputs:
+      simulate_failure:
+        description: 'Force a failing run to test the alert email (NOT a real drift)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -19,6 +24,14 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
+      # Manual test hook: lets you fail the run on demand from the Actions tab
+      # ("Run workflow" → simulate_failure = true) to confirm the alert email works.
+      # Skipped on scheduled runs (input defaults to false).
+      - name: Simulated failure (manual alert-email test)
+        if: ${{ inputs.simulate_failure }}
+        run: |
+          echo "SIMULATED FAILURE — manually triggered to test the alert email. This is NOT a real tax-data drift."
+          exit 1
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
