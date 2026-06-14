@@ -12,17 +12,27 @@ const DIST = join(__dirname, 'dist');
 
 // --- Site config (set the real values at first deploy) -----------------------
 const SITE = {
-  name: 'Tools Cherry',
-  url: 'https://tools-cherry.com',
-  contactEmail: 'hello@tools-cherry.com', // set up Cloudflare Email Routing (free) so this inbox receives
-  adsensePublisherId: '' // TODO: paste "pub-XXXXXXXXXXXXXXXX" after AdSense approval -> writes ads.txt
+  name: 'Tools Berry',
+  url: 'https://tools-berry.com',
+  contactEmail: 'hello@tools-berry.com', // set up Cloudflare Email Routing (free) so this inbox receives
+  adsensePublisherId: 'pub-4961606095434424' // ca-pub form is derived; drives the <head> loader + ads.txt
 };
+
+// AdSense site-verification / auto-ads loader, injected into every page's <head>.
+// Empty string when no publisher ID is set, so the build stays clean pre-AdSense.
+const ADSENSE_HEAD = SITE.adsensePublisherId
+  ? `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-${SITE.adsensePublisherId}" crossorigin="anonymous"></script>\n`
+  : '';
 
 const read = (p) => readFile(p, 'utf8');
 const readJSON = async (p) => JSON.parse(await read(p));
 
 function fill(tpl, map) {
-  return tpl.replace(/{{(\w+)}}/g, (m, k) => (k in map ? map[k] : m));
+  let out = tpl.replace(/{{(\w+)}}/g, (m, k) => (k in map ? map[k] : m));
+  // Inject the AdSense loader into every full page (anything with a </head>).
+  // Fragment fills (page bodies/descriptions) have no </head>, so they're untouched.
+  if (ADSENSE_HEAD && out.includes('</head>')) out = out.replace('</head>', `${ADSENSE_HEAD}</head>`);
+  return out;
 }
 
 // Prose body per state — branches on whether the state levies income tax.
