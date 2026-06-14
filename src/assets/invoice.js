@@ -1,0 +1,222 @@
+// invoice.js — client-side invoice builder + PDF export (jsPDF, loaded globally).
+// No network: inputs stay in the browser, PDF is generated locally.
+
+const $ = (id) => document.getElementById(id);
+
+const CURRENCY = {
+  USD: { symbol: '$', locale: 'en-US' },
+  EUR: { symbol: '€', locale: 'de-DE' },
+  GBP: { symbol: '£', locale: 'en-GB' },
+  CAD: { symbol: 'CA$', locale: 'en-CA' },
+  AUD: { symbol: 'A$', locale: 'en-AU' },
+  SAR: { symbol: 'SAR ', locale: 'en-US' }
+};
+
+function curCode() { return $('currency').value || 'USD'; }
+function money(n) {
+  const c = CURRENCY[curCode()] || CURRENCY.USD;
+  return c.symbol + (Number(n) || 0).toLocaleString(c.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// --- line items --------------------------------------------------------------
+function itemRow(desc = '', qty = '1', rate = '0') {
+  const row = document.createElement('div');
+  row.className = 'item-row';
+  row.innerHTML =
+    `<input class="d" placeholder="Description" value="${desc}">` +
+    `<input class="q" type="number" min="0" step="any" value="${qty}">` +
+    `<input class="r" type="number" min="0" step="any" value="${rate}">` +
+    `<input class="a" value="0.00" readonly tabindex="-1">` +
+    `<button type="button" class="rm" title="Remove">×</button>`;
+  row.querySelector('.rm').addEventListener('click', () => { row.remove(); render(); });
+  row.querySelectorAll('input').forEach((el) => el.addEventListener('input', render));
+  return row;
+}
+
+function readItems() {
+  return [...document.querySelectorAll('#items .item-row')].map((row) => {
+    const desc = row.querySelector('.d').value;
+    const qty = parseFloat(row.querySelector('.q').value) || 0;
+    const rate = parseFloat(row.querySelector('.r').value) || 0;
+    const amount = qty * rate;
+    row.querySelector('.a').value = amount.toFixed(2);
+    return { desc, qty, rate, amount };
+  });
+}
+
+function totals(items) {
+  const subtotal = items.reduce((s, i) => s + i.amount, 0);
+  const taxRate = parseFloat($('taxRate').value) || 0;
+  const discount = parseFloat($('discount').value) || 0;
+  const tax = subtotal * (taxRate / 100);
+  const total = Math.max(0, subtotal + tax - discount);
+  return { subtotal, taxRate, tax, discount, total };
+}
+
+function readModel() {
+  const items = readItems();
+  return {
+    biz: { name: $('bizName').value, details: $('bizDetails').value },
+    cli: { name: $('cliName').value, details: $('cliDetails').value },
+    invNo: $('invNo').value,
+    date: $('invDate').value,
+    due: $('dueDate').value,
+    notes: $('notes').value,
+    items,
+    t: totals(items)
+  };
+}
+
+// --- live preview ------------------------------------------------------------
+function render() {
+  const m = readModel();
+  const rows = m.items
+    .map(
+      (i) =>
+        `<tr><td>${esc(i.desc) || '&nbsp;'}</td><td class="num">${i.qty}</td>` +
+        `<td class="num">${money(i.rate)}</td><td class="num">${money(i.amount)}</td></tr>`
+    )
+    .join('');
+
+  $('preview').innerHTML =
+    `<div class="pv-row"><div><h3>${esc(m.biz.name) || 'Your Business'}</h3>` +
+    `<div class="pv-meta">${esc(m.biz.details)}</div></div>` +
+    `<div style="text-align:right"><div style="font-size:22px;font-weight:700;color:#111">INVOICE</div>` +
+    `<div class="pv-meta">${esc(m.invNo)}</div></div></div>` +
+    `<div class="pv-parties"><div><div class="lbl">Bill to</div><strong>${esc(m.cli.name)}</strong>` +
+    `<div class="pv-meta">${esc(m.cli.details)}</div></div>` +
+    `<div style="text-align:right"><div class="lbl">Date</div>${esc(m.date) || '—'}` +
+    `<div class="lbl" style="margin-top:6px">Due</div>${esc(m.due) || '—'}</div></div>` +
+    `<table><thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead>` +
+    `<tbody>${rows}</tbody></table>` +
+    `<div class="pv-totals">` +
+    `<div class="pv-row"><span>Subtotal</span><span>${money(m.t.subtotal)}</span></div>` +
+    (m.t.taxRate ? `<div class="pv-row"><span>Tax (${m.t.taxRate}%)</span><span>${money(m.t.tax)}</span></div>` : '') +
+    (m.t.discount ? `<div class="pv-row"><span>Discount</span><span>−${money(m.t.discount)}</span></div>` : '') +
+    `<div class="pv-row grand"><span>Total</span><span>${money(m.t.total)}</span></div></div>` +
+    (m.notes ? `<div class="pv-notes">${esc(m.notes)}</div>` : '');
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+}
+
+// --- PDF export --------------------------------------------------------------
+function downloadPdf() {
+  const status = $('pdfStatus');
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    status.textContent = 'PDF library failed to load — please refresh and try again.';
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+  const m = readModel();
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const W = doc.internal.pageSize.getWidth();
+  const M = 48; // margin
+  let y = M;
+
+  doc.setFont('helvetica', 'bold').setFontSize(22).setTextColor(20);
+  doc.text(m.biz.name || 'Your Business', M, y);
+  doc.setFont('helvetica', 'bold').setFontSize(22).setTextColor(20);
+  doc.text('INVOICE', W - M, y, { align: 'right' });
+  y += 16;
+  doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(90);
+  doc.text(doc.splitTextToSize(m.biz.details || '', 240), M, y);
+  doc.text(m.invNo || '', W - M, y, { align: 'right' });
+
+  y += Math.max(doc.splitTextToSize(m.biz.details || '', 240).length * 12, 24) + 18;
+
+  // bill to + dates
+  doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(130);
+  doc.text('BILL TO', M, y);
+  doc.text('DATE', W - M - 120, y);
+  doc.text('DUE', W - M, y, { align: 'right' });
+  y += 14;
+  doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(30);
+  doc.text(m.cli.name || '', M, y);
+  doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(90);
+  doc.text(m.date || '—', W - M - 120, y);
+  doc.text(m.due || '—', W - M, y, { align: 'right' });
+  y += 12;
+  doc.text(doc.splitTextToSize(m.cli.details || '', 240), M, y);
+  y += Math.max(doc.splitTextToSize(m.cli.details || '', 240).length * 12, 12) + 18;
+
+  // table header
+  const cols = { desc: M, qty: W - M - 230, rate: W - M - 130, amt: W - M };
+  doc.setDrawColor(30).setLineWidth(1).line(M, y, W - M, y);
+  y += 14;
+  doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(90);
+  doc.text('DESCRIPTION', cols.desc, y);
+  doc.text('QTY', cols.qty, y, { align: 'right' });
+  doc.text('RATE', cols.rate, y, { align: 'right' });
+  doc.text('AMOUNT', cols.amt, y, { align: 'right' });
+  y += 8;
+  doc.setDrawColor(200).setLineWidth(0.5).line(M, y, W - M, y);
+  y += 14;
+
+  // rows
+  doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(40);
+  for (const it of m.items) {
+    if (y > doc.internal.pageSize.getHeight() - 120) { doc.addPage(); y = M; }
+    const dlines = doc.splitTextToSize(it.desc || '', cols.qty - M - 16);
+    doc.text(dlines, cols.desc, y);
+    doc.text(String(it.qty), cols.qty, y, { align: 'right' });
+    doc.text(money(it.rate), cols.rate, y, { align: 'right' });
+    doc.text(money(it.amount), cols.amt, y, { align: 'right' });
+    y += Math.max(dlines.length * 12, 16);
+    doc.setDrawColor(235).setLineWidth(0.5).line(M, y - 4, W - M, y - 4);
+  }
+
+  // totals
+  y += 10;
+  const tx = W - M - 150;
+  const line = (label, val, bold) => {
+    doc.setFont('helvetica', bold ? 'bold' : 'normal').setFontSize(bold ? 12 : 10).setTextColor(bold ? 20 : 80);
+    doc.text(label, tx, y);
+    doc.text(val, W - M, y, { align: 'right' });
+    y += bold ? 18 : 15;
+  };
+  line('Subtotal', money(m.t.subtotal));
+  if (m.t.taxRate) line(`Tax (${m.t.taxRate}%)`, money(m.t.tax));
+  if (m.t.discount) line('Discount', '-' + money(m.t.discount));
+  doc.setDrawColor(30).setLineWidth(1).line(tx, y - 4, W - M, y - 4);
+  y += 8;
+  line('Total', money(m.t.total), true);
+
+  // notes
+  if (m.notes) {
+    y += 14;
+    doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(110);
+    doc.text(doc.splitTextToSize(m.notes, W - 2 * M), M, y);
+  }
+
+  const safe = (m.invNo || 'invoice').replace(/[^\w.-]+/g, '-');
+  doc.save(`${safe}.pdf`);
+  status.textContent = 'PDF downloaded.';
+}
+
+// --- init --------------------------------------------------------------------
+function isoToday(offsetDays = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return d.toISOString().slice(0, 10);
+}
+
+function init() {
+  const items = $('items');
+  items.innerHTML = '<div class="item-head"><span>Description</span><span>Qty</span><span>Rate</span><span>Amount</span><span></span></div>';
+  items.appendChild(itemRow('Design services', '10', '75'));
+  items.appendChild(itemRow('Hosting (monthly)', '1', '25'));
+
+  $('addItem').addEventListener('click', () => { items.appendChild(itemRow()); render(); });
+  ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'invNo', 'currency', 'invDate', 'dueDate', 'taxRate', 'discount', 'notes']
+    .forEach((id) => $(id).addEventListener('input', render));
+  $('downloadPdf').addEventListener('click', downloadPdf);
+
+  if (!$('invDate').value) $('invDate').value = isoToday(0);
+  if (!$('dueDate').value) $('dueDate').value = isoToday(30);
+  render();
+}
+
+if (document.readyState !== 'loading') init();
+else document.addEventListener('DOMContentLoaded', init);

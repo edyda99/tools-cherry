@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free Invoice Generator — Make &amp; Download a PDF Invoice (No Signup)</title>
+<meta name="description" content="Free online invoice generator. Fill in your details, add line items, and download a professional PDF invoice instantly. No signup, no watermark — everything stays in your browser.">
+<link rel="canonical" href="{{SITE_URL}}/invoice-generator/">
+<meta property="og:title" content="Free Invoice Generator — PDF, No Signup">
+<meta property="og:description" content="Create and download a professional PDF invoice in seconds. Free, no signup.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Free Invoice Generator","applicationCategory":"BusinessApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Create and download a professional PDF invoice in your browser. No signup."}</script>
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <h1>Free Invoice Generator</h1>
+    <p class="lede">Fill in the details, add your line items, and download a clean PDF invoice — no signup, no watermark. Everything runs in your browser; nothing is uploaded.</p>
+
+    <div class="inv">
+      <form id="invForm" class="inv-form" autocomplete="off" onsubmit="return false">
+        <h2>Your business</h2>
+        <div class="field"><label for="bizName">Business / your name</label><input id="bizName" value="Your Business LLC"></div>
+        <div class="field"><label for="bizDetails">Address, email, phone</label><textarea id="bizDetails" rows="3">123 Main St
+City, ST 00000
+you@example.com</textarea></div>
+
+        <h2>Bill to</h2>
+        <div class="field"><label for="cliName">Client name</label><input id="cliName" value="Client Co."></div>
+        <div class="field"><label for="cliDetails">Client address / email</label><textarea id="cliDetails" rows="3">456 Market Ave
+City, ST 00000</textarea></div>
+
+        <h2>Invoice details</h2>
+        <div class="field inline">
+          <span><label for="invNo">Invoice #</label><input id="invNo" value="INV-001"></span>
+          <span><label for="currency">Currency</label>
+            <select id="currency">
+              <option value="USD">$ USD</option>
+              <option value="EUR">€ EUR</option>
+              <option value="GBP">£ GBP</option>
+              <option value="CAD">$ CAD</option>
+              <option value="AUD">$ AUD</option>
+              <option value="SAR">﷼ SAR</option>
+            </select>
+          </span>
+        </div>
+        <div class="field inline">
+          <span><label for="invDate">Date</label><input id="invDate" type="date"></span>
+          <span><label for="dueDate">Due date</label><input id="dueDate" type="date"></span>
+        </div>
+
+        <h2>Line items</h2>
+        <div id="items"></div>
+        <button type="button" id="addItem" class="btn-secondary">+ Add line item</button>
+
+        <h2>Totals</h2>
+        <div class="field inline">
+          <span><label for="taxRate">Tax %</label><input id="taxRate" type="number" min="0" step="any" value="0"></span>
+          <span><label for="discount">Discount (amount)</label><input id="discount" type="number" min="0" step="any" value="0"></span>
+        </div>
+        <div class="field"><label for="notes">Notes / payment terms</label><textarea id="notes" rows="2">Payment due within 30 days. Thank you for your business.</textarea></div>
+      </form>
+
+      <div class="inv-side">
+        <button type="button" id="downloadPdf" class="btn-primary">Download PDF</button>
+        <p class="muted-small" id="pdfStatus"></p>
+        <div class="inv-preview" id="preview" aria-live="polite"></div>
+        <div class="ad-slot" data-ad="sidebar">Advertisement</div>
+      </div>
+    </div>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to create an invoice</h2>
+      <p>Enter your business and client details, add a line for each product or service with its quantity and rate, set any tax or discount, then click <strong>Download PDF</strong>. The totals update as you type. Your data never leaves your device — the PDF is generated locally in your browser.</p>
+      <p class="note">This tool is provided for general use and does not constitute tax or legal advice. You are responsible for the accuracy of the invoice and any applicable taxes.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script src="/assets/jspdf.umd.min.js"></script>
+<script type="module" src="/assets/invoice.js"></script>
+</body>
+</html>

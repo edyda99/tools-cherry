@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Passport &amp; ID Photo Maker — Free 2x2 &amp; 35x45mm Photo Tool</title>
+<meta name="description" content="Free passport and ID photo maker. Upload a photo, fit it to the official size (US 2x2, Schengen/UK 35x45mm and more), and download a print-ready photo or a 4x6 print sheet. Runs in your browser.">
+<link rel="canonical" href="{{SITE_URL}}/passport-photo-maker/">
+<meta property="og:title" content="Passport &amp; ID Photo Maker — Free">
+<meta property="og:description" content="Make a print-ready passport/ID photo (US 2x2, 35x45mm and more) in your browser. Free.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Passport &amp; ID Photo Maker","applicationCategory":"MultimediaApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Make a print-ready passport/ID photo in your browser."}</script>
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <h1>Passport &amp; ID Photo Maker</h1>
+    <p class="lede">Upload a photo, choose the official size, position the face inside the guide, and download a print-ready photo — or a 4×6 sheet of copies to print at any pharmacy. Everything runs in your browser; your photo is never uploaded.</p>
+
+    <div class="calc">
+      <div>
+        <div class="field">
+          <label for="spec">Document type</label>
+          <select id="spec"></select>
+        </div>
+        <label id="drop" class="dropzone" for="file">
+          <input id="file" type="file" accept="image/*" hidden>
+          <span id="dropText">Click to choose a photo, or drop one here</span>
+        </label>
+        <div class="field" style="margin-top:14px">
+          <label for="zoom">Zoom</label>
+          <input id="zoom" type="range" min="1" max="5" step="0.01" value="1" style="width:100%">
+        </div>
+        <p class="muted-small" id="specNote"></p>
+      </div>
+
+      <div class="results" style="text-align:center">
+        <div class="editor-wrap" id="editorWrap" style="position:relative">
+          <canvas id="editor" width="600" height="600"></canvas>
+          <svg id="guide" viewBox="0 0 600 600" preserveAspectRatio="none"
+               style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></svg>
+        </div>
+        <p class="muted-small" id="status" style="margin-top:10px">Choose a photo to begin.</p>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button type="button" id="dlPhoto" class="btn-primary" style="width:auto;flex:1" disabled>Download photo</button>
+          <button type="button" id="dlSheet" class="btn-secondary" style="flex:1" disabled>Download 4×6 sheet</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to make a passport photo</h2>
+      <p>Pick your document type (the photo is sized to the official requirement), upload a clear, front-facing photo, then drag and zoom so your head sits inside the oval guide — the guide shows the required head height. Download a single print-ready photo, or the 4×6 sheet to print multiple copies cheaply.</p>
+      <p class="note">This tool helps you size and crop a photo to common official dimensions, but it cannot guarantee acceptance — lighting, background, expression, and head position must still meet the issuing authority's rules. Check the official requirements (linked per document type) before submitting. Your image is processed entirely in your browser and never uploaded.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>window.__PHOTO_SPECS__ = {{PHOTO_SPECS_JSON}};</script>
+<script type="module" src="/assets/photo-maker.js"></script>
+</body>
+</html>

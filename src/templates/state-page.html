@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{STATE_NAME}} Paycheck Calculator {{YEAR}} — Take-Home Pay After Taxes</title>
+<meta name="description" content="Free {{YEAR}} {{STATE_NAME}} paycheck calculator. Enter your salary or hourly wage to see your take-home pay after federal tax, Social Security, Medicare{{STATE_TAX_PHRASE}}. Supports weekly, biweekly, monthly and more.">
+<link rel="canonical" href="{{SITE_URL}}/{{STATE_SLUG}}-paycheck-calculator/">
+<meta property="og:title" content="{{STATE_NAME}} Paycheck Calculator {{YEAR}}">
+<meta property="og:description" content="Estimate your {{STATE_NAME}} take-home pay after taxes for {{YEAR}}.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{{FAQ_JSONLD}}</script>
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav><a href="/#paycheck">Paycheck Calculators</a></nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <h1>{{STATE_NAME}} Paycheck Calculator</h1>
+    <p class="lede">Estimate your {{YEAR}} take-home pay in {{STATE_NAME}} after federal income tax, Social Security, Medicare{{STATE_TAX_PHRASE}}.</p>
+
+    <section class="calc" aria-label="Paycheck calculator">
+      <form id="paycheckForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="wageType">Pay type</label>
+          <select id="wageType">
+            <option value="salary">Salary (annual)</option>
+            <option value="hourly">Hourly</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="amount">Gross pay (USD)</label>
+          <input id="amount" type="number" inputmode="decimal" min="0" step="any" value="60000" placeholder="60000">
+        </div>
+        <div class="field" id="hoursField" style="display:none">
+          <label for="hours">Hours per week</label>
+          <input id="hours" type="number" inputmode="decimal" min="0" step="any" value="40">
+        </div>
+        <div class="field">
+          <label for="filingStatus">Filing status</label>
+          <select id="filingStatus">
+            <option value="single">Single / Married filing separately</option>
+            <option value="married">Married filing jointly</option>
+            <option value="head_of_household">Head of household</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="payFrequency">Pay frequency</label>
+          <select id="payFrequency">
+            <option value="weekly">Weekly</option>
+            <option value="biweekly" selected>Biweekly</option>
+            <option value="semimonthly">Semi-monthly</option>
+            <option value="monthly">Monthly</option>
+            <option value="annual">Annual</option>
+          </select>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="netBig">$0.00</p>
+        <p class="net-sub" id="netSub"></p>
+        <div class="line"><span class="lbl">Gross</span><span id="rGross">$0.00</span></div>
+        <div class="line"><span class="lbl">Federal income tax</span><span id="rFederal">$0.00</span></div>
+        <div class="line"><span class="lbl">Social Security</span><span id="rSS">$0.00</span></div>
+        <div class="line"><span class="lbl">Medicare</span><span id="rMedicare">$0.00</span></div>
+        <div class="line" id="stateLine"><span class="lbl">{{STATE_NAME}} income tax</span><span id="rState">$0.00</span></div>
+        <div class="line total"><span class="lbl">Net pay</span><span id="rNet">$0.00</span></div>
+        <div class="rate-row">
+          <span>Effective tax rate: <strong id="rEff">0%</strong></span>
+          <span>Take-home: <strong id="rTake">0%</strong></span>
+        </div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How {{STATE_NAME}} paychecks are taxed in {{YEAR}}</h2>
+      {{STATE_BODY}}
+
+      <p class="note">Estimates for general guidance only — not tax advice. This calculator approximates withholding using {{YEAR}} federal brackets, the standard deduction, and FICA. It does not account for pre-tax deductions (401(k), HSA, health premiums), additional W-4 adjustments, local taxes, or credits. Verify with a tax professional or the IRS.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Other state paycheck calculators</h2>
+      <div class="state-grid">{{STATE_LINKS}}</div>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools. Tax year {{YEAR}} figures (IRS / state DOR), verified {{VERIFIED}}. Estimates only.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__TAX_DATA__ = {{TAX_DATA_JSON}};
+  window.__STATE_SLUG__ = "{{STATE_SLUG}}";
+</script>
+<script type="module" src="/assets/app.js"></script>
+</body>
+</html>

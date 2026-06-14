@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{PAGE_TITLE}} — {{SITE_NAME}}</title>
+<meta name="description" content="{{PAGE_DESC}}">
+<link rel="canonical" href="{{SITE_URL}}/{{PAGE_SLUG}}/">
+<meta name="robots" content="{{ROBOTS}}">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav><a href="/#paycheck">Paycheck Calculators</a></nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <h1>{{PAGE_TITLE}}</h1>
+    <section class="prose">
+      {{PAGE_BODY}}
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free QR Code Generator — WiFi, vCard &amp; URL QR Codes (PNG &amp; SVG)</title>
+<meta name="description" content="Free QR code generator. Create WiFi, contact (vCard), and URL QR codes and download them as PNG or SVG. No signup, no watermark — generated in your browser.">
+<link rel="canonical" href="{{SITE_URL}}/qr-code-generator/">
+<meta property="og:title" content="Free QR Code Generator — WiFi, vCard, URL">
+<meta property="og:description" content="Create and download WiFi, contact, and URL QR codes as PNG or SVG. Free, no signup.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Free QR Code Generator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Create WiFi, vCard, and URL QR codes and download as PNG or SVG, in your browser."}</script>
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <h1>QR Code Generator</h1>
+    <p class="lede">Create a QR code for a link, your WiFi network, or a contact card — then download it as a PNG or SVG. No signup; everything is generated in your browser.</p>
+
+    <div class="calc">
+      <form id="qrForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="qrType">QR code type</label>
+          <select id="qrType">
+            <option value="url">Link / Text</option>
+            <option value="wifi">WiFi network</option>
+            <option value="vcard">Contact card (vCard)</option>
+          </select>
+        </div>
+
+        <div data-group="url">
+          <div class="field"><label for="urlText">URL or text</label><input id="urlText" value="https://example.com"></div>
+        </div>
+
+        <div data-group="wifi" hidden>
+          <div class="field"><label for="wifiSsid">Network name (SSID)</label><input id="wifiSsid" placeholder="MyWiFi"></div>
+          <div class="field"><label for="wifiPass">Password</label><input id="wifiPass" placeholder="password"></div>
+          <div class="field inline">
+            <span><label for="wifiAuth">Security</label>
+              <select id="wifiAuth"><option value="WPA">WPA/WPA2</option><option value="WEP">WEP</option><option value="nopass">None</option></select>
+            </span>
+            <span><label for="wifiHidden">Hidden network</label>
+              <select id="wifiHidden"><option value="false">No</option><option value="true">Yes</option></select>
+            </span>
+          </div>
+        </div>
+
+        <div data-group="vcard" hidden>
+          <div class="field inline">
+            <span><label for="vcFirst">First name</label><input id="vcFirst" placeholder="Jane"></span>
+            <span><label for="vcLast">Last name</label><input id="vcLast" placeholder="Doe"></span>
+          </div>
+          <div class="field"><label for="vcOrg">Organization</label><input id="vcOrg" placeholder="Acme Inc."></div>
+          <div class="field"><label for="vcTitle">Title</label><input id="vcTitle" placeholder="Manager"></div>
+          <div class="field"><label for="vcPhone">Phone</label><input id="vcPhone" placeholder="+1 555 0100"></div>
+          <div class="field"><label for="vcEmail">Email</label><input id="vcEmail" placeholder="jane@acme.com"></div>
+          <div class="field"><label for="vcUrl">Website</label><input id="vcUrl" placeholder="https://acme.com"></div>
+        </div>
+
+        <div class="field inline">
+          <span><label for="qrEcc">Error correction</label>
+            <select id="qrEcc"><option value="M">Medium</option><option value="L">Low</option><option value="Q">Quartile</option><option value="H">High</option></select>
+          </span>
+          <span><label for="qrSize">Size (px)</label><input id="qrSize" type="number" min="128" max="2048" step="32" value="512"></span>
+        </div>
+      </form>
+
+      <div class="results" style="text-align:center">
+        <div id="qrHolder" style="background:#fff;display:inline-block;padding:16px;border-radius:8px"><canvas id="qrCanvas" width="256" height="256"></canvas></div>
+        <p class="muted-small" id="qrStatus" style="margin-top:12px"></p>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button type="button" id="dlPng" class="btn-primary" style="width:auto;flex:1">Download PNG</button>
+          <button type="button" id="dlSvg" class="btn-secondary" style="flex:1">Download SVG</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the QR code generator</h2>
+      <p>Pick a type, fill in the details, and your QR code updates instantly. For a WiFi code, anyone who scans it with a phone camera can join your network without typing the password. For a contact card, scanning adds your details straight to the phone's contacts. Download as PNG for documents and printing, or SVG for crisp scaling at any size.</p>
+      <p class="note">QR codes are generated entirely in your browser — the data you enter is never uploaded.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script src="/assets/qrcode.min.js"></script>
+<script type="module" src="/assets/qr.js"></script>
+</body>
+</html>

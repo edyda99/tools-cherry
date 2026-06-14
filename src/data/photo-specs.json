@@ -1,0 +1,61 @@
+{
+  "_meta": {
+    "description": "ID/passport photo specs for the photo maker. Pixel sizes are mm@300DPI derivations; official sources state physical mm + head size, and 300 DPI is the standard print convention (flagged where the source omits DPI).",
+    "px_formula": "width_px = round(width_mm / 25.4 * 300)",
+    "lastSourced": "2026-06-14"
+  },
+  "specs": [
+    {
+      "id": "us-passport-2x2",
+      "label": "US Passport / Visa — 2×2 in",
+      "widthMm": 51, "heightMm": 51, "widthPx": 600, "heightPx": 600,
+      "background": "#ffffff", "headMinMm": 25, "headMaxMm": 35, "dpi": 300,
+      "source": "https://travel.state.gov/content/travel/en/passports/how-apply/photos.html",
+      "note": "White/off-white background, neutral expression, no glasses. State Dept states size + head height but not DPI; 600×600 is the 300-DPI standard."
+    },
+    {
+      "id": "schengen-35x45",
+      "label": "Schengen / EU Visa — 35×45 mm",
+      "widthMm": 35, "heightMm": 45, "widthPx": 413, "heightPx": 531,
+      "background": "#ffffff", "headMinMm": 32, "headMaxMm": 36, "dpi": 300,
+      "source": "https://www.axa-schengen.com/en/visa/requirements/documents/photo-requirements",
+      "note": "EU Visa Code + ICAO. White background safest (light grey also accepted). Face fills 70–80% of height."
+    },
+    {
+      "id": "uk-passport",
+      "label": "UK Passport — 35×45 mm",
+      "widthMm": 35, "heightMm": 45, "widthPx": 413, "heightPx": 531,
+      "background": "#d3d3d3", "headMinMm": 29, "headMaxMm": 34, "dpi": 300,
+      "source": "https://www.gov.uk/photos-for-passports",
+      "note": "Plain light-grey or cream background (NOT pure white). Head+shoulders fill 65–75% of frame."
+    },
+    {
+      "id": "australia-passport",
+      "label": "Australia Passport — 35×45 mm",
+      "widthMm": 35, "heightMm": 45, "widthPx": 413, "heightPx": 531,
+      "background": "#d3d3d3", "headMinMm": 32, "headMaxMm": 36, "dpi": 300,
+      "source": "https://www.passports.gov.au/help/passport-photos",
+      "note": "Neutral or light-grey background contrasting with face. Shadowless, even lighting."
+    },
+    {
+      "id": "india-passport",
+      "label": "India Passport — 35×45 mm",
+      "widthMm": 35, "heightMm": 45, "widthPx": 413, "heightPx": 531,
+      "background": "#ffffff", "headMinMm": 36, "headMaxMm": 38, "dpi": 300,
+      "source": "https://www.passportindia.gov.in/AppOnlineProject/onlineHome",
+      "note": "Plain white background, large head height (36–38 mm), uniform lighting, no shadows."
+    },
+    {
+      "id": "ca-passport-50x70",
+      "label": "Canada Passport — 50×70 mm",
+      "widthMm": 50, "heightMm": 70, "widthPx": 591, "heightPx": 827,
+      "background": "#ffffff", "headMinMm": 31, "headMaxMm": 36, "dpi": 300,
+      "source": "https://www.canada.ca/en/immigration-refugees-citizenship/services/canadian-passports/photos.html",
+      "note": "Plain white background, chin-to-crown 31–36 mm. IRCC states mm + head size but not print DPI; 591×827 is the 300-DPI derivation."
+    }
+  ],
+  "printSheet": {
+    "_note": "4×6 in photo paper @ 300 DPI for tiling multiple copies.",
+    "widthPx": 1200, "heightPx": 1800, "marginPx": 30, "gapPx": 20
+  }
+}

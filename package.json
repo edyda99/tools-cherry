@@ -1,0 +1,13 @@
+{
+  "name": "utility-portfolio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Portfolio of free client-side web utilities. Tool #1: state paycheck calculators.",
+  "scripts": {
+    "build": "node build.js",
+    "test": "node scripts/test-engine.js && node scripts/test-canvas.js && node scripts/check-freshness.js",
+    "dev": "npm run build && npx --yes serve dist",
+    "deploy": "npm run build && npx --yes wrangler pages deploy dist --project-name=tools-cherry"
+  }
+}

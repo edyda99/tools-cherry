@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{SITE_NAME}} — Free Online Calculators &amp; Tools</title>
+<meta name="description" content="Free online tools: state-by-state paycheck calculators and more. No signup, no download — runs in your browser.">
+<link rel="canonical" href="{{SITE_URL}}/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav><a href="#tools">Tools</a> <a href="#paycheck">Paycheck Calculators</a></nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <h1>Free online calculators &amp; tools</h1>
+    <p class="lede">Fast, free, no signup. Everything runs in your browser.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section id="tools">
+      <h2>Tools</h2>
+      <div class="state-grid">
+        <a href="/invoice-generator/">Invoice Generator (PDF)</a>
+        <a href="/qr-code-generator/">QR Code Generator</a>
+        <a href="/crop-image-into-circle/">Crop Image Into a Circle</a>
+        <a href="/passport-photo-maker/">Passport &amp; ID Photo Maker</a>
+      </div>
+    </section>
+
+    <section id="paycheck">
+      <h2>{{YEAR}} Paycheck Calculators by State</h2>
+      <p class="lede">See your take-home pay after federal tax, FICA, and state income tax.</p>
+      <div class="state-grid">{{STATE_LINKS}}</div>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools. Tax estimates only, not advice.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+</body>
+</html>

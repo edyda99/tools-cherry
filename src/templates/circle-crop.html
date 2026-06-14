@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crop Image Into a Circle — Free Online Circle Crop (Transparent PNG)</title>
+<meta name="description" content="Free tool to crop any image into a circle and download a transparent PNG. Drag to position, scroll or slide to zoom. No signup — runs entirely in your browser.">
+<link rel="canonical" href="{{SITE_URL}}/crop-image-into-circle/">
+<meta property="og:title" content="Crop Image Into a Circle — Free, Transparent PNG">
+<meta property="og:description" content="Crop any photo into a circle and download a transparent PNG. Free, in your browser.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Circle Image Cropper","applicationCategory":"MultimediaApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Crop an image into a circle and download a transparent PNG, in your browser."}</script>
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <h1>Crop Image Into a Circle</h1>
+    <p class="lede">Upload an image, drag to position and zoom, then download a transparent circular PNG — great for profile pictures and avatars. Everything happens in your browser; nothing is uploaded.</p>
+
+    <div class="calc">
+      <div>
+        <label id="drop" class="dropzone" for="file">
+          <input id="file" type="file" accept="image/*" hidden>
+          <span id="dropText">Click to choose an image, or drop one here</span>
+        </label>
+        <div class="field" style="margin-top:14px">
+          <label for="zoom">Zoom</label>
+          <input id="zoom" type="range" min="1" max="5" step="0.01" value="1" style="width:100%">
+        </div>
+        <div class="field">
+          <label for="outSize">Output size (px)</label>
+          <select id="outSize"><option>256</option><option selected>512</option><option>1024</option></select>
+        </div>
+      </div>
+
+      <div class="results" style="text-align:center">
+        <div class="editor-wrap"><canvas id="editor" width="512" height="512"></canvas></div>
+        <p class="muted-small" id="status" style="margin-top:10px">Choose an image to begin.</p>
+        <button type="button" id="download" class="btn-primary" disabled>Download PNG</button>
+      </div>
+    </div>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to crop a picture into a circle</h2>
+      <p>Choose an image, then drag it inside the circle to reposition and use the zoom slider (or scroll wheel) to scale it. Pick your output size and download — the corners outside the circle are transparent, so it drops cleanly onto any background. The result is a PNG, which keeps that transparency; JPEG cannot.</p>
+      <p class="note">Your image never leaves your device — cropping is done entirely in your browser.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/circle-crop.js"></script>
+</body>
+</html>

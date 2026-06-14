@@ -1,0 +1,30 @@
+# Weekly tax-data monitor. When this workflow FAILS, GitHub emails the repo owner
+# (Settings → Notifications → Actions: "failed workflows only" is on by default) —
+# that failure email IS the alert. No SMTP/keys needed; free on GitHub-hosted runners.
+#
+# It fails (= emails you) when EITHER:
+#   - the dataset is for a past tax year (check-freshness.js), or
+#   - next year's official figures appear published (check-sources.js).
+name: Tax data monitor
+
+on:
+  schedule:
+    - cron: '0 13 * * 1'   # Mondays 13:00 UTC
+  workflow_dispatch: {}     # allow manual runs from the Actions tab
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # Pure-Node scripts, no dependencies to install.
+      - name: Year-rollover freshness check
+        run: node scripts/check-freshness.js
+      - name: Next-year figures published check
+        run: node scripts/check-sources.js
