@@ -1,7 +1,7 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "qr-code-generator",
+  "lastTool": "crop-image-into-circle",
   "history": [
     {
       "date": "2026-06-16",
@@ -44,6 +44,13 @@
       "competitors": ["photogov.net", "passportphotosnap.com", "pixconvert.com"],
       "shipped": "Compliance-style head-position guide. Replaced the single averaged oval with the actual allowed head-height band: a crown line, a shaded chin band spanning the spec's headMin–headMax mm, crown/chin labels, plus a post-upload instruction stating the required head-height range. No new deps; SVG-only (no face detection, no fabricated specs). Competitors (PhotoGov, Pic4Pass, PersoFoto) all sell head-position compliance feedback we lacked; AI background removal was deliberately skipped as too heavy for a micro-commit.",
       "commit": "f605d54"
+    },
+    {
+      "date": "2026-06-16",
+      "tool": "crop-image-into-circle",
+      "competitors": ["fotor.com", "watermarkly.com", "circlecropimage.com"],
+      "shipped": "Background fill option (toggle + color picker). When enabled, the transparent area behind the crop is filled with a solid color; for the circle shape only the inner disc is filled so the corners stay transparent (PNG alpha preserved). Implemented in the shared CanvasEditor _drawTo so preview and exported PNG match at any output size. Fotor offers PNG-transparent vs solid-fill output; this closes that gap and is the prerequisite for a future JPG export.",
+      "commit": "72ad0d4"
     }
   ],
   "backlog": {
@@ -58,8 +65,7 @@
       "Quiet-zone/margin toggle for tighter embedding"
     ],
     "crop-image-into-circle": [
-      "Background fill option — let user pick a solid background color instead of transparency (Fotor offers PNG-transparent vs JPG-white)",
-      "JPG output option alongside PNG (Fotor) — needs a forced background fill since JPG has no alpha",
+      "JPG output option alongside PNG (Fotor) — needs a forced background fill since JPG has no alpha (background fill now shipped, so this is unblocked)",
       "Padding/margin around the circle so the ring/avatar isn't flush to the edges",
       "Rotate / straighten the image before cropping (Watermarkly)",
       "Batch mode — crop multiple images to circles at once (Watermarkly, imagy)"

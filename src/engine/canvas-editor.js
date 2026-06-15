@@ -71,14 +71,27 @@ export class CanvasEditor {
   // Draw image (and optional bg / circle clip) into an arbitrary 2d context sized cw×ch.
   _drawTo(ctx, cw, ch) {
     ctx.clearRect(0, 0, cw, ch);
-    if (this.background) { ctx.fillStyle = this.background; ctx.fillRect(0, 0, cw, ch); }
-    if (!this.img) return;
     // Resolution-independent border thickness (fraction of the circle radius).
     const drawBorder = this.shape === 'circle' && this.borderColor && this.borderWidth > 0;
     const outerR = Math.min(cw, ch) / 2;
     const stroke = drawBorder ? outerR * this.borderWidth : 0;
     const inset = stroke; // image is clipped inside the ring so the border isn't drawn over
     const innerR = outerR - inset;
+    // Background fill: for a circle, fill only the (inner) disc so the corners
+    // stay transparent; for a rect, fill the whole box.
+    if (this.background) {
+      ctx.save();
+      ctx.fillStyle = this.background;
+      if (this.shape === 'circle') {
+        ctx.beginPath();
+        ctx.arc(cw / 2, ch / 2, Math.max(0, innerR), 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillRect(0, 0, cw, ch);
+      }
+      ctx.restore();
+    }
+    if (!this.img) return;
     ctx.save();
     if (this.shape === 'circle') {
       ctx.beginPath();

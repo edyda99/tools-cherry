@@ -37,6 +37,10 @@ function download() {
   });
 }
 
+function applyBackground() {
+  editor.setBackground($('bgOn').checked ? $('bgColor').value : null);
+}
+
 function applyBorder() {
   const on = $('borderOn').checked;
   const color = on ? $('borderColor').value : null;
@@ -52,6 +56,12 @@ function init() {
   $('zoom').addEventListener('input', (e) => editor.setZoom(parseFloat(e.target.value)));
   $('outSize').addEventListener('change', () => {});
   $('download').addEventListener('click', download);
+
+  $('bgOn').addEventListener('change', (e) => {
+    $('bgControls').hidden = !e.target.checked;
+    applyBackground();
+  });
+  $('bgColor').addEventListener('input', applyBackground);
 
   $('borderOn').addEventListener('change', (e) => {
     $('borderControls').hidden = !e.target.checked;

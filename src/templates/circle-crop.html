@@ -41,6 +41,13 @@
           <select id="outSize"><option>256</option><option selected>512</option><option>1024</option></select>
         </div>
         <div class="field">
+          <label for="bgOn"><input id="bgOn" type="checkbox"> Fill background (solid color instead of transparent)</label>
+        </div>
+        <div class="field" id="bgControls" hidden>
+          <label for="bgColor">Background color</label>
+          <input id="bgColor" type="color" value="#ffffff">
+        </div>
+        <div class="field">
           <label for="borderOn"><input id="borderOn" type="checkbox"> Add a circular border</label>
         </div>
         <div class="field" id="borderControls" hidden>
