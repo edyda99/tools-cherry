@@ -29,7 +29,7 @@
       "tool": "passport-photo-maker",
       "competitors": ["photogov.net", "passportphotosnap.com", "pixconvert.com"],
       "shipped": "Compliance-style head-position guide. Replaced the single averaged oval with the actual allowed head-height band: a crown line, a shaded chin band spanning the spec's headMin–headMax mm, crown/chin labels, plus a post-upload instruction stating the required head-height range. No new deps; SVG-only (no face detection, no fabricated specs). Competitors (PhotoGov, Pic4Pass, PersoFoto) all sell head-position compliance feedback we lacked; AI background removal was deliberately skipped as too heavy for a micro-commit.",
-      "commit": "9244062"
+      "commit": "f605d54"
     }
   ],
   "backlog": {
