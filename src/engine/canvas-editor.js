@@ -9,6 +9,8 @@ export class CanvasEditor {
     this.ctx = canvas.getContext('2d');
     this.shape = opts.shape || 'rect'; // 'rect' | 'circle'
     this.background = opts.background || null; // CSS color or null (transparent)
+    this.borderColor = opts.borderColor || null; // CSS color or null (no border)
+    this.borderWidth = opts.borderWidth || 0; // fraction of radius (0..0.5), circle only
     this.img = null;
     this.zoom = 1;
     this.panNX = 0.5;
@@ -45,6 +47,12 @@ export class CanvasEditor {
 
   setShape(shape) { this.shape = shape; this.render(); return this; }
   setBackground(bg) { this.background = bg; this.render(); return this; }
+  setBorder(color, width) {
+    this.borderColor = color || null;
+    if (width != null) this.borderWidth = Math.max(0, Math.min(0.5, width));
+    this.render();
+    return this;
+  }
 
   setZoom(z) { this.zoom = Math.max(1, Math.min(8, z || 1)); this.render(); this._emit('change'); return this; }
   zoomBy(mult) { return this.setZoom(this.zoom * mult); }
@@ -65,15 +73,36 @@ export class CanvasEditor {
     ctx.clearRect(0, 0, cw, ch);
     if (this.background) { ctx.fillStyle = this.background; ctx.fillRect(0, 0, cw, ch); }
     if (!this.img) return;
+    // Resolution-independent border thickness (fraction of the circle radius).
+    const drawBorder = this.shape === 'circle' && this.borderColor && this.borderWidth > 0;
+    const outerR = Math.min(cw, ch) / 2;
+    const stroke = drawBorder ? outerR * this.borderWidth : 0;
+    const inset = stroke; // image is clipped inside the ring so the border isn't drawn over
+    const innerR = outerR - inset;
     ctx.save();
     if (this.shape === 'circle') {
       ctx.beginPath();
-      ctx.arc(cw / 2, ch / 2, Math.min(cw, ch) / 2, 0, Math.PI * 2);
+      ctx.arc(cw / 2, ch / 2, Math.max(0, innerR), 0, Math.PI * 2);
       ctx.clip();
     }
-    const p = placement(this.img.width, this.img.height, cw, ch, this.zoom, this.panNX, this.panNY);
-    ctx.drawImage(this.img, p.offX, p.offY, p.dw, p.dh);
+    const ibox = inset; // shrink the image box by the inset on each side
+    const p = placement(
+      this.img.width, this.img.height,
+      Math.max(1, cw - 2 * ibox), Math.max(1, ch - 2 * ibox),
+      this.zoom, this.panNX, this.panNY
+    );
+    ctx.drawImage(this.img, ibox + p.offX, ibox + p.offY, p.dw, p.dh);
     ctx.restore();
+    if (drawBorder) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.lineWidth = stroke;
+      ctx.strokeStyle = this.borderColor;
+      // stroke is centered on the path, so place it at outerR - stroke/2 to stay inside the canvas
+      ctx.arc(cw / 2, ch / 2, outerR - stroke / 2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   render() { this._drawTo(this.ctx, this.canvas.width, this.canvas.height); }

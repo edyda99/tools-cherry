@@ -1,7 +1,7 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "qr-code-generator",
+  "lastTool": "crop-image-into-circle",
   "history": [
     {
       "date": "2026-06-16",
@@ -16,6 +16,13 @@
       "competitors": ["qrcode-tiger.com", "qrcode-monkey.com", "imqrscan.com"],
       "shipped": "Foreground/background color pickers (HTML color inputs). Applied to the canvas render, the preview holder background, and the SVG export. Color customization was the universal feature every competitor had and we lacked.",
       "commit": "pending"
+    },
+    {
+      "date": "2026-06-16",
+      "tool": "crop-image-into-circle",
+      "competitors": ["watermarkly.com", "fotor.com", "imagy.app", "circlecropimage.com"],
+      "shipped": "Optional circular border/ring (toggle + color picker + thickness slider). Implemented in the shared CanvasEditor (_drawTo): thickness is a fraction of the radius so preview and exported PNG match at any output size; the image is clipped inside the ring. Avatar-style borders were a common competitor feature (Watermarkly et al.) we lacked.",
+      "commit": "008a5f1"
     }
   ],
   "backlog": {
@@ -31,7 +38,13 @@
       "More payload types: email, SMS, phone, plain text (goQR/qr-code-generator support these)",
       "Quiet-zone/margin toggle for tighter embedding"
     ],
-    "crop-image-into-circle": [],
+    "crop-image-into-circle": [
+      "Background fill option — let user pick a solid background color instead of transparency (Fotor offers PNG-transparent vs JPG-white)",
+      "JPG output option alongside PNG (Fotor) — needs a forced background fill since JPG has no alpha",
+      "Padding/margin around the circle so the ring/avatar isn't flush to the edges",
+      "Rotate / straighten the image before cropping (Watermarkly)",
+      "Batch mode — crop multiple images to circles at once (Watermarkly, imagy)"
+    ],
     "passport-photo-maker": []
   }
 }

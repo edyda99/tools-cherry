@@ -37,6 +37,13 @@ function download() {
   });
 }
 
+function applyBorder() {
+  const on = $('borderOn').checked;
+  const color = on ? $('borderColor').value : null;
+  const width = on ? (parseInt($('borderWidth').value, 10) || 6) / 100 : 0;
+  editor.setBorder(color, width);
+}
+
 function init() {
   // keep zoom slider in sync if the user scroll-zooms on the canvas
   editor.on('change', () => { $('zoom').value = String(editor.zoom); });
@@ -45,6 +52,13 @@ function init() {
   $('zoom').addEventListener('input', (e) => editor.setZoom(parseFloat(e.target.value)));
   $('outSize').addEventListener('change', () => {});
   $('download').addEventListener('click', download);
+
+  $('borderOn').addEventListener('change', (e) => {
+    $('borderControls').hidden = !e.target.checked;
+    applyBorder();
+  });
+  $('borderColor').addEventListener('input', applyBorder);
+  $('borderWidth').addEventListener('input', applyBorder);
 
   const drop = $('drop');
   ['dragenter', 'dragover'].forEach((ev) =>

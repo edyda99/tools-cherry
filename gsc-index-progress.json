@@ -1,0 +1,40 @@
+{
+  "property": "sc-domain:tools-berry.com",
+  "browserDeviceId": "d1d17e90-bba3-43e8-93aa-b4e0ec54c0b5",
+  "account": "edydaherz@gmail.com",
+  "perDayLimit": 10,
+  "note": "Local-only progress tracker for the GSC Request-Indexing loop. Loop requests up to perDayLimit pending URLs per day, marks them done, stops when queue empty. status: pending | requested | quota-blocked-retry",
+  "alreadyDoneBeforeLoop": [
+    "https://tools-berry.com/",
+    "https://tools-berry.com/texas-paycheck-calculator/",
+    "https://tools-berry.com/florida-paycheck-calculator/",
+    "https://tools-berry.com/invoice-generator/",
+    "https://tools-berry.com/qr-code-generator/",
+    "https://tools-berry.com/passport-photo-maker/",
+    "https://tools-berry.com/crop-image-into-circle/"
+  ],
+  "queue": [
+    { "url": "https://tools-berry.com/pennsylvania-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/illinois-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/georgia-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/north-carolina-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/michigan-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/washington-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/arizona-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/massachusetts-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/tennessee-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/indiana-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/colorado-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/louisiana-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/kentucky-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/utah-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/iowa-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/nevada-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/mississippi-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/idaho-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/new-hampshire-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/south-dakota-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/alaska-paycheck-calculator/", "status": "pending", "requestedOn": null },
+    { "url": "https://tools-berry.com/wyoming-paycheck-calculator/", "status": "pending", "requestedOn": null }
+  ]
+}
