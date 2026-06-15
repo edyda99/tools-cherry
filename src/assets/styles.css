@@ -68,6 +68,9 @@ h2 { font-size: 20px; margin: 32px 0 12px; }
 }
 .field .inline { display: flex; gap: 10px; }
 .field .inline > * { flex: 1; }
+.discount-input { display: flex; gap: 8px; }
+.discount-input input { flex: 1; }
+.discount-input select { width: auto; flex: 0 0 auto; }
 
 .results { background: var(--surface-2); border-radius: 8px; padding: 20px; }
 .net-big { font-size: 32px; font-weight: 700; color: var(--accent); margin: 0; }

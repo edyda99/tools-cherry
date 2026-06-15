@@ -66,10 +66,15 @@ function readItems() {
 function totals(items) {
   const subtotal = items.reduce((s, i) => s + i.amount, 0);
   const taxRate = parseFloat($('taxRate').value) || 0;
-  const discount = parseFloat($('discount').value) || 0;
+  const discountInput = parseFloat($('discount').value) || 0;
+  const discountType = ($('discountType') && $('discountType').value) || 'amount';
+  // Percent discount is applied to the subtotal (before tax).
+  const discount = discountType === 'percent'
+    ? subtotal * (discountInput / 100)
+    : discountInput;
   const tax = subtotal * (taxRate / 100);
   const total = Math.max(0, subtotal + tax - discount);
-  return { subtotal, taxRate, tax, discount, total };
+  return { subtotal, taxRate, tax, discount, discountType, discountInput, total };
 }
 
 function readModel() {
@@ -113,7 +118,7 @@ function render() {
     `<div class="pv-totals">` +
     `<div class="pv-row"><span>Subtotal</span><span>${money(m.t.subtotal)}</span></div>` +
     (m.t.taxRate ? `<div class="pv-row"><span>Tax (${m.t.taxRate}%)</span><span>${money(m.t.tax)}</span></div>` : '') +
-    (m.t.discount ? `<div class="pv-row"><span>Discount</span><span>−${money(m.t.discount)}</span></div>` : '') +
+    (m.t.discount ? `<div class="pv-row"><span>Discount${m.t.discountType === 'percent' ? ` (${m.t.discountInput}%)` : ''}</span><span>−${money(m.t.discount)}</span></div>` : '') +
     `<div class="pv-row grand"><span>Total</span><span>${money(m.t.total)}</span></div></div>` +
     (m.notes ? `<div class="pv-notes">${esc(m.notes)}</div>` : '');
 }
@@ -211,7 +216,7 @@ function downloadPdf() {
   };
   line('Subtotal', money(m.t.subtotal));
   if (m.t.taxRate) line(`Tax (${m.t.taxRate}%)`, money(m.t.tax));
-  if (m.t.discount) line('Discount', '-' + money(m.t.discount));
+  if (m.t.discount) line(m.t.discountType === 'percent' ? `Discount (${m.t.discountInput}%)` : 'Discount', '-' + money(m.t.discount));
   doc.setDrawColor(30).setLineWidth(1).line(tx, y - 4, W - M, y - 4);
   y += 8;
   line('Total', money(m.t.total), true);
@@ -242,8 +247,9 @@ function init() {
   items.appendChild(itemRow('Hosting (monthly)', '1', '25'));
 
   $('addItem').addEventListener('click', () => { items.appendChild(itemRow()); render(); });
-  ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'invNo', 'currency', 'invDate', 'dueDate', 'taxRate', 'discount', 'notes']
+  ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'invNo', 'currency', 'invDate', 'dueDate', 'taxRate', 'discount', 'discountType', 'notes']
     .forEach((id) => $(id).addEventListener('input', render));
+  $('discountType').addEventListener('change', render);
   $('downloadPdf').addEventListener('click', downloadPdf);
   $('logo').addEventListener('change', (e) => loadLogo(e.target.files[0]));
   $('removeLogo').addEventListener('click', () => {

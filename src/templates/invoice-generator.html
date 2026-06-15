@@ -66,7 +66,15 @@ City, ST 00000</textarea></div>
         <h2>Totals</h2>
         <div class="field inline">
           <span><label for="taxRate">Tax %</label><input id="taxRate" type="number" min="0" step="any" value="0"></span>
-          <span><label for="discount">Discount (amount)</label><input id="discount" type="number" min="0" step="any" value="0"></span>
+          <span><label for="discount">Discount</label>
+            <span class="discount-input">
+              <input id="discount" type="number" min="0" step="any" value="0">
+              <select id="discountType" aria-label="Discount type">
+                <option value="amount">amount</option>
+                <option value="percent">%</option>
+              </select>
+            </span>
+          </span>
         </div>
         <div class="field"><label for="notes">Notes / payment terms</label><textarea id="notes" rows="2">Payment due within 30 days. Thank you for your business.</textarea></div>
       </form>
