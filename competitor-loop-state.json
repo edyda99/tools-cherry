@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "passport-photo-maker",
+  "lastTool": "invoice-generator",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "invoice-generator",
+      "competitors": ["invoice-generator.com", "zoho.com/invoice", "invoicesimple.com"],
+      "shipped": "Percentage discount option. The discount field now has a type selector (amount | %); a percent discount is applied to the subtotal pre-tax, and the percent is labelled in both the live preview and the PDF totals. Closes the amount-only gap competitors don't have.",
+      "commit": "af214a4"
+    },
     {
       "date": "2026-06-16",
       "tool": "invoice-generator",
@@ -36,7 +43,6 @@
     "invoice-generator": [
       "Accent/brand color picker (SmoothLedger) — recolor PDF headings + totals rule",
       "Shipping cost line (Flowlu) — separate from tax/discount in totals",
-      "Percentage discount option (currently amount-only)",
       "Save/restore invoice to localStorage so a refresh doesn't lose work"
     ],
     "qr-code-generator": [
