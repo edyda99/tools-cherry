@@ -36,21 +36,42 @@ function applySpec(spec) {
     `<a href="${spec.source}" target="_blank" rel="noopener nofollow">official rules</a>. ${spec.note}`;
 }
 
-// Oval head-position guide sized from the spec's chin-to-crown range.
+// Head-position guide sized from the spec's chin-to-crown range.
+// Draws the allowed head-height BAND (crown range at top, chin range at bottom)
+// plus an averaged oval, so the user can size the head to land inside the band.
 function drawGuide(spec) {
   const svg = $('guide');
-  svg.setAttribute('viewBox', `0 0 ${spec.widthPx} ${spec.heightPx}`);
+  const W = spec.widthPx, H = spec.heightPx;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const cx = W / 2;
+  const topMargin = H * 0.08;                            // crown of a max-height head sits here
+  // px positions of the chin for the smallest and largest allowed head heights
+  const chinMin = topMargin + (spec.headMinMm / spec.heightMm) * H; // smallest head -> highest chin
+  const chinMax = topMargin + (spec.headMaxMm / spec.heightMm) * H; // largest head -> lowest chin
   const headMidMm = (spec.headMinMm + spec.headMaxMm) / 2;
-  const headFrac = headMidMm / spec.heightMm;          // fraction of photo height
-  const ovalH = headFrac * spec.heightPx;
-  const ovalW = ovalH * 0.74;                           // typical head width:height
-  const cx = spec.widthPx / 2;
-  const topMargin = spec.heightPx * 0.08;               // crown near top
+  const ovalH = (headMidMm / spec.heightMm) * H;
+  const ovalW = ovalH * 0.74;                            // typical head width:height
   const cy = topMargin + ovalH / 2;
+  const c = '#2ea043';
+  const label = (y, txt, anchor) =>
+    `<text x="${anchor === 'top' ? W - 8 : W - 8}" y="${y}" text-anchor="end" ` +
+    `font-family="system-ui,sans-serif" font-size="${Math.round(H * 0.035)}" ` +
+    `fill="${c}" opacity="0.9" dominant-baseline="${anchor === 'top' ? 'hanging' : 'auto'}">${txt}</text>`;
   svg.innerHTML =
+    // shaded allowed band for the chin line
+    `<rect x="0" y="${chinMin}" width="${W}" height="${chinMax - chinMin}" fill="${c}" opacity="0.10"/>` +
+    // crown line (top of head)
+    `<line x1="0" y1="${topMargin}" x2="${W}" y2="${topMargin}" stroke="${c}" stroke-width="2" stroke-dasharray="8 6" opacity="0.8"/>` +
+    // chin band edges
+    `<line x1="0" y1="${chinMin}" x2="${W}" y2="${chinMin}" stroke="${c}" stroke-width="2" stroke-dasharray="8 6" opacity="0.8"/>` +
+    `<line x1="0" y1="${chinMax}" x2="${W}" y2="${chinMax}" stroke="${c}" stroke-width="2" stroke-dasharray="8 6" opacity="0.8"/>` +
+    // averaged head oval
     `<ellipse cx="${cx}" cy="${cy}" rx="${ovalW / 2}" ry="${ovalH / 2}" ` +
-    `fill="none" stroke="#2ea043" stroke-width="3" stroke-dasharray="10 8" opacity="0.85"/>` +
-    `<line x1="${cx}" y1="0" x2="${cx}" y2="${spec.heightPx}" stroke="#2ea043" stroke-width="1" opacity="0.35"/>`;
+    `fill="none" stroke="${c}" stroke-width="3" stroke-dasharray="10 8" opacity="0.85"/>` +
+    // vertical centre line
+    `<line x1="${cx}" y1="0" x2="${cx}" y2="${H}" stroke="${c}" stroke-width="1" opacity="0.35"/>` +
+    label(topMargin + 4, 'crown', 'top') +
+    label((chinMin + chinMax) / 2 + 4, 'chin', 'bottom');
 }
 
 async function handleFile(file) {
@@ -61,7 +82,9 @@ async function handleFile(file) {
     $('dlPhoto').disabled = false;
     $('dlSheet').disabled = false;
     $('dropText').textContent = `Loaded: ${file.name}`;
-    $('status').textContent = 'Drag to position the head in the guide · scroll or slide to zoom';
+    $('status').textContent =
+      `Zoom so the crown touches the top line and the chin sits in the shaded band ` +
+      `(head height ${current.headMinMm}–${current.headMaxMm} mm).`;
   } catch (e) {
     $('status').textContent = 'Could not load that file — please choose a valid image.';
   }

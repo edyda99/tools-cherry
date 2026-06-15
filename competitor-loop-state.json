@@ -1,7 +1,7 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "crop-image-into-circle",
+  "lastTool": "passport-photo-maker",
   "history": [
     {
       "date": "2026-06-16",
@@ -23,6 +23,13 @@
       "competitors": ["watermarkly.com", "fotor.com", "imagy.app", "circlecropimage.com"],
       "shipped": "Optional circular border/ring (toggle + color picker + thickness slider). Implemented in the shared CanvasEditor (_drawTo): thickness is a fraction of the radius so preview and exported PNG match at any output size; the image is clipped inside the ring. Avatar-style borders were a common competitor feature (Watermarkly et al.) we lacked.",
       "commit": "2037bc5"
+    },
+    {
+      "date": "2026-06-16",
+      "tool": "passport-photo-maker",
+      "competitors": ["photogov.net", "passportphotosnap.com", "pixconvert.com"],
+      "shipped": "Compliance-style head-position guide. Replaced the single averaged oval with the actual allowed head-height band: a crown line, a shaded chin band spanning the spec's headMin–headMax mm, crown/chin labels, plus a post-upload instruction stating the required head-height range. No new deps; SVG-only (no face detection, no fabricated specs). Competitors (PhotoGov, Pic4Pass, PersoFoto) all sell head-position compliance feedback we lacked; AI background removal was deliberately skipped as too heavy for a micro-commit.",
+      "commit": "9244062"
     }
   ],
   "backlog": {
@@ -45,6 +52,12 @@
       "Rotate / straighten the image before cropping (Watermarkly)",
       "Batch mode — crop multiple images to circles at once (Watermarkly, imagy)"
     ],
-    "passport-photo-maker": []
+    "passport-photo-maker": [
+      "Background readiness hint — sample corner pixels and warn if the background is dark/busy vs the spec's required white/grey (no AI, just pixel stats)",
+      "AI/WASM background removal to white — heavy (in-browser model); the high-value but expensive parity feature (PhotoGov, Passport Photo Snap)",
+      "JPG @ 300 DPI export option alongside PNG (PixConvert) — many print kiosks prefer JPG",
+      "More country specs (40+ on PixConvert) — only add with authoritative government sources; escalate conflicts per data rule",
+      "Grid-line / cut-guide preview before downloading the 4x6 sheet"
+    ]
   }
 }
