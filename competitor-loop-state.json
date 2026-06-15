@@ -29,7 +29,7 @@
       "tool": "qr-code-generator",
       "competitors": ["the-qrcode-generator.com", "qr-code-generator.com", "qrdex.io"],
       "shipped": "Four new payload types: Email (mailto: with subject/body), SMS (SMSTO:number:message), Phone (tel:), and Plain text. Added options to the type selector, dedicated input groups in the template, and encoders in buildPayload(); also widened the input listener to cover textareas so the new multiline fields trigger live re-render. Email/SMS/phone/text are universal across competitors (QR Dex, the-qrcode-generator) and were our biggest payload-type gap.",
-      "commit": "d56bc99"
+      "commit": "79fe8ac"
     },
     {
       "date": "2026-06-16",
