@@ -39,6 +39,26 @@ function buildPayload() {
     lines.push('END:VCARD');
     return lines.join('\n');
   }
+  if (type === 'email') {
+    const to = String($('emTo').value || '').trim();
+    const params = [];
+    if ($('emSubject').value) params.push('subject=' + encodeURIComponent($('emSubject').value));
+    if ($('emBody').value) params.push('body=' + encodeURIComponent($('emBody').value));
+    return 'mailto:' + encodeURIComponent(to).replace(/%40/g, '@') + (params.length ? '?' + params.join('&') : '');
+  }
+  if (type === 'sms') {
+    // SMSTO:<number>:<message> — widely supported by phone cameras.
+    const num = String($('smsTo').value || '').replace(/[^\d+]/g, '');
+    const body = String($('smsBody').value || '');
+    return body ? `SMSTO:${num}:${body}` : `SMSTO:${num}:`;
+  }
+  if (type === 'phone') {
+    const num = String($('phoneNum').value || '').replace(/[^\d+]/g, '');
+    return num ? 'tel:' + num : '';
+  }
+  if (type === 'text') {
+    return $('textBody').value || '';
+  }
   return $('urlText').value || '';
 }
 
@@ -140,7 +160,7 @@ function syncGroups() {
 
 function init() {
   $('qrType').addEventListener('change', () => { syncGroups(); render(); });
-  document.querySelectorAll('#qrForm input, #qrForm select').forEach((el) =>
+  document.querySelectorAll('#qrForm input, #qrForm select, #qrForm textarea').forEach((el) =>
     el.addEventListener('input', render)
   );
   $('dlPng').addEventListener('click', downloadPng);

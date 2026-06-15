@@ -34,6 +34,10 @@
             <option value="url">Link / Text</option>
             <option value="wifi">WiFi network</option>
             <option value="vcard">Contact card (vCard)</option>
+            <option value="email">Email</option>
+            <option value="sms">SMS message</option>
+            <option value="phone">Phone number</option>
+            <option value="text">Plain text</option>
           </select>
         </div>
 
@@ -64,6 +68,25 @@
           <div class="field"><label for="vcPhone">Phone</label><input id="vcPhone" placeholder="+1 555 0100"></div>
           <div class="field"><label for="vcEmail">Email</label><input id="vcEmail" placeholder="jane@acme.com"></div>
           <div class="field"><label for="vcUrl">Website</label><input id="vcUrl" placeholder="https://acme.com"></div>
+        </div>
+
+        <div data-group="email" hidden>
+          <div class="field"><label for="emTo">To (email address)</label><input id="emTo" placeholder="jane@acme.com"></div>
+          <div class="field"><label for="emSubject">Subject</label><input id="emSubject" placeholder="Hello"></div>
+          <div class="field"><label for="emBody">Message</label><textarea id="emBody" rows="3" placeholder="Your message"></textarea></div>
+        </div>
+
+        <div data-group="sms" hidden>
+          <div class="field"><label for="smsTo">Phone number</label><input id="smsTo" placeholder="+1 555 0100"></div>
+          <div class="field"><label for="smsBody">Message</label><textarea id="smsBody" rows="3" placeholder="Pre-filled text"></textarea></div>
+        </div>
+
+        <div data-group="phone" hidden>
+          <div class="field"><label for="phoneNum">Phone number</label><input id="phoneNum" placeholder="+1 555 0100"></div>
+        </div>
+
+        <div data-group="text" hidden>
+          <div class="field"><label for="textBody">Text</label><textarea id="textBody" rows="3" placeholder="Any text to encode"></textarea></div>
         </div>
 
         <div class="field inline">
