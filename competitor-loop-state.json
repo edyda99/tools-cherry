@@ -50,7 +50,7 @@
       "tool": "crop-image-into-circle",
       "competitors": ["fotor.com", "watermarkly.com", "circlecropimage.com"],
       "shipped": "Background fill option (toggle + color picker). When enabled, the transparent area behind the crop is filled with a solid color; for the circle shape only the inner disc is filled so the corners stay transparent (PNG alpha preserved). Implemented in the shared CanvasEditor _drawTo so preview and exported PNG match at any output size. Fotor offers PNG-transparent vs solid-fill output; this closes that gap and is the prerequisite for a future JPG export.",
-      "commit": "72ad0d4"
+      "commit": "8d89181"
     }
   ],
   "backlog": {
