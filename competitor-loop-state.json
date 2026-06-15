@@ -1,13 +1,20 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "invoice-generator",
+  "lastTool": "qr-code-generator",
   "history": [
     {
       "date": "2026-06-16",
       "tool": "invoice-generator",
       "competitors": ["flowlu.com", "smoothledger.com", "boldsign.com"],
       "shipped": "Optional logo upload (PNG/JPG) — client-side FileReader, shown in live preview and embedded in the PDF header via jsPDF addImage. Competitor parity (logo/branding was the most common feature we lacked).",
+      "commit": "ed295d0"
+    },
+    {
+      "date": "2026-06-16",
+      "tool": "qr-code-generator",
+      "competitors": ["qrcode-tiger.com", "qrcode-monkey.com", "imqrscan.com"],
+      "shipped": "Foreground/background color pickers (HTML color inputs). Applied to the canvas render, the preview holder background, and the SVG export. Color customization was the universal feature every competitor had and we lacked.",
       "commit": "pending"
     }
   ],
@@ -18,7 +25,12 @@
       "Percentage discount option (currently amount-only)",
       "Save/restore invoice to localStorage so a refresh doesn't lose work"
     ],
-    "qr-code-generator": [],
+    "qr-code-generator": [
+      "Center logo overlay (QRCode Monkey) — needs forced High ECC + center clearing",
+      "Low-contrast warning when fg/bg are too close (scannability guard)",
+      "More payload types: email, SMS, phone, plain text (goQR/qr-code-generator support these)",
+      "Quiet-zone/margin toggle for tighter embedding"
+    ],
     "crop-image-into-circle": [],
     "passport-photo-maker": []
   }

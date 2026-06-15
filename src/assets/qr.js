@@ -74,10 +74,13 @@ function render() {
   canvas.width = dim;
   canvas.height = dim;
   canvas.style.width = canvas.style.height = '256px';
+  const fg = $('qrFg').value || '#000000';
+  const bg = $('qrBg').value || '#ffffff';
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#fff';
+  $('qrHolder').style.background = bg;
+  ctx.fillStyle = bg;
   ctx.fillRect(0, 0, dim, dim);
-  ctx.fillStyle = '#000';
+  ctx.fillStyle = fg;
   for (let r = 0; r < count; r++) {
     for (let c = 0; c < count; c++) {
       if (modules[r][c]) ctx.fillRect((c + QUIET) * scale, (r + QUIET) * scale, scale, scale);
@@ -96,8 +99,10 @@ function svgString() {
       if (modules[r][c]) rects += `<rect x="${c + QUIET}" y="${r + QUIET}" width="1" height="1"/>`;
     }
   }
+  const fg = $('qrFg').value || '#000000';
+  const bg = $('qrBg').value || '#ffffff';
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${total} ${total}" shape-rendering="crispEdges">` +
-    `<rect width="${total}" height="${total}" fill="#fff"/><g fill="#000">${rects}</g></svg>`;
+    `<rect width="${total}" height="${total}" fill="${bg}"/><g fill="${fg}">${rects}</g></svg>`;
 }
 
 function downloadBlob(blob, filename) {
