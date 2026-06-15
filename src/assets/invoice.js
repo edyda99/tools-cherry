@@ -12,6 +12,25 @@ const CURRENCY = {
   SAR: { symbol: 'SAR ', locale: 'en-US' }
 };
 
+// --- logo (optional, stays in browser) --------------------------------------
+let logo = null; // { data: dataURL, fmt: 'PNG'|'JPEG', w, h }
+
+function loadLogo(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const fmt = /^data:image\/png/.test(reader.result) ? 'PNG' : 'JPEG';
+      logo = { data: reader.result, fmt, w: img.naturalWidth, h: img.naturalHeight };
+      $('removeLogo').hidden = false;
+      render();
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 function curCode() { return $('currency').value || 'USD'; }
 function money(n) {
   const c = CURRENCY[curCode()] || CURRENCY.USD;
@@ -79,7 +98,9 @@ function render() {
     .join('');
 
   $('preview').innerHTML =
-    `<div class="pv-row"><div><h3>${esc(m.biz.name) || 'Your Business'}</h3>` +
+    `<div class="pv-row"><div>` +
+    (logo ? `<img src="${logo.data}" alt="Business logo" style="max-height:48px;max-width:160px;margin-bottom:8px;display:block">` : '') +
+    `<h3>${esc(m.biz.name) || 'Your Business'}</h3>` +
     `<div class="pv-meta">${esc(m.biz.details)}</div></div>` +
     `<div style="text-align:right"><div style="font-size:22px;font-weight:700;color:#111">INVOICE</div>` +
     `<div class="pv-meta">${esc(m.invNo)}</div></div></div>` +
@@ -115,14 +136,26 @@ function downloadPdf() {
   const M = 48; // margin
   let y = M;
 
-  doc.setFont('helvetica', 'bold').setFontSize(22).setTextColor(20);
-  doc.text(m.biz.name || 'Your Business', M, y);
+  // INVOICE title pinned to the top-right
   doc.setFont('helvetica', 'bold').setFontSize(22).setTextColor(20);
   doc.text('INVOICE', W - M, y, { align: 'right' });
+  doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(90);
+  doc.text(m.invNo || '', W - M, y + 16, { align: 'right' });
+
+  // optional logo above the business name on the left
+  if (logo) {
+    const maxW = 140, maxH = 56;
+    const r = Math.min(maxW / logo.w, maxH / logo.h);
+    const lw = logo.w * r, lh = logo.h * r;
+    doc.addImage(logo.data, logo.fmt, M, y, lw, lh);
+    y += lh + 12;
+  }
+
+  doc.setFont('helvetica', 'bold').setFontSize(22).setTextColor(20);
+  doc.text(m.biz.name || 'Your Business', M, y);
   y += 16;
   doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(90);
   doc.text(doc.splitTextToSize(m.biz.details || '', 240), M, y);
-  doc.text(m.invNo || '', W - M, y, { align: 'right' });
 
   y += Math.max(doc.splitTextToSize(m.biz.details || '', 240).length * 12, 24) + 18;
 
@@ -212,6 +245,13 @@ function init() {
   ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'invNo', 'currency', 'invDate', 'dueDate', 'taxRate', 'discount', 'notes']
     .forEach((id) => $(id).addEventListener('input', render));
   $('downloadPdf').addEventListener('click', downloadPdf);
+  $('logo').addEventListener('change', (e) => loadLogo(e.target.files[0]));
+  $('removeLogo').addEventListener('click', () => {
+    logo = null;
+    $('logo').value = '';
+    $('removeLogo').hidden = true;
+    render();
+  });
 
   if (!$('invDate').value) $('invDate').value = isoToday(0);
   if (!$('dueDate').value) $('dueDate').value = isoToday(30);

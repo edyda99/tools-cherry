@@ -1,0 +1,25 @@
+{
+  "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
+  "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
+  "lastTool": "invoice-generator",
+  "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "invoice-generator",
+      "competitors": ["flowlu.com", "smoothledger.com", "boldsign.com"],
+      "shipped": "Optional logo upload (PNG/JPG) — client-side FileReader, shown in live preview and embedded in the PDF header via jsPDF addImage. Competitor parity (logo/branding was the most common feature we lacked).",
+      "commit": "pending"
+    }
+  ],
+  "backlog": {
+    "invoice-generator": [
+      "Accent/brand color picker (SmoothLedger) — recolor PDF headings + totals rule",
+      "Shipping cost line (Flowlu) — separate from tax/discount in totals",
+      "Percentage discount option (currently amount-only)",
+      "Save/restore invoice to localStorage so a refresh doesn't lose work"
+    ],
+    "qr-code-generator": [],
+    "crop-image-into-circle": [],
+    "passport-photo-maker": []
+  }
+}
