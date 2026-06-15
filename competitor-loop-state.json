@@ -22,7 +22,7 @@
       "tool": "crop-image-into-circle",
       "competitors": ["watermarkly.com", "fotor.com", "imagy.app", "circlecropimage.com"],
       "shipped": "Optional circular border/ring (toggle + color picker + thickness slider). Implemented in the shared CanvasEditor (_drawTo): thickness is a fraction of the radius so preview and exported PNG match at any output size; the image is clipped inside the ring. Avatar-style borders were a common competitor feature (Watermarkly et al.) we lacked.",
-      "commit": "008a5f1"
+      "commit": "2037bc5"
     }
   ],
   "backlog": {
