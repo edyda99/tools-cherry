@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "crop-image-into-circle",
+  "lastTool": "passport-photo-maker",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "passport-photo-maker",
+      "competitors": ["passportphotofactory.com", "ishotaphoto.com", "passlens.com", "photogov.net"],
+      "shipped": "Background readiness hint (corner-pixel check). After upload, checkBackground() samples the four corner patches (8% of the shorter side each) of the UPLOADED image via an offscreen canvas, averages each corner, then warns without altering anything when: inter-corner spread > 60 (busy/uneven — shadows, pattern, scenery), mean luminance < 110 (dark), or sum-of-channels distance to the spec background > 150 (wrong colour); otherwise a green 'looks plain and close to required' confirmation. New #bgHint <p> in the template (hidden until an image loads); hint re-runs on document-type change so it re-evaluates against each spec's required background (US white vs UK/AU light grey via hexToRgb(spec.background)). Tainted-canvas/decode errors hide the hint silently. Pure pixel stats — no AI, no background removal: US/UK/CA forbid digitally altering the photo background, so the compliant move is to advise the user to retake, not to remove. Closes the top backlog item and matches the 'validator/checker' feature competitors (PassportPhotoFactory's 15-check validator, iShotaPhoto's 20+ checks, Passlens) sell; background is the most common rejection reason. AI/WASM background removal stays deliberately out of scope (too heavy + non-compliant for US/UK/CA). No new deps; no photo-specs.json changes (no data-sourcing conflict); dist gitignored, rebuilt at deploy.",
+      "commit": "ce331ca"
+    },
     {
       "date": "2026-06-16",
       "tool": "crop-image-into-circle",
@@ -123,11 +130,11 @@
       "Batch mode — crop multiple images to circles at once (Watermarkly, imagy)"
     ],
     "passport-photo-maker": [
-      "Background readiness hint — sample corner pixels and warn if the background is dark/busy vs the spec's required white/grey (no AI, just pixel stats)",
-      "AI/WASM background removal to white — heavy (in-browser model); the high-value but expensive parity feature (PhotoGov, Passport Photo Snap)",
       "Print-ready PDF export of the sheet (PixConvert offers JPG + PDF; we have JPG/PNG only) — jsPDF is already a dep on other tools",
-      "More country specs (40+ on PixConvert) — only add with authoritative government sources; escalate conflicts per data rule",
-      "Grid-line / cut-guide preview overlay before downloading the sheet (cut guides already drawn into the export, but not previewed)"
+      "Grid-line / cut-guide preview overlay before downloading the sheet (cut guides already drawn into the export, but not previewed)",
+      "More country specs (40+ on PixConvert / 60+ elsewhere) — only add with authoritative government sources; escalate conflicts per data rule",
+      "AI/WASM background removal to white — heavy (in-browser model) AND non-compliant for US/UK/CA (digital alteration forbidden); the background readiness HINT (shipped) is the compliant alternative, so this is low priority",
+      "Compliance summary panel — combine the head-height band + background hint into a single pass/fail checklist (parity with PassportPhotoFactory's 15-check / iShotaPhoto's 20+ check validators)"
     ]
   }
 }
