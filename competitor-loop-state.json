@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "crop-image-into-circle",
+  "lastTool": "passport-photo-maker",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "passport-photo-maker",
+      "competitors": ["passlens.com", "photogov.net", "cutout.pro", "media.io", "passportphototools.com"],
+      "shipped": "Fit JPG under 240 KB for US online uploads. Added a 'Fit for US online upload (<=240 KB JPG)' checkbox (#fitOnline inside #fitField) shown ONLY when the Download-format select is JPG (syncFitField() toggles #fitField display on format change + at init). downloadPhoto() now: when JPG + checkbox ticked, binary-searches the JPEG encoder quality via the engine's existing qualityForTargetBytes(measure, targetBytes, {min:0.3,max:0.95}) — measure(q) re-encodes editor.toBlob at quality q and returns blob.size — so the produced file lands at or under ONLINE_JPG_MAX_KB*1024 bytes (240 KB), then downloads at that quality (fitted=true); otherwise keeps the prior fixed-quality export. Reused the ALREADY-TESTED canvas-math helper (test 'qualityForTargetBytes finds size under target' covers it) so no new logic to test; imported it as /assets/canvas-math.js (build.js already copies src/engine/canvas-math.js to dist/assets, and canvas-editor.js imports the same file as ./canvas-math.js, so the module resolves in dist). New reportFileSize(blob, ext, fitted) writes the real measured byte size to a new #sizeHint <p> under the status line: PNG -> neutral 'File size: N KB.'; JPG <=240 KB -> green within-limit confirmation (+ 'Quality reduced to fit.' when fitted); JPG >240 KB -> amber heads-up telling the user to tick the fit option or pick a smaller print size, and that PRINTED photos / DS-82 renewals have no such limit. fmtKb() formats (rounded >=100 KB, 1 decimal below). #sizeHint cleared on each new file load. WHY 240 KB: US DS-160 visa + DV-Lottery online photo uploads cap the JPEG at 240 KB (square, 600x600-1200x1200 px) per travel.state.gov / the DS-160 portal — a top online-upload rejection cause; corroborated by passlens.com US visa guide, photogov.net size guide, ds160.io, passportphototools.com. The 240 KB is a documented public ceiling compared against a MEASURED blob size — NOT a value written into photo-specs.json, so no data-sourcing/fabrication conflict (specs file untouched). Active solve (re-encode to fit) beats a passive warning and reuses tested engine code. No new deps; pure canvas/encoder; npm test + npm run build pass; verified qualityForTargetBytes+fitOnline+ONLINE_JPG_MAX_KB landed in dist/assets/photo-maker.js and #fitField/#fitOnline in dist/passport-photo-maker/index.html. dist gitignored, rebuilt at deploy. gsc-index-progress.json was pre-modified before this run and left out of the commit.",
+      "commit": "393e841"
+    },
     {
       "date": "2026-06-16",
       "tool": "crop-image-into-circle",
@@ -213,7 +220,8 @@
       "Batch mode — crop multiple images to circles at once (Watermarkly, imagy) — too large for a single micro-commit; would need multi-file upload, a results grid, and per-file framing or a shared transform + zip download"
     ],
     "passport-photo-maker": [
-      "Compliance summary panel — combine the head-height band + background hint into a single pass/fail checklist (parity with PassportPhotoFactory's 15-check / iShotaPhoto's 20+ check validators)",
+      "Compliance summary panel — combine the head-height band + background hint + file-size readout into a single pass/fail checklist (parity with PassportPhotoFactory's 15-check / iShotaPhoto's 20+ check validators). Now the strongest remaining item: three checks already exist, just need aggregating.",
+      "Per-spec digital-upload limits — extend the JPG fit/size feedback beyond the US 240 KB ceiling to other portals (UK passport ~50 KB-10 MB, India, Schengen) — only with authoritative government/portal sources; escalate conflicts per data rule. The fit mechanism (qualityForTargetBytes) already exists; this is mostly sourcing the per-country byte limits.",
       "More country specs (40+ on PixConvert / 60+ elsewhere) — only add with authoritative government sources; escalate conflicts per data rule",
       "AI/WASM background removal to white — heavy (in-browser model) AND non-compliant for US/UK/CA (digital alteration forbidden; State Dept auto-rejects AI-altered photos since Jan 2026); the background readiness HINT (shipped) is the compliant alternative, so this is out of scope"
     ]
