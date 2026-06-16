@@ -166,6 +166,21 @@ function init() {
     const f = e.dataTransfer.files && e.dataTransfer.files[0];
     if (f) handleFile(f);
   });
+
+  // Paste an image straight from the clipboard (Ctrl/Cmd+V) — screenshots or a
+  // copied image drop in without saving a file first. Scan the clipboard items
+  // for the first image/* entry; ignore pastes that carry no image (e.g. text).
+  document.addEventListener('paste', (e) => {
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (const it of items) {
+      if (it.kind === 'file' && /^image\//.test(it.type)) {
+        const f = it.getAsFile();
+        if (f) { e.preventDefault(); handleFile(f); }
+        return;
+      }
+    }
+  });
 }
 
 if (document.readyState !== 'loading') init();
