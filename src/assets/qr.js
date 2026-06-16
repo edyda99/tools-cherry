@@ -24,6 +24,15 @@ function quietZone() {
   return Number.isFinite(v) ? Math.max(0, Math.min(8, v)) : 4;
 }
 
+// Module body style: 'square' (classic fillRect), 'rounded' (rounded-corner
+// squares), or 'dots' (circles). Cosmetic only — the dark-module matrix is
+// unchanged, so the code stays ISO/IEC 18004 compliant and scannable.
+function moduleStyle() {
+  const el = $('qrStyle');
+  const v = el ? el.value : 'square';
+  return v === 'rounded' || v === 'dots' ? v : 'square';
+}
+
 // --- Scannability guard: contrast between foreground and background ---------
 // QR scanners distinguish modules by reflectance difference (ISO/IEC 18004).
 // We use the WCAG relative-luminance contrast ratio (1:1 .. 21:1) as a proxy:
@@ -157,15 +166,48 @@ function render() {
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, dim, dim);
   ctx.fillStyle = fg;
+  const style = moduleStyle();
   for (let r = 0; r < count; r++) {
     for (let c = 0; c < count; c++) {
-      if (modules[r][c]) ctx.fillRect((c + quiet) * scale, (r + quiet) * scale, scale, scale);
+      if (!modules[r][c]) continue;
+      drawModule(ctx, (c + quiet) * scale, (r + quiet) * scale, scale, style);
     }
   }
   drawLogo(ctx, dim, bg);
   status.textContent =
     `${count}×${count} modules · ${dim}px PNG` + (logoImg ? ' · logo (ECC: High)' : '');
   updateContrastWarning(fg, bg);
+}
+
+// Paint a single dark module at (x,y) with edge `s`, honoring the chosen body style.
+// 'square' = full cell; 'rounded' = rounded-corner square; 'dots' = inscribed circle.
+// Rounded/dots leave a tiny inset so adjacent modules read as distinct shapes.
+function drawModule(ctx, x, y, s, style) {
+  if (style === 'dots') {
+    const r = s * 0.45; // inscribed circle, slight gap between dots
+    ctx.beginPath();
+    ctx.arc(x + s / 2, y + s / 2, r, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+  if (style === 'rounded') {
+    const rad = s * 0.32;
+    roundRectPath(ctx, x, y, s, s, rad);
+    ctx.fill();
+    return;
+  }
+  ctx.fillRect(x, y, s, s);
+}
+
+// Rounded-rect subpath (no ctx.roundRect dependency — broader browser support).
+function roundRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
 }
 
 // Draw the center logo onto the canvas with a white (bg-coloured) padding box behind
@@ -215,10 +257,19 @@ function svgString() {
   const count = modules.length;
   const quiet = quietZone();
   const total = count + quiet * 2;
+  const style = moduleStyle();
   let rects = '';
   for (let r = 0; r < count; r++) {
     for (let c = 0; c < count; c++) {
-      if (modules[r][c]) rects += `<rect x="${c + quiet}" y="${r + quiet}" width="1" height="1"/>`;
+      if (!modules[r][c]) continue;
+      const x = c + quiet, y = r + quiet;
+      if (style === 'dots') {
+        rects += `<circle cx="${x + 0.5}" cy="${y + 0.5}" r="0.45"/>`;
+      } else if (style === 'rounded') {
+        rects += `<rect x="${x}" y="${y}" width="1" height="1" rx="0.32" ry="0.32"/>`;
+      } else {
+        rects += `<rect x="${x}" y="${y}" width="1" height="1"/>`;
+      }
     }
   }
   const fg = $('qrFg').value || '#000000';
@@ -241,7 +292,9 @@ function svgString() {
         `preserveAspectRatio="xMidYMid meet" href="${logoDataUrl}"/>`;
     }
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${total} ${total}" shape-rendering="crispEdges">` +
+  // Square modules look sharpest with crispEdges; rounded/dots need anti-aliasing.
+  const rendering = style === 'square' ? 'crispEdges' : 'geometricPrecision';
+  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${total} ${total}" shape-rendering="${rendering}">` +
     `<rect width="${total}" height="${total}" fill="${bg}"/><g fill="${fg}">${rects}</g>${logo}</svg>`;
 }
 
