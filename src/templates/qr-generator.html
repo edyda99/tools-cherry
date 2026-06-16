@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Free QR Code Generator — URL, WiFi, vCard, Email, SMS, WhatsApp, Phone, Location &amp; Text (PNG &amp; SVG)</title>
-<meta name="description" content="Free QR code generator. Create QR codes for a URL, WiFi network, contact (vCard), email, SMS, WhatsApp chat, phone number, map location, or plain text, then download as PNG or SVG. No signup, no watermark — generated in your browser.">
+<title>Free QR Code Generator — URL, WiFi, vCard, Email, SMS, WhatsApp, Phone, Location, Calendar Event &amp; Text (PNG &amp; SVG)</title>
+<meta name="description" content="Free QR code generator. Create QR codes for a URL, WiFi network, contact (vCard), email, SMS, WhatsApp chat, phone number, map location, calendar event, or plain text, then download as PNG or SVG. No signup, no watermark — generated in your browser.">
 <link rel="canonical" href="{{SITE_URL}}/qr-code-generator/">
-<meta property="og:title" content="Free QR Code Generator — URL, WiFi, vCard, Email, SMS, WhatsApp, Phone, Location, Text">
-<meta property="og:description" content="Create and download QR codes for a URL, WiFi, contact, email, SMS, WhatsApp, phone, map location, or text as PNG or SVG. Free, no signup.">
+<meta property="og:title" content="Free QR Code Generator — URL, WiFi, vCard, Email, SMS, WhatsApp, Phone, Location, Calendar Event, Text">
+<meta property="og:description" content="Create and download QR codes for a URL, WiFi, contact, email, SMS, WhatsApp, phone, map location, calendar event, or text as PNG or SVG. Free, no signup.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Free QR Code Generator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Create QR codes for a URL, WiFi, vCard, email, SMS, WhatsApp, phone, map location, or plain text and download as PNG or SVG, in your browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Free QR Code Generator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Create QR codes for a URL, WiFi, vCard, email, SMS, WhatsApp, phone, map location, calendar event, or plain text and download as PNG or SVG, in your browser."}</script>
 </head>
 <body>
 <header class="site">
@@ -39,6 +39,7 @@
             <option value="wa">WhatsApp message</option>
             <option value="phone">Phone number</option>
             <option value="geo">Location (map point)</option>
+            <option value="event">Calendar event</option>
             <option value="text">Plain text</option>
           </select>
         </div>
@@ -99,6 +100,17 @@
             <span><label for="geoLng">Longitude</label><input id="geoLng" placeholder="-73.985428"></span>
           </div>
           <p class="muted-small" style="margin-top:6px">Scanning opens the point in the phone's maps app. Copy the coordinates from Google Maps (right-click a spot &rarr; the lat,&nbsp;lng at the top).</p>
+        </div>
+
+        <div data-group="event" hidden>
+          <div class="field"><label for="evTitle">Event title</label><input id="evTitle" placeholder="Team meeting"></div>
+          <div class="field inline">
+            <span><label for="evStart">Starts</label><input id="evStart" type="datetime-local"></span>
+            <span><label for="evEnd">Ends</label><input id="evEnd" type="datetime-local"></span>
+          </div>
+          <div class="field"><label for="evLocation">Location (optional)</label><input id="evLocation" placeholder="Office, Room 4"></div>
+          <div class="field"><label for="evDesc">Description (optional)</label><textarea id="evDesc" rows="2" placeholder="Notes or agenda"></textarea></div>
+          <p class="muted-small" style="margin-top:6px">Scanning adds the event to the phone's calendar. Times use the device's local time zone.</p>
         </div>
 
         <div data-group="text" hidden>

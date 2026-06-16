@@ -1,4 +1,4 @@
-// qr.js — client-side QR generator (URL / WiFi / vCard / email / SMS / WhatsApp / phone / geo / text)
+// qr.js — client-side QR generator (URL / WiFi / vCard / email / SMS / WhatsApp / phone / geo / event / text)
 // with PNG + SVG export, copy-PNG-to-clipboard, an adjustable quiet-zone margin, a contrast/scannability
 // warning, and an optional center logo overlay (forces High ECC; embedded in both
 // the canvas render and the SVG export). Uses the vendored qrcode-generator lib
@@ -75,6 +75,31 @@ function vcardEscape(s) {
   return String(s || '').replace(/([\\;,])/g, '\\$1').replace(/\n/g, '\\n');
 }
 
+// RFC 5545 text escaping for SUMMARY/LOCATION/DESCRIPTION: backslash, ; , and newlines.
+function icalEscape(s) {
+  return String(s || '').replace(/([\\;,])/g, '\\$1').replace(/\r?\n/g, '\\n');
+}
+
+// Convert a <input type="datetime-local"> value ('YYYY-MM-DDTHH:mm') into a floating
+// (no-Z) iCal date-time 'YYYYMMDDTHHmmSS'. Floating local time is the most portable
+// for a calendar QR — the scanning device interprets it in its own time zone.
+function icalDateTime(v) {
+  const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (!m) return '';
+  return `${m[1]}${m[2]}${m[3]}T${m[4]}${m[5]}${m[6] || '00'}`;
+}
+
+// Add one hour to a datetime-local string, returning a datetime-local string (or '').
+function addHour(v) {
+  const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!m) return '';
+  const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+  if (isNaN(d.getTime())) return '';
+  d.setHours(d.getHours() + 1);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 function buildPayload() {
   const type = $('qrType').value;
   if (type === 'wifi') {
@@ -131,6 +156,23 @@ function buildPayload() {
     const lng = String($('geoLng').value || '').trim();
     if (!lat || !lng || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) return '';
     return `geo:${Number(lat)},${Number(lng)}`;
+  }
+  if (type === 'event') {
+    // RFC 5545 VEVENT block — phone cameras add it straight to the calendar.
+    // A title plus a start time are the minimum; end defaults to start + 1h.
+    const title = String($('evTitle').value || '').trim();
+    const start = icalDateTime($('evStart').value);
+    if (!title || !start) return '';
+    let endVal = icalDateTime($('evEnd').value);
+    if (!endVal) endVal = icalDateTime(addHour($('evStart').value)); // default 1h duration
+    const loc = String($('evLocation').value || '').trim();
+    const desc = String($('evDesc').value || '').trim();
+    const lines = ['BEGIN:VEVENT', `SUMMARY:${icalEscape(title)}`, `DTSTART:${start}`];
+    if (endVal) lines.push(`DTEND:${endVal}`);
+    if (loc) lines.push(`LOCATION:${icalEscape(loc)}`);
+    if (desc) lines.push(`DESCRIPTION:${icalEscape(desc)}`);
+    lines.push('END:VEVENT');
+    return lines.join('\n');
   }
   if (type === 'text') {
     return $('textBody').value || '';
