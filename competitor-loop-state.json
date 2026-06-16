@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "invoice-generator",
+  "lastTool": "qr-code-generator",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "qr-code-generator",
+      "competitors": ["qrcode-tiger.com", "uniqode.com", "me-qr.com", "doitqr.com"],
+      "shipped": "Module body-style selector — Square (classic) / Rounded / Dots (top backlog item). Added a #qrStyle <select> beside the quiet-zone selector inside #qrForm (so the existing input listener re-renders on change with no new wiring). qr.js: new moduleStyle() reader returns 'square'|'rounded'|'dots' (default square). render() now dispatches each dark module through drawModule(ctx,x,y,s,style): 'square' keeps the existing fillRect; 'rounded' fills a rounded-corner square via a new roundRectPath() helper (manual arcTo subpath — no ctx.roundRect dependency for broader support, radius = s*0.32); 'dots' fills an inscribed circle (r = s*0.45, leaving a small gap so adjacent dots read as distinct). The matrix-building loop, ECC, logo overlay, contrast warning, sizing/quiet-zone are all unchanged — the style is cosmetic only, so the dark-module pattern stays ISO/IEC 18004 compliant and scannable. svgString() mirrors it per module: dots emit <circle cx cy r=0.45>, rounded emit <rect rx=0.32 ry=0.32>, square keeps <rect>; plus the SVG root shape-rendering switches from crispEdges (square) to geometricPrecision (rounded/dots) so the curves anti-alias instead of being hardened. PNG and SVG match. Closes the top qr backlog item — QR Tiger, Uniqode, ME-QR, DoItQR all ship a square/rounded/dots body-shape picker; we drew square fillRects only. No new deps (vendored qrcode lib + canvas/SVG); dist gitignored, rebuilt at deploy.",
+      "commit": "74f62a9"
+    },
     {
       "date": "2026-06-16",
       "tool": "invoice-generator",
@@ -187,7 +194,9 @@
       "Signature line in the PDF footer (BoldSign/SmoothLedger) — a labelled rule for a handwritten sign-off"
     ],
     "qr-code-generator": [
-      "Module/dot style (rounded dots vs square modules) — QRCode Monkey / QR Tiger offer a 'body shape' picker; currently we draw square fillRects only. Small-medium: a <select> (square/rounded/dots) that swaps fillRect for rounded-rect/arc in render() and matching rx/circle in svgString().",
+      "Distinct finder-pattern (eye) styling — QR Tiger / ME-QR style the three corner eyes separately from the body (square frame + round center, or rounded frame). Medium: detect the 7x7 finder regions and draw their frame/center with a separate shape, optionally a separate eye colour. Builds on the body-style work just shipped.",
+      "Copy-to-clipboard button for the PNG — Canvas.toBlob -> navigator.clipboard.write(ClipboardItem). Tiny; competitors offer a one-click copy beside download.",
+      "Gradient foreground (linear/radial two-colour) — QR Tiger/ME-QR offer gradient module fills; small-medium: a second colour input + a canvas gradient fillStyle and an SVG <linearGradient> def. Keep a contrast guard against the lighter stop.",
       "Logo size slider (10-25%) — let users tune LOGO_FRACTION; currently fixed at 20%. Tiny once the logo overlay exists, but only worth it if users ask.",
       "Batch/bulk generation from a pasted list of URLs (QR Tiger bulk) — too large for a micro-commit; needs a textarea-to-N-codes UI + zip download."
     ],
