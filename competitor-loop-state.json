@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "qr-code-generator",
+  "lastTool": "crop-image-into-circle",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "crop-image-into-circle",
+      "competitors": ["watermarkly.com", "fotor.com", "circlecropimage.com"],
+      "shipped": "Rotate / straighten the image before cropping. Added CanvasEditor.setRotation (clamped -180..180 deg, default 0) composed into the shared _drawTo so preview and exported PNG match at any output size. The image is rotated about the box center INSIDE the circle clip; to avoid transparent corners when straightening, the cover scale is multiplied by the rotated-frame bounding-box factor (max of the two axis growth ratios) so the rotated image still fully covers the box at any angle. zoom/pan/padding/border all still compose. New rotate slider (-180..180, live degree readout #rotateVal, plus a 'Reset rotation' btn-secondary) in the circle-crop template; wired in circle-crop.js (setRotation on input, syncRotation on load/reset). rotation resets to 0 on a fresh image load. Closes the rotate/straighten backlog idea — Watermarkly offers a straighten slider before cropping that we lacked. No new deps; dist gitignored, rebuilt at deploy.",
+      "commit": "286abd5"
+    },
     {
       "date": "2026-06-16",
       "tool": "qr-code-generator",
@@ -113,7 +120,6 @@
     ],
     "crop-image-into-circle": [
       "JPG output option alongside PNG (Fotor) — needs a forced background fill since JPG has no alpha (background fill now shipped, so this is unblocked)",
-      "Rotate / straighten the image before cropping (Watermarkly)",
       "Batch mode — crop multiple images to circles at once (Watermarkly, imagy)"
     ],
     "passport-photo-maker": [
