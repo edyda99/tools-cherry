@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "crop-image-into-circle",
+  "lastTool": "passport-photo-maker",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "passport-photo-maker",
+      "competitors": ["photogov.net", "photoaid.com/passport-photos", "passlens.com"],
+      "shipped": "Compliance checklist panel — aggregates the tool's existing per-signal checks into one pass/fail validator card (parity with PhotoGov's compliance system and PhotoAiD's checker, which both show a consolidated checklist). Template: a new #checklist <div> (border card, hidden until an image loads) under the status/sizeHint/bgHint lines, with a 'Compliance checklist' heading, a #checkItems <ul>, and a standing disclaimer ('A self-check only — it can't read your face or judge lighting. The issuing authority makes the final decision.'). photo-maker.js: checkBackground() now RETURNS its verdict {ok,msg} (and null on no-image / tainted-canvas) in addition to still writing #bgHint, so the panel can reuse the exact same corner-sample result with no recomputation. New updateChecklist(spec, bg) builds 4 honest rows, each tagged pass(✓ green)/warn(! amber)/info(ℹ grey): (1) RESOLUTION — measured: source img.naturalWidth/Height vs spec.widthPx/heightPx; pass when the source is >= the spec px (sharp print), warn when smaller (upscaling -> soft) advising a higher-res photo; (2) BACKGROUND — reuses the bg verdict (pass/warn) and its message; (3) HEAD POSITION — deliberately INFO only, never an auto-pass, because there is no face detection (no AI): it reminds the user to line the crown/chin to the guide band (head height min-max mm from the spec); (4) OUTPUT — info, format-aware (JPG -> mentions the 240 KB US online-upload fit option; PNG -> suggests switching to JPG for online uploads). Rows render via a tiny esc() HTML-escaper into the <ul> (icon span + text span, flex). Wiring: updateChecklist(current, checkBackground(current)) runs on file load (replacing the bare checkBackground call), on document-type change (re-evaluates resolution + background against the new spec), and on download-format change (refreshes the Output row); panel hides when no image. WHY honest rows: competitors lean on AI face/lighting checks, but the State Dept auto-rejects AI-altered photos since Jan 2026 and we run zero face detection — so head-position and lighting stay user-judgment INFO rows, only the two things we can actually measure (pixel resolution, corner-background) are pass/warn. NO spec-data added or changed (photo-specs.json untouched) — every value is derived from the upload + existing spec fields, so no data-sourcing/fabrication conflict. No new deps; pure DOM/canvas; reuses the already-tested background sampler. npm test (10+8+1 passing) + npm run build pass; verified updateChecklist/checkItems in dist/assets/photo-maker.js and 'Compliance checklist'/#checkItems in dist/passport-photo-maker/index.html. dist gitignored, rebuilt at deploy. gsc-index-progress.json was pre-modified before this run and left out of the commit.",
+      "commit": "23e0085"
+    },
     {
       "date": "2026-06-16",
       "tool": "crop-image-into-circle",
@@ -242,7 +249,7 @@
       "Batch mode — crop multiple images to circles at once (Watermarkly, imagy) — too large for a single micro-commit; would need multi-file upload, a results grid, and per-file framing or a shared transform + zip download. PARKED."
     ],
     "passport-photo-maker": [
-      "Compliance summary panel — combine the head-height band + background hint + file-size readout into a single pass/fail checklist (parity with PassportPhotoFactory's 15-check / iShotaPhoto's 20+ check validators). Now the strongest remaining item: three checks already exist, just need aggregating.",
+      "Compliance checklist panel — SHIPPED 2026-06-16 (#checklist card aggregating resolution + background + head-position + output rows, pass/warn/info; reuses checkBackground's returned verdict). Possible follow-on: add a printable/copyable summary, or a per-spec 'glasses/headwear/expression' reminder row sourced from each spec's note — small, content-only.",
       "Per-spec digital-upload limits — extend the JPG fit/size feedback beyond the US 240 KB ceiling to other portals (UK passport ~50 KB-10 MB, India, Schengen) — only with authoritative government/portal sources; escalate conflicts per data rule. The fit mechanism (qualityForTargetBytes) already exists; this is mostly sourcing the per-country byte limits.",
       "More country specs (40+ on PixConvert / 60+ elsewhere) — only add with authoritative government sources; escalate conflicts per data rule",
       "AI/WASM background removal to white — heavy (in-browser model) AND non-compliant for US/UK/CA (digital alteration forbidden; State Dept auto-rejects AI-altered photos since Jan 2026); the background readiness HINT (shipped) is the compliant alternative, so this is out of scope"
