@@ -11,6 +11,7 @@ export class CanvasEditor {
     this.background = opts.background || null; // CSS color or null (transparent)
     this.borderColor = opts.borderColor || null; // CSS color or null (no border)
     this.borderWidth = opts.borderWidth || 0; // fraction of radius (0..0.5), circle only
+    this.padding = opts.padding || 0; // transparent margin around the shape, fraction of half-size (0..0.4)
     this.img = null;
     this.zoom = 1;
     this.panNX = 0.5;
@@ -53,6 +54,7 @@ export class CanvasEditor {
     this.render();
     return this;
   }
+  setPadding(p) { this.padding = Math.max(0, Math.min(0.4, p || 0)); this.render(); return this; }
 
   setZoom(z) { this.zoom = Math.max(1, Math.min(8, z || 1)); this.render(); this._emit('change'); return this; }
   zoomBy(mult) { return this.setZoom(this.zoom * mult); }
@@ -71,23 +73,27 @@ export class CanvasEditor {
   // Draw image (and optional bg / circle clip) into an arbitrary 2d context sized cw×ch.
   _drawTo(ctx, cw, ch) {
     ctx.clearRect(0, 0, cw, ch);
+    // Transparent margin around the shape: shrink the usable box on every side
+    // by `pad` (a fraction of the half-size) so the circle/ring isn't flush to the edge.
+    const half = Math.min(cw, ch) / 2;
+    const pad = half * this.padding;
     // Resolution-independent border thickness (fraction of the circle radius).
     const drawBorder = this.shape === 'circle' && this.borderColor && this.borderWidth > 0;
-    const outerR = Math.min(cw, ch) / 2;
+    const outerR = Math.max(0, half - pad);
     const stroke = drawBorder ? outerR * this.borderWidth : 0;
-    const inset = stroke; // image is clipped inside the ring so the border isn't drawn over
-    const innerR = outerR - inset;
+    const inset = pad + stroke; // image is clipped inside the ring (and inside the margin)
+    const innerR = Math.max(0, half - inset);
     // Background fill: for a circle, fill only the (inner) disc so the corners
-    // stay transparent; for a rect, fill the whole box.
+    // stay transparent; for a rect, fill the padded box (margin stays transparent).
     if (this.background) {
       ctx.save();
       ctx.fillStyle = this.background;
       if (this.shape === 'circle') {
         ctx.beginPath();
-        ctx.arc(cw / 2, ch / 2, Math.max(0, innerR), 0, Math.PI * 2);
+        ctx.arc(cw / 2, ch / 2, innerR, 0, Math.PI * 2);
         ctx.fill();
       } else {
-        ctx.fillRect(0, 0, cw, ch);
+        ctx.fillRect(pad, pad, Math.max(0, cw - 2 * pad), Math.max(0, ch - 2 * pad));
       }
       ctx.restore();
     }
@@ -95,7 +101,7 @@ export class CanvasEditor {
     ctx.save();
     if (this.shape === 'circle') {
       ctx.beginPath();
-      ctx.arc(cw / 2, ch / 2, Math.max(0, innerR), 0, Math.PI * 2);
+      ctx.arc(cw / 2, ch / 2, innerR, 0, Math.PI * 2);
       ctx.clip();
     }
     const ibox = inset; // shrink the image box by the inset on each side
@@ -111,8 +117,8 @@ export class CanvasEditor {
       ctx.beginPath();
       ctx.lineWidth = stroke;
       ctx.strokeStyle = this.borderColor;
-      // stroke is centered on the path, so place it at outerR - stroke/2 to stay inside the canvas
-      ctx.arc(cw / 2, ch / 2, outerR - stroke / 2, 0, Math.PI * 2);
+      // stroke is centered on the path; place it at outerR - stroke/2 to stay inside the margin
+      ctx.arc(cw / 2, ch / 2, Math.max(0, outerR - stroke / 2), 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
     }

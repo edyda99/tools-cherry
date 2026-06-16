@@ -41,6 +41,11 @@ function applyBackground() {
   editor.setBackground($('bgOn').checked ? $('bgColor').value : null);
 }
 
+function applyPadding() {
+  const on = $('padOn').checked;
+  editor.setPadding(on ? (parseInt($('padAmount').value, 10) || 10) / 100 : 0);
+}
+
 function applyBorder() {
   const on = $('borderOn').checked;
   const color = on ? $('borderColor').value : null;
@@ -62,6 +67,12 @@ function init() {
     applyBackground();
   });
   $('bgColor').addEventListener('input', applyBackground);
+
+  $('padOn').addEventListener('change', (e) => {
+    $('padControls').hidden = !e.target.checked;
+    applyPadding();
+  });
+  $('padAmount').addEventListener('input', applyPadding);
 
   $('borderOn').addEventListener('change', (e) => {
     $('borderControls').hidden = !e.target.checked;
