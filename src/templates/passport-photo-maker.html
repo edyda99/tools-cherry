@@ -47,6 +47,12 @@
             <option value="jpg">JPG (smaller — most print labs)</option>
           </select>
         </div>
+        <div class="field" id="fitField" style="display:none">
+          <label style="display:flex;gap:8px;align-items:flex-start;font-weight:normal">
+            <input id="fitOnline" type="checkbox" style="width:auto;margin-top:3px">
+            <span>Fit for US online upload (≤240 KB JPG) — for DS-160 visa &amp; DV-Lottery submissions. Printed photos and DS-82 renewals don't need this.</span>
+          </label>
+        </div>
         <div class="field">
           <label for="sheetSize">Print sheet size</label>
           <select id="sheetSize"></select>
@@ -63,6 +69,7 @@
         </div>
         <canvas id="sheetPreview" style="display:none;max-width:100%;height:auto;border:1px solid var(--border,#ccc)"></canvas>
         <p class="muted-small" id="status" style="margin-top:10px">Choose a photo to begin.</p>
+        <p class="muted-small" id="sizeHint" style="margin-top:6px;display:none"></p>
         <p class="muted-small" id="bgHint" style="margin-top:6px;display:none"></p>
         <div style="display:flex;gap:8px;margin-top:8px">
           <button type="button" id="dlPhoto" class="btn-primary" style="width:auto;flex:1" disabled>Download photo</button>

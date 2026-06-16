@@ -1,10 +1,15 @@
 // photo-maker.js — passport/ID photo maker on the shared CanvasEditor.
 // Spec presets sized to official dimensions; head-position guide; 4x6 print sheet.
 import { CanvasEditor } from '/assets/canvas-editor.js';
+import { qualityForTargetBytes } from '/assets/canvas-math.js';
 
 const $ = (id) => document.getElementById(id);
 const DATA = window.__PHOTO_SPECS__ || { specs: [], printSheet: {} };
 const MAX_DISPLAY_H = 360;
+// US DS-160 / DV-Lottery online photo uploads cap the JPEG at 240 KB
+// (square, 600×600–1200×1200 px). Source: travel.state.gov / DS-160 portal.
+// Wrong (too-large) file size is one of the most common online-upload rejections.
+const ONLINE_JPG_MAX_KB = 240;
 
 let editor, current, hasImg = false, sheetSpec, previewing = false;
 
@@ -145,6 +150,7 @@ async function handleFile(file) {
     $('dlSheet').disabled = false;
     $('dlSheetPdf').disabled = false;
     $('togglePreview').disabled = false;
+    $('sizeHint').style.display = 'none'; // clear any prior download's size readout
     if (previewing) renderSheetPreview();
     $('dropText').textContent = `Loaded: ${file.name}`;
     $('status').textContent =
@@ -173,11 +179,56 @@ function triggerDownload(blob, name) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function fmtKb(bytes) {
+  const kb = bytes / 1024;
+  return kb >= 100 ? Math.round(kb) + ' KB' : kb.toFixed(1) + ' KB';
+}
+
+// Report the downloaded photo's real byte size (measured from the produced blob —
+// no fabricated data), flagging against the 240 KB ceiling US online portals
+// (DS-160 / DV-Lottery) enforce. `fitted` = we deliberately compressed to fit.
+function reportFileSize(blob, ext, fitted) {
+  const hint = $('sizeHint');
+  const sizeTxt = fmtKb(blob.size);
+  if (ext !== 'jpg') {
+    hint.textContent = `File size: ${sizeTxt}.`;
+    hint.style.color = 'var(--accent, #2ea043)';
+  } else if (blob.size <= ONLINE_JPG_MAX_KB * 1024) {
+    hint.textContent = `File size: ${sizeTxt} — within the ${ONLINE_JPG_MAX_KB} KB limit for ` +
+      `US online uploads (DS-160 / DV-Lottery).` + (fitted ? ' Quality reduced to fit.' : '');
+    hint.style.color = 'var(--accent, #2ea043)';
+  } else {
+    hint.textContent = `Heads up — this JPG is ${sizeTxt}. US online uploads (DS-160 / DV-Lottery) require ` +
+      `${ONLINE_JPG_MAX_KB} KB or smaller. Tick "Fit for US online upload" above, ` +
+      `or choose a smaller print size. Printed photos and DS-82 renewals have no such limit.`;
+    hint.style.color = '#c9510c';
+  }
+  hint.style.display = '';
+}
+
 async function downloadPhoto() {
   if (!hasImg) return;
   const f = outFormat();
-  const blob = await editor.toBlob({ type: f.type, quality: f.quality, width: current.widthPx, height: current.heightPx });
-  if (blob) { triggerDownload(blob, `${current.id}.${f.ext}`); $('status').textContent = `Downloaded ${current.widthPx}×${current.heightPx} ${f.ext.toUpperCase()} photo.`; }
+  const dims = { width: current.widthPx, height: current.heightPx };
+  let blob, fitted = false;
+  // For JPG with the online-upload option ticked, binary-search encoder quality
+  // (reusing the engine's qualityForTargetBytes) so the file lands under 240 KB.
+  if (f.ext === 'jpg' && $('fitOnline').checked) {
+    const sizeAt = async (q) => {
+      const b = await editor.toBlob({ type: 'image/jpeg', quality: q, ...dims });
+      return b ? b.size : Infinity;
+    };
+    const { quality } = await qualityForTargetBytes(sizeAt, ONLINE_JPG_MAX_KB * 1024, { min: 0.3, max: 0.95 });
+    blob = await editor.toBlob({ type: 'image/jpeg', quality, ...dims });
+    fitted = true;
+  } else {
+    blob = await editor.toBlob({ type: f.type, quality: f.quality, ...dims });
+  }
+  if (blob) {
+    triggerDownload(blob, `${current.id}.${f.ext}`);
+    $('status').textContent = `Downloaded ${current.widthPx}×${current.heightPx} ${f.ext.toUpperCase()} photo.`;
+    reportFileSize(blob, f.ext, fitted);
+  }
 }
 
 // Grid geometry for tiling `current`-sized photos onto sheet `ps`.
@@ -323,6 +374,11 @@ function init() {
     sheetSpec = DATA.printSheet;
   }
   updateSheetInfo();
+
+  // Show the "fit for online upload" option only when JPG is selected.
+  const syncFitField = () => { $('fitField').style.display = $('format').value === 'jpg' ? '' : 'none'; };
+  $('format').addEventListener('change', syncFitField);
+  syncFitField();
 
   $('file').addEventListener('change', (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); });
   $('zoom').addEventListener('input', (e) => { editor.setZoom(parseFloat(e.target.value)); if (previewing) renderSheetPreview(); });
