@@ -92,7 +92,7 @@ function hexToRgb(hex) {
 function checkBackground(spec) {
   const hint = $('bgHint');
   const img = editor && editor.img;
-  if (!img) { hint.style.display = 'none'; return; }
+  if (!img) { hint.style.display = 'none'; return null; }
   try {
     const W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
     const s = Math.max(4, Math.round(Math.min(W, H) * 0.08)); // corner patch size
@@ -136,9 +136,65 @@ function checkBackground(spec) {
     hint.textContent = (ok ? 'Background check: ' : 'Heads up — ') + msg;
     hint.style.color = ok ? 'var(--accent, #2ea043)' : '#c9510c';
     hint.style.display = '';
+    return { ok, msg };
   } catch (e) {
     hint.style.display = 'none'; // tainted canvas / decode issue — skip silently
+    return null;
   }
+}
+
+// Aggregate the individual signals into one pass/fail checklist, matching the
+// "validator" panel competitors (PhotoGov, PhotoAiD) show. Each row is HONEST
+// about what we can actually verify client-side without a face model:
+//  - Resolution: the uploaded image must have enough pixels to fill the spec at
+//    its print resolution without upscaling (pass/warn — measured from img dims).
+//  - Background: reuses checkBackground's corner-sample verdict (pass/warn).
+//  - Head position: we CANNOT detect a face, so this is a manual reminder (info),
+//    never an auto-pass — the user lines the crown/chin up with the guide.
+//  - Output size: format + the US online-upload note (info).
+// No spec data is added or changed; everything is derived from the upload + spec.
+const STATE = { pass: 'ok', warn: 'warn', info: 'info' };
+function updateChecklist(spec, bg) {
+  const panel = $('checklist');
+  const list = $('checkItems');
+  const img = editor && editor.img;
+  if (!img || !spec) { panel.style.display = 'none'; return; }
+
+  const items = [];
+
+  // Resolution: does the source have enough pixels for the spec at print size?
+  const srcW = img.naturalWidth || img.width, srcH = img.naturalHeight || img.height;
+  const enough = srcW >= spec.widthPx && srcH >= spec.heightPx;
+  items.push(enough
+    ? { state: STATE.pass, text: `Resolution: source is ${srcW}×${srcH}px — enough for a sharp ${spec.widthPx}×${spec.heightPx}px print.` }
+    : { state: STATE.warn, text: `Resolution: source is ${srcW}×${srcH}px, smaller than the ${spec.widthPx}×${spec.heightPx}px needed — the print may look soft. Use a higher-resolution photo if you can.` });
+
+  // Background: reuse the corner-sample verdict.
+  if (bg) {
+    items.push({ state: bg.ok ? STATE.pass : STATE.warn, text: 'Background: ' + bg.msg });
+  }
+
+  // Head position — manual, no face detection.
+  items.push({ state: STATE.info, text: `Head position: line the crown up with the top dashed line and the chin inside the shaded band (head height ${spec.headMinMm}–${spec.headMaxMm} mm). Adjust with zoom and drag.` });
+
+  // Output / file format.
+  const jpg = $('format').value === 'jpg';
+  items.push({ state: STATE.info, text: jpg
+    ? 'Output: JPG. For US DS-160 visa / DV-Lottery online uploads, tick "Fit for US online upload" to stay under 240 KB. Printed photos don\'t need this.'
+    : 'Output: PNG (lossless) — best for printing. For US online uploads, switch to JPG and tick the fit option.' });
+
+  const icon = (s) => s === STATE.pass ? '✓' : s === STATE.warn ? '!' : 'ℹ';
+  const color = (s) => s === STATE.pass ? 'var(--accent, #2ea043)' : s === STATE.warn ? '#c9510c' : 'var(--muted, #768390)';
+  list.innerHTML = items.map((it) =>
+    `<li style="display:flex;gap:8px;padding:3px 0">` +
+    `<span aria-hidden="true" style="flex:0 0 auto;font-weight:700;color:${color(it.state)}">${icon(it.state)}</span>` +
+    `<span>${esc(it.text)}</span></li>`).join('');
+  panel.style.display = '';
+}
+
+// Minimal HTML-escape for text injected via innerHTML.
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 async function handleFile(file) {
@@ -156,7 +212,7 @@ async function handleFile(file) {
     $('status').textContent =
       `Zoom so the crown touches the top line and the chin sits in the shaded band ` +
       `(head height ${current.headMinMm}–${current.headMaxMm} mm).`;
-    checkBackground(current);
+    updateChecklist(current, checkBackground(current));
   } catch (e) {
     $('status').textContent = 'Could not load that file — please choose a valid image.';
   }
@@ -349,7 +405,7 @@ function init() {
   sel.addEventListener('change', () => {
     const spec = DATA.specs.find((s) => s.id === sel.value);
     applySpec(spec);
-    if (hasImg) checkBackground(spec); // re-evaluate against the new spec's required background
+    if (hasImg) updateChecklist(spec, checkBackground(spec)); // re-evaluate against the new spec
     updateSheetInfo();                 // photo dims changed -> copies-per-sheet changed
     if (previewing) renderSheetPreview();
   });
@@ -377,7 +433,10 @@ function init() {
 
   // Show the "fit for online upload" option only when JPG is selected.
   const syncFitField = () => { $('fitField').style.display = $('format').value === 'jpg' ? '' : 'none'; };
-  $('format').addEventListener('change', syncFitField);
+  $('format').addEventListener('change', () => {
+    syncFitField();
+    if (hasImg) updateChecklist(current, checkBackground(current)); // refresh the Output row
+  });
   syncFitField();
 
   $('file').addEventListener('change', (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); });
