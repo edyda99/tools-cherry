@@ -68,6 +68,7 @@
           <button type="button" id="dlPhoto" class="btn-primary" style="width:auto;flex:1" disabled>Download photo</button>
           <button type="button" id="dlSheet" class="btn-secondary" style="flex:1" disabled>Download print sheet</button>
         </div>
+        <button type="button" id="dlSheetPdf" class="btn-secondary" style="margin-top:8px;width:100%" disabled>Download print sheet as PDF</button>
         <button type="button" id="togglePreview" class="btn-secondary" style="margin-top:8px;width:100%" disabled aria-pressed="false">Preview sheet layout</button>
       </div>
     </div>
@@ -90,6 +91,7 @@
 </footer>
 
 <script>window.__PHOTO_SPECS__ = {{PHOTO_SPECS_JSON}};</script>
+<script src="/assets/jspdf.umd.min.js"></script>
 <script type="module" src="/assets/photo-maker.js"></script>
 </body>
 </html>

@@ -143,6 +143,7 @@ async function handleFile(file) {
     hasImg = true;
     $('dlPhoto').disabled = false;
     $('dlSheet').disabled = false;
+    $('dlSheetPdf').disabled = false;
     $('togglePreview').disabled = false;
     if (previewing) renderSheetPreview();
     $('dropText').textContent = `Loaded: ${file.name}`;
@@ -257,6 +258,36 @@ async function downloadSheet() {
   }, f.type, f.quality);
 }
 
+// Print-ready PDF of the tiled sheet — same geometry as the PNG/JPG sheet, but
+// placed at true physical size (px @300DPI -> points) so it prints 1:1 at any lab.
+async function downloadSheetPdf() {
+  if (!hasImg) return;
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    $('status').textContent = 'PDF library failed to load — please refresh and try again.';
+    return;
+  }
+  const ps = sheetSpec || DATA.printSheet;
+  const photo = await editor.toBlob({ type: 'image/png', width: current.widthPx, height: current.heightPx });
+  const bmp = await createImageBitmap(photo);
+
+  const sheet = document.createElement('canvas');
+  sheet.width = ps.widthPx; sheet.height = ps.heightPx;
+  tileSheet(sheet.getContext('2d'), ps, bmp);
+
+  // 300 DPI assumed for all sheet sizes -> physical points = px / 300 * 72.
+  const DPI = 300;
+  const wPt = ps.widthPx / DPI * 72;
+  const hPt = ps.heightPx / DPI * 72;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: [wPt, hPt], orientation: wPt > hPt ? 'landscape' : 'portrait' });
+  doc.addImage(sheet.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, wPt, hPt);
+  const sizeId = ps.id || '4x6';
+  const sizeLabel = ps.label || '4×6';
+  const { count } = sheetLayout(ps);
+  doc.save(`${current.id}-${sizeId}-sheet.pdf`);
+  $('status').textContent = `Downloaded ${sizeLabel} PDF sheet (${count} photos).`;
+}
+
 function init() {
   const sel = $('spec');
   DATA.specs.forEach((s) => {
@@ -298,6 +329,7 @@ function init() {
   $('togglePreview').addEventListener('click', () => setPreview(!previewing));
   $('dlPhoto').addEventListener('click', downloadPhoto);
   $('dlSheet').addEventListener('click', downloadSheet);
+  $('dlSheetPdf').addEventListener('click', downloadSheetPdf);
 
   const drop = $('drop');
   ['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('drag'); }));
