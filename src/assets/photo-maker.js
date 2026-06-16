@@ -6,7 +6,7 @@ const $ = (id) => document.getElementById(id);
 const DATA = window.__PHOTO_SPECS__ || { specs: [], printSheet: {} };
 const MAX_DISPLAY_H = 360;
 
-let editor, current, hasImg = false, sheetSpec;
+let editor, current, hasImg = false, sheetSpec, previewing = false;
 
 function fmtDims(s) {
   return `${s.widthMm}×${s.heightMm} mm · ${s.widthPx}×${s.heightPx}px @ ${s.dpi} DPI`;
@@ -143,6 +143,8 @@ async function handleFile(file) {
     hasImg = true;
     $('dlPhoto').disabled = false;
     $('dlSheet').disabled = false;
+    $('togglePreview').disabled = false;
+    if (previewing) renderSheetPreview();
     $('dropText').textContent = `Loaded: ${file.name}`;
     $('status').textContent =
       `Zoom so the crown touches the top line and the chin sits in the shaded band ` +
@@ -177,23 +179,20 @@ async function downloadPhoto() {
   if (blob) { triggerDownload(blob, `${current.id}.${f.ext}`); $('status').textContent = `Downloaded ${current.widthPx}×${current.heightPx} ${f.ext.toUpperCase()} photo.`; }
 }
 
-async function downloadSheet() {
-  if (!hasImg) return;
-  const ps = sheetSpec || DATA.printSheet;
-  const photo = await editor.toBlob({ type: 'image/png', width: current.widthPx, height: current.heightPx });
-  const bmp = await createImageBitmap(photo);
-
-  const sheet = document.createElement('canvas');
-  sheet.width = ps.widthPx; sheet.height = ps.heightPx;
-  const ctx = sheet.getContext('2d');
-  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, ps.widthPx, ps.heightPx);
-
-  // Max copies that fit edge-to-edge, then spread the leftover space as even gaps/margins.
+// Grid geometry for tiling `current`-sized photos onto sheet `ps`.
+// Max copies that fit edge-to-edge, leftover space spread as even gaps/margins.
+function sheetLayout(ps) {
   const cols = Math.max(1, Math.floor(ps.widthPx / current.widthPx));
   const rows = Math.max(1, Math.floor(ps.heightPx / current.heightPx));
   const gapX = (ps.widthPx - cols * current.widthPx) / (cols + 1);
   const gapY = (ps.heightPx - rows * current.heightPx) / (rows + 1);
+  return { cols, rows, gapX, gapY, count: cols * rows };
+}
 
+// Paint the tiled sheet (white bg, photos, cut guides) into `ctx` at full sheet px.
+function tileSheet(ctx, ps, bmp) {
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, ps.widthPx, ps.heightPx);
+  const { cols, rows, gapX, gapY } = sheetLayout(ps);
   ctx.strokeStyle = '#cccccc'; ctx.lineWidth = 1;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -203,11 +202,58 @@ async function downloadSheet() {
       ctx.strokeRect(x + 0.5, y + 0.5, current.widthPx, current.heightPx); // cut guide
     }
   }
+}
+
+// Live "N copies (cols×rows)" readout under the sheet-size selector — no image needed.
+function updateSheetInfo() {
+  const ps = sheetSpec || DATA.printSheet;
+  if (!ps || !current) return;
+  const { cols, rows, count } = sheetLayout(ps);
+  $('sheetInfo').textContent = `Fits ${count} photo${count === 1 ? '' : 's'} (${cols}×${rows}) with cut guides.`;
+}
+
+// Render a scaled, on-screen preview of the print sheet so the user sees the
+// exact tiling + cut guides before downloading. Shown in place of the editor.
+async function renderSheetPreview() {
+  if (!hasImg) return;
+  const ps = sheetSpec || DATA.printSheet;
+  const photo = await editor.toBlob({ type: 'image/png', width: current.widthPx, height: current.heightPx });
+  const bmp = await createImageBitmap(photo);
+  const cv = $('sheetPreview');
+  cv.width = ps.widthPx; cv.height = ps.heightPx;
+  tileSheet(cv.getContext('2d'), ps, bmp);
+  // CSS-scale to a reasonable on-screen height (canvas keeps full-res pixels).
+  const dispH = Math.min(MAX_DISPLAY_H, ps.heightPx);
+  cv.style.height = dispH + 'px';
+  cv.style.width = Math.round(dispH * ps.widthPx / ps.heightPx) + 'px';
+}
+
+function setPreview(on) {
+  previewing = on && hasImg;
+  $('editorWrap').style.display = previewing ? 'none' : '';
+  $('sheetPreview').style.display = previewing ? '' : 'none';
+  const btn = $('togglePreview');
+  btn.textContent = previewing ? 'Back to editor' : 'Preview sheet layout';
+  btn.setAttribute('aria-pressed', previewing ? 'true' : 'false');
+  if (previewing) renderSheetPreview();
+}
+
+async function downloadSheet() {
+  if (!hasImg) return;
+  const ps = sheetSpec || DATA.printSheet;
+  const photo = await editor.toBlob({ type: 'image/png', width: current.widthPx, height: current.heightPx });
+  const bmp = await createImageBitmap(photo);
+
+  const sheet = document.createElement('canvas');
+  sheet.width = ps.widthPx; sheet.height = ps.heightPx;
+  tileSheet(sheet.getContext('2d'), ps, bmp);
+
   const f = outFormat();
   const sizeId = ps.id || '4x6';
   const sizeLabel = ps.label || '4×6';
+  const { count } = sheetLayout(ps);
   sheet.toBlob((blob) => {
-    if (blob) { triggerDownload(blob, `${current.id}-${sizeId}-sheet.${f.ext}`); $('status').textContent = `Downloaded ${sizeLabel} sheet (${cols * rows} photos).`; }
+    if (blob) { triggerDownload(blob, `${current.id}-${sizeId}-sheet.${f.ext}`); $('status').textContent = `Downloaded ${sizeLabel} sheet (${count} photos).`; }
   }, f.type, f.quality);
 }
 
@@ -222,6 +268,8 @@ function init() {
     const spec = DATA.specs.find((s) => s.id === sel.value);
     applySpec(spec);
     if (hasImg) checkBackground(spec); // re-evaluate against the new spec's required background
+    updateSheetInfo();                 // photo dims changed -> copies-per-sheet changed
+    if (previewing) renderSheetPreview();
   });
   applySpec(DATA.specs[0]);
 
@@ -237,13 +285,17 @@ function init() {
     sheetSpec = sizes[0];
     sheetSel.addEventListener('change', () => {
       sheetSpec = sizes.find((sz) => sz.id === sheetSel.value) || sizes[0];
+      updateSheetInfo();
+      if (previewing) renderSheetPreview();
     });
   } else {
     sheetSpec = DATA.printSheet;
   }
+  updateSheetInfo();
 
   $('file').addEventListener('change', (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); });
-  $('zoom').addEventListener('input', (e) => editor.setZoom(parseFloat(e.target.value)));
+  $('zoom').addEventListener('input', (e) => { editor.setZoom(parseFloat(e.target.value)); if (previewing) renderSheetPreview(); });
+  $('togglePreview').addEventListener('click', () => setPreview(!previewing));
   $('dlPhoto').addEventListener('click', downloadPhoto);
   $('dlSheet').addEventListener('click', downloadSheet);
 
