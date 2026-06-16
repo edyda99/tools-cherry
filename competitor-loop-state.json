@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "qr-code-generator",
+  "lastTool": "crop-image-into-circle",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "crop-image-into-circle",
+      "competitors": ["fotor.com", "circlecropimage.dev", "imgcropper.com"],
+      "shipped": "Platform output-size presets. Added a 'Platform preset' <select> (#preset) above the existing custom Output-size select, with square-avatar dimensions every competitor ships: Discord 128, Facebook 170, TikTok 200, Instagram 320, X/Twitter 400, LinkedIn 400, WhatsApp 512, YouTube 800; default 'Custom size' falls back to the 256/512/1024 select. New outputSize() helper in circle-crop.js returns the preset px when one is chosen, else the custom select value; download() now calls outputSize() so the exported PNG/JPG matches the chosen platform size (width=height=size, framing unchanged). syncPreset() disables the custom #outSize select while a preset is active (visual lock — the preset overrides it) and refreshes the #status line to read 'Output: <label> · drag to reposition…' (label = preset option text like 'Instagram (320)' or '<n>×<n>' for custom); it runs on preset change, custom-size change, at init, and via setLoaded after an image loads so the readout appears once an image is present. Closes the platform-preset gap — circlecropimage.dev advertises 'Discord, Instagram, WhatsApp, TikTok… presets', Fotor markets per-platform PFP sizes, and most circle croppers expose them; we only had generic 256/512/1024. No new deps; canvas engine untouched (export geometry is resolution-independent already); dist gitignored, rebuilt at deploy.",
+      "commit": "c9cf658"
+    },
     {
       "date": "2026-06-16",
       "tool": "qr-code-generator",
@@ -170,6 +177,9 @@
       "Batch/bulk generation from a pasted list of URLs (QR Tiger bulk) — too large for a micro-commit; needs a textarea-to-N-codes UI + zip download."
     ],
     "crop-image-into-circle": [
+      "Alternate crop shapes (square, rounded-rect/rounded-square via corner-radius slider) — IMG Cropper / Adobe Express / Fotor offer multi-shape crop incl. rounded square. The engine already supports shape:'rect'; small-medium: a shape <select> (circle/square/rounded) + a corner-radius slider that adds a rounded-rect clip path in _drawTo. Tool is branded 'circle' so frame as a secondary option, not the default.",
+      "Oval / ellipse crop option — circlecropimage.dev and several croppers offer an oval when a face/logo needs more vertical room than a perfect circle; engine would need a non-square clip (radiusX != radiusY) in the circle branch of _drawTo.",
+      "Flip / mirror the image before cropping (horizontal + vertical) — common editing affordance; a thin CanvasEditor.setFlip(h,v) that negates the transform inside _drawTo, mirroring rotate/straighten which already shipped.",
       "Batch mode — crop multiple images to circles at once (Watermarkly, imagy) — too large for a single micro-commit; would need multi-file upload, a results grid, and per-file framing or a shared transform + zip download"
     ],
     "passport-photo-maker": [
