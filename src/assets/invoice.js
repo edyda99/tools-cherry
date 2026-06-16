@@ -387,6 +387,36 @@ function applyState(saved) {
   return true;
 }
 
+// Increment the trailing number in an invoice id, preserving any zero-padding
+// and prefix/suffix. "INV-001" -> "INV-002", "2026-09" -> "2026-10", "INV7" ->
+// "INV8". No trailing digits -> append "-2" so the next id is still distinct.
+function nextInvoiceNo(cur) {
+  const s = String(cur == null ? '' : cur).trim();
+  const m = s.match(/(\d+)(\D*)$/);
+  if (!m) return s ? s + '-2' : 'INV-002';
+  const digits = m[1];
+  const next = String(Number(digits) + 1).padStart(digits.length, '0');
+  return s.slice(0, m.index) + next + m[2];
+}
+
+// Keep the sender/client/branding and start a fresh invoice for the next bill:
+// bump the invoice number, clear the line items + amount paid, re-derive the
+// due date from the active terms. Mirrors the "duplicate / next invoice"
+// workflow competitors ship so recurring clients don't get re-typed each cycle.
+function startNextInvoice() {
+  $('invNo').value = nextInvoiceNo($('invNo').value);
+  if ($('poNumber')) $('poNumber').value = '';
+  if ($('amountPaid')) $('amountPaid').value = '0';
+  const items = $('items');
+  items.innerHTML = ITEMS_HEAD;
+  items.appendChild(itemRow());
+  $('invDate').value = isoToday(0);
+  applyTerms(); // re-derive the due date from the issue date + active term
+  render();
+  const status = $('pdfStatus');
+  if (status) status.textContent = 'Started invoice ' + $('invNo').value + ' — business and client details kept.';
+}
+
 function resetForm() {
   clearState();
   logo = null;
@@ -435,6 +465,7 @@ function init() {
   $('dueDate').addEventListener('input', () => { $('paymentTerms').value = ''; render(); });
   $('resetBrand').addEventListener('click', () => { $('brandColor').value = DEFAULT_BRAND; render(); });
   $('downloadPdf').addEventListener('click', downloadPdf);
+  $('nextInvoice').addEventListener('click', startNextInvoice);
   $('clearInvoice').addEventListener('click', () => {
     if (window.confirm('Clear this invoice and start fresh? Saved data on this device will be removed.')) resetForm();
   });
