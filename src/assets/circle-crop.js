@@ -18,11 +18,19 @@ function syncRotation() {
   $('rotateVal').textContent = String(editor.rotation);
 }
 
+function syncFlip() {
+  $('flipH').setAttribute('aria-pressed', String(editor.flipH));
+  $('flipV').setAttribute('aria-pressed', String(editor.flipV));
+  $('flipH').classList.toggle('active', editor.flipH);
+  $('flipV').classList.toggle('active', editor.flipV);
+}
+
 async function handleFile(file) {
   try {
     await editor.loadFile(file);
     $('zoom').value = '1';
     syncRotation();
+    syncFlip();
     setLoaded(file.name);
   } catch (e) {
     $('status').textContent = 'Could not load that file — please choose a valid image.';
@@ -106,6 +114,8 @@ function init() {
     $('rotateVal').textContent = String(editor.rotation);
   });
   $('rotateReset').addEventListener('click', () => { editor.setRotation(0); syncRotation(); });
+  $('flipH').addEventListener('click', () => { editor.setFlip(!editor.flipH, editor.flipV); syncFlip(); });
+  $('flipV').addEventListener('click', () => { editor.setFlip(editor.flipH, !editor.flipV); syncFlip(); });
   $('outSize').addEventListener('change', syncPreset);
   $('preset').addEventListener('change', syncPreset);
   syncPreset();

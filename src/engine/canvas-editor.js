@@ -13,6 +13,8 @@ export class CanvasEditor {
     this.borderWidth = opts.borderWidth || 0; // fraction of radius (0..0.5), circle only
     this.padding = opts.padding || 0; // transparent margin around the shape, fraction of half-size (0..0.4)
     this.rotation = opts.rotation || 0; // straighten/rotate the image, degrees (-180..180)
+    this.flipH = !!opts.flipH; // mirror the image horizontally
+    this.flipV = !!opts.flipV; // mirror the image vertically
     this.img = null;
     this.zoom = 1;
     this.panNX = 0.5;
@@ -32,6 +34,8 @@ export class CanvasEditor {
     this.panNX = 0.5;
     this.panNY = 0.5;
     this.rotation = 0;
+    this.flipH = false;
+    this.flipV = false;
     this.render();
     this._emit('change');
     return this;
@@ -58,6 +62,7 @@ export class CanvasEditor {
   }
   setPadding(p) { this.padding = Math.max(0, Math.min(0.4, p || 0)); this.render(); return this; }
   setRotation(deg) { this.rotation = Math.max(-180, Math.min(180, deg || 0)); this.render(); return this; }
+  setFlip(h, v) { this.flipH = !!h; this.flipV = !!v; this.render(); return this; }
 
   setZoom(z) { this.zoom = Math.max(1, Math.min(8, z || 1)); this.render(); this._emit('change'); return this; }
   zoomBy(mult) { return this.setZoom(this.zoom * mult); }
@@ -110,6 +115,13 @@ export class CanvasEditor {
     const ibox = inset; // shrink the image box by the inset on each side
     const boxW = Math.max(1, cw - 2 * ibox);
     const boxH = Math.max(1, ch - 2 * ibox);
+    // Mirror the image about the box center (composes with zoom/pan/rotate/clip).
+    if (this.flipH || this.flipV) {
+      const fcx = ibox + boxW / 2, fcy = ibox + boxH / 2;
+      ctx.translate(fcx, fcy);
+      ctx.scale(this.flipH ? -1 : 1, this.flipV ? -1 : 1);
+      ctx.translate(-fcx, -fcy);
+    }
     const rad = (this.rotation || 0) * Math.PI / 180;
     if (rad) {
       // Rotate the image around the box center. A rotated cover-image would leave
