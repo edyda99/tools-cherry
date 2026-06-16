@@ -1,9 +1,18 @@
-// qr.js — client-side QR generator (URL / WiFi / vCard) with PNG + SVG export.
+// qr.js — client-side QR generator (URL / WiFi / vCard / email / SMS / phone / text)
+// with PNG + SVG export and an adjustable quiet-zone margin.
 // Uses the vendored qrcode-generator lib (global `qrcode`). No network.
 
 const $ = (id) => document.getElementById(id);
 let modules = null; // last rendered module matrix (2D bool) for SVG export
-const QUIET = 4;     // quiet-zone modules each side
+
+// Quiet-zone (margin) modules each side. The QR spec recommends 4; a narrower
+// or zero margin lets the code sit tighter when embedding, at some scan-reliability
+// cost. Read from the selector, clamped to a sane range, default 4.
+function quietZone() {
+  const el = $('qrMargin');
+  const v = el ? parseInt(el.value, 10) : 4;
+  return Number.isFinite(v) ? Math.max(0, Math.min(8, v)) : 4;
+}
 
 // Escape per the WiFi QR spec: \ ; , : " are special.
 function wifiEscape(s) {
@@ -87,8 +96,9 @@ function render() {
   }
 
   // render to canvas at requested pixel size
+  const quiet = quietZone();
   const px = Math.max(128, Math.min(2048, parseInt($('qrSize').value, 10) || 512));
-  const total = count + QUIET * 2;
+  const total = count + quiet * 2;
   const scale = Math.floor(px / total) || 1;
   const dim = scale * total;
   canvas.width = dim;
@@ -103,7 +113,7 @@ function render() {
   ctx.fillStyle = fg;
   for (let r = 0; r < count; r++) {
     for (let c = 0; c < count; c++) {
-      if (modules[r][c]) ctx.fillRect((c + QUIET) * scale, (r + QUIET) * scale, scale, scale);
+      if (modules[r][c]) ctx.fillRect((c + quiet) * scale, (r + quiet) * scale, scale, scale);
     }
   }
   status.textContent = `${count}×${count} modules · ${dim}px PNG`;
@@ -112,11 +122,12 @@ function render() {
 function svgString() {
   if (!modules) return '';
   const count = modules.length;
-  const total = count + QUIET * 2;
+  const quiet = quietZone();
+  const total = count + quiet * 2;
   let rects = '';
   for (let r = 0; r < count; r++) {
     for (let c = 0; c < count; c++) {
-      if (modules[r][c]) rects += `<rect x="${c + QUIET}" y="${r + QUIET}" width="1" height="1"/>`;
+      if (modules[r][c]) rects += `<rect x="${c + quiet}" y="${r + quiet}" width="1" height="1"/>`;
     }
   }
   const fg = $('qrFg').value || '#000000';
