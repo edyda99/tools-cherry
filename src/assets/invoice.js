@@ -131,6 +131,7 @@ function readModel() {
     due: $('dueDate').value,
     terms: termLabel(),
     notes: $('notes').value,
+    signature: !!($('showSignature') && $('showSignature').checked),
     items,
     t: totals(items)
   };
@@ -200,6 +201,7 @@ function saveState() {
   try {
     const data = { fields: {}, items: [], logo };
     FIELD_IDS.forEach((id) => { if ($(id)) data.fields[id] = $(id).value; });
+    data.signature = !!($('showSignature') && $('showSignature').checked);
     data.items = [...document.querySelectorAll('#items .item-row')].map((row) => ({
       desc: row.querySelector('.d').value,
       qty: row.querySelector('.q').value,
@@ -353,7 +355,24 @@ function downloadPdf() {
   if (m.notes) {
     y += 14;
     doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(110);
-    doc.text(doc.splitTextToSize(m.notes, W - 2 * M), M, y);
+    const nlines = doc.splitTextToSize(m.notes, W - 2 * M);
+    doc.text(nlines, M, y);
+    y += nlines.length * 11;
+  }
+
+  // optional signature block in the footer: a blank rule to sign by hand plus a
+  // shorter date rule beside it, each with a small label underneath.
+  if (m.signature) {
+    const H = doc.internal.pageSize.getHeight();
+    if (y > H - 110) { doc.addPage(); y = M; }
+    const ruleY = Math.max(y + 50, H - 72); // sit near the bottom, never over content
+    const sigW = 200, dateX = M + sigW + 30, dateW = 110;
+    doc.setDrawColor(120).setLineWidth(0.75);
+    doc.line(M, ruleY, M + sigW, ruleY);             // signature rule
+    doc.line(dateX, ruleY, dateX + dateW, ruleY);    // date rule
+    doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(110);
+    doc.text('Authorized signature', M, ruleY + 13);
+    doc.text('Date', dateX, ruleY + 13);
   }
 
   const safe = (m.invNo || 'invoice').replace(/[^\w.-]+/g, '-');
@@ -395,6 +414,7 @@ function applyState(saved) {
       logo = saved.logo;
       $('removeLogo').hidden = false;
     }
+    if ($('showSignature')) $('showSignature').checked = !!saved.signature;
   } finally {
     restoring = false;
   }
@@ -455,6 +475,7 @@ function resetForm() {
   if ($('amountPaid')) $('amountPaid').value = '0';
   $('brandColor').value = DEFAULT_BRAND;
   $('notes').value = 'Payment due within 30 days. Thank you for your business.';
+  if ($('showSignature')) $('showSignature').checked = false;
   $('invDate').value = isoToday(0);
   if ($('paymentTerms')) $('paymentTerms').value = '30';
   applyTerms(); // due date = invoice date + Net 30
@@ -473,6 +494,8 @@ function init() {
   ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'shipDetails', 'invNo', 'poNumber', 'currency', 'taxRate', 'discount', 'discountType', 'shipping', 'amountPaid', 'brandColor', 'notes']
     .forEach((id) => $(id).addEventListener('input', render));
   $('discountType').addEventListener('change', render);
+  // Signature toggle affects only the PDF, but re-render to persist the choice.
+  $('showSignature').addEventListener('change', render);
   // Payment terms: a preset auto-fills the due date from the invoice date.
   $('paymentTerms').addEventListener('change', () => { applyTerms(); render(); });
   $('invDate').addEventListener('input', () => { applyTerms(); render(); });
