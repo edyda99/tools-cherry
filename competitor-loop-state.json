@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "passport-photo-maker",
+  "lastTool": "invoice-generator",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "invoice-generator",
+      "competitors": ["wise.com/invoice-generator", "zoho.com/invoice", "invoicesimple.com", "refrens.com", "paymoapp.com"],
+      "shipped": "Optional PO number (purchase-order reference) field. Added a 'PO number (optional)' text input (#poNumber, placeholder 'e.g. PO-4521') beside the Invoice # input, with Currency moved to its own inline row below. readModel exposes m.po = poNumber value (''-safe). Live preview: renders a 'PO: <num>' .pv-meta line under the invoice number in the top-right header block, only when non-empty (esc-escaped). PDF: header draws 'PO: <num>' at 9pt grey under the invoice number on the top-right (y+30), only when present. Persisted: 'poNumber' inserted into FIELD_IDS (after invNo) so autosave/restore covers it; added to the init input-listener array for live re-render; resetForm seeds it to '' (cleared). Closes the top remaining invoice backlog item — Wise/Zoho/InvoiceSimple/Refrens all expose a PO/purchase-order reference distinct from the invoice number (buyers frequently require their PO number on the invoice; omitting it is a flagged invoicing mistake), which we lacked. Pure string field; no totals/math change; jsPDF unchanged; no new deps; npm test (10+8+1 passing) + npm run build pass; verified #poNumber in dist/invoice-generator/index.html and m.po in dist/assets/invoice.js. dist gitignored, rebuilt at deploy.",
+      "commit": "c6c3fb9"
+    },
     {
       "date": "2026-06-16",
       "tool": "passport-photo-maker",
@@ -203,9 +210,9 @@
   "backlog": {
     "invoice-generator": [
       "Per-line-item tax toggle / tax-exempt lines (Invoice-Generator.com, Zoho) — shipping is already untaxed; this would let individual goods lines opt out of tax",
+      "Signature line in the PDF footer (BoldSign/SmoothLedger) — a labelled rule for a handwritten sign-off",
       "Extend brand color to the table-header underline + BILL TO/DATE labels for fuller theming",
-      "PO number field (Wise/Zoho/InvoiceSimple expose a purchase-order reference beside the invoice number) — small: one input persisted + shown in preview/PDF header",
-      "Signature line in the PDF footer (BoldSign/SmoothLedger) — a labelled rule for a handwritten sign-off"
+      "CSV/JSON export+import of the invoice data (round-trip the form to a file) — medium: serialize the existing model + a file picker to reload it"
     ],
     "qr-code-generator": [
       "Distinct finder-pattern (eye) styling — QR Tiger / ME-QR style the three corner eyes separately from the body (square frame + round center, or rounded frame). Medium: detect the 7x7 finder regions and draw their frame/center with a separate shape, optionally a separate eye colour. Builds on the body-style work just shipped.",
