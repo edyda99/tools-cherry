@@ -1,4 +1,4 @@
-// qr.js — client-side QR generator (URL / WiFi / vCard / email / SMS / phone / text)
+// qr.js — client-side QR generator (URL / WiFi / vCard / email / SMS / phone / geo / text)
 // with PNG + SVG export, an adjustable quiet-zone margin, a contrast/scannability
 // warning, and an optional center logo overlay (forces High ECC; embedded in both
 // the canvas render and the SVG export). Uses the vendored qrcode-generator lib
@@ -116,6 +116,13 @@ function buildPayload() {
   if (type === 'phone') {
     const num = String($('phoneNum').value || '').replace(/[^\d+]/g, '');
     return num ? 'tel:' + num : '';
+  }
+  if (type === 'geo') {
+    // RFC 5870 geo URI: geo:<lat>,<lng>. Phone cameras open it in the maps app.
+    const lat = String($('geoLat').value || '').trim();
+    const lng = String($('geoLng').value || '').trim();
+    if (!lat || !lng || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) return '';
+    return `geo:${Number(lat)},${Number(lng)}`;
   }
   if (type === 'text') {
     return $('textBody').value || '';
