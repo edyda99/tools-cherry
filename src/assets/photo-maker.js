@@ -74,6 +74,68 @@ function drawGuide(spec) {
     label((chinMin + chinMax) / 2 + 4, 'chin', 'bottom');
 }
 
+// Parse a #rrggbb spec background into RGB.
+function hexToRgb(hex) {
+  const h = (hex || '#ffffff').replace('#', '');
+  return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) };
+}
+
+// Background readiness hint: sample the four corner patches of the UPLOADED image,
+// then warn (without altering anything) if the background looks dark, busy/uneven,
+// or far from the spec's required white/grey. No AI, no background removal — US/UK/CA
+// rules forbid digitally altering the background, so this only advises the user.
+function checkBackground(spec) {
+  const hint = $('bgHint');
+  const img = editor && editor.img;
+  if (!img) { hint.style.display = 'none'; return; }
+  try {
+    const W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
+    const s = Math.max(4, Math.round(Math.min(W, H) * 0.08)); // corner patch size
+    const cv = document.createElement('canvas');
+    cv.width = s; cv.height = s;
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    const corners = [[0, 0], [W - s, 0], [0, H - s], [W - s, H - s]];
+    const avgs = corners.map(([sx, sy]) => {
+      ctx.clearRect(0, 0, s, s);
+      ctx.drawImage(img, sx, sy, s, s, 0, 0, s, s);
+      const d = ctx.getImageData(0, 0, s, s).data;
+      let r = 0, g = 0, b = 0, n = 0;
+      for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+      return { r: r / n, g: g / n, b: b / n };
+    });
+    const mean = avgs.reduce((a, c) => ({ r: a.r + c.r / 4, g: a.g + c.g / 4, b: a.b + c.b / 4 }), { r: 0, g: 0, b: 0 });
+    const lum = (0.299 * mean.r + 0.587 * mean.g + 0.114 * mean.b);
+    // Spread between corners -> busy/uneven background (shadows, patterns, scenery).
+    const spread = Math.max(...avgs.map((c) => Math.abs(c.r - mean.r) + Math.abs(c.g - mean.g) + Math.abs(c.b - mean.b)));
+    const want = hexToRgb(spec.background);
+    const dist = Math.abs(mean.r - want.r) + Math.abs(mean.g - want.g) + Math.abs(mean.b - want.b);
+    const bgName = (spec.background || '').toLowerCase() === '#ffffff' ? 'white' : 'light grey';
+
+    let msg, ok;
+    if (spread > 60) {
+      ok = false;
+      msg = `Background looks busy or uneven (shadows, pattern, or scenery in the corners). ` +
+        `${spec.label.split(' — ')[0]} needs a plain, evenly-lit ${bgName} background.`;
+    } else if (lum < 110) {
+      ok = false;
+      msg = `Background looks dark. ${spec.label.split(' — ')[0]} needs a plain ${bgName} background — ` +
+        `retake against a brighter ${bgName} wall.`;
+    } else if (dist > 150) {
+      ok = false;
+      msg = `Background colour looks off for a ${bgName} background. Retake against a plain ${bgName} wall for the best chance of acceptance.`;
+    } else {
+      ok = true;
+      msg = `Background looks plain and close to the required ${bgName} — good. ` +
+        `(This is a guide only; lighting and shadows are still judged by the issuing authority.)`;
+    }
+    hint.textContent = (ok ? 'Background check: ' : 'Heads up — ') + msg;
+    hint.style.color = ok ? 'var(--accent, #2ea043)' : '#c9510c';
+    hint.style.display = '';
+  } catch (e) {
+    hint.style.display = 'none'; // tainted canvas / decode issue — skip silently
+  }
+}
+
 async function handleFile(file) {
   try {
     await editor.loadFile(file);
@@ -85,6 +147,7 @@ async function handleFile(file) {
     $('status').textContent =
       `Zoom so the crown touches the top line and the chin sits in the shaded band ` +
       `(head height ${current.headMinMm}–${current.headMaxMm} mm).`;
+    checkBackground(current);
   } catch (e) {
     $('status').textContent = 'Could not load that file — please choose a valid image.';
   }
@@ -158,6 +221,7 @@ function init() {
   sel.addEventListener('change', () => {
     const spec = DATA.specs.find((s) => s.id === sel.value);
     applySpec(spec);
+    if (hasImg) checkBackground(spec); // re-evaluate against the new spec's required background
   });
   applySpec(DATA.specs[0]);
 
