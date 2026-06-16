@@ -41,6 +41,14 @@
           <input id="zoom" type="range" min="1" max="5" step="0.01" value="1" style="width:100%">
         </div>
         <div class="field">
+          <label for="rotate" style="display:flex;justify-content:space-between;align-items:baseline">
+            <span>Straighten / rotate</span>
+            <button type="button" id="rotateReset" class="link-btn" style="background:none;border:none;padding:0;font:inherit;color:var(--accent,#2ea043);cursor:pointer;font-size:12px">Reset</button>
+          </label>
+          <input id="rotate" type="range" min="-45" max="45" step="0.5" value="0" style="width:100%">
+          <p class="muted-small" id="rotateInfo" style="margin-top:4px">0°. Tilt the slider so the eyes sit level.</p>
+        </div>
+        <div class="field">
           <label for="format">Download format</label>
           <select id="format">
             <option value="png">PNG (lossless)</option>

@@ -197,10 +197,20 @@ function esc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// Sync the rotate slider + readout to the editor's current rotation.
+function syncRotate() {
+  const deg = editor ? editor.rotation : 0;
+  $('rotate').value = String(deg);
+  $('rotateInfo').textContent = deg === 0
+    ? '0°. Tilt the slider so the eyes sit level.'
+    : `${deg > 0 ? '+' : ''}${deg}° rotation applied.`;
+}
+
 async function handleFile(file) {
   try {
-    await editor.loadFile(file);
+    await editor.loadFile(file); // loadFile resets zoom/pan/rotation to defaults
     $('zoom').value = '1';
+    syncRotate();
     hasImg = true;
     $('dlPhoto').disabled = false;
     $('dlSheet').disabled = false;
@@ -441,6 +451,8 @@ function init() {
 
   $('file').addEventListener('change', (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); });
   $('zoom').addEventListener('input', (e) => { editor.setZoom(parseFloat(e.target.value)); if (previewing) renderSheetPreview(); });
+  $('rotate').addEventListener('input', (e) => { editor.setRotation(parseFloat(e.target.value)); syncRotate(); if (previewing) renderSheetPreview(); });
+  $('rotateReset').addEventListener('click', () => { editor.setRotation(0); syncRotate(); if (previewing) renderSheetPreview(); });
   $('togglePreview').addEventListener('click', () => setPreview(!previewing));
   $('dlPhoto').addEventListener('click', downloadPhoto);
   $('dlSheet').addEventListener('click', downloadSheet);
