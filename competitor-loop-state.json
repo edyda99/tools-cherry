@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "passport-photo-maker",
+  "lastTool": "invoice-generator",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "invoice-generator",
+      "competitors": ["plutio.com", "invoicecat.com", "wise.com/invoice-generator", "magic-invoice"],
+      "shipped": "Payment-terms preset dropdown (top backlog item). Added a 'Payment terms' <select> (#paymentTerms) beside the invoice Date: Custom / Due on receipt (0) / Net 7 / 14 / 15 / 30 (default selected) / 60 / 90; moved the Due date input to its own row below. New applyTerms() reads the selected day-count and sets dueDate = invDate + N days (via Date arithmetic on 'YYYY-MM-DDT00:00:00', toISOString slice), a no-op for Custom (value ''). Wiring: paymentTerms change -> applyTerms()+render(); invDate input -> applyTerms()+render() (so changing the issue date re-derives the due date when a preset is active); editing dueDate by hand resets paymentTerms to '' (Custom) so the manual date isn't overwritten. termLabel() returns the selected option text ('Net 30' etc.); readModel exposes m.terms, rendered as a small grey line under 'Due' in the live preview and in the PDF (setFontSize 9 / grey, right-aligned under the due date). Persisted: 'paymentTerms' inserted into FIELD_IDS (after invDate) so autosave/restore covers it; resetForm seeds it to '30' and calls applyTerms() so the default due date stays Net 30 (replaced the hardcoded isoToday(30)). Fresh-visit seeding unchanged (HTML default Net 30 + isoToday(30) already agree, no conflict). Closes the top invoice backlog item — Plutio/InvoiceCat/Wise/Magic Invoice all ship a terms dropdown that auto-fills the due date from the invoice date; we had a free-text due date only (users computed Net 30 by hand). Pure date/string math; no new deps; jsPDF unchanged; npm test + npm run build pass; change verified in dist/. dist gitignored, rebuilt at deploy.",
+      "commit": "1bd0260"
+    },
     {
       "date": "2026-06-16",
       "tool": "passport-photo-maker",
@@ -174,9 +181,10 @@
   ],
   "backlog": {
     "invoice-generator": [
-      "Payment-terms presets (Net 15 / Net 30 / Net 60 / Due on receipt) — Wise/Zoho/InvoiceSimple ship a dropdown that auto-fills the due date from the invoice date; we have a free-text due date only. Small: a <select> that sets dueDate = invDate + N days and can drop a matching line into Notes.",
+      "Per-line-item tax toggle / tax-exempt lines (Invoice-Generator.com, Zoho) — shipping is already untaxed; this would let individual goods lines opt out of tax",
       "Extend brand color to the table-header underline + BILL TO/DATE labels for fuller theming",
-      "Per-line-item tax toggle / tax-exempt lines (Invoice-Generator.com, Zoho) — shipping is already untaxed; this would let individual goods lines opt out of tax"
+      "PO number field (Wise/Zoho/InvoiceSimple expose a purchase-order reference beside the invoice number) — small: one input persisted + shown in preview/PDF header",
+      "Signature line in the PDF footer (BoldSign/SmoothLedger) — a labelled rule for a handwritten sign-off"
     ],
     "qr-code-generator": [
       "Module/dot style (rounded dots vs square modules) — QRCode Monkey / QR Tiger offer a 'body shape' picker; currently we draw square fillRects only. Small-medium: a <select> (square/rounded/dots) that swaps fillRect for rounded-rect/arc in render() and matching rx/circle in svgString().",
