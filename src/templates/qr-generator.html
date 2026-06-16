@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Free QR Code Generator — URL, WiFi, vCard, Email, SMS, Phone, Location &amp; Text (PNG &amp; SVG)</title>
-<meta name="description" content="Free QR code generator. Create QR codes for a URL, WiFi network, contact (vCard), email, SMS, phone number, map location, or plain text, then download as PNG or SVG. No signup, no watermark — generated in your browser.">
+<title>Free QR Code Generator — URL, WiFi, vCard, Email, SMS, WhatsApp, Phone, Location &amp; Text (PNG &amp; SVG)</title>
+<meta name="description" content="Free QR code generator. Create QR codes for a URL, WiFi network, contact (vCard), email, SMS, WhatsApp chat, phone number, map location, or plain text, then download as PNG or SVG. No signup, no watermark — generated in your browser.">
 <link rel="canonical" href="{{SITE_URL}}/qr-code-generator/">
-<meta property="og:title" content="Free QR Code Generator — URL, WiFi, vCard, Email, SMS, Phone, Location, Text">
-<meta property="og:description" content="Create and download QR codes for a URL, WiFi, contact, email, SMS, phone, map location, or text as PNG or SVG. Free, no signup.">
+<meta property="og:title" content="Free QR Code Generator — URL, WiFi, vCard, Email, SMS, WhatsApp, Phone, Location, Text">
+<meta property="og:description" content="Create and download QR codes for a URL, WiFi, contact, email, SMS, WhatsApp, phone, map location, or text as PNG or SVG. Free, no signup.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Free QR Code Generator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Create QR codes for a URL, WiFi, vCard, email, SMS, phone, map location, or plain text and download as PNG or SVG, in your browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Free QR Code Generator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Create QR codes for a URL, WiFi, vCard, email, SMS, WhatsApp, phone, map location, or plain text and download as PNG or SVG, in your browser."}</script>
 </head>
 <body>
 <header class="site">
@@ -36,6 +36,7 @@
             <option value="vcard">Contact card (vCard)</option>
             <option value="email">Email</option>
             <option value="sms">SMS message</option>
+            <option value="wa">WhatsApp message</option>
             <option value="phone">Phone number</option>
             <option value="geo">Location (map point)</option>
             <option value="text">Plain text</option>
@@ -80,6 +81,12 @@
         <div data-group="sms" hidden>
           <div class="field"><label for="smsTo">Phone number</label><input id="smsTo" placeholder="+1 555 0100"></div>
           <div class="field"><label for="smsBody">Message</label><textarea id="smsBody" rows="3" placeholder="Pre-filled text"></textarea></div>
+        </div>
+
+        <div data-group="wa" hidden>
+          <div class="field"><label for="waNum">Phone number (with country code)</label><input id="waNum" placeholder="1 555 0100"></div>
+          <div class="field"><label for="waMsg">Message (optional)</label><textarea id="waMsg" rows="3" placeholder="Pre-filled chat text"></textarea></div>
+          <p class="muted-small" style="margin-top:6px">Scanning opens a WhatsApp chat with this number. Enter the full international number (country code first); the leading + and spaces are removed automatically.</p>
         </div>
 
         <div data-group="phone" hidden>

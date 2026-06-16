@@ -1,4 +1,4 @@
-// qr.js — client-side QR generator (URL / WiFi / vCard / email / SMS / phone / geo / text)
+// qr.js — client-side QR generator (URL / WiFi / vCard / email / SMS / WhatsApp / phone / geo / text)
 // with PNG + SVG export, copy-PNG-to-clipboard, an adjustable quiet-zone margin, a contrast/scannability
 // warning, and an optional center logo overlay (forces High ECC; embedded in both
 // the canvas render and the SVG export). Uses the vendored qrcode-generator lib
@@ -112,6 +112,14 @@ function buildPayload() {
     const num = String($('smsTo').value || '').replace(/[^\d+]/g, '');
     const body = String($('smsBody').value || '');
     return body ? `SMSTO:${num}:${body}` : `SMSTO:${num}:`;
+  }
+  if (type === 'wa') {
+    // WhatsApp click-to-chat: https://wa.me/<number>?text=<message>.
+    // wa.me expects the number with country code and NO leading + or separators.
+    const num = String($('waNum').value || '').replace(/[^\d]/g, '');
+    if (!num) return '';
+    const msg = String($('waMsg').value || '');
+    return 'https://wa.me/' + num + (msg ? '?text=' + encodeURIComponent(msg) : '');
   }
   if (type === 'phone') {
     const num = String($('phoneNum').value || '').replace(/[^\d+]/g, '');
