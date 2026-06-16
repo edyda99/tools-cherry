@@ -47,18 +47,21 @@ function outputSize() {
 function download() {
   if (!hasImg) return;
   const size = outputSize();
-  const fmt = $('format').value === 'jpeg' ? 'jpeg' : 'png';
+  const v = $('format').value;
+  const fmt = (v === 'jpeg' || v === 'webp') ? v : 'png';
   // JPG has no alpha: flatten the transparent corners onto an opaque backdrop
-  // (the user's chosen background color if filling, else white).
+  // (the user's chosen background color if filling, else white). PNG and WebP
+  // both keep transparency, so no flatten.
   const flatten = fmt === 'jpeg'
     ? ($('bgOn').checked ? $('bgColor').value : '#ffffff')
     : null;
-  const opts = fmt === 'jpeg'
-    ? { type: 'image/jpeg', quality: 0.92, width: size, height: size, flatten }
-    : { type: 'image/png', width: size, height: size };
+  const type = fmt === 'jpeg' ? 'image/jpeg' : fmt === 'webp' ? 'image/webp' : 'image/png';
+  const opts = fmt === 'png'
+    ? { type, width: size, height: size }
+    : { type, quality: 0.92, width: size, height: size, flatten };
   editor.toBlob(opts).then((blob) => {
     if (!blob) return;
-    const ext = fmt === 'jpeg' ? 'jpg' : 'png';
+    const ext = fmt === 'jpeg' ? 'jpg' : fmt;
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = `circle-crop.${ext}`;
@@ -69,9 +72,10 @@ function download() {
 }
 
 function syncFormat() {
-  const jpg = $('format').value === 'jpeg';
-  $('download').textContent = jpg ? 'Download JPG' : 'Download PNG';
-  $('jpgNote').hidden = !jpg;
+  const v = $('format').value;
+  const label = v === 'jpeg' ? 'Download JPG' : v === 'webp' ? 'Download WebP' : 'Download PNG';
+  $('download').textContent = label;
+  $('jpgNote').hidden = v !== 'jpeg';
 }
 
 // When a platform preset is chosen its size drives the export, so the custom
