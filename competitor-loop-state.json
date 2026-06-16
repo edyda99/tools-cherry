@@ -8,7 +8,7 @@
       "tool": "qr-code-generator",
       "competitors": ["qr-code-generator.com", "qrcode-monkey.com", "the-qrcode-generator.com"],
       "shipped": "SEO/copy fix: the page already supports 7 payload types (URL, WiFi, vCard, Email, SMS, Phone, Text) but the <title>, meta description, og:title/og:description, and JSON-LD description still only advertised 'WiFi, vCard & URL'. Updated all four to enumerate the full set, recovering long-tail search coverage (email/sms/phone/text QR) competitors rank for. No JS/logic change; content-only.",
-      "commit": "40a53d2"
+      "commit": "340726e"
     },
     {
       "date": "2026-06-16",
