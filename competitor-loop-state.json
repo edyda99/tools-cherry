@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "crop-image-into-circle",
+  "lastTool": "passport-photo-maker",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "passport-photo-maker",
+      "competitors": ["pixconvert.com", "levotools.com", "passportgrid.com"],
+      "shipped": "Print-ready PDF export of the sheet (top backlog item). Added a 'Download print sheet as PDF' button (#dlSheetPdf) below the existing PNG/JPG photo + sheet buttons; enabled alongside them on file load. New downloadSheetPdf() reuses the shared tileSheet()/sheetLayout() helpers to paint the same tiled sheet (white bg, copies, grey cut guides) onto an offscreen canvas, then renders it into a jsPDF page sized to the sheet's TRUE physical dimensions: points = px / 300 * 72 (all sheet sizes are 300-DPI derivations), orientation derived from w>h, single addImage of the canvas as JPEG q0.95 at 0,0 covering the full page so the print is 1:1 at any lab. Filename `<specId>-<sizeId>-sheet.pdf`; status line reports the size label + photo count (same count source as the raster sheet). jsPDF is the already-vendored src/assets/jspdf.umd.min.js (invoice-generator uses it); loaded globally via a <script src> in the template before the module (mirrors invoice), guarded by a window.jspdf check that surfaces a refresh hint if it failed to load. build.js already copies jspdf.umd.min.js to dist/assets. Closes the top passport-photo-maker backlog item — PixConvert/Levo Tools offer JPG + PDF sheet export; we had PNG/JPG raster only (print labs/kiosks often prefer a fixed-size PDF). No new deps; no photo-specs.json changes (no data-sourcing conflict); dist gitignored, rebuilt at deploy.",
+      "commit": "56f4f3d"
+    },
     {
       "date": "2026-06-16",
       "tool": "crop-image-into-circle",
@@ -183,10 +190,9 @@
       "Batch mode — crop multiple images to circles at once (Watermarkly, imagy) — too large for a single micro-commit; would need multi-file upload, a results grid, and per-file framing or a shared transform + zip download"
     ],
     "passport-photo-maker": [
-      "Print-ready PDF export of the sheet (PixConvert/Levo Tools offer JPG + PDF; we have JPG/PNG only) — jsPDF is already a dep on other tools; the shared tileSheet() helper now makes this a thin wrapper (render to canvas, addImage into a jsPDF page sized to the sheet)",
+      "Compliance summary panel — combine the head-height band + background hint into a single pass/fail checklist (parity with PassportPhotoFactory's 15-check / iShotaPhoto's 20+ check validators)",
       "More country specs (40+ on PixConvert / 60+ elsewhere) — only add with authoritative government sources; escalate conflicts per data rule",
-      "AI/WASM background removal to white — heavy (in-browser model) AND non-compliant for US/UK/CA (digital alteration forbidden; State Dept auto-rejects AI-altered photos since Jan 2026); the background readiness HINT (shipped) is the compliant alternative, so this is out of scope",
-      "Compliance summary panel — combine the head-height band + background hint into a single pass/fail checklist (parity with PassportPhotoFactory's 15-check / iShotaPhoto's 20+ check validators)"
+      "AI/WASM background removal to white — heavy (in-browser model) AND non-compliant for US/UK/CA (digital alteration forbidden; State Dept auto-rejects AI-altered photos since Jan 2026); the background readiness HINT (shipped) is the compliant alternative, so this is out of scope"
     ]
   }
 }
