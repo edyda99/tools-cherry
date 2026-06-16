@@ -1,5 +1,5 @@
 // qr.js — client-side QR generator (URL / WiFi / vCard / email / SMS / phone / geo / text)
-// with PNG + SVG export, an adjustable quiet-zone margin, a contrast/scannability
+// with PNG + SVG export, copy-PNG-to-clipboard, an adjustable quiet-zone margin, a contrast/scannability
 // warning, and an optional center logo overlay (forces High ECC; embedded in both
 // the canvas render and the SVG export). Uses the vendored qrcode-generator lib
 // (global `qrcode`). No network — logos stay client-side via FileReader.
@@ -331,6 +331,34 @@ function downloadSvg() {
   downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), fileBase() + '.svg');
 }
 
+// Copy the rendered QR (PNG) straight to the system clipboard so it can be pasted
+// into a doc, chat, or slide without a download round-trip. Uses the async
+// Clipboard API (ClipboardItem); reports success/failure on the status line.
+// Requires a secure context (https / localhost) — surfaces a hint if unavailable.
+function copyPng() {
+  const status = $('qrStatus');
+  if (!modules) return;
+  const canSupport =
+    typeof navigator !== 'undefined' &&
+    navigator.clipboard &&
+    typeof navigator.clipboard.write === 'function' &&
+    typeof window.ClipboardItem === 'function';
+  if (!canSupport) {
+    if (status) status.textContent = 'Copy isn’t supported in this browser — use Download PNG instead.';
+    return;
+  }
+  $('qrCanvas').toBlob((blob) => {
+    if (!blob) {
+      if (status) status.textContent = 'Could not copy the QR code — use Download PNG instead.';
+      return;
+    }
+    navigator.clipboard
+      .write([new window.ClipboardItem({ 'image/png': blob })])
+      .then(() => { if (status) status.textContent = 'Copied PNG to clipboard — paste it anywhere.'; })
+      .catch(() => { if (status) status.textContent = 'Copy was blocked — use Download PNG instead.'; });
+  }, 'image/png');
+}
+
 function syncGroups() {
   const type = $('qrType').value;
   document.querySelectorAll('[data-group]').forEach((g) => {
@@ -392,6 +420,8 @@ function init() {
   if (clearBtn) clearBtn.addEventListener('click', clearLogo);
   $('dlPng').addEventListener('click', downloadPng);
   $('dlSvg').addEventListener('click', downloadSvg);
+  const copyBtn = $('copyPng');
+  if (copyBtn) copyBtn.addEventListener('click', copyPng);
   syncGroups();
   render();
 }
