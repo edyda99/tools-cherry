@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "crop-image-into-circle",
+  "lastTool": "passport-photo-maker",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "passport-photo-maker",
+      "competitors": ["passportgrid.com", "levotools.com", "123passportphoto.com", "cutout.pro"],
+      "shipped": "Live print-sheet layout preview with cut guides. Added a 'Preview sheet layout' toggle (#togglePreview, enabled once an image loads) that swaps the interactive single-photo editor (#editorWrap) for a new on-screen #sheetPreview canvas rendering the full tiled sheet (white bg, all copies, grey cut-guide rectangles) exactly as it will print — so the user sees the layout BEFORE downloading. Plus a live #sheetInfo readout under the sheet-size selector ('Fits N photos (cols x rows) with cut guides.') that updates with no image needed. Refactored the download tiling into three shared helpers: sheetLayout(ps) returns {cols,rows,gapX,gapY,count} (max copies edge-to-edge, leftover spread as even gaps), tileSheet(ctx,ps,bmp) paints the sheet, and renderSheetPreview() draws into #sheetPreview at full sheet px then CSS-scales to MAX_DISPLAY_H; downloadSheet now reuses tileSheet/sheetLayout so the preview geometry is byte-identical to the export. Preview re-renders on zoom (slider), document-type change (photo dims change copies-per-sheet), sheet-size change, and on a new file load while previewing; updateSheetInfo() runs the same on those events and at init. setPreview(on) toggles visibility + button label ('Back to editor') + aria-pressed. Competitor parity: PassportGrid ('Show cutting guide grid'), Levo Tools (preview spacing + cut guides), 123PassportPhoto (cut along grey lines), Cutout.Pro all preview the cut-guide tiling before printing — we drew cut guides into the export but never previewed them. Closes the 'grid-line / cut-guide preview' backlog item. No new deps; pure canvas; no photo-specs.json changes (no data-sourcing conflict). dist gitignored, rebuilt at deploy.",
+      "commit": "0c751a7"
+    },
     {
       "date": "2026-06-16",
       "tool": "crop-image-into-circle",
@@ -150,10 +157,9 @@
       "Batch mode — crop multiple images to circles at once (Watermarkly, imagy) — too large for a single micro-commit; would need multi-file upload, a results grid, and per-file framing or a shared transform + zip download"
     ],
     "passport-photo-maker": [
-      "Print-ready PDF export of the sheet (PixConvert offers JPG + PDF; we have JPG/PNG only) — jsPDF is already a dep on other tools",
-      "Grid-line / cut-guide preview overlay before downloading the sheet (cut guides already drawn into the export, but not previewed)",
+      "Print-ready PDF export of the sheet (PixConvert/Levo Tools offer JPG + PDF; we have JPG/PNG only) — jsPDF is already a dep on other tools; the shared tileSheet() helper now makes this a thin wrapper (render to canvas, addImage into a jsPDF page sized to the sheet)",
       "More country specs (40+ on PixConvert / 60+ elsewhere) — only add with authoritative government sources; escalate conflicts per data rule",
-      "AI/WASM background removal to white — heavy (in-browser model) AND non-compliant for US/UK/CA (digital alteration forbidden); the background readiness HINT (shipped) is the compliant alternative, so this is low priority",
+      "AI/WASM background removal to white — heavy (in-browser model) AND non-compliant for US/UK/CA (digital alteration forbidden; State Dept auto-rejects AI-altered photos since Jan 2026); the background readiness HINT (shipped) is the compliant alternative, so this is out of scope",
       "Compliance summary panel — combine the head-height band + background hint into a single pass/fail checklist (parity with PassportPhotoFactory's 15-check / iShotaPhoto's 20+ check validators)"
     ]
   }
