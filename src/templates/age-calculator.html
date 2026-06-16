@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Age Calculator — How Old Am I? Calculate Age From Date of Birth (Years, Months, Days)</title>
+<meta name="description" content="Free age calculator. Find out exactly how old you are in years, months, and days from your date of birth — plus your age in weeks, hours, the day of the week you were born, and a countdown to your next birthday. No signup; runs in your browser.">
+<link rel="canonical" href="{{SITE_URL}}/age-calculator/">
+<meta property="og:title" content="Age Calculator — How Old Am I?">
+<meta property="og:description" content="Calculate your exact age in years, months, and days from your date of birth, with a countdown to your next birthday. Free, in your browser.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Age Calculator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate your exact age in years, months, and days from a date of birth, with totals in weeks, days and hours and a next-birthday countdown, in your browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I calculate my exact age?","acceptedAnswer":{"@type":"Answer","text":"Enter your date of birth and the calculator shows your exact age in years, months, and days as of today, counting full calendar months and the leftover days. You can also set a different \"as of\" date to find your age on any past or future day."}},{"@type":"Question","name":"How is age in months and days worked out?","acceptedAnswer":{"@type":"Answer","text":"The calculator counts complete years first, then complete months, then the remaining days. When the day of the month hasn't been reached yet it borrows days from the previous month, using that month's real length, so February and 30-day months are handled correctly."}},{"@type":"Question","name":"What if I was born on February 29?","acceptedAnswer":{"@type":"Answer","text":"In leap years your birthday falls on February 29. In common (non-leap) years the calculator rolls the birthday to March 1, which is the usual civil convention, so the next-birthday countdown still works every year."}}]}</script>
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <h1>Age Calculator</h1>
+    <p class="lede">Find out exactly how old you are — in years, months, and days — from your date of birth. See your age in weeks, days and hours, the day of the week you were born, and how long until your next birthday. Everything is calculated in your browser; nothing is uploaded.</p>
+
+    <div class="calc">
+      <form id="ageForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="birthDate">Date of birth</label>
+          <input id="birthDate" type="date">
+        </div>
+        <div class="field">
+          <label for="refDate">Age as of (defaults to today)</label>
+          <input id="refDate" type="date">
+          <button type="button" id="refReset" class="btn-secondary" style="margin-top:6px">Reset to today</button>
+        </div>
+      </form>
+
+      <div class="results">
+        <p class="muted-small" id="ageStatus">Enter your date of birth to calculate your age.</p>
+        <div id="ageResults" hidden>
+          <p class="muted-small">Your age is</p>
+          <p id="ageMain" style="font-size:1.6rem;font-weight:700;margin:4px 0 16px"></p>
+          <p class="muted-small">Or, the same age expressed another way:</p>
+          <ul id="ageAlt" class="age-alt"></ul>
+          <p id="ageBorn" style="margin-top:14px"></p>
+          <p id="ageNext"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the age calculator</h2>
+      <p>Pick your date of birth and your age appears instantly: complete years, the leftover months, and the leftover days, exactly the way you'd say it out loud. Leave the second date set to today for your age right now, or change the <strong>Age as of</strong> date to find how old you were (or will be) on any other day — useful for forms, eligibility dates, or working out someone's age at a past event.</p>
+      <p>Below the headline figure you'll also see your age converted into total months, weeks, days, hours, and minutes, the weekday you were born on, and a countdown to your next birthday. Leap years, February, and months of different lengths are all handled correctly, so the breakdown always adds up.</p>
+      <p class="note">Your dates never leave your device — the age is calculated entirely in your browser, with no signup and nothing stored.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/age.js"></script>
+</body>
+</html>

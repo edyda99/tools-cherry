@@ -5,6 +5,7 @@ import { readFile, writeFile, mkdir, cp, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { STATIC_PAGES } from './src/content/static-pages.js';
+import { computePaycheck } from './src/engine/paycheck-engine.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SRC = join(__dirname, 'src');
@@ -35,15 +36,98 @@ function fill(tpl, map) {
   return out;
 }
 
+// Deep-clone a value omitting internal-only keys ("_"-prefixed like _meta/_source/_note,
+// plus any stray "verification") so build provenance never ships in page source or the
+// published data JSON. The source data file keeps them; only embedded/published copies are stripped.
+function stripInternal(value) {
+  if (Array.isArray(value)) return value.map(stripInternal);
+  if (value && typeof value === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (k.startsWith('_') || k === 'verification') continue;
+      out[k] = stripInternal(v);
+    }
+    return out;
+  }
+  return value;
+}
+
+// A prominent, user-visible banner when a state's figures are from a prior year
+// (prior-year fallback policy) — e.g. California shows 2025 rates while 2026 is pending.
+// Returns '' when figureYear matches the site tax year.
+function figureYearBanner(state, year) {
+  const fy = Number(state.figureYear);
+  const yr = Number(year);
+  if (!fy || fy === yr) return '';
+  return `<p class="year-fallback" role="note">` +
+    `<strong>${fy} rates (${yr} pending).</strong> ` +
+    `Showing ${state.name}'s official ${fy} tax figures — ${fy < yr ? 'the state has not published ' + yr + ' brackets yet' : 'figures are from ' + fy} and this page will update when ${yr} figures are released.` +
+    `</p>`;
+}
+
+const pctStr = (r) => (r * 100).toFixed(2).replace(/\.?0+$/, '') + '%';
+const usd0 = (n) => '$' + Math.round(n).toLocaleString('en-US');
+
+// Genuinely state-specific tax facts derived from the (already-sourced) data:
+// bracket count, rate range, top rate + threshold, standard deduction, and a
+// worked $60k example. Distinct per state — clears scaled/duplicate-content risk.
+function stateTaxFacts(state, year, taxData) {
+  const t = state.tax;
+  const sd = t.standardDeduction;
+  const sdText = sd
+    ? `For ${year}, ${state.name}'s state standard deduction is ${usd0(sd.single)} for single filers and ${usd0(sd.married)} for married couples filing jointly`
+    : `${state.name} does not provide a state standard deduction`;
+  let example = '';
+  try {
+    const ann = computePaycheck({ wage: { type: 'salary', amount: 60000 }, filingStatus: 'single', payFrequency: 'annual', stateSlug: state.slug }, taxData).annual;
+    if (Number.isFinite(ann.state) && ann.state > 0) {
+      example = ` As a worked example, a single filer earning $60,000 pays about ${usd0(ann.state)} in ${state.name} income tax (roughly ${(ann.state / 60000 * 100).toFixed(1)}% of gross) before federal tax and FICA.`;
+    } else if (ann.state === 0) {
+      example = ` A single filer earning $60,000 owes essentially no ${state.name} income tax once the deduction is applied.`;
+    }
+  } catch (_) { /* leave example empty if compute fails */ }
+
+  if (t.type === 'flat') {
+    return `<p>${sdText}; after that, all remaining taxable income is taxed at the single ` +
+      `flat rate of <strong>${pctStr(t.rate)}</strong> — ${state.name} does not use graduated brackets for ${year}.${example}</p>`;
+  }
+  const b = t.brackets.single || [];
+  const n = b.length;
+  const low = pctStr(b[0].rate);
+  const top = pctStr(b[n - 1].rate);
+  const topThresh = n >= 2 ? b[n - 2].upTo : null;
+  return `<p>${state.name} uses a <strong>graduated income tax with ${n} bracket${n > 1 ? 's' : ''}</strong> for ${year}, ` +
+    `with marginal rates ranging from ${low} to a top rate of <strong>${top}</strong>` +
+    (topThresh ? ` (which applies to single-filer taxable income above ${usd0(topThresh)})` : '') + `. ` +
+    `${sdText}.${example}</p>`;
+}
+
+// Genuinely state-specific facts for the no-income-tax states, so those pages
+// aren't a name-swapped template (scaled-content risk). Each is true for that
+// state and different from the others.
+const NOTAX_FACTS = {
+  alaska: 'Alaska levies neither a state income tax nor a statewide sales tax, and it pays eligible residents an annual Permanent Fund Dividend from oil revenues.',
+  florida: "Florida's constitution prohibits a personal income tax, and the state funds itself largely through sales tax and tourism-related revenue.",
+  nevada: 'Nevada has no individual income tax and leans heavily on sales tax and gaming/tourism revenue instead.',
+  'new-hampshire': "New Hampshire does not tax earned wages; its former 5% tax on interest and dividends was fully phased out and repealed effective January 1, 2025, so investment income is now untaxed too.",
+  'south-dakota': 'South Dakota has no individual income tax and no corporate income tax, funding services mainly through sales and property taxes.',
+  tennessee: "Tennessee has no tax on wages; its 'Hall tax' on interest and dividend income was fully repealed in 2021, making the state completely income-tax-free.",
+  texas: 'Texas has no personal income tax, and a 2019 constitutional amendment bars the state from enacting one without a statewide voter referendum.',
+  washington: 'Washington has no tax on wage income, though since 2022 it applies a 7% excise tax on annual long-term capital gains above an inflation-adjusted threshold (around $270,000) — which does not touch ordinary paychecks.',
+  wyoming: 'Wyoming has no individual or corporate income tax, relying on mineral severance taxes and federal mineral royalties to fund state government.'
+};
+
 // Prose body per state — branches on whether the state levies income tax.
-function stateBody(state, year) {
+function stateBody(state, year, taxData) {
   const noTax = !state.hasIncomeTax;
   if (noTax) {
+    const fact = NOTAX_FACTS[state.slug] ? ` ${NOTAX_FACTS[state.slug]}` : '';
     return `<p>${state.name} is one of the U.S. states with <strong>no state income tax</strong>. ` +
       `Your ${year} paycheck is reduced only by federal income tax withholding and FICA ` +
-      `(Social Security and Medicare) — there is no ${state.name} income tax line.</p>` +
+      `(Social Security and Medicare) — there is no ${state.name} income tax line, so your take-home ` +
+      `pay is higher than in an otherwise-identical job in a state that taxes wages.${fact}</p>` +
       `<p>Federal withholding is estimated from the ${year} IRS tax brackets and the standard ` +
-      `deduction for your filing status. FICA is 6.2% Social Security (up to the annual wage base) ` +
+      `deduction for your filing status. FICA is 6.2% Social Security (up to the ${usd0(taxData.federal.fica.socialSecurity.wageBase)} ${year} wage base) ` +
       `plus 1.45% Medicare on all wages, with an extra 0.9% on high earnings. Change your filing ` +
       `status, pay frequency, or switch between salary and hourly above to see how your take-home ` +
       `pay changes.</p>`;
@@ -52,7 +136,7 @@ function stateBody(state, year) {
   const t = state.tax;
   let how;
   if (t.type === 'flat') {
-    how = `${state.name} levies a <strong>flat ${(t.rate * 100).toFixed(2).replace(/\.?0+$/, '')}% state income tax</strong> for ${year}`;
+    how = `${state.name} levies a <strong>flat ${pctStr(t.rate)} state income tax</strong> for ${year}`;
     how += t.standardDeduction
       ? `, applied after the state allowance/deduction for your filing status.`
       : ` on your wages, with no state standard deduction.`;
@@ -63,6 +147,7 @@ function stateBody(state, year) {
   let body =
     `<p>${how} This calculator applies that on top of federal withholding and ` +
     `Social Security / Medicare to estimate your ${state.name} take-home pay.</p>` +
+    stateTaxFacts(state, year, taxData) +
     `<p>Adjust your filing status, pay frequency, and gross wage above to update the breakdown.</p>`;
 
   const disclaimers = state.disclaimer || [];
@@ -124,6 +209,7 @@ async function main() {
   const qrTpl = await read(join(SRC, 'templates', 'qr-generator.html'));
   const circleTpl = await read(join(SRC, 'templates', 'circle-crop.html'));
   const photoTpl = await read(join(SRC, 'templates', 'passport-photo-maker.html'));
+  const ageTpl = await read(join(SRC, 'templates', 'age-calculator.html'));
   const photoSpecs = await readJSON(join(SRC, 'data', 'photo-specs.json'));
   const year = String(taxData.taxYear);
   const verified = (taxData._meta && taxData._meta.lastSourced) || '';
@@ -152,7 +238,9 @@ async function main() {
   await cp(join(SRC, 'assets', 'qrcode.min.js'), join(DIST, 'assets', 'qrcode.min.js'));
   await cp(join(SRC, 'assets', 'circle-crop.js'), join(DIST, 'assets', 'circle-crop.js'));
   await cp(join(SRC, 'assets', 'photo-maker.js'), join(DIST, 'assets', 'photo-maker.js'));
+  await cp(join(SRC, 'assets', 'age.js'), join(DIST, 'assets', 'age.js'));
   await cp(join(SRC, 'engine', 'paycheck-engine.js'), join(DIST, 'assets', 'paycheck-engine.js'));
+  await cp(join(SRC, 'engine', 'age-math.js'), join(DIST, 'assets', 'age-math.js'));
   await cp(join(SRC, 'engine', 'canvas-math.js'), join(DIST, 'assets', 'canvas-math.js'));
   await cp(join(SRC, 'engine', 'canvas-editor.js'), join(DIST, 'assets', 'canvas-editor.js'));
 
@@ -162,12 +250,13 @@ async function main() {
   for (const slug of builtSlugs) {
     const state = taxData.states[slug];
     // per-page payload: federal + only this state (keeps embedded JSON small)
-    const payload = { taxYear: taxData.taxYear, federal: taxData.federal, states: { [slug]: state } };
+    const payload = stripInternal({ taxYear: taxData.taxYear, federal: taxData.federal, states: { [slug]: state } });
     const html = fill(stateTpl, {
       STATE_NAME: state.name,
       STATE_SLUG: slug,
       STATE_TAX_PHRASE: state.hasIncomeTax ? `, and ${state.name} state income tax` : '',
-      STATE_BODY: stateBody(state, year),
+      FIGURE_BANNER: figureYearBanner(state, year),
+      STATE_BODY: stateBody(state, year, taxData),
       STATE_LINKS: links,
       FAQ_JSONLD: faqJsonLd(state, year),
       TAX_DATA_JSON: JSON.stringify(payload),
@@ -243,10 +332,18 @@ async function main() {
   );
   urls.push(`${SITE.url}/passport-photo-maker/`);
 
+  // age calculator (date math via the pure age-math engine)
+  await mkdir(join(DIST, 'age-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'age-calculator', 'index.html'),
+    fill(ageTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url })
+  );
+  urls.push(`${SITE.url}/age-calculator/`);
+
   // public machine-readable copy of the live tax data (for the drift monitor +
   // transparency). Always reflects the deployed figures — single source of truth.
   await mkdir(join(DIST, 'data'), { recursive: true });
-  await cp(join(SRC, 'data', 'tax-data-2026.json'), join(DIST, 'data', 'tax-data-2026.json'));
+  await writeFile(join(DIST, 'data', 'tax-data-2026.json'), JSON.stringify(stripInternal(taxData), null, 2) + '\n');
 
   // 404 (Cloudflare Pages serves /404.html on miss)
   await writeFile(
