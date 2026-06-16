@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "invoice-generator",
+  "lastTool": "qr-code-generator",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "qr-code-generator",
+      "competitors": ["qrcode-monkey.com", "qr-code-generator.com", "the-qrcode-generator.com"],
+      "shipped": "Adjustable quiet-zone (margin) selector — Standard (4 modules) / Narrow (2) / None (0). Replaced the hardcoded QUIET=4 constant in qr.js with a clamped quietZone() reader (0-8, default 4) driven by a new #qrMargin <select> in the template; both render() (canvas) and svgString() (SVG export) now use the live value so preview, PNG, and SVG all honor the chosen margin. The selector lives inside #qrForm so the existing input listener re-renders on change with no new wiring. Tighter/zero margins let the code embed flush in dense layouts; Standard stays the scan-safe default. Closes the quiet-zone/margin backlog idea (QRCode Monkey exposes a 'Set margin'/quiet-zone control we lacked). No new deps; dist gitignored, rebuilt at deploy.",
+      "commit": "c0000b9"
+    },
     {
       "date": "2026-06-16",
       "tool": "invoice-generator",
@@ -102,8 +109,7 @@
     ],
     "qr-code-generator": [
       "Center logo overlay (QRCode Monkey) — needs forced High ECC + center clearing",
-      "Low-contrast warning when fg/bg are too close (scannability guard)",
-      "Quiet-zone/margin toggle for tighter embedding"
+      "Low-contrast warning when fg/bg are too close (scannability guard)"
     ],
     "crop-image-into-circle": [
       "JPG output option alongside PNG (Fotor) — needs a forced background fill since JPG has no alpha (background fill now shipped, so this is unblocked)",
