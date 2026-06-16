@@ -6,8 +6,8 @@
     "crop-image-into-circle",
     "passport-photo-maker"
   ],
-  "lastTool": "crop-image-into-circle",
-  "iteration": 39,
+  "lastTool": "passport-photo-maker",
+  "iteration": 40,
   "history": [
     {
       "date": "2026-06-16",
@@ -456,6 +456,18 @@
       ],
       "shipped": "Added optional 'Ship to' address. New #shipDetails textarea under Bill to; model gains ship (trimmed). Renders a 'Ship to' block in the left party column of both the live preview and the PDF (SHIP TO label + address lines after the Bill-to block) ONLY when filled, so default invoices are unchanged. Persisted via FIELD_IDS autosave, wired to render listeners, cleared in resetForm; startNextInvoice keeps it (same recurring client). WHY: invoice-generator.com ships a ship-to address; Zoho gates it behind paid. We only had Bill to. Pure additive, no totals-math touch, no new deps. npm test (10+8+1) + npm run build pass; verified in dist/.",
       "commit": "1210d09d02773a87ee768ac2eb75fda0e946801e"
+    },
+    {
+      "date": "2026-06-16",
+      "tool": "passport-photo-maker",
+      "competitors": [
+        "photoaid.com",
+        "passportphototools.com",
+        "passlens.com/blog/face-adjustment-passport-photo-guide",
+        "epassport-photo.com/rotate-image"
+      ],
+      "shipped": "Straighten / rotate slider (-45 to +45 deg, 0.5 step) so the user can level a tilted head/eyes inside the guide — a feature competitors (PhotoAiD face-tilt, EPassport-Photo rotate, Passport Photo Tools alignment guides) all offer and we lacked. ZERO engine change: CanvasEditor already exposes setRotation() and composes rotation with zoom/pan/clip (with cover-grow so a rotated image still fully covers the box, no empty corners) and exports identically via toBlob — the photo-maker simply never surfaced it. HTML: new #rotate range + #rotateReset link button + #rotateInfo readout placed under the Zoom field. JS: syncRotate() updates slider value + readout ('+Ndeg rotation applied' / '0deg. Tilt the slider so the eyes sit level.'); 'input' on #rotate -> editor.setRotation(parseFloat) + syncRotate + live sheet-preview re-render; #rotateReset -> setRotation(0). loadFile already resets rotation to 0, so syncRotate() is called in handleFile to reflect that. Works in editor view AND the live sheet-layout preview (renderSheetPreview re-runs on rotate). No spec data touched.",
+      "commit": "7aba85f40a503458b492ad370283602462477837"
     }
   ],
   "backlog": {
@@ -483,11 +495,12 @@
       "Batch mode — crop multiple images to circles at once (Watermarkly, imagy) — too large for a single micro-commit; would need multi-file upload, a results grid, and per-file framing or a shared transform + zip download. PARKED."
     ],
     "passport-photo-maker": [
-      "Print-sheet sizes — US Letter (8.5×11 in) SHIPPED 2026-06-16 (added to photo-specs.json printSheet.sizes; no JS change — selector + tiling + PDF are all generic over the sizes array). Remaining size follow-on: US Legal (8.5×14) only if users ask; the common ones (4×6, 5×7, Letter, A4) are now covered.",
-      "Compliance checklist panel — SHIPPED 2026-06-16 (#checklist card aggregating resolution + background + head-position + output rows, pass/warn/info; reuses checkBackground's returned verdict). Possible follow-on: add a printable/copyable summary, or a per-spec 'glasses/headwear/expression' reminder row sourced from each spec's note — small, content-only.",
+      "Straighten / rotate slider — SHIPPED 2026-06-16 (#rotate range -45..45, reset button, readout; reuses CanvasEditor.setRotation, no engine change). Possible follow-on: tiny +90/-90 quick-rotate buttons for portrait/landscape uploads, or a horizontal flip toggle (engine setFlip already exists) — only if users shoot mirrored selfies.",
       "Per-spec digital-upload limits — extend the JPG fit/size feedback beyond the US 240 KB ceiling to other portals (UK passport ~50 KB-10 MB, India, Schengen) — only with authoritative government/portal sources; escalate conflicts per data rule. The fit mechanism (qualityForTargetBytes) already exists; this is mostly sourcing the per-country byte limits.",
-      "More country specs (40+ on PixConvert / 60+ elsewhere) — only add with authoritative government sources; escalate conflicts per data rule",
-      "AI/WASM background removal to white — heavy (in-browser model) AND non-compliant for US/UK/CA (digital alteration forbidden; State Dept auto-rejects AI-altered photos since Jan 2026); the background readiness HINT (shipped) is the compliant alternative, so this is out of scope"
+      "Compliance checklist follow-on — printable/copyable summary, or a per-spec glasses/headwear/expression reminder row sourced from each spec's note (content-only, small).",
+      "More country specs (40+ on PixConvert / 60+ elsewhere) — only add with authoritative government sources; escalate conflicts per data rule.",
+      "AI/WASM background removal to white — OUT OF SCOPE: heavy in-browser model AND non-compliant (US State Dept auto-rejects AI-altered photos since Jan 2026; UK/CA also forbid digital background alteration). The shipped background-readiness HINT is the compliant alternative.",
+      "US Letter print-sheet size — SHIPPED 2026-06-16 (prior iteration). Remaining: US Legal (8.5x14) only if users ask."
     ]
   }
 }
