@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "qr-code-generator",
+  "lastTool": "crop-image-into-circle",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "crop-image-into-circle",
+      "competitors": ["frametoolkit.com", "circlecropimage.com", "watermarkly.com"],
+      "shipped": "Optional padding/margin around the circle (toggle + amount slider). Added CanvasEditor.setPadding, which shrinks the shape (and its border ring, image clip, and bg fill) inward by a fraction of the half-size, leaving a transparent margin so the avatar isn't flush to the edge. Implemented in the shared _drawTo so preview and exported PNG match at any output size; pad cascades through outerR -> inset -> innerR. FrameToolkit explicitly offers 'add padding' around the circle; this closes that gap. No new deps; source only (dist is gitignored, rebuilt at deploy).",
+      "commit": "54f27a7"
+    },
     {
       "date": "2026-06-16",
       "tool": "qr-code-generator",
@@ -87,7 +94,6 @@
     ],
     "crop-image-into-circle": [
       "JPG output option alongside PNG (Fotor) — needs a forced background fill since JPG has no alpha (background fill now shipped, so this is unblocked)",
-      "Padding/margin around the circle so the ring/avatar isn't flush to the edges",
       "Rotate / straighten the image before cropping (Watermarkly)",
       "Batch mode — crop multiple images to circles at once (Watermarkly, imagy)"
     ],
