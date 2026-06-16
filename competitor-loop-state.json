@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "passport-photo-maker",
+  "lastTool": "invoice-generator",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "invoice-generator",
+      "competitors": ["invoice-generator.com", "wise.com/us/invoice-generator", "zoho.com/invoice"],
+      "shipped": "Amount Paid / Balance Due fields (top backlog item). Added an optional 'Amount paid' number input (min 0) to the Totals section beside Shipping. totals() now reads it as t.amountPaid and computes t.balanceDue = total - amountPaid. When amountPaid is non-zero, the live preview renders an 'Amount paid' deduction row (−money) plus a 'Balance due' grand row below Total; when balanceDue <= 0 that row switches to the brand color and shows 'money(0) · PAID' as a fully-settled marker (handles overpayment too — never shows a negative balance label, clamps the display to PAID). The PDF mirrors this exactly in the totals block: after the Total line it draws a brand-color rule, an 'Amount paid' line, another brand-color rule, then either a bold 'Balance due' line or a brand-color 'Balance due  money(0)  PAID' line. Persisted: 'amountPaid' added to FIELD_IDS (autosave/restore) and the init input-listener array (live re-render); resetForm seeds it to 0. Closes the top invoice backlog item — invoice-generator.com (4M+ users) exposes Amount Paid / Balance Due at the bottom of its totals block for deposits/partial payments, which we lacked (users had to fake it). Pure totals math; no new deps; jsPDF unchanged; dist gitignored, rebuilt at deploy.",
+      "commit": "18079ff"
+    },
     {
       "date": "2026-06-16",
       "tool": "passport-photo-maker",
@@ -146,9 +153,9 @@
   ],
   "backlog": {
     "invoice-generator": [
+      "Payment-terms presets (Net 15 / Net 30 / Net 60 / Due on receipt) — Wise/Zoho/InvoiceSimple ship a dropdown that auto-fills the due date from the invoice date; we have a free-text due date only. Small: a <select> that sets dueDate = invDate + N days and can drop a matching line into Notes.",
       "Extend brand color to the table-header underline + BILL TO/DATE labels for fuller theming",
-      "Per-line-item tax toggle / tax-exempt lines (Invoice-Generator.com, Zoho) — shipping is already untaxed; this would let individual goods lines opt out of tax",
-      "Amount Paid / Balance Due fields (Invoice-Generator.com) — show partial payment and remaining balance under Total"
+      "Per-line-item tax toggle / tax-exempt lines (Invoice-Generator.com, Zoho) — shipping is already untaxed; this would let individual goods lines opt out of tax"
     ],
     "qr-code-generator": [
       "Center logo overlay (QRCode Monkey) — needs forced High ECC + center clearing"
