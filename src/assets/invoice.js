@@ -90,7 +90,10 @@ function totals(items) {
   const tax = subtotal * (taxRate / 100);
   // Shipping is added after tax/discount (it's a flat pass-through charge, untaxed).
   const total = Math.max(0, subtotal + tax - discount + shipping);
-  return { subtotal, taxRate, tax, discount, discountType, discountInput, shipping, total };
+  // Amount already paid (e.g. a deposit); balance due is what's still owed.
+  const amountPaid = ($('amountPaid') && parseFloat($('amountPaid').value)) || 0;
+  const balanceDue = total - amountPaid;
+  return { subtotal, taxRate, tax, discount, discountType, discountInput, shipping, total, amountPaid, balanceDue };
 }
 
 function readModel() {
@@ -137,7 +140,14 @@ function render() {
     (m.t.taxRate ? `<div class="pv-row"><span>Tax (${m.t.taxRate}%)</span><span>${money(m.t.tax)}</span></div>` : '') +
     (m.t.discount ? `<div class="pv-row"><span>Discount${m.t.discountType === 'percent' ? ` (${m.t.discountInput}%)` : ''}</span><span>−${money(m.t.discount)}</span></div>` : '') +
     (m.t.shipping ? `<div class="pv-row"><span>Shipping</span><span>${money(m.t.shipping)}</span></div>` : '') +
-    `<div class="pv-row grand" style="border-top-color:${brand}"><span>Total</span><span>${money(m.t.total)}</span></div></div>` +
+    `<div class="pv-row grand" style="border-top-color:${brand}"><span>Total</span><span>${money(m.t.total)}</span></div>` +
+    (m.t.amountPaid ? `<div class="pv-row"><span>Amount paid</span><span>−${money(m.t.amountPaid)}</span></div>` : '') +
+    (m.t.amountPaid
+      ? (m.t.balanceDue <= 0
+          ? `<div class="pv-row grand" style="border-top-color:${brand};color:${brand}"><span>Balance due</span><span>${money(0)} · PAID</span></div>`
+          : `<div class="pv-row grand" style="border-top-color:${brand}"><span>Balance due</span><span>${money(m.t.balanceDue)}</span></div>`)
+      : '') +
+    `</div>` +
     (m.notes ? `<div class="pv-notes">${esc(m.notes)}</div>` : '');
 
   saveState();
@@ -150,7 +160,7 @@ function esc(s) {
 // --- autosave (localStorage, stays in browser) -------------------------------
 const STORE_KEY = 'tb.invoice.v1';
 const FIELD_IDS = ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'invNo', 'currency',
-  'invDate', 'dueDate', 'taxRate', 'discount', 'discountType', 'shipping', 'brandColor', 'notes'];
+  'invDate', 'dueDate', 'taxRate', 'discount', 'discountType', 'shipping', 'amountPaid', 'brandColor', 'notes'];
 let restoring = false;
 
 function saveState() {
@@ -273,6 +283,19 @@ function downloadPdf() {
   doc.setDrawColor(br, bg, bb).setLineWidth(1).line(tx, y - 4, W - M, y - 4);
   y += 8;
   line('Total', money(m.t.total), true);
+  if (m.t.amountPaid) {
+    line('Amount paid', '-' + money(m.t.amountPaid));
+    doc.setDrawColor(br, bg, bb).setLineWidth(1).line(tx, y - 4, W - M, y - 4);
+    y += 8;
+    if (m.t.balanceDue <= 0) {
+      doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(br, bg, bb);
+      doc.text('Balance due', tx, y);
+      doc.text(money(0) + '  PAID', W - M, y, { align: 'right' });
+      y += 18;
+    } else {
+      line('Balance due', money(m.t.balanceDue), true);
+    }
+  }
 
   // notes
   if (m.notes) {
@@ -345,6 +368,7 @@ function resetForm() {
   $('discount').value = '0';
   $('discountType').value = 'amount';
   if ($('shipping')) $('shipping').value = '0';
+  if ($('amountPaid')) $('amountPaid').value = '0';
   $('brandColor').value = DEFAULT_BRAND;
   $('notes').value = 'Payment due within 30 days. Thank you for your business.';
   $('invDate').value = isoToday(0);
@@ -361,7 +385,7 @@ function init() {
   }
 
   $('addItem').addEventListener('click', () => { items.appendChild(itemRow()); render(); });
-  ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'invNo', 'currency', 'invDate', 'dueDate', 'taxRate', 'discount', 'discountType', 'shipping', 'brandColor', 'notes']
+  ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'invNo', 'currency', 'invDate', 'dueDate', 'taxRate', 'discount', 'discountType', 'shipping', 'amountPaid', 'brandColor', 'notes']
     .forEach((id) => $(id).addEventListener('input', render));
   $('discountType').addEventListener('change', render);
   $('resetBrand').addEventListener('click', () => { $('brandColor').value = DEFAULT_BRAND; render(); });
