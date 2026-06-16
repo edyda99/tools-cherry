@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "passport-photo-maker",
+  "lastTool": "invoice-generator",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "invoice-generator",
+      "competitors": ["invoicesimple.com", "smoothledger.com", "invoice-generator.com"],
+      "shipped": "Brand color picker. A color input (defaulting to the site accent #1a7f37, with a Reset button, hex-validated) recolors the INVOICE heading and the grand-total separator rule in both the live preview and the exported PDF (jsPDF setTextColor/setDrawColor). Closes the brand-color gap competitors like SmoothLedger and InvoiceSimple offer; no new deps.",
+      "commit": "fa98372"
+    },
     {
       "date": "2026-06-16",
       "tool": "invoice-generator",
@@ -62,9 +69,9 @@
   ],
   "backlog": {
     "invoice-generator": [
-      "Accent/brand color picker (SmoothLedger) — recolor PDF headings + totals rule",
       "Shipping cost line (Flowlu) — separate from tax/discount in totals",
-      "Save/restore invoice to localStorage so a refresh doesn't lose work"
+      "Save/restore invoice to localStorage so a refresh doesn't lose work",
+      "Extend brand color to the table-header underline + BILL TO/DATE labels for fuller theming"
     ],
     "qr-code-generator": [
       "Center logo overlay (QRCode Monkey) — needs forced High ECC + center clearing",
