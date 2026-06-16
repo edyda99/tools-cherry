@@ -6,9 +6,21 @@
     "crop-image-into-circle",
     "passport-photo-maker"
   ],
-  "lastTool": "invoice-generator",
-  "iteration": 41,
+  "lastTool": "qr-code-generator",
+  "iteration": 42,
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "qr-code-generator",
+      "competitors": [
+        "qrcalendar.com",
+        "me-qr.com/qr-code-generator/calendar",
+        "qr-creator.com/calendar.php",
+        "qrcodemonkey.net (16 types incl. event)"
+      ],
+      "shipped": "Calendar event as a 10th QR payload type (top remaining easy qr backlog item — one buildPayload() branch + data-group block). Template: a new <option value=\"event\">Calendar event</option> in #qrType (between geo and text) plus a data-group=\"event\" block with #evTitle (text), an inline #evStart/#evEnd pair (type=\"datetime-local\"), #evLocation (text), #evDesc (textarea), and a hint that scanning adds the event to the phone calendar in the device's local time zone. qr.js buildPayload() gains an 'event' branch that emits an RFC 5545 BEGIN:VEVENT...END:VEVENT block: SUMMARY (required title), DTSTART (required), DTEND, LOCATION, DESCRIPTION; returns '' (existing empty-payload guard -> 'Enter some content') unless BOTH a title and a start time are present, so partial input doesn't render a broken code. Three new helpers: icalEscape() (RFC 5545 text escaping of \\ ; , and newlines for SUMMARY/LOCATION/DESCRIPTION), icalDateTime() (regex-converts a datetime-local 'YYYY-MM-DDTHH:mm[:ss]' into a FLOATING no-Z iCal 'YYYYMMDDTHHmmSS' — floating local time is the most portable for a calendar QR since the scanning device interprets it in its own zone), and addHour() (when #evEnd is blank, defaults DTEND to start + 1h via Date arithmetic, returning a datetime-local string fed back through icalDateTime). No new wiring: syncGroups() toggles the new data-group by select value and the generic #qrForm input/textarea listener re-renders on input. NOT wrapped in BEGIN:VCALENDAR — a bare VEVENT is what ME-QR / QR-Creator / QRCalendar emit and is the widely-scannable form. SEO updated: <title>, meta description, og:title/og:description, and JSON-LD description all now list 'calendar event'. Header comment in qr.js updated to list event. WHY: calendar-event QR is a standard competitor payload (QRCalendar, ME-QR, QR-Creator, QRCode Monkey's 16-type set all ship it) and was the top easy qr backlog item; reuses the existing render/syncGroups/download/SVG pipeline with zero new deps (vendored qrcode lib). Pure string/date encoding; no change to QR encoding/export/style/logo/contrast paths. npm test (10+8+1 passing) + npm run build (33 states + home + 4 content pages) pass; verified VEVENT/icalDateTime (9 refs) in dist/assets/qr.js and value=\"event\"/data-group=\"event\"/id=\"evStart\" in dist/qr-code-generator/index.html. dist gitignored, rebuilt at deploy. gsc-index-progress.json was pre-existing untracked and left out of the commit.",
+      "commit": "f77977df6282b138b007a097f06c58f9cc37f37d"
+    },
     {
       "date": "2026-06-16",
       "tool": "invoice-generator",
@@ -491,7 +503,7 @@
       "Date-based numbering preset (INV-YYYYMM-001) like InvoiceQuickly for the next-invoice flow — small, only if users ask."
     ],
     "qr-code-generator": [
-      "More payload types — Location (geo URI) SHIPPED 2026-06-16; WhatsApp (https://wa.me/<number>?text=) SHIPPED 2026-06-16. Remaining easy wins, each a single buildPayload() branch + data-group block: calendar event (BEGIN:VEVENT iCal/vEvent block), crypto (bitcoin:<address>?amount=), PayPal (https://www.paypal.com/paypalme/<user>). RADAAR/ME-QR/QR Code Factory ship these. Pick one per micro-commit.",
+      "More payload types — Location (geo URI) SHIPPED; WhatsApp (https://wa.me/<number>?text=) SHIPPED; calendar event (BEGIN:VEVENT iCal/vEvent block) SHIPPED 2026-06-16 (buildPayload 'event' branch + icalEscape/icalDateTime/addHour helpers; title+start required, DTEND defaults to +1h, floating local time, bare VEVENT not wrapped in VCALENDAR). Remaining easy wins, each a single buildPayload() branch + data-group block: crypto (bitcoin:<address>?amount=), PayPal (https://www.paypal.com/paypalme/<user>). RADAAR/ME-QR/QR Code Factory ship these. Pick one per micro-commit.",
       "Distinct finder-pattern (eye) styling — QR Tiger / ME-QR style the three corner eyes separately from the body (square frame + round center, or rounded frame). Medium: detect the 7x7 finder regions and draw their frame/center with a separate shape, optionally a separate eye colour. Builds on the body-style work already shipped.",
       "Copy-to-clipboard button for the PNG — SHIPPED 2026-06-16 (#copyPng button: copyPng() re-encodes the live canvas via toBlob and navigator.clipboard.write([ClipboardItem]); capability-gated with a Download-PNG fallback hint; success/failure reported on the status line).",
       "Gradient foreground (linear/radial two-colour) — QR Tiger/ME-QR offer gradient module fills; small-medium: a second colour input + a canvas gradient fillStyle and an SVG <linearGradient> def. Keep a contrast guard against the lighter stop.",
