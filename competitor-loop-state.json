@@ -1,8 +1,16 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "crop-image-into-circle",
+  "lastTool": "passport-photo-maker",
+  "iteration": 36,
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "passport-photo-maker",
+      "competitors": ["passlens.com", "passportphotogrid.com", "2x2passportphoto.com", "fotor.com/design/passport-photo-maker"],
+      "shipped": "Added US Letter (8.5×11 in) to the print-sheet size selector. photo-specs.json printSheet.sizes gains { id:'letter', label:'US Letter (8.5×11 in)', widthPx:2550, heightPx:3300 } between 5×7 and A4 — standard 8.5×11 in @ 300 DPI = 2550×3300 px (a physical PAPER dimension, ANSI A / US Letter, NOT a country biometric spec, so no data-sourcing/fabrication conflict; documented in the printSheet _note alongside the existing 4×6/5×7/A4 entries). ZERO JS change required: the sheet-size <select> is populated by iterating DATA.printSheet.sizes in init(), and the generic sheetLayout()/tileSheet()/updateSheetInfo()/renderSheetPreview()/downloadSheet()/downloadSheetPdf() helpers already tile, preview, and export at arbitrary sheet dimensions (the PDF export computes points = px/300*72 and derives orientation from w>h, so Letter renders correctly with no code touch). WHY Letter: competitors (Passlens explicitly lists '4x6, A4, Letter, or 5x7'; PassportPhotoGrid/2x2PassportPhoto target 4×6) support US Letter, which is the DEFAULT home-printer paper in the US/Canada (A4 is the rest-of-world default) — printing a 4×6 layout on Letter wastes paper and US home users had no native Letter option. The new sheet fits many copies edge-to-edge with cut guides via the same leftover-gap-spreading layout. No new deps; pure data addition. npm test (10+8+1 passing) + npm run build pass; verified 'US Letter (8.5×11 in)' inlined into dist/passport-photo-maker/index.html (specs are baked into the template at build via {{PHOTO_SPECS_JSON}}). dist gitignored, rebuilt at deploy. gsc-index-progress.json was pre-existing untracked and left out of the commit.",
+      "commit": "96a7e69"
+    },
     {
       "date": "2026-06-16",
       "tool": "crop-image-into-circle",
@@ -272,6 +280,7 @@
       "Batch mode — crop multiple images to circles at once (Watermarkly, imagy) — too large for a single micro-commit; would need multi-file upload, a results grid, and per-file framing or a shared transform + zip download. PARKED."
     ],
     "passport-photo-maker": [
+      "Print-sheet sizes — US Letter (8.5×11 in) SHIPPED 2026-06-16 (added to photo-specs.json printSheet.sizes; no JS change — selector + tiling + PDF are all generic over the sizes array). Remaining size follow-on: US Legal (8.5×14) only if users ask; the common ones (4×6, 5×7, Letter, A4) are now covered.",
       "Compliance checklist panel — SHIPPED 2026-06-16 (#checklist card aggregating resolution + background + head-position + output rows, pass/warn/info; reuses checkBackground's returned verdict). Possible follow-on: add a printable/copyable summary, or a per-spec 'glasses/headwear/expression' reminder row sourced from each spec's note — small, content-only.",
       "Per-spec digital-upload limits — extend the JPG fit/size feedback beyond the US 240 KB ceiling to other portals (UK passport ~50 KB-10 MB, India, Schengen) — only with authoritative government/portal sources; escalate conflicts per data rule. The fit mechanism (qualityForTargetBytes) already exists; this is mostly sourcing the per-country byte limits.",
       "More country specs (40+ on PixConvert / 60+ elsewhere) — only add with authoritative government sources; escalate conflicts per data rule",
