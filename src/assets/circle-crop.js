@@ -9,7 +9,7 @@ let hasImg = false;
 function setLoaded(name) {
   hasImg = true;
   $('download').disabled = false;
-  $('dropText').textContent = name ? `Loaded: ${name} — drag to reposition, scroll to zoom` : 'Image loaded';
+  $('dropText').textContent = name ? `Loaded: ${name} — drag or arrow-keys to reposition, scroll to zoom` : 'Image loaded';
   syncPreset();
 }
 
@@ -169,6 +169,24 @@ function init() {
   drop.addEventListener('drop', (e) => {
     const f = e.dataTransfer.files && e.dataTransfer.files[0];
     if (f) handleFile(f);
+  });
+
+  // Arrow-key nudge to fine-tune the crop position (drag + scroll-zoom only,
+  // until now). Each press pans the image a few canvas px via the existing
+  // panByPixels; Shift takes a larger step. Only acts when an image is loaded
+  // and focus isn't in a form control, and preventDefault stops the page from
+  // scrolling. The sign matches a drag: ArrowRight reveals more of the right
+  // edge (image content shifts left), mirroring pointer-drag panning.
+  const NUDGE = { ArrowLeft: [1, 0], ArrowRight: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] };
+  document.addEventListener('keydown', (e) => {
+    if (!hasImg) return;
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    const dir = NUDGE[e.key];
+    if (!dir) return;
+    e.preventDefault();
+    const step = e.shiftKey ? 20 : 4;
+    editor.panByPixels(dir[0] * step, dir[1] * step);
   });
 
   // Paste an image straight from the clipboard (Ctrl/Cmd+V) — screenshots or a
