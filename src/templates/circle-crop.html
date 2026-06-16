@@ -46,6 +46,13 @@
           <select id="outSize"><option>256</option><option selected>512</option><option>1024</option></select>
         </div>
         <div class="field">
+          <label for="format">Download format</label>
+          <select id="format">
+            <option value="png" selected>PNG (transparent)</option>
+            <option value="jpeg">JPG (smaller, white background)</option>
+          </select>
+        </div>
+        <div class="field">
           <label for="bgOn"><input id="bgOn" type="checkbox"> Fill background (solid color instead of transparent)</label>
         </div>
         <div class="field" id="bgControls" hidden>
@@ -74,6 +81,7 @@
         <div class="editor-wrap"><canvas id="editor" width="512" height="512"></canvas></div>
         <p class="muted-small" id="status" style="margin-top:10px">Choose an image to begin.</p>
         <button type="button" id="download" class="btn-primary" disabled>Download PNG</button>
+        <p class="muted-small" id="jpgNote" hidden style="margin-top:8px">JPG has no transparency — the area outside the circle is filled with the background color (white unless you set one above).</p>
       </div>
     </div>
 

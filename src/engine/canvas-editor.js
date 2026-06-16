@@ -151,12 +151,17 @@ export class CanvasEditor {
   render() { this._drawTo(this.ctx, this.canvas.width, this.canvas.height); }
 
   // Export at an arbitrary output resolution, preserving the same framing.
-  toBlob({ type = 'image/png', quality = 0.92, width, height } = {}) {
+  // `flatten` (a CSS color) paints an opaque backdrop behind the whole image
+  // before drawing — needed for JPEG export, which has no alpha (transparent
+  // corners of a circle crop would otherwise come out black).
+  toBlob({ type = 'image/png', quality = 0.92, width, height, flatten = null } = {}) {
     const w = width || this.canvas.width;
     const h = height || this.canvas.height;
     const off = document.createElement('canvas');
     off.width = w; off.height = h;
-    this._drawTo(off.getContext('2d'), w, h);
+    const octx = off.getContext('2d');
+    if (flatten) { octx.fillStyle = flatten; octx.fillRect(0, 0, w, h); }
+    this._drawTo(octx, w, h);
     return new Promise((resolve) => off.toBlob((b) => resolve(b), type, quality));
   }
 

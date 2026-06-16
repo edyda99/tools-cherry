@@ -32,15 +32,31 @@ async function handleFile(file) {
 function download() {
   if (!hasImg) return;
   const size = parseInt($('outSize').value, 10) || 512;
-  editor.toBlob({ type: 'image/png', width: size, height: size }).then((blob) => {
+  const fmt = $('format').value === 'jpeg' ? 'jpeg' : 'png';
+  // JPG has no alpha: flatten the transparent corners onto an opaque backdrop
+  // (the user's chosen background color if filling, else white).
+  const flatten = fmt === 'jpeg'
+    ? ($('bgOn').checked ? $('bgColor').value : '#ffffff')
+    : null;
+  const opts = fmt === 'jpeg'
+    ? { type: 'image/jpeg', quality: 0.92, width: size, height: size, flatten }
+    : { type: 'image/png', width: size, height: size };
+  editor.toBlob(opts).then((blob) => {
     if (!blob) return;
+    const ext = fmt === 'jpeg' ? 'jpg' : 'png';
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'circle-crop.png';
+    a.href = url; a.download = `circle-crop.${ext}`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    $('status').textContent = `Downloaded ${size}×${size} PNG.`;
+    $('status').textContent = `Downloaded ${size}×${size} ${ext.toUpperCase()}.`;
   });
+}
+
+function syncFormat() {
+  const jpg = $('format').value === 'jpeg';
+  $('download').textContent = jpg ? 'Download JPG' : 'Download PNG';
+  $('jpgNote').hidden = !jpg;
 }
 
 function applyBackground() {
@@ -71,6 +87,8 @@ function init() {
   });
   $('rotateReset').addEventListener('click', () => { editor.setRotation(0); syncRotation(); });
   $('outSize').addEventListener('change', () => {});
+  $('format').addEventListener('change', syncFormat);
+  syncFormat();
   $('download').addEventListener('click', download);
 
   $('bgOn').addEventListener('change', (e) => {
