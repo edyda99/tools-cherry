@@ -37,6 +37,11 @@
           <input id="zoom" type="range" min="1" max="5" step="0.01" value="1" style="width:100%">
         </div>
         <div class="field">
+          <label for="rotate">Rotate / straighten (<span id="rotateVal">0</span>°)</label>
+          <input id="rotate" type="range" min="-180" max="180" step="1" value="0" style="width:100%">
+          <button type="button" id="rotateReset" class="btn-secondary" style="margin-top:6px">Reset rotation</button>
+        </div>
+        <div class="field">
           <label for="outSize">Output size (px)</label>
           <select id="outSize"><option>256</option><option selected>512</option><option>1024</option></select>
         </div>

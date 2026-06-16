@@ -12,6 +12,7 @@ export class CanvasEditor {
     this.borderColor = opts.borderColor || null; // CSS color or null (no border)
     this.borderWidth = opts.borderWidth || 0; // fraction of radius (0..0.5), circle only
     this.padding = opts.padding || 0; // transparent margin around the shape, fraction of half-size (0..0.4)
+    this.rotation = opts.rotation || 0; // straighten/rotate the image, degrees (-180..180)
     this.img = null;
     this.zoom = 1;
     this.panNX = 0.5;
@@ -30,6 +31,7 @@ export class CanvasEditor {
     this.zoom = 1;
     this.panNX = 0.5;
     this.panNY = 0.5;
+    this.rotation = 0;
     this.render();
     this._emit('change');
     return this;
@@ -55,6 +57,7 @@ export class CanvasEditor {
     return this;
   }
   setPadding(p) { this.padding = Math.max(0, Math.min(0.4, p || 0)); this.render(); return this; }
+  setRotation(deg) { this.rotation = Math.max(-180, Math.min(180, deg || 0)); this.render(); return this; }
 
   setZoom(z) { this.zoom = Math.max(1, Math.min(8, z || 1)); this.render(); this._emit('change'); return this; }
   zoomBy(mult) { return this.setZoom(this.zoom * mult); }
@@ -105,12 +108,33 @@ export class CanvasEditor {
       ctx.clip();
     }
     const ibox = inset; // shrink the image box by the inset on each side
-    const p = placement(
-      this.img.width, this.img.height,
-      Math.max(1, cw - 2 * ibox), Math.max(1, ch - 2 * ibox),
-      this.zoom, this.panNX, this.panNY
-    );
-    ctx.drawImage(this.img, ibox + p.offX, ibox + p.offY, p.dw, p.dh);
+    const boxW = Math.max(1, cw - 2 * ibox);
+    const boxH = Math.max(1, ch - 2 * ibox);
+    const rad = (this.rotation || 0) * Math.PI / 180;
+    if (rad) {
+      // Rotate the image around the box center. A rotated cover-image would leave
+      // transparent corners, so oversize the cover scale by the diagonal factor of
+      // the box so the rotated image still fully covers it at any angle.
+      const cx = ibox + boxW / 2, cy = ibox + boxH / 2;
+      const cos = Math.abs(Math.cos(rad)), sin = Math.abs(Math.sin(rad));
+      const grow = (boxW * cos + boxH * sin) / boxW; // >=1; bounding box of rotated frame
+      const grow2 = (boxW * sin + boxH * cos) / boxH;
+      const cover = Math.max(grow, grow2);
+      ctx.translate(cx, cy);
+      ctx.rotate(rad);
+      ctx.translate(-cx, -cy);
+      const p = placement(
+        this.img.width, this.img.height, boxW, boxH,
+        this.zoom * cover, this.panNX, this.panNY
+      );
+      ctx.drawImage(this.img, ibox + p.offX, ibox + p.offY, p.dw, p.dh);
+    } else {
+      const p = placement(
+        this.img.width, this.img.height, boxW, boxH,
+        this.zoom, this.panNX, this.panNY
+      );
+      ctx.drawImage(this.img, ibox + p.offX, ibox + p.offY, p.dw, p.dh);
+    }
     ctx.restore();
     if (drawBorder) {
       ctx.save();

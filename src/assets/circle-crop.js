@@ -13,10 +13,16 @@ function setLoaded(name) {
   $('status').textContent = 'Drag to reposition · scroll or use the slider to zoom';
 }
 
+function syncRotation() {
+  $('rotate').value = String(editor.rotation);
+  $('rotateVal').textContent = String(editor.rotation);
+}
+
 async function handleFile(file) {
   try {
     await editor.loadFile(file);
     $('zoom').value = '1';
+    syncRotation();
     setLoaded(file.name);
   } catch (e) {
     $('status').textContent = 'Could not load that file — please choose a valid image.';
@@ -59,6 +65,11 @@ function init() {
 
   $('file').addEventListener('change', (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); });
   $('zoom').addEventListener('input', (e) => editor.setZoom(parseFloat(e.target.value)));
+  $('rotate').addEventListener('input', (e) => {
+    editor.setRotation(parseInt(e.target.value, 10) || 0);
+    $('rotateVal').textContent = String(editor.rotation);
+  });
+  $('rotateReset').addEventListener('click', () => { editor.setRotation(0); syncRotation(); });
   $('outSize').addEventListener('change', () => {});
   $('download').addEventListener('click', download);
 
