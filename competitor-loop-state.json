@@ -1,260 +1,437 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
-  "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "passport-photo-maker",
-  "iteration": 36,
+  "rotation": [
+    "invoice-generator",
+    "qr-code-generator",
+    "crop-image-into-circle",
+    "passport-photo-maker"
+  ],
+  "lastTool": "invoice-generator",
+  "iteration": 37,
   "history": [
     {
       "date": "2026-06-16",
       "tool": "passport-photo-maker",
-      "competitors": ["passlens.com", "passportphotogrid.com", "2x2passportphoto.com", "fotor.com/design/passport-photo-maker"],
+      "competitors": [
+        "passlens.com",
+        "passportphotogrid.com",
+        "2x2passportphoto.com",
+        "fotor.com/design/passport-photo-maker"
+      ],
       "shipped": "Added US Letter (8.5×11 in) to the print-sheet size selector. photo-specs.json printSheet.sizes gains { id:'letter', label:'US Letter (8.5×11 in)', widthPx:2550, heightPx:3300 } between 5×7 and A4 — standard 8.5×11 in @ 300 DPI = 2550×3300 px (a physical PAPER dimension, ANSI A / US Letter, NOT a country biometric spec, so no data-sourcing/fabrication conflict; documented in the printSheet _note alongside the existing 4×6/5×7/A4 entries). ZERO JS change required: the sheet-size <select> is populated by iterating DATA.printSheet.sizes in init(), and the generic sheetLayout()/tileSheet()/updateSheetInfo()/renderSheetPreview()/downloadSheet()/downloadSheetPdf() helpers already tile, preview, and export at arbitrary sheet dimensions (the PDF export computes points = px/300*72 and derives orientation from w>h, so Letter renders correctly with no code touch). WHY Letter: competitors (Passlens explicitly lists '4x6, A4, Letter, or 5x7'; PassportPhotoGrid/2x2PassportPhoto target 4×6) support US Letter, which is the DEFAULT home-printer paper in the US/Canada (A4 is the rest-of-world default) — printing a 4×6 layout on Letter wastes paper and US home users had no native Letter option. The new sheet fits many copies edge-to-edge with cut guides via the same leftover-gap-spreading layout. No new deps; pure data addition. npm test (10+8+1 passing) + npm run build pass; verified 'US Letter (8.5×11 in)' inlined into dist/passport-photo-maker/index.html (specs are baked into the template at build via {{PHOTO_SPECS_JSON}}). dist gitignored, rebuilt at deploy. gsc-index-progress.json was pre-existing untracked and left out of the commit.",
       "commit": "96a7e69"
     },
     {
       "date": "2026-06-16",
       "tool": "crop-image-into-circle",
-      "competitors": ["circlecropimage.dev", "fotor.com/features/circle-crop", "insmind.com/circle-crop", "photoaid.com/en/tools/cropround"],
+      "competitors": [
+        "circlecropimage.dev",
+        "fotor.com/features/circle-crop",
+        "insmind.com/circle-crop",
+        "photoaid.com/en/tools/cropround"
+      ],
       "shipped": "Paste image from clipboard (Ctrl/Cmd+V) — a third image-input method alongside the existing click-to-upload and drag-and-drop. Template: dropText hint changed from 'Click to choose an image, or drop one here' to 'Click to choose an image, drop one here, or paste with Ctrl/Cmd+V'. circle-crop.js: a new document-level 'paste' listener in init() scans e.clipboardData.items for the first entry with kind==='file' and an image/* type, calls getAsFile(), and routes it through the EXISTING handleFile() (so loadFile -> editor.loadImage, the zoom reset, syncRotation/syncFlip, and setLoaded all run unchanged); preventDefault only when an image is found, returns without touching non-image pastes (text, etc.). No new state, no new export/render path — pasted screenshots and copied images drop straight into the editor without saving a file first. setLoaded already handles a falsy file.name (pasted blobs typically carry a generic name like 'image.png', which is truthy, so the 'Loaded: <name>' label still works). Competitors call out clipboard paste explicitly — search results for circlecropimage.dev / insMind / PhotoAiD list 'upload, drop images, paste images, or use URLs' and 'paste (Ctrl+V)' as input methods; circlecropimage.dev's own page only advertises drag-drop + click (we now exceed it). Pure DOM + Clipboard paste event; no new deps, no engine change, no change to crop/shape/export logic. npm test (10+8+1 passing) + npm run build pass; verified 'clipboardData' in dist/assets/circle-crop.js and 'paste with Ctrl/Cmd+V' in dist/crop-image-into-circle/index.html. dist gitignored, rebuilt at deploy. gsc-index-progress.json was pre-existing untracked and left out of the commit.",
       "commit": "709875c"
     },
     {
       "date": "2026-06-16",
       "tool": "qr-code-generator",
-      "competitors": ["the-qrcode-generator.com", "copyber.com/tools/qr-code-generator", "scanqr.org/qr-code-generator", "qrcode-monkey.com"],
+      "competitors": [
+        "the-qrcode-generator.com",
+        "copyber.com/tools/qr-code-generator",
+        "scanqr.org/qr-code-generator",
+        "qrcode-monkey.com"
+      ],
       "shipped": "Copy-PNG-to-clipboard button (top remaining easy backlog item). Template: a new full-width #copyPng btn-secondary on its own row below the Download PNG / Download SVG pair. qr.js: new copyPng() guarded by a capability check (navigator.clipboard.write + window.ClipboardItem both present — i.e. async Clipboard API in a secure context); when unsupported it writes a 'Copy isn’t supported in this browser — use Download PNG instead.' hint to #qrStatus and returns. When supported it re-encodes the LIVE #qrCanvas via toBlob('image/png') and navigator.clipboard.write([new ClipboardItem({'image/png': blob})]), then reports success ('Copied PNG to clipboard — paste it anywhere.') or failure ('Copy was blocked…' on promise reject, 'Could not copy…' on null blob) on the status line — so the user always gets feedback and a fallback. Returns early when modules is null (nothing rendered). Wired in init() ($('copyPng') click -> copyPng), null-guarded. The copied PNG honors all current settings (fg/bg colour, module style, quiet zone, logo) because it copies the already-rendered canvas — no second render path, no new encoding logic. Header comment updated to list copy-PNG-to-clipboard. Closes the copy-to-clipboard backlog item — The QR Code Generator gates 'Copy to clipboard' behind a $5/mo paid plan and Copyber offers it free; we had download-only. Pure DOM + Clipboard API; no new deps, no change to QR encoding/export/style/logo/contrast paths. npm test (10+8+1 passing) + npm run build pass; verified copyPng (3 refs) in dist/assets/qr.js and id=\"copyPng\" in dist/qr-code-generator/index.html. dist gitignored, rebuilt at deploy.",
       "commit": "0bc8e03"
     },
     {
       "date": "2026-06-16",
       "tool": "invoice-generator",
-      "competitors": ["invoicesimple.com", "invoicequickly.com/tools/invoice-number-generator", "zoho.com/invoice", "freedocumentmaker.com/invoice-generator"],
+      "competitors": [
+        "invoicesimple.com",
+        "invoicequickly.com/tools/invoice-number-generator",
+        "zoho.com/invoice",
+        "freedocumentmaker.com/invoice-generator"
+      ],
       "shipped": "'Save & start next invoice' button — the duplicate/next-invoice workflow competitors ship (InvoiceSimple reuses the saved business/client block and lets you duplicate; InvoiceQuickly's number generator auto-increments a zero-padded suffix INV-0001->INV-0002; Zoho auto-numbers sequentially). The tool already AUTOSAVES one draft but had no way to start the NEXT bill while keeping the sender/client — users had to hand-edit the invoice number and delete every line item each cycle. Template: a new #nextInvoice btn-secondary placed between Download PDF and 'Clear & start fresh'. invoice.js: new nextInvoiceNo(cur) increments the TRAILING number group via regex /(\\d+)(\\D*)$/ and preserves zero-padding with padStart(digits.length) and any prefix/suffix — 'INV-001'->'INV-002', '2026-09'->'2026-10', 'INV7'->'INV8'; no trailing digits -> appends '-2' (''->'INV-002') so the next id is still distinct. New startNextInvoice() KEEPS business/client/currency/brand-color/tax/discount/terms/notes/logo (all untouched), bumps #invNo via nextInvoiceNo, clears #poNumber and #amountPaid to '', resets #items to ITEMS_HEAD + a single blank itemRow(), sets #invDate to today, then calls applyTerms() so the due date re-derives from the issue date + the active payment term, then render(); writes a #pdfStatus confirmation ('Started invoice <n> — business and client details kept.'). Wired in init() ($('nextInvoice') click -> startNextInvoice). render()'s existing saveState() then autosaves the fresh next-invoice draft to the same localStorage key, so the prior behaviour (refresh-safe) is preserved. Pure string/DOM/date logic; no totals-math change; jsPDF untouched; no new deps. Distinct from the already-shipped PO-number and payment-terms presets. npm test (10+8+1 passing) + npm run build pass; verified nextInvoiceNo/startNextInvoice in dist/assets/invoice.js and id=\"nextInvoice\" in dist/invoice-generator/index.html. dist gitignored, rebuilt at deploy. gsc-index-progress.json was pre-modified before this run and left out of the commit.",
       "commit": "67e5228"
     },
     {
       "date": "2026-06-16",
       "tool": "passport-photo-maker",
-      "competitors": ["photogov.net", "photoaid.com/passport-photos", "passlens.com"],
+      "competitors": [
+        "photogov.net",
+        "photoaid.com/passport-photos",
+        "passlens.com"
+      ],
       "shipped": "Compliance checklist panel — aggregates the tool's existing per-signal checks into one pass/fail validator card (parity with PhotoGov's compliance system and PhotoAiD's checker, which both show a consolidated checklist). Template: a new #checklist <div> (border card, hidden until an image loads) under the status/sizeHint/bgHint lines, with a 'Compliance checklist' heading, a #checkItems <ul>, and a standing disclaimer ('A self-check only — it can't read your face or judge lighting. The issuing authority makes the final decision.'). photo-maker.js: checkBackground() now RETURNS its verdict {ok,msg} (and null on no-image / tainted-canvas) in addition to still writing #bgHint, so the panel can reuse the exact same corner-sample result with no recomputation. New updateChecklist(spec, bg) builds 4 honest rows, each tagged pass(✓ green)/warn(! amber)/info(ℹ grey): (1) RESOLUTION — measured: source img.naturalWidth/Height vs spec.widthPx/heightPx; pass when the source is >= the spec px (sharp print), warn when smaller (upscaling -> soft) advising a higher-res photo; (2) BACKGROUND — reuses the bg verdict (pass/warn) and its message; (3) HEAD POSITION — deliberately INFO only, never an auto-pass, because there is no face detection (no AI): it reminds the user to line the crown/chin to the guide band (head height min-max mm from the spec); (4) OUTPUT — info, format-aware (JPG -> mentions the 240 KB US online-upload fit option; PNG -> suggests switching to JPG for online uploads). Rows render via a tiny esc() HTML-escaper into the <ul> (icon span + text span, flex). Wiring: updateChecklist(current, checkBackground(current)) runs on file load (replacing the bare checkBackground call), on document-type change (re-evaluates resolution + background against the new spec), and on download-format change (refreshes the Output row); panel hides when no image. WHY honest rows: competitors lean on AI face/lighting checks, but the State Dept auto-rejects AI-altered photos since Jan 2026 and we run zero face detection — so head-position and lighting stay user-judgment INFO rows, only the two things we can actually measure (pixel resolution, corner-background) are pass/warn. NO spec-data added or changed (photo-specs.json untouched) — every value is derived from the upload + existing spec fields, so no data-sourcing/fabrication conflict. No new deps; pure DOM/canvas; reuses the already-tested background sampler. npm test (10+8+1 passing) + npm run build pass; verified updateChecklist/checkItems in dist/assets/photo-maker.js and 'Compliance checklist'/#checkItems in dist/passport-photo-maker/index.html. dist gitignored, rebuilt at deploy. gsc-index-progress.json was pre-modified before this run and left out of the commit.",
       "commit": "23e0085"
     },
     {
       "date": "2026-06-16",
       "tool": "crop-image-into-circle",
-      "competitors": ["fotor.com/features/circle-crop", "circlecropimage.dev", "mockofun.com/tutorials/crop-picture-into-circle", "imageoverlay.org/circle-crop-image"],
+      "competitors": [
+        "fotor.com/features/circle-crop",
+        "circlecropimage.dev",
+        "mockofun.com/tutorials/crop-picture-into-circle",
+        "imageoverlay.org/circle-crop-image"
+      ],
       "shipped": "Crop-shape toggle — Circle (default) / Square / Rounded square (top backlog item). Template: a new 'Crop shape' <select> (#shape: circle|rect|rounded) above the zoom slider, plus a 'Corner roundness' range (#radius 5..50, default 25) in a #radiusControls field shown ONLY for the rounded shape. circle-crop.js: applyShape() reads #shape, toggles #radiusControls, sets editor.setCornerRadius(rounded ? radius/100 : 0) then editor.setShape(shape); wired on #shape change, #radius input, and at init. Engine (canvas-editor.js): added shape:'rounded' and a cornerRadius field (fraction of half-size 0..0.5) + setCornerRadius setter. Introduced a shared _shapePath(ctx,cw,ch,inset) helper that traces the current shape's outline (circle arc, or inset box with arcTo-rounded corners for 'rounded', plain rect for 'rect') at a given inward inset; the radius is half*cornerRadius clamped to half the shorter inset-box side so it never self-intersects. _drawTo now uses _shapePath for ALL THREE of: the background fill, the image clip, and the border stroke. KEY behavior change: the image is now clipped to the shape for EVERY shape — previously only the circle branch clipped, so the old rect path drew the photo into the full unclipped box; now square/rounded actually crop. Border is no longer circle-only (drawBorder dropped the shape==='circle' guard) and is traced via _shapePath at inset = pad + stroke/2 so the ring's outer edge lands at the padding boundary for any shape. Flip/rotate/zoom/pan/padding/background all compose unchanged inside the same clip. JPG flatten path unaffected (square/rounded have no transparent corners but flatten is harmless). SEO prose: 'circle' wording in the how-to softened to 'frame/shape' and a new paragraph explains the Circle/Square/Rounded-square selector (rounded tiles for platforms that don't use round photos); title/canonical/JSON-LD kept circle-focused since the tool is branded 'circle'. Closes the top circle-crop backlog item — Fotor/MockoFun offer square + other crop shapes, several croppers offer rounded-square avatars; we were circle-only. No new deps; pure canvas/arcTo (no ctx.roundRect dependency). npm test (10+8+1 passing) + npm run build pass; verified #shape/#radius/'Rounded square' in dist/crop-image-into-circle/index.html, setCornerRadius+applyShape in dist/assets/circle-crop.js, and _shapePath+cornerRadius in dist/assets/canvas-editor.js. dist gitignored, rebuilt at deploy. gsc-index-progress.json was pre-modified before this run and left out of the commit.",
       "commit": "123809f"
     },
     {
       "date": "2026-06-16",
       "tool": "qr-code-generator",
-      "competitors": ["radaar.io/free-tools/qr-code-generator", "rapidapi.com/kodice/qr-code-factory", "github.com/codebude/QRCoder", "me-qr.com"],
+      "competitors": [
+        "radaar.io/free-tools/qr-code-generator",
+        "rapidapi.com/kodice/qr-code-factory",
+        "github.com/codebude/QRCoder",
+        "me-qr.com"
+      ],
       "shipped": "New 'Location (map point)' payload type. Added a <option value=\"geo\">Location (map point)</option> to the #qrType select (between phone and text) plus a data-group=\"geo\" field block with two inline inputs (#geoLat / #geoLng, placeholders 40.748817 / -73.985428) and a hint telling users to copy lat,lng from Google Maps (right-click a spot). qr.js buildPayload() gains a 'geo' branch that trims both inputs, validates each is a finite Number (returns '' so the existing empty-payload guard shows the 'Enter some content' prompt when either is missing/non-numeric), and emits an RFC 5870 geo: URI `geo:<lat>,<lng>` — phone cameras open it directly in the maps app. No new wiring needed: syncGroups() already toggles the new data-group by the select value, and the #qrForm input listener already re-renders on input. SEO copy updated to enumerate the location type across <title>, meta description, og:title, og:description, and the JSON-LD description (recovering long-tail 'location/map QR code' search). Header comment in qr.js updated to list geo. Competitors RADAAR (Location among WhatsApp/Crypto/UPI/etc.), QR Code Factory and the QRCoder library all ship a geolocation payload we lacked. Pure string/number encoding; no logic change to QR encoding/export; ECC/quiet-zone/style/logo/contrast all unchanged. No new deps (vendored qrcode lib). npm test (10+8+1 passing) + npm run build pass; verified value=\"geo\" + data-group=\"geo\" in dist/qr-code-generator/index.html and the geo: encoder in dist/assets/qr.js. dist gitignored, rebuilt at deploy.",
       "commit": "24522b8"
     },
     {
       "date": "2026-06-16",
       "tool": "invoice-generator",
-      "competitors": ["wise.com/invoice-generator", "zoho.com/invoice", "invoicesimple.com", "refrens.com", "paymoapp.com"],
+      "competitors": [
+        "wise.com/invoice-generator",
+        "zoho.com/invoice",
+        "invoicesimple.com",
+        "refrens.com",
+        "paymoapp.com"
+      ],
       "shipped": "Optional PO number (purchase-order reference) field. Added a 'PO number (optional)' text input (#poNumber, placeholder 'e.g. PO-4521') beside the Invoice # input, with Currency moved to its own inline row below. readModel exposes m.po = poNumber value (''-safe). Live preview: renders a 'PO: <num>' .pv-meta line under the invoice number in the top-right header block, only when non-empty (esc-escaped). PDF: header draws 'PO: <num>' at 9pt grey under the invoice number on the top-right (y+30), only when present. Persisted: 'poNumber' inserted into FIELD_IDS (after invNo) so autosave/restore covers it; added to the init input-listener array for live re-render; resetForm seeds it to '' (cleared). Closes the top remaining invoice backlog item — Wise/Zoho/InvoiceSimple/Refrens all expose a PO/purchase-order reference distinct from the invoice number (buyers frequently require their PO number on the invoice; omitting it is a flagged invoicing mistake), which we lacked. Pure string field; no totals/math change; jsPDF unchanged; no new deps; npm test (10+8+1 passing) + npm run build pass; verified #poNumber in dist/invoice-generator/index.html and m.po in dist/assets/invoice.js. dist gitignored, rebuilt at deploy.",
       "commit": "c6c3fb9"
     },
     {
       "date": "2026-06-16",
       "tool": "passport-photo-maker",
-      "competitors": ["passlens.com", "photogov.net", "cutout.pro", "media.io", "passportphototools.com"],
+      "competitors": [
+        "passlens.com",
+        "photogov.net",
+        "cutout.pro",
+        "media.io",
+        "passportphototools.com"
+      ],
       "shipped": "Fit JPG under 240 KB for US online uploads. Added a 'Fit for US online upload (<=240 KB JPG)' checkbox (#fitOnline inside #fitField) shown ONLY when the Download-format select is JPG (syncFitField() toggles #fitField display on format change + at init). downloadPhoto() now: when JPG + checkbox ticked, binary-searches the JPEG encoder quality via the engine's existing qualityForTargetBytes(measure, targetBytes, {min:0.3,max:0.95}) — measure(q) re-encodes editor.toBlob at quality q and returns blob.size — so the produced file lands at or under ONLINE_JPG_MAX_KB*1024 bytes (240 KB), then downloads at that quality (fitted=true); otherwise keeps the prior fixed-quality export. Reused the ALREADY-TESTED canvas-math helper (test 'qualityForTargetBytes finds size under target' covers it) so no new logic to test; imported it as /assets/canvas-math.js (build.js already copies src/engine/canvas-math.js to dist/assets, and canvas-editor.js imports the same file as ./canvas-math.js, so the module resolves in dist). New reportFileSize(blob, ext, fitted) writes the real measured byte size to a new #sizeHint <p> under the status line: PNG -> neutral 'File size: N KB.'; JPG <=240 KB -> green within-limit confirmation (+ 'Quality reduced to fit.' when fitted); JPG >240 KB -> amber heads-up telling the user to tick the fit option or pick a smaller print size, and that PRINTED photos / DS-82 renewals have no such limit. fmtKb() formats (rounded >=100 KB, 1 decimal below). #sizeHint cleared on each new file load. WHY 240 KB: US DS-160 visa + DV-Lottery online photo uploads cap the JPEG at 240 KB (square, 600x600-1200x1200 px) per travel.state.gov / the DS-160 portal — a top online-upload rejection cause; corroborated by passlens.com US visa guide, photogov.net size guide, ds160.io, passportphototools.com. The 240 KB is a documented public ceiling compared against a MEASURED blob size — NOT a value written into photo-specs.json, so no data-sourcing/fabrication conflict (specs file untouched). Active solve (re-encode to fit) beats a passive warning and reuses tested engine code. No new deps; pure canvas/encoder; npm test + npm run build pass; verified qualityForTargetBytes+fitOnline+ONLINE_JPG_MAX_KB landed in dist/assets/photo-maker.js and #fitField/#fitOnline in dist/passport-photo-maker/index.html. dist gitignored, rebuilt at deploy. gsc-index-progress.json was pre-modified before this run and left out of the commit.",
       "commit": "393e841"
     },
     {
       "date": "2026-06-16",
       "tool": "crop-image-into-circle",
-      "competitors": ["fotor.com/features/mirror-image", "pixlane.media/flip-image", "imgcropper.com", "frametoolkit.com"],
+      "competitors": [
+        "fotor.com/features/mirror-image",
+        "pixlane.media/flip-image",
+        "imgcropper.com",
+        "frametoolkit.com"
+      ],
       "shipped": "Flip / mirror the image before cropping (horizontal + vertical). Engine: added flipH/flipV state to CanvasEditor (constructor opts + reset to false in loadImage so a fresh image starts unflipped) and a setFlip(h,v) setter; composed into the shared _drawTo as a mirror about the box center (ctx.translate(center) -> ctx.scale(flipH?-1:1, flipV?-1:1) -> translate back) applied BEFORE the rotation transform, inside the same save() as the image draw and the circle clip — so the clip (a screen-space path) is unaffected while the image mirrors, and flip composes cleanly with zoom/pan/rotate/border/padding/bg at any export resolution. Template: a 'Flip / mirror' field with two btn-secondary toggle buttons (#flipH 'Mirror horizontally', #flipV 'Flip vertically'), each carrying aria-pressed. circle-crop.js: click handlers toggle the respective axis via editor.setFlip and call syncFlip(); syncFlip() writes aria-pressed + an .active class on both buttons; syncFlip() also runs on each new file load so the buttons reset to unpressed when the engine clears the flip. styles.css: .btn-secondary.active / [aria-pressed=\"true\"] now render as accent-filled so the pressed state is visible (rotateReset is unaffected — it never sets aria-pressed). Closes the flip/mirror backlog idea — Fotor and Pixlane offer horizontal/vertical mirror before crop; we lacked it. No new deps; pure transform; npm test + npm run build pass; verified setFlip + buttons present in dist/. dist gitignored, rebuilt at deploy. Remaining circle-crop backlog (alternate crop shapes square/rounded, oval) are medium engine-clip changes; batch mode stays too large for a micro-commit.",
       "commit": "79453c1"
     },
     {
       "date": "2026-06-16",
       "tool": "qr-code-generator",
-      "competitors": ["qrcode-tiger.com", "uniqode.com", "me-qr.com", "doitqr.com"],
+      "competitors": [
+        "qrcode-tiger.com",
+        "uniqode.com",
+        "me-qr.com",
+        "doitqr.com"
+      ],
       "shipped": "Module body-style selector — Square (classic) / Rounded / Dots (top backlog item). Added a #qrStyle <select> beside the quiet-zone selector inside #qrForm (so the existing input listener re-renders on change with no new wiring). qr.js: new moduleStyle() reader returns 'square'|'rounded'|'dots' (default square). render() now dispatches each dark module through drawModule(ctx,x,y,s,style): 'square' keeps the existing fillRect; 'rounded' fills a rounded-corner square via a new roundRectPath() helper (manual arcTo subpath — no ctx.roundRect dependency for broader support, radius = s*0.32); 'dots' fills an inscribed circle (r = s*0.45, leaving a small gap so adjacent dots read as distinct). The matrix-building loop, ECC, logo overlay, contrast warning, sizing/quiet-zone are all unchanged — the style is cosmetic only, so the dark-module pattern stays ISO/IEC 18004 compliant and scannable. svgString() mirrors it per module: dots emit <circle cx cy r=0.45>, rounded emit <rect rx=0.32 ry=0.32>, square keeps <rect>; plus the SVG root shape-rendering switches from crispEdges (square) to geometricPrecision (rounded/dots) so the curves anti-alias instead of being hardened. PNG and SVG match. Closes the top qr backlog item — QR Tiger, Uniqode, ME-QR, DoItQR all ship a square/rounded/dots body-shape picker; we drew square fillRects only. No new deps (vendored qrcode lib + canvas/SVG); dist gitignored, rebuilt at deploy.",
       "commit": "74f62a9"
     },
     {
       "date": "2026-06-16",
       "tool": "invoice-generator",
-      "competitors": ["plutio.com", "invoicecat.com", "wise.com/invoice-generator", "magic-invoice"],
+      "competitors": [
+        "plutio.com",
+        "invoicecat.com",
+        "wise.com/invoice-generator",
+        "magic-invoice"
+      ],
       "shipped": "Payment-terms preset dropdown (top backlog item). Added a 'Payment terms' <select> (#paymentTerms) beside the invoice Date: Custom / Due on receipt (0) / Net 7 / 14 / 15 / 30 (default selected) / 60 / 90; moved the Due date input to its own row below. New applyTerms() reads the selected day-count and sets dueDate = invDate + N days (via Date arithmetic on 'YYYY-MM-DDT00:00:00', toISOString slice), a no-op for Custom (value ''). Wiring: paymentTerms change -> applyTerms()+render(); invDate input -> applyTerms()+render() (so changing the issue date re-derives the due date when a preset is active); editing dueDate by hand resets paymentTerms to '' (Custom) so the manual date isn't overwritten. termLabel() returns the selected option text ('Net 30' etc.); readModel exposes m.terms, rendered as a small grey line under 'Due' in the live preview and in the PDF (setFontSize 9 / grey, right-aligned under the due date). Persisted: 'paymentTerms' inserted into FIELD_IDS (after invDate) so autosave/restore covers it; resetForm seeds it to '30' and calls applyTerms() so the default due date stays Net 30 (replaced the hardcoded isoToday(30)). Fresh-visit seeding unchanged (HTML default Net 30 + isoToday(30) already agree, no conflict). Closes the top invoice backlog item — Plutio/InvoiceCat/Wise/Magic Invoice all ship a terms dropdown that auto-fills the due date from the invoice date; we had a free-text due date only (users computed Net 30 by hand). Pure date/string math; no new deps; jsPDF unchanged; npm test + npm run build pass; change verified in dist/. dist gitignored, rebuilt at deploy.",
       "commit": "1bd0260"
     },
     {
       "date": "2026-06-16",
       "tool": "passport-photo-maker",
-      "competitors": ["pixconvert.com", "levotools.com", "passportgrid.com"],
+      "competitors": [
+        "pixconvert.com",
+        "levotools.com",
+        "passportgrid.com"
+      ],
       "shipped": "Print-ready PDF export of the sheet (top backlog item). Added a 'Download print sheet as PDF' button (#dlSheetPdf) below the existing PNG/JPG photo + sheet buttons; enabled alongside them on file load. New downloadSheetPdf() reuses the shared tileSheet()/sheetLayout() helpers to paint the same tiled sheet (white bg, copies, grey cut guides) onto an offscreen canvas, then renders it into a jsPDF page sized to the sheet's TRUE physical dimensions: points = px / 300 * 72 (all sheet sizes are 300-DPI derivations), orientation derived from w>h, single addImage of the canvas as JPEG q0.95 at 0,0 covering the full page so the print is 1:1 at any lab. Filename `<specId>-<sizeId>-sheet.pdf`; status line reports the size label + photo count (same count source as the raster sheet). jsPDF is the already-vendored src/assets/jspdf.umd.min.js (invoice-generator uses it); loaded globally via a <script src> in the template before the module (mirrors invoice), guarded by a window.jspdf check that surfaces a refresh hint if it failed to load. build.js already copies jspdf.umd.min.js to dist/assets. Closes the top passport-photo-maker backlog item — PixConvert/Levo Tools offer JPG + PDF sheet export; we had PNG/JPG raster only (print labs/kiosks often prefer a fixed-size PDF). No new deps; no photo-specs.json changes (no data-sourcing conflict); dist gitignored, rebuilt at deploy.",
       "commit": "56f4f3d"
     },
     {
       "date": "2026-06-16",
       "tool": "crop-image-into-circle",
-      "competitors": ["fotor.com", "circlecropimage.dev", "imgcropper.com"],
+      "competitors": [
+        "fotor.com",
+        "circlecropimage.dev",
+        "imgcropper.com"
+      ],
       "shipped": "Platform output-size presets. Added a 'Platform preset' <select> (#preset) above the existing custom Output-size select, with square-avatar dimensions every competitor ships: Discord 128, Facebook 170, TikTok 200, Instagram 320, X/Twitter 400, LinkedIn 400, WhatsApp 512, YouTube 800; default 'Custom size' falls back to the 256/512/1024 select. New outputSize() helper in circle-crop.js returns the preset px when one is chosen, else the custom select value; download() now calls outputSize() so the exported PNG/JPG matches the chosen platform size (width=height=size, framing unchanged). syncPreset() disables the custom #outSize select while a preset is active (visual lock — the preset overrides it) and refreshes the #status line to read 'Output: <label> · drag to reposition…' (label = preset option text like 'Instagram (320)' or '<n>×<n>' for custom); it runs on preset change, custom-size change, at init, and via setLoaded after an image loads so the readout appears once an image is present. Closes the platform-preset gap — circlecropimage.dev advertises 'Discord, Instagram, WhatsApp, TikTok… presets', Fotor markets per-platform PFP sizes, and most circle croppers expose them; we only had generic 256/512/1024. No new deps; canvas engine untouched (export geometry is resolution-independent already); dist gitignored, rebuilt at deploy.",
       "commit": "c9cf658"
     },
     {
       "date": "2026-06-16",
       "tool": "qr-code-generator",
-      "competitors": ["qrcode-monkey.com", "qr-code-generator.com", "qrcode-tiger.com"],
+      "competitors": [
+        "qrcode-monkey.com",
+        "qr-code-generator.com",
+        "qrcode-tiger.com"
+      ],
       "shipped": "Optional center-logo overlay (top backlog item). New #qrLogo file input (PNG/JPG/SVG) in the template plus a hint line with a hidden 'Remove logo' button (#qrLogoClear). qr.js: onLogoChange() reads the file via FileReader -> data URL -> decoded Image (fully client-side, nothing uploaded); logoDataUrl + logoImg are module-level state. When a logo is present render() forces error correction to High (ecc='H' overrides the #qrEcc selector) so the modules the logo covers don't break the scan, and reflectLogoState() visually locks the ECC <select> to High + disabled and reveals the remove button. drawLogo(ctx,dim,bg) paints a bg-coloured padding box (LOGO_FRACTION=0.2 of the QR dim, padding = size*0.14 each side) then drawImage's the logo centered, aspect-ratio preserved (min-fit into the 20% box). The SVG export (svgString) mirrors this in viewBox/module units: a <rect fill=bg> padding box plus an <image href=base64 dataURL preserveAspectRatio='xMidYMid meet'> so PNG and SVG match; added xmlns:xlink to the <svg>. clearLogo() resets state + input.value and re-renders; status line appends ' · logo (ECC: High)'. Closes the last qr-code-generator backlog item — QRCode Monkey/QR Tiger let you drop a brand logo in the center (needs forced High ECC + a cleared center), which we lacked. No new deps (uses the vendored qrcode lib + canvas/FileReader); dist gitignored, rebuilt at deploy.",
       "commit": "9dbd03d"
     },
     {
       "date": "2026-06-16",
       "tool": "invoice-generator",
-      "competitors": ["invoice-generator.com", "wise.com/us/invoice-generator", "zoho.com/invoice"],
+      "competitors": [
+        "invoice-generator.com",
+        "wise.com/us/invoice-generator",
+        "zoho.com/invoice"
+      ],
       "shipped": "Amount Paid / Balance Due fields (top backlog item). Added an optional 'Amount paid' number input (min 0) to the Totals section beside Shipping. totals() now reads it as t.amountPaid and computes t.balanceDue = total - amountPaid. When amountPaid is non-zero, the live preview renders an 'Amount paid' deduction row (−money) plus a 'Balance due' grand row below Total; when balanceDue <= 0 that row switches to the brand color and shows 'money(0) · PAID' as a fully-settled marker (handles overpayment too — never shows a negative balance label, clamps the display to PAID). The PDF mirrors this exactly in the totals block: after the Total line it draws a brand-color rule, an 'Amount paid' line, another brand-color rule, then either a bold 'Balance due' line or a brand-color 'Balance due  money(0)  PAID' line. Persisted: 'amountPaid' added to FIELD_IDS (autosave/restore) and the init input-listener array (live re-render); resetForm seeds it to 0. Closes the top invoice backlog item — invoice-generator.com (4M+ users) exposes Amount Paid / Balance Due at the bottom of its totals block for deposits/partial payments, which we lacked (users had to fake it). Pure totals math; no new deps; jsPDF unchanged; dist gitignored, rebuilt at deploy.",
       "commit": "18079ff"
     },
     {
       "date": "2026-06-16",
       "tool": "passport-photo-maker",
-      "competitors": ["passportgrid.com", "levotools.com", "123passportphoto.com", "cutout.pro"],
+      "competitors": [
+        "passportgrid.com",
+        "levotools.com",
+        "123passportphoto.com",
+        "cutout.pro"
+      ],
       "shipped": "Live print-sheet layout preview with cut guides. Added a 'Preview sheet layout' toggle (#togglePreview, enabled once an image loads) that swaps the interactive single-photo editor (#editorWrap) for a new on-screen #sheetPreview canvas rendering the full tiled sheet (white bg, all copies, grey cut-guide rectangles) exactly as it will print — so the user sees the layout BEFORE downloading. Plus a live #sheetInfo readout under the sheet-size selector ('Fits N photos (cols x rows) with cut guides.') that updates with no image needed. Refactored the download tiling into three shared helpers: sheetLayout(ps) returns {cols,rows,gapX,gapY,count} (max copies edge-to-edge, leftover spread as even gaps), tileSheet(ctx,ps,bmp) paints the sheet, and renderSheetPreview() draws into #sheetPreview at full sheet px then CSS-scales to MAX_DISPLAY_H; downloadSheet now reuses tileSheet/sheetLayout so the preview geometry is byte-identical to the export. Preview re-renders on zoom (slider), document-type change (photo dims change copies-per-sheet), sheet-size change, and on a new file load while previewing; updateSheetInfo() runs the same on those events and at init. setPreview(on) toggles visibility + button label ('Back to editor') + aria-pressed. Competitor parity: PassportGrid ('Show cutting guide grid'), Levo Tools (preview spacing + cut guides), 123PassportPhoto (cut along grey lines), Cutout.Pro all preview the cut-guide tiling before printing — we drew cut guides into the export but never previewed them. Closes the 'grid-line / cut-guide preview' backlog item. No new deps; pure canvas; no photo-specs.json changes (no data-sourcing conflict). dist gitignored, rebuilt at deploy.",
       "commit": "0c751a7"
     },
     {
       "date": "2026-06-16",
       "tool": "crop-image-into-circle",
-      "competitors": ["fotor.com", "watermarkly.com", "circlecropimage.com"],
+      "competitors": [
+        "fotor.com",
+        "watermarkly.com",
+        "circlecropimage.com"
+      ],
       "shipped": "JPG download option alongside PNG. Added a 'Download format' <select> (PNG transparent / JPG smaller, white background) to the circle-crop template, plus a #jpgNote hint shown only for JPG. download() now reads the format: PNG keeps the existing transparent export; JPG calls toBlob with type image/jpeg, quality 0.92, and a new `flatten` color so the alpha-less corners of the circle don't render black — flatten uses the user's chosen background color when 'Fill background' is enabled, otherwise white. Filename/ext + status now reflect the chosen format; new syncFormat() updates the button label ('Download JPG'/'Download PNG') and toggles the JPG note. Engine change: CanvasEditor.toBlob accepts an optional `flatten` CSS color that paints an opaque backdrop over the whole output canvas before _drawTo runs (PNG path and on-screen preview unaffected — flatten defaults to null). Closes the last small backlog item for this tool (Fotor offers PNG-transparent vs solid JPG output; we were PNG-only); background fill shipped previously unblocked it. No new deps; dist gitignored, rebuilt at deploy. The only remaining backlog idea is batch mode, which is too large for a micro-commit.",
       "commit": "8be47ff"
     },
     {
       "date": "2026-06-16",
       "tool": "qr-code-generator",
-      "competitors": ["qqrcodegenerator.com", "pageloot.com", "gocreateqr.com"],
+      "competitors": [
+        "qqrcodegenerator.com",
+        "pageloot.com",
+        "gocreateqr.com"
+      ],
       "shipped": "Low-contrast / scannability warning when foreground and background colours are too close. render() now calls updateContrastWarning(fg, bg), which computes the WCAG relative-luminance contrast ratio (hexToRgb -> relLuminance -> contrastInfo, range 1:1..21:1) and shows an amber #qrWarn alert under the preview in two cases: (1) foreground lighter than background (inverted — many scanners reject dark-bg/light-fg outright), and (2) ratio below MIN_CONTRAST=4, the practical ISO/IEC 18004 floor for reliable smartphone scans (black-on-white is 21:1). The warning auto-clears (hidden) when contrast is adequate and silently hides if either colour can't be parsed. New #qrWarn <p role=alert> in the template (hidden by default, amber inline style). Pure colour math — no new deps, no logic change to the QR encoding/export. Closes the low-contrast backlog idea; competitors like qqrcodegenerator ship a dedicated QR contrast checker and pageloot/gocreateqr publish 4:1-minimum contrast guidance we gave no feedback on. dist gitignored, rebuilt at deploy.",
       "commit": "5d27814"
     },
     {
       "date": "2026-06-16",
       "tool": "invoice-generator",
-      "competitors": ["flowlu.com", "invoice-generator.com", "invoicesimple.com"],
+      "competitors": [
+        "flowlu.com",
+        "invoice-generator.com",
+        "invoicesimple.com"
+      ],
       "shipped": "Shipping / handling line in totals. Added an optional shipping field (number, min 0) in the Totals section; totals() reads it as a flat pass-through charge added AFTER tax and discount (untaxed) into total = max(0, subtotal + tax - discount + shipping), and exposes it on the model (t.shipping). It renders as a 'Shipping' row in the live preview (only when non-zero) and in the PDF totals via the existing line() helper, sitting between Discount and the Total separator. Persisted: 'shipping' added to FIELD_IDS so autosave/restore covers it; resetForm seeds it to 0; init wires it into the live-render input listener. Closes the top backlog item — Flowlu / Invoice-Generator.com expose a separate shipping line we lacked (previously shipping had to be faked as an extra line item, which got taxed). No new deps; jsPDF unchanged; dist gitignored, rebuilt at deploy.",
       "commit": "714838e"
     },
     {
       "date": "2026-06-16",
       "tool": "passport-photo-maker",
-      "competitors": ["passportphotofactory.com", "ishotaphoto.com", "passlens.com", "photogov.net"],
+      "competitors": [
+        "passportphotofactory.com",
+        "ishotaphoto.com",
+        "passlens.com",
+        "photogov.net"
+      ],
       "shipped": "Background readiness hint (corner-pixel check). After upload, checkBackground() samples the four corner patches (8% of the shorter side each) of the UPLOADED image via an offscreen canvas, averages each corner, then warns without altering anything when: inter-corner spread > 60 (busy/uneven — shadows, pattern, scenery), mean luminance < 110 (dark), or sum-of-channels distance to the spec background > 150 (wrong colour); otherwise a green 'looks plain and close to required' confirmation. New #bgHint <p> in the template (hidden until an image loads); hint re-runs on document-type change so it re-evaluates against each spec's required background (US white vs UK/AU light grey via hexToRgb(spec.background)). Tainted-canvas/decode errors hide the hint silently. Pure pixel stats — no AI, no background removal: US/UK/CA forbid digitally altering the photo background, so the compliant move is to advise the user to retake, not to remove. Closes the top backlog item and matches the 'validator/checker' feature competitors (PassportPhotoFactory's 15-check validator, iShotaPhoto's 20+ checks, Passlens) sell; background is the most common rejection reason. AI/WASM background removal stays deliberately out of scope (too heavy + non-compliant for US/UK/CA). No new deps; no photo-specs.json changes (no data-sourcing conflict); dist gitignored, rebuilt at deploy.",
       "commit": "ce331ca"
     },
     {
       "date": "2026-06-16",
       "tool": "crop-image-into-circle",
-      "competitors": ["watermarkly.com", "fotor.com", "circlecropimage.com"],
+      "competitors": [
+        "watermarkly.com",
+        "fotor.com",
+        "circlecropimage.com"
+      ],
       "shipped": "Rotate / straighten the image before cropping. Added CanvasEditor.setRotation (clamped -180..180 deg, default 0) composed into the shared _drawTo so preview and exported PNG match at any output size. The image is rotated about the box center INSIDE the circle clip; to avoid transparent corners when straightening, the cover scale is multiplied by the rotated-frame bounding-box factor (max of the two axis growth ratios) so the rotated image still fully covers the box at any angle. zoom/pan/padding/border all still compose. New rotate slider (-180..180, live degree readout #rotateVal, plus a 'Reset rotation' btn-secondary) in the circle-crop template; wired in circle-crop.js (setRotation on input, syncRotation on load/reset). rotation resets to 0 on a fresh image load. Closes the rotate/straighten backlog idea — Watermarkly offers a straighten slider before cropping that we lacked. No new deps; dist gitignored, rebuilt at deploy.",
       "commit": "286abd5"
     },
     {
       "date": "2026-06-16",
       "tool": "qr-code-generator",
-      "competitors": ["qrcode-monkey.com", "qr-code-generator.com", "the-qrcode-generator.com"],
+      "competitors": [
+        "qrcode-monkey.com",
+        "qr-code-generator.com",
+        "the-qrcode-generator.com"
+      ],
       "shipped": "Adjustable quiet-zone (margin) selector — Standard (4 modules) / Narrow (2) / None (0). Replaced the hardcoded QUIET=4 constant in qr.js with a clamped quietZone() reader (0-8, default 4) driven by a new #qrMargin <select> in the template; both render() (canvas) and svgString() (SVG export) now use the live value so preview, PNG, and SVG all honor the chosen margin. The selector lives inside #qrForm so the existing input listener re-renders on change with no new wiring. Tighter/zero margins let the code embed flush in dense layouts; Standard stays the scan-safe default. Closes the quiet-zone/margin backlog idea (QRCode Monkey exposes a 'Set margin'/quiet-zone control we lacked). No new deps; dist gitignored, rebuilt at deploy.",
       "commit": "c0000b9"
     },
     {
       "date": "2026-06-16",
       "tool": "invoice-generator",
-      "competitors": ["invoicesimple.com", "invoice-generator.com", "zoho.com/invoice"],
+      "competitors": [
+        "invoicesimple.com",
+        "invoice-generator.com",
+        "zoho.com/invoice"
+      ],
       "shipped": "Autosave to localStorage so a refresh doesn't lose work. render() and downloadPdf() now serialize the full form (business/client fields, invoice meta, currency, dates, tax/discount, brand color, notes, all line items, and the optional logo dataURL) to localStorage key 'tb.invoice.v1'; init() restores it via applyState() before first render (restoring flag suppresses re-save during repopulation, dates are only seeded on a truly fresh visit so a cleared date isn't re-filled). Added a 'Clear & start fresh' button (confirm-gated) that wipes storage and resets to the shipped defaults, plus an autosave reassurance line in the template. Also hardened itemRow to attribute-escape desc/qty/rate (new attr() helper) since restored values flow back through the same value=\"...\" interpolation. Competitor parity: InvoiceSimple/Invoice-Generator/Zoho all persist a draft so reloads don't wipe input; we lost everything on refresh. No new deps; dist gitignored, rebuilt at deploy.",
       "commit": "79ae7f4"
     },
     {
       "date": "2026-06-16",
       "tool": "passport-photo-maker",
-      "competitors": ["pixconvert.com", "makepassportphoto.com", "cutout.pro", "passportphotosnap.com"],
+      "competitors": [
+        "pixconvert.com",
+        "makepassportphoto.com",
+        "cutout.pro",
+        "passportphotosnap.com"
+      ],
       "shipped": "Selectable print-sheet size (4×6 in / 5×7 in / A4). Added a 'sizes' array to photo-specs.json printSheet (standard physical paper dims @300DPI: 4x6=1200×1800, 5x7=1500×2100, A4=2480×3508 — NOT country biometric specs, so no data-sourcing conflict), a sheetSize <select> in the template, and selector wiring in photo-maker.js (sheetSpec tracks the choice; downloadSheet tiles onto the chosen sheet; filename + status use the size id/label; falls back to the legacy single 4×6 when no sizes array). The generic cols/rows tiling already handled arbitrary sheet dimensions. Closes the paper-size-selector gap every competitor (PixConvert, MakePassportPhoto, Cutout.Pro, Passport Photo Snap) offers — we hardcoded 4×6. No new deps; PNG/JPG format selector unchanged.",
       "commit": "63b24e1"
     },
     {
       "date": "2026-06-16",
       "tool": "crop-image-into-circle",
-      "competitors": ["frametoolkit.com", "circlecropimage.com", "watermarkly.com"],
+      "competitors": [
+        "frametoolkit.com",
+        "circlecropimage.com",
+        "watermarkly.com"
+      ],
       "shipped": "Optional padding/margin around the circle (toggle + amount slider). Added CanvasEditor.setPadding, which shrinks the shape (and its border ring, image clip, and bg fill) inward by a fraction of the half-size, leaving a transparent margin so the avatar isn't flush to the edge. Implemented in the shared _drawTo so preview and exported PNG match at any output size; pad cascades through outerR -> inset -> innerR. FrameToolkit explicitly offers 'add padding' around the circle; this closes that gap. No new deps; source only (dist is gitignored, rebuilt at deploy).",
       "commit": "54f27a7"
     },
     {
       "date": "2026-06-16",
       "tool": "qr-code-generator",
-      "competitors": ["qr-code-generator.com", "qrcode-monkey.com", "the-qrcode-generator.com"],
+      "competitors": [
+        "qr-code-generator.com",
+        "qrcode-monkey.com",
+        "the-qrcode-generator.com"
+      ],
       "shipped": "SEO/copy fix: the page already supports 7 payload types (URL, WiFi, vCard, Email, SMS, Phone, Text) but the <title>, meta description, og:title/og:description, and JSON-LD description still only advertised 'WiFi, vCard & URL'. Updated all four to enumerate the full set, recovering long-tail search coverage (email/sms/phone/text QR) competitors rank for. No JS/logic change; content-only.",
       "commit": "340726e"
     },
     {
       "date": "2026-06-16",
       "tool": "invoice-generator",
-      "competitors": ["invoicesimple.com", "smoothledger.com", "invoice-generator.com"],
+      "competitors": [
+        "invoicesimple.com",
+        "smoothledger.com",
+        "invoice-generator.com"
+      ],
       "shipped": "Brand color picker. A color input (defaulting to the site accent #1a7f37, with a Reset button, hex-validated) recolors the INVOICE heading and the grand-total separator rule in both the live preview and the exported PDF (jsPDF setTextColor/setDrawColor). Closes the brand-color gap competitors like SmoothLedger and InvoiceSimple offer; no new deps.",
       "commit": "fa98372"
     },
     {
       "date": "2026-06-16",
       "tool": "invoice-generator",
-      "competitors": ["invoice-generator.com", "zoho.com/invoice", "invoicesimple.com"],
+      "competitors": [
+        "invoice-generator.com",
+        "zoho.com/invoice",
+        "invoicesimple.com"
+      ],
       "shipped": "Percentage discount option. The discount field now has a type selector (amount | %); a percent discount is applied to the subtotal pre-tax, and the percent is labelled in both the live preview and the PDF totals. Closes the amount-only gap competitors don't have.",
       "commit": "af214a4"
     },
     {
       "date": "2026-06-16",
       "tool": "invoice-generator",
-      "competitors": ["flowlu.com", "smoothledger.com", "boldsign.com"],
+      "competitors": [
+        "flowlu.com",
+        "smoothledger.com",
+        "boldsign.com"
+      ],
       "shipped": "Optional logo upload (PNG/JPG) — client-side FileReader, shown in live preview and embedded in the PDF header via jsPDF addImage. Competitor parity (logo/branding was the most common feature we lacked).",
       "commit": "ed295d0"
     },
     {
       "date": "2026-06-16",
       "tool": "qr-code-generator",
-      "competitors": ["qrcode-tiger.com", "qrcode-monkey.com", "imqrscan.com"],
+      "competitors": [
+        "qrcode-tiger.com",
+        "qrcode-monkey.com",
+        "imqrscan.com"
+      ],
       "shipped": "Foreground/background color pickers (HTML color inputs). Applied to the canvas render, the preview holder background, and the SVG export. Color customization was the universal feature every competitor had and we lacked.",
       "commit": "pending"
     },
     {
       "date": "2026-06-16",
       "tool": "qr-code-generator",
-      "competitors": ["the-qrcode-generator.com", "qr-code-generator.com", "qrdex.io"],
+      "competitors": [
+        "the-qrcode-generator.com",
+        "qr-code-generator.com",
+        "qrdex.io"
+      ],
       "shipped": "Four new payload types: Email (mailto: with subject/body), SMS (SMSTO:number:message), Phone (tel:), and Plain text. Added options to the type selector, dedicated input groups in the template, and encoders in buildPayload(); also widened the input listener to cover textareas so the new multiline fields trigger live re-render. Email/SMS/phone/text are universal across competitors (QR Dex, the-qrcode-generator) and were our biggest payload-type gap.",
       "commit": "79fe8ac"
     },
     {
       "date": "2026-06-16",
       "tool": "crop-image-into-circle",
-      "competitors": ["watermarkly.com", "fotor.com", "imagy.app", "circlecropimage.com"],
+      "competitors": [
+        "watermarkly.com",
+        "fotor.com",
+        "imagy.app",
+        "circlecropimage.com"
+      ],
       "shipped": "Optional circular border/ring (toggle + color picker + thickness slider). Implemented in the shared CanvasEditor (_drawTo): thickness is a fraction of the radius so preview and exported PNG match at any output size; the image is clipped inside the ring. Avatar-style borders were a common competitor feature (Watermarkly et al.) we lacked.",
       "commit": "2037bc5"
     },
     {
       "date": "2026-06-16",
       "tool": "passport-photo-maker",
-      "competitors": ["photogov.net", "passportphotosnap.com", "pixconvert.com"],
+      "competitors": [
+        "photogov.net",
+        "passportphotosnap.com",
+        "pixconvert.com"
+      ],
       "shipped": "Compliance-style head-position guide. Replaced the single averaged oval with the actual allowed head-height band: a crown line, a shaded chin band spanning the spec's headMin–headMax mm, crown/chin labels, plus a post-upload instruction stating the required head-height range. No new deps; SVG-only (no face detection, no fabricated specs). Competitors (PhotoGov, Pic4Pass, PersoFoto) all sell head-position compliance feedback we lacked; AI background removal was deliberately skipped as too heavy for a micro-commit.",
       "commit": "f605d54"
     },
     {
       "date": "2026-06-16",
       "tool": "crop-image-into-circle",
-      "competitors": ["fotor.com", "watermarkly.com", "circlecropimage.com"],
+      "competitors": [
+        "fotor.com",
+        "watermarkly.com",
+        "circlecropimage.com"
+      ],
       "shipped": "Background fill option (toggle + color picker). When enabled, the transparent area behind the crop is filled with a solid color; for the circle shape only the inner disc is filled so the corners stay transparent (PNG alpha preserved). Implemented in the shared CanvasEditor _drawTo so preview and exported PNG match at any output size. Fotor offers PNG-transparent vs solid-fill output; this closes that gap and is the prerequisite for a future JPG export.",
       "commit": "8d89181"
     },
     {
       "date": "2026-06-16",
       "tool": "passport-photo-maker",
-      "competitors": ["pixconvert.com", "photogov.net", "passportphotosnap.com"],
+      "competitors": [
+        "pixconvert.com",
+        "photogov.net",
+        "passportphotosnap.com"
+      ],
       "shipped": "JPG output option alongside PNG. Added a download-format selector (PNG lossless / JPG); the choice is wired through both the single-photo and 4x6-sheet exports via CanvasEditor.toBlob type+quality. JPG is opaque because the rect editor already fills the frame with the spec background (white/light-grey), so no alpha-flattening fix was needed. Closes the JPG gap every competitor (PixConvert, PhotoGov) offers — print labs/kiosks prefer JPG. No new deps, no spec-data changes.",
       "commit": "5f1652e"
+    },
+    {
+      "date": "2026-06-16",
+      "tool": "invoice-generator",
+      "competitors": [
+        "invoice-generator.com",
+        "zoho.com/invoice/free-invoice-generator",
+        "designhill.com"
+      ],
+      "shipped": "Added optional 'Ship to' address. New #shipDetails textarea under Bill to; model gains ship (trimmed). Renders a 'Ship to' block in the left party column of both the live preview and the PDF (SHIP TO label + address lines after the Bill-to block) ONLY when filled, so default invoices are unchanged. Persisted via FIELD_IDS autosave, wired to render listeners, cleared in resetForm; startNextInvoice keeps it (same recurring client). WHY: invoice-generator.com ships a ship-to address; Zoho gates it behind paid. We only had Bill to. Pure additive, no totals-math touch, no new deps. npm test (10+8+1) + npm run build pass; verified in dist/.",
+      "commit": "1210d09d02773a87ee768ac2eb75fda0e946801e"
     }
   ],
   "backlog": {
