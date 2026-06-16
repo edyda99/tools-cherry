@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "invoice-generator",
+  "lastTool": "qr-code-generator",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "qr-code-generator",
+      "competitors": ["qrcode-monkey.com", "qr-code-generator.com", "qrcode-tiger.com"],
+      "shipped": "Optional center-logo overlay (top backlog item). New #qrLogo file input (PNG/JPG/SVG) in the template plus a hint line with a hidden 'Remove logo' button (#qrLogoClear). qr.js: onLogoChange() reads the file via FileReader -> data URL -> decoded Image (fully client-side, nothing uploaded); logoDataUrl + logoImg are module-level state. When a logo is present render() forces error correction to High (ecc='H' overrides the #qrEcc selector) so the modules the logo covers don't break the scan, and reflectLogoState() visually locks the ECC <select> to High + disabled and reveals the remove button. drawLogo(ctx,dim,bg) paints a bg-coloured padding box (LOGO_FRACTION=0.2 of the QR dim, padding = size*0.14 each side) then drawImage's the logo centered, aspect-ratio preserved (min-fit into the 20% box). The SVG export (svgString) mirrors this in viewBox/module units: a <rect fill=bg> padding box plus an <image href=base64 dataURL preserveAspectRatio='xMidYMid meet'> so PNG and SVG match; added xmlns:xlink to the <svg>. clearLogo() resets state + input.value and re-renders; status line appends ' · logo (ECC: High)'. Closes the last qr-code-generator backlog item — QRCode Monkey/QR Tiger let you drop a brand logo in the center (needs forced High ECC + a cleared center), which we lacked. No new deps (uses the vendored qrcode lib + canvas/FileReader); dist gitignored, rebuilt at deploy.",
+      "commit": "9dbd03d"
+    },
     {
       "date": "2026-06-16",
       "tool": "invoice-generator",
@@ -158,7 +165,9 @@
       "Per-line-item tax toggle / tax-exempt lines (Invoice-Generator.com, Zoho) — shipping is already untaxed; this would let individual goods lines opt out of tax"
     ],
     "qr-code-generator": [
-      "Center logo overlay (QRCode Monkey) — needs forced High ECC + center clearing"
+      "Module/dot style (rounded dots vs square modules) — QRCode Monkey / QR Tiger offer a 'body shape' picker; currently we draw square fillRects only. Small-medium: a <select> (square/rounded/dots) that swaps fillRect for rounded-rect/arc in render() and matching rx/circle in svgString().",
+      "Logo size slider (10-25%) — let users tune LOGO_FRACTION; currently fixed at 20%. Tiny once the logo overlay exists, but only worth it if users ask.",
+      "Batch/bulk generation from a pasted list of URLs (QR Tiger bulk) — too large for a micro-commit; needs a textarea-to-N-codes UI + zip download."
     ],
     "crop-image-into-circle": [
       "Batch mode — crop multiple images to circles at once (Watermarkly, imagy) — too large for a single micro-commit; would need multi-file upload, a results grid, and per-file framing or a shared transform + zip download"
