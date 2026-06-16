@@ -1,7 +1,7 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "crop-image-into-circle",
+  "lastTool": "passport-photo-maker",
   "history": [
     {
       "date": "2026-06-16",
@@ -51,6 +51,13 @@
       "competitors": ["fotor.com", "watermarkly.com", "circlecropimage.com"],
       "shipped": "Background fill option (toggle + color picker). When enabled, the transparent area behind the crop is filled with a solid color; for the circle shape only the inner disc is filled so the corners stay transparent (PNG alpha preserved). Implemented in the shared CanvasEditor _drawTo so preview and exported PNG match at any output size. Fotor offers PNG-transparent vs solid-fill output; this closes that gap and is the prerequisite for a future JPG export.",
       "commit": "8d89181"
+    },
+    {
+      "date": "2026-06-16",
+      "tool": "passport-photo-maker",
+      "competitors": ["pixconvert.com", "photogov.net", "passportphotosnap.com"],
+      "shipped": "JPG output option alongside PNG. Added a download-format selector (PNG lossless / JPG); the choice is wired through both the single-photo and 4x6-sheet exports via CanvasEditor.toBlob type+quality. JPG is opaque because the rect editor already fills the frame with the spec background (white/light-grey), so no alpha-flattening fix was needed. Closes the JPG gap every competitor (PixConvert, PhotoGov) offers — print labs/kiosks prefer JPG. No new deps, no spec-data changes.",
+      "commit": "5f1652e"
     }
   ],
   "backlog": {
@@ -73,7 +80,7 @@
     "passport-photo-maker": [
       "Background readiness hint — sample corner pixels and warn if the background is dark/busy vs the spec's required white/grey (no AI, just pixel stats)",
       "AI/WASM background removal to white — heavy (in-browser model); the high-value but expensive parity feature (PhotoGov, Passport Photo Snap)",
-      "JPG @ 300 DPI export option alongside PNG (PixConvert) — many print kiosks prefer JPG",
+      "Selectable print-sheet size (4x6 / 5x7 / A4) — PixConvert/PhotoGov let users pick the paper; we hardcode 4x6. Sheet tiling already computes cols/rows generically, so this is mostly a sheet-dimension preset + selector",
       "More country specs (40+ on PixConvert) — only add with authoritative government sources; escalate conflicts per data rule",
       "Grid-line / cut-guide preview before downloading the 4x6 sheet"
     ]
