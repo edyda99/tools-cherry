@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "invoice-generator",
+  "lastTool": "qr-code-generator",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "qr-code-generator",
+      "competitors": ["qqrcodegenerator.com", "pageloot.com", "gocreateqr.com"],
+      "shipped": "Low-contrast / scannability warning when foreground and background colours are too close. render() now calls updateContrastWarning(fg, bg), which computes the WCAG relative-luminance contrast ratio (hexToRgb -> relLuminance -> contrastInfo, range 1:1..21:1) and shows an amber #qrWarn alert under the preview in two cases: (1) foreground lighter than background (inverted — many scanners reject dark-bg/light-fg outright), and (2) ratio below MIN_CONTRAST=4, the practical ISO/IEC 18004 floor for reliable smartphone scans (black-on-white is 21:1). The warning auto-clears (hidden) when contrast is adequate and silently hides if either colour can't be parsed. New #qrWarn <p role=alert> in the template (hidden by default, amber inline style). Pure colour math — no new deps, no logic change to the QR encoding/export. Closes the low-contrast backlog idea; competitors like qqrcodegenerator ship a dedicated QR contrast checker and pageloot/gocreateqr publish 4:1-minimum contrast guidance we gave no feedback on. dist gitignored, rebuilt at deploy.",
+      "commit": "5d27814"
+    },
     {
       "date": "2026-06-16",
       "tool": "invoice-generator",
@@ -130,8 +137,7 @@
       "Amount Paid / Balance Due fields (Invoice-Generator.com) — show partial payment and remaining balance under Total"
     ],
     "qr-code-generator": [
-      "Center logo overlay (QRCode Monkey) — needs forced High ECC + center clearing",
-      "Low-contrast warning when fg/bg are too close (scannability guard)"
+      "Center logo overlay (QRCode Monkey) — needs forced High ECC + center clearing"
     ],
     "crop-image-into-circle": [
       "JPG output option alongside PNG (Fotor) — needs a forced background fill since JPG has no alpha (background fill now shipped, so this is unblocked)",
