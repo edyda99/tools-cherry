@@ -1,5 +1,6 @@
 // qr.js — client-side QR generator (URL / WiFi / vCard / email / SMS / phone / text)
-// with PNG + SVG export and an adjustable quiet-zone margin.
+// with PNG + SVG export, an adjustable quiet-zone margin, and a contrast/
+// scannability warning when the foreground and background colours are too close.
 // Uses the vendored qrcode-generator lib (global `qrcode`). No network.
 
 const $ = (id) => document.getElementById(id);
@@ -13,6 +14,39 @@ function quietZone() {
   const v = el ? parseInt(el.value, 10) : 4;
   return Number.isFinite(v) ? Math.max(0, Math.min(8, v)) : 4;
 }
+
+// --- Scannability guard: contrast between foreground and background ---------
+// QR scanners distinguish modules by reflectance difference (ISO/IEC 18004).
+// We use the WCAG relative-luminance contrast ratio (1:1 .. 21:1) as a proxy:
+// black-on-white is 21:1; ~4:1 is the practical floor for reliable phone scans.
+// We also flag the inverted case (light foreground on a darker background),
+// which many scanners refuse outright.
+function hexToRgb(hex) {
+  const h = String(hex || '').replace('#', '');
+  const s = h.length === 3 ? h.replace(/(.)/g, '$1$1') : h;
+  const n = parseInt(s, 16);
+  if (!Number.isFinite(n) || s.length !== 6) return null;
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+function relLuminance({ r, g, b }) {
+  const lin = (v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+// Returns { ratio, fgLum, bgLum } or null if either colour can't be parsed.
+function contrastInfo(fgHex, bgHex) {
+  const fg = hexToRgb(fgHex), bg = hexToRgb(bgHex);
+  if (!fg || !bg) return null;
+  const lf = relLuminance(fg), lb = relLuminance(bg);
+  const ratio = (Math.max(lf, lb) + 0.05) / (Math.min(lf, lb) + 0.05);
+  return { ratio, fgLum: lf, bgLum: lb };
+}
+
+const MIN_CONTRAST = 4; // practical floor for reliable smartphone scanning
 
 // Escape per the WiFi QR spec: \ ; , : " are special.
 function wifiEscape(s) {
@@ -117,6 +151,29 @@ function render() {
     }
   }
   status.textContent = `${count}×${count} modules · ${dim}px PNG`;
+  updateContrastWarning(fg, bg);
+}
+
+// Show or clear a scannability warning based on fg/bg contrast.
+function updateContrastWarning(fg, bg) {
+  const el = $('qrWarn');
+  if (!el) return;
+  const info = contrastInfo(fg, bg);
+  if (!info) { el.hidden = true; el.textContent = ''; return; }
+  const r = info.ratio.toFixed(1);
+  if (info.fgLum > info.bgLum) {
+    // Light foreground on a darker background — many scanners reject this.
+    el.hidden = false;
+    el.textContent =
+      `Warning: your foreground colour is lighter than the background. Most scanners expect dark modules on a light background — swap the colours so the code scans reliably.`;
+  } else if (info.ratio < MIN_CONTRAST) {
+    el.hidden = false;
+    el.textContent =
+      `Warning: low contrast (${r}:1). The foreground and background colours are too close — aim for at least 4:1 (black on white is 21:1) so phones can scan it reliably.`;
+  } else {
+    el.hidden = true;
+    el.textContent = '';
+  }
 }
 
 function svgString() {
