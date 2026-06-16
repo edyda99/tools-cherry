@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "qr-code-generator",
+  "lastTool": "crop-image-into-circle",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "crop-image-into-circle",
+      "competitors": ["fotor.com/features/mirror-image", "pixlane.media/flip-image", "imgcropper.com", "frametoolkit.com"],
+      "shipped": "Flip / mirror the image before cropping (horizontal + vertical). Engine: added flipH/flipV state to CanvasEditor (constructor opts + reset to false in loadImage so a fresh image starts unflipped) and a setFlip(h,v) setter; composed into the shared _drawTo as a mirror about the box center (ctx.translate(center) -> ctx.scale(flipH?-1:1, flipV?-1:1) -> translate back) applied BEFORE the rotation transform, inside the same save() as the image draw and the circle clip — so the clip (a screen-space path) is unaffected while the image mirrors, and flip composes cleanly with zoom/pan/rotate/border/padding/bg at any export resolution. Template: a 'Flip / mirror' field with two btn-secondary toggle buttons (#flipH 'Mirror horizontally', #flipV 'Flip vertically'), each carrying aria-pressed. circle-crop.js: click handlers toggle the respective axis via editor.setFlip and call syncFlip(); syncFlip() writes aria-pressed + an .active class on both buttons; syncFlip() also runs on each new file load so the buttons reset to unpressed when the engine clears the flip. styles.css: .btn-secondary.active / [aria-pressed=\"true\"] now render as accent-filled so the pressed state is visible (rotateReset is unaffected — it never sets aria-pressed). Closes the flip/mirror backlog idea — Fotor and Pixlane offer horizontal/vertical mirror before crop; we lacked it. No new deps; pure transform; npm test + npm run build pass; verified setFlip + buttons present in dist/. dist gitignored, rebuilt at deploy. Remaining circle-crop backlog (alternate crop shapes square/rounded, oval) are medium engine-clip changes; batch mode stays too large for a micro-commit.",
+      "commit": "79453c1"
+    },
     {
       "date": "2026-06-16",
       "tool": "qr-code-generator",
@@ -203,7 +210,6 @@
     "crop-image-into-circle": [
       "Alternate crop shapes (square, rounded-rect/rounded-square via corner-radius slider) — IMG Cropper / Adobe Express / Fotor offer multi-shape crop incl. rounded square. The engine already supports shape:'rect'; small-medium: a shape <select> (circle/square/rounded) + a corner-radius slider that adds a rounded-rect clip path in _drawTo. Tool is branded 'circle' so frame as a secondary option, not the default.",
       "Oval / ellipse crop option — circlecropimage.dev and several croppers offer an oval when a face/logo needs more vertical room than a perfect circle; engine would need a non-square clip (radiusX != radiusY) in the circle branch of _drawTo.",
-      "Flip / mirror the image before cropping (horizontal + vertical) — common editing affordance; a thin CanvasEditor.setFlip(h,v) that negates the transform inside _drawTo, mirroring rotate/straighten which already shipped.",
       "Batch mode — crop multiple images to circles at once (Watermarkly, imagy) — too large for a single micro-commit; would need multi-file upload, a results grid, and per-file framing or a shared transform + zip download"
     ],
     "passport-photo-maker": [
