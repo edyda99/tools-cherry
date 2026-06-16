@@ -6,8 +6,8 @@
     "crop-image-into-circle",
     "passport-photo-maker"
   ],
-  "lastTool": "qr-code-generator",
-  "iteration": 42,
+  "lastTool": "crop-image-into-circle",
+  "iteration": 43,
   "history": [
     {
       "date": "2026-06-16",
@@ -492,6 +492,17 @@
       ],
       "shipped": "Straighten / rotate slider (-45 to +45 deg, 0.5 step) so the user can level a tilted head/eyes inside the guide — a feature competitors (PhotoAiD face-tilt, EPassport-Photo rotate, Passport Photo Tools alignment guides) all offer and we lacked. ZERO engine change: CanvasEditor already exposes setRotation() and composes rotation with zoom/pan/clip (with cover-grow so a rotated image still fully covers the box, no empty corners) and exports identically via toBlob — the photo-maker simply never surfaced it. HTML: new #rotate range + #rotateReset link button + #rotateInfo readout placed under the Zoom field. JS: syncRotate() updates slider value + readout ('+Ndeg rotation applied' / '0deg. Tilt the slider so the eyes sit level.'); 'input' on #rotate -> editor.setRotation(parseFloat) + syncRotate + live sheet-preview re-render; #rotateReset -> setRotation(0). loadFile already resets rotation to 0, so syncRotate() is called in handleFile to reflect that. Works in editor view AND the live sheet-layout preview (renderSheetPreview re-runs on rotate). No spec data touched.",
       "commit": "7aba85f40a503458b492ad370283602462477837"
+    },
+    {
+      "date": "2026-06-16",
+      "tool": "crop-image-into-circle",
+      "competitors": [
+        "circleimagetool.com (arrow-key fine-tune of crop position)",
+        "circlecropimage.dev",
+        "fotor.com circle-crop"
+      ],
+      "shipped": "Arrow-key nudge to fine-tune crop position (top crop backlog item; new input affordance we lacked — had drag + scroll-zoom only). circle-crop.js gains a document 'keydown' listener: ArrowLeft/Right/Up/Down pan the loaded image a few canvas px via the existing editor.panByPixels (Shift = 20px step vs 4px default). Sign mirrors a pointer drag (ArrowRight reveals more of the right edge). Guards: only acts when an image is loaded and focus isn't in INPUT/SELECT/TEXTAREA/contentEditable; preventDefault stops the page from scrolling. dropText hint updated to 'drag or arrow-keys to reposition, scroll to zoom'. No engine change (panByPixels already existed and clamps within slack).",
+      "commit": "e287bc3bfb9f15dac59961f4103e7609b88974bd"
     }
   ],
   "backlog": {
@@ -513,7 +524,7 @@
     "crop-image-into-circle": [
       "WebP download format — SHIPPED 2026-06-16 (third #format option; download() maps to image/webp q0.92 keeping alpha, no flatten; syncFormat() labels the button and JPG-note. No engine change — toBlob already passes type through). Output formats now PNG/JPG/WebP, matching circleimagetool.com.",
       "Paste image from clipboard (Ctrl/Cmd+V) — SHIPPED 2026-06-16 (document 'paste' listener scans clipboardData.items for the first image/* file and routes it through handleFile; competitors advertise upload/drop/paste). Possible follow-on: load image from a pasted/typed URL (fetch -> blob -> loadFile) — small but needs CORS handling and is lower-value than the local-first methods now covered.",
-      "Keyboard-arrow nudge to fine-tune position — circleimagetool.com supports arrow-key fine-tuning of the crop position. Small: a keydown listener calling editor.panByPixels by a few px on Arrow keys (preventDefault when an image is loaded so the page doesn't scroll). Genuinely new input affordance we lack (we have drag + scroll-zoom only).",
+      "Keyboard-arrow nudge to fine-tune position — SHIPPED 2026-06-16 (commit e287bc3; document 'keydown' listener pans via editor.panByPixels, Shift=larger step, guards form fields + preventDefault). Matches circleimagetool.com. Possible follow-on: load image from a pasted/typed URL (fetch->blob->loadFile), small but needs CORS handling and lower-value than local-first methods now covered.",
       "Alternate crop shapes (square / rounded square) — SHIPPED 2026-06-16 (#shape selector + corner-roundness slider, _shapePath helper clips image+bg+border for all shapes). Possible follow-on: heart / star / hexagon shapes (Fotor offers heart+star) — each is one more _shapePath branch (path math), small-medium; only if users ask, and they don't crop avatars as cleanly.",
       "Oval / ellipse crop option — circlecropimage.dev and several croppers offer an oval when a face/logo needs more vertical room than a perfect circle; engine would need a non-square clip (radiusX != radiusY). Now easier: add an 'oval' branch to _shapePath using ctx.ellipse (or a scaled arc) at the inset box; small-medium.",
       "Batch mode — crop multiple images to circles at once (Watermarkly, imagy) — too large for a single micro-commit; would need multi-file upload, a results grid, and per-file framing or a shared transform + zip download. PARKED."
