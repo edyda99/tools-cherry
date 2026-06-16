@@ -10,7 +10,7 @@ function setLoaded(name) {
   hasImg = true;
   $('download').disabled = false;
   $('dropText').textContent = name ? `Loaded: ${name} — drag to reposition, scroll to zoom` : 'Image loaded';
-  $('status').textContent = 'Drag to reposition · scroll or use the slider to zoom';
+  syncPreset();
 }
 
 function syncRotation() {
@@ -29,9 +29,16 @@ async function handleFile(file) {
   }
 }
 
+// Effective output size: a chosen platform preset overrides the custom size select.
+function outputSize() {
+  const preset = parseInt($('preset').value, 10);
+  if (preset) return preset;
+  return parseInt($('outSize').value, 10) || 512;
+}
+
 function download() {
   if (!hasImg) return;
-  const size = parseInt($('outSize').value, 10) || 512;
+  const size = outputSize();
   const fmt = $('format').value === 'jpeg' ? 'jpeg' : 'png';
   // JPG has no alpha: flatten the transparent corners onto an opaque backdrop
   // (the user's chosen background color if filling, else white).
@@ -57,6 +64,19 @@ function syncFormat() {
   const jpg = $('format').value === 'jpeg';
   $('download').textContent = jpg ? 'Download JPG' : 'Download PNG';
   $('jpgNote').hidden = !jpg;
+}
+
+// When a platform preset is chosen its size drives the export, so the custom
+// size select is locked to show that it's being overridden.
+function syncPreset() {
+  const sel = $('preset');
+  const active = !!parseInt(sel.value, 10);
+  $('outSize').disabled = active;
+  if (hasImg) {
+    const size = outputSize();
+    const label = active ? sel.options[sel.selectedIndex].text : `${size}×${size}`;
+    $('status').textContent = `Output: ${label} · drag to reposition, scroll to zoom`;
+  }
 }
 
 function applyBackground() {
@@ -86,7 +106,9 @@ function init() {
     $('rotateVal').textContent = String(editor.rotation);
   });
   $('rotateReset').addEventListener('click', () => { editor.setRotation(0); syncRotation(); });
-  $('outSize').addEventListener('change', () => {});
+  $('outSize').addEventListener('change', syncPreset);
+  $('preset').addEventListener('change', syncPreset);
+  syncPreset();
   $('format').addEventListener('change', syncFormat);
   syncFormat();
   $('download').addEventListener('click', download);
