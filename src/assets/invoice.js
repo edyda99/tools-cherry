@@ -82,13 +82,15 @@ function totals(items) {
   const taxRate = parseFloat($('taxRate').value) || 0;
   const discountInput = parseFloat($('discount').value) || 0;
   const discountType = ($('discountType') && $('discountType').value) || 'amount';
+  const shipping = ($('shipping') && parseFloat($('shipping').value)) || 0;
   // Percent discount is applied to the subtotal (before tax).
   const discount = discountType === 'percent'
     ? subtotal * (discountInput / 100)
     : discountInput;
   const tax = subtotal * (taxRate / 100);
-  const total = Math.max(0, subtotal + tax - discount);
-  return { subtotal, taxRate, tax, discount, discountType, discountInput, total };
+  // Shipping is added after tax/discount (it's a flat pass-through charge, untaxed).
+  const total = Math.max(0, subtotal + tax - discount + shipping);
+  return { subtotal, taxRate, tax, discount, discountType, discountInput, shipping, total };
 }
 
 function readModel() {
@@ -134,6 +136,7 @@ function render() {
     `<div class="pv-row"><span>Subtotal</span><span>${money(m.t.subtotal)}</span></div>` +
     (m.t.taxRate ? `<div class="pv-row"><span>Tax (${m.t.taxRate}%)</span><span>${money(m.t.tax)}</span></div>` : '') +
     (m.t.discount ? `<div class="pv-row"><span>Discount${m.t.discountType === 'percent' ? ` (${m.t.discountInput}%)` : ''}</span><span>−${money(m.t.discount)}</span></div>` : '') +
+    (m.t.shipping ? `<div class="pv-row"><span>Shipping</span><span>${money(m.t.shipping)}</span></div>` : '') +
     `<div class="pv-row grand" style="border-top-color:${brand}"><span>Total</span><span>${money(m.t.total)}</span></div></div>` +
     (m.notes ? `<div class="pv-notes">${esc(m.notes)}</div>` : '');
 
@@ -147,7 +150,7 @@ function esc(s) {
 // --- autosave (localStorage, stays in browser) -------------------------------
 const STORE_KEY = 'tb.invoice.v1';
 const FIELD_IDS = ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'invNo', 'currency',
-  'invDate', 'dueDate', 'taxRate', 'discount', 'discountType', 'brandColor', 'notes'];
+  'invDate', 'dueDate', 'taxRate', 'discount', 'discountType', 'shipping', 'brandColor', 'notes'];
 let restoring = false;
 
 function saveState() {
@@ -266,6 +269,7 @@ function downloadPdf() {
   line('Subtotal', money(m.t.subtotal));
   if (m.t.taxRate) line(`Tax (${m.t.taxRate}%)`, money(m.t.tax));
   if (m.t.discount) line(m.t.discountType === 'percent' ? `Discount (${m.t.discountInput}%)` : 'Discount', '-' + money(m.t.discount));
+  if (m.t.shipping) line('Shipping', money(m.t.shipping));
   doc.setDrawColor(br, bg, bb).setLineWidth(1).line(tx, y - 4, W - M, y - 4);
   y += 8;
   line('Total', money(m.t.total), true);
@@ -340,6 +344,7 @@ function resetForm() {
   $('taxRate').value = '0';
   $('discount').value = '0';
   $('discountType').value = 'amount';
+  if ($('shipping')) $('shipping').value = '0';
   $('brandColor').value = DEFAULT_BRAND;
   $('notes').value = 'Payment due within 30 days. Thank you for your business.';
   $('invDate').value = isoToday(0);
@@ -356,7 +361,7 @@ function init() {
   }
 
   $('addItem').addEventListener('click', () => { items.appendChild(itemRow()); render(); });
-  ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'invNo', 'currency', 'invDate', 'dueDate', 'taxRate', 'discount', 'discountType', 'brandColor', 'notes']
+  ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'invNo', 'currency', 'invDate', 'dueDate', 'taxRate', 'discount', 'discountType', 'shipping', 'brandColor', 'notes']
     .forEach((id) => $(id).addEventListener('input', render));
   $('discountType').addEventListener('change', render);
   $('resetBrand').addEventListener('click', () => { $('brandColor').value = DEFAULT_BRAND; render(); });
