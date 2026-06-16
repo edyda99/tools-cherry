@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "passport-photo-maker",
+  "lastTool": "invoice-generator",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "invoice-generator",
+      "competitors": ["flowlu.com", "invoice-generator.com", "invoicesimple.com"],
+      "shipped": "Shipping / handling line in totals. Added an optional shipping field (number, min 0) in the Totals section; totals() reads it as a flat pass-through charge added AFTER tax and discount (untaxed) into total = max(0, subtotal + tax - discount + shipping), and exposes it on the model (t.shipping). It renders as a 'Shipping' row in the live preview (only when non-zero) and in the PDF totals via the existing line() helper, sitting between Discount and the Total separator. Persisted: 'shipping' added to FIELD_IDS so autosave/restore covers it; resetForm seeds it to 0; init wires it into the live-render input listener. Closes the top backlog item — Flowlu / Invoice-Generator.com expose a separate shipping line we lacked (previously shipping had to be faked as an extra line item, which got taxed). No new deps; jsPDF unchanged; dist gitignored, rebuilt at deploy.",
+      "commit": "714838e"
+    },
     {
       "date": "2026-06-16",
       "tool": "passport-photo-maker",
@@ -118,8 +125,9 @@
   ],
   "backlog": {
     "invoice-generator": [
-      "Shipping cost line (Flowlu) — separate from tax/discount in totals",
-      "Extend brand color to the table-header underline + BILL TO/DATE labels for fuller theming"
+      "Extend brand color to the table-header underline + BILL TO/DATE labels for fuller theming",
+      "Per-line-item tax toggle / tax-exempt lines (Invoice-Generator.com, Zoho) — shipping is already untaxed; this would let individual goods lines opt out of tax",
+      "Amount Paid / Balance Due fields (Invoice-Generator.com) — show partial payment and remaining balance under Total"
     ],
     "qr-code-generator": [
       "Center logo overlay (QRCode Monkey) — needs forced High ECC + center clearing",
