@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "qr-code-generator",
+  "lastTool": "crop-image-into-circle",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "crop-image-into-circle",
+      "competitors": ["circlecropimage.dev", "fotor.com/features/circle-crop", "insmind.com/circle-crop", "photoaid.com/en/tools/cropround"],
+      "shipped": "Paste image from clipboard (Ctrl/Cmd+V) — a third image-input method alongside the existing click-to-upload and drag-and-drop. Template: dropText hint changed from 'Click to choose an image, or drop one here' to 'Click to choose an image, drop one here, or paste with Ctrl/Cmd+V'. circle-crop.js: a new document-level 'paste' listener in init() scans e.clipboardData.items for the first entry with kind==='file' and an image/* type, calls getAsFile(), and routes it through the EXISTING handleFile() (so loadFile -> editor.loadImage, the zoom reset, syncRotation/syncFlip, and setLoaded all run unchanged); preventDefault only when an image is found, returns without touching non-image pastes (text, etc.). No new state, no new export/render path — pasted screenshots and copied images drop straight into the editor without saving a file first. setLoaded already handles a falsy file.name (pasted blobs typically carry a generic name like 'image.png', which is truthy, so the 'Loaded: <name>' label still works). Competitors call out clipboard paste explicitly — search results for circlecropimage.dev / insMind / PhotoAiD list 'upload, drop images, paste images, or use URLs' and 'paste (Ctrl+V)' as input methods; circlecropimage.dev's own page only advertises drag-drop + click (we now exceed it). Pure DOM + Clipboard paste event; no new deps, no engine change, no change to crop/shape/export logic. npm test (10+8+1 passing) + npm run build pass; verified 'clipboardData' in dist/assets/circle-crop.js and 'paste with Ctrl/Cmd+V' in dist/crop-image-into-circle/index.html. dist gitignored, rebuilt at deploy. gsc-index-progress.json was pre-existing untracked and left out of the commit.",
+      "commit": "709875c"
+    },
     {
       "date": "2026-06-16",
       "tool": "qr-code-generator",
@@ -259,6 +266,7 @@
       "Batch/bulk generation from a pasted list of URLs (QR Tiger bulk) — too large for a micro-commit; needs a textarea-to-N-codes UI + zip download."
     ],
     "crop-image-into-circle": [
+      "Paste image from clipboard (Ctrl/Cmd+V) — SHIPPED 2026-06-16 (document 'paste' listener scans clipboardData.items for the first image/* file and routes it through handleFile; competitors advertise upload/drop/paste). Possible follow-on: load image from a pasted/typed URL (fetch -> blob -> loadFile) — small but needs CORS handling and is lower-value than the local-first methods now covered.",
       "Alternate crop shapes (square / rounded square) — SHIPPED 2026-06-16 (#shape selector + corner-roundness slider, _shapePath helper clips image+bg+border for all shapes). Possible follow-on: heart / star / hexagon shapes (Fotor offers heart+star) — each is one more _shapePath branch (path math), small-medium; only if users ask, and they don't crop avatars as cleanly.",
       "Oval / ellipse crop option — circlecropimage.dev and several croppers offer an oval when a face/logo needs more vertical room than a perfect circle; engine would need a non-square clip (radiusX != radiusY). Now easier: add an 'oval' branch to _shapePath using ctx.ellipse (or a scaled arc) at the inset box; small-medium.",
       "Batch mode — crop multiple images to circles at once (Watermarkly, imagy) — too large for a single micro-commit; would need multi-file upload, a results grid, and per-file framing or a shared transform + zip download. PARKED."
