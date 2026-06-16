@@ -6,9 +6,21 @@
     "crop-image-into-circle",
     "passport-photo-maker"
   ],
-  "lastTool": "invoice-generator",
-  "iteration": 37,
+  "lastTool": "qr-code-generator",
+  "iteration": 38,
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "qr-code-generator",
+      "competitors": [
+        "me-qr.com/qr-code-generator/whatsapp",
+        "pickyassist.com/en/whatsapp-qr-code-generator",
+        "egrow.com/en/whatsapp-qr",
+        "setsmart.io/tools/whatsapp-qr-code-generator"
+      ],
+      "shipped": "Added WhatsApp click-to-chat as a 9th QR payload type. New buildPayload() branch for type 'wa' builds https://wa.me/<number>?text=<msg>: the number is stripped to digits-only (wa.me requires country code, no leading + or separators), and the optional message is URL-encoded only when present (bare https://wa.me/<number> otherwise). HTML gains the 'WhatsApp message' <option> (placed after SMS, before Phone) and a data-group=\"wa\" block (waNum phone input + waMsg textarea + a hint that the leading + and spaces are auto-removed). SEO updated: <title>, meta description, og:title/og:description, and JSON-LD description all now list WhatsApp. WHY: WhatsApp QR is a heavily-shipped competitor feature (Me-QR, Picky Assist, eGrow, SetSmart, Callbell all offer it) and was the top qr backlog item; it reuses the existing render/syncGroups/download/SVG pipeline with zero new deps. No JS wiring needed beyond the branch since #qrForm input listeners + data-group toggling are generic. npm test (10+8+1 passing) + npm run build (33 states + home + 4 content pages) pass; verified wa.me/data-group=wa/waNum present in dist/assets/qr.js and dist/qr-code-generator/index.html.",
+      "commit": "e6bb5f67441b9cc9e95c238e7317aefa00fdeb7e"
+    },
     {
       "date": "2026-06-16",
       "tool": "passport-photo-maker",
@@ -443,7 +455,7 @@
       "CSV/JSON export+import of the invoice data (round-trip the form to a file) — medium: serialize the existing model + a file picker to reload it"
     ],
     "qr-code-generator": [
-      "More payload types — Location (geo URI) SHIPPED 2026-06-16. Remaining easy wins, each a single buildPayload() branch + data-group block: WhatsApp (https://wa.me/<number>?text=), calendar event (BEGIN:VEVENT iCal/vEvent block), crypto (bitcoin:<address>?amount=), PayPal (https://www.paypal.com/paypalme/<user>). RADAAR/ME-QR/QR Code Factory ship these. Pick one per micro-commit.",
+      "More payload types — Location (geo URI) SHIPPED 2026-06-16; WhatsApp (https://wa.me/<number>?text=) SHIPPED 2026-06-16. Remaining easy wins, each a single buildPayload() branch + data-group block: calendar event (BEGIN:VEVENT iCal/vEvent block), crypto (bitcoin:<address>?amount=), PayPal (https://www.paypal.com/paypalme/<user>). RADAAR/ME-QR/QR Code Factory ship these. Pick one per micro-commit.",
       "Distinct finder-pattern (eye) styling — QR Tiger / ME-QR style the three corner eyes separately from the body (square frame + round center, or rounded frame). Medium: detect the 7x7 finder regions and draw their frame/center with a separate shape, optionally a separate eye colour. Builds on the body-style work already shipped.",
       "Copy-to-clipboard button for the PNG — SHIPPED 2026-06-16 (#copyPng button: copyPng() re-encodes the live canvas via toBlob and navigator.clipboard.write([ClipboardItem]); capability-gated with a Download-PNG fallback hint; success/failure reported on the status line).",
       "Gradient foreground (linear/radial two-colour) — QR Tiger/ME-QR offer gradient module fills; small-medium: a second colour input + a canvas gradient fillStyle and an SVG <linearGradient> def. Keep a contrast guard against the lighter stop.",
