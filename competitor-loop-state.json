@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "qr-code-generator",
+  "lastTool": "crop-image-into-circle",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "crop-image-into-circle",
+      "competitors": ["fotor.com/features/circle-crop", "circlecropimage.dev", "mockofun.com/tutorials/crop-picture-into-circle", "imageoverlay.org/circle-crop-image"],
+      "shipped": "Crop-shape toggle — Circle (default) / Square / Rounded square (top backlog item). Template: a new 'Crop shape' <select> (#shape: circle|rect|rounded) above the zoom slider, plus a 'Corner roundness' range (#radius 5..50, default 25) in a #radiusControls field shown ONLY for the rounded shape. circle-crop.js: applyShape() reads #shape, toggles #radiusControls, sets editor.setCornerRadius(rounded ? radius/100 : 0) then editor.setShape(shape); wired on #shape change, #radius input, and at init. Engine (canvas-editor.js): added shape:'rounded' and a cornerRadius field (fraction of half-size 0..0.5) + setCornerRadius setter. Introduced a shared _shapePath(ctx,cw,ch,inset) helper that traces the current shape's outline (circle arc, or inset box with arcTo-rounded corners for 'rounded', plain rect for 'rect') at a given inward inset; the radius is half*cornerRadius clamped to half the shorter inset-box side so it never self-intersects. _drawTo now uses _shapePath for ALL THREE of: the background fill, the image clip, and the border stroke. KEY behavior change: the image is now clipped to the shape for EVERY shape — previously only the circle branch clipped, so the old rect path drew the photo into the full unclipped box; now square/rounded actually crop. Border is no longer circle-only (drawBorder dropped the shape==='circle' guard) and is traced via _shapePath at inset = pad + stroke/2 so the ring's outer edge lands at the padding boundary for any shape. Flip/rotate/zoom/pan/padding/background all compose unchanged inside the same clip. JPG flatten path unaffected (square/rounded have no transparent corners but flatten is harmless). SEO prose: 'circle' wording in the how-to softened to 'frame/shape' and a new paragraph explains the Circle/Square/Rounded-square selector (rounded tiles for platforms that don't use round photos); title/canonical/JSON-LD kept circle-focused since the tool is branded 'circle'. Closes the top circle-crop backlog item — Fotor/MockoFun offer square + other crop shapes, several croppers offer rounded-square avatars; we were circle-only. No new deps; pure canvas/arcTo (no ctx.roundRect dependency). npm test (10+8+1 passing) + npm run build pass; verified #shape/#radius/'Rounded square' in dist/crop-image-into-circle/index.html, setCornerRadius+applyShape in dist/assets/circle-crop.js, and _shapePath+cornerRadius in dist/assets/canvas-editor.js. dist gitignored, rebuilt at deploy. gsc-index-progress.json was pre-modified before this run and left out of the commit.",
+      "commit": "123809f"
+    },
     {
       "date": "2026-06-16",
       "tool": "qr-code-generator",
@@ -230,9 +237,9 @@
       "Batch/bulk generation from a pasted list of URLs (QR Tiger bulk) — too large for a micro-commit; needs a textarea-to-N-codes UI + zip download."
     ],
     "crop-image-into-circle": [
-      "Alternate crop shapes (square, rounded-rect/rounded-square via corner-radius slider) — IMG Cropper / Adobe Express / Fotor offer multi-shape crop incl. rounded square. The engine already supports shape:'rect'; small-medium: a shape <select> (circle/square/rounded) + a corner-radius slider that adds a rounded-rect clip path in _drawTo. Tool is branded 'circle' so frame as a secondary option, not the default.",
-      "Oval / ellipse crop option — circlecropimage.dev and several croppers offer an oval when a face/logo needs more vertical room than a perfect circle; engine would need a non-square clip (radiusX != radiusY) in the circle branch of _drawTo.",
-      "Batch mode — crop multiple images to circles at once (Watermarkly, imagy) — too large for a single micro-commit; would need multi-file upload, a results grid, and per-file framing or a shared transform + zip download"
+      "Alternate crop shapes (square / rounded square) — SHIPPED 2026-06-16 (#shape selector + corner-roundness slider, _shapePath helper clips image+bg+border for all shapes). Possible follow-on: heart / star / hexagon shapes (Fotor offers heart+star) — each is one more _shapePath branch (path math), small-medium; only if users ask, and they don't crop avatars as cleanly.",
+      "Oval / ellipse crop option — circlecropimage.dev and several croppers offer an oval when a face/logo needs more vertical room than a perfect circle; engine would need a non-square clip (radiusX != radiusY). Now easier: add an 'oval' branch to _shapePath using ctx.ellipse (or a scaled arc) at the inset box; small-medium.",
+      "Batch mode — crop multiple images to circles at once (Watermarkly, imagy) — too large for a single micro-commit; would need multi-file upload, a results grid, and per-file framing or a shared transform + zip download. PARKED."
     ],
     "passport-photo-maker": [
       "Compliance summary panel — combine the head-height band + background hint + file-size readout into a single pass/fail checklist (parity with PassportPhotoFactory's 15-check / iShotaPhoto's 20+ check validators). Now the strongest remaining item: three checks already exist, just need aggregating.",
