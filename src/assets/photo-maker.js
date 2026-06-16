@@ -90,6 +90,15 @@ async function handleFile(file) {
   }
 }
 
+// Selected output format -> mime/extension. JPG has no alpha, but the rect
+// editor fills the whole frame with the spec background, so the export is opaque.
+function outFormat() {
+  const jpg = $('format').value === 'jpg';
+  return jpg
+    ? { type: 'image/jpeg', ext: 'jpg', quality: 0.95 }
+    : { type: 'image/png', ext: 'png', quality: 0.92 };
+}
+
 function triggerDownload(blob, name) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -100,8 +109,9 @@ function triggerDownload(blob, name) {
 
 async function downloadPhoto() {
   if (!hasImg) return;
-  const blob = await editor.toBlob({ type: 'image/png', width: current.widthPx, height: current.heightPx });
-  if (blob) { triggerDownload(blob, `${current.id}.png`); $('status').textContent = `Downloaded ${current.widthPx}×${current.heightPx} photo.`; }
+  const f = outFormat();
+  const blob = await editor.toBlob({ type: f.type, quality: f.quality, width: current.widthPx, height: current.heightPx });
+  if (blob) { triggerDownload(blob, `${current.id}.${f.ext}`); $('status').textContent = `Downloaded ${current.widthPx}×${current.heightPx} ${f.ext.toUpperCase()} photo.`; }
 }
 
 async function downloadSheet() {
@@ -130,9 +140,10 @@ async function downloadSheet() {
       ctx.strokeRect(x + 0.5, y + 0.5, current.widthPx, current.heightPx); // cut guide
     }
   }
+  const f = outFormat();
   sheet.toBlob((blob) => {
-    if (blob) { triggerDownload(blob, `${current.id}-4x6-sheet.png`); $('status').textContent = `Downloaded 4×6 sheet (${cols * rows} photos).`; }
-  }, 'image/png');
+    if (blob) { triggerDownload(blob, `${current.id}-4x6-sheet.${f.ext}`); $('status').textContent = `Downloaded 4×6 sheet (${cols * rows} photos).`; }
+  }, f.type, f.quality);
 }
 
 function init() {
