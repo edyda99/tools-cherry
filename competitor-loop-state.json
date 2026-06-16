@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "invoice-generator",
+  "lastTool": "qr-code-generator",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "qr-code-generator",
+      "competitors": ["radaar.io/free-tools/qr-code-generator", "rapidapi.com/kodice/qr-code-factory", "github.com/codebude/QRCoder", "me-qr.com"],
+      "shipped": "New 'Location (map point)' payload type. Added a <option value=\"geo\">Location (map point)</option> to the #qrType select (between phone and text) plus a data-group=\"geo\" field block with two inline inputs (#geoLat / #geoLng, placeholders 40.748817 / -73.985428) and a hint telling users to copy lat,lng from Google Maps (right-click a spot). qr.js buildPayload() gains a 'geo' branch that trims both inputs, validates each is a finite Number (returns '' so the existing empty-payload guard shows the 'Enter some content' prompt when either is missing/non-numeric), and emits an RFC 5870 geo: URI `geo:<lat>,<lng>` — phone cameras open it directly in the maps app. No new wiring needed: syncGroups() already toggles the new data-group by the select value, and the #qrForm input listener already re-renders on input. SEO copy updated to enumerate the location type across <title>, meta description, og:title, og:description, and the JSON-LD description (recovering long-tail 'location/map QR code' search). Header comment in qr.js updated to list geo. Competitors RADAAR (Location among WhatsApp/Crypto/UPI/etc.), QR Code Factory and the QRCoder library all ship a geolocation payload we lacked. Pure string/number encoding; no logic change to QR encoding/export; ECC/quiet-zone/style/logo/contrast all unchanged. No new deps (vendored qrcode lib). npm test (10+8+1 passing) + npm run build pass; verified value=\"geo\" + data-group=\"geo\" in dist/qr-code-generator/index.html and the geo: encoder in dist/assets/qr.js. dist gitignored, rebuilt at deploy.",
+      "commit": "24522b8"
+    },
     {
       "date": "2026-06-16",
       "tool": "invoice-generator",
@@ -215,7 +222,8 @@
       "CSV/JSON export+import of the invoice data (round-trip the form to a file) — medium: serialize the existing model + a file picker to reload it"
     ],
     "qr-code-generator": [
-      "Distinct finder-pattern (eye) styling — QR Tiger / ME-QR style the three corner eyes separately from the body (square frame + round center, or rounded frame). Medium: detect the 7x7 finder regions and draw their frame/center with a separate shape, optionally a separate eye colour. Builds on the body-style work just shipped.",
+      "More payload types — Location (geo URI) SHIPPED 2026-06-16. Remaining easy wins, each a single buildPayload() branch + data-group block: WhatsApp (https://wa.me/<number>?text=), calendar event (BEGIN:VEVENT iCal/vEvent block), crypto (bitcoin:<address>?amount=), PayPal (https://www.paypal.com/paypalme/<user>). RADAAR/ME-QR/QR Code Factory ship these. Pick one per micro-commit.",
+      "Distinct finder-pattern (eye) styling — QR Tiger / ME-QR style the three corner eyes separately from the body (square frame + round center, or rounded frame). Medium: detect the 7x7 finder regions and draw their frame/center with a separate shape, optionally a separate eye colour. Builds on the body-style work already shipped.",
       "Copy-to-clipboard button for the PNG — Canvas.toBlob -> navigator.clipboard.write(ClipboardItem). Tiny; competitors offer a one-click copy beside download.",
       "Gradient foreground (linear/radial two-colour) — QR Tiger/ME-QR offer gradient module fills; small-medium: a second colour input + a canvas gradient fillStyle and an SVG <linearGradient> def. Keep a contrast guard against the lighter stop.",
       "Logo size slider (10-25%) — let users tune LOGO_FRACTION; currently fixed at 20%. Tiny once the logo overlay exists, but only worth it if users ask.",
