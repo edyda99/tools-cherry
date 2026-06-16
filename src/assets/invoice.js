@@ -48,13 +48,17 @@ function money(n) {
 }
 
 // --- line items --------------------------------------------------------------
+function attr(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
 function itemRow(desc = '', qty = '1', rate = '0') {
   const row = document.createElement('div');
   row.className = 'item-row';
   row.innerHTML =
-    `<input class="d" placeholder="Description" value="${desc}">` +
-    `<input class="q" type="number" min="0" step="any" value="${qty}">` +
-    `<input class="r" type="number" min="0" step="any" value="${rate}">` +
+    `<input class="d" placeholder="Description" value="${attr(desc)}">` +
+    `<input class="q" type="number" min="0" step="any" value="${attr(qty)}">` +
+    `<input class="r" type="number" min="0" step="any" value="${attr(rate)}">` +
     `<input class="a" value="0.00" readonly tabindex="-1">` +
     `<button type="button" class="rm" title="Remove">×</button>`;
   row.querySelector('.rm').addEventListener('click', () => { row.remove(); render(); });
@@ -132,10 +136,43 @@ function render() {
     (m.t.discount ? `<div class="pv-row"><span>Discount${m.t.discountType === 'percent' ? ` (${m.t.discountInput}%)` : ''}</span><span>−${money(m.t.discount)}</span></div>` : '') +
     `<div class="pv-row grand" style="border-top-color:${brand}"><span>Total</span><span>${money(m.t.total)}</span></div></div>` +
     (m.notes ? `<div class="pv-notes">${esc(m.notes)}</div>` : '');
+
+  saveState();
 }
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+}
+
+// --- autosave (localStorage, stays in browser) -------------------------------
+const STORE_KEY = 'tb.invoice.v1';
+const FIELD_IDS = ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'invNo', 'currency',
+  'invDate', 'dueDate', 'taxRate', 'discount', 'discountType', 'brandColor', 'notes'];
+let restoring = false;
+
+function saveState() {
+  if (restoring) return;
+  try {
+    const data = { fields: {}, items: [], logo };
+    FIELD_IDS.forEach((id) => { if ($(id)) data.fields[id] = $(id).value; });
+    data.items = [...document.querySelectorAll('#items .item-row')].map((row) => ({
+      desc: row.querySelector('.d').value,
+      qty: row.querySelector('.q').value,
+      rate: row.querySelector('.r').value
+    }));
+    localStorage.setItem(STORE_KEY, JSON.stringify(data));
+  } catch (e) { /* storage unavailable/full — ignore, autosave is best-effort */ }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+
+function clearState() {
+  try { localStorage.removeItem(STORE_KEY); } catch (e) { /* ignore */ }
 }
 
 // --- PDF export --------------------------------------------------------------
@@ -243,6 +280,7 @@ function downloadPdf() {
   const safe = (m.invNo || 'invoice').replace(/[^\w.-]+/g, '-');
   doc.save(`${safe}.pdf`);
   status.textContent = 'PDF downloaded.';
+  saveState();
 }
 
 // --- init --------------------------------------------------------------------
@@ -252,11 +290,70 @@ function isoToday(offsetDays = 0) {
   return d.toISOString().slice(0, 10);
 }
 
-function init() {
-  const items = $('items');
-  items.innerHTML = '<div class="item-head"><span>Description</span><span>Qty</span><span>Rate</span><span>Amount</span><span></span></div>';
+const ITEMS_HEAD = '<div class="item-head"><span>Description</span><span>Qty</span><span>Rate</span><span>Amount</span><span></span></div>';
+
+function fillDefaultItems(items) {
   items.appendChild(itemRow('Design services', '10', '75'));
   items.appendChild(itemRow('Hosting (monthly)', '1', '25'));
+}
+
+// Apply a saved snapshot to the form. Returns false if nothing usable was found.
+function applyState(saved) {
+  if (!saved || typeof saved !== 'object') return false;
+  restoring = true;
+  try {
+    FIELD_IDS.forEach((id) => {
+      if ($(id) && saved.fields && saved.fields[id] != null) $(id).value = saved.fields[id];
+    });
+    const items = $('items');
+    items.innerHTML = ITEMS_HEAD;
+    if (Array.isArray(saved.items) && saved.items.length) {
+      saved.items.forEach((it) => items.appendChild(itemRow(it.desc, it.qty, it.rate)));
+    } else {
+      fillDefaultItems(items);
+    }
+    if (saved.logo && saved.logo.data) {
+      logo = saved.logo;
+      $('removeLogo').hidden = false;
+    }
+  } finally {
+    restoring = false;
+  }
+  return true;
+}
+
+function resetForm() {
+  clearState();
+  logo = null;
+  $('logo').value = '';
+  $('removeLogo').hidden = true;
+  const items = $('items');
+  items.innerHTML = ITEMS_HEAD;
+  fillDefaultItems(items);
+  // restore the shipped defaults for the simple fields
+  $('bizName').value = 'Your Business LLC';
+  $('bizDetails').value = '123 Main St\nCity, ST 00000\nyou@example.com';
+  $('cliName').value = 'Client Co.';
+  $('cliDetails').value = '456 Market Ave\nCity, ST 00000';
+  $('invNo').value = 'INV-001';
+  $('currency').value = 'USD';
+  $('taxRate').value = '0';
+  $('discount').value = '0';
+  $('discountType').value = 'amount';
+  $('brandColor').value = DEFAULT_BRAND;
+  $('notes').value = 'Payment due within 30 days. Thank you for your business.';
+  $('invDate').value = isoToday(0);
+  $('dueDate').value = isoToday(30);
+  render();
+}
+
+function init() {
+  const items = $('items');
+  const saved = loadState();
+  if (!applyState(saved)) {
+    items.innerHTML = ITEMS_HEAD;
+    fillDefaultItems(items);
+  }
 
   $('addItem').addEventListener('click', () => { items.appendChild(itemRow()); render(); });
   ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'invNo', 'currency', 'invDate', 'dueDate', 'taxRate', 'discount', 'discountType', 'brandColor', 'notes']
@@ -264,6 +361,9 @@ function init() {
   $('discountType').addEventListener('change', render);
   $('resetBrand').addEventListener('click', () => { $('brandColor').value = DEFAULT_BRAND; render(); });
   $('downloadPdf').addEventListener('click', downloadPdf);
+  $('clearInvoice').addEventListener('click', () => {
+    if (window.confirm('Clear this invoice and start fresh? Saved data on this device will be removed.')) resetForm();
+  });
   $('logo').addEventListener('change', (e) => loadLogo(e.target.files[0]));
   $('removeLogo').addEventListener('click', () => {
     logo = null;
@@ -272,8 +372,9 @@ function init() {
     render();
   });
 
-  if (!$('invDate').value) $('invDate').value = isoToday(0);
-  if (!$('dueDate').value) $('dueDate').value = isoToday(30);
+  // Only seed dates when neither saved nor present (fresh first visit).
+  if (!saved && !$('invDate').value) $('invDate').value = isoToday(0);
+  if (!saved && !$('dueDate').value) $('dueDate').value = isoToday(30);
   render();
 }
 

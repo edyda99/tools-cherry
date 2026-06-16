@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "passport-photo-maker",
+  "lastTool": "invoice-generator",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "invoice-generator",
+      "competitors": ["invoicesimple.com", "invoice-generator.com", "zoho.com/invoice"],
+      "shipped": "Autosave to localStorage so a refresh doesn't lose work. render() and downloadPdf() now serialize the full form (business/client fields, invoice meta, currency, dates, tax/discount, brand color, notes, all line items, and the optional logo dataURL) to localStorage key 'tb.invoice.v1'; init() restores it via applyState() before first render (restoring flag suppresses re-save during repopulation, dates are only seeded on a truly fresh visit so a cleared date isn't re-filled). Added a 'Clear & start fresh' button (confirm-gated) that wipes storage and resets to the shipped defaults, plus an autosave reassurance line in the template. Also hardened itemRow to attribute-escape desc/qty/rate (new attr() helper) since restored values flow back through the same value=\"...\" interpolation. Competitor parity: InvoiceSimple/Invoice-Generator/Zoho all persist a draft so reloads don't wipe input; we lost everything on refresh. No new deps; dist gitignored, rebuilt at deploy.",
+      "commit": "79ae7f4"
+    },
     {
       "date": "2026-06-16",
       "tool": "passport-photo-maker",
@@ -91,7 +98,6 @@
   "backlog": {
     "invoice-generator": [
       "Shipping cost line (Flowlu) — separate from tax/discount in totals",
-      "Save/restore invoice to localStorage so a refresh doesn't lose work",
       "Extend brand color to the table-header underline + BILL TO/DATE labels for fuller theming"
     ],
     "qr-code-generator": [
