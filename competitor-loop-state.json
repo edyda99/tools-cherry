@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "passport-photo-maker",
+  "lastTool": "invoice-generator",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "invoice-generator",
+      "competitors": ["invoicesimple.com", "invoicequickly.com/tools/invoice-number-generator", "zoho.com/invoice", "freedocumentmaker.com/invoice-generator"],
+      "shipped": "'Save & start next invoice' button — the duplicate/next-invoice workflow competitors ship (InvoiceSimple reuses the saved business/client block and lets you duplicate; InvoiceQuickly's number generator auto-increments a zero-padded suffix INV-0001->INV-0002; Zoho auto-numbers sequentially). The tool already AUTOSAVES one draft but had no way to start the NEXT bill while keeping the sender/client — users had to hand-edit the invoice number and delete every line item each cycle. Template: a new #nextInvoice btn-secondary placed between Download PDF and 'Clear & start fresh'. invoice.js: new nextInvoiceNo(cur) increments the TRAILING number group via regex /(\\d+)(\\D*)$/ and preserves zero-padding with padStart(digits.length) and any prefix/suffix — 'INV-001'->'INV-002', '2026-09'->'2026-10', 'INV7'->'INV8'; no trailing digits -> appends '-2' (''->'INV-002') so the next id is still distinct. New startNextInvoice() KEEPS business/client/currency/brand-color/tax/discount/terms/notes/logo (all untouched), bumps #invNo via nextInvoiceNo, clears #poNumber and #amountPaid to '', resets #items to ITEMS_HEAD + a single blank itemRow(), sets #invDate to today, then calls applyTerms() so the due date re-derives from the issue date + the active payment term, then render(); writes a #pdfStatus confirmation ('Started invoice <n> — business and client details kept.'). Wired in init() ($('nextInvoice') click -> startNextInvoice). render()'s existing saveState() then autosaves the fresh next-invoice draft to the same localStorage key, so the prior behaviour (refresh-safe) is preserved. Pure string/DOM/date logic; no totals-math change; jsPDF untouched; no new deps. Distinct from the already-shipped PO-number and payment-terms presets. npm test (10+8+1 passing) + npm run build pass; verified nextInvoiceNo/startNextInvoice in dist/assets/invoice.js and id=\"nextInvoice\" in dist/invoice-generator/index.html. dist gitignored, rebuilt at deploy. gsc-index-progress.json was pre-modified before this run and left out of the commit.",
+      "commit": "67e5228"
+    },
     {
       "date": "2026-06-16",
       "tool": "passport-photo-maker",
@@ -230,6 +237,7 @@
   ],
   "backlog": {
     "invoice-generator": [
+      "Duplicate / next invoice — SHIPPED 2026-06-16 (#nextInvoice button: nextInvoiceNo auto-increments the trailing zero-padded number, keeps sender/client/branding, clears line items + amount paid, re-derives the due date). Possible follow-on: a date-based numbering preset (INV-YYYYMM-001) like InvoiceQuickly, only if users ask.",
       "Per-line-item tax toggle / tax-exempt lines (Invoice-Generator.com, Zoho) — shipping is already untaxed; this would let individual goods lines opt out of tax",
       "Signature line in the PDF footer (BoldSign/SmoothLedger) — a labelled rule for a handwritten sign-off",
       "Extend brand color to the table-header underline + BILL TO/DATE labels for fuller theming",
