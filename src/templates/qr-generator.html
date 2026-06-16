@@ -107,6 +107,11 @@
             <option value="0">None</option>
           </select>
         </div>
+        <div class="field">
+          <label for="qrLogo">Center logo (optional)</label>
+          <input id="qrLogo" type="file" accept="image/png,image/jpeg,image/svg+xml">
+          <p class="muted-small" id="qrLogoHint" style="margin-top:6px">Adding a logo forces High error correction so the code still scans. <button type="button" id="qrLogoClear" class="linklike" hidden style="background:none;border:0;padding:0;color:inherit;text-decoration:underline;cursor:pointer">Remove logo</button></p>
+        </div>
       </form>
 
       <div class="results" style="text-align:center">

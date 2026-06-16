@@ -1,10 +1,19 @@
 // qr.js — client-side QR generator (URL / WiFi / vCard / email / SMS / phone / text)
-// with PNG + SVG export, an adjustable quiet-zone margin, and a contrast/
-// scannability warning when the foreground and background colours are too close.
-// Uses the vendored qrcode-generator lib (global `qrcode`). No network.
+// with PNG + SVG export, an adjustable quiet-zone margin, a contrast/scannability
+// warning, and an optional center logo overlay (forces High ECC; embedded in both
+// the canvas render and the SVG export). Uses the vendored qrcode-generator lib
+// (global `qrcode`). No network — logos stay client-side via FileReader.
 
 const $ = (id) => document.getElementById(id);
 let modules = null; // last rendered module matrix (2D bool) for SVG export
+
+// Optional center logo: its data URL (for SVG embed) and a decoded HTMLImageElement
+// (for canvas draw). When present we force High error correction so the code still
+// scans despite the modules it covers, and draw a small white padding box behind it.
+let logoDataUrl = null;
+let logoImg = null;
+const LOGO_FRACTION = 0.2; // logo size as a fraction of the QR area (~18-22%)
+const LOGO_PAD = 0.14; // white padding box = logo size * (1 + LOGO_PAD*2)
 
 // Quiet-zone (margin) modules each side. The QR spec recommends 4; a narrower
 // or zero margin lets the code sit tighter when embedding, at some scan-reliability
@@ -111,9 +120,12 @@ function render() {
   const canvas = $('qrCanvas');
   if (!data) { status.textContent = 'Enter some content to generate a QR code.'; return; }
 
+  // A center logo covers modules, so force High error correction when one is set.
+  const ecc = logoImg ? 'H' : $('qrEcc').value;
+
   let qr;
   try {
-    qr = qrcode(0, $('qrEcc').value); // type 0 = auto-fit
+    qr = qrcode(0, ecc); // type 0 = auto-fit
     qr.addData(data);
     qr.make();
   } catch (e) {
@@ -150,8 +162,30 @@ function render() {
       if (modules[r][c]) ctx.fillRect((c + quiet) * scale, (r + quiet) * scale, scale, scale);
     }
   }
-  status.textContent = `${count}×${count} modules · ${dim}px PNG`;
+  drawLogo(ctx, dim, bg);
+  status.textContent =
+    `${count}×${count} modules · ${dim}px PNG` + (logoImg ? ' · logo (ECC: High)' : '');
   updateContrastWarning(fg, bg);
+}
+
+// Draw the center logo onto the canvas with a white (bg-coloured) padding box behind
+// it so the modules under the logo are visually cleared. Sized to LOGO_FRACTION of
+// the full QR dimension, preserving the logo's aspect ratio inside that box.
+function drawLogo(ctx, dim, bg) {
+  if (!logoImg) return;
+  const box = dim * LOGO_FRACTION; // max logo edge
+  const pad = dim * LOGO_FRACTION * LOGO_PAD;
+  const iw = logoImg.naturalWidth || logoImg.width;
+  const ih = logoImg.naturalHeight || logoImg.height;
+  if (!iw || !ih) return;
+  const ratio = Math.min(box / iw, box / ih);
+  const w = iw * ratio, h = ih * ratio;
+  const cx = dim / 2, cy = dim / 2;
+  // padding box (white / background colour) centred on the QR
+  const padW = w + pad * 2, padH = h + pad * 2;
+  ctx.fillStyle = bg;
+  ctx.fillRect(cx - padW / 2, cy - padH / 2, padW, padH);
+  ctx.drawImage(logoImg, cx - w / 2, cy - h / 2, w, h);
 }
 
 // Show or clear a scannability warning based on fg/bg contrast.
@@ -189,8 +223,26 @@ function svgString() {
   }
   const fg = $('qrFg').value || '#000000';
   const bg = $('qrBg').value || '#ffffff';
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${total} ${total}" shape-rendering="crispEdges">` +
-    `<rect width="${total}" height="${total}" fill="${bg}"/><g fill="${fg}">${rects}</g></svg>`;
+  let logo = '';
+  if (logoDataUrl && logoImg) {
+    // Match the canvas geometry in viewBox (module) units.
+    const iw = logoImg.naturalWidth || logoImg.width;
+    const ih = logoImg.naturalHeight || logoImg.height;
+    if (iw && ih) {
+      const box = total * LOGO_FRACTION;
+      const pad = total * LOGO_FRACTION * LOGO_PAD;
+      const ratio = Math.min(box / iw, box / ih);
+      const w = iw * ratio, h = ih * ratio;
+      const cx = total / 2, cy = total / 2;
+      const padW = w + pad * 2, padH = h + pad * 2;
+      logo =
+        `<rect x="${cx - padW / 2}" y="${cy - padH / 2}" width="${padW}" height="${padH}" fill="${bg}"/>` +
+        `<image x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" ` +
+        `preserveAspectRatio="xMidYMid meet" href="${logoDataUrl}"/>`;
+    }
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${total} ${total}" shape-rendering="crispEdges">` +
+    `<rect width="${total}" height="${total}" fill="${bg}"/><g fill="${fg}">${rects}</g>${logo}</svg>`;
 }
 
 function downloadBlob(blob, filename) {
@@ -226,11 +278,58 @@ function syncGroups() {
   });
 }
 
+// Load (or clear) the center logo from the file input. Stays fully client-side:
+// FileReader -> data URL -> decoded Image; nothing is uploaded.
+function onLogoChange(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      logoDataUrl = reader.result;
+      logoImg = img;
+      reflectLogoState();
+      render();
+    };
+    img.onerror = () => { clearLogo(); };
+    img.src = reader.result;
+  };
+  reader.onerror = () => { clearLogo(); };
+  reader.readAsDataURL(file);
+}
+
+function clearLogo() {
+  logoDataUrl = null;
+  logoImg = null;
+  const input = $('qrLogo');
+  if (input) input.value = '';
+  reflectLogoState();
+  render();
+}
+
+// When a logo is present, lock the ECC selector to High (visually) and reveal the
+// remove button; otherwise restore normal control.
+function reflectLogoState() {
+  const ecc = $('qrEcc');
+  const clearBtn = $('qrLogoClear');
+  const has = !!logoImg;
+  if (ecc) {
+    ecc.disabled = has;
+    if (has) ecc.value = 'H';
+  }
+  if (clearBtn) clearBtn.hidden = !has;
+}
+
 function init() {
   $('qrType').addEventListener('change', () => { syncGroups(); render(); });
   document.querySelectorAll('#qrForm input, #qrForm select, #qrForm textarea').forEach((el) =>
     el.addEventListener('input', render)
   );
+  const logo = $('qrLogo');
+  if (logo) logo.addEventListener('change', onLogoChange);
+  const clearBtn = $('qrLogoClear');
+  if (clearBtn) clearBtn.addEventListener('click', clearLogo);
   $('dlPng').addEventListener('click', downloadPng);
   $('dlSvg').addEventListener('click', downloadSvg);
   syncGroups();
