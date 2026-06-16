@@ -7,7 +7,8 @@ export class CanvasEditor {
   constructor(canvas, opts = {}) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
-    this.shape = opts.shape || 'rect'; // 'rect' | 'circle'
+    this.shape = opts.shape || 'rect'; // 'rect' | 'circle' | 'rounded'
+    this.cornerRadius = opts.cornerRadius || 0; // rounded-rect corner radius, fraction of half-size (0..0.5)
     this.background = opts.background || null; // CSS color or null (transparent)
     this.borderColor = opts.borderColor || null; // CSS color or null (no border)
     this.borderWidth = opts.borderWidth || 0; // fraction of radius (0..0.5), circle only
@@ -53,6 +54,7 @@ export class CanvasEditor {
   }
 
   setShape(shape) { this.shape = shape; this.render(); return this; }
+  setCornerRadius(r) { this.cornerRadius = Math.max(0, Math.min(0.5, r || 0)); this.render(); return this; }
   setBackground(bg) { this.background = bg; this.render(); return this; }
   setBorder(color, width) {
     this.borderColor = color || null;
@@ -78,40 +80,61 @@ export class CanvasEditor {
     return this;
   }
 
-  // Draw image (and optional bg / circle clip) into an arbitrary 2d context sized cw×ch.
+  // Trace the current shape's outline into ctx as a path. `inset` shrinks the
+  // shape inward from the box edges on every side (used for padding + border).
+  // For circle: a centered arc of radius (half - inset). For rect/rounded: the
+  // inset box, with rounded corners when shape is 'rounded'.
+  _shapePath(ctx, cw, ch, inset) {
+    ctx.beginPath();
+    const half = Math.min(cw, ch) / 2;
+    if (this.shape === 'circle') {
+      ctx.arc(cw / 2, ch / 2, Math.max(0, half - inset), 0, Math.PI * 2);
+      return;
+    }
+    const x = inset, y = inset;
+    const w = Math.max(0, cw - 2 * inset), h = Math.max(0, ch - 2 * inset);
+    if (this.shape === 'rounded' && this.cornerRadius > 0) {
+      // Radius as a fraction of half-size, clamped so it never exceeds half the
+      // shorter side of the (inset) box.
+      const r = Math.min(half * this.cornerRadius, Math.min(w, h) / 2);
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    } else {
+      ctx.rect(x, y, w, h);
+    }
+  }
+
+  // Draw image (and optional bg / shape clip) into an arbitrary 2d context sized cw×ch.
   _drawTo(ctx, cw, ch) {
     ctx.clearRect(0, 0, cw, ch);
     // Transparent margin around the shape: shrink the usable box on every side
-    // by `pad` (a fraction of the half-size) so the circle/ring isn't flush to the edge.
+    // by `pad` (a fraction of the half-size) so the shape/ring isn't flush to the edge.
     const half = Math.min(cw, ch) / 2;
     const pad = half * this.padding;
-    // Resolution-independent border thickness (fraction of the circle radius).
-    const drawBorder = this.shape === 'circle' && this.borderColor && this.borderWidth > 0;
+    // Resolution-independent border thickness (fraction of the shape radius).
+    const drawBorder = this.borderColor && this.borderWidth > 0;
     const outerR = Math.max(0, half - pad);
     const stroke = drawBorder ? outerR * this.borderWidth : 0;
     const inset = pad + stroke; // image is clipped inside the ring (and inside the margin)
-    const innerR = Math.max(0, half - inset);
-    // Background fill: for a circle, fill only the (inner) disc so the corners
-    // stay transparent; for a rect, fill the padded box (margin stays transparent).
+    // Background fill: fill only the (inset) shape so the corners/margin stay
+    // transparent (circle disc, square/rounded box).
     if (this.background) {
       ctx.save();
       ctx.fillStyle = this.background;
-      if (this.shape === 'circle') {
-        ctx.beginPath();
-        ctx.arc(cw / 2, ch / 2, innerR, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        ctx.fillRect(pad, pad, Math.max(0, cw - 2 * pad), Math.max(0, ch - 2 * pad));
-      }
+      this._shapePath(ctx, cw, ch, inset);
+      ctx.fill();
       ctx.restore();
     }
     if (!this.img) return;
     ctx.save();
-    if (this.shape === 'circle') {
-      ctx.beginPath();
-      ctx.arc(cw / 2, ch / 2, innerR, 0, Math.PI * 2);
-      ctx.clip();
-    }
+    // Clip the image to the (inset) shape for every shape, not just circle, so
+    // the rounded corners actually round the photo.
+    this._shapePath(ctx, cw, ch, inset);
+    ctx.clip();
     const ibox = inset; // shrink the image box by the inset on each side
     const boxW = Math.max(1, cw - 2 * ibox);
     const boxH = Math.max(1, ch - 2 * ibox);
@@ -150,11 +173,11 @@ export class CanvasEditor {
     ctx.restore();
     if (drawBorder) {
       ctx.save();
-      ctx.beginPath();
       ctx.lineWidth = stroke;
       ctx.strokeStyle = this.borderColor;
-      // stroke is centered on the path; place it at outerR - stroke/2 to stay inside the margin
-      ctx.arc(cw / 2, ch / 2, Math.max(0, outerR - stroke / 2), 0, Math.PI * 2);
+      // The stroke is centered on the path; trace it at inset = pad + stroke/2 so
+      // the outer edge of the ring lands at the padding boundary for every shape.
+      this._shapePath(ctx, cw, ch, pad + stroke / 2);
       ctx.stroke();
       ctx.restore();
     }

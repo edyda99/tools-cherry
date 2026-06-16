@@ -87,6 +87,16 @@ function syncPreset() {
   }
 }
 
+// Crop shape: circle (default), square, or rounded square. The corner-roundness
+// slider only applies to (and is only shown for) the rounded shape.
+function applyShape() {
+  const shape = $('shape').value; // 'circle' | 'rect' | 'rounded'
+  const rounded = shape === 'rounded';
+  $('radiusControls').hidden = !rounded;
+  editor.setCornerRadius(rounded ? (parseInt($('radius').value, 10) || 25) / 100 : 0);
+  editor.setShape(shape);
+}
+
 function applyBackground() {
   editor.setBackground($('bgOn').checked ? $('bgColor').value : null);
 }
@@ -116,6 +126,9 @@ function init() {
   $('rotateReset').addEventListener('click', () => { editor.setRotation(0); syncRotation(); });
   $('flipH').addEventListener('click', () => { editor.setFlip(!editor.flipH, editor.flipV); syncFlip(); });
   $('flipV').addEventListener('click', () => { editor.setFlip(editor.flipH, !editor.flipV); syncFlip(); });
+  $('shape').addEventListener('change', applyShape);
+  $('radius').addEventListener('input', applyShape);
+  applyShape();
   $('outSize').addEventListener('change', syncPreset);
   $('preset').addEventListener('change', syncPreset);
   syncPreset();
