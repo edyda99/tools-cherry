@@ -124,6 +124,7 @@ function readModel() {
   return {
     biz: { name: $('bizName').value, details: $('bizDetails').value },
     cli: { name: $('cliName').value, details: $('cliDetails').value },
+    ship: ($('shipDetails') && $('shipDetails').value.trim()) || '',
     invNo: $('invNo').value,
     po: ($('poNumber') && $('poNumber').value) || '',
     date: $('invDate').value,
@@ -157,7 +158,9 @@ function render() {
     (m.po ? `<div class="pv-meta">PO: ${esc(m.po)}</div>` : '') +
     `</div></div>` +
     `<div class="pv-parties"><div><div class="lbl">Bill to</div><strong>${esc(m.cli.name)}</strong>` +
-    `<div class="pv-meta">${esc(m.cli.details)}</div></div>` +
+    `<div class="pv-meta">${esc(m.cli.details)}</div>` +
+    (m.ship ? `<div class="lbl" style="margin-top:8px">Ship to</div><div class="pv-meta">${esc(m.ship)}</div>` : '') +
+    `</div>` +
     `<div style="text-align:right"><div class="lbl">Date</div>${esc(m.date) || '—'}` +
     `<div class="lbl" style="margin-top:6px">Due</div>${esc(m.due) || '—'}` +
     (m.terms ? `<div class="pv-meta" style="margin-top:2px">${esc(m.terms)}</div>` : '') +
@@ -188,7 +191,7 @@ function esc(s) {
 
 // --- autosave (localStorage, stays in browser) -------------------------------
 const STORE_KEY = 'tb.invoice.v1';
-const FIELD_IDS = ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'invNo', 'poNumber', 'currency',
+const FIELD_IDS = ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'shipDetails', 'invNo', 'poNumber', 'currency',
   'invDate', 'paymentTerms', 'dueDate', 'taxRate', 'discount', 'discountType', 'shipping', 'amountPaid', 'brandColor', 'notes'];
 let restoring = false;
 
@@ -278,6 +281,17 @@ function downloadPdf() {
   y += 12;
   doc.text(doc.splitTextToSize(m.cli.details || '', 240), M, y);
   y += Math.max(doc.splitTextToSize(m.cli.details || '', 240).length * 12, 12) + 18;
+
+  // optional ship-to block, only when the user filled it in
+  if (m.ship) {
+    doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(130);
+    doc.text('SHIP TO', M, y);
+    y += 14;
+    doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(90);
+    const slines = doc.splitTextToSize(m.ship, 240);
+    doc.text(slines, M, y);
+    y += slines.length * 12 + 18;
+  }
 
   // table header
   const cols = { desc: M, qty: W - M - 230, rate: W - M - 130, amt: W - M };
@@ -430,6 +444,7 @@ function resetForm() {
   $('bizDetails').value = '123 Main St\nCity, ST 00000\nyou@example.com';
   $('cliName').value = 'Client Co.';
   $('cliDetails').value = '456 Market Ave\nCity, ST 00000';
+  if ($('shipDetails')) $('shipDetails').value = '';
   $('invNo').value = 'INV-001';
   if ($('poNumber')) $('poNumber').value = '';
   $('currency').value = 'USD';
@@ -455,7 +470,7 @@ function init() {
   }
 
   $('addItem').addEventListener('click', () => { items.appendChild(itemRow()); render(); });
-  ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'invNo', 'poNumber', 'currency', 'taxRate', 'discount', 'discountType', 'shipping', 'amountPaid', 'brandColor', 'notes']
+  ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'shipDetails', 'invNo', 'poNumber', 'currency', 'taxRate', 'discount', 'discountType', 'shipping', 'amountPaid', 'brandColor', 'notes']
     .forEach((id) => $(id).addEventListener('input', render));
   $('discountType').addEventListener('change', render);
   // Payment terms: a preset auto-fills the due date from the invoice date.
