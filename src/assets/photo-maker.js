@@ -6,7 +6,7 @@ const $ = (id) => document.getElementById(id);
 const DATA = window.__PHOTO_SPECS__ || { specs: [], printSheet: {} };
 const MAX_DISPLAY_H = 360;
 
-let editor, current, hasImg = false;
+let editor, current, hasImg = false, sheetSpec;
 
 function fmtDims(s) {
   return `${s.widthMm}×${s.heightMm} mm · ${s.widthPx}×${s.heightPx}px @ ${s.dpi} DPI`;
@@ -116,7 +116,7 @@ async function downloadPhoto() {
 
 async function downloadSheet() {
   if (!hasImg) return;
-  const ps = DATA.printSheet;
+  const ps = sheetSpec || DATA.printSheet;
   const photo = await editor.toBlob({ type: 'image/png', width: current.widthPx, height: current.heightPx });
   const bmp = await createImageBitmap(photo);
 
@@ -141,8 +141,10 @@ async function downloadSheet() {
     }
   }
   const f = outFormat();
+  const sizeId = ps.id || '4x6';
+  const sizeLabel = ps.label || '4×6';
   sheet.toBlob((blob) => {
-    if (blob) { triggerDownload(blob, `${current.id}-4x6-sheet.${f.ext}`); $('status').textContent = `Downloaded 4×6 sheet (${cols * rows} photos).`; }
+    if (blob) { triggerDownload(blob, `${current.id}-${sizeId}-sheet.${f.ext}`); $('status').textContent = `Downloaded ${sizeLabel} sheet (${cols * rows} photos).`; }
   }, f.type, f.quality);
 }
 
@@ -158,6 +160,23 @@ function init() {
     applySpec(spec);
   });
   applySpec(DATA.specs[0]);
+
+  // Print-sheet size selector (falls back to the legacy single 4×6 sheet).
+  const sheetSel = $('sheetSize');
+  const sizes = (DATA.printSheet && DATA.printSheet.sizes) || [];
+  if (sizes.length) {
+    sizes.forEach((sz) => {
+      const o = document.createElement('option');
+      o.value = sz.id; o.textContent = sz.label;
+      sheetSel.appendChild(o);
+    });
+    sheetSpec = sizes[0];
+    sheetSel.addEventListener('change', () => {
+      sheetSpec = sizes.find((sz) => sz.id === sheetSel.value) || sizes[0];
+    });
+  } else {
+    sheetSpec = DATA.printSheet;
+  }
 
   $('file').addEventListener('change', (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); });
   $('zoom').addEventListener('input', (e) => editor.setZoom(parseFloat(e.target.value)));

@@ -55,7 +55,12 @@
     }
   ],
   "printSheet": {
-    "_note": "4×6 in photo paper @ 300 DPI for tiling multiple copies.",
-    "widthPx": 1200, "heightPx": 1800, "marginPx": 30, "gapPx": 20
+    "_note": "Standard print-paper sizes @ 300 DPI for tiling multiple copies. These are physical paper dimensions (not country biometric specs): 4×6in=1200×1800, 5×7in=1500×2100, A4=210×297mm.",
+    "widthPx": 1200, "heightPx": 1800, "marginPx": 30, "gapPx": 20,
+    "sizes": [
+      { "id": "4x6", "label": "4×6 in", "widthPx": 1200, "heightPx": 1800 },
+      { "id": "5x7", "label": "5×7 in", "widthPx": 1500, "heightPx": 2100 },
+      { "id": "a4", "label": "A4 (210×297 mm)", "widthPx": 2480, "heightPx": 3508 }
+    ]
   }
 }
