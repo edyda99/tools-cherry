@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "qr-code-generator",
+  "lastTool": "crop-image-into-circle",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "crop-image-into-circle",
+      "competitors": ["fotor.com", "watermarkly.com", "circlecropimage.com"],
+      "shipped": "JPG download option alongside PNG. Added a 'Download format' <select> (PNG transparent / JPG smaller, white background) to the circle-crop template, plus a #jpgNote hint shown only for JPG. download() now reads the format: PNG keeps the existing transparent export; JPG calls toBlob with type image/jpeg, quality 0.92, and a new `flatten` color so the alpha-less corners of the circle don't render black — flatten uses the user's chosen background color when 'Fill background' is enabled, otherwise white. Filename/ext + status now reflect the chosen format; new syncFormat() updates the button label ('Download JPG'/'Download PNG') and toggles the JPG note. Engine change: CanvasEditor.toBlob accepts an optional `flatten` CSS color that paints an opaque backdrop over the whole output canvas before _drawTo runs (PNG path and on-screen preview unaffected — flatten defaults to null). Closes the last small backlog item for this tool (Fotor offers PNG-transparent vs solid JPG output; we were PNG-only); background fill shipped previously unblocked it. No new deps; dist gitignored, rebuilt at deploy. The only remaining backlog idea is batch mode, which is too large for a micro-commit.",
+      "commit": "8be47ff"
+    },
     {
       "date": "2026-06-16",
       "tool": "qr-code-generator",
@@ -140,8 +147,7 @@
       "Center logo overlay (QRCode Monkey) — needs forced High ECC + center clearing"
     ],
     "crop-image-into-circle": [
-      "JPG output option alongside PNG (Fotor) — needs a forced background fill since JPG has no alpha (background fill now shipped, so this is unblocked)",
-      "Batch mode — crop multiple images to circles at once (Watermarkly, imagy)"
+      "Batch mode — crop multiple images to circles at once (Watermarkly, imagy) — too large for a single micro-commit; would need multi-file upload, a results grid, and per-file framing or a shared transform + zip download"
     ],
     "passport-photo-maker": [
       "Print-ready PDF export of the sheet (PixConvert offers JPG + PDF; we have JPG/PNG only) — jsPDF is already a dep on other tools",
