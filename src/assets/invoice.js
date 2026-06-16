@@ -31,6 +31,16 @@ function loadLogo(file) {
   reader.readAsDataURL(file);
 }
 
+const DEFAULT_BRAND = '#1a7f37';
+function brandHex() {
+  const v = ($('brandColor') && $('brandColor').value) || DEFAULT_BRAND;
+  return /^#[0-9a-fA-F]{6}$/.test(v) ? v : DEFAULT_BRAND;
+}
+function brandRgb() {
+  const h = brandHex();
+  return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+}
+
 function curCode() { return $('currency').value || 'USD'; }
 function money(n) {
   const c = CURRENCY[curCode()] || CURRENCY.USD;
@@ -94,6 +104,7 @@ function readModel() {
 // --- live preview ------------------------------------------------------------
 function render() {
   const m = readModel();
+  const brand = brandHex();
   const rows = m.items
     .map(
       (i) =>
@@ -107,7 +118,7 @@ function render() {
     (logo ? `<img src="${logo.data}" alt="Business logo" style="max-height:48px;max-width:160px;margin-bottom:8px;display:block">` : '') +
     `<h3>${esc(m.biz.name) || 'Your Business'}</h3>` +
     `<div class="pv-meta">${esc(m.biz.details)}</div></div>` +
-    `<div style="text-align:right"><div style="font-size:22px;font-weight:700;color:#111">INVOICE</div>` +
+    `<div style="text-align:right"><div style="font-size:22px;font-weight:700;color:${brand}">INVOICE</div>` +
     `<div class="pv-meta">${esc(m.invNo)}</div></div></div>` +
     `<div class="pv-parties"><div><div class="lbl">Bill to</div><strong>${esc(m.cli.name)}</strong>` +
     `<div class="pv-meta">${esc(m.cli.details)}</div></div>` +
@@ -119,7 +130,7 @@ function render() {
     `<div class="pv-row"><span>Subtotal</span><span>${money(m.t.subtotal)}</span></div>` +
     (m.t.taxRate ? `<div class="pv-row"><span>Tax (${m.t.taxRate}%)</span><span>${money(m.t.tax)}</span></div>` : '') +
     (m.t.discount ? `<div class="pv-row"><span>Discount${m.t.discountType === 'percent' ? ` (${m.t.discountInput}%)` : ''}</span><span>−${money(m.t.discount)}</span></div>` : '') +
-    `<div class="pv-row grand"><span>Total</span><span>${money(m.t.total)}</span></div></div>` +
+    `<div class="pv-row grand" style="border-top-color:${brand}"><span>Total</span><span>${money(m.t.total)}</span></div></div>` +
     (m.notes ? `<div class="pv-notes">${esc(m.notes)}</div>` : '');
 }
 
@@ -140,9 +151,10 @@ function downloadPdf() {
   const W = doc.internal.pageSize.getWidth();
   const M = 48; // margin
   let y = M;
+  const [br, bg, bb] = brandRgb();
 
-  // INVOICE title pinned to the top-right
-  doc.setFont('helvetica', 'bold').setFontSize(22).setTextColor(20);
+  // INVOICE title pinned to the top-right, in the chosen brand color
+  doc.setFont('helvetica', 'bold').setFontSize(22).setTextColor(br, bg, bb);
   doc.text('INVOICE', W - M, y, { align: 'right' });
   doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(90);
   doc.text(m.invNo || '', W - M, y + 16, { align: 'right' });
@@ -217,7 +229,7 @@ function downloadPdf() {
   line('Subtotal', money(m.t.subtotal));
   if (m.t.taxRate) line(`Tax (${m.t.taxRate}%)`, money(m.t.tax));
   if (m.t.discount) line(m.t.discountType === 'percent' ? `Discount (${m.t.discountInput}%)` : 'Discount', '-' + money(m.t.discount));
-  doc.setDrawColor(30).setLineWidth(1).line(tx, y - 4, W - M, y - 4);
+  doc.setDrawColor(br, bg, bb).setLineWidth(1).line(tx, y - 4, W - M, y - 4);
   y += 8;
   line('Total', money(m.t.total), true);
 
@@ -247,9 +259,10 @@ function init() {
   items.appendChild(itemRow('Hosting (monthly)', '1', '25'));
 
   $('addItem').addEventListener('click', () => { items.appendChild(itemRow()); render(); });
-  ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'invNo', 'currency', 'invDate', 'dueDate', 'taxRate', 'discount', 'discountType', 'notes']
+  ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'invNo', 'currency', 'invDate', 'dueDate', 'taxRate', 'discount', 'discountType', 'brandColor', 'notes']
     .forEach((id) => $(id).addEventListener('input', render));
   $('discountType').addEventListener('change', render);
+  $('resetBrand').addEventListener('click', () => { $('brandColor').value = DEFAULT_BRAND; render(); });
   $('downloadPdf').addEventListener('click', downloadPdf);
   $('logo').addEventListener('change', (e) => loadLogo(e.target.files[0]));
   $('removeLogo').addEventListener('click', () => {

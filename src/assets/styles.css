@@ -68,6 +68,9 @@ h2 { font-size: 20px; margin: 32px 0 12px; }
 }
 .field .inline { display: flex; gap: 10px; }
 .field .inline > * { flex: 1; }
+.brand-input { display: flex; gap: 8px; align-items: center; }
+.brand-input input[type="color"] { flex: 0 0 auto; width: 48px; height: 38px; padding: 2px; cursor: pointer; }
+.brand-input .btn-secondary { flex: 0 0 auto; }
 .discount-input { display: flex; gap: 8px; }
 .discount-input input { flex: 1; }
 .discount-input select { width: auto; flex: 0 0 auto; }
