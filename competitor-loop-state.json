@@ -6,9 +6,21 @@
     "crop-image-into-circle",
     "passport-photo-maker"
   ],
-  "lastTool": "qr-code-generator",
-  "iteration": 38,
+  "lastTool": "crop-image-into-circle",
+  "iteration": 39,
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "crop-image-into-circle",
+      "competitors": [
+        "circleimagetool.com",
+        "presetpedia.com/photo-crop-shape.html",
+        "shapeimageonline.com",
+        "circle-crop-image.net/oval-crop"
+      ],
+      "shipped": "WebP download format — a third output option alongside PNG and JPG. Template: a new <option value=\"webp\">WebP (smallest, transparent)</option> after the JPG option in the #format select. circle-crop.js download(): the format reader now accepts 'webp' (v === 'jpeg' || v === 'webp' ? v : 'png'); a `type` map resolves image/jpeg | image/webp | image/png; opts split is now png -> {type,width,height} (no quality) vs jpeg/webp -> {type,quality:0.92,width,height,flatten}. flatten stays JPG-only (WebP keeps alpha like PNG, so no opaque backdrop) — the transparent corners of the circle/rounded shapes are preserved in the WebP just like the PNG. ext becomes 'jpg' for jpeg, else the fmt string ('webp'/'png'), so the file downloads as circle-crop.webp. syncFormat(): button label now Download JPG | Download WebP | Download PNG, and the #jpgNote (the 'JPG has no transparency' hint) shows ONLY for jpeg (v !== 'jpeg'). NO engine change — CanvasEditor.toBlob already passes `type`/`quality`/`flatten` straight to off.toBlob, and browsers encode image/webp natively; the offscreen-canvas export path, framing, shape clip, border/padding/bg all compose unchanged. WHY WebP: circleimagetool.com explicitly advertises 'export PNG/JPEG/WebP'; WebP gives notably smaller avatar files than PNG while keeping transparency (best of both prior formats), and we shipped PNG + JPG only. Pure format-string/DOM change; no new deps; no test touches format strings. npm test (10+8+1 passing) + npm run build (33 states + home + 4 content pages) pass; verified 'image/webp'/'Download WebP' (2 refs) in dist/assets/circle-crop.js and 'WebP (smallest' in dist/crop-image-into-circle/index.html. dist gitignored, rebuilt at deploy. gsc-index-progress.json was pre-existing untracked and left out of the commit.",
+      "commit": "c28613fc99ce469d144836ec1fe652a793ad11aa"
+    },
     {
       "date": "2026-06-16",
       "tool": "qr-code-generator",
@@ -463,7 +475,9 @@
       "Batch/bulk generation from a pasted list of URLs (QR Tiger bulk) — too large for a micro-commit; needs a textarea-to-N-codes UI + zip download."
     ],
     "crop-image-into-circle": [
+      "WebP download format — SHIPPED 2026-06-16 (third #format option; download() maps to image/webp q0.92 keeping alpha, no flatten; syncFormat() labels the button and JPG-note. No engine change — toBlob already passes type through). Output formats now PNG/JPG/WebP, matching circleimagetool.com.",
       "Paste image from clipboard (Ctrl/Cmd+V) — SHIPPED 2026-06-16 (document 'paste' listener scans clipboardData.items for the first image/* file and routes it through handleFile; competitors advertise upload/drop/paste). Possible follow-on: load image from a pasted/typed URL (fetch -> blob -> loadFile) — small but needs CORS handling and is lower-value than the local-first methods now covered.",
+      "Keyboard-arrow nudge to fine-tune position — circleimagetool.com supports arrow-key fine-tuning of the crop position. Small: a keydown listener calling editor.panByPixels by a few px on Arrow keys (preventDefault when an image is loaded so the page doesn't scroll). Genuinely new input affordance we lack (we have drag + scroll-zoom only).",
       "Alternate crop shapes (square / rounded square) — SHIPPED 2026-06-16 (#shape selector + corner-roundness slider, _shapePath helper clips image+bg+border for all shapes). Possible follow-on: heart / star / hexagon shapes (Fotor offers heart+star) — each is one more _shapePath branch (path math), small-medium; only if users ask, and they don't crop avatars as cleanly.",
       "Oval / ellipse crop option — circlecropimage.dev and several croppers offer an oval when a face/logo needs more vertical room than a perfect circle; engine would need a non-square clip (radiusX != radiusY). Now easier: add an 'oval' branch to _shapePath using ctx.ellipse (or a scaled arc) at the inset box; small-medium.",
       "Batch mode — crop multiple images to circles at once (Watermarkly, imagy) — too large for a single micro-commit; would need multi-file upload, a results grid, and per-file framing or a shared transform + zip download. PARKED."
