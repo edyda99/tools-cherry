@@ -1,8 +1,15 @@
 {
   "purpose": "Tracks the competitor-driven enhancement loop (every 30m). One tool per iteration, rotating. Tax/paycheck calculator is OUT OF SCOPE.",
   "rotation": ["invoice-generator", "qr-code-generator", "crop-image-into-circle", "passport-photo-maker"],
-  "lastTool": "invoice-generator",
+  "lastTool": "qr-code-generator",
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "qr-code-generator",
+      "competitors": ["the-qrcode-generator.com", "copyber.com/tools/qr-code-generator", "scanqr.org/qr-code-generator", "qrcode-monkey.com"],
+      "shipped": "Copy-PNG-to-clipboard button (top remaining easy backlog item). Template: a new full-width #copyPng btn-secondary on its own row below the Download PNG / Download SVG pair. qr.js: new copyPng() guarded by a capability check (navigator.clipboard.write + window.ClipboardItem both present — i.e. async Clipboard API in a secure context); when unsupported it writes a 'Copy isn’t supported in this browser — use Download PNG instead.' hint to #qrStatus and returns. When supported it re-encodes the LIVE #qrCanvas via toBlob('image/png') and navigator.clipboard.write([new ClipboardItem({'image/png': blob})]), then reports success ('Copied PNG to clipboard — paste it anywhere.') or failure ('Copy was blocked…' on promise reject, 'Could not copy…' on null blob) on the status line — so the user always gets feedback and a fallback. Returns early when modules is null (nothing rendered). Wired in init() ($('copyPng') click -> copyPng), null-guarded. The copied PNG honors all current settings (fg/bg colour, module style, quiet zone, logo) because it copies the already-rendered canvas — no second render path, no new encoding logic. Header comment updated to list copy-PNG-to-clipboard. Closes the copy-to-clipboard backlog item — The QR Code Generator gates 'Copy to clipboard' behind a $5/mo paid plan and Copyber offers it free; we had download-only. Pure DOM + Clipboard API; no new deps, no change to QR encoding/export/style/logo/contrast paths. npm test (10+8+1 passing) + npm run build pass; verified copyPng (3 refs) in dist/assets/qr.js and id=\"copyPng\" in dist/qr-code-generator/index.html. dist gitignored, rebuilt at deploy.",
+      "commit": "0bc8e03"
+    },
     {
       "date": "2026-06-16",
       "tool": "invoice-generator",
@@ -246,7 +253,7 @@
     "qr-code-generator": [
       "More payload types — Location (geo URI) SHIPPED 2026-06-16. Remaining easy wins, each a single buildPayload() branch + data-group block: WhatsApp (https://wa.me/<number>?text=), calendar event (BEGIN:VEVENT iCal/vEvent block), crypto (bitcoin:<address>?amount=), PayPal (https://www.paypal.com/paypalme/<user>). RADAAR/ME-QR/QR Code Factory ship these. Pick one per micro-commit.",
       "Distinct finder-pattern (eye) styling — QR Tiger / ME-QR style the three corner eyes separately from the body (square frame + round center, or rounded frame). Medium: detect the 7x7 finder regions and draw their frame/center with a separate shape, optionally a separate eye colour. Builds on the body-style work already shipped.",
-      "Copy-to-clipboard button for the PNG — Canvas.toBlob -> navigator.clipboard.write(ClipboardItem). Tiny; competitors offer a one-click copy beside download.",
+      "Copy-to-clipboard button for the PNG — SHIPPED 2026-06-16 (#copyPng button: copyPng() re-encodes the live canvas via toBlob and navigator.clipboard.write([ClipboardItem]); capability-gated with a Download-PNG fallback hint; success/failure reported on the status line).",
       "Gradient foreground (linear/radial two-colour) — QR Tiger/ME-QR offer gradient module fills; small-medium: a second colour input + a canvas gradient fillStyle and an SVG <linearGradient> def. Keep a contrast guard against the lighter stop.",
       "Logo size slider (10-25%) — let users tune LOGO_FRACTION; currently fixed at 20%. Tiny once the logo overlay exists, but only worth it if users ask.",
       "Batch/bulk generation from a pasted list of URLs (QR Tiger bulk) — too large for a micro-commit; needs a textarea-to-N-codes UI + zip download."
