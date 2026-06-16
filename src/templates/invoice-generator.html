@@ -64,6 +64,20 @@ City, ST 00000</textarea></div>
         </div>
         <div class="field inline">
           <span><label for="invDate">Date</label><input id="invDate" type="date"></span>
+          <span><label for="paymentTerms">Payment terms</label>
+            <select id="paymentTerms">
+              <option value="">Custom</option>
+              <option value="0">Due on receipt</option>
+              <option value="7">Net 7</option>
+              <option value="14">Net 14</option>
+              <option value="15">Net 15</option>
+              <option value="30" selected>Net 30</option>
+              <option value="60">Net 60</option>
+              <option value="90">Net 90</option>
+            </select>
+          </span>
+        </div>
+        <div class="field inline">
           <span><label for="dueDate">Due date</label><input id="dueDate" type="date"></span>
         </div>
 

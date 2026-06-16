@@ -96,6 +96,29 @@ function totals(items) {
   return { subtotal, taxRate, tax, discount, discountType, discountInput, shipping, total, amountPaid, balanceDue };
 }
 
+// --- payment terms -----------------------------------------------------------
+// A preset term auto-fills the due date as invoice date + N days; choosing
+// "Custom" (value '') leaves the due date for the user to set by hand.
+function termLabel() {
+  const sel = $('paymentTerms');
+  if (!sel || sel.value === '') return '';
+  const opt = sel.options[sel.selectedIndex];
+  return opt ? opt.text : '';
+}
+
+// Recompute the due date from the active term + invoice date. No-op for Custom.
+function applyTerms() {
+  const sel = $('paymentTerms');
+  if (!sel || sel.value === '') return;
+  const days = parseInt(sel.value, 10);
+  const base = $('invDate').value;
+  if (!Number.isFinite(days) || !base) return;
+  const d = new Date(base + 'T00:00:00');
+  if (isNaN(d)) return;
+  d.setDate(d.getDate() + days);
+  $('dueDate').value = d.toISOString().slice(0, 10);
+}
+
 function readModel() {
   const items = readItems();
   return {
@@ -104,6 +127,7 @@ function readModel() {
     invNo: $('invNo').value,
     date: $('invDate').value,
     due: $('dueDate').value,
+    terms: termLabel(),
     notes: $('notes').value,
     items,
     t: totals(items)
@@ -132,7 +156,9 @@ function render() {
     `<div class="pv-parties"><div><div class="lbl">Bill to</div><strong>${esc(m.cli.name)}</strong>` +
     `<div class="pv-meta">${esc(m.cli.details)}</div></div>` +
     `<div style="text-align:right"><div class="lbl">Date</div>${esc(m.date) || '—'}` +
-    `<div class="lbl" style="margin-top:6px">Due</div>${esc(m.due) || '—'}</div></div>` +
+    `<div class="lbl" style="margin-top:6px">Due</div>${esc(m.due) || '—'}` +
+    (m.terms ? `<div class="pv-meta" style="margin-top:2px">${esc(m.terms)}</div>` : '') +
+    `</div></div>` +
     `<table><thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead>` +
     `<tbody>${rows}</tbody></table>` +
     `<div class="pv-totals">` +
@@ -160,7 +186,7 @@ function esc(s) {
 // --- autosave (localStorage, stays in browser) -------------------------------
 const STORE_KEY = 'tb.invoice.v1';
 const FIELD_IDS = ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'invNo', 'currency',
-  'invDate', 'dueDate', 'taxRate', 'discount', 'discountType', 'shipping', 'amountPaid', 'brandColor', 'notes'];
+  'invDate', 'paymentTerms', 'dueDate', 'taxRate', 'discount', 'discountType', 'shipping', 'amountPaid', 'brandColor', 'notes'];
 let restoring = false;
 
 function saveState() {
@@ -237,6 +263,11 @@ function downloadPdf() {
   doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(90);
   doc.text(m.date || '—', W - M - 120, y);
   doc.text(m.due || '—', W - M, y, { align: 'right' });
+  if (m.terms) {
+    doc.setFontSize(9).setTextColor(130);
+    doc.text(m.terms, W - M, y + 12, { align: 'right' });
+    doc.setFontSize(10).setTextColor(90);
+  }
   y += 12;
   doc.text(doc.splitTextToSize(m.cli.details || '', 240), M, y);
   y += Math.max(doc.splitTextToSize(m.cli.details || '', 240).length * 12, 12) + 18;
@@ -372,7 +403,8 @@ function resetForm() {
   $('brandColor').value = DEFAULT_BRAND;
   $('notes').value = 'Payment due within 30 days. Thank you for your business.';
   $('invDate').value = isoToday(0);
-  $('dueDate').value = isoToday(30);
+  if ($('paymentTerms')) $('paymentTerms').value = '30';
+  applyTerms(); // due date = invoice date + Net 30
   render();
 }
 
@@ -385,9 +417,14 @@ function init() {
   }
 
   $('addItem').addEventListener('click', () => { items.appendChild(itemRow()); render(); });
-  ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'invNo', 'currency', 'invDate', 'dueDate', 'taxRate', 'discount', 'discountType', 'shipping', 'amountPaid', 'brandColor', 'notes']
+  ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'invNo', 'currency', 'taxRate', 'discount', 'discountType', 'shipping', 'amountPaid', 'brandColor', 'notes']
     .forEach((id) => $(id).addEventListener('input', render));
   $('discountType').addEventListener('change', render);
+  // Payment terms: a preset auto-fills the due date from the invoice date.
+  $('paymentTerms').addEventListener('change', () => { applyTerms(); render(); });
+  $('invDate').addEventListener('input', () => { applyTerms(); render(); });
+  // Editing the due date by hand switches terms to "Custom" so it isn't overwritten.
+  $('dueDate').addEventListener('input', () => { $('paymentTerms').value = ''; render(); });
   $('resetBrand').addEventListener('click', () => { $('brandColor').value = DEFAULT_BRAND; render(); });
   $('downloadPdf').addEventListener('click', downloadPdf);
   $('clearInvoice').addEventListener('click', () => {
