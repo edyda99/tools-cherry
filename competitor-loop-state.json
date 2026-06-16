@@ -8,7 +8,7 @@
       "tool": "passport-photo-maker",
       "competitors": ["pixconvert.com", "makepassportphoto.com", "cutout.pro", "passportphotosnap.com"],
       "shipped": "Selectable print-sheet size (4×6 in / 5×7 in / A4). Added a 'sizes' array to photo-specs.json printSheet (standard physical paper dims @300DPI: 4x6=1200×1800, 5x7=1500×2100, A4=2480×3508 — NOT country biometric specs, so no data-sourcing conflict), a sheetSize <select> in the template, and selector wiring in photo-maker.js (sheetSpec tracks the choice; downloadSheet tiles onto the chosen sheet; filename + status use the size id/label; falls back to the legacy single 4×6 when no sizes array). The generic cols/rows tiling already handled arbitrary sheet dimensions. Closes the paper-size-selector gap every competitor (PixConvert, MakePassportPhoto, Cutout.Pro, Passport Photo Snap) offers — we hardcoded 4×6. No new deps; PNG/JPG format selector unchanged.",
-      "commit": "ea71e8b"
+      "commit": "63b24e1"
     },
     {
       "date": "2026-06-16",
