@@ -6,9 +6,21 @@
     "crop-image-into-circle",
     "passport-photo-maker"
   ],
-  "lastTool": "passport-photo-maker",
-  "iteration": 40,
+  "lastTool": "invoice-generator",
+  "iteration": 41,
   "history": [
+    {
+      "date": "2026-06-16",
+      "tool": "invoice-generator",
+      "competitors": [
+        "billdu.com/free-invoice-generator",
+        "zoho.com/us/invoice/kb/templates/add-signature-to-template.html",
+        "support.2go.com (Invoice2go signature line)",
+        "method.me (QuickBooks signature line)"
+      ],
+      "shipped": "Optional authorized-signature line in the PDF footer (top remaining invoice backlog item). Template: a new 'Add an authorized-signature line to the PDF' checkbox (#showSignature, style width:auto;margin-right:6px so the .field input 100% width rule doesn't stretch it; label-wrapped like the circle-crop checkboxes) placed under the Notes textarea inside #invForm. invoice.js: readModel() now exposes m.signature = !!($('showSignature').checked). downloadPdf() footer block (after notes): when m.signature, computes ruleY = max(y+50, pageHeight-72) so the block sits near the page bottom but never overlaps content, adds a page first if y > H-110; draws TWO grey (setDrawColor 120, lineWidth 0.75) rules — a 200pt signature rule at M and a 110pt date rule at dateX = M+sigW+30 — then a 9pt grey 'Authorized signature' label under the first and 'Date' under the second (ruleY+13). The notes block now advances y by nlines*11 (was a no-op) so the signature sits below the notes. Persistence: checkboxes carry .checked not .value, so it is stored/restored SEPARATELY from FIELD_IDS — saveState writes data.signature = checkbox.checked, applyState sets $('showSignature').checked = !!saved.signature (FIELD_IDS untouched). Wired in init() ($('showSignature') change -> render, which calls saveState so the choice persists; the toggle is PDF-only and doesn't change the live preview). resetForm() sets it to false. WHY: a labelled hand-sign-off line is a standard competitor feature — Billdu lets you 'add your company logo and signature'; Zoho/Invoice2go/QuickBooks all add an 'Authorized signature' line (the default label) with an adjacent Date in the footer. We had logo + notes but no sign-off rule. Distinct from the already-shipped PO number, payment-terms, amount-paid/PAID marker. Pure DOM + jsPDF line()/text() drawing; no totals-math change; jsPDF already vendored; no new deps. npm test (10+8+1 passing) + npm run build (33 states + home + 4 content pages) pass; verified 'Authorized signature'/m.signature/showSignature (7 refs) in dist/assets/invoice.js and id=\"showSignature\" in dist/invoice-generator/index.html. dist gitignored, rebuilt at deploy. gsc-index-progress.json was pre-existing untracked and left out of the commit.",
+      "commit": "5a8314eece12407e96e877fd526bd039e8055051"
+    },
     {
       "date": "2026-06-16",
       "tool": "crop-image-into-circle",
@@ -472,11 +484,11 @@
   ],
   "backlog": {
     "invoice-generator": [
-      "Duplicate / next invoice — SHIPPED 2026-06-16 (#nextInvoice button: nextInvoiceNo auto-increments the trailing zero-padded number, keeps sender/client/branding, clears line items + amount paid, re-derives the due date). Possible follow-on: a date-based numbering preset (INV-YYYYMM-001) like InvoiceQuickly, only if users ask.",
-      "Per-line-item tax toggle / tax-exempt lines (Invoice-Generator.com, Zoho) — shipping is already untaxed; this would let individual goods lines opt out of tax",
-      "Signature line in the PDF footer (BoldSign/SmoothLedger) — a labelled rule for a handwritten sign-off",
-      "Extend brand color to the table-header underline + BILL TO/DATE labels for fuller theming",
-      "CSV/JSON export+import of the invoice data (round-trip the form to a file) — medium: serialize the existing model + a file picker to reload it"
+      "Signature line in the PDF footer — SHIPPED 2026-06-16 (#showSignature checkbox -> downloadPdf draws an 'Authorized signature' rule + a 'Date' rule near the page bottom; persisted separately from FIELD_IDS since it's a checkbox). Possible follow-on: let the user type a printed name under the signature rule, only if asked.",
+      "Per-line-item tax toggle / tax-exempt lines (Invoice-Generator.com, Zoho) — shipping is already untaxed; this would let individual goods lines opt out of tax. Medium: a per-row checkbox + totals() summing only taxable lines.",
+      "Extend brand color to the table-header underline + BILL TO/DATE labels for fuller theming — small, cosmetic.",
+      "CSV/JSON export+import of the invoice data (round-trip the form to a file) — medium: serialize the existing model + a file picker to reload it.",
+      "Date-based numbering preset (INV-YYYYMM-001) like InvoiceQuickly for the next-invoice flow — small, only if users ask."
     ],
     "qr-code-generator": [
       "More payload types — Location (geo URI) SHIPPED 2026-06-16; WhatsApp (https://wa.me/<number>?text=) SHIPPED 2026-06-16. Remaining easy wins, each a single buildPayload() branch + data-group block: calendar event (BEGIN:VEVENT iCal/vEvent block), crypto (bitcoin:<address>?amount=), PayPal (https://www.paypal.com/paypalme/<user>). RADAAR/ME-QR/QR Code Factory ship these. Pick one per micro-commit.",
