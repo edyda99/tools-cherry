@@ -238,6 +238,7 @@ async function main() {
   const photoTpl = await read(join(SRC, 'templates', 'passport-photo-maker.html'));
   const ageTpl = await read(join(SRC, 'templates', 'age-calculator.html'));
   const tipTpl = await read(join(SRC, 'templates', 'tip-calculator.html'));
+  const wordCounterTpl = await read(join(SRC, 'templates', 'word-counter.html'));
   const photoSpecs = await readJSON(join(SRC, 'data', 'photo-specs.json'));
   const year = String(taxData.taxYear);
   const verified = (taxData._meta && taxData._meta.lastSourced) || '';
@@ -268,9 +269,11 @@ async function main() {
   await cp(join(SRC, 'assets', 'photo-maker.js'), join(DIST, 'assets', 'photo-maker.js'));
   await cp(join(SRC, 'assets', 'age.js'), join(DIST, 'assets', 'age.js'));
   await cp(join(SRC, 'assets', 'tip.js'), join(DIST, 'assets', 'tip.js'));
+  await cp(join(SRC, 'assets', 'word-counter.js'), join(DIST, 'assets', 'word-counter.js'));
   await cp(join(SRC, 'engine', 'paycheck-engine.js'), join(DIST, 'assets', 'paycheck-engine.js'));
   await cp(join(SRC, 'engine', 'age-math.js'), join(DIST, 'assets', 'age-math.js'));
   await cp(join(SRC, 'engine', 'tip-math.js'), join(DIST, 'assets', 'tip-math.js'));
+  await cp(join(SRC, 'engine', 'text-stats.js'), join(DIST, 'assets', 'text-stats.js'));
   await cp(join(SRC, 'engine', 'canvas-math.js'), join(DIST, 'assets', 'canvas-math.js'));
   await cp(join(SRC, 'engine', 'canvas-editor.js'), join(DIST, 'assets', 'canvas-editor.js'));
 
@@ -378,6 +381,14 @@ async function main() {
     fill(tipTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url })
   );
   urls.push(`${SITE.url}/tip-calculator/`);
+
+  // word & character counter (live text analysis via the pure text-stats engine)
+  await mkdir(join(DIST, 'word-counter'), { recursive: true });
+  await writeFile(
+    join(DIST, 'word-counter', 'index.html'),
+    fill(wordCounterTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url })
+  );
+  urls.push(`${SITE.url}/word-counter/`);
 
   // public machine-readable copy of the live tax data (for the drift monitor +
   // transparency). Always reflects the deployed figures — single source of truth.
