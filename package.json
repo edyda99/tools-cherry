@@ -6,7 +6,7 @@
   "description": "Portfolio of free client-side web utilities. Tool #1: state paycheck calculators.",
   "scripts": {
     "build": "node build.js",
-    "test": "node scripts/test-engine.js && node scripts/test-canvas.js && node scripts/test-age.js && node scripts/test-tip.js && node scripts/test-text-stats.js && node scripts/test-password.js && node scripts/check-freshness.js",
+    "test": "node scripts/test-engine.js && node scripts/test-canvas.js && node scripts/test-age.js && node scripts/test-tip.js && node scripts/test-text-stats.js && node scripts/test-password.js && node scripts/test-percent.js && node scripts/check-freshness.js",
     "dev": "npm run build && npx --yes serve dist",
     "deploy": "npm run build && npx --yes wrangler pages deploy dist --project-name=tools-cherry"
   }

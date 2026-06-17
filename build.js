@@ -240,6 +240,7 @@ async function main() {
   const tipTpl = await read(join(SRC, 'templates', 'tip-calculator.html'));
   const wordCounterTpl = await read(join(SRC, 'templates', 'word-counter.html'));
   const passwordTpl = await read(join(SRC, 'templates', 'password-generator.html'));
+  const percentTpl = await read(join(SRC, 'templates', 'percentage-calculator.html'));
   const photoSpecs = await readJSON(join(SRC, 'data', 'photo-specs.json'));
   const year = String(taxData.taxYear);
   const verified = (taxData._meta && taxData._meta.lastSourced) || '';
@@ -272,11 +273,13 @@ async function main() {
   await cp(join(SRC, 'assets', 'tip.js'), join(DIST, 'assets', 'tip.js'));
   await cp(join(SRC, 'assets', 'word-counter.js'), join(DIST, 'assets', 'word-counter.js'));
   await cp(join(SRC, 'assets', 'password.js'), join(DIST, 'assets', 'password.js'));
+  await cp(join(SRC, 'assets', 'percent.js'), join(DIST, 'assets', 'percent.js'));
   await cp(join(SRC, 'engine', 'paycheck-engine.js'), join(DIST, 'assets', 'paycheck-engine.js'));
   await cp(join(SRC, 'engine', 'age-math.js'), join(DIST, 'assets', 'age-math.js'));
   await cp(join(SRC, 'engine', 'tip-math.js'), join(DIST, 'assets', 'tip-math.js'));
   await cp(join(SRC, 'engine', 'text-stats.js'), join(DIST, 'assets', 'text-stats.js'));
   await cp(join(SRC, 'engine', 'password-gen.js'), join(DIST, 'assets', 'password-gen.js'));
+  await cp(join(SRC, 'engine', 'percent-math.js'), join(DIST, 'assets', 'percent-math.js'));
   await cp(join(SRC, 'engine', 'canvas-math.js'), join(DIST, 'assets', 'canvas-math.js'));
   await cp(join(SRC, 'engine', 'canvas-editor.js'), join(DIST, 'assets', 'canvas-editor.js'));
 
@@ -400,6 +403,14 @@ async function main() {
     fill(passwordTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url })
   );
   urls.push(`${SITE.url}/password-generator/`);
+
+  // percentage calculator (three modes via the pure percent-math engine)
+  await mkdir(join(DIST, 'percentage-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'percentage-calculator', 'index.html'),
+    fill(percentTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url })
+  );
+  urls.push(`${SITE.url}/percentage-calculator/`);
 
   // public machine-readable copy of the live tax data (for the drift monitor +
   // transparency). Always reflects the deployed figures — single source of truth.

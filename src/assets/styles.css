@@ -561,6 +561,10 @@ footer.site a:hover { color: var(--text); }
 .limit-near { color: #b8860b; font-weight: 600; }
 .limit-over { color: var(--danger); font-weight: 600; }
 
+/* Percentage calculator */
+.field .inline > span.muted-small { flex: 0 0 auto; align-self: center; white-space: nowrap; margin: 0; min-height: 0; }
+.result-line { margin: 12px 0 0; font-size: 1.15rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
