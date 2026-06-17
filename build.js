@@ -188,6 +188,33 @@ function faqJsonLd(state, year) {
   });
 }
 
+// State-only structured data: a WebApplication describing the calculator plus a
+// BreadcrumbList (Home › <State> Paycheck Calculator). Decoupled from any tool
+// infrastructure — derives entirely from the state name/slug/year and SITE.
+function appJsonLd(state, slug, year) {
+  const url = `${SITE.url}/${slug}-paycheck-calculator/`;
+  return JSON.stringify([
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: `${state.name} Paycheck Calculator ${year}`,
+      url,
+      applicationCategory: 'FinanceApplication',
+      operatingSystem: 'Any',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      description: `Estimate your ${year} ${state.name} take-home pay after federal tax, Social Security, Medicare${state.hasIncomeTax ? `, and ${state.name} state income tax` : ' (no state income tax)'}.`
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: SITE.name, item: `${SITE.url}/` },
+        { '@type': 'ListItem', position: 2, name: `${state.name} Paycheck Calculator`, item: url }
+      ]
+    }
+  ]);
+}
+
 function stateLinks(roster, builtSlugs, year) {
   return roster
     .map((s) => {
@@ -210,6 +237,7 @@ async function main() {
   const circleTpl = await read(join(SRC, 'templates', 'circle-crop.html'));
   const photoTpl = await read(join(SRC, 'templates', 'passport-photo-maker.html'));
   const ageTpl = await read(join(SRC, 'templates', 'age-calculator.html'));
+  const tipTpl = await read(join(SRC, 'templates', 'tip-calculator.html'));
   const photoSpecs = await readJSON(join(SRC, 'data', 'photo-specs.json'));
   const year = String(taxData.taxYear);
   const verified = (taxData._meta && taxData._meta.lastSourced) || '';
@@ -239,8 +267,10 @@ async function main() {
   await cp(join(SRC, 'assets', 'circle-crop.js'), join(DIST, 'assets', 'circle-crop.js'));
   await cp(join(SRC, 'assets', 'photo-maker.js'), join(DIST, 'assets', 'photo-maker.js'));
   await cp(join(SRC, 'assets', 'age.js'), join(DIST, 'assets', 'age.js'));
+  await cp(join(SRC, 'assets', 'tip.js'), join(DIST, 'assets', 'tip.js'));
   await cp(join(SRC, 'engine', 'paycheck-engine.js'), join(DIST, 'assets', 'paycheck-engine.js'));
   await cp(join(SRC, 'engine', 'age-math.js'), join(DIST, 'assets', 'age-math.js'));
+  await cp(join(SRC, 'engine', 'tip-math.js'), join(DIST, 'assets', 'tip-math.js'));
   await cp(join(SRC, 'engine', 'canvas-math.js'), join(DIST, 'assets', 'canvas-math.js'));
   await cp(join(SRC, 'engine', 'canvas-editor.js'), join(DIST, 'assets', 'canvas-editor.js'));
 
@@ -259,6 +289,7 @@ async function main() {
       STATE_BODY: stateBody(state, year, taxData),
       STATE_LINKS: links,
       FAQ_JSONLD: faqJsonLd(state, year),
+      APP_JSONLD: appJsonLd(state, slug, year),
       TAX_DATA_JSON: JSON.stringify(payload),
       YEAR: year,
       VERIFIED: verified,
@@ -339,6 +370,14 @@ async function main() {
     fill(ageTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url })
   );
   urls.push(`${SITE.url}/age-calculator/`);
+
+  // tip calculator (bill/tip/split math via the pure tip-math engine)
+  await mkdir(join(DIST, 'tip-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'tip-calculator', 'index.html'),
+    fill(tipTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url })
+  );
+  urls.push(`${SITE.url}/tip-calculator/`);
 
   // public machine-readable copy of the live tax data (for the drift monitor +
   // transparency). Always reflects the deployed figures — single source of truth.
