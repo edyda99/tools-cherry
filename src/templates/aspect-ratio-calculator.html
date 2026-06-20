@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Aspect Ratio Calculator — Simplify & Resize Width × Height</title>
+<meta name="description" content="Free aspect ratio calculator. Simplify any width × height into its ratio (like 1920×1080 → 16:9), or lock a ratio and resize: change the width and the height recalculates to keep the proportions. Instant results, no signup.">
+<link rel="canonical" href="{{SITE_URL}}/aspect-ratio-calculator/">
+<meta property="og:title" content="Aspect Ratio Calculator">
+<meta property="og:description" content="Simplify a width × height into its ratio, or resize while keeping the same proportions — instant results in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Aspect Ratio Calculator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Simplify any width and height into its aspect ratio, or lock a ratio and resize so the other dimension recalculates to keep the same proportions."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is an aspect ratio?","acceptedAnswer":{"@type":"Answer","text":"An aspect ratio is the proportional relationship between width and height, written as two numbers like 16:9 or 4:3. It describes the shape of an image, video, or screen independent of its actual pixel size."}},{"@type":"Question","name":"How do I work out the aspect ratio of an image?","acceptedAnswer":{"@type":"Answer","text":"Divide the width and height by their greatest common divisor. For example 1920×1080 both divide by 120, giving 16:9. This calculator does that reduction for you when you type in any width and height."}},{"@type":"Question","name":"How do I resize an image without distorting it?","acceptedAnswer":{"@type":"Answer","text":"Keep the same aspect ratio. Lock a ratio (such as 16:9), enter your new width, and the calculator gives the matching height that preserves the proportions so the image is not stretched or squashed."}},{"@type":"Question","name":"What is 16:9 in pixels?","acceptedAnswer":{"@type":"Answer","text":"16:9 is a shape, not a fixed size, so it has no single pixel value. Common 16:9 resolutions include 1280×720, 1920×1080 (Full HD), and 3840×2160 (4K). Enter a width with the 16:9 ratio locked to get the exact height."}},{"@type":"Question","name":"What are common aspect ratios?","acceptedAnswer":{"@type":"Answer","text":"16:9 is standard for widescreen video and most screens, 4:3 is older displays and many photos, 1:1 is square (common on social media), 3:2 is many cameras, and 21:9 is ultrawide cinema."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Aspect Ratio Calculator</h1>
+    <p class="lede">Turn any width × height into its simplest ratio, or lock a ratio and resize so the other dimension follows automatically and your image, video, or layout keeps its proportions. Results update as you type, and nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Simplify a size into its aspect ratio">
+      <h2>Find the ratio of a size</h2>
+      <form id="simplifyForm" autocomplete="off" onsubmit="return false">
+        <div class="field inline">
+          <span><label for="simW">Width</label><input id="simW" type="number" inputmode="decimal" step="any" min="0" value="1920" placeholder="1920"></span>
+          <span><label for="simH">Height</label><input id="simH" type="number" inputmode="decimal" step="any" min="0" value="1080" placeholder="1080"></span>
+        </div>
+      </form>
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="simOut">—</p>
+        <p class="net-sub" id="simSub">Enter a width and height to see the ratio.</p>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="calc" aria-label="Resize while keeping the aspect ratio">
+      <h2>Resize at a fixed ratio</h2>
+      <form id="resizeForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="ratioPreset">Aspect ratio</label>
+          <select id="ratioPreset">
+            <option value="16:9">16:9 — widescreen / HD video</option>
+            <option value="4:3">4:3 — classic display / photo</option>
+            <option value="1:1">1:1 — square</option>
+            <option value="3:2">3:2 — many cameras</option>
+            <option value="21:9">21:9 — ultrawide / cinema</option>
+            <option value="9:16">9:16 — vertical / stories</option>
+            <option value="2:1">2:1 — panorama</option>
+            <option value="custom">Custom…</option>
+          </select>
+        </div>
+        <div class="field inline" id="customRatio" hidden>
+          <span><label for="ratioW">Ratio width</label><input id="ratioW" type="number" inputmode="decimal" step="any" min="0" value="16" placeholder="16"></span>
+          <span><label for="ratioH">Ratio height</label><input id="ratioH" type="number" inputmode="decimal" step="any" min="0" value="9" placeholder="9"></span>
+        </div>
+        <div class="field inline">
+          <span><label for="outW">New width</label><input id="outW" type="number" inputmode="decimal" step="any" min="0" value="1280" placeholder="1280"></span>
+          <span><label for="outH">New height</label><input id="outH" type="number" inputmode="decimal" step="any" min="0" placeholder="720"></span>
+        </div>
+      </form>
+      <p class="net-sub" id="resizeError" role="alert"></p>
+      <p class="note">Edit either the width or the height — the other side updates to keep the selected ratio.</p>
+    </section>
+
+    <section class="prose">
+      <h2>How to use the aspect ratio calculator</h2>
+      <p>There are two tools on this page. Use the first when you have a size and want to know its ratio, and the second when you have a ratio and want a matching size.</p>
+      <p><strong>Find the ratio of a size.</strong> Type a width and height — say 1920 and 1080 — and you'll see the simplified ratio (16:9) instantly. It works for any units: pixels, millimetres, or arbitrary numbers.</p>
+      <p><strong>Resize at a fixed ratio.</strong> Pick a ratio (or choose Custom and type your own), then enter a new width <em>or</em> a new height. The other dimension fills in automatically so the proportions never change and nothing gets stretched.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common aspect ratios</h2>
+      <ul>
+        <li><strong>16:9</strong> — widescreen video, YouTube, and most TVs, monitors, and phones in landscape. Examples: 1280×720, 1920×1080, 3840×2160.</li>
+        <li><strong>4:3</strong> — older displays, many tablets, and a lot of point-and-shoot photos. Examples: 800×600, 1024×768.</li>
+        <li><strong>1:1</strong> — square, common for profile pictures and many social posts.</li>
+        <li><strong>3:2</strong> — the native ratio of many digital cameras and 35mm film.</li>
+        <li><strong>21:9</strong> — ultrawide monitors and cinematic video.</li>
+        <li><strong>9:16</strong> — vertical video for stories, reels, and shorts.</li>
+      </ul>
+
+      <h2>Aspect ratio questions</h2>
+      <p><strong>What is an aspect ratio?</strong> It's the proportional relationship between width and height, written like 16:9. It describes shape, not size, so the same ratio covers many different pixel dimensions.</p>
+      <p><strong>How do I work out the aspect ratio of an image?</strong> Divide the width and height by their greatest common divisor. 1920 and 1080 both divide by 120, which gives 16:9. The first tool above does this for you.</p>
+      <p><strong>How do I resize without distorting?</strong> Keep the same ratio. Lock the ratio, enter the new width, and use the height the calculator gives you so the image isn't stretched.</p>
+      <p><strong>What is 16:9 in pixels?</strong> 16:9 is a shape, not a fixed size. Common 16:9 sizes are 1280×720, 1920×1080, and 3840×2160. Enter a width with 16:9 locked to get the exact matching height.</p>
+      <p class="note">This calculator is a general tool for screen, photo, and video sizing — there's no rounding beyond two decimal places on the resized dimension.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/aspect-ratio-calculator.js"></script>
+</body>
+</html>

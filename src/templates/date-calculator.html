@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Date Calculator — Add or Subtract Days, Weeks, Months &amp; Years</title>
+<meta name="description" content="Free date calculator. Add or subtract days, weeks, months, or years from any date to find a future or past date — like 90 days from today or 6 weeks from now. Instant, private, in your browser.">
+<link rel="canonical" href="{{SITE_URL}}/date-calculator/">
+<meta property="og:title" content="Date Calculator">
+<meta property="og:description" content="Add or subtract days, weeks, months, or years from a date to find a future or past date. Free and private.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Date Calculator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Add or subtract days, weeks, months, and years from a date to find a future or past date, with the resulting weekday and the number of days from today."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I find a date 90 days from today?","acceptedAnswer":{"@type":"Answer","text":"Leave the start date on today, choose Add, enter 90 in the Days field (or tap the 90 days preset), and the calculator shows the resulting date and weekday instantly."}},{"@type":"Question","name":"How do I subtract days from a date?","acceptedAnswer":{"@type":"Answer","text":"Pick your start date, choose Subtract, and enter how many days, weeks, months, or years to go back. The earlier date appears as you type."}},{"@type":"Question","name":"How does the calculator handle adding months to the end of a month?","acceptedAnswer":{"@type":"Answer","text":"Months and years are added first and the day is clamped to the target month's length. So January 31 plus one month becomes February 28 (or February 29 in a leap year), then any extra days are added on top."}},{"@type":"Question","name":"Does it count business days or every day?","acceptedAnswer":{"@type":"Answer","text":"This calculator counts every calendar day, including weekends and holidays. For weekday-only counts, use a separate business-days tool."}},{"@type":"Question","name":"Is my input private?","acceptedAnswer":{"@type":"Answer","text":"Yes. Everything runs in your browser. The dates and numbers you enter stay on your device and are never sent anywhere."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Date Calculator</h1>
+    <p class="lede">Add or subtract days, weeks, months, or years from any date to find a future or past date. Results update as you type — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Date calculator">
+      <form id="dateForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="startDate">Start date</label>
+          <input id="startDate" type="date">
+          <div class="presets" role="group" aria-label="Start date shortcut">
+            <button type="button" class="btn-secondary" id="todayBtn">Today</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="label">Direction</span>
+          <div class="presets" role="radiogroup" aria-label="Add or subtract">
+            <label><input type="radio" name="direction" value="add" checked> Add</label>
+            <label><input type="radio" name="direction" value="subtract"> Subtract</label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="days">Days</label>
+          <input id="days" type="number" inputmode="numeric" step="1" value="90" placeholder="0">
+          <div class="presets" role="group" aria-label="Quick day presets">
+            <button type="button" class="btn-secondary" data-days="7">7 days</button>
+            <button type="button" class="btn-secondary" data-days="30">30 days</button>
+            <button type="button" class="btn-secondary" data-days="60">60 days</button>
+            <button type="button" class="btn-secondary" data-days="90">90 days</button>
+            <button type="button" class="btn-secondary" data-days="180">180 days</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="weeks">Weeks</label>
+          <input id="weeks" type="number" inputmode="numeric" step="1" placeholder="0">
+        </div>
+
+        <div class="field">
+          <label for="months">Months</label>
+          <input id="months" type="number" inputmode="numeric" step="1" placeholder="0">
+        </div>
+
+        <div class="field">
+          <label for="years">Years</label>
+          <input id="years" type="number" inputmode="numeric" step="1" placeholder="0">
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="resultBig">—</p>
+        <p class="net-sub" id="resultSub"></p>
+        <div class="line" id="lineDelta" hidden><span class="lbl">From today</span><span id="lineDeltaV"></span></div>
+      </div>
+    </section>
+
+    <p class="note">Your input stays in your browser — nothing is sent anywhere.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the date calculator</h2>
+      <p>Pick a start date (it defaults to today), choose <strong>Add</strong> or <strong>Subtract</strong>, then enter how many days, weeks, months, or years to move. The resulting date — with its weekday — appears instantly, along with how many days it is from today. There's no button to press and nothing leaves your device.</p>
+      <p><strong>Days from today.</strong> To answer questions like "what date is 90 days from today?", leave the start date on today, keep Add selected, and tap the 90 days preset. You'll see the exact date and which day of the week it falls on.</p>
+      <p><strong>Mixing units.</strong> You can combine fields — for example add 1 year, 2 months, and 10 days at once. Years and months are applied first, then weeks and days are added on top.</p>
+      <p><strong>End-of-month handling.</strong> When adding months lands on a day that doesn't exist (like January 31 plus one month), the date is clamped to the last day of the target month — February 28, or February 29 in a leap year.</p>
+      <p class="note">Everything runs in your browser — the dates you enter are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>How do I find a date 90 days from today?</strong> Leave the start date on today, choose Add, and enter 90 in the Days field (or tap the 90 days preset). The resulting date and weekday appear right away.</p>
+      <p><strong>How do I subtract days from a date?</strong> Pick your start date, choose Subtract, and enter how many days, weeks, months, or years to go back. The earlier date appears as you type.</p>
+      <p><strong>How are months handled at the end of a month?</strong> Months and years are added first, with the day clamped to the target month's length. So January 31 plus one month becomes February 28 (or February 29 in a leap year), and any extra days are added after that.</p>
+      <p><strong>Does it count weekends and holidays?</strong> Yes — this calculator counts every calendar day. It does not skip weekends or holidays.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your input never leaves your browser and nothing is stored.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/date-calculator.js"></script>
+</body>
+</html>

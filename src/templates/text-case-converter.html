@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Text Case Converter — UPPERCASE, lowercase, Title Case, Sentence Case</title>
+<meta name="description" content="Free text case converter. Paste text and switch instantly between UPPERCASE, lowercase, Title Case, Sentence case, camelCase, snake_case, kebab-case and more. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/text-case-converter/">
+<meta property="og:title" content="Text Case Converter">
+<meta property="og:description" content="Convert text to UPPERCASE, lowercase, Title Case, Sentence case, camelCase and more. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Text Case Converter","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Convert text between UPPERCASE, lowercase, Title Case, Sentence case, camelCase, snake_case, kebab-case and other cases instantly in your browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is the difference between Title Case and Sentence case?","acceptedAnswer":{"@type":"Answer","text":"Title Case capitalizes the first letter of each significant word, the way a headline or book title is written, while small words like 'and', 'of' and 'the' stay lowercase. Sentence case capitalizes only the first letter of each sentence, like normal prose."}},{"@type":"Question","name":"What is camelCase, snake_case and kebab-case?","acceptedAnswer":{"@type":"Answer","text":"These are programmer naming styles. camelCase joins words with no spaces and capitalizes each word after the first (myVariableName). snake_case joins lowercase words with underscores (my_variable_name). kebab-case joins lowercase words with hyphens (my-variable-name)."}},{"@type":"Question","name":"Does converting case change the spacing of my text?","acceptedAnswer":{"@type":"Answer","text":"For UPPERCASE, lowercase, Title Case, Sentence case and capitalize, your original spacing and line breaks are preserved. The programmer styles (camel, snake, kebab) intentionally remove spaces because those formats do not use them."}},{"@type":"Question","name":"Is my text private?","acceptedAnswer":{"@type":"Answer","text":"Yes. Everything runs in your browser. The text you type or paste stays on your device and is never sent to any server."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Text Case Converter</h1>
+    <p class="lede">Paste or type your text, then pick a case to convert it instantly. Choose from UPPERCASE, lowercase, Title Case, Sentence case, and programmer styles like camelCase and snake_case. Nothing is uploaded — your text stays in your browser.</p>
+
+    <section class="calc" aria-label="Text case converter">
+      <form id="caseForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="text">Your text</label>
+          <textarea id="text" rows="6" placeholder="Type or paste your text here…" autofocus></textarea>
+        </div>
+
+        <div class="field">
+          <span class="lbl">Convert to</span>
+          <div class="case-buttons">
+            <button type="button" class="btn-secondary" data-case="upper">UPPERCASE</button>
+            <button type="button" class="btn-secondary" data-case="lower">lowercase</button>
+            <button type="button" class="btn-secondary" data-case="capitalize">Capitalize Each Word</button>
+            <button type="button" class="btn-secondary" data-case="title">Title Case</button>
+            <button type="button" class="btn-secondary" data-case="sentence">Sentence case</button>
+            <button type="button" class="btn-secondary" data-case="alternating">aLtErNaTiNg</button>
+            <button type="button" class="btn-secondary" data-case="invert">iNVERT cASE</button>
+            <button type="button" class="btn-secondary" data-case="camel">camelCase</button>
+            <button type="button" class="btn-secondary" data-case="pascal">PascalCase</button>
+            <button type="button" class="btn-secondary" data-case="snake">snake_case</button>
+            <button type="button" class="btn-secondary" data-case="kebab">kebab-case</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="out">Result</label>
+          <textarea id="out" rows="6" readonly placeholder="Your converted text will appear here…"></textarea>
+        </div>
+
+        <div class="btn-row">
+          <button type="button" id="copyBtn" class="btn-primary">Copy result</button>
+          <button type="button" id="clearBtn" class="btn-secondary">Clear</button>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <div class="line"><span class="lbl">Characters</span><span id="charCount">0</span></div>
+        <div class="line"><span class="lbl">Words</span><span id="wordCount">0</span></div>
+      </div>
+    </section>
+
+    <p class="note">Your text stays in your browser — nothing is sent anywhere.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the text case converter</h2>
+      <p>Type directly into the box or paste text from anywhere — a document, a spreadsheet cell, an email, or some code. Then click the case you want and the result appears below, ready to copy.</p>
+      <p><strong>UPPERCASE</strong> turns every letter into a capital, useful for headings or emphasis. <strong>lowercase</strong> does the opposite, handy for cleaning up text that arrived in all caps.</p>
+      <p><strong>Capitalize Each Word</strong> capitalizes the first letter of every word. <strong>Title Case</strong> is the headline style used for titles: it capitalizes significant words but leaves small words like "and", "of", and "the" lowercase, while still capitalizing the first and last word.</p>
+      <p><strong>Sentence case</strong> lowercases the text and then capitalizes the first letter of each sentence — the way ordinary writing looks. <strong>aLtErNaTiNg</strong> and <strong>iNVERT cASE</strong> flip letters for a stylized effect.</p>
+      <p><strong>camelCase</strong>, <strong>PascalCase</strong>, <strong>snake_case</strong>, and <strong>kebab-case</strong> are naming styles used in programming. They remove spaces and join the words using the convention each format expects.</p>
+      <p class="note">Everything runs in your browser — the text you type or paste is never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>Why does camelCase remove my spaces?</strong> The programmer naming styles are designed for identifiers like variable and file names, which can't contain spaces. The converter joins the words for you using each style's separator.</p>
+      <p><strong>Does Title Case capitalize every word?</strong> No. It follows the common headline rule of leaving short joining words lowercase, unless they are the first or last word of the title.</p>
+      <p><strong>Can I undo a conversion?</strong> Your original text stays in the top box, so you can pick another case at any time. The result box updates each time you click a button.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your text never leaves your browser and nothing is stored.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/text-case-converter.js"></script>
+</body>
+</html>

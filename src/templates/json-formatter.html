@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>JSON Formatter &amp; Validator — beautify, minify &amp; check JSON free</title>
+<meta name="description" content="Free online JSON formatter and validator. Beautify, indent, minify and validate JSON instantly with clear error line numbers. Runs in your browser — nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/json-formatter/">
+<meta property="og:title" content="JSON Formatter & Validator">
+<meta property="og:description" content="Beautify, minify and validate JSON instantly, with error line numbers. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"JSON Formatter & Validator","applicationCategory":"DeveloperApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Format, indent, minify and validate JSON instantly with error line numbers. Runs entirely in your browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I format (beautify) JSON?","acceptedAnswer":{"@type":"Answer","text":"Paste your JSON into the box, choose an indent width (2 spaces, 4 spaces or tabs), and press Format. The JSON is re-indented in place so it is easy to read. If the JSON is invalid you get an error message pointing at the line and column."}},{"@type":"Question","name":"What does minify do?","acceptedAnswer":{"@type":"Answer","text":"Minify removes every space, tab and line break that is not part of a string, producing the most compact valid JSON. This is handy for embedding JSON in code or shrinking a payload before sending it."}},{"@type":"Question","name":"How does validation report errors?","acceptedAnswer":{"@type":"Answer","text":"Press Validate (or Format) and, if the JSON is malformed, you get the parser's message plus the line and column where parsing failed — so you can jump straight to a missing comma, bracket or quote."}},{"@type":"Question","name":"Is my JSON private?","acceptedAnswer":{"@type":"Answer","text":"Yes. Everything runs in your browser using the built-in JSON parser. The data you paste stays on your device and is never sent to any server."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>JSON Formatter &amp; Validator</h1>
+    <p class="lede">Beautify messy JSON, minify it to one line, or validate it and get the exact line where it breaks. Paste below — everything runs in your browser and nothing is uploaded.</p>
+
+    <section class="calc" aria-label="JSON formatter">
+      <div class="field">
+        <label for="input">JSON</label>
+        <textarea id="input" rows="14" spellcheck="false" placeholder='{ "paste": "your JSON here", "and": ["press", "Format"] }' autofocus></textarea>
+      </div>
+
+      <div class="json-toolbar">
+        <button type="button" id="formatBtn" class="btn-primary">Format</button>
+        <button type="button" id="minifyBtn" class="btn-secondary">Minify</button>
+        <button type="button" id="validateBtn" class="btn-secondary">Validate</button>
+        <button type="button" id="copyBtn" class="btn-secondary">Copy</button>
+        <button type="button" id="clearBtn" class="btn-secondary">Clear</button>
+        <div class="field">
+          <label for="indent">Indent</label>
+          <select id="indent">
+            <option value="2" selected>2 spaces</option>
+            <option value="4">4 spaces</option>
+            <option value="tab">Tab</option>
+          </select>
+        </div>
+      </div>
+
+      <p id="status" class="json-status" role="alert" aria-live="polite" hidden></p>
+    </section>
+
+    <p class="note">Your JSON stays in your browser — nothing is sent anywhere.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the JSON formatter</h2>
+      <p>Paste any JSON — an API response, a config file, a copied snippet — into the box. Press <strong>Format</strong> to pretty-print it with clean, consistent indentation, choosing 2 spaces, 4 spaces or tabs to match your code style. The result replaces the text in place, so you can copy it straight back out.</p>
+      <p>Need the opposite? <strong>Minify</strong> strips every insignificant space and line break to give you the smallest valid JSON on a single line — useful for embedding in source code or trimming a request body. <strong>Validate</strong> simply checks whether the text is well-formed JSON without changing it.</p>
+      <p>When something is wrong, you get the parser's message along with the <strong>line and column</strong> of the failure, so you can find the missing comma, stray quote or unclosed bracket without hunting line by line.</p>
+      <p class="note">Everything runs in your browser with the built-in JSON parser — the data you paste is never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>Does it accept JSON5, comments or trailing commas?</strong> No. This validates strict, standard JSON — the same rules browsers and most servers use. Comments and trailing commas are reported as errors so your output stays portable.</p>
+      <p><strong>Will it reorder or change my data?</strong> No. Formatting and minifying only change whitespace and indentation. Keys, values and array order are preserved exactly.</p>
+      <p><strong>Why did my numbers lose trailing zeros?</strong> JSON has no concept of trailing zeros, so <code>1.50</code> is the same number as <code>1.5</code>. The formatter prints the canonical numeric form.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your JSON never leaves your browser and nothing is stored.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/json-formatter.js"></script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Morse Code Translator — Text to Morse &amp; Morse to Text</title>
+<meta name="description" content="Free Morse code translator. Convert text to Morse code and Morse code back to text instantly. Supports letters, numbers, and punctuation. No signup — runs entirely in your browser.">
+<link rel="canonical" href="{{SITE_URL}}/morse-code-translator/">
+<meta property="og:title" content="Morse Code Translator">
+<meta property="og:description" content="Translate text to Morse code and back, instantly and free, right in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Morse Code Translator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Convert text to International Morse code and decode Morse code back to text, supporting letters, numbers and punctuation, in your browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I translate text to Morse code?","acceptedAnswer":{"@type":"Answer","text":"Type or paste your text in the box with the mode set to Text to Morse. Each letter is converted to dots and dashes as you type, with a single space between letters and a slash between words."}},{"@type":"Question","name":"How do I decode Morse code to text?","acceptedAnswer":{"@type":"Answer","text":"Switch the mode to Morse to Text and paste the Morse code. Separate the dots and dashes of each letter with a space and separate words with a slash (/). Any sequence that is not valid Morse is shown as a question mark."}},{"@type":"Question","name":"What do the spaces and slashes mean in Morse code?","acceptedAnswer":{"@type":"Answer","text":"A single space separates the letters within a word, and a slash (/) separates one word from the next. Inside a letter, the dots and dashes are written together with no space."}},{"@type":"Question","name":"Does it support numbers and punctuation?","acceptedAnswer":{"@type":"Answer","text":"Yes. The translator covers A to Z, the digits 0 to 9, and common punctuation such as period, comma, question mark, and more, using the International Morse code standard."}},{"@type":"Question","name":"Is my text sent anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. The translation happens entirely in your browser. Nothing you type is uploaded or stored on a server."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Morse Code Translator</h1>
+    <p class="lede">Convert text to Morse code and decode Morse code back to plain text, instantly. Supports letters, numbers, and punctuation in International Morse. Everything runs in your browser — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Morse code translator">
+      <form id="morseForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="mode">Direction</label>
+          <select id="mode">
+            <option value="encode">Text to Morse</option>
+            <option value="decode">Morse to Text</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="input">Input</label>
+          <textarea id="input" rows="4" placeholder="Type text to convert, e.g. Hello world"></textarea>
+        </div>
+        <div class="field">
+          <label for="out">Output</label>
+          <textarea id="out" rows="4" readonly></textarea>
+        </div>
+        <div class="field inline" style="margin-bottom:0">
+          <button type="button" id="copy" class="btn-primary">Copy output</button>
+          <button type="button" id="swap" class="btn-secondary">Swap &amp; reverse</button>
+        </div>
+      </form>
+      <div class="results" aria-live="polite">
+        <p class="net-sub" id="status">Type some text to see the Morse code.</p>
+      </div>
+    </section>
+
+    <section class="prose">
+      <h2>How to use the Morse code translator</h2>
+      <p><strong>Text to Morse.</strong> Leave the direction on <em>Text to Morse</em> and type your message. Each letter becomes a group of dots (·) and dashes (–). Letters are separated by a space, and words are separated by a slash (<code>/</code>).</p>
+      <p><strong>Morse to Text.</strong> Switch to <em>Morse to Text</em> and paste your code. Put a space between the letters and a slash between words — for example <code>... --- ...</code> decodes to <strong>SOS</strong>. Anything that isn't valid Morse shows as a question mark so you can spot the problem.</p>
+      <p>Use <strong>Swap &amp; reverse</strong> to send the output back into the input and flip the direction — handy for checking that a message round-trips correctly.</p>
+      <p class="note">Your text never leaves your device — the translation happens entirely in your browser.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Morse code questions</h2>
+      <p><strong>How do I write spaces?</strong> One space between letters, a slash between words. Dots and dashes inside a single letter are written with no space.</p>
+      <p><strong>Does it cover numbers and punctuation?</strong> Yes — A–Z, 0–9, and common marks like <code>. , ? ! : ; = + - / @</code> using International Morse.</p>
+      <p><strong>Why is there a question mark in my decoded text?</strong> A “?” means one of the dot-dash groups isn't a recognised Morse character — usually a stray symbol or a wrong number of spaces.</p>
+      <p><strong>Is it really free?</strong> Yes, completely free with no signup, and nothing you type is uploaded.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/morse-code-translator.js"></script>
+</body>
+</html>

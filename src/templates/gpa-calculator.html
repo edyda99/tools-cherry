@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>GPA Calculator — Weighted Grade Point Average on the 4.0 Scale</title>
+<meta name="description" content="Free GPA calculator. Add your courses with a letter grade and credit hours to get your weighted grade point average on the standard US 4.0 scale. Live results, no signup.">
+<link rel="canonical" href="{{SITE_URL}}/gpa-calculator/">
+<meta property="og:title" content="GPA Calculator — 4.0 Scale">
+<meta property="og:description" content="Add courses with a grade and credit hours to get your weighted GPA on the 4.0 scale. Instant results in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"GPA Calculator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate your weighted grade point average (GPA) on the standard US 4.0 scale from your course grades and credit hours."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How is GPA calculated on the 4.0 scale?","acceptedAnswer":{"@type":"Answer","text":"Each letter grade is worth a set number of points (A=4.0, B=3.0, and so on). Multiply each course's grade points by its credit hours to get quality points, add the quality points across all courses, then divide by the total credit hours. The result is your weighted GPA."}},{"@type":"Question","name":"What are the grade points for each letter grade?","acceptedAnswer":{"@type":"Answer","text":"A+ and A = 4.0, A- = 3.7, B+ = 3.3, B = 3.0, B- = 2.7, C+ = 2.3, C = 2.0, C- = 1.7, D+ = 1.3, D = 1.0, D- = 0.7, and F = 0.0."}},{"@type":"Question","name":"What does weighted by credit hours mean?","acceptedAnswer":{"@type":"Answer","text":"Courses worth more credit hours count more toward your GPA. A 4-credit course affects your average more than a 1-credit course with the same grade, because each grade is multiplied by its credit hours before averaging."}},{"@type":"Question","name":"Is my data sent anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. The GPA calculation runs entirely in your browser. The grades and credits you type are never uploaded."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>GPA Calculator</h1>
+    <p class="lede">Add each course with its letter grade and credit hours to get your weighted grade point average on the standard US 4.0 scale. Results update as you type — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="GPA calculator">
+      <form id="gpaForm" autocomplete="off" onsubmit="return false">
+        <h2>Your courses</h2>
+        <div id="courses"></div>
+        <button type="button" id="addCourse" class="btn-secondary">+ Add course</button>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="gpaBig">—</p>
+        <p class="net-sub" id="gpaSub">Add at least one course with credit hours.</p>
+        <div class="line"><span class="lbl">Weighted GPA</span><span id="weightedGpa">—</span></div>
+        <div class="line"><span class="lbl">Total credit hours</span><span id="totalCredits">0</span></div>
+        <div class="line"><span class="lbl">Total quality points</span><span id="qualityPoints">0</span></div>
+        <p class="muted-small" id="weightedNote" hidden>Weighted GPA adds the typical bump for course difficulty (Honors +0.5, AP/IB +1.0). Schools vary — check yours.</p>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the GPA calculator</h2>
+      <p>For each class, pick the letter grade you earned and type how many credit hours it was worth. The course name is optional and just helps you keep track. Your GPA, total credit hours, and total quality points update instantly. Use <strong>+ Add course</strong> to add more rows, or the × button to remove one. Rows left with blank or zero credits are ignored, so an empty row won't change your result.</p>
+
+      <h2>How GPA is calculated on the 4.0 scale</h2>
+      <p>Each letter grade maps to a number of grade points. Your GPA is the credit-hour-weighted average of those points:</p>
+      <ol>
+        <li>Multiply each course's grade points by its credit hours to get its <strong>quality points</strong>.</li>
+        <li>Add up the quality points from every course.</li>
+        <li>Divide that total by your total credit hours.</li>
+      </ol>
+      <p>For example, an A (4.0) in a 3-credit course and a B (3.0) in another 3-credit course give 12 + 9 = 21 quality points over 6 credit hours, for a GPA of 3.50. A course worth more credit hours pulls your average toward its grade more strongly than a smaller course.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Grade points on the standard US 4.0 scale</h2>
+      <table>
+        <thead><tr><th>Letter grade</th><th>Grade points</th></tr></thead>
+        <tbody>
+          <tr><td>A+ / A</td><td>4.0</td></tr>
+          <tr><td>A-</td><td>3.7</td></tr>
+          <tr><td>B+</td><td>3.3</td></tr>
+          <tr><td>B</td><td>3.0</td></tr>
+          <tr><td>B-</td><td>2.7</td></tr>
+          <tr><td>C+</td><td>2.3</td></tr>
+          <tr><td>C</td><td>2.0</td></tr>
+          <tr><td>C-</td><td>1.7</td></tr>
+          <tr><td>D+</td><td>1.3</td></tr>
+          <tr><td>D</td><td>1.0</td></tr>
+          <tr><td>D-</td><td>0.7</td></tr>
+          <tr><td>F</td><td>0.0</td></tr>
+        </tbody>
+      </table>
+      <p class="note">Schools vary: some don't award an A+ above 4.0, some omit minus grades, and weighted/honors courses may use a 5.0 scale. This calculator uses the common unweighted 4.0 scale shown above. Check your school's official policy for transcript GPA.</p>
+
+      <h2>Common GPA questions</h2>
+      <p><strong>What is a good GPA?</strong> On the 4.0 scale, a 3.0 is roughly a B average and a 3.5+ is often considered strong, but expectations vary by school and program.</p>
+      <p><strong>Why does each course count differently?</strong> Because GPA is weighted by credit hours. A 4-credit class influences your average more than a 1-credit class with the same grade.</p>
+      <p><strong>Can I calculate a semester or cumulative GPA?</strong> Yes — add this semester's courses for a semester GPA, or list every course you've taken for a cumulative GPA.</p>
+      <p class="note">Everything runs in your browser — the grades and credits you type are never uploaded.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/gpa-calculator.js"></script>
+</body>
+</html>

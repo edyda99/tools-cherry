@@ -4,21 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Word Counter — Count Words, Characters, Sentences &amp; Reading Time</title>
-<meta name="description" content="Free word counter and character counter. Paste your text to count words, characters with and without spaces, sentences, paragraphs, and reading time instantly. Checks tweet, SMS, and SEO limits. No signup; runs in your browser.">
+<title>Word &amp; Character Counter — Count Words, Characters, Sentences &amp; Reading Time</title>
+<meta name="description" content="Free word and character counter. Paste or type text to see words, characters with and without spaces, sentences, paragraphs, reading and speaking time, keyword density, and tweet/SMS/SEO limit checks. Live results, nothing uploaded.">
 <link rel="canonical" href="{{SITE_URL}}/word-counter/">
-<meta property="og:title" content="Word Counter — Count Words, Characters &amp; Reading Time">
-<meta property="og:description" content="Count words, characters, sentences, paragraphs and reading time instantly. Checks tweet, SMS and SEO limits. Free, in your browser.">
+<meta property="og:title" content="Word &amp; Character Counter">
+<meta property="og:description" content="Count words, characters, sentences, paragraphs, and reading time as you type. Free, private, in your browser.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="{{SITE_URL}}/word-counter/">
-<meta property="og:site_name" content="{{SITE_NAME}}">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Word Counter — Count Words, Characters &amp; Reading Time">
-<meta name="twitter:description" content="Count words, characters, sentences, paragraphs and reading time instantly. Free, in your browser.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Word Counter","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Count words, characters (with and without spaces), sentences, paragraphs, reading time and keyword density for any text — in your browser."}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How does the word counter count words?","acceptedAnswer":{"@type":"Answer","text":"It counts each run of letters or numbers as one word, treating contractions like \"don't\" and hyphenated words like \"well-known\" as a single word. The count updates live as you type or paste, so you always see the current total without pressing a button."}},{"@type":"Question","name":"What is the difference between characters with and without spaces?","acceptedAnswer":{"@type":"Answer","text":"Characters with spaces counts every character including spaces, tabs and line breaks, which is the figure most platforms (like X/Twitter and SMS) measure against. Characters without spaces removes all whitespace and is often required by academic or form limits that count only visible characters."}},{"@type":"Question","name":"How is reading time estimated?","acceptedAnswer":{"@type":"Answer","text":"Reading time is the word count divided by an average reading speed, shown by default as 200 words per minute. Speaking time uses about 130 words per minute. You can change the reading speed to match your audience and the estimate updates instantly."}},{"@type":"Question","name":"Is my text uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. All counting and analysis happens entirely in your browser using JavaScript. Your text is never sent to a server, stored, or shared, so it is safe to paste private or unpublished writing."}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Word & Character Counter","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Count words, characters with and without spaces, sentences, paragraphs, reading and speaking time, and keyword density as you type."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How does the word counter count words?","acceptedAnswer":{"@type":"Answer","text":"It counts each run of non-space characters as one word. Extra spaces, tabs, and line breaks between words are ignored, so the count stays accurate no matter how the text is spaced."}},{"@type":"Question","name":"What is the difference between characters with and without spaces?","acceptedAnswer":{"@type":"Answer","text":"Characters with spaces counts every character including spaces and line breaks. Characters without spaces leaves out spaces, tabs, and line breaks — useful for limits that ignore whitespace."}},{"@type":"Question","name":"How is reading and speaking time estimated?","acceptedAnswer":{"@type":"Answer","text":"Reading time assumes about 200 words per minute, the average silent reading speed. Speaking time assumes about 130 words per minute, a comfortable presentation pace. Both are rough estimates."}},{"@type":"Question","name":"Is my text private?","acceptedAnswer":{"@type":"Answer","text":"Yes. Everything runs in your browser. The text you type or paste stays on your device and is never sent anywhere."}}]}</script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -31,63 +26,73 @@
 
 <main id="main">
   <div class="wrap">
-    <h1>Word Counter</h1>
-    <p class="lede">Paste or type your text to count words, characters, sentences, paragraphs and reading time instantly. It also shows your most frequent keywords and checks your length against common tweet, SMS and SEO limits — all in your browser, with nothing uploaded.</p>
+    <h1>Word &amp; Character Counter</h1>
+    <p class="lede">Type or paste your text to count words, characters, sentences, paragraphs and reading time live. It also shows your most frequent keywords and checks your length against common tweet, SMS and SEO limits — all in your browser, with nothing uploaded.</p>
 
-    <div class="calc">
-      <div class="field" style="grid-column:1 / -1">
-        <label for="text">Your text</label>
-        <textarea id="text" class="wc-input" placeholder="Start typing or paste your text here…" aria-describedby="wc-stats"></textarea>
-        <div class="wc-toolbar">
-          <button type="button" id="copyBtn" class="btn-secondary">Copy text</button>
-          <button type="button" id="clearBtn" class="btn-secondary">Clear</button>
-          <span class="wpm">
-            <label for="wpm" style="margin:0">Reading speed</label>
-            <input id="wpm" type="number" inputmode="numeric" min="50" max="1000" step="10" value="200" aria-label="Reading speed in words per minute">
-            <span>wpm</span>
-          </span>
+    <section class="calc" aria-label="Word and character counter">
+      <form id="wcForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="text">Your text</label>
+          <textarea id="text" rows="12" placeholder="Start typing or paste your text here…" aria-describedby="wc-stats" autofocus></textarea>
+          <div class="wc-toolbar">
+            <button type="button" id="copyBtn" class="btn-secondary">Copy text</button>
+            <button type="button" id="clearBtn" class="btn-secondary">Clear text</button>
+            <span class="wpm">
+              <label for="wpm">Reading speed</label>
+              <input id="wpm" type="number" inputmode="numeric" min="50" max="1000" step="10" value="200" aria-label="Reading speed in words per minute">
+              <span>wpm</span>
+            </span>
+          </div>
         </div>
-      </div>
+      </form>
 
-      <div class="results" style="grid-column:1 / -1">
-        <div id="wc-stats" class="wc-stats">
-          <div class="wc-stat"><span class="n" id="statWords">0</span><span class="l">Words</span></div>
-          <div class="wc-stat"><span class="n" id="statChars">0</span><span class="l">Characters</span></div>
-          <div class="wc-stat"><span class="n" id="statCharsNoSpaces">0</span><span class="l">Characters (no spaces)</span></div>
-          <div class="wc-stat"><span class="n" id="statSentences">0</span><span class="l">Sentences</span></div>
-          <div class="wc-stat"><span class="n" id="statParagraphs">0</span><span class="l">Paragraphs</span></div>
-          <div class="wc-stat"><span class="n" id="statLines">0</span><span class="l">Lines</span></div>
-          <div class="wc-stat"><span class="n" id="statReading">0s</span><span class="l">Reading time</span></div>
-          <div class="wc-stat"><span class="n" id="statSpeaking">0s</span><span class="l">Speaking time</span></div>
-          <div class="wc-stat"><span class="n" id="statAvg">0</span><span class="l">Avg words / sentence</span></div>
-        </div>
-      </div>
-    </div>
+      <div id="wc-stats" class="results" aria-live="polite">
+        <div class="line"><span class="lbl">Words</span><span id="statWords">0</span></div>
+        <div class="line"><span class="lbl">Characters (with spaces)</span><span id="statChars">0</span></div>
+        <div class="line"><span class="lbl">Characters (no spaces)</span><span id="statCharsNoSpaces">0</span></div>
+        <div class="line"><span class="lbl">Sentences</span><span id="statSentences">0</span></div>
+        <div class="line"><span class="lbl">Paragraphs</span><span id="statParagraphs">0</span></div>
+        <div class="line"><span class="lbl">Lines</span><span id="statLines">0</span></div>
+        <div class="line"><span class="lbl">Reading time</span><span id="statReading">0s</span></div>
+        <div class="line"><span class="lbl">Speaking time</span><span id="statSpeaking">0s</span></div>
+        <div class="line"><span class="lbl">Avg. words / sentence</span><span id="statAvg">0</span></div>
 
-    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+        <details class="brackets" id="densityPanel" open>
+          <summary>Keyword density (most-used words)</summary>
+          <table class="bracket-table">
+            <thead><tr><th>Word</th><th class="num">Count</th><th class="num">Density</th></tr></thead>
+            <tbody id="densityBody"></tbody>
+          </table>
+          <p class="muted-small" id="densityNote">Type some text to see its most frequent words.</p>
+        </details>
 
-    <div class="calc" style="margin-top:8px">
-      <div class="field" style="grid-column:1 / -1">
-        <span class="field-label">Top keywords</span>
-        <div id="keywords"><p class="muted-small">Type some text to see its most frequent keywords.</p></div>
+        <details class="brackets" id="limitPanel">
+          <summary>Platform length limits</summary>
+          <table class="bracket-table">
+            <thead><tr><th>Platform</th><th class="num">Limit</th><th class="num">Status</th></tr></thead>
+            <tbody id="limitBody"></tbody>
+          </table>
+        </details>
       </div>
-      <div class="field" style="grid-column:1 / -1">
-        <span class="field-label">Platform length limits</span>
-        <table class="prose-table limit-table" style="width:100%;border-collapse:collapse;font-size:14.5px">
-          <thead><tr><th style="text-align:left">Platform</th><th style="text-align:right">Limit</th><th style="text-align:right">Status</th></tr></thead>
-          <tbody id="limitBody"></tbody>
-        </table>
-      </div>
-    </div>
+    </section>
+
+    <p class="note">Your text stays in your browser — nothing is sent anywhere.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
 
     <section class="prose">
       <h2>How to use the word counter</h2>
-      <p>Type directly into the box or paste text from anywhere — an essay, a blog draft, a social post or an email. Every statistic updates the instant you type, so there is no button to press and no waiting. <strong>Words</strong> counts each run of letters or numbers (with contractions and hyphenated words counted as one), while <strong>characters</strong> are shown both with and without spaces because different platforms measure each differently. You also get sentence, paragraph and line counts, plus the average number of words per sentence as a quick readability signal.</p>
-      <p>The <strong>reading time</strong> and <strong>speaking time</strong> estimates are based on average speeds — 200 words per minute for reading and about 130 for speaking aloud. Change the reading-speed field to match your audience or your own pace and both figures recalculate. The <strong>top keywords</strong> list ignores common filler words so you can see the terms you actually lean on, which is handy when writing for search.</p>
+      <p>Type directly into the box or paste text from anywhere — an essay, a blog draft, a social post or an email. Every statistic updates the instant you type, so there is no button to press and nothing leaves your device. <strong>Words</strong> counts each run of letters or numbers (with contractions and hyphenated words counted as one), while <strong>characters</strong> are shown both with and without spaces because different platforms measure each differently. You also get sentence, paragraph and line counts, plus the average number of words per sentence as a quick readability signal.</p>
+      <p>The <strong>reading time</strong> and <strong>speaking time</strong> estimates are based on average speeds — 200 words per minute for reading and about 130 for speaking aloud. Change the reading-speed field to match your audience or your own pace and both figures recalculate. The <strong>keyword density</strong> list ignores common filler words so you can see the terms you actually lean on, which is handy when writing for search.</p>
+      <p class="note">Everything runs in your browser — the text you type or paste is never uploaded.</p>
+    </section>
 
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
       <h2>Character limits for common platforms</h2>
       <p>The limits table compares your character count against the lengths people most often write against: 280 characters for a post on X/Twitter, 160 for a single SMS or a meta description, 60 for an SEO title tag, and longer caps for Instagram and LinkedIn. It shows how many characters you have left, and turns red when you go over, so you can trim a post or description to fit before you publish.</p>
-      <p class="note">Nothing you type leaves your device — every count runs in your browser, with no signup and nothing stored.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your text never leaves your browser and nothing is stored.</p>
     </section>
   </div>
 </main>

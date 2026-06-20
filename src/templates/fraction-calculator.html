@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Fraction Calculator — Add, Subtract, Multiply &amp; Divide Fractions</title>
+<meta name="description" content="Free fraction calculator. Add, subtract, multiply, or divide two fractions or mixed numbers and get the answer in lowest terms, as a mixed number, and as a decimal. Instant results, works in your browser, no signup.">
+<link rel="canonical" href="{{SITE_URL}}/fraction-calculator/">
+<meta property="og:title" content="Fraction Calculator">
+<meta property="og:description" content="Add, subtract, multiply, or divide fractions and mixed numbers and see the answer simplified to lowest terms, as a mixed number, and as a decimal — instantly in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Fraction Calculator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Add, subtract, multiply, or divide two fractions or mixed numbers. Combines the fractions with integer arithmetic, reduces the result to lowest terms, and shows the mixed-number and decimal forms."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do you add fractions with different denominators?","acceptedAnswer":{"@type":"Answer","text":"Rewrite both fractions over a common denominator, add the numerators, then simplify. For example, 1/2 + 1/3 becomes 3/6 + 2/6 = 5/6. This calculator finds the common denominator and reduces the answer for you automatically."}},{"@type":"Question","name":"How do you multiply and divide fractions?","acceptedAnswer":{"@type":"Answer","text":"To multiply, multiply the numerators together and the denominators together, then simplify — 2/3 × 3/4 = 6/12 = 1/2. To divide, flip the second fraction and multiply: 1/2 ÷ 1/4 = 1/2 × 4/1 = 2."}},{"@type":"Question","name":"Can this calculator handle mixed numbers?","acceptedAnswer":{"@type":"Answer","text":"Yes. Enter a whole-number part alongside the fraction, like 1 1/2. The calculator converts each mixed number to an improper fraction, does the arithmetic, and gives the answer back as a fraction, a mixed number, and a decimal."}},{"@type":"Question","name":"How do you simplify a fraction to lowest terms?","acceptedAnswer":{"@type":"Answer","text":"Divide the numerator and denominator by their greatest common divisor. For 6/8, the greatest common divisor is 2, so it reduces to 3/4. This calculator always returns the answer already reduced to lowest terms."}},{"@type":"Question","name":"What happens if I divide by zero?","acceptedAnswer":{"@type":"Answer","text":"Division by zero is undefined, so the calculator shows a message instead of a number if the second fraction equals zero or any denominator is zero. Fix the input and the result updates instantly."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Fraction Calculator</h1>
+    <p class="lede">Add, subtract, multiply, or divide two fractions — or mixed numbers — and get the answer in lowest terms, as a mixed number, and as a decimal. Everything is calculated instantly in your browser with nothing uploaded.</p>
+
+    <section class="calc" aria-label="Fraction calculator">
+      <form id="fractionForm" autocomplete="off" onsubmit="return false">
+        <div class="field inline">
+          <span><label for="aWhole">First — whole</label><input id="aWhole" type="number" inputmode="numeric" step="1" placeholder="0"></span>
+          <span><label for="aNumer">Numerator</label><input id="aNumer" type="number" inputmode="numeric" step="1" value="1" placeholder="1"></span>
+          <span><label for="aDenom">Denominator</label><input id="aDenom" type="number" inputmode="numeric" step="1" value="2" placeholder="2"></span>
+        </div>
+        <div class="field">
+          <label for="op">Operation</label>
+          <select id="op">
+            <option value="+">Add (+)</option>
+            <option value="-">Subtract (−)</option>
+            <option value="*">Multiply (×)</option>
+            <option value="/">Divide (÷)</option>
+          </select>
+        </div>
+        <div class="field inline">
+          <span><label for="bWhole">Second — whole</label><input id="bWhole" type="number" inputmode="numeric" step="1" placeholder="0"></span>
+          <span><label for="bNumer">Numerator</label><input id="bNumer" type="number" inputmode="numeric" step="1" value="1" placeholder="1"></span>
+          <span><label for="bDenom">Denominator</label><input id="bDenom" type="number" inputmode="numeric" step="1" value="3" placeholder="3"></span>
+        </div>
+      </form>
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="out">—</p>
+        <p class="net-sub" id="sub">Enter two fractions to calculate.</p>
+        <ul class="breakdown" id="detail"></ul>
+      </div>
+    </section>
+
+    <section class="prose">
+      <h2>How to work with fractions</h2>
+      <p>A fraction is a numerator over a denominator — the top number is how many parts you have, the bottom is how many equal parts make a whole. This calculator handles the four operations and always simplifies the answer.</p>
+      <p><strong>Adding and subtracting.</strong> Put both fractions over a common denominator, then add or subtract the numerators. For 1/2 + 1/3, the common denominator is 6, giving 3/6 + 2/6 = 5/6. The calculator finds the common denominator for you.</p>
+      <p><strong>Multiplying.</strong> Multiply the numerators together and the denominators together, then reduce: 2/3 × 3/4 = 6/12 = 1/2.</p>
+      <p><strong>Dividing.</strong> Flip the second fraction and multiply — dividing by a fraction is the same as multiplying by its reciprocal: 1/2 ÷ 1/4 = 1/2 × 4/1 = 2.</p>
+      <p><strong>Mixed numbers.</strong> Fill in the whole-number box to enter values like 1 1/2. Each mixed number is converted to an improper fraction before the math, and the answer is offered back as a mixed number too.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Fraction calculator questions</h2>
+      <p><strong>How do you add fractions with different denominators?</strong> Rewrite both over a common denominator, add the numerators, then simplify. The calculator does this and reduces the answer automatically.</p>
+      <p><strong>How do you multiply and divide fractions?</strong> Multiply straight across for multiplication; for division, flip the second fraction and multiply.</p>
+      <p><strong>Can it handle mixed numbers?</strong> Yes — add a whole-number part and the calculator converts to an improper fraction, computes, and gives the answer as a fraction, mixed number, and decimal.</p>
+      <p><strong>How do you simplify a fraction?</strong> Divide the numerator and denominator by their greatest common divisor. Results here are always shown in lowest terms.</p>
+      <p><strong>What about dividing by zero?</strong> It is undefined, so the calculator shows a message instead of a number when the second fraction or any denominator is zero.</p>
+      <p class="note">A handy companion to the <a href="/percentage-calculator/">percentage calculator</a> and the <a href="/base-converter/">number base converter</a>.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/fraction-calculator.js"></script>
+</body>
+</html>

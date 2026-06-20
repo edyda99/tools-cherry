@@ -1,16 +1,16 @@
 // word-counter.js — client-side Word & Character Counter UI. Reads the textarea
 // and reading-speed control, defers all analysis to the pure engine
-// (text-stats.js), and updates the stat readout live as you type. It also checks
-// the text length against common platform limits (tweet, SMS, meta description,
-// etc.). No network, no storage — everything runs in the browser.
+// (text-stats.js), and updates the stat readout live as you type. It also shows
+// keyword density and checks the text length against common platform limits
+// (tweet, SMS, meta description, etc.). No network, no storage — everything runs
+// in the browser.
 
 import { analyze } from '/assets/text-stats.js';
 
 const $ = (id) => document.getElementById(id);
 const nf = new Intl.NumberFormat('en-US');
 
-// Common platform character limits people write against. `count` picks which
-// metric the limit applies to: characters (with spaces) unless noted.
+// Common platform character limits people write against (characters with spaces).
 const LIMITS = [
   { label: 'Post on X / Twitter', max: 280 },
   { label: 'SMS (single message)', max: 160 },
@@ -19,6 +19,12 @@ const LIMITS = [
   { label: 'Instagram caption', max: 2200 },
   { label: 'LinkedIn post', max: 3000 }
 ];
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
 
 function renderStats(r) {
   $('statWords').textContent = nf.format(r.words);
@@ -32,38 +38,34 @@ function renderStats(r) {
   $('statAvg').textContent = r.avgWordsPerSentence ? String(r.avgWordsPerSentence) : '0';
 }
 
+// Keyword density table. analyze() returns keywords as {word, count, percent}.
+function renderKeywords(keywords) {
+  const body = $('densityBody');
+  const note = $('densityNote');
+  if (!keywords.length) {
+    body.innerHTML = '';
+    note.hidden = false;
+    note.textContent = 'Type some text to see its most frequent words.';
+    return;
+  }
+  note.hidden = true;
+  body.innerHTML = keywords.map((k) =>
+    `<tr><td>${escapeHtml(k.word)}</td><td class="num">${nf.format(k.count)}</td><td class="num">${k.percent}%</td></tr>`
+  ).join('');
+}
+
 function renderLimits(chars) {
-  const rows = LIMITS.map((l) => {
+  $('limitBody').innerHTML = LIMITS.map((l) => {
     const remaining = l.max - chars;
     const over = remaining < 0;
     const state = over ? 'over' : remaining <= l.max * 0.1 ? 'near' : 'ok';
-    const note = over
-      ? `${nf.format(-remaining)} over`
-      : `${nf.format(remaining)} left`;
+    const note = over ? `${nf.format(-remaining)} over` : `${nf.format(remaining)} left`;
     return `<tr>
       <td>${l.label}</td>
       <td class="num">${nf.format(l.max)}</td>
       <td class="num limit-${state}">${note}</td>
     </tr>`;
   }).join('');
-  $('limitBody').innerHTML = rows;
-}
-
-function renderKeywords(keywords) {
-  const wrap = $('keywords');
-  if (!keywords.length) {
-    wrap.innerHTML = '<p class="muted-small">Type some text to see its most frequent keywords.</p>';
-    return;
-  }
-  wrap.innerHTML = '<ol class="kw-list">' + keywords.map((k) =>
-    `<li><span class="kw-word">${escapeHtml(k.word)}</span><span class="kw-meta">${nf.format(k.count)} · ${k.percent}%</span></li>`
-  ).join('') + '</ol>';
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
 }
 
 function update() {
@@ -71,12 +73,11 @@ function update() {
   const wpm = Number($('wpm').value) || 200;
   const r = analyze(text, { wpm });
   renderStats(r);
-  renderLimits(r.characters);
   renderKeywords(r.keywords);
+  renderLimits(r.characters);
 }
 
 function init() {
-  $('limit-rows-skeleton')?.remove();
   $('text').addEventListener('input', update);
   $('wpm').addEventListener('input', update);
 

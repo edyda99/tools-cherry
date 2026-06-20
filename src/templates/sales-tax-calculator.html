@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Sales Tax Calculator — Add or Remove Sales Tax From a Price</title>
+<meta name="description" content="Free sales tax calculator. Add sales tax to a price to get the total, or reverse it to find the pre-tax price from a tax-included total. Enter any tax rate, live results, no signup.">
+<link rel="canonical" href="{{SITE_URL}}/sales-tax-calculator/">
+<meta property="og:title" content="Sales Tax Calculator">
+<meta property="og:description" content="Add sales tax to a price, or remove tax from a total to find the pre-tax amount — instant results in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Sales Tax Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Add sales tax to a price to get the total, or remove sales tax from a tax-included total to find the pre-tax price."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I add sales tax to a price?","acceptedAnswer":{"@type":"Answer","text":"Multiply the pre-tax price by the tax rate and divide by 100 to get the tax amount, then add it to the price. For example, $100 at 8.25% sales tax is $8.25 tax, for a total of $108.25."}},{"@type":"Question","name":"How do I remove sales tax from a total?","acceptedAnswer":{"@type":"Answer","text":"Divide the tax-included total by 1 plus the tax rate as a decimal. For example, $108.25 at an 8.25% rate is 108.25 ÷ 1.0825 = $100.00 pre-tax, with $8.25 of that being tax."}},{"@type":"Question","name":"What sales tax rate should I use?","acceptedAnswer":{"@type":"Answer","text":"Use your combined local sales tax rate, which is the state base rate plus any county or city rate. Check your state or local tax authority for the exact figure that applies to your purchase."}},{"@type":"Question","name":"Which states have no sales tax?","acceptedAnswer":{"@type":"Answer","text":"Five states have no statewide sales tax: Alaska, Delaware, Montana, New Hampshire, and Oregon. Alaska has no state rate but allows local sales taxes, so some Alaskan towns still charge tax."}},{"@type":"Question","name":"Do I pay sales tax on online purchases?","acceptedAnswer":{"@type":"Answer","text":"Usually yes. Since a 2018 Supreme Court ruling, most online retailers collect sales tax based on your shipping address, even if the seller has no store in your state. The rate is typically your local combined rate."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Sales Tax Calculator</h1>
+    <p class="lede">Add sales tax to a price to see the total, or work backwards from a tax-included total to find the original pre-tax price. Type any tax rate — results update as you type.</p>
+
+    <section class="calc" aria-label="Sales tax calculator">
+      <div class="unit-toggle" role="group" aria-label="Calculation mode">
+        <button type="button" data-mode="add" aria-pressed="true">Add tax</button>
+        <button type="button" data-mode="remove" aria-pressed="false">Remove tax</button>
+      </div>
+
+      <form id="taxForm" autocomplete="off" onsubmit="return false">
+        <div data-group="add">
+          <div class="field inline">
+            <span><label for="addPrice">Pre-tax price ($)</label><input id="addPrice" type="number" inputmode="decimal" step="any" min="0" value="100" placeholder="100"></span>
+            <span><label for="addRate">Sales tax rate (%)</label><input id="addRate" type="number" inputmode="decimal" step="any" min="0" value="8.25" placeholder="8.25"></span>
+          </div>
+        </div>
+
+        <div data-group="remove" hidden>
+          <div class="field inline">
+            <span><label for="remTotal">Total price with tax ($)</label><input id="remTotal" type="number" inputmode="decimal" step="any" min="0" value="108.25" placeholder="108.25"></span>
+            <span><label for="remRate">Sales tax rate (%)</label><input id="remRate" type="number" inputmode="decimal" step="any" min="0" value="8.25" placeholder="8.25"></span>
+          </div>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="resultBig">—</p>
+        <p class="net-sub" id="resultSub"></p>
+        <div class="line" id="line1" hidden><span class="lbl">Detail</span><span id="line1v"></span></div>
+        <div class="line" id="line2" hidden><span class="lbl">Detail</span><span id="line2v"></span></div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the sales tax calculator</h2>
+      <p>Choose a mode at the top, fill in the two boxes, and the answer appears instantly — there's no button to press and nothing is sent anywhere.</p>
+      <p><strong>Add tax.</strong> Enter the pre-tax price and your sales tax rate to see the tax amount and the final total you'll pay at the register.</p>
+      <p><strong>Remove tax.</strong> Have a receipt total and want to know the price before tax? Enter the tax-included total and the rate to back out the original price and how much of the total was tax.</p>
+      <p class="note">Enter your <strong>combined</strong> sales tax rate — the state base rate plus any county or city tax that applies where you buy. Rates vary by location and change over time, so check your state or local tax authority for the exact figure. Everything runs in your browser; the numbers you type are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Sales tax questions</h2>
+      <p><strong>How do I add sales tax to a price?</strong> Multiply the price by the tax rate and divide by 100 to get the tax, then add it to the price. $100 at 8.25% is $8.25 tax, for a $108.25 total.</p>
+      <p><strong>How do I remove sales tax from a total?</strong> Divide the total by 1 plus the rate as a decimal. $108.25 at 8.25% is 108.25 ÷ 1.0825 = $100.00 before tax.</p>
+      <p><strong>What rate should I enter?</strong> Use the combined rate for your location. The state sets a base rate, and counties and cities often add their own, so the rate you actually pay is usually higher than the state figure alone.</p>
+      <p><strong>Is this an official tax tool?</strong> No. It's a free calculator for estimates. For the exact rate and rules that apply to a purchase, check your state or local tax authority.</p>
+      <p><strong>Which states have no sales tax?</strong> Five states have no statewide sales tax: Alaska, Delaware, Montana, New Hampshire, and Oregon. Alaska has no state rate but allows local sales taxes, so some Alaskan towns still charge tax. In the other four, the total you pay at the register is usually just the listed price.</p>
+      <p><strong>Why is the tax on my receipt higher than my state's rate?</strong> The rate you actually pay is the combined rate — your state's base rate plus any county, city, or special district taxes layered on top. A state base of 6% can become 8% or 9% once local add-ons apply, which is why two stores in the same state can charge different totals.</p>
+      <p><strong>Do I pay sales tax on online purchases?</strong> Usually yes. Since a 2018 Supreme Court ruling, most online retailers collect sales tax based on your shipping address, even if the seller has no store in your state. The rate is typically your local combined rate, the same one you'd pay buying in person.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/sales-tax-calculator.js"></script>
+</body>
+</html>

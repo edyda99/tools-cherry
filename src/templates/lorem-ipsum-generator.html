@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Lorem Ipsum Generator — Free Placeholder Text Generator</title>
+<meta name="description" content="Free Lorem Ipsum generator. Create placeholder dummy text by words, sentences, or paragraphs, copy it with one click, and start with the classic &quot;Lorem ipsum dolor sit amet&quot; opener. Instant, in your browser, no signup.">
+<link rel="canonical" href="{{SITE_URL}}/lorem-ipsum-generator/">
+<meta property="og:title" content="Lorem Ipsum Generator">
+<meta property="og:description" content="Generate Lorem Ipsum placeholder text by words, sentences, or paragraphs and copy it instantly — right in your browser, nothing uploaded.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Lorem Ipsum Generator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Generate Lorem Ipsum placeholder text by words, sentences, or paragraphs, with an optional classic opener, and copy it to the clipboard — entirely in the browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is Lorem Ipsum?","acceptedAnswer":{"@type":"Answer","text":"Lorem Ipsum is scrambled, meaningless Latin-like text used as a placeholder in layouts, mock-ups, and templates. Because it reads as nonsense, it lets designers and writers focus on how a design looks without being distracted by real content. It has been the printing industry's standard dummy text since the 1500s."}},{"@type":"Question","name":"Why use placeholder text instead of real copy?","acceptedAnswer":{"@type":"Answer","text":"Placeholder text fills a layout with realistic-looking words so you can judge spacing, line length, and typography before the final copy is written. Using real text too early draws attention to the wording rather than the design, and final copy is often not ready when the layout work starts."}},{"@type":"Question","name":"How many words or paragraphs should I generate?","acceptedAnswer":{"@type":"Answer","text":"Generate roughly the amount of text the real content will occupy so your mock-up reflects reality. For a short blurb, a sentence or two is enough; for an article layout, a few paragraphs work well. Switch the unit to words, sentences, or paragraphs and set the count to match."}},{"@type":"Question","name":"Does the text always start with \"Lorem ipsum\"?","acceptedAnswer":{"@type":"Answer","text":"By default it begins with the classic \"Lorem ipsum dolor sit amet, consectetur adipiscing elit\" opener, which is what most people expect. You can turn that off to start with random words instead, which is useful when you need several different-looking blocks."}},{"@type":"Question","name":"Is this Lorem Ipsum generator free and private?","acceptedAnswer":{"@type":"Answer","text":"Yes. It is completely free and runs entirely in your browser. The text is generated locally on your device and nothing is uploaded to a server, so you can use it offline once the page has loaded."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Lorem Ipsum Generator</h1>
+    <p class="lede">Create placeholder dummy text for your designs, mock-ups, and templates. Choose words, sentences, or paragraphs, generate instantly, and copy it with one click — all in your browser, with nothing uploaded.</p>
+
+    <section class="calc" aria-label="Lorem Ipsum generator">
+      <form id="loremForm" autocomplete="off" onsubmit="return false">
+        <div class="field inline">
+          <span><label for="count">How many</label><input id="count" type="number" inputmode="numeric" step="1" min="0" value="5" placeholder="5"></span>
+          <span><label for="unit">Unit</label>
+            <select id="unit">
+              <option value="paragraphs">Paragraphs</option>
+              <option value="sentences">Sentences</option>
+              <option value="words">Words</option>
+            </select>
+          </span>
+        </div>
+        <div class="field">
+          <label><input id="startWithLorem" type="checkbox" checked> Start with “Lorem ipsum dolor sit amet…”</label>
+        </div>
+        <div class="field">
+          <label for="out">Generated text</label>
+          <textarea id="out" rows="10" readonly aria-describedby="sub"></textarea>
+        </div>
+        <div class="btn-row">
+          <button type="button" id="regenBtn" class="btn-primary">Regenerate</button>
+          <button type="button" id="copyBtn" class="btn-secondary">Copy</button>
+        </div>
+      </form>
+      <div class="results" aria-live="polite">
+        <p class="net-sub" id="sub">Set a count and unit to generate placeholder text.</p>
+      </div>
+    </section>
+
+    <section class="prose">
+      <h2>How to use the Lorem Ipsum generator</h2>
+      <p>Pick how much text you need and the unit to measure it in, and the placeholder copy appears instantly. Use <strong>Regenerate</strong> for a fresh random block, or <strong>Copy</strong> to drop it straight into your design tool, CMS, or code.</p>
+      <p><strong>Choose a unit.</strong> Generate by <em>paragraphs</em> for article and page layouts, <em>sentences</em> for captions and short blocks, or <em>words</em> when you need to fill a precise space like a button label or a heading.</p>
+      <p><strong>Set the count.</strong> Match the amount of text to what the real content will occupy, so your mock-up reflects how the finished page will actually look and flow.</p>
+      <p><strong>Keep or drop the classic opener.</strong> Leave the checkbox on to begin with the familiar “Lorem ipsum dolor sit amet…”, or turn it off to start with random words when you need several different-looking blocks side by side.</p>
+      <p class="note">Everything runs in your browser — the text is generated on your device and never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Lorem Ipsum questions</h2>
+      <p><strong>What is Lorem Ipsum?</strong> It is scrambled, meaningless filler text derived from Latin, used as a placeholder so you can judge a layout without being distracted by real wording. It has been the standard dummy text of the printing industry since the 1500s.</p>
+      <p><strong>Why use placeholder text?</strong> It fills a design with realistic-looking words so you can assess spacing, line length, and typography before the final copy exists — and final copy is rarely ready when layout work begins.</p>
+      <p><strong>How much should I generate?</strong> Roughly the amount your real content will take up. A sentence or two for a blurb, a few paragraphs for an article. Switch units and adjust the count to match.</p>
+      <p><strong>Does it always start with “Lorem ipsum”?</strong> By default yes, since that is what most people expect, but you can turn the classic opener off to start with random words instead.</p>
+      <p><strong>Is it free and private?</strong> Yes — it is free, runs entirely in your browser, generates text locally, and uploads nothing, so it even works offline once loaded.</p>
+      <p class="note">Lorem Ipsum is nonsense by design. Replace it with real copy before publishing.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/lorem-ipsum-generator.js"></script>
+</body>
+</html>

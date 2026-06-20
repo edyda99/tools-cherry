@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Compress Image to 100KB — Free Online Image Compressor (Set a Target Size)</title>
+<meta name="description" content="Free tool to compress a photo to a target file size like 100 KB or 200 KB. Pick a size, download a smaller image. No signup — your image never leaves your device.">
+<link rel="canonical" href="{{SITE_URL}}/compress-image/">
+<meta property="og:title" content="Compress Image to a Target Size — Free, Private, In Your Browser">
+<meta property="og:description" content="Compress any photo under 100 KB, 200 KB, or a size you choose. Free, in your browser — nothing is uploaded.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Image Compressor","applicationCategory":"MultimediaApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Compress an image to a target file size and download it, in your browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I compress an image to under 100 KB?","acceptedAnswer":{"@type":"Answer","text":"Choose your photo, tap the 100 KB preset (or type 100 in the size box), and click Compress image. The tool lowers the quality just enough to land under 100 KB and shows you the final size before you download."}},{"@type":"Question","name":"Why do some websites require a photo under a certain size?","acceptedAnswer":{"@type":"Answer","text":"Job applications, passport and visa portals, and many forms set a maximum file size — often 100 KB, 200 KB, or 1 MB — to save storage and keep uploads fast. Compressing your image to fit lets it upload without being rejected."}},{"@type":"Question","name":"Will compressing ruin the quality of my photo?","acceptedAnswer":{"@type":"Answer","text":"Mild compression is hard to notice. The lower your target size, the more detail is removed, so if a photo looks soft, try a slightly larger target. The tool always shows the size it reached so you can find a balance."}},{"@type":"Question","name":"What if my target size is too small for the image?","acceptedAnswer":{"@type":"Answer","text":"If a target is smaller than is physically possible for that picture, the tool tells you the smallest size it can reach. Pick a target at or above that number, or resize the image to fewer pixels first to allow a smaller file."}},{"@type":"Question","name":"Is it safe to compress private photos here?","acceptedAnswer":{"@type":"Answer","text":"Yes. Compression happens entirely in your browser on your own device. Your image is never uploaded to a server, so personal or ID photos stay private."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Compress Image to a Target Size</h1>
+    <p class="lede">Upload a photo, pick a target file size like 100 KB or 200 KB, and download a smaller version that fits under it. Great for uploads with a size limit. Everything happens in your browser — your image never leaves your device.</p>
+
+    <div class="calc">
+      <div>
+        <label id="drop" class="dropzone" for="file">
+          <input id="file" type="file" accept="image/*" hidden>
+          <span id="dropText">Click to choose an image, or drop one here</span>
+        </label>
+
+        <div class="field" style="margin-top:14px">
+          <div class="field-label" id="targetSizeLabel">Target size</div>
+          <div class="inline" id="presets" role="group" aria-labelledby="targetSizeLabel">
+            <button type="button" class="btn-secondary preset" data-kb="50">50 KB</button>
+            <button type="button" class="btn-secondary preset" data-kb="100">100 KB</button>
+            <button type="button" class="btn-secondary preset" data-kb="200">200 KB</button>
+            <button type="button" class="btn-secondary preset" data-kb="500">500 KB</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="targetKb">Or enter a size (KB)</label>
+          <input id="targetKb" type="number" min="1" inputmode="numeric" value="100" placeholder="e.g. 100">
+        </div>
+
+        <div class="field">
+          <label for="format">Download as</label>
+          <select id="format">
+            <option value="image/jpeg" selected>JPEG (best for photos)</option>
+            <option value="image/webp">WebP (smallest file)</option>
+          </select>
+        </div>
+
+        <button type="button" id="compress" class="btn-primary" disabled>Compress image</button>
+      </div>
+
+      <div class="results" style="text-align:center">
+        <div class="editor-wrap" id="previewWrap" style="display:inline-block;max-width:100%">
+          <canvas id="preview" width="320" height="320" role="img" aria-label="Image preview" style="display:block;width:auto;height:auto;max-width:100%;max-height:320px">Your image preview appears here.</canvas>
+        </div>
+        <p class="muted-small" id="status" style="margin-top:10px">Choose an image to begin.</p>
+        <button type="button" id="download" class="btn-primary" disabled hidden>Download compressed image</button>
+      </div>
+    </div>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to compress an image to a certain size</h2>
+      <p>Choose a photo, then pick a target file size — tap a preset like <strong>100 KB</strong> or type your own number in KB. Click <strong>Compress image</strong> and the tool lowers the quality just enough to land under your target, then shows you the size it achieved. Click download to save it.</p>
+      <p>JPEG is the best choice for photographs and gives the smallest file most of the time. WebP can go even smaller while staying sharp, though a few older programs don't open it. If your target is smaller than what's physically possible for that image, the tool tells you the smallest size it can reach so you can pick a realistic target.</p>
+      <p class="note">Your image never leaves your device — compressing is done entirely in your browser.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Common image-compression questions</h2>
+      <p><strong>How do I compress an image to under 100 KB?</strong> Choose your photo, tap the 100 KB preset (or type 100), and click Compress image. The tool lowers the quality just enough to land under 100 KB and shows the final size before you download.</p>
+      <p><strong>Why do websites require a photo under a certain size?</strong> Job applications, passport and visa portals, and many forms cap the file size — often 100 KB, 200 KB, or 1 MB — to save storage and speed up uploads. Compressing to fit lets your image upload without being rejected.</p>
+      <p><strong>Will compressing ruin the quality?</strong> Mild compression is hard to notice. The smaller your target, the more detail is removed, so if a photo looks soft, try a slightly larger target. The tool always shows the size it reached so you can find a balance.</p>
+      <p><strong>What if my target size is too small?</strong> If a target is smaller than is physically possible for that picture, the tool tells you the smallest size it can reach. Pick a target at or above that number, or resize the image to fewer pixels first.</p>
+      <p><strong>Is it safe to compress private photos here?</strong> Yes. Everything runs in your browser on your own device, so personal or ID photos are never uploaded.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/image-compressor.js"></script>
+</body>
+</html>

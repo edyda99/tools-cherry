@@ -2,3 +2,22 @@
 name = "tools-cherry"
 pages_build_output_dir = "dist"
 compatibility_date = "2026-06-14"
+
+# --- PDF->Word server-fallback gate (functions/api/pdf-to-word.js) -----------
+# KV namespace holding the per-day quota counters. Create it once:
+#   npx wrangler kv namespace create ptw_rate
+# then paste the printed id below. (For `wrangler pages dev` a local store is
+# used automatically, so no preview_id is required.)
+[[kv_namespaces]]
+binding = "RATE_KV"
+id = "51c0baaa244545629501938f4eda51f7"
+
+# Non-secret tunables. GLOBAL_DAILY_CAP keeps total AWS usage inside the Lambda
+# free tier (400k GB-s/mo); at the cap the server path returns "daily limit
+# reached" and never invokes Lambda. Secrets (TURNSTILE_SECRET, ID_HMAC_SECRET,
+# LAMBDA_URL, LAMBDA_AWS_ACCESS_KEY_ID, LAMBDA_AWS_SECRET_ACCESS_KEY) are NOT kept
+# here — set them with `npx wrangler pages secret put <NAME>` or in the dashboard.
+[vars]
+GLOBAL_DAILY_CAP = "100"
+UID_DAILY_LIMIT = "2"
+IP_DAILY_LIMIT = "6"

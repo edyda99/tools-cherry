@@ -12,16 +12,18 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Circle Image Cropper","applicationCategory":"MultimediaApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Crop an image into a circle and download a transparent PNG, in your browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I crop a picture into a circle?","acceptedAnswer":{"@type":"Answer","text":"Choose an image, drag it inside the circle to position it, and use the zoom slider or scroll wheel to scale it. Pick an output size and download. The area outside the circle is saved as transparent, so the result is a clean circular image."}},{"@type":"Question","name":"Why is the download a PNG and not a JPG?","acceptedAnswer":{"@type":"Answer","text":"A circular crop needs transparent corners so it sits cleanly on any background. PNG supports transparency; JPG does not and would fill the corners with white. That is why the tool always saves a transparent PNG."}},{"@type":"Question","name":"What size should a circular profile picture be?","acceptedAnswer":{"@type":"Answer","text":"512 pixels is a safe all-purpose size for most profile pictures and avatars. Choose 256 for a small icon or 1024 for a sharp, high-resolution image. All three keep the circle perfectly round."}},{"@type":"Question","name":"Can I use the circular image on Instagram, Zoom, Slack or a website?","acceptedAnswer":{"@type":"Answer","text":"Yes. The transparent PNG works as a profile photo or avatar on most platforms and drops onto web pages, slides, or documents without a square box around it. Some apps crop to a circle themselves; this tool guarantees the shape no matter what."}},{"@type":"Question","name":"Are my images uploaded to a server?","acceptedAnswer":{"@type":"Answer","text":"No. The cropping happens entirely in your browser on your own device. Your image is never uploaded or stored anywhere."}}]}</script>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 <header class="site">
   <div class="wrap">
     <a class="brand" href="/">{{SITE_NAME}}</a>
-    <nav><a href="/#tools">Tools</a></nav>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
   </div>
 </header>
 
-<main>
+<main id="main">
   <div class="wrap">
     <h1>Crop Image Into a Circle</h1>
     <p class="lede">Upload an image, drag to position and zoom, then download a transparent circular PNG — great for profile pictures and avatars. Everything happens in your browser; nothing is uploaded.</p>
@@ -110,7 +112,7 @@
       </div>
 
       <div class="results" style="text-align:center">
-        <div class="editor-wrap"><canvas id="editor" width="512" height="512"></canvas></div>
+        <div class="editor-wrap"><canvas id="editor" width="512" height="512" aria-label="Circle crop preview — drag to reposition the image and use the zoom slider to scale it">Your cropped image preview appears here. Use the zoom control to adjust it.</canvas></div>
         <p class="muted-small" id="status" style="margin-top:10px">Choose an image to begin.</p>
         <button type="button" id="download" class="btn-primary" disabled>Download PNG</button>
         <p class="muted-small" id="jpgNote" hidden style="margin-top:8px">JPG has no transparency — the area outside the circle is filled with the background color (white unless you set one above).</p>
@@ -121,9 +123,26 @@
 
     <section class="prose">
       <h2>How to crop a picture into a circle</h2>
-      <p>Choose an image, then drag it inside the frame to reposition and use the zoom slider (or scroll wheel) to scale it. Pick your output size and download — the corners outside the shape are transparent, so it drops cleanly onto any background. The result is a PNG, which keeps that transparency; JPEG cannot.</p>
-      <p>Prefer a different shape? Use the <strong>Crop shape</strong> selector to switch between a circle, a square, or a rounded square (with an adjustable corner roundness) — handy for avatars and profile pictures on platforms that use rounded tiles instead of round photos.</p>
+      <ol>
+        <li>Click the box to choose an image, or drag one straight in.</li>
+        <li>Drag the photo inside the circle to position it, and use the zoom slider (or your scroll wheel) to scale it.</li>
+        <li>Pick an output size — 256, 512, or 1024 pixels.</li>
+        <li>Click <strong>Download PNG</strong> to save your circular image.</li>
+      </ol>
+      <p>The corners outside the circle are saved as transparent, so the image drops cleanly onto any background. The result is a PNG, which keeps that transparency; JPEG cannot. A circle crop is perfect for profile pictures, avatars, team headshots, and logos that need a round frame.</p>
+      <p>Prefer a different shape? Use the <strong>Crop shape</strong> selector to switch between a circle, a square, or a rounded square (with an adjustable corner roundness) — handy for avatars and profile pictures on platforms that use rounded tiles instead of round photos. You can also rotate or mirror the image, add padding or a border, and fine-tune the position with the arrow keys.</p>
       <p class="note">Your image never leaves your device — cropping is done entirely in your browser.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common circle-crop questions</h2>
+      <p><strong>Why does it download a PNG instead of a JPG?</strong> A round crop needs transparent corners. PNG supports transparency; JPG would fill those corners with white, leaving a square box around your circle.</p>
+      <p><strong>What size should I use for a profile picture?</strong> 512 pixels suits most profile photos and avatars. Use 256 for a small icon or 1024 for a crisp, high-resolution result.</p>
+      <p><strong>Will it work for Instagram, Zoom, Slack or my website?</strong> Yes. The transparent PNG works as an avatar on most platforms and sits cleanly on slides, documents, and web pages.</p>
+      <p><strong>Can I crop a square photo or a rectangular one?</strong> Either works. Drag and zoom to choose which part of the photo lands inside the circle before you download.</p>
+      <p><strong>Are my images uploaded?</strong> No. Everything runs in your browser — your photo is never sent to a server or stored.</p>
     </section>
   </div>
 </main>

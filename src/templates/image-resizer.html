@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Image Resizer — Free Online Photo Resizer (Resize by Pixels or Percent)</title>
+<meta name="description" content="Free tool to resize a photo by pixels or percentage and download it as PNG, JPEG, or WebP. Lock the aspect ratio so it never looks stretched. No signup — runs entirely in your browser.">
+<link rel="canonical" href="{{SITE_URL}}/resize-image/">
+<meta property="og:title" content="Image Resizer — Free, Private, In Your Browser">
+<meta property="og:description" content="Resize any photo by pixels or percent and download it. Free, in your browser — nothing is uploaded.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Image Resizer","applicationCategory":"MultimediaApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Resize an image by pixels or percentage and download it, in your browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I resize an image without losing quality?","acceptedAnswer":{"@type":"Answer","text":"Keep \"Lock aspect ratio\" turned on so the picture is never stretched, and avoid making the image much larger than the original — enlarging adds pixels that weren't there and looks soft. Making an image smaller almost always looks crisp. For the best quality download as PNG; for a smaller file choose JPEG or WebP at a high quality."}},{"@type":"Question","name":"What size should a profile picture be?","acceptedAnswer":{"@type":"Answer","text":"A square image around 400 by 400 pixels works well on most social networks and looks sharp without being a large file. Turn off \"Lock aspect ratio\" to type the same width and height, or crop to a square first, then resize to 400 by 400."}},{"@type":"Question","name":"How do I resize an image to a specific width and height?","acceptedAnswer":{"@type":"Answer","text":"Choose \"Exact size (pixels)\" and type the width and height you need. If the new shape is different from the original, turn off \"Lock aspect ratio\" so both numbers are used exactly — note this can stretch the picture. Leave the lock on to keep the original proportions."}},{"@type":"Question","name":"Will resizing make my image file smaller?","acceptedAnswer":{"@type":"Answer","text":"Usually yes. Fewer pixels means a smaller file, so shrinking the dimensions reduces the download size. You can shrink it further by choosing JPEG or WebP instead of PNG when you download."}},{"@type":"Question","name":"Is it safe to resize photos here?","acceptedAnswer":{"@type":"Answer","text":"Yes. The resizing happens entirely in your browser on your own device. Your photo is never uploaded to a server, so private pictures stay private."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Image Resizer</h1>
+    <p class="lede">Upload a photo, set a new size by pixels or by percentage, then download it as a PNG, JPEG, or WebP. Lock the aspect ratio so your picture never looks stretched. Everything happens in your browser; nothing is uploaded.</p>
+
+    <div class="calc">
+      <div>
+        <label id="drop" class="dropzone" for="file">
+          <input id="file" type="file" accept="image/*" hidden>
+          <span id="dropText">Click to choose an image, or drop one here</span>
+        </label>
+
+        <div class="field" style="margin-top:14px">
+          <label for="mode">Resize by</label>
+          <select id="mode">
+            <option value="pixels" selected>Exact size (pixels)</option>
+            <option value="percent">Percentage of original</option>
+          </select>
+        </div>
+
+        <div id="pixelFields">
+          <div class="field">
+            <div class="inline">
+              <div>
+                <label for="w">Width (px)</label>
+                <input id="w" type="number" min="1" inputmode="numeric" placeholder="e.g. 800">
+              </div>
+              <div>
+                <label for="h">Height (px)</label>
+                <input id="h" type="number" min="1" inputmode="numeric" placeholder="e.g. 600">
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label><input id="lock" type="checkbox" checked style="width:auto;margin-right:8px;vertical-align:middle"> Lock aspect ratio (keep proportions)</label>
+          </div>
+        </div>
+
+        <div id="percentField" hidden>
+          <div class="field">
+            <label for="percent">Scale to (%)</label>
+            <input id="percent" type="number" min="1" max="1000" value="50" inputmode="numeric">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="format">Download as</label>
+          <select id="format">
+            <option value="image/png" selected>PNG (best quality)</option>
+            <option value="image/jpeg">JPEG (smaller file)</option>
+            <option value="image/webp">WebP (smallest file)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="results" style="text-align:center">
+        <div class="editor-wrap" id="previewWrap" style="display:inline-block;max-width:100%">
+          <canvas id="preview" width="320" height="320" role="img" aria-label="Image preview" style="display:block;width:auto;height:auto;max-width:100%;max-height:320px">Your image preview appears here.</canvas>
+        </div>
+        <p class="muted-small" id="status" style="margin-top:10px">Choose an image to begin.</p>
+        <button type="button" id="download" class="btn-primary" disabled>Download resized image</button>
+      </div>
+    </div>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to resize an image</h2>
+      <p>Choose a photo, then pick how you want to resize it. <strong>Exact size</strong> lets you type a width and height in pixels — keep "Lock aspect ratio" on and the other side fills in automatically so the picture keeps its shape. <strong>Percentage</strong> shrinks or enlarges the whole image at once (50% is half size). Choose your download format and click download.</p>
+      <p>Use PNG when you want the best quality or a transparent background, JPEG for the smallest file on photos, and WebP for the smallest file overall.</p>
+      <p class="note">Your image never leaves your device — resizing is done entirely in your browser.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Common image-resizing questions</h2>
+      <p><strong>How do I resize an image without losing quality?</strong> Keep "Lock aspect ratio" on so the picture is never stretched, and don't enlarge it far beyond the original — making an image bigger adds pixels that weren't there and looks soft. Shrinking an image almost always stays sharp. For the crispest result download as PNG; for a smaller file use JPEG or WebP at high quality.</p>
+      <p><strong>What size should a profile picture be?</strong> A square image around 400 by 400 pixels looks sharp on most social networks without being a heavy file. Crop to a square first if needed, then set both width and height to 400.</p>
+      <p><strong>How do I resize to an exact width and height?</strong> Choose "Exact size (pixels)" and type the numbers you need. If the new shape differs from the original, turn off "Lock aspect ratio" to use both numbers exactly — though this can stretch the picture. Leave the lock on to keep the original proportions.</p>
+      <p><strong>Will resizing shrink the file size?</strong> Usually yes — fewer pixels means a smaller file. To shrink it even more, download as JPEG or WebP instead of PNG.</p>
+      <p><strong>Is it safe to resize photos here?</strong> Yes. Everything runs in your browser on your own device, so your photo is never uploaded and private pictures stay private.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/image-resizer.js"></script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Fuel Economy Calculator — MPG, L/100km & km/L Converter</title>
+<meta name="description" content="Free fuel economy calculator. Enter the distance you drove and the fuel you used to get your MPG (US and UK), litres per 100 km, and km per litre — or convert any one figure to all the others. Live results, no signup.">
+<link rel="canonical" href="{{SITE_URL}}/fuel-economy-calculator/">
+<meta property="og:title" content="Fuel Economy Calculator (MPG & L/100km)">
+<meta property="og:description" content="Work out your real miles per gallon and litres per 100 km from a fill-up, or convert MPG to L/100km — instant results in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Fuel Economy Calculator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate fuel economy from a measured distance and fuel used — get MPG (US and UK), litres per 100 km, and kilometres per litre — or convert one figure to all the others."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I calculate my MPG?","acceptedAnswer":{"@type":"Answer","text":"Fill your tank, reset your trip meter, and drive normally. At the next fill-up, note the miles driven and the gallons it took to top off. Miles per gallon is the miles driven divided by the gallons used. This calculator does the math and also shows the metric equivalents."}},{"@type":"Question","name":"What is the difference between US MPG and UK MPG?","acceptedAnswer":{"@type":"Answer","text":"A UK (imperial) gallon is larger than a US gallon — about 4.546 litres versus 3.785 litres. Because a UK gallon holds more fuel, the same car always shows a higher number in UK MPG than in US MPG, even though the real efficiency is identical. This calculator shows both."}},{"@type":"Question","name":"How do I convert MPG to L/100km?","acceptedAnswer":{"@type":"Answer","text":"Litres per 100 km is an inverse measure: lower is better. To convert from US MPG, divide 235.21 by the MPG figure. For example, 30 US MPG is about 7.84 L/100km. Switch this tool to convert mode and it does the conversion both ways automatically."}},{"@type":"Question","name":"Is a higher or lower number better?","acceptedAnswer":{"@type":"Answer","text":"For MPG and km/L, higher is better — you travel further on the same fuel. For L/100km, lower is better, because you burn fewer litres to cover the same distance."}},{"@type":"Question","name":"Why is my real MPG lower than the sticker?","acceptedAnswer":{"@type":"Answer","text":"Official figures come from standardised lab tests. Real-world economy depends on driving style, speed, traffic, cold weather, short trips, tyre pressure, load, and roof racks, so measuring it yourself from an actual fill-up gives the most honest number."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Fuel Economy Calculator</h1>
+    <p class="lede">Work out your real fuel economy from a single fill-up, or convert any figure between MPG and L/100km. Enter your numbers and the results — MPG (US and UK), litres per 100 km, and km per litre — update as you type. Nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Fuel economy calculator">
+      <div class="unit-toggle" role="group" aria-label="Mode">
+        <button type="button" data-mode="measure" aria-pressed="true">Measure from a fill-up</button>
+        <button type="button" data-mode="convert" aria-pressed="false">Convert units</button>
+      </div>
+
+      <form id="feForm" autocomplete="off" onsubmit="return false">
+        <div id="measureBlock">
+          <div class="field inline">
+            <span><label for="distance">Distance driven</label><input id="distance" type="number" inputmode="decimal" step="any" min="0" value="300" placeholder="300"></span>
+            <span><label for="distUnit">Distance unit</label><select id="distUnit"><option value="mi" selected>miles</option><option value="km">kilometres</option></select></span>
+          </div>
+          <div class="field inline">
+            <span><label for="fuel">Fuel used</label><input id="fuel" type="number" inputmode="decimal" step="any" min="0" value="10" placeholder="10"></span>
+            <span><label for="fuelUnit">Fuel unit</label><select id="fuelUnit"><option value="us" selected>US gallons</option><option value="uk">UK gallons</option><option value="l">litres</option></select></span>
+          </div>
+        </div>
+
+        <div id="convertBlock" hidden>
+          <div class="field inline">
+            <span><label for="convValue">Value</label><input id="convValue" type="number" inputmode="decimal" step="any" min="0" value="30" placeholder="30"></span>
+            <span><label for="convFrom">Is measured in</label><select id="convFrom"><option value="mpgUs" selected>MPG (US)</option><option value="mpgUk">MPG (UK)</option><option value="l100km">L/100km</option><option value="kmPerL">km/L</option></select></span>
+          </div>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="resultBig">—</p>
+        <p class="net-sub" id="resultSub">Enter your distance and fuel to see the economy.</p>
+        <div class="line" id="lineMpgUs" hidden><span class="lbl">MPG (US)</span><span></span></div>
+        <div class="line" id="lineMpgUk" hidden><span class="lbl">MPG (UK / imperial)</span><span></span></div>
+        <div class="line" id="lineKmL" hidden><span class="lbl">Kilometres per litre</span><span></span></div>
+        <div class="line" id="lineL100" hidden><span class="lbl">Litres per 100 km</span><span></span></div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the fuel economy calculator</h2>
+      <p>There are two ways to use this tool, chosen with the toggle at the top.</p>
+      <p><strong>Measure from a fill-up.</strong> The most accurate method. Fill your tank, reset your trip meter, and drive as usual. At your next fill-up, enter the distance you covered and the amount of fuel it took to fill back up. Pick whether you measured in miles or kilometres and in US gallons, UK gallons, or litres. The calculator returns your economy in every common unit at once.</p>
+      <p><strong>Convert units.</strong> Already know one figure — say 35 MPG — and want the metric equivalent? Switch to convert mode, type the value, and choose which unit it's in. You'll get the matching MPG (US and UK), L/100km, and km/L.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Understanding the units</h2>
+      <p>Fuel economy is measured two opposite ways around the world, and it helps to know which is which:</p>
+      <ul>
+        <li><strong>Miles per gallon (MPG):</strong> distance per unit of fuel. <em>Higher is better.</em> Used in the US and UK — but the two countries use different-sized gallons, so the same car shows different MPG numbers.</li>
+        <li><strong>Kilometres per litre (km/L):</strong> the metric version of the same idea. <em>Higher is better.</em></li>
+        <li><strong>Litres per 100 km (L/100km):</strong> fuel needed to cover a fixed distance. <em>Lower is better.</em> The standard across most of Europe and the rest of the world.</li>
+      </ul>
+
+      <h2>Common fuel economy questions</h2>
+      <p><strong>How do I calculate my MPG?</strong> Divide the miles you drove by the gallons of fuel you used to refill. This tool does it for you and adds the metric equivalents.</p>
+      <p><strong>What's the difference between US and UK MPG?</strong> A UK gallon (about 4.546 L) is bigger than a US gallon (about 3.785 L), so the same car always posts a higher number in UK MPG than in US MPG even though the real efficiency is the same.</p>
+      <p><strong>How do I convert MPG to L/100km?</strong> Divide 235.21 by the US MPG figure. So 30 US MPG is about 7.84 L/100km. Convert mode does this for you in both directions.</p>
+      <p><strong>Is a higher or lower number better?</strong> Higher MPG and km/L are better; lower L/100km is better. They all describe the same efficiency from different angles.</p>
+      <p><strong>Why is my real MPG below the sticker?</strong> Official figures are lab numbers. Your driving style, speed, traffic, cold starts, short trips, tyre pressure, and load all push real-world economy lower — which is exactly why measuring it from a real fill-up is worth doing.</p>
+      <p class="note">Results are estimates for general information. Measure across several fill-ups for the most reliable average.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/fuel-economy-calculator.js"></script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Binary, Hex, Decimal &amp; Octal Converter — Number Base Converter</title>
+<meta name="description" content="Free number base converter. Convert between binary, octal, decimal and hexadecimal instantly. Type in any base and the others update live. Works in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/base-converter/">
+<meta property="og:title" content="Binary, Hex &amp; Decimal Converter">
+<meta property="og:description" content="Convert between binary, octal, decimal and hexadecimal. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Number Base Converter","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Convert non-negative integers between binary (base 2), octal (base 8), decimal (base 10) and hexadecimal (base 16)."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I convert binary to decimal?","acceptedAnswer":{"@type":"Answer","text":"Type your binary number in the Binary box and read the result in the Decimal box. Each binary digit is a power of two: 1010 is 8 + 0 + 2 + 0 = 10 in decimal. The converter does this for you as you type."}},{"@type":"Question","name":"How do I convert decimal to hexadecimal?","acceptedAnswer":{"@type":"Answer","text":"Enter your number in the Decimal box and the Hex box updates automatically. Hexadecimal uses base 16, so the digits run 0–9 then A–F, where A is 10 and F is 15. For example, decimal 255 is FF in hex."}},{"@type":"Question","name":"What is the largest number I can convert?","acceptedAnswer":{"@type":"Answer","text":"There is no practical limit. The converter uses exact big-integer arithmetic, so even very large hexadecimal or binary values convert without rounding errors."}},{"@type":"Question","name":"Can I paste hex with a 0x prefix?","acceptedAnswer":{"@type":"Answer","text":"Yes. A leading 0x for hex, 0b for binary or 0o for octal is recognised and stripped automatically, and you can type in upper or lower case."}},{"@type":"Question","name":"Is my input private?","acceptedAnswer":{"@type":"Answer","text":"Yes. Everything runs in your browser. The numbers you type stay on your device and are never sent anywhere."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Binary, Hex, Decimal &amp; Octal Converter</h1>
+    <p class="lede">Convert a whole number between binary, octal, decimal and hexadecimal. Type in any one box and the other three update live — nothing is uploaded, everything runs in your browser.</p>
+
+    <section class="calc" aria-label="Number base converter">
+      <form id="baseForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="decInput">Decimal (base 10)</label>
+          <input type="text" id="decInput" inputmode="numeric" spellcheck="false" placeholder="e.g. 255" autofocus>
+          <p class="muted-small" id="decError" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="binInput">Binary (base 2)</label>
+          <input type="text" id="binInput" spellcheck="false" placeholder="e.g. 11111111">
+          <p class="muted-small" id="binError" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="octInput">Octal (base 8)</label>
+          <input type="text" id="octInput" spellcheck="false" placeholder="e.g. 377">
+          <p class="muted-small" id="octError" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="hexInput">Hexadecimal (base 16)</label>
+          <input type="text" id="hexInput" autocapitalize="characters" spellcheck="false" placeholder="e.g. FF">
+          <p class="muted-small" id="hexError" aria-live="polite"></p>
+        </div>
+      </form>
+    </section>
+
+    <p class="note">Your input stays in your browser — nothing is sent anywhere.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the number base converter</h2>
+      <p>Type a whole number into any of the four boxes — decimal, binary, octal or hexadecimal — and the other three convert instantly. There is no button to press and nothing leaves your device.</p>
+      <p>A number base (or radix) is just how many distinct digits you count with before carrying over. <strong>Decimal</strong> is base 10 (digits 0–9), the everyday number system. <strong>Binary</strong> is base 2 (digits 0 and 1), the language of computers. <strong>Octal</strong> is base 8 (digits 0–7), and <strong>hexadecimal</strong> is base 16, which extends the digits with the letters A–F to stand for 10 through 15.</p>
+      <p>For example, the decimal value <strong>255</strong> is <strong>11111111</strong> in binary, <strong>377</strong> in octal and <strong>FF</strong> in hexadecimal — four different ways of writing exactly the same quantity. You can paste hex with a leading <code>0x</code>, binary with <code>0b</code> or octal with <code>0o</code>, in upper or lower case, and the converter handles it.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>Does it handle very large numbers?</strong> Yes. The converter uses exact big-integer math, so even long hexadecimal or binary strings convert without losing precision — unlike many calculators that round once a value passes about 15 digits.</p>
+      <p><strong>Why does hexadecimal use letters?</strong> Base 16 needs sixteen distinct digit symbols. After 0–9 there are only ten, so the letters A, B, C, D, E and F stand in for the values 10 through 15.</p>
+      <p><strong>Can I convert negative numbers or decimals?</strong> This tool converts non-negative whole numbers. Fractions and negative values (and two's-complement representations) are not supported.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your input never leaves your browser and nothing is stored.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/base-converter.js"></script>
+</body>
+</html>

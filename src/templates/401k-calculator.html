@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>401(k) Retirement Calculator — Project Your Retirement Savings</title>
+<meta name="description" content="Free 401(k) retirement calculator. Enter your age, salary, contribution percentage, employer match and expected return to project your retirement balance — with employer match, investment growth, and a year-by-year breakdown.">
+<link rel="canonical" href="{{SITE_URL}}/401k-calculator/">
+<meta property="og:title" content="401(k) Retirement Calculator">
+<meta property="og:description" content="See how your 401(k) grows by retirement. Projected balance, employer match, investment growth, and a year-by-year table — instant results in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"401(k) Retirement Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Project your 401(k) retirement savings from your age, salary, contribution percentage, employer match and expected return, with a year-by-year breakdown."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How does a 401(k) employer match work?","acceptedAnswer":{"@type":"Answer","text":"An employer match means your company adds money to your 401(k) based on what you contribute. A common match is 100% of your contributions up to a cap, such as 6% of your salary. If you earn $60,000 and contribute at least 6%, the employer adds 6% of $60,000 — $3,600 — on top of your own contributions."}},{"@type":"Question","name":"How much should I contribute to my 401(k)?","acceptedAnswer":{"@type":"Answer","text":"A common guideline is to contribute at least enough to get the full employer match, since that match is free money. Many people aim for 10% to 15% of salary including the match. Enter different percentages above to see the long-term impact on your projected balance."}},{"@type":"Question","name":"What return should I assume for a 401(k)?","acceptedAnswer":{"@type":"Answer","text":"Historical long-term stock-market returns have averaged roughly 7% to 10% a year before inflation, but returns vary year to year and are never guaranteed. A 6% to 7% assumption is a common, moderately conservative estimate for projections."}},{"@type":"Question","name":"Does this 401(k) calculator account for salary growth?","acceptedAnswer":{"@type":"Answer","text":"Yes. You can enter an optional annual salary growth percentage, and the calculator increases your salary each year. Because your contributions and employer match are a percentage of salary, both grow as your salary does."}},{"@type":"Question","name":"How is the projected balance calculated?","acceptedAnswer":{"@type":"Answer","text":"Each year, your contribution and employer match are added to the balance, and the whole balance earns your expected annual return. This repeats every year from your current age to your retirement age, compounding the growth — exactly what the year-by-year table shows."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>401(k) Retirement Calculator</h1>
+    <p class="lede">See how your 401(k) could grow by retirement. Enter your age, salary, contribution percentage, employer match and expected return — the projected balance, employer match, and investment growth update as you type, with a year-by-year breakdown.</p>
+
+    <section class="calc" aria-label="401(k) retirement calculator">
+      <form id="retire401kForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="currentAge">Current age</label>
+          <input id="currentAge" type="number" inputmode="decimal" step="any" min="0" value="30" placeholder="30">
+        </div>
+
+        <div class="field">
+          <label for="retirementAge">Retirement age</label>
+          <input id="retirementAge" type="number" inputmode="decimal" step="any" min="0" value="65" placeholder="65">
+        </div>
+
+        <div class="field">
+          <label for="currentBalance">Current 401(k) balance ($)</label>
+          <input id="currentBalance" type="number" inputmode="decimal" step="any" min="0" value="25000" placeholder="25000">
+        </div>
+
+        <div class="field">
+          <label for="annualSalary">Annual salary ($)</label>
+          <input id="annualSalary" type="number" inputmode="decimal" step="any" min="0" value="60000" placeholder="60000">
+        </div>
+
+        <div class="field">
+          <label for="employeeContrib">Your contribution (% of salary)</label>
+          <input id="employeeContrib" type="number" inputmode="decimal" step="any" min="0" value="6" placeholder="6">
+        </div>
+
+        <div class="field">
+          <label for="employerMatch">Employer match (% of your contribution)</label>
+          <input id="employerMatch" type="number" inputmode="decimal" step="any" min="0" value="100" placeholder="100">
+        </div>
+
+        <div class="field">
+          <label for="matchCap">Match cap (% of salary)</label>
+          <input id="matchCap" type="number" inputmode="decimal" step="any" min="0" value="6" placeholder="6">
+        </div>
+
+        <div class="field">
+          <label for="annualReturn">Expected annual return (%)</label>
+          <input id="annualReturn" type="number" inputmode="decimal" step="any" min="0" value="7" placeholder="7">
+        </div>
+
+        <div class="field">
+          <label for="salaryGrowth">Annual salary growth (%)</label>
+          <input id="salaryGrowth" type="number" inputmode="decimal" step="any" min="0" value="2" placeholder="2">
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="fvBig">—</p>
+        <p class="net-sub" id="fvSub"></p>
+        <div class="line" id="employeeLine" hidden><span class="lbl">Your contributions</span><span class="val"></span></div>
+        <div class="line" id="employerLine" hidden><span class="lbl">Employer match</span><span class="val"></span></div>
+        <div class="line" id="growthLine" hidden><span class="lbl">Investment growth</span><span class="val"></span></div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <div class="amort-summary" id="summaryBox" hidden>
+      <strong>Retirement summary</strong>
+      <p id="summaryText" style="margin:6px 0 0;"></p>
+    </div>
+
+    <div id="scheduleWrap" hidden>
+      <details class="amort">
+        <summary>Show year-by-year breakdown</summary>
+        <div class="amort-table-wrap">
+          <table class="amort-table">
+            <thead>
+              <tr><th>Age</th><th>Your contribution</th><th>Employer match</th><th>Growth</th><th>Balance</th></tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+
+    <section class="prose">
+      <h2>How to use the 401(k) retirement calculator</h2>
+      <p>Enter your <strong>current age</strong> and the <strong>age you plan to retire</strong>, along with your <strong>current 401(k) balance</strong> and <strong>annual salary</strong>. Set <strong>your contribution</strong> as a percentage of salary, then your <strong>employer match</strong> (100% means a full dollar-for-dollar match) and the <strong>match cap</strong> — the share of salary your employer will match up to. Add your <strong>expected annual return</strong> and an optional <strong>salary growth</strong> rate. The projection updates instantly — there's no button to press and nothing is sent anywhere.</p>
+      <p>The big number is your <strong>projected balance</strong> at retirement. Below it you'll see how much came from <strong>your own contributions</strong>, how much your <strong>employer match</strong> added, and how much is <strong>investment growth</strong> compounding on top.</p>
+      <p><strong>Employer match (optional).</strong> If your employer matches 50% of contributions up to 6% of salary, set the match to 50 and the cap to 6. Contributing at least up to the cap captures the full match — money you'd otherwise leave on the table.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded. These figures are estimates based on a fixed return, not financial advice; real returns, salaries, and contribution limits vary.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common 401(k) questions</h2>
+      <p><strong>How does a 401(k) employer match work?</strong> An employer match means your company adds money to your 401(k) based on what you contribute. A common match is 100% of your contributions up to a cap, such as 6% of your salary. If you earn $60,000 and contribute at least 6%, the employer adds 6% of $60,000 — $3,600 — on top of your own contributions.</p>
+      <p><strong>How much should I contribute to my 401(k)?</strong> A common guideline is to contribute at least enough to get the full employer match, since that match is free money. Many people aim for 10% to 15% of salary including the match. Enter different percentages above to see the long-term impact on your projected balance.</p>
+      <p><strong>What return should I assume for a 401(k)?</strong> Historical long-term stock-market returns have averaged roughly 7% to 10% a year before inflation, but returns vary year to year and are never guaranteed. A 6% to 7% assumption is a common, moderately conservative estimate for projections.</p>
+      <p><strong>Does this 401(k) calculator account for salary growth?</strong> Yes. You can enter an optional annual salary growth percentage, and the calculator increases your salary each year. Because your contributions and employer match are a percentage of salary, both grow as your salary does.</p>
+      <p><strong>How is the projected balance calculated?</strong> Each year, your contribution and employer match are added to the balance, and the whole balance earns your expected annual return. This repeats every year from your current age to your retirement age, compounding the growth — exactly what the year-by-year table shows.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/401k-calculator.js"></script>
+</body>
+</html>

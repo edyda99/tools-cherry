@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Roman Numeral Converter — Numbers to Roman Numerals &amp; Back</title>
+<meta name="description" content="Free Roman numeral converter. Turn any number (1–3999) into Roman numerals, or convert a Roman numeral back to a number. Live results, works in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/roman-numeral-converter/">
+<meta property="og:title" content="Roman Numeral Converter">
+<meta property="og:description" content="Convert numbers to Roman numerals and Roman numerals back to numbers. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Roman Numeral Converter","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Convert numbers to Roman numerals and Roman numerals back to numbers, for values from 1 to 3999."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is the largest number this converter supports?","acceptedAnswer":{"@type":"Answer","text":"It covers 1 to 3999 using standard Roman numerals. Numbers above 3999 traditionally need an overbar (vinculum) to multiply a numeral by 1000, which is not part of the standard letters M, D, C, L, X, V and I."}},{"@type":"Question","name":"How do Roman numerals work?","acceptedAnswer":{"@type":"Answer","text":"Seven letters stand for values: I=1, V=5, X=10, L=50, C=100, D=500 and M=1000. You add them left to right, except when a smaller letter sits before a larger one (like IV=4 or IX=9), where you subtract. So MCMXCIV is 1994."}},{"@type":"Question","name":"Why is 4 written IV and not IIII?","acceptedAnswer":{"@type":"Answer","text":"Standard Roman numerals never repeat a letter four times. Instead they use subtraction: IV means one less than five. The same rule gives IX for 9, XL for 40, XC for 90, CD for 400 and CM for 900."}},{"@type":"Question","name":"Is my input private?","acceptedAnswer":{"@type":"Answer","text":"Yes. Everything runs in your browser. The numbers and numerals you type stay on your device and are never sent anywhere."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Roman Numeral Converter</h1>
+    <p class="lede">Convert a number into Roman numerals, or a Roman numeral back into a number. Results update live as you type — nothing is uploaded, everything runs in your browser.</p>
+
+    <section class="calc" aria-label="Roman numeral converter">
+      <form id="romanForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="numInput">Number to Roman numeral (1–3999)</label>
+          <input type="number" id="numInput" inputmode="numeric" min="1" max="3999" step="1" placeholder="e.g. 2024" autofocus>
+          <p class="muted-small" id="numError" aria-live="polite"></p>
+        </div>
+        <div class="results" aria-live="polite">
+          <div class="line"><span class="lbl">Roman numeral</span><span id="romanOut">—</span></div>
+        </div>
+
+        <div class="field">
+          <label for="romanInput">Roman numeral to number</label>
+          <input type="text" id="romanInput" autocapitalize="characters" spellcheck="false" placeholder="e.g. MMXXIV">
+          <p class="muted-small" id="romanError" aria-live="polite"></p>
+        </div>
+        <div class="results" aria-live="polite">
+          <div class="line"><span class="lbl">Number</span><span id="numOut">—</span></div>
+        </div>
+      </form>
+    </section>
+
+    <p class="note">Your input stays in your browser — nothing is sent anywhere.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the Roman numeral converter</h2>
+      <p>Type a number from 1 to 3999 in the first box to see its Roman numeral, or type a Roman numeral in the second box to read off its value. Both directions update instantly as you type — there is no button to press and nothing leaves your device.</p>
+      <p>The seven Roman letters and their values are <strong>I = 1</strong>, <strong>V = 5</strong>, <strong>X = 10</strong>, <strong>L = 50</strong>, <strong>C = 100</strong>, <strong>D = 500</strong> and <strong>M = 1000</strong>. You read them left to right, adding the values, except where a smaller letter comes before a larger one — then you subtract. That subtractive rule gives the six special pairs: <strong>IV = 4</strong>, <strong>IX = 9</strong>, <strong>XL = 40</strong>, <strong>XC = 90</strong>, <strong>CD = 400</strong> and <strong>CM = 900</strong>.</p>
+      <p>So a year like <strong>1994</strong> becomes <strong>MCMXCIV</strong>: M (1000) + CM (900) + XC (90) + IV (4). The converter only accepts well-formed, standard numerals, so it will flag mistakes like IIII or IC.</p>
+      <p class="note">Everything runs in your browser — the numbers and numerals you type are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>Why does it stop at 3999?</strong> Standard Roman numerals only use the letters up to M (1000), so the largest value you can write without an overbar is MMMCMXCIX, which is 3999. Larger numbers historically used a bar over a letter to multiply it by 1000.</p>
+      <p><strong>Can I use lowercase letters?</strong> Yes. Type in any case — the tool reads mmxxiv and MMXXIV the same way and shows the result in standard uppercase.</p>
+      <p><strong>What counts as a valid numeral?</strong> Only canonical numerals. A letter never repeats four times, and only I, X and C can be used to subtract (before the next one or two larger letters). Anything else is rejected as invalid.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your input never leaves your browser and nothing is stored.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/roman-numeral-converter.js"></script>
+</body>
+</html>

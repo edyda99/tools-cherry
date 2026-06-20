@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Holiday Countdown — How Many Days Until Christmas, Thanksgiving &amp; More</title>
+<meta name="description" content="Free live countdown to any holiday or date. See exactly how many days, hours, minutes and seconds until Christmas, Thanksgiving, Halloween, July 4th, Easter, and any date you pick.">
+<link rel="canonical" href="{{SITE_URL}}/holiday-countdown/">
+<meta property="og:title" content="Holiday Countdown — Days Until Calculator">
+<meta property="og:description" content="How many days until Christmas, Thanksgiving, Halloween and more — a live countdown, plus a days-until-any-date picker. Runs in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Holiday Countdown","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Live countdown showing how many days, hours, minutes and seconds until a chosen holiday or any date."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How many days until Christmas?","acceptedAnswer":{"@type":"Answer","text":"Tap the Christmas button above to see a live count of the days, hours, minutes and seconds until December 25. Once Christmas has passed, the countdown automatically rolls forward to next year."}},{"@type":"Question","name":"How is the countdown calculated?","acceptedAnswer":{"@type":"Answer","text":"The number of days is the whole-day difference between today and the holiday in your local time zone. The clock below it counts the hours, minutes and seconds remaining until that day begins."}},{"@type":"Question","name":"Can I count down to any date?","acceptedAnswer":{"@type":"Answer","text":"Yes. Use the date picker to choose any date — a birthday, a trip, a deadline — and see how many days are left. Everything runs in your browser and nothing is uploaded."}},{"@type":"Question","name":"When is Thanksgiving this year?","acceptedAnswer":{"@type":"Answer","text":"Thanksgiving falls on the fourth Thursday of November, so the exact date changes each year. The countdown works out the correct date for you and rolls forward to next year once it has passed."}},{"@type":"Question","name":"When is Memorial Day?","acceptedAnswer":{"@type":"Answer","text":"Memorial Day is the last Monday of May, so it moves each year. The tool calculates the right date automatically and counts down to it."}},{"@type":"Question","name":"Why does Easter fall on a different date each year?","acceptedAnswer":{"@type":"Answer","text":"Easter is set by the lunar calendar rather than a fixed date, so it lands on a different Sunday each spring. This countdown computes the correct Easter date for any year."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Holiday Countdown</h1>
+    <p class="lede">How many days until Christmas, Thanksgiving, Halloween, or any date you pick? Tap a holiday or choose a date and watch the live countdown tick down to the second.</p>
+
+    <section class="calc" aria-label="Holiday countdown">
+      <form id="cdForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <div class="field-label" id="holidayLabel">Pick a holiday</div>
+          <div class="preset-grid" role="group" aria-labelledby="holidayLabel">
+            <button type="button" class="btn-secondary preset" data-holiday="newyear">New Year</button>
+            <button type="button" class="btn-secondary preset" data-holiday="valentines">Valentine's Day</button>
+            <button type="button" class="btn-secondary preset" data-holiday="easter">Easter</button>
+            <button type="button" class="btn-secondary preset" data-holiday="memorial">Memorial Day</button>
+            <button type="button" class="btn-secondary preset" data-holiday="independence">July 4th</button>
+            <button type="button" class="btn-secondary preset" data-holiday="halloween">Halloween</button>
+            <button type="button" class="btn-secondary preset" data-holiday="thanksgiving">Thanksgiving</button>
+            <button type="button" class="btn-secondary preset" data-holiday="christmas">Christmas</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="customDate">…or count down to any date</label>
+          <input id="customDate" type="date">
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="cd-big"><span id="cdDays">—</span><span class="unit" id="cdDaysLabel">days</span></p>
+        <p class="cd-note" id="cdNote">Pick a holiday or a date to start the countdown.</p>
+        <div class="cd-clock">
+          <div class="seg"><b id="cdH">00</b><span>Hours</span></div>
+          <div class="seg"><b id="cdM">00</b><span>Minutes</span></div>
+          <div class="seg"><b id="cdS">00</b><span>Seconds</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the holiday countdown</h2>
+      <p>Tap any holiday button to see how long is left until it arrives. The big number is the days remaining; the boxes beneath it count the hours, minutes, and seconds in real time.</p>
+      <p>Want a different occasion — a birthday, a trip, a deadline? Use the date picker to count down to <strong>any date</strong> you choose.</p>
+      <p>When a holiday has already passed this year, the countdown automatically jumps to next year's date, so you always see the next time it comes around.</p>
+      <p class="note">Everything runs in your browser using your device's clock — nothing is uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common countdown questions</h2>
+      <p><strong>How many days until Christmas?</strong> Tap the Christmas button to see a live count to December 25. After Christmas, it rolls forward to next year on its own.</p>
+      <p><strong>When is Thanksgiving?</strong> Thanksgiving falls on the fourth Thursday of November, so the date changes each year — the countdown works it out for you.</p>
+      <p><strong>When is Memorial Day?</strong> Memorial Day is the last Monday of May. Like Thanksgiving, it moves each year, and the tool calculates the right date automatically.</p>
+      <p><strong>Why does Easter move around?</strong> Easter is set by the lunar calendar, so it lands on a different Sunday each spring. This countdown computes the correct Easter date for any year.</p>
+      <p><strong>How do I count the days between today and a future date?</strong> Pick the date in the picker — the headline number is exactly how many whole days are left.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/holiday-countdown.js"></script>
+</body>
+</html>

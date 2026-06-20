@@ -185,9 +185,6 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 .line { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 15.5px; }
 .line:last-child { border-bottom: 0; }
 .line[hidden] { display: none; } /* author .line{display:flex} otherwise beats the UA [hidden] rule */
-.age-alt { list-style: none; padding: 0; margin: 6px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
-.age-alt li { background: var(--surface-1, var(--surface-2)); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; font-size: 14px; }
-#ageResults[hidden] { display: none; }
 .line .lbl { color: var(--muted); }
 .line.total { font-weight: 800; color: var(--text); font-size: 17px; border-top: 2px solid var(--border-strong); margin-top: 4px; padding-top: 12px; }
 .rate-row { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 16px; font-size: 13.5px; color: var(--muted); }
@@ -305,10 +302,18 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
   gap: 16px; margin-top: 4px;
 }
 .tool-card {
+  position: relative;
   display: flex; flex-direction: column; gap: 6px;
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 20px; text-decoration: none; color: var(--text);
   box-shadow: var(--shadow-sm); transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.tool-card--hot { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset, var(--shadow-sm); }
+.tool-card .t-tag {
+  position: absolute; top: 12px; right: 12px;
+  font-size: 11px; font-weight: 700; letter-spacing: .02em;
+  padding: 3px 9px; border-radius: var(--radius-pill);
+  background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent);
 }
 .tool-card:hover {
   transform: translateY(-3px); box-shadow: var(--shadow-lg);
@@ -342,6 +347,20 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
   transition: border-color .15s, background .15s, transform .1s;
 }
 .more-tools-grid a:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-hover); text-decoration: none; transform: translateY(-1px); }
+
+/* Focused cross-link cluster (e.g. health calculators) — a small inline list. */
+.related-tools { margin: 28px 0 8px; }
+.related-tools h2 { font-size: 17px; letter-spacing: -.01em; margin: 0 0 10px; }
+.related-tools ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+.related-tools a {
+  display: inline-block; padding: 9px 13px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500;
+  background: var(--surface); border: 1px solid var(--border); text-decoration: none; color: var(--text);
+  transition: border-color .15s, background .15s, transform .1s;
+}
+.related-tools a:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-hover); text-decoration: none; transform: translateY(-1px); }
+
+/* Inline muted annotation (e.g. kcal alongside macro grams). */
+.muted { color: var(--muted); }
 
 /* ---- Prose ----------------------------------------------------------- */
 .prose { color: var(--text); }
@@ -539,7 +558,18 @@ footer.site a:hover { color: var(--text); }
   font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text);
 }
 
-/* Word & character counter */
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
+
+/* ===== merged tool styles ported from main (invoice/qr/word-counter/circle-crop/passport) ===== */
+
+/* ---- Age calculator alternates (results panel) ---------------------- */
+.age-alt { list-style: none; padding: 0; margin: 6px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.age-alt li { background: var(--surface-1, var(--surface-2)); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; font-size: 14px; }
+#ageResults[hidden] { display: none; }
+
+/* ---- Word & character counter --------------------------------------- */
 .wc-input { width: 100%; min-height: 220px; padding: 14px 16px; font: inherit; font-size: 15px; line-height: 1.55; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); resize: vertical; }
 .wc-input:focus { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
 .wc-toolbar { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
@@ -561,10 +591,6 @@ footer.site a:hover { color: var(--text); }
 .limit-near { color: #b8860b; font-weight: 600; }
 .limit-over { color: var(--danger); font-weight: 600; }
 
-/* Percentage calculator */
+/* ---- Percentage calculator ------------------------------------------ */
 .field .inline > span.muted-small { flex: 0 0 auto; align-self: center; white-space: nowrap; margin: 0; min-height: 0; }
 .result-line { margin: 12px 0 0; font-size: 1.15rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
-
-@media (prefers-reduced-motion: reduce) {
-  * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
-}

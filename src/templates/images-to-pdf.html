@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Images to PDF Converter — Free JPG &amp; PNG to PDF (No Signup)</title>
+<meta name="description" content="Free online images to PDF converter. Add JPG, PNG, or WebP photos, drag to reorder, pick A4 or US Letter, then download one combined PDF. No signup — your images never leave your device.">
+<link rel="canonical" href="{{SITE_URL}}/images-to-pdf/">
+<meta property="og:title" content="Images to PDF Converter — Free, Private, In Your Browser">
+<meta property="og:description" content="Combine JPG and PNG images into a single PDF. Free, no signup — nothing is uploaded.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Images to PDF Converter","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Combine JPG, PNG, and WebP images into a single PDF in your browser. No signup."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Can I convert JPG to PDF for free?","acceptedAnswer":{"@type":"Answer","text":"Yes. This tool is completely free with no signup and no watermark. Add your JPG (or PNG or WebP) images and download a PDF in seconds."}},{"@type":"Question","name":"Can I combine several images into one PDF?","acceptedAnswer":{"@type":"Answer","text":"Yes. Add as many images as you like and they become one PDF, one image per page, in the order you set with the up and down arrows."}},{"@type":"Question","name":"How do I change the order of the pages?","acceptedAnswer":{"@type":"Answer","text":"Each image appears in a list after you add it. Use the up and down arrows next to an image to move it earlier or later, and the × button to remove one. The PDF follows the order shown in the list."}},{"@type":"Question","name":"Should I pick A4 or US Letter?","acceptedAnswer":{"@type":"Answer","text":"Use US Letter (8.5 by 11 inches) if you are in the United States or Canada, and A4 (210 by 297 mm) almost everywhere else. If you plan to print, match the page size to the paper in your printer."}},{"@type":"Question","name":"What is the difference between fit with margins and edge to edge?","acceptedAnswer":{"@type":"Answer","text":"Fit to page with margins leaves a clean white border around each image, which is best for documents and printing. Edge to edge fills the whole page with the image, with no border — better for photos you want to fill the sheet."}},{"@type":"Question","name":"Are my images uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. All processing happens locally in your browser, so your photos stay private on your own device and the PDF is built without anything being sent to a server."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Images to PDF Converter</h1>
+    <p class="lede">Add your photos, put them in the order you want, then download them as a single PDF. Works with JPG, PNG, and WebP. Everything happens in your browser — your images never leave your device.</p>
+
+    <div class="calc">
+      <div>
+        <label id="drop" class="dropzone" for="file">
+          <input id="file" type="file" accept="image/*" multiple hidden>
+          <span id="dropText">Click to choose images, or drop them here</span>
+        </label>
+
+        <div class="field" style="margin-top:14px">
+          <label for="pageSize">Page size</label>
+          <select id="pageSize">
+            <option value="a4" selected>A4 (210 × 297 mm)</option>
+            <option value="letter">US Letter (8.5 × 11 in)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="orientation">Orientation</label>
+          <select id="orientation">
+            <option value="auto" selected>Auto (match each image)</option>
+            <option value="portrait">Portrait (tall)</option>
+            <option value="landscape">Landscape (wide)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="fit">Page fit</label>
+          <select id="fit">
+            <option value="margin" selected>Fit to page with margins</option>
+            <option value="full">Fit to page, edge to edge</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="results">
+        <div class="pdf-list" id="list" aria-live="polite"></div>
+        <p class="muted-small" id="status" style="margin-top:10px">Add some images to begin.</p>
+        <div class="field inline" style="margin-bottom:0">
+          <button type="button" id="makePdf" class="btn-primary" disabled>Make PDF</button>
+          <button type="button" id="clearAll" class="btn-secondary">Clear all</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to turn images into a PDF</h2>
+      <p>Click the box above to choose images, or drag them straight in. You can add several at once. Each one appears in the list — use the up and down arrows to set the order they should appear in the PDF, or the × button to remove any you do not want.</p>
+      <p>Pick your <strong>page size</strong> (A4 or US Letter) and <strong>orientation</strong>. "Auto" gives each page the shape that best matches the photo on it — wide photos get a wide page, tall photos a tall page. Choose <strong>fit to page with margins</strong> for a clean border around each image, or <strong>edge to edge</strong> to use the whole page. Then click <strong>Make PDF</strong> and the file downloads to your device.</p>
+      <p class="note">Your images never leave your device. The PDF is built entirely in your browser — nothing is uploaded to any server.</p>
+
+      <h2>Frequently asked questions</h2>
+      <h3>Can I convert JPG to PDF for free?</h3>
+      <p>Yes. This tool is completely free with no signup and no watermark. Add your JPG (or PNG or WebP) images and download a PDF in seconds.</p>
+      <h3>Can I combine several images into one PDF?</h3>
+      <p>Yes — add as many images as you like and they become one PDF, one image per page, in the order you set.</p>
+      <h3>How do I change the order of the pages?</h3>
+      <p>Use the up and down arrows beside each image to move it earlier or later in the list, and the × button to remove one. The PDF follows the order shown.</p>
+      <h3>Should I pick A4 or US Letter?</h3>
+      <p>Use US Letter in the United States and Canada, and A4 almost everywhere else. If you'll print the file, match the page size to the paper in your printer.</p>
+      <h3>What's the difference between "fit with margins" and "edge to edge"?</h3>
+      <p>Margins leave a clean white border around each image — best for documents. Edge to edge fills the whole page with no border — better for photos meant to fill the sheet.</p>
+      <h3>Are my images uploaded anywhere?</h3>
+      <p>No. All processing happens locally in your browser, so your photos stay private on your own device.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script src="/assets/jspdf.umd.min.js"></script>
+<script type="module" src="/assets/images-to-pdf.js"></script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>UUID Generator — free online random UUID (v4) generator</title>
+<meta name="description" content="Free online UUID generator. Create one or many random version-4 UUIDs (GUIDs) instantly — uppercase, no hyphens or braces optional. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/uuid-generator/">
+<meta property="og:title" content="UUID Generator (v4)">
+<meta property="og:description" content="Generate random version-4 UUIDs / GUIDs instantly, in bulk, with formatting options. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"UUID Generator","applicationCategory":"DeveloperApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Generate random version-4 UUIDs (GUIDs) instantly, in bulk, with optional uppercase, hyphenless and braces formatting. Runs entirely in your browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is a UUID (or GUID)?","acceptedAnswer":{"@type":"Answer","text":"A UUID (Universally Unique Identifier), also called a GUID (Globally Unique Identifier) on Microsoft platforms, is a 128-bit value written as 32 hexadecimal digits in five hyphen-separated groups (8-4-4-4-12). It is used as an identifier that is practically guaranteed to be unique without a central authority."}},{"@type":"Question","name":"What is a version-4 UUID?","acceptedAnswer":{"@type":"Answer","text":"A version-4 UUID is generated from random numbers. 122 of its 128 bits are random (the rest fix the version and variant), so the chance of two generated values colliding is negligible. It is the most common UUID type for database keys, request IDs and tokens."}},{"@type":"Question","name":"Are these UUIDs truly random and safe to use?","acceptedAnswer":{"@type":"Answer","text":"Yes. The generator uses your browser's cryptographically strong random source (crypto.getRandomValues), the same source used for security-sensitive values. Each click produces fresh, independent UUIDs that are never sent anywhere."}},{"@type":"Question","name":"Is anything uploaded or stored?","acceptedAnswer":{"@type":"Answer","text":"No. Every UUID is generated locally in your browser. Nothing is sent to a server and nothing is stored."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>UUID Generator</h1>
+    <p class="lede">Generate random version-4 UUIDs (GUIDs) — one or thousands at a time, with optional uppercase, no-hyphen and braces formatting. Everything runs in your browser using a cryptographic random source, and nothing is uploaded.</p>
+
+    <section class="calc" aria-label="UUID generator">
+      <div class="field">
+        <label for="count">How many</label>
+        <input type="number" id="count" min="1" max="1000" step="1" value="1" inputmode="numeric">
+      </div>
+
+      <fieldset class="field">
+        <legend>Formatting</legend>
+        <label><input type="checkbox" id="uppercase"> Uppercase (A–F)</label>
+        <label><input type="checkbox" id="nohyphens"> Remove hyphens</label>
+        <label><input type="checkbox" id="braces"> Wrap in braces { }</label>
+      </fieldset>
+
+      <div class="json-toolbar">
+        <button type="button" id="generateBtn" class="btn-primary">Generate</button>
+        <button type="button" id="copyBtn" class="btn-secondary">Copy</button>
+        <button type="button" id="nilBtn" class="btn-secondary">Nil UUID</button>
+        <button type="button" id="clearBtn" class="btn-secondary">Clear</button>
+      </div>
+
+      <div class="field">
+        <label for="output">Result</label>
+        <textarea id="output" rows="10" spellcheck="false" readonly placeholder="Your UUIDs appear here."></textarea>
+      </div>
+
+      <p id="status" class="json-status" role="status" aria-live="polite" hidden></p>
+    </section>
+
+    <p class="note">UUIDs are generated on your device — nothing is sent anywhere.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the UUID generator</h2>
+      <p>By default you get a single random <strong>version-4 UUID</strong> the moment the page loads. Press <strong>Generate</strong> for a fresh one, or set <strong>How many</strong> and generate up to 1,000 at once — handy for seeding a database, mocking test data, or filling a column of identifiers. Press <strong>Copy</strong> to put the whole list on your clipboard.</p>
+      <p>Use the formatting options to match your target system: <strong>Uppercase</strong> switches the hex digits to A–F, <strong>Remove hyphens</strong> gives the compact 32-character form, and <strong>Wrap in braces</strong> produces the <code>{…}</code> style Microsoft tools often expect. Need a placeholder? <strong>Nil UUID</strong> inserts the all-zero identifier.</p>
+      <p class="note">Every value comes from your browser's cryptographic random source — the UUIDs never leave your device.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>UUID or GUID — what's the difference?</strong> None, in practice. GUID is Microsoft's name for the same 128-bit identifier. This tool produces standard RFC 4122 values that are valid as either.</p>
+      <p><strong>Could two generated UUIDs ever collide?</strong> A version-4 UUID has 122 random bits. The odds of a collision are so small that they are ignored in practice — you would need to generate billions of UUIDs before a clash became remotely likely.</p>
+      <p><strong>Can I generate version-1 (time-based) UUIDs?</strong> This tool generates version 4 (random), which is the right choice for almost every use case and avoids leaking a MAC address or timestamp. Version 1 is intentionally not offered.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your UUIDs never leave your browser and nothing is stored.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/uuid-generator.js"></script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Paint Calculator — How Much Paint Do I Need for a Room?</title>
+<meta name="description" content="Free paint calculator. Enter your room's length, width, and wall height, subtract doors and windows, choose your number of coats, and see exactly how many gallons or litres of paint to buy. Instant results, no signup.">
+<link rel="canonical" href="{{SITE_URL}}/paint-calculator/">
+<meta property="og:title" content="Paint Calculator">
+<meta property="og:description" content="Work out how much paint you need for a room from its size, doors, windows, and coats — in gallons or litres, instantly in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Paint Calculator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Estimate how much paint a room needs from its wall area, minus doors and windows, times the number of coats, divided by paint coverage — in gallons or litres."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How much paint do I need for a room?","acceptedAnswer":{"@type":"Answer","text":"Measure the room's length, width, and wall height, then calculate the wall area as perimeter times height. Subtract the area of doors and windows, multiply by the number of coats, and divide by the paint's coverage (about 350 square feet per gallon, or roughly 11 square metres per litre). This calculator does that for you."}},{"@type":"Question","name":"How much does one gallon of paint cover?","acceptedAnswer":{"@type":"Answer","text":"One gallon of interior wall paint typically covers about 350 to 400 square feet in a single coat on a primed, smooth surface. Textured, porous, or unprimed walls absorb more, so coverage can drop. This tool defaults to 350 square feet per gallon and lets you enter your own figure from the paint can."}},{"@type":"Question","name":"How many coats of paint do I need?","acceptedAnswer":{"@type":"Answer","text":"Two coats is standard for an even, durable finish, especially over a different colour or a fresh primer. One coat may be enough when repainting the same or a similar colour with high-quality paint. The calculator defaults to two coats."}},{"@type":"Question","name":"Should I subtract doors and windows?","acceptedAnswer":{"@type":"Answer","text":"Yes, for a tighter estimate. A standard door is about 21 square feet and a standard window about 15 square feet. Enter how many of each the room has and the calculator removes that area before working out the paint."}},{"@type":"Question","name":"Does this paint calculator work in litres?","acceptedAnswer":{"@type":"Answer","text":"Yes. Switch the units to metric and enter dimensions in metres; results are given in litres, using a default coverage of about 11 square metres per litre, which you can override with the figure on your paint can."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Paint Calculator</h1>
+    <p class="lede">Find out how much paint to buy for a room. Enter the floor size and wall height, take out the doors and windows, pick your number of coats, and see the gallons or litres you need — calculated instantly in your browser, with nothing uploaded.</p>
+
+    <section class="calc" aria-label="Paint calculator">
+      <form id="paintForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="system">Units</label>
+          <select id="system">
+            <option value="us">US — feet &amp; gallons</option>
+            <option value="metric">Metric — metres &amp; litres</option>
+          </select>
+        </div>
+        <div class="field inline">
+          <span><label for="length">Room length (<span class="len-unit">ft</span>)</label><input id="length" type="number" inputmode="decimal" step="any" min="0" value="12" placeholder="12"></span>
+          <span><label for="width">Room width (<span class="len-unit">ft</span>)</label><input id="width" type="number" inputmode="decimal" step="any" min="0" value="10" placeholder="10"></span>
+        </div>
+        <div class="field inline">
+          <span><label for="height">Wall height (<span class="len-unit">ft</span>)</label><input id="height" type="number" inputmode="decimal" step="any" min="0" value="8" placeholder="8"></span>
+          <span><label for="coats">Number of coats</label><input id="coats" type="number" inputmode="numeric" step="1" min="1" value="2" placeholder="2"></span>
+        </div>
+        <div class="field inline">
+          <span><label for="doors">Doors</label><input id="doors" type="number" inputmode="numeric" step="1" min="0" value="1" placeholder="0"></span>
+          <span><label for="windows">Windows</label><input id="windows" type="number" inputmode="numeric" step="1" min="0" value="2" placeholder="0"></span>
+        </div>
+        <div class="field">
+          <label for="coverage">Coverage (<span id="coverageUnit">sq ft per gallon</span>) — optional</label>
+          <input id="coverage" type="number" inputmode="decimal" step="any" min="0" placeholder="350">
+          <p class="note">Leave blank to use the typical default. Check your paint can for its exact coverage.</p>
+        </div>
+      </form>
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="out">—</p>
+        <p class="net-sub" id="sub">Enter the room length, width, and wall height to estimate paint.</p>
+        <ul class="breakdown" id="detail"></ul>
+      </div>
+    </section>
+
+    <section class="prose">
+      <h2>How to estimate paint for a room</h2>
+      <p>The calculator works the way a painter would. It finds the total wall area, removes the parts you won't paint, multiplies by how many coats you're applying, and divides by how far one container of paint goes.</p>
+      <p><strong>Wall area.</strong> Add the length and width, double it for the room's perimeter, then multiply by the wall height. A 12 × 10 room with 8-foot walls has 352 square feet of wall.</p>
+      <p><strong>Doors and windows.</strong> Each standard door is roughly 21 square feet and each window about 15 square feet. Enter how many the room has and that area is subtracted, since you don't paint over them.</p>
+      <p><strong>Coats and coverage.</strong> Two coats is the usual choice. One US gallon covers around 350 square feet per coat (about 11 square metres per litre), but textured or unprimed walls drink up more — enter the figure from your paint can for the most accurate result.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Paint calculator questions</h2>
+      <p><strong>How much paint do I need for a room?</strong> Multiply the room's perimeter by the wall height for the wall area, subtract doors and windows, multiply by your number of coats, and divide by the paint's coverage. This page does all of that as you type.</p>
+      <p><strong>How much does a gallon of paint cover?</strong> Usually 350–400 square feet per coat on smooth, primed walls. Rough or porous surfaces cover less. The tool defaults to 350 and lets you override it.</p>
+      <p><strong>How many coats should I use?</strong> Two for most repaints and colour changes; one can work when going over a similar colour with quality paint. The default is two coats.</p>
+      <p><strong>Why subtract doors and windows?</strong> Because you don't paint them, so leaving them in overestimates the paint. A standard door is about 21 square feet and a window about 15.</p>
+      <p><strong>Can I use litres and metres?</strong> Yes — switch the units to metric. Dimensions are read in metres and the result is given in litres at about 11 square metres per litre.</p>
+      <p class="note">This is a planning estimate. Buy a little extra for touch-ups, and round up to whole containers — which the calculator already does.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/paint-calculator.js"></script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Base64 Encode &amp; Decode — free online Base64 converter</title>
+<meta name="description" content="Free online Base64 encoder and decoder. Convert any text to Base64 or decode Base64 back to text, with full Unicode (UTF-8) and URL-safe support. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/base64-encode-decode/">
+<meta property="og:title" content="Base64 Encode &amp; Decode">
+<meta property="og:description" content="Encode text to Base64 or decode Base64 back to text — with Unicode and URL-safe support. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .b64-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 680px) { .b64-grid { grid-template-columns: 1fr; } }
+  #output { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Base64 Encode & Decode","applicationCategory":"DeveloperApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Encode text to Base64 and decode Base64 back to text, with full UTF-8 Unicode support and a URL-safe option. Runs entirely in your browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is Base64 encoding?","acceptedAnswer":{"@type":"Answer","text":"Base64 is a way of representing binary or text data using only 64 printable ASCII characters (A–Z, a–z, 0–9, plus + and /). It is used to safely embed data in URLs, emails, JSON, HTML and data URIs where some characters would otherwise be unsafe or get corrupted."}},{"@type":"Question","name":"Does this tool handle emoji and non-English text?","acceptedAnswer":{"@type":"Answer","text":"Yes. The converter encodes text as UTF-8 before Base64, so accented letters, Arabic, Chinese, emoji and any other Unicode characters round-trip correctly. The browser's built-in btoa function alone cannot do this."}},{"@type":"Question","name":"What is URL-safe Base64?","acceptedAnswer":{"@type":"Answer","text":"URL-safe Base64 replaces the + and / characters with - and _ and drops the trailing = padding, so the result can be placed directly in a URL or filename without escaping. Turn on the URL-safe option to use it for both encoding and decoding."}},{"@type":"Question","name":"Is my data uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. Encoding and decoding run entirely in your browser using JavaScript. Your text is never sent to a server and nothing is stored."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Base64 Encode &amp; Decode</h1>
+    <p class="lede">Convert text to Base64 or decode Base64 back to plain text. Full Unicode (UTF-8) support means emoji and non-English text work too, and there's a URL-safe option for use in links and filenames. Everything runs in your browser — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Base64 encoder and decoder">
+      <form id="b64Form" autocomplete="off" onsubmit="return false">
+        <div class="json-toolbar">
+          <label><input type="radio" name="mode" value="encode" checked> Encode</label>
+          <label><input type="radio" name="mode" value="decode"> Decode</label>
+          <label><input type="checkbox" id="urlSafe"> URL-safe</label>
+        </div>
+
+        <div class="b64-grid">
+          <div class="field">
+            <label id="inputLabel" for="input">Text to encode</label>
+            <textarea id="input" rows="10" spellcheck="false" placeholder="Type or paste text…" autofocus></textarea>
+          </div>
+          <div class="field">
+            <label id="outputLabel" for="output">Base64 result</label>
+            <textarea id="output" rows="10" spellcheck="false" readonly placeholder="Result appears here…"></textarea>
+          </div>
+        </div>
+
+        <div class="json-toolbar">
+          <button type="button" id="copyBtn" class="btn-primary">Copy result</button>
+          <button type="button" id="clearBtn" class="btn-secondary">Clear</button>
+        </div>
+
+        <p id="status" class="json-status" role="status" aria-live="polite" hidden></p>
+      </form>
+    </section>
+
+    <p class="note">Your text stays in your browser — nothing is sent anywhere.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the Base64 converter</h2>
+      <p>Choose <strong>Encode</strong> to turn plain text into Base64, or <strong>Decode</strong> to turn Base64 back into readable text. Type or paste into the left box and the result appears on the right instantly — there's no button to press for the conversion itself.</p>
+      <p>Tick <strong>URL-safe</strong> when you need a value you can drop straight into a URL, query string or filename. URL-safe Base64 swaps the <code>+</code> and <code>/</code> characters for <code>-</code> and <code>_</code> and removes the trailing <code>=</code> padding. Use the same setting on both ends so a value encoded as URL-safe also decodes as URL-safe.</p>
+      <p>Use <strong>Copy result</strong> to put the output on your clipboard, or <strong>Clear</strong> to start over.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>What is Base64 used for?</h2>
+      <p>Base64 represents data using a 64-character alphabet that survives systems built for plain text. It's how binary files get embedded in emails, how small images become <code>data:</code> URIs in CSS and HTML, how tokens and credentials travel inside JSON, and how the payload of a JWT is encoded. It is <em>encoding, not encryption</em> — anyone can decode it — so never treat Base64 as a way to hide or secure sensitive data.</p>
+      <p>This tool encodes your text as UTF-8 first, so characters beyond plain ASCII — accents, Arabic, Chinese, emoji — convert correctly in both directions. That's something the browser's raw <code>btoa</code> function can't do on its own.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>Why does my decoded text look wrong or show an error?</strong> The input probably isn't valid Base64, or it was URL-safe Base64 decoded with the URL-safe option turned off (or vice versa). Check the URL-safe toggle and that the text contains only Base64 characters.</p>
+      <p><strong>Can I encode a file?</strong> This tool works on text. To Base64-encode a file you'd read its bytes first; for images, a data-URI generator is a better fit.</p>
+      <p><strong>Is Base64 secure?</strong> No. It's fully reversible by anyone. Use it to transport data safely, not to protect it.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your text never leaves your browser and nothing is stored.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/base64-converter.js"></script>
+</body>
+</html>

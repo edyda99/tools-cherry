@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Unit Converter — Length, Weight, Temperature, Speed, Area &amp; Data</title>
+<meta name="description" content="Free unit converter for length, weight/mass, temperature, speed, area and digital storage. Convert km to miles, kg to pounds, °C to °F, mph to km/h, GB to MB and more. Live results, no signup.">
+<link rel="canonical" href="{{SITE_URL}}/unit-converter/">
+<meta property="og:title" content="Unit Converter">
+<meta property="og:description" content="Convert length, weight, temperature, speed, area and data sizes instantly in your browser. Pick a category, choose units, get the answer.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Unit Converter","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Convert between units of length (mm, cm, m, km, inch, foot, yard, mile), weight/mass (mg, g, kg, tonne, ounce, pound, stone), temperature (Celsius, Fahrenheit, Kelvin), speed (m/s, km/h, mph, knot), area (square metre, square km, square foot, square mile, acre, hectare) and digital storage (KB, MB, GB, TB)."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How many miles are in a kilometre?","acceptedAnswer":{"@type":"Answer","text":"One kilometre is about 0.621 miles, and one mile is exactly 1609.344 metres (1.609 km). To convert kilometres to miles, multiply by 0.621; to go the other way, multiply miles by 1.609."}},{"@type":"Question","name":"How many pounds are in a kilogram?","acceptedAnswer":{"@type":"Answer","text":"One kilogram is about 2.20462 pounds. To convert kilograms to pounds, multiply by 2.20462; to convert pounds to kilograms, divide by 2.20462 (or multiply by 0.4536)."}},{"@type":"Question","name":"What is 100°C in Fahrenheit?","acceptedAnswer":{"@type":"Answer","text":"100°C is 212°F — the boiling point of water at sea level. To convert Celsius to Fahrenheit, multiply by 9/5 and add 32. To convert back, subtract 32 and multiply by 5/9."}},{"@type":"Question","name":"How many MB are in a GB?","acceptedAnswer":{"@type":"Answer","text":"This converter uses the binary (1024-based) definition, so 1 GB = 1024 MB and 1 MB = 1024 KB. Some drive manufacturers use a 1000-based definition where 1 GB = 1000 MB, which is why a labelled drive shows slightly less usable space."}},{"@type":"Question","name":"How tall is 5 foot 10 in centimetres?","acceptedAnswer":{"@type":"Answer","text":"About 178 cm. Each inch is 2.54 cm, so 5 ft 10 in is 70 inches times 2.54, which equals 177.8 cm. To convert any height, multiply total inches by 2.54."}},{"@type":"Question","name":"What's the difference between an acre and a hectare?","acceptedAnswer":{"@type":"Answer","text":"Both measure land area, but a hectare is bigger: one hectare is 10,000 square metres, about 2.471 acres, while one acre is roughly 4,047 square metres. The acre is common in the US and UK; the hectare is the metric standard."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Unit Converter</h1>
+    <p class="lede">Convert length, weight, temperature, speed, area and digital storage. Pick a category, choose your units, and the answer updates as you type — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Unit converter">
+      <form id="convForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="category">What do you want to convert?</label>
+          <select id="category">
+            <option value="length">Length / distance (m, km, mile, foot…)</option>
+            <option value="weight">Weight / mass (g, kg, pound, ounce…)</option>
+            <option value="temperature">Temperature (°C, °F, K)</option>
+            <option value="speed">Speed (m/s, km/h, mph, knot)</option>
+            <option value="area">Area (m², km², acre, hectare…)</option>
+            <option value="digital">Digital storage (KB, MB, GB, TB)</option>
+          </select>
+        </div>
+
+        <div class="field inline">
+          <span><label for="amount">Amount</label><input id="amount" type="number" inputmode="decimal" step="any" value="1" placeholder="1"></span>
+          <span><label for="fromUnit">From</label><select id="fromUnit"></select></span>
+          <span><label for="toUnit">To</label><select id="toUnit"></select></span>
+        </div>
+        <button type="button" id="swapBtn" class="btn-secondary">↔ Swap units</button>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="resultBig">—</p>
+        <p class="net-sub" id="resultSub"></p>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the unit converter</h2>
+      <p>Choose a category, type an amount, and pick the "from" and "to" units. The result appears instantly — there's no button to press and nothing leaves your device. Use the <strong>Swap units</strong> button to reverse the direction.</p>
+      <p><strong>Length</strong> covers millimetres, centimetres, metres, kilometres, inches, feet, yards and miles. <strong>Weight / mass</strong> covers milligrams, grams, kilograms, tonnes, ounces, pounds and stone. <strong>Speed</strong> covers metres per second, kilometres per hour, miles per hour and knots. <strong>Area</strong> covers square metres, square kilometres, square feet, square miles, acres and hectares.</p>
+      <p><strong>Temperature</strong> converts between Celsius, Fahrenheit and Kelvin. Because temperature scales have different zero points, this uses the standard formulas rather than a simple ratio.</p>
+      <p><strong>Digital storage</strong> uses the binary, 1024-based definition: 1 KB = 1024 bytes, 1 MB = 1024 KB, 1 GB = 1024 MB, 1 TB = 1024 GB. Some storage is sold using a 1000-based definition, which is why a drive can show less usable space than the number on the box.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded. Cooking with cups, tablespoons or teaspoons? Use the <a href="/cooking-converter/">cooking measurement converter</a> for recipe units.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common conversions at a glance</h2>
+      <table>
+        <thead><tr><th>From</th><th>Equals</th></tr></thead>
+        <tbody>
+          <tr><td>1 mile</td><td>1609.344 m · 1.609 km</td></tr>
+          <tr><td>1 km</td><td>0.621 miles</td></tr>
+          <tr><td>1 inch</td><td>2.54 cm</td></tr>
+          <tr><td>1 foot</td><td>30.48 cm · 12 inches</td></tr>
+          <tr><td>1 kg</td><td>2.20462 lb</td></tr>
+          <tr><td>1 pound</td><td>453.592 g · 16 ounces</td></tr>
+          <tr><td>1 stone</td><td>14 lb · 6.35 kg</td></tr>
+          <tr><td>0°C</td><td>32°F · 273.15 K</td></tr>
+          <tr><td>100°C</td><td>212°F · 373.15 K</td></tr>
+          <tr><td>60 mph</td><td>≈ 96.56 km/h</td></tr>
+          <tr><td>1 knot</td><td>1.852 km/h</td></tr>
+          <tr><td>1 acre</td><td>≈ 4046.86 m² · 0.405 hectare</td></tr>
+          <tr><td>1 hectare</td><td>10,000 m² · 2.471 acres</td></tr>
+          <tr><td>1 GB</td><td>1024 MB</td></tr>
+          <tr><td>1 TB</td><td>1024 GB</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="prose">
+      <h2>Common unit conversion questions</h2>
+      <p><strong>How many miles are in a kilometre?</strong> One kilometre is about 0.621 miles. One mile is exactly 1609.344 metres (1.609 km). Multiply km by 0.621 for miles, or miles by 1.609 for km.</p>
+      <p><strong>How many pounds are in a kilogram?</strong> One kilogram is about 2.20462 pounds. Multiply kg by 2.20462 for pounds, or divide pounds by 2.20462 for kg.</p>
+      <p><strong>What is 100°C in Fahrenheit?</strong> 100°C is 212°F (water's boiling point at sea level). To convert °C to °F, multiply by 9/5 and add 32; to go back, subtract 32 then multiply by 5/9.</p>
+      <p><strong>How fast is 60 mph in km/h?</strong> About 96.56 km/h. One mph is 1.609 km/h, so multiply mph by 1.609.</p>
+      <p><strong>How many MB are in a GB?</strong> Here, 1 GB = 1024 MB and 1 MB = 1024 KB (the binary definition). Drives marketed with a 1000-based definition show slightly less usable space.</p>
+      <p><strong>How tall is 5 foot 10 in centimetres?</strong> About 178 cm. Each inch is 2.54 cm, so 5 ft 10 in is 70 inches × 2.54 = 177.8 cm. To convert any height, multiply total inches by 2.54; the length category above handles feet and inches for you.</p>
+      <p><strong>What's the difference between an acre and a hectare?</strong> Both measure land area, but a hectare is bigger: one hectare is 10,000 square metres, about 2.471 acres, while one acre is roughly 4,047 square metres. The acre is common in the US and UK; the hectare is the metric standard used in most of the world.</p>
+      <p><strong>How do I convert mph to km/h?</strong> Multiply miles per hour by 1.609. So 60 mph is about 96.6 km/h and 30 mph is about 48.3 km/h. To go the other way, multiply km/h by 0.621 to get mph — useful when reading a speed limit sign abroad.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/unit-converter.js"></script>
+</body>
+</html>

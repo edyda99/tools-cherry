@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Tile Calculator — How Many Tiles &amp; Boxes Do I Need?</title>
+<meta name="description" content="Free tile calculator. Enter your room or wall size and your tile size, add a waste allowance for cuts, and see exactly how many tiles and boxes to buy. Works in feet/inches or metres/centimetres. Instant results, no signup.">
+<link rel="canonical" href="{{SITE_URL}}/tile-calculator/">
+<meta property="og:title" content="Tile Calculator">
+<meta property="og:description" content="Work out how many tiles and boxes you need for a floor or wall from the room size, tile size, and waste allowance — instantly in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Tile Calculator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Estimate how many tiles and boxes a floor or wall needs from the area to cover, divided by the area of one tile, plus a waste allowance for cuts and breakage — in feet/inches or metres/centimetres."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How many tiles do I need?","acceptedAnswer":{"@type":"Answer","text":"Work out the area to cover (length times width), then divide by the area of a single tile. Add a waste allowance — usually about 10% — for cuts, breakage, and future repairs, and round up to whole tiles. This calculator does that for you and can also tell you how many boxes to buy."}},{"@type":"Question","name":"How much waste should I add for tiles?","acceptedAnswer":{"@type":"Answer","text":"Around 10% is the standard allowance for a straight layout. Add about 15% for a diagonal or herringbone pattern, for rooms with lots of corners and cuts, or for large-format tiles where a single break wastes more material. The calculator defaults to 10% and lets you change it."}},{"@type":"Question","name":"How do I measure a room for tiles?","acceptedAnswer":{"@type":"Answer","text":"Measure the length and width of the floor (or the width and height of a wall) and multiply them for the area. For an L-shaped room, split it into rectangles, work out each area, and add them together. Enter the total here along with your tile size."}},{"@type":"Question","name":"Does the tile size include the grout gap?","acceptedAnswer":{"@type":"Answer","text":"Enter the tile's nominal size as printed on the box — for example 12 by 12 inches or 30 by 30 centimetres. The small grout joint between tiles is effectively covered by the waste allowance, so you don't need to adjust the tile dimensions for it."}},{"@type":"Question","name":"Why does the calculator round up to whole boxes?","acceptedAnswer":{"@type":"Answer","text":"Tiles are sold by the box, so you can only buy whole boxes. Enter how many tiles are in a box and the calculator divides the total tiles needed by that figure and rounds up, so you buy enough to finish the job with a little spare."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Tile Calculator</h1>
+    <p class="lede">Find out how many tiles to buy for a floor or wall. Enter the area size and your tile size, add a waste allowance for cuts and breakage, and see the number of tiles — and boxes — you need, calculated instantly in your browser with nothing uploaded.</p>
+
+    <section class="calc" aria-label="Tile calculator">
+      <form id="tileForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="system">Units</label>
+          <select id="system">
+            <option value="us">US — feet &amp; inches</option>
+            <option value="metric">Metric — metres &amp; centimetres</option>
+          </select>
+        </div>
+        <div class="field inline">
+          <span><label for="length">Area length (<span class="len-unit">ft</span>)</label><input id="length" type="number" inputmode="decimal" step="any" min="0" value="12" placeholder="12"></span>
+          <span><label for="width">Area width (<span class="len-unit">ft</span>)</label><input id="width" type="number" inputmode="decimal" step="any" min="0" value="10" placeholder="10"></span>
+        </div>
+        <div class="field inline">
+          <span><label for="tileW">Tile width (<span class="tile-unit">in</span>)</label><input id="tileW" type="number" inputmode="decimal" step="any" min="0" value="12" placeholder="12"></span>
+          <span><label for="tileH">Tile height (<span class="tile-unit">in</span>)</label><input id="tileH" type="number" inputmode="decimal" step="any" min="0" value="12" placeholder="12"></span>
+        </div>
+        <div class="field inline">
+          <span><label for="waste">Waste allowance (%)</label><input id="waste" type="number" inputmode="decimal" step="any" min="0" value="10" placeholder="10"></span>
+          <span><label for="perBox">Tiles per box — optional</label><input id="perBox" type="number" inputmode="numeric" step="1" min="0" placeholder="e.g. 10"></span>
+        </div>
+      </form>
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="out">—</p>
+        <p class="net-sub" id="sub">Enter the area size and tile size to estimate tiles.</p>
+        <ul class="breakdown" id="detail"></ul>
+      </div>
+    </section>
+
+    <section class="prose">
+      <h2>How to estimate tiles for a room</h2>
+      <p>The calculator works the way a tiler would. It finds the area you're covering, divides it by the size of one tile, adds a margin for the tiles you'll cut or break, and rounds up to whole tiles and whole boxes.</p>
+      <p><strong>Area to cover.</strong> Multiply the length by the width. A 12 × 10 floor is 120 square feet. For a wall, use its width and height instead. For an L-shaped space, split it into rectangles, add up the areas, and enter the total.</p>
+      <p><strong>Tile size.</strong> Enter the tile's nominal size from the box — 12 × 12 inches, 24 × 12 inches, 30 × 30 centimetres, and so on. The calculator converts that to the area one tile covers.</p>
+      <p><strong>Waste allowance.</strong> Around 10% covers the off-cuts at edges and the odd cracked tile, and leaves a few spares for future repairs. Bump it to 15% for diagonal or herringbone layouts, fiddly rooms, or large-format tiles.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Tile calculator questions</h2>
+      <p><strong>How many tiles do I need?</strong> Divide the area you're covering by the area of one tile, add about 10% for waste, and round up. This page does it all as you type and can also work out the number of boxes.</p>
+      <p><strong>How much waste should I add?</strong> Roughly 10% for a standard straight layout, 15% for diagonal or herringbone patterns, rooms with many cuts, or large-format tiles. The default is 10%.</p>
+      <p><strong>How do I measure for tiles?</strong> Measure length and width (or wall width and height) and multiply for the area. Break odd shapes into rectangles and add the areas together.</p>
+      <p><strong>Should the tile size include the grout gap?</strong> No — use the size printed on the box. The narrow grout joint is effectively absorbed by the waste allowance.</p>
+      <p><strong>Why round up to whole boxes?</strong> Because tiles are sold by the box. Enter how many tiles a box holds and the calculator rounds the total up to the next full box, so you have enough to finish with a little spare.</p>
+      <p class="note">This is a planning estimate. Keep a few spare tiles after the job for repairs, since dye lots can change between batches.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/tile-calculator.js"></script>
+</body>
+</html>

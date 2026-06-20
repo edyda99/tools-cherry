@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Hours Calculator — Time Card &amp; Hours Worked (with Pay Estimate)</title>
+<meta name="description" content="Free hours calculator and time card. Add clock-in and clock-out times for each day, subtract unpaid breaks, and get hours worked in decimal and h:mm plus a weekly total. Optional pay rate estimates gross pay. Handles overnight shifts.">
+<link rel="canonical" href="{{SITE_URL}}/hours-calculator/">
+<meta property="og:title" content="Hours Calculator — Time Card">
+<meta property="og:description" content="Add clock-in / clock-out times, subtract breaks, and get hours worked and a weekly total. Optional pay rate. Handles overnight shifts.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Hours Calculator (Time Card)","applicationCategory":"BusinessApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate hours worked from clock-in and clock-out times, subtract unpaid breaks, total a week, and estimate gross pay. Handles overnight shifts."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I calculate hours worked from clock-in and clock-out times?","acceptedAnswer":{"@type":"Answer","text":"Enter the start time and end time for each day, then subtract any unpaid break in minutes. The calculator converts the times to minutes, takes the difference, removes the break, and shows the result in decimal hours (like 7.50) and h:mm (like 7:30)."}},{"@type":"Question","name":"How are overnight shifts handled?","acceptedAnswer":{"@type":"Answer","text":"When the end time is earlier than or equal to the start time, the shift is assumed to cross midnight, so a full day is added before the difference is taken. For example, 22:00 to 06:00 counts as 8 hours."}},{"@type":"Question","name":"How is gross pay estimated?","acceptedAnswer":{"@type":"Answer","text":"If you enter an hourly pay rate, the total hours for all days are multiplied by that rate to give an estimated gross pay. This is an estimate only and does not include overtime rules, taxes, or deductions."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Hours Calculator (Time Card)</h1>
+    <p class="lede">Add the clock-in and clock-out time for each day, subtract any unpaid break, and get the hours worked in decimal and h:mm with a running total. Add an hourly rate for an estimated gross pay. Results update as you type — nothing is uploaded.</p>
+
+    <section class="calc" style="grid-template-columns:1fr;" aria-label="Hours calculator">
+      <form id="tcForm" autocomplete="off" onsubmit="return false">
+        <div class="tc-head">
+          <span>Day</span><span>Start</span><span>End</span><span>Break (min)</span><span>Hours</span><span></span>
+        </div>
+        <div id="rows"></div>
+        <button type="button" id="addRow" class="btn-secondary">+ Add day</button>
+
+        <div class="field" style="margin-top:22px;max-width:260px;">
+          <label for="rate">Hourly pay rate (optional, $)</label>
+          <input id="rate" type="number" inputmode="decimal" step="any" min="0" placeholder="e.g. 20">
+        </div>
+        <div class="field" style="max-width:260px;">
+          <label class="check"><input type="checkbox" id="otOn"> Apply overtime (over 40 h/week at 1.5×)</label>
+        </div>
+        <div class="field inline" id="otFields" style="max-width:260px;" hidden>
+          <span><label for="otThreshold">OT after (h/week)</label><input id="otThreshold" type="number" min="0" step="any" value="40"></span>
+          <span><label for="otMult">OT multiplier</label><input id="otMult" type="number" min="1" step="any" value="1.5"></span>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="totalDecimal">0.00 hours</p>
+        <p class="net-sub">Total hours worked across all days</p>
+        <div class="line"><span class="lbl">Total as h:mm</span><span id="totalHhmm">0:00</span></div>
+        <div class="line" id="regLine" hidden><span class="lbl">Regular hours</span><span id="regHours">—</span></div>
+        <div class="line" id="otLine" hidden><span class="lbl">Overtime hours</span><span id="otHours">—</span></div>
+        <div class="line" id="regPayLine" hidden><span class="lbl">Regular pay</span><span id="regPay">—</span></div>
+        <div class="line" id="otPayLine" hidden><span class="lbl">Overtime pay</span><span id="otPay">—</span></div>
+        <div class="line total" id="payLine" hidden><span class="lbl">Estimated gross pay</span><span id="grossPay">—</span></div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the hours calculator</h2>
+      <p>Each row is one day. Type the time you clocked in and the time you clocked out, then enter your unpaid break in minutes (lunch, for example). The hours for that day appear on the right, shown two ways: a decimal like <strong>7.50</strong> and a clock-style <strong>7:30</strong>. Use <strong>+ Add day</strong> for more rows — a full week or more — and the total updates automatically.</p>
+      <p><strong>Decimal vs. h:mm.</strong> Payroll systems usually want decimal hours (7.50), while a clock reads 7:30. This tool shows both so you can copy whichever your timesheet needs. Thirty minutes is 0.50 hours, fifteen minutes is 0.25, and forty-five minutes is 0.75.</p>
+      <p><strong>Overnight shifts.</strong> If your end time is earlier than your start time, the calculator assumes the shift runs past midnight and adds a day automatically. For example, <strong>10:00 PM to 6:00 AM</strong> (22:00 to 06:00) counts as 8 hours, not a negative number.</p>
+      <p><strong>Estimated pay.</strong> Enter an hourly rate and the total hours are multiplied by it to estimate your gross pay before any deductions.</p>
+      <p class="note">This is an estimate to help you check a timesheet. It is not tax, payroll, or legal advice. It does not apply overtime rules, rounding policies, taxes, or other deductions — check your employer's policy and pay stub for the official figures. Everything runs in your browser; the times you enter are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common time card questions</h2>
+      <p><strong>How do I convert minutes to a decimal hour?</strong> Divide the minutes by 60. So 30 minutes is 30 ÷ 60 = 0.50 hours, and 20 minutes is about 0.33 hours.</p>
+      <p><strong>How do I work out hours between two times?</strong> Convert each time to minutes from midnight, subtract the start from the end, then divide by 60. If the end is earlier than the start, add 24 hours first to cover an overnight shift.</p>
+      <p><strong>Does it subtract my lunch break?</strong> Yes — whatever you put in the break column (in minutes) is removed from that day's paid hours. Leave it at 0 if your break is paid.</p>
+      <p><strong>Can it add up a whole week?</strong> Yes. Add a row per day and the total at the top sums every day in both decimal and h:mm.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/hours-calculator.js"></script>
+</body>
+</html>

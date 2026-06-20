@@ -11,32 +11,369 @@
 <link rel="stylesheet" href="/assets/styles.css">
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 <header class="site">
   <div class="wrap">
     <a class="brand" href="/">{{SITE_NAME}}</a>
-    <nav><a href="#tools">Tools</a> <a href="#paycheck">Paycheck Calculators</a></nav>
+    <nav aria-label="Primary"><a href="#tools">Image Tools</a> <a href="#calculators">Calculators</a> <a href="#money">Money</a> <a href="#paycheck">Paycheck</a></nav>
   </div>
 </header>
 
-<main>
+<main id="main">
   <div class="wrap">
-    <h1>Free online calculators &amp; tools</h1>
-    <p class="lede">Fast, free, no signup. Everything runs in your browser.</p>
+    <section class="hero">
+      <h1>Free online calculators &amp; tools</h1>
+      <p class="lede">Simple tools that just work — fast, free, and private. No signup, no download.</p>
+      <div class="badges">
+        <span class="badge">100% free</span>
+        <span class="badge">No signup</span>
+        <span class="badge">Works in your browser</span>
+        <span class="badge">Nothing uploaded</span>
+      </div>
+    </section>
 
     <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
 
     <section id="tools">
-      <h2>Tools</h2>
-      <div class="state-grid">
-        <a href="/invoice-generator/">Invoice Generator (PDF)</a>
-        <a href="/qr-code-generator/">QR Code Generator</a>
-        <a href="/crop-image-into-circle/">Crop Image Into a Circle</a>
-        <a href="/passport-photo-maker/">Passport &amp; ID Photo Maker</a>
-        <a href="/age-calculator/">Age Calculator</a>
-        <a href="/tip-calculator/">Tip Calculator</a>
-        <a href="/word-counter/">Word Counter</a>
-        <a href="/password-generator/">Password Generator</a>
-        <a href="/percentage-calculator/">Percentage Calculator</a>
+      <h2>Photo &amp; Image Tools</h2>
+      <p class="lede">Edit, resize, and convert pictures — right on your phone, nothing uploaded.</p>
+      <div class="tool-grid">
+        <a class="tool-card" href="/resize-image/">
+          <span class="ic" aria-hidden="true">⤡</span>
+          <span class="t-name">Image Resizer</span>
+          <span class="t-desc">Resize a photo by pixels or percent and download it. PNG, JPEG, or WebP.</span>
+        </a>
+        <a class="tool-card" href="/convert-image/">
+          <span class="ic" aria-hidden="true">⇄</span>
+          <span class="t-name">Image Format Converter</span>
+          <span class="t-desc">Convert an image between PNG, JPG, and WebP, then download it.</span>
+        </a>
+        <a class="tool-card" href="/compress-image/">
+          <span class="ic" aria-hidden="true">🗜️</span>
+          <span class="t-name">Compress Image to Size</span>
+          <span class="t-desc">Shrink a photo under 100 KB, 200 KB, or a size you choose. Right in your browser.</span>
+        </a>
+        <a class="tool-card" href="/crop-image-into-circle/">
+          <span class="ic" aria-hidden="true">⬤</span>
+          <span class="t-name">Crop Image Into a Circle</span>
+          <span class="t-desc">Turn any photo into a round picture with a transparent background.</span>
+        </a>
+        <a class="tool-card" href="/passport-photo-maker/">
+          <span class="ic" aria-hidden="true">🪪</span>
+          <span class="t-name">Passport &amp; ID Photo Maker</span>
+          <span class="t-desc">Size a photo to passport or ID requirements and print it at home.</span>
+        </a>
+        <a class="tool-card" href="/images-to-pdf/">
+          <span class="ic" aria-hidden="true">📄</span>
+          <span class="t-name">Images to PDF Converter</span>
+          <span class="t-desc">Combine JPG, PNG, or WebP images into one PDF. Reorder pages, then download.</span>
+        </a>
+        <a class="tool-card tool-card--hot" href="/pdf-to-word/">
+          <span class="t-tag">🔥 Hot</span>
+          <span class="ic" aria-hidden="true">📝</span>
+          <span class="t-name">PDF to Word Converter</span>
+          <span class="t-desc">Turn a PDF into an editable Word (.docx) document — free, right in your browser.</span>
+        </a>
+        <a class="tool-card" href="/signature-maker/">
+          <span class="ic" aria-hidden="true">✍️</span>
+          <span class="t-name">Signature Maker</span>
+          <span class="t-desc">Draw or type your signature and download it as a transparent PNG. On-device.</span>
+        </a>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="in-article">Advertisement</div>
+
+    <section id="calculators">
+      <h2>Everyday Calculators</h2>
+      <p class="lede">Quick answers for the math that comes up in daily life.</p>
+      <div class="tool-grid">
+        <a class="tool-card" href="/percentage-calculator/">
+          <span class="ic" aria-hidden="true">%</span>
+          <span class="t-name">Percentage Calculator</span>
+          <span class="t-desc">Percent of a number, percent change, and discounts. Instant results.</span>
+        </a>
+        <a class="tool-card" href="/tip-calculator/">
+          <span class="ic" aria-hidden="true">🧮</span>
+          <span class="t-name">Tip Calculator &amp; Bill Splitter</span>
+          <span class="t-desc">Work out the tip and total, then split the bill evenly. Instant results.</span>
+        </a>
+        <a class="tool-card" href="/discount-calculator/">
+          <span class="ic" aria-hidden="true">🏷️</span>
+          <span class="t-name">Discount Calculator</span>
+          <span class="t-desc">Sale price, how much you save, and the final price with tax for any percent off.</span>
+        </a>
+        <a class="tool-card" href="/cooking-converter/">
+          <span class="ic" aria-hidden="true">🥄</span>
+          <span class="t-name">Cooking Measurement Converter</span>
+          <span class="t-desc">Cups to ml, tablespoons to teaspoons, oven °F to °C, plus a recipe scaler.</span>
+        </a>
+        <a class="tool-card" href="/unit-converter/">
+          <span class="ic" aria-hidden="true">📐</span>
+          <span class="t-name">Unit Converter</span>
+          <span class="t-desc">Length, weight, temperature, speed, area and data sizes. km to miles, kg to lb, °C to °F.</span>
+        </a>
+        <a class="tool-card" href="/bmi-calculator/">
+          <span class="ic" aria-hidden="true">⚖️</span>
+          <span class="t-name">BMI Calculator</span>
+          <span class="t-desc">Body Mass Index, weight category, and healthy weight range. Metric or imperial.</span>
+        </a>
+        <a class="tool-card" href="/ideal-weight-calculator/">
+          <span class="ic" aria-hidden="true">🩺</span>
+          <span class="t-name">Ideal Weight &amp; Macro Calculator</span>
+          <span class="t-desc">Ideal body-weight range (Devine, Hamwi, Robinson, Miller) plus your daily protein, carb, and fat macros.</span>
+        </a>
+        <a class="tool-card" href="/gpa-calculator/">
+          <span class="ic" aria-hidden="true">🎓</span>
+          <span class="t-name">GPA Calculator</span>
+          <span class="t-desc">Weighted grade point average on the 4.0 scale. Add courses by grade and credit hours.</span>
+        </a>
+        <a class="tool-card" href="/hours-calculator/">
+          <span class="ic" aria-hidden="true">🕐</span>
+          <span class="t-name">Hours Calculator (Time Card)</span>
+          <span class="t-desc">Add clock-in / clock-out times per day, subtract breaks, total a week, and estimate pay. Handles overnight shifts.</span>
+        </a>
+        <a class="tool-card" href="/age-calculator/">
+          <span class="ic" aria-hidden="true">🎂</span>
+          <span class="t-name">Age Calculator</span>
+          <span class="t-desc">Your exact age in years, months and days, totals lived, and a next-birthday countdown.</span>
+        </a>
+        <a class="tool-card" href="/days-between-dates/">
+          <span class="ic" aria-hidden="true">📆</span>
+          <span class="t-name">Days Between Dates</span>
+          <span class="t-desc">Duration between two dates: total days, weeks, business days, and a years/months/days breakdown.</span>
+        </a>
+        <a class="tool-card" href="/holiday-countdown/">
+          <span class="ic" aria-hidden="true">🎄</span>
+          <span class="t-name">Holiday Countdown</span>
+          <span class="t-desc">How many days until Christmas, Thanksgiving, or any date? Live countdown.</span>
+        </a>
+        <a class="tool-card" href="/countdown-timer/">
+          <span class="ic" aria-hidden="true">⏲️</span>
+          <span class="t-name">Countdown Timer</span>
+          <span class="t-desc">Set minutes and seconds for cooking, study or workouts. Presets, pause and a beep when time's up.</span>
+        </a>
+        <a class="tool-card" href="/calorie-calculator/">
+          <span class="ic" aria-hidden="true">🍎</span>
+          <span class="t-name">Calorie Calculator</span>
+          <span class="t-desc">Estimate your daily calories (TDEE) and targets to lose, maintain, or gain weight. Uses the Mifflin–St Jeor formula.</span>
+        </a>
+        <a class="tool-card" href="/due-date-calculator/">
+          <span class="ic" aria-hidden="true">🤰</span>
+          <span class="t-name">Pregnancy Due Date Calculator</span>
+          <span class="t-desc">Estimate your baby's due date from your last period or conception date, plus how many weeks along and your trimester.</span>
+        </a>
+        <a class="tool-card" href="/ovulation-calculator/">
+          <span class="ic" aria-hidden="true">🌸</span>
+          <span class="t-name">Ovulation Calculator</span>
+          <span class="t-desc">Estimate your ovulation date, most fertile days, and next period from your last period and cycle length.</span>
+        </a>
+        <a class="tool-card" href="/sleep-calculator/">
+          <span class="ic" aria-hidden="true">😴</span>
+          <span class="t-name">Sleep Calculator</span>
+          <span class="t-desc">Find the best bedtimes or wake-up times based on 90-minute sleep cycles. Instant results.</span>
+        </a>
+        <a class="tool-card" href="/fraction-calculator/">
+          <span class="ic" aria-hidden="true">½</span>
+          <span class="t-name">Fraction Calculator</span>
+          <span class="t-desc">Add, subtract, multiply, or divide fractions and mixed numbers. Answers in lowest terms and as a decimal.</span>
+        </a>
+        <a class="tool-card" href="/average-calculator/">
+          <span class="ic" aria-hidden="true">📊</span>
+          <span class="t-name">Average Calculator</span>
+          <span class="t-desc">Paste a list of numbers to get the mean, median, mode, range, sum, count, and standard deviation.</span>
+        </a>
+        <a class="tool-card" href="/date-calculator/">
+          <span class="ic" aria-hidden="true">📅</span>
+          <span class="t-name">Date Calculator</span>
+          <span class="t-desc">Add or subtract days, weeks, months, or years from any date to find a future or past date.</span>
+        </a>
+        <a class="tool-card" href="/time-zone-converter/">
+          <span class="ic" aria-hidden="true">🌐</span>
+          <span class="t-name">Time Zone Converter</span>
+          <span class="t-desc">Convert a date and time between cities and time zones worldwide. Handles daylight saving automatically.</span>
+        </a>
+        <a class="tool-card" href="/pace-calculator/">
+          <span class="ic" aria-hidden="true">🏃</span>
+          <span class="t-name">Pace Calculator</span>
+          <span class="t-desc">Find running pace, finish time, or distance in min/km or min/mile, plus 5K, 10K, half and full marathon times.</span>
+        </a>
+        <a class="tool-card" href="/aspect-ratio-calculator/">
+          <span class="ic" aria-hidden="true">🖼️</span>
+          <span class="t-name">Aspect Ratio Calculator</span>
+          <span class="t-desc">Simplify any width × height into its ratio (like 1920×1080 → 16:9), or lock a ratio and resize.</span>
+        </a>
+        <a class="tool-card" href="/paint-calculator/">
+          <span class="ic" aria-hidden="true">🎨</span>
+          <span class="t-name">Paint Calculator</span>
+          <span class="t-desc">Work out how much paint to buy from your room size, doors and windows, and number of coats.</span>
+        </a>
+        <a class="tool-card" href="/tile-calculator/">
+          <span class="ic" aria-hidden="true">🧱</span>
+          <span class="t-name">Tile Calculator</span>
+          <span class="t-desc">See how many tiles and boxes to buy from your room and tile size, with a waste allowance for cuts.</span>
+        </a>
+        <a class="tool-card" href="/random-number-generator/">
+          <span class="ic" aria-hidden="true">🎲</span>
+          <span class="t-name">Random Number Generator</span>
+          <span class="t-desc">Pick one or many random numbers in any range, with an option for no repeats. Great for raffles and draws.</span>
+        </a>
+        <a class="tool-card" href="/roman-numeral-converter/">
+          <span class="ic" aria-hidden="true">🏛️</span>
+          <span class="t-name">Roman Numeral Converter</span>
+          <span class="t-desc">Turn any number (1–3999) into Roman numerals, or convert a Roman numeral back to a number.</span>
+        </a>
+        <a class="tool-card" href="/recipe-scaler/">
+          <span class="ic" aria-hidden="true">🍽️</span>
+          <span class="t-name">Recipe Scaler</span>
+          <span class="t-desc">Paste an ingredient list, set old and new servings, and halve, double, or resize every amount.</span>
+        </a>
+      </div>
+    </section>
+
+    <section id="money">
+      <h2>Money &amp; Finance</h2>
+      <p class="lede">Plan your paycheck, loans, and what your dollar is really worth.</p>
+      <div class="tool-grid">
+        <a class="tool-card" href="#paycheck">
+          <span class="ic" aria-hidden="true">💵</span>
+          <span class="t-name">Paycheck Calculator</span>
+          <span class="t-desc">See your take-home pay after taxes. Pick your state from the list below.</span>
+        </a>
+        <a class="tool-card" href="/mortgage-calculator/">
+          <span class="ic" aria-hidden="true">🏠</span>
+          <span class="t-name">Mortgage Calculator</span>
+          <span class="t-desc">Work out your monthly payment, total interest, and total cost. Instant results.</span>
+        </a>
+        <a class="tool-card" href="/auto-loan-calculator/">
+          <span class="ic" aria-hidden="true">🚗</span>
+          <span class="t-name">Auto Loan Calculator</span>
+          <span class="t-desc">Work out your monthly car payment, total interest, and amount financed. Instant results.</span>
+        </a>
+        <a class="tool-card" href="/debt-payoff-calculator/">
+          <span class="ic" aria-hidden="true">💳</span>
+          <span class="t-name">Debt Payoff Calculator</span>
+          <span class="t-desc">See how long it takes to clear a credit card balance, or the payment needed to be debt-free by a target date.</span>
+        </a>
+        <a class="tool-card" href="/inflation-calculator/">
+          <span class="ic" aria-hidden="true">📈</span>
+          <span class="t-name">US Inflation Calculator</span>
+          <span class="t-desc">What is a dollar worth over time? Convert between years using official US CPI-U data.</span>
+        </a>
+        <a class="tool-card" href="/salary-to-hourly/">
+          <span class="ic" aria-hidden="true">⏱️</span>
+          <span class="t-name">Salary to Hourly Calculator</span>
+          <span class="t-desc">Convert annual salary to an hourly wage and back, with weekly, monthly, and daily pay.</span>
+        </a>
+        <a class="tool-card" href="/sales-tax-calculator/">
+          <span class="ic" aria-hidden="true">🧮</span>
+          <span class="t-name">Sales Tax Calculator</span>
+          <span class="t-desc">Add sales tax to a price, or remove it from a total to find the pre-tax amount. Instant results.</span>
+        </a>
+        <a class="tool-card" href="/gas-cost-calculator/">
+          <span class="ic" aria-hidden="true">⛽</span>
+          <span class="t-name">Gas Cost Calculator</span>
+          <span class="t-desc">Plan a trip's fuel cost from distance, MPG, and gas price. See gallons used, cost per mile, and split it between people.</span>
+        </a>
+        <a class="tool-card" href="/401k-calculator/">
+          <span class="ic" aria-hidden="true">🏦</span>
+          <span class="t-name">401(k) Retirement Calculator</span>
+          <span class="t-desc">Project your 401(k) balance at retirement from contributions, employer match, and expected return. Year-by-year breakdown.</span>
+        </a>
+        <a class="tool-card" href="/compound-interest-calculator/">
+          <span class="ic" aria-hidden="true">💹</span>
+          <span class="t-name">Compound Interest Calculator</span>
+          <span class="t-desc">See how savings and investments grow from a starting amount, regular deposits, and a rate — with a year-by-year breakdown.</span>
+        </a>
+        <a class="tool-card" href="/savings-goal-calculator/">
+          <span class="ic" aria-hidden="true">🎯</span>
+          <span class="t-name">Savings Goal Calculator</span>
+          <span class="t-desc">Find how much to save each month to hit a target by your deadline, or how long it takes at a set deposit.</span>
+        </a>
+        <a class="tool-card" href="/fuel-economy-calculator/">
+          <span class="ic" aria-hidden="true">🚙</span>
+          <span class="t-name">Fuel Economy Calculator</span>
+          <span class="t-desc">Get your MPG (US and UK), litres per 100 km, and km per litre from distance and fuel used — or convert between them.</span>
+        </a>
+      </div>
+    </section>
+
+    <section id="make">
+      <h2>Make &amp; Share</h2>
+      <p class="lede">Create documents and codes you can download and send in seconds.</p>
+      <div class="tool-grid">
+        <a class="tool-card" href="/qr-code-generator/">
+          <span class="ic" aria-hidden="true">▦</span>
+          <span class="t-name">QR Code Generator</span>
+          <span class="t-desc">Create a QR code for a link, WiFi, or contact card. Save as PNG or SVG.</span>
+        </a>
+        <a class="tool-card" href="/invoice-generator/">
+          <span class="ic" aria-hidden="true">🧾</span>
+          <span class="t-name">Invoice Generator</span>
+          <span class="t-desc">Make a clean PDF invoice and download it in seconds. No watermark.</span>
+        </a>
+        <a class="tool-card" href="/password-generator/">
+          <span class="ic" aria-hidden="true">🔑</span>
+          <span class="t-name">Password Generator</span>
+          <span class="t-desc">Create a strong random password on your device. Choose length and characters — nothing uploaded.</span>
+        </a>
+        <a class="tool-card" href="/word-counter/">
+          <span class="ic" aria-hidden="true">🔤</span>
+          <span class="t-name">Word &amp; Character Counter</span>
+          <span class="t-desc">Count words, characters, sentences, and paragraphs as you type, with reading and speaking time.</span>
+        </a>
+      </div>
+    </section>
+
+    <section id="devtext">
+      <h2>Developer &amp; Text Tools</h2>
+      <p class="lede">Format, convert, and generate code and text — right in your browser, nothing uploaded.</p>
+      <div class="tool-grid">
+        <a class="tool-card" href="/base64-encode-decode/">
+          <span class="ic" aria-hidden="true">🔡</span>
+          <span class="t-name">Base64 Encode &amp; Decode</span>
+          <span class="t-desc">Convert text to Base64 or decode it back, with full Unicode (UTF-8) and URL-safe support.</span>
+        </a>
+        <a class="tool-card" href="/json-formatter/">
+          <span class="ic" aria-hidden="true">{ }</span>
+          <span class="t-name">JSON Formatter &amp; Validator</span>
+          <span class="t-desc">Beautify, indent, minify, and validate JSON instantly, with clear error line numbers.</span>
+        </a>
+        <a class="tool-card" href="/diff-checker/">
+          <span class="ic" aria-hidden="true">±</span>
+          <span class="t-name">Text Diff Checker</span>
+          <span class="t-desc">Paste two blocks of text and see line-by-line additions, deletions, and unchanged lines.</span>
+        </a>
+        <a class="tool-card" href="/uuid-generator/">
+          <span class="ic" aria-hidden="true">🆔</span>
+          <span class="t-name">UUID Generator</span>
+          <span class="t-desc">Create one or many random version-4 UUIDs (GUIDs) instantly, with optional uppercase and no hyphens.</span>
+        </a>
+        <a class="tool-card" href="/color-converter/">
+          <span class="ic" aria-hidden="true">🎨</span>
+          <span class="t-name">Color Converter</span>
+          <span class="t-desc">Convert between HEX, RGB, and HSL, or pick a color and copy the CSS code. Works two ways.</span>
+        </a>
+        <a class="tool-card" href="/base-converter/">
+          <span class="ic" aria-hidden="true">0b</span>
+          <span class="t-name">Binary, Hex &amp; Decimal Converter</span>
+          <span class="t-desc">Convert between binary, octal, decimal, and hexadecimal. Type in any base and the others update live.</span>
+        </a>
+        <a class="tool-card" href="/text-case-converter/">
+          <span class="ic" aria-hidden="true">Aa</span>
+          <span class="t-name">Text Case Converter</span>
+          <span class="t-desc">Switch text between UPPERCASE, lowercase, Title Case, Sentence case, camelCase, snake_case, and more.</span>
+        </a>
+        <a class="tool-card" href="/lorem-ipsum-generator/">
+          <span class="ic" aria-hidden="true">📝</span>
+          <span class="t-name">Lorem Ipsum Generator</span>
+          <span class="t-desc">Create placeholder dummy text by words, sentences, or paragraphs, and copy it with one click.</span>
+        </a>
+        <a class="tool-card" href="/morse-code-translator/">
+          <span class="ic" aria-hidden="true">📡</span>
+          <span class="t-name">Morse Code Translator</span>
+          <span class="t-desc">Convert text to Morse code and back instantly. Supports letters, numbers, and punctuation.</span>
+        </a>
       </div>
     </section>
 

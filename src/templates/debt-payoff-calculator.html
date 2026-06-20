@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Debt Payoff Calculator — Credit Card Payoff Time &amp; Interest</title>
+<meta name="description" content="Free debt payoff calculator. Enter your balance and APR to see how many months a fixed monthly payment takes to clear it, the payoff date, and total interest — or find the payment needed to be debt-free by a target date. Live results, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/debt-payoff-calculator/">
+<meta property="og:title" content="Debt Payoff Calculator">
+<meta property="og:description" content="See how long a monthly payment takes to clear a credit card balance, or the payment needed to be debt-free by a target date — instant results in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Scoped extras for the mode toggle + payoff summary — shared theme vars. */
+  .mode-toggle { display: flex; gap: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin: 0 0 18px; }
+  .mode-toggle button { flex: 1; appearance: none; border: 0; background: var(--surface-2); color: var(--muted); font: inherit; font-weight: 600; padding: 11px 12px; cursor: pointer; }
+  .mode-toggle button + button { border-left: 1px solid var(--border); }
+  .mode-toggle button.active { background: var(--surface); color: var(--text); box-shadow: inset 0 -2px 0 0 #2ea043; }
+  .payoff-summary { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin: 18px 0; font-size: 15.5px; line-height: 1.55; }
+  .payoff-warn { background: color-mix(in srgb, #d29922 16%, var(--surface-2)); border: 1px solid color-mix(in srgb, #d29922 45%, var(--border)); border-radius: var(--radius); padding: 16px 18px; margin: 18px 0; font-size: 15px; line-height: 1.55; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Debt Payoff Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Work out how long a fixed monthly payment takes to clear a credit card or loan balance at a given APR, with the payoff date and total interest, or find the monthly payment needed to be debt-free by a target number of months."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How long will it take to pay off my credit card?","acceptedAnswer":{"@type":"Answer","text":"Enter your balance, the card's APR, and the fixed amount you pay each month. The calculator shows the number of months to clear the balance, the estimated payoff date, the total interest, and the total amount paid. It updates instantly as you change the numbers."}},{"@type":"Question","name":"Why does my balance never go down?","acceptedAnswer":{"@type":"Answer","text":"If your monthly payment is smaller than the interest that builds up each month, none of it goes toward the balance, so it never falls and can even grow. The calculator warns you when this happens and tells you the minimum payment you'd need to exceed to start paying the balance down."}},{"@type":"Question","name":"How much do I need to pay to be debt-free by a certain date?","acceptedAnswer":{"@type":"Answer","text":"Switch to the \"by target months\" mode and enter how many months you want to take. The calculator works out the fixed monthly payment that clears the balance in exactly that time, along with the total interest you'd pay."}},{"@type":"Question","name":"Should I pay off the highest-interest debt or the smallest balance first?","acceptedAnswer":{"@type":"Answer","text":"The avalanche method targets the highest-APR debt first and saves the most interest overall. The snowball method clears the smallest balance first for a quick motivational win. Run each debt through the calculator to compare, then pick the approach you'll stick with."}},{"@type":"Question","name":"Does a balance transfer or lower APR really help?","acceptedAnswer":{"@type":"Answer","text":"Yes, often dramatically. Because most of a credit card payment can go to interest, a lower APR sends more of each payment to the balance. Enter the new rate to see the months and interest saved, but factor in any transfer fee."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Debt Payoff Calculator</h1>
+    <p class="lede">See how long it takes to pay off a credit card or loan balance. Enter your balance and APR, then either type a monthly payment to find the payoff time, or a target number of months to find the payment you'd need. Results update as you type.</p>
+
+    <section class="calc" aria-label="Debt payoff calculator">
+      <div class="mode-toggle" role="tablist" aria-label="Calculation mode">
+        <button type="button" id="modePayment" role="tab" aria-selected="true">By monthly payment</button>
+        <button type="button" id="modeMonths" role="tab" aria-selected="false">By target months</button>
+      </div>
+
+      <form id="debtForm" autocomplete="off" onsubmit="return false">
+        <div class="field inline">
+          <span><label for="balance">Balance owed ($)</label><input id="balance" type="number" inputmode="decimal" step="any" min="0" value="5000" placeholder="5000"></span>
+          <span><label for="rate">Interest rate / APR (% per year)</label><input id="rate" type="number" inputmode="decimal" step="any" min="0" value="20" placeholder="20"></span>
+        </div>
+        <div class="field" id="paymentField">
+          <label for="payment">Monthly payment ($)</label>
+          <input id="payment" type="number" inputmode="decimal" step="any" min="0" value="200" placeholder="200">
+        </div>
+        <div class="field" id="monthsField" hidden>
+          <label for="months">Pay off in (months)</label>
+          <input id="months" type="number" inputmode="numeric" step="1" min="1" value="24" placeholder="24">
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="payBig">—</p>
+        <p class="net-sub" id="paySub"></p>
+        <div class="line" id="monthsLine" hidden><span class="lbl">Months to pay off</span><span class="val"></span></div>
+        <div class="line" id="reqPayLine" hidden><span class="lbl">Required monthly payment</span><span class="val"></span></div>
+        <div class="line" id="dateLine" hidden><span class="lbl">Payoff date</span><span class="val"></span></div>
+        <div class="line" id="totalInterestLine" hidden><span class="lbl">Total interest</span><span class="val"></span></div>
+        <div class="line" id="totalPaidLine" hidden><span class="lbl">Total paid</span><span class="val"></span></div>
+      </div>
+
+      <div class="payoff-warn" id="warnBox" hidden>
+        <strong>Heads up — this payment won't clear the balance.</strong>
+        <p id="warnText" style="margin:6px 0 0;"></p>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <div class="payoff-summary" id="summaryBox" hidden>
+      <strong>Payoff summary</strong>
+      <p id="summaryText" style="margin:6px 0 0;"></p>
+    </div>
+
+    <section class="prose">
+      <h2>How to use the debt payoff calculator</h2>
+      <p>Start by entering your <strong>balance owed</strong> and the <strong>APR</strong> — the annual interest rate on the card or loan. Then pick a mode at the top:</p>
+      <p><strong>By monthly payment.</strong> Type the fixed amount you can pay each month. The big number shows how long it takes to clear the balance, and below it you'll see the exact number of months, the estimated payoff date, the total interest, and the total amount you'll have paid.</p>
+      <p><strong>By target months.</strong> Type how many months you'd like to take to be debt-free. The calculator works out the fixed monthly payment that clears the balance in exactly that time, plus the total interest.</p>
+      <p><strong>When a payment is too small.</strong> Credit card interest builds up every month. If your payment is smaller than that monthly interest, none of it goes toward the balance, so the debt never shrinks — and can even grow. The calculator spots this and tells you the minimum you'd need to pay above to actually make progress.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded. This is a simplified estimate that assumes a fixed rate and no new charges or fees; it is not financial advice.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common debt payoff questions</h2>
+      <p><strong>Does paying more than the minimum help?</strong> A lot. Card minimum payments are often only slightly above the monthly interest, so most of the payment is interest and the balance falls very slowly. Even a small increase to the monthly payment can cut years and a large amount of interest off the payoff.</p>
+      <p><strong>What APR should I use?</strong> Use the purchase APR shown on your statement — that's the yearly interest rate. The calculator converts it to a monthly rate internally (APR ÷ 12).</p>
+      <p><strong>Does this account for new purchases or fees?</strong> No. It assumes you stop adding to the balance and that the rate stays fixed. New charges, late fees, or a changing rate will make the real payoff take longer.</p>
+      <p><strong>What's the difference between this and a loan calculator?</strong> The math is the same amortization. This tool is framed around an existing balance you're paying down, with the added warning for payments too small to ever clear the debt.</p>
+      <p><strong>Should I pay off the highest-interest debt or the smallest balance first?</strong> Two popular strategies exist. The avalanche method targets the highest-APR debt first and saves the most interest overall. The snowball method clears the smallest balance first for a quick win that keeps you motivated. Run each of your debts through this calculator to see the interest difference, then pick the approach you'll actually stick with.</p>
+      <p><strong>Does a balance transfer or lower APR really help?</strong> Yes, often dramatically. Because most of a credit card payment can go to interest, dropping the APR — through a balance-transfer offer or a lower-rate loan — sends more of each payment to the balance. Enter the new rate here to see how many months and how much interest it could save, but factor in any transfer fee.</p>
+      <p><strong>How is the payoff date calculated?</strong> The calculator applies your monthly interest to the balance, subtracts your payment, and repeats month by month until the balance reaches zero. It then counts that many months forward from today to show the estimated payoff date. Changing the payment or APR updates the date instantly.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools. Estimates only, not financial advice.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/debt-payoff-calculator.js"></script>
+</body>
+</html>

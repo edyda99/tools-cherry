@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Ideal Weight Calculator — Ideal Body Weight Range & Macro Calculator</title>
+<meta name="description" content="Free ideal weight calculator and macro calculator. Enter your sex, height, weight, age, and activity to see your ideal body weight range from the Devine, Hamwi, Robinson, and Miller formulas, plus a daily protein, carb, and fat macro split. Live results, no signup.">
+<link rel="canonical" href="{{SITE_URL}}/ideal-weight-calculator/">
+<meta property="og:title" content="Ideal Weight & Macro Calculator">
+<meta property="og:description" content="See your ideal body weight range from four standard formulas plus a daily protein, carb, and fat macro split — instant results in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Ideal Weight & Macro Calculator","applicationCategory":"HealthApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Estimate your ideal body weight range from the Devine, Hamwi, Robinson, and Miller formulas, plus a daily macronutrient split of protein, carbohydrate, and fat grams from your calorie target."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is ideal body weight?","acceptedAnswer":{"@type":"Answer","text":"Ideal body weight (IBW) is a reference weight for your height, originally developed in medicine for dosing and assessment. There is no single formula, so this calculator shows four of the most cited ones — Devine, Hamwi, Robinson, and Miller — as a range rather than one exact number."}},{"@type":"Question","name":"Which ideal weight formula is best?","acceptedAnswer":{"@type":"Answer","text":"No formula is definitively best — they were each derived for different purposes and give slightly different numbers. The Devine formula is the most widely used in clinical settings. Looking at the range across all four, and comparing it with a healthy BMI range, gives a more realistic target than any single value."}},{"@type":"Question","name":"How are macros calculated?","acceptedAnswer":{"@type":"Answer","text":"This calculator estimates your daily calories (TDEE) from the Mifflin–St Jeor equation — or Katch-McArdle if you enter your body-fat percentage — and adjusts for your goal (about 20% below maintenance to lose, 10% above to gain). It then sets protein from your bodyweight (roughly 1.6 g/kg at maintenance, up to about 2.4 g/kg when losing fat while training), sets fat with a minimum of 0.8 g/kg for hormone health, and fills the rest with carbohydrate. Grams use 4 calories per gram for protein and carbs and 9 for fat."}},{"@type":"Question","name":"What is a good macro split?","acceptedAnswer":{"@type":"Answer","text":"Rather than a fixed percentage, set protein by your bodyweight — about 1.6 g/kg to maintain and 1.8–2.4 g/kg when losing fat or training hard — keep fat at or above 0.8 g/kg, and let carbohydrate take the rest. The diet-style presets here (balanced, higher-carb, lower-carb, keto) only shift the carb-to-fat balance; protein stays anchored to your weight. Treat the numbers as a starting point, not a prescription."}},{"@type":"Question","name":"Is this medical advice?","acceptedAnswer":{"@type":"Answer","text":"No. Ideal-weight formulas and macro splits are general estimates that do not account for muscle mass, body composition, medical conditions, or individual needs, and they are not suitable for children or teens. This tool is for general information only — talk to your doctor or a registered dietitian before making big changes."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Ideal Weight &amp; Macro Calculator</h1>
+    <p class="lede">See your ideal body weight range from four standard formulas, plus a daily protein, carb, and fat split for your calorie goal. Enter your details and results update as you type — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Ideal weight and macro calculator">
+      <div class="unit-toggle" role="group" aria-label="Units">
+        <button type="button" data-unit="metric" aria-pressed="true">Metric (cm, kg)</button>
+        <button type="button" data-unit="imperial" aria-pressed="false">Imperial (ft, in, lb)</button>
+      </div>
+
+      <form id="idealForm" autocomplete="off" onsubmit="return false">
+        <div class="field inline">
+          <span><label for="age">Age (years)</label><input id="age" type="number" inputmode="numeric" step="1" min="0" value="30" placeholder="30"></span>
+          <span>
+            <label for="sex">Sex</label>
+            <select id="sex">
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </span>
+        </div>
+
+        <div id="metricBlock">
+          <div class="field inline">
+            <span><label for="cm">Height (cm)</label><input id="cm" type="number" inputmode="decimal" step="any" min="0" value="178" placeholder="178"></span>
+            <span><label for="kg">Weight (kg)</label><input id="kg" type="number" inputmode="decimal" step="any" min="0" value="75" placeholder="75"></span>
+          </div>
+        </div>
+
+        <div id="imperialBlock" hidden>
+          <div class="field inline">
+            <span><label for="ft">Height (ft)</label><input id="ft" type="number" inputmode="numeric" step="1" min="0" value="5" placeholder="5"></span>
+            <span><label for="in">Height (in)</label><input id="in" type="number" inputmode="decimal" step="any" min="0" value="10" placeholder="10"></span>
+            <span><label for="lb">Weight (lb)</label><input id="lb" type="number" inputmode="decimal" step="any" min="0" value="165" placeholder="165"></span>
+          </div>
+        </div>
+
+        <div class="field inline">
+          <span>
+            <label for="activity">Activity level</label>
+            <select id="activity">
+              <option value="sedentary">Sedentary — little or no exercise</option>
+              <option value="light">Lightly active — 1–3 days/week</option>
+              <option value="moderate" selected>Moderately active — 3–5 days/week</option>
+              <option value="active">Very active — 6–7 days/week</option>
+              <option value="veryActive">Extra active — physical job / 2× daily</option>
+            </select>
+          </span>
+          <span>
+            <label for="goal">Goal</label>
+            <select id="goal">
+              <option value="lose">Lose weight</option>
+              <option value="maintain" selected>Maintain weight</option>
+              <option value="gain">Gain weight</option>
+            </select>
+          </span>
+        </div>
+
+        <div class="field inline">
+          <span>
+            <label for="bodyfat">Body fat % <span class="muted">(optional)</span></label>
+            <input id="bodyfat" type="number" inputmode="decimal" step="any" min="1" max="60" placeholder="e.g. 18">
+          </span>
+          <span>
+            <label for="preset">Diet style</label>
+            <select id="preset">
+              <option value="balanced" selected>Balanced</option>
+              <option value="highcarb">Higher-carb / lower-fat</option>
+              <option value="lowcarb">Lower-carb / higher-fat</option>
+              <option value="keto">Keto</option>
+            </select>
+          </span>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="rangeBig">—</p>
+        <p class="net-sub" id="rangeSub">Fill in your details to see your ideal weight range.</p>
+
+        <div id="ibwTable" hidden>
+          <div class="line"><span class="lbl">Devine formula</span><span id="ibwDevine">—</span></div>
+          <div class="line"><span class="lbl">Hamwi formula</span><span id="ibwHamwi">—</span></div>
+          <div class="line"><span class="lbl">Robinson formula</span><span id="ibwRobinson">—</span></div>
+          <div class="line"><span class="lbl">Miller formula</span><span id="ibwMiller">—</span></div>
+        </div>
+
+        <div id="macroBlock" hidden>
+          <p class="net-sub"><strong id="macroHeader">Daily plan</strong></p>
+          <div class="line"><span class="lbl">Protein</span><span><span id="mProtein">—</span> <span class="muted">(<span id="mProteinPerKg">—</span>)</span></span></div>
+          <div class="line"><span class="lbl">Carbohydrate</span><span id="mCarb">—</span></div>
+          <div class="line"><span class="lbl">Fat</span><span><span id="mFat">—</span> <span class="muted">(<span id="mFatKcal">—</span> kcal)</span></span></div>
+          <div class="line"><span class="lbl">Fiber</span><span id="mFiber">—</span></div>
+          <div class="line"><span class="lbl">Water</span><span id="mWater">—</span></div>
+          <p class="note" id="macroNote" hidden></p>
+        </div>
+      </div>
+
+      <p class="disclaimer" role="note"><strong>This is for general information only and is not medical or nutritional advice — talk to your doctor or a dietitian.</strong> Ideal-weight formulas and macro splits are averages that ignore muscle, body composition, and individual needs, and do not apply to children or teens.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <nav class="related-tools" aria-label="Related health calculators">
+      <h2>Related health calculators</h2>
+      <ul>
+        <li><a href="/bmi-calculator/">BMI Calculator</a></li>
+        <li><a href="/calorie-calculator/">Calorie Calculator</a></li>
+      </ul>
+    </nav>
+
+    <section class="prose">
+      <h2>How to use the ideal weight &amp; macro calculator</h2>
+      <p>Choose your units, then enter your age, sex, and height. Your ideal body weight range appears instantly from four standard formulas. Add your weight and activity level — and pick a goal — to also see a daily protein, carb, and fat split. There's no button to press and nothing is sent anywhere.</p>
+      <p><strong>Why a range, not one number.</strong> Ideal-weight formulas disagree by a few kilograms because they were derived differently, so a range across all four is more honest than a single figure.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>The four ideal-weight formulas</h2>
+      <p>Each formula gives a reference weight for your height and sex. Three are linear in inches over 5 feet; Hamwi is the classic imperial rule:</p>
+      <ul>
+        <li><strong>Devine (1974):</strong> 50 kg (men) / 45.5 kg (women) + 2.3 kg per inch over 5 ft</li>
+        <li><strong>Robinson (1983):</strong> 52 kg (men) / 49 kg (women), +1.9 / +1.7 kg per inch over 5 ft</li>
+        <li><strong>Miller (1983):</strong> 56.2 kg (men) / 53.1 kg (women), +1.41 / +1.36 kg per inch over 5 ft</li>
+        <li><strong>Hamwi (1964):</strong> 48 kg (men) / 45.5 kg (women), +2.7 / +2.2 kg per inch over 5 ft</li>
+      </ul>
+
+      <h2>How the macros are worked out</h2>
+      <p>The calculator estimates your <strong>Total Daily Energy Expenditure (TDEE)</strong> from the Mifflin–St Jeor equation and a standard activity factor — or, if you enter your body-fat percentage, the more precise <strong>Katch-McArdle</strong> equation based on lean mass. It adjusts that for your goal (about 20% below maintenance to lose fat, 10% above to gain muscle), then builds the plate in the order the evidence supports:</p>
+      <ul>
+        <li><strong>Protein by bodyweight, not by percentage.</strong> Roughly 1.6 g/kg at maintenance, rising to 1.8–2.4 g/kg when you're losing fat or training hard (per the ISSN position stand and Morton 2018 meta-analysis). A flat percentage gets this backwards — it raises protein when you eat more and cuts it when you eat less, the opposite of what protects muscle on a diet.</li>
+        <li><strong>Fat with a floor.</strong> About 30% of calories by default, but never below 0.8 g/kg, which protects hormone health.</li>
+        <li><strong>Carbohydrate fills the rest</strong> of your calorie target.</li>
+      </ul>
+      <p>Grams come from the standard energy values: 4 calories per gram for protein and carbohydrate, 9 for fat. The tool also estimates a <strong>fiber</strong> target (14 g per 1,000 calories) and a <strong>water</strong> target (about 35 ml per kg of bodyweight). The diet-style presets shift only the carb-to-fat balance; keto pins carbs low and lets fat fill the gap.</p>
+
+      <h2>Common questions</h2>
+      <p><strong>What is ideal body weight?</strong> A reference weight for your height. There's no single right value, so this tool shows a range across four formulas.</p>
+      <p><strong>Which formula is best?</strong> None definitively — Devine is the most used clinically. The range, compared with a healthy BMI, is more useful than any one number.</p>
+      <p><strong>What is a good macro split?</strong> Set protein by your bodyweight (about 1.6 g/kg to maintain, more when cutting or training hard), keep fat at or above 0.8 g/kg, and let carbs take the rest. Raise protein if you're dieting; the presets here only move the carb-to-fat balance. Treat it as a starting point.</p>
+      <p class="note">This calculator is for general information only and is not medical or nutritional advice. Talk to your doctor or a registered dietitian before making big changes.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/ideal-weight-calculator.js"></script>
+</body>
+</html>

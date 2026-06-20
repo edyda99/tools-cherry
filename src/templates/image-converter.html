@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Image Format Converter — Convert PNG to JPG, JPG to PNG, WebP (Free)</title>
+<meta name="description" content="Free tool to convert an image between PNG, JPG, and WebP, then download it. Convert PNG to JPG, JPG to PNG, or to WebP in seconds. No signup — runs entirely in your browser.">
+<link rel="canonical" href="{{SITE_URL}}/convert-image/">
+<meta property="og:title" content="Image Format Converter — Free, Private, In Your Browser">
+<meta property="og:description" content="Convert an image between PNG, JPG, and WebP and download it. Free, in your browser — nothing is uploaded.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Image Format Converter","applicationCategory":"MultimediaApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Convert an image between PNG, JPG, and WebP and download it, in your browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I convert a PNG to a JPG?","acceptedAnswer":{"@type":"Answer","text":"Choose your PNG, set \"Convert to\" to JPG, then click Convert & download. JPG files are much smaller than PNG, which is handy for emailing screenshots or photos. Remember that JPG can't keep a transparent background, so any see-through area becomes white."}},{"@type":"Question","name":"What is the difference between PNG and JPG?","acceptedAnswer":{"@type":"Answer","text":"PNG is lossless and keeps a transparent background, which makes it ideal for logos, icons, and screenshots, but the files are larger. JPG uses compression to make small files and is best for photographs, but it can't store transparency and loses a little detail each time it's saved."}},{"@type":"Question","name":"Should I use WebP?","acceptedAnswer":{"@type":"Answer","text":"WebP usually gives the smallest file while staying sharp, so it's great for images on a website. The trade-off is that a few older programs and apps can't open WebP files, so stick with PNG or JPG when you need maximum compatibility."}},{"@type":"Question","name":"Does converting an image lose quality?","acceptedAnswer":{"@type":"Answer","text":"Converting to PNG is lossless and keeps full quality. Converting to JPG or WebP uses compression, but at a high quality setting the difference is hard to see. Lower the quality slider only if you want a smaller file."}},{"@type":"Question","name":"Is my image uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. The conversion happens entirely in your browser on your own device, so your image is never sent to a server."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Image Format Converter</h1>
+    <p class="lede">Upload an image and convert it to PNG, JPG, or WebP, then download it. Great for turning a PNG into a JPG, a JPG into a PNG, or anything into a smaller WebP. Everything happens in your browser; nothing is uploaded.</p>
+
+    <div class="calc">
+      <div>
+        <label id="drop" class="dropzone" for="file">
+          <input id="file" type="file" accept="image/*" hidden>
+          <span id="dropText">Click to choose an image, or drop one here</span>
+        </label>
+
+        <div class="field" style="margin-top:14px">
+          <label for="format">Convert to</label>
+          <select id="format">
+            <option value="image/png" selected>PNG (keeps transparency, larger file)</option>
+            <option value="image/jpeg">JPG (smaller file, no transparency)</option>
+            <option value="image/webp">WebP (smallest file)</option>
+          </select>
+        </div>
+
+        <div id="qualityField" class="field" hidden>
+          <label for="quality">Quality: <span id="qualityVal">92</span>%</label>
+          <input id="quality" type="range" min="10" max="100" value="92" step="1">
+          <p class="muted-small">Lower quality means a smaller file. PNG is always lossless, so quality doesn't apply.</p>
+        </div>
+      </div>
+
+      <div class="results" style="text-align:center">
+        <div class="editor-wrap" id="previewWrap" style="display:inline-block;max-width:100%">
+          <canvas id="preview" width="320" height="320" role="img" aria-label="Image preview" style="display:block;width:auto;height:auto;max-width:100%;max-height:320px">Your image preview appears here.</canvas>
+        </div>
+        <p class="muted-small" id="status" style="margin-top:10px">Choose an image to begin.</p>
+        <button type="button" id="download" class="btn-primary" disabled>Convert &amp; download</button>
+      </div>
+    </div>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to convert an image</h2>
+      <p>Choose a photo or picture, pick the format you want under <strong>Convert to</strong>, then click <strong>Convert &amp; download</strong>. For JPG and WebP you can drag the quality slider to make the file smaller. PNG keeps a see-through (transparent) background; JPG does not, so a transparent image saved as JPG gets a white background.</p>
+      <p>Use <strong>PNG to JPG</strong> to shrink screenshots and logos for email. Use <strong>JPG to PNG</strong> when you need a lossless copy. Use <strong>WebP</strong> for the smallest file on the web.</p>
+      <p class="note">Your image never leaves your device — the conversion is done entirely in your browser.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Common image-format questions</h2>
+      <p><strong>How do I convert a PNG to a JPG?</strong> Pick your PNG, set "Convert to" to JPG, and click Convert &amp; download. JPG files are far smaller, which is great for emailing. Just remember JPG can't keep a transparent background, so see-through areas turn white.</p>
+      <p><strong>What's the difference between PNG and JPG?</strong> PNG is lossless and supports transparency, making it best for logos, icons, and screenshots, but files are larger. JPG compresses to small files and suits photographs, but it can't store transparency and loses a little detail each save.</p>
+      <p><strong>Should I use WebP?</strong> WebP usually makes the smallest file while staying sharp, so it's ideal for websites. The catch is that a few older programs can't open WebP, so use PNG or JPG when you need maximum compatibility.</p>
+      <p><strong>Does converting lose quality?</strong> Converting to PNG keeps full quality. Converting to JPG or WebP uses compression, but at a high quality setting the difference is hard to spot. Lower the slider only when you want a smaller file.</p>
+      <p><strong>Is my image uploaded anywhere?</strong> No. Everything runs in your browser on your own device, so your image is never sent to a server.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/image-converter.js"></script>
+</body>
+</html>

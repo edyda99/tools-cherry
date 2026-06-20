@@ -64,7 +64,9 @@ function download() {
     const ext = fmt === 'jpeg' ? 'jpg' : fmt;
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `circle-crop.${ext}`;
+    const shape = $('shape').value;
+    const base = shape === 'rect' ? 'square-crop' : shape === 'rounded' ? 'rounded-crop' : 'circle-crop';
+    a.href = url; a.download = `${base}.${ext}`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     $('status').textContent = `Downloaded ${size}×${size} ${ext.toUpperCase()}.`;

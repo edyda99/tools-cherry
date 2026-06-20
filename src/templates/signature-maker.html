@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Signature Maker — Free Online Signature Generator (Transparent PNG)</title>
+<meta name="description" content="Free signature maker: draw or type your signature and download it as a transparent PNG. No signup — created on your device, nothing is uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/signature-maker/">
+<meta property="og:title" content="Signature Maker — Free Online Signature Generator">
+<meta property="og:description" content="Draw or type your signature and download a transparent PNG. Free, private, in your browser.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Signature Maker","applicationCategory":"MultimediaApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Draw or type a signature and download a transparent PNG, in your browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is my signature uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. The signature is created entirely on your device in your browser. Nothing is sent to a server or stored online."}},{"@type":"Question","name":"Is this a legal electronic signature?","acceptedAnswer":{"@type":"Answer","text":"No. This makes a quick signature image (a transparent PNG) for everyday use. It is not a legal e-signature service and does not bind or verify a document."}},{"@type":"Question","name":"What format is the download?","acceptedAnswer":{"@type":"Answer","text":"A PNG with a transparent background, trimmed to your signature, so it drops cleanly onto documents or photos."}},{"@type":"Question","name":"How do I add my signature to a Word document or PDF?","acceptedAnswer":{"@type":"Answer","text":"Download the transparent PNG, then insert it as a picture where you want to sign. In Word use Insert then Picture; in a PDF editor use the image or stamp tool. Because the background is transparent, only your signature shows — no white box around it."}},{"@type":"Question","name":"Should I draw or type my signature?","acceptedAnswer":{"@type":"Answer","text":"Draw mode gives the most natural, personal look, especially on a touchscreen or with a stylus. Type mode is quick and tidy when you just need a readable signature in a handwriting style and do not have a way to draw smoothly."}},{"@type":"Question","name":"Will the signature look sharp when printed?","acceptedAnswer":{"@type":"Answer","text":"Yes. The drawing pad adapts to high-resolution (Retina) screens, so lines stay crisp on screen and in print. For the cleanest result, sign large and let the tool trim the image to your signature."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Signature Maker</h1>
+    <p class="lede">Create a signature in seconds — draw it freehand or type your name in a handwriting style — then download it as a transparent PNG. Everything happens on your device; nothing is uploaded.</p>
+
+    <div class="calc">
+      <div>
+        <div class="presets" role="group" aria-label="Signature mode" style="display:flex;gap:8px;margin-bottom:18px">
+          <button type="button" id="modeDraw" class="btn-secondary" aria-pressed="true" style="flex:1">Draw</button>
+          <button type="button" id="modeType" class="btn-secondary" aria-pressed="false" style="flex:1">Type</button>
+        </div>
+
+        <div class="field">
+          <label for="bgChoice">Background</label>
+          <select id="bgChoice">
+            <option value="transparent" selected>Transparent (default)</option>
+            <option value="#ffffff">White</option>
+            <option value="#000000">Black</option>
+            <option value="custom">Custom…</option>
+          </select>
+        </div>
+        <div class="field" id="bgCustomField" hidden>
+          <label for="bgColor">Background color</label>
+          <input id="bgColor" type="color" value="#ffffff">
+        </div>
+
+        <div id="drawControls">
+          <div class="field">
+            <label for="penColor">Pen color</label>
+            <input id="penColor" type="color" value="#0f1419">
+          </div>
+          <div class="field">
+            <label for="penSize">Pen thickness</label>
+            <input id="penSize" type="range" min="1" max="14" step="1" value="4" style="width:100%">
+          </div>
+        </div>
+
+        <div id="typeControls" hidden>
+          <div class="field">
+            <label for="typedName">Your name</label>
+            <input id="typedName" type="text" placeholder="e.g. Alex Carter" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="typeFont">Style</label>
+            <select id="typeFont">
+              <option value="cursive">Handwriting (cursive)</option>
+              <option value="formal">Formal script</option>
+              <option value="casual">Casual print</option>
+              <option value="serif">Serif</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="typeColor">Color</label>
+            <input id="typeColor" type="color" value="#0f1419">
+          </div>
+          <div class="field">
+            <label for="typeSize">Size</label>
+            <input id="typeSize" type="range" min="24" max="120" step="2" value="64" style="width:100%">
+          </div>
+        </div>
+      </div>
+
+      <div class="results" style="text-align:center">
+        <div class="editor-wrap"><canvas id="pad" width="640" height="260" aria-label="Signature pad — draw your signature here with a mouse, finger, or stylus" style="width:100%;height:260px;background:transparent;touch-action:none">Signature drawing area. Switch to Type mode to enter your name as text instead.</canvas></div>
+        <p class="muted-small" id="status" style="margin-top:10px">Draw your signature with your mouse, finger, or stylus.</p>
+        <div style="display:flex;gap:10px;justify-content:center">
+          <button type="button" id="clear" class="btn-secondary" disabled>Clear</button>
+          <button type="button" id="download" class="btn-primary" disabled>Download PNG</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to make a signature</h2>
+      <p><strong>Draw mode:</strong> sign on the pad with your mouse, finger, or a stylus. Pick a pen color and thickness, and use Clear to start over. <strong>Type mode:</strong> type your name and choose a handwriting-style look, color, and size.</p>
+      <p>When you download, the image is automatically trimmed to your signature and saved as a PNG with a transparent background — so it drops cleanly onto documents, contracts, photos, or web pages without a white box around it.</p>
+      <p class="note">Your signature never leaves your device — it is created entirely in your browser. Nothing is uploaded.</p>
+      <p class="note"><strong>Not a legal e-signature.</strong> This tool makes a quick signature <em>image</em> for everyday use. It does not sign, bind, timestamp, or verify a document the way a legal electronic-signature service does. For anything legally binding, use a proper e-signature provider.</p>
+
+      <h2>Frequently asked questions</h2>
+      <p><strong>Is my signature uploaded anywhere?</strong> No. It is created on your device, in your browser. Nothing is sent to a server.</p>
+      <p><strong>What format is the download?</strong> A transparent PNG, trimmed to your signature.</p>
+      <p><strong>How do I add it to a Word document or PDF?</strong> Insert the PNG as a picture where you want to sign (Insert → Picture in Word, or the image/stamp tool in a PDF editor). The transparent background means only your signature shows.</p>
+      <p><strong>Should I draw or type it?</strong> Draw mode looks the most natural, especially with a finger or stylus. Type mode is quick and tidy when you just need a readable handwriting-style signature.</p>
+      <p><strong>Will it look crisp?</strong> Yes — the drawing pad adapts to high-resolution (Retina) screens so lines stay sharp on screen and in print.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/signature-maker.js"></script>
+</body>
+</html>

@@ -12,25 +12,47 @@ const CURRENCY = {
   SAR: { symbol: 'SAR ', locale: 'en-US' }
 };
 
-// --- logo (optional, stays in browser) --------------------------------------
-let logo = null; // { data: dataURL, fmt: 'PNG'|'JPEG', w, h }
+// --- logo (client-side only: read, downscale, embed; never uploaded) ---------
+// The logo is read locally, downscaled via canvas so the embedded PDF stays
+// small, and kept in memory + localStorage. It is never uploaded anywhere.
+let logo = null; // { dataUrl, w, h } once a logo is chosen
 
 function loadLogo(file) {
   if (!file) return;
   const reader = new FileReader();
+  reader.onerror = () => { if ($('logoStatus')) $('logoStatus').textContent = 'Could not read that file.'; };
   reader.onload = () => {
     const img = new Image();
+    img.onerror = () => { if ($('logoStatus')) $('logoStatus').textContent = 'That image could not be loaded.'; };
     img.onload = () => {
-      const fmt = /^data:image\/png/.test(reader.result) ? 'PNG' : 'JPEG';
-      logo = { data: reader.result, fmt, w: img.naturalWidth, h: img.naturalHeight };
+      const maxDim = 300; // downscale so the embedded PDF stays small
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      logo = { dataUrl: canvas.toDataURL('image/png'), w, h };
+      if ($('logoStatus')) $('logoStatus').textContent = 'Logo added — stays in your browser, never uploaded.';
       $('removeLogo').hidden = false;
       render();
+      saveProfile();
     };
     img.src = reader.result;
   };
   reader.readAsDataURL(file);
 }
 
+function clearLogo() {
+  logo = null;
+  $('logoInput').value = '';
+  $('removeLogo').hidden = true;
+  if ($('logoStatus')) $('logoStatus').textContent = 'Added to the PDF — stays in your browser, never uploaded.';
+  render();
+  saveProfile();
+}
+
+// --- brand color -------------------------------------------------------------
 const DEFAULT_BRAND = '#1a7f37';
 function brandHex() {
   const v = ($('brandColor') && $('brandColor').value) || DEFAULT_BRAND;
@@ -47,6 +69,59 @@ function money(n) {
   return c.symbol + (Number(n) || 0).toLocaleString(c.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// --- saved business profile (localStorage only; never leaves the device) -----
+// Persists the parts that are the same on every invoice (business identity +
+// currency + logo + brand color) so returning users don't re-type them. This is
+// a lightweight identity store; the full per-invoice autosave below restores
+// everything else (client, line items, dates...).
+const PROFILE_KEY = 'tb_invoice_profile_v1';
+
+function saveProfile() {
+  if (restoring) return;
+  try {
+    const p = {
+      bizName: $('bizName').value,
+      bizDetails: $('bizDetails').value,
+      currency: $('currency').value,
+      brandColor: ($('brandColor') && $('brandColor').value) || DEFAULT_BRAND,
+      logo: logo ? { dataUrl: logo.dataUrl, w: logo.w, h: logo.h } : null
+    };
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+    showSaved(true);
+  } catch (e) { /* storage full or disabled (private mode) — degrade silently */ }
+}
+
+function loadProfile() {
+  let p = null;
+  try { p = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); } catch (e) { p = null; }
+  if (!p) return false;
+  if (p.bizName != null) $('bizName').value = p.bizName;
+  if (p.bizDetails != null) $('bizDetails').value = p.bizDetails;
+  if (p.currency && CURRENCY[p.currency]) $('currency').value = p.currency;
+  if (p.brandColor && $('brandColor')) $('brandColor').value = p.brandColor;
+  if (p.logo && p.logo.dataUrl) {
+    logo = { dataUrl: p.logo.dataUrl, w: p.logo.w || 1, h: p.logo.h || 1 };
+    $('removeLogo').hidden = false;
+    if ($('logoStatus')) $('logoStatus').textContent = 'Logo restored from this device.';
+  }
+  showSaved(true);
+  return true;
+}
+
+function clearProfile() {
+  try { localStorage.removeItem(PROFILE_KEY); } catch (e) { /* ignore */ }
+  showSaved(false);
+}
+
+function showSaved(on) {
+  const el = $('profileStatus');
+  if (el) el.textContent = on
+    ? 'Business details saved on this device for next time.'
+    : 'Saved business details cleared.';
+  const btn = $('clearProfile');
+  if (btn) btn.hidden = !on;
+}
+
 // --- line items --------------------------------------------------------------
 function attr(s) {
   return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -56,11 +131,11 @@ function itemRow(desc = '', qty = '1', rate = '0') {
   const row = document.createElement('div');
   row.className = 'item-row';
   row.innerHTML =
-    `<input class="d" placeholder="Description" value="${attr(desc)}">` +
-    `<input class="q" type="number" min="0" step="any" value="${attr(qty)}">` +
-    `<input class="r" type="number" min="0" step="any" value="${attr(rate)}">` +
-    `<input class="a" value="0.00" readonly tabindex="-1">` +
-    `<button type="button" class="rm" title="Remove">×</button>`;
+    `<input class="d" placeholder="Description" aria-label="Line item description" value="${attr(desc)}">` +
+    `<input class="q" type="number" min="0" step="any" aria-label="Quantity" value="${attr(qty)}">` +
+    `<input class="r" type="number" min="0" step="any" aria-label="Rate" value="${attr(rate)}">` +
+    `<input class="a" value="0.00" readonly tabindex="-1" aria-label="Line total">` +
+    `<button type="button" class="rm" title="Remove" aria-label="Remove line item">×</button>`;
   row.querySelector('.rm').addEventListener('click', () => { row.remove(); render(); });
   row.querySelectorAll('input').forEach((el) => el.addEventListener('input', render));
   return row;
@@ -79,21 +154,25 @@ function readItems() {
 
 function totals(items) {
   const subtotal = items.reduce((s, i) => s + i.amount, 0);
-  const taxRate = parseFloat($('taxRate').value) || 0;
-  const discountInput = parseFloat($('discount').value) || 0;
-  const discountType = ($('discountType') && $('discountType').value) || 'amount';
+  const taxVal = parseFloat($('taxRate').value) || 0;
+  const taxMode = ($('taxMode') && $('taxMode').value) || 'percent';
+  const discVal = parseFloat($('discount').value) || 0;
+  const discMode = ($('discountMode') && $('discountMode').value) || 'flat';
   const shipping = ($('shipping') && parseFloat($('shipping').value)) || 0;
+
+  // Tax can be a percentage of the subtotal or a flat figure.
+  const tax = taxMode === 'percent' ? subtotal * (taxVal / 100) : taxVal;
   // Percent discount is applied to the subtotal (before tax).
-  const discount = discountType === 'percent'
-    ? subtotal * (discountInput / 100)
-    : discountInput;
-  const tax = subtotal * (taxRate / 100);
-  // Shipping is added after tax/discount (it's a flat pass-through charge, untaxed).
+  const discount = discMode === 'percent' ? subtotal * (discVal / 100) : discVal;
+  // Shipping is added after tax/discount (a flat pass-through charge, untaxed).
   const total = Math.max(0, subtotal + tax - discount + shipping);
   // Amount already paid (e.g. a deposit); balance due is what's still owed.
   const amountPaid = ($('amountPaid') && parseFloat($('amountPaid').value)) || 0;
   const balanceDue = total - amountPaid;
-  return { subtotal, taxRate, tax, discount, discountType, discountInput, shipping, total, amountPaid, balanceDue };
+
+  const taxLabel = taxMode === 'percent' ? `Tax (${taxVal}%)` : 'Tax';
+  const discountLabel = discMode === 'percent' ? `Discount (${discVal}%)` : 'Discount';
+  return { subtotal, tax, taxLabel, discount, discountLabel, shipping, total, amountPaid, balanceDue };
 }
 
 // --- payment terms -----------------------------------------------------------
@@ -122,6 +201,7 @@ function applyTerms() {
 function readModel() {
   const items = readItems();
   return {
+    docType: ($('docType') && $('docType').value) || 'Invoice',
     biz: { name: $('bizName').value, details: $('bizDetails').value },
     cli: { name: $('cliName').value, details: $('cliDetails').value },
     ship: ($('shipDetails') && $('shipDetails').value.trim()) || '',
@@ -141,6 +221,8 @@ function readModel() {
 function render() {
   const m = readModel();
   const brand = brandHex();
+  const lbl = $('invNoLabel');
+  if (lbl) lbl.textContent = m.docType + ' #';
   const rows = m.items
     .map(
       (i) =>
@@ -151,10 +233,10 @@ function render() {
 
   $('preview').innerHTML =
     `<div class="pv-row"><div>` +
-    (logo ? `<img src="${logo.data}" alt="Business logo" style="max-height:48px;max-width:160px;margin-bottom:8px;display:block">` : '') +
+    (logo ? `<img class="pv-logo" src="${logo.dataUrl}" alt="Business logo">` : '') +
     `<h3>${esc(m.biz.name) || 'Your Business'}</h3>` +
     `<div class="pv-meta">${esc(m.biz.details)}</div></div>` +
-    `<div style="text-align:right"><div style="font-size:22px;font-weight:700;color:${brand}">INVOICE</div>` +
+    `<div style="text-align:right"><div style="font-size:22px;font-weight:700;color:${brand}">${esc(m.docType.toUpperCase())}</div>` +
     `<div class="pv-meta">${esc(m.invNo)}</div>` +
     (m.po ? `<div class="pv-meta">PO: ${esc(m.po)}</div>` : '') +
     `</div></div>` +
@@ -170,8 +252,8 @@ function render() {
     `<tbody>${rows}</tbody></table>` +
     `<div class="pv-totals">` +
     `<div class="pv-row"><span>Subtotal</span><span>${money(m.t.subtotal)}</span></div>` +
-    (m.t.taxRate ? `<div class="pv-row"><span>Tax (${m.t.taxRate}%)</span><span>${money(m.t.tax)}</span></div>` : '') +
-    (m.t.discount ? `<div class="pv-row"><span>Discount${m.t.discountType === 'percent' ? ` (${m.t.discountInput}%)` : ''}</span><span>−${money(m.t.discount)}</span></div>` : '') +
+    (m.t.tax ? `<div class="pv-row"><span>${esc(m.t.taxLabel)}</span><span>${money(m.t.tax)}</span></div>` : '') +
+    (m.t.discount ? `<div class="pv-row"><span>${esc(m.t.discountLabel)}</span><span>−${money(m.t.discount)}</span></div>` : '') +
     (m.t.shipping ? `<div class="pv-row"><span>Shipping</span><span>${money(m.t.shipping)}</span></div>` : '') +
     `<div class="pv-row grand" style="border-top-color:${brand}"><span>Total</span><span>${money(m.t.total)}</span></div>` +
     (m.t.amountPaid ? `<div class="pv-row"><span>Amount paid</span><span>−${money(m.t.amountPaid)}</span></div>` : '') +
@@ -190,10 +272,13 @@ function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 }
 
-// --- autosave (localStorage, stays in browser) -------------------------------
-const STORE_KEY = 'tb.invoice.v1';
-const FIELD_IDS = ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'shipDetails', 'invNo', 'poNumber', 'currency',
-  'invDate', 'paymentTerms', 'dueDate', 'taxRate', 'discount', 'discountType', 'shipping', 'amountPaid', 'brandColor', 'notes'];
+// --- full per-invoice autosave (localStorage, stays in browser) --------------
+// Restores the whole invoice (every field + line items + logo) on return so a
+// refresh never loses work. The lighter business-profile store above is kept as
+// the identity record behind the "Clear saved business details" button.
+const STORE_KEY = 'tb.invoice.v2';
+const FIELD_IDS = ['docType', 'bizName', 'bizDetails', 'cliName', 'cliDetails', 'shipDetails', 'invNo', 'poNumber', 'currency',
+  'invDate', 'paymentTerms', 'dueDate', 'taxRate', 'taxMode', 'discount', 'discountMode', 'shipping', 'amountPaid', 'brandColor', 'notes'];
 let restoring = false;
 
 function saveState() {
@@ -231,15 +316,16 @@ function downloadPdf() {
   }
   const { jsPDF } = window.jspdf;
   const m = readModel();
+  const docTitle = (m.docType || 'Invoice').toUpperCase();
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const W = doc.internal.pageSize.getWidth();
   const M = 48; // margin
   let y = M;
   const [br, bg, bb] = brandRgb();
 
-  // INVOICE title pinned to the top-right, in the chosen brand color
+  // Document title pinned to the top-right, in the chosen brand color.
   doc.setFont('helvetica', 'bold').setFontSize(22).setTextColor(br, bg, bb);
-  doc.text('INVOICE', W - M, y, { align: 'right' });
+  doc.text(docTitle, W - M, y, { align: 'right' });
   doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(90);
   doc.text(m.invNo || '', W - M, y + 16, { align: 'right' });
   if (m.po) {
@@ -252,7 +338,7 @@ function downloadPdf() {
     const maxW = 140, maxH = 56;
     const r = Math.min(maxW / logo.w, maxH / logo.h);
     const lw = logo.w * r, lh = logo.h * r;
-    doc.addImage(logo.data, logo.fmt, M, y, lw, lh);
+    doc.addImage(logo.dataUrl, 'PNG', M, y, lw, lh);
     y += lh + 12;
   }
 
@@ -331,8 +417,8 @@ function downloadPdf() {
     y += bold ? 18 : 15;
   };
   line('Subtotal', money(m.t.subtotal));
-  if (m.t.taxRate) line(`Tax (${m.t.taxRate}%)`, money(m.t.tax));
-  if (m.t.discount) line(m.t.discountType === 'percent' ? `Discount (${m.t.discountInput}%)` : 'Discount', '-' + money(m.t.discount));
+  if (m.t.tax) line(m.t.taxLabel, money(m.t.tax));
+  if (m.t.discount) line(m.t.discountLabel, '-' + money(m.t.discount));
   if (m.t.shipping) line('Shipping', money(m.t.shipping));
   doc.setDrawColor(br, bg, bb).setLineWidth(1).line(tx, y - 4, W - M, y - 4);
   y += 8;
@@ -410,8 +496,8 @@ function applyState(saved) {
     } else {
       fillDefaultItems(items);
     }
-    if (saved.logo && saved.logo.data) {
-      logo = saved.logo;
+    if (saved.logo && saved.logo.dataUrl) {
+      logo = { dataUrl: saved.logo.dataUrl, w: saved.logo.w || 1, h: saved.logo.h || 1 };
       $('removeLogo').hidden = false;
     }
     if ($('showSignature')) $('showSignature').checked = !!saved.signature;
@@ -448,18 +534,21 @@ function startNextInvoice() {
   applyTerms(); // re-derive the due date from the issue date + active term
   render();
   const status = $('pdfStatus');
-  if (status) status.textContent = 'Started invoice ' + $('invNo').value + ' — business and client details kept.';
+  if (status) status.textContent = 'Started ' + (($('docType') && $('docType').value) || 'invoice') + ' ' + $('invNo').value + ' — business and client details kept.';
 }
 
 function resetForm() {
   clearState();
+  clearProfile();
   logo = null;
-  $('logo').value = '';
+  if ($('logoInput')) $('logoInput').value = '';
   $('removeLogo').hidden = true;
+  if ($('logoStatus')) $('logoStatus').textContent = 'Added to the PDF — stays in your browser, never uploaded.';
   const items = $('items');
   items.innerHTML = ITEMS_HEAD;
   fillDefaultItems(items);
   // restore the shipped defaults for the simple fields
+  if ($('docType')) $('docType').value = 'Invoice';
   $('bizName').value = 'Your Business LLC';
   $('bizDetails').value = '123 Main St\nCity, ST 00000\nyou@example.com';
   $('cliName').value = 'Client Co.';
@@ -469,11 +558,12 @@ function resetForm() {
   if ($('poNumber')) $('poNumber').value = '';
   $('currency').value = 'USD';
   $('taxRate').value = '0';
+  if ($('taxMode')) $('taxMode').value = 'percent';
   $('discount').value = '0';
-  $('discountType').value = 'amount';
+  if ($('discountMode')) $('discountMode').value = 'flat';
   if ($('shipping')) $('shipping').value = '0';
   if ($('amountPaid')) $('amountPaid').value = '0';
-  $('brandColor').value = DEFAULT_BRAND;
+  if ($('brandColor')) $('brandColor').value = DEFAULT_BRAND;
   $('notes').value = 'Payment due within 30 days. Thank you for your business.';
   if ($('showSignature')) $('showSignature').checked = false;
   $('invDate').value = isoToday(0);
@@ -489,31 +579,32 @@ function init() {
     items.innerHTML = ITEMS_HEAD;
     fillDefaultItems(items);
   }
+  // Restore the lightweight business profile (identity + logo + brand) so it is
+  // present even on a device that has the profile but not a full saved invoice.
+  loadProfile();
 
   $('addItem').addEventListener('click', () => { items.appendChild(itemRow()); render(); });
-  ['bizName', 'bizDetails', 'cliName', 'cliDetails', 'shipDetails', 'invNo', 'poNumber', 'currency', 'taxRate', 'discount', 'discountType', 'shipping', 'amountPaid', 'brandColor', 'notes']
-    .forEach((id) => $(id).addEventListener('input', render));
-  $('discountType').addEventListener('change', render);
+  ['docType', 'bizName', 'bizDetails', 'cliName', 'cliDetails', 'shipDetails', 'invNo', 'poNumber', 'currency', 'taxRate', 'taxMode', 'discount', 'discountMode', 'shipping', 'amountPaid', 'brandColor', 'notes']
+    .forEach((id) => { if ($(id)) $(id).addEventListener('input', render); });
+  ['taxMode', 'discountMode'].forEach((id) => { if ($(id)) $(id).addEventListener('change', render); });
+  // persist the business-identity fields on this device for return visits
+  ['bizName', 'bizDetails', 'currency', 'brandColor'].forEach((id) => { if ($(id)) $(id).addEventListener('input', saveProfile); });
   // Signature toggle affects only the PDF, but re-render to persist the choice.
-  $('showSignature').addEventListener('change', render);
+  if ($('showSignature')) $('showSignature').addEventListener('change', render);
   // Payment terms: a preset auto-fills the due date from the invoice date.
-  $('paymentTerms').addEventListener('change', () => { applyTerms(); render(); });
+  if ($('paymentTerms')) $('paymentTerms').addEventListener('change', () => { applyTerms(); render(); });
   $('invDate').addEventListener('input', () => { applyTerms(); render(); });
   // Editing the due date by hand switches terms to "Custom" so it isn't overwritten.
-  $('dueDate').addEventListener('input', () => { $('paymentTerms').value = ''; render(); });
-  $('resetBrand').addEventListener('click', () => { $('brandColor').value = DEFAULT_BRAND; render(); });
+  $('dueDate').addEventListener('input', () => { if ($('paymentTerms')) $('paymentTerms').value = ''; render(); });
+  if ($('resetBrand')) $('resetBrand').addEventListener('click', () => { if ($('brandColor')) $('brandColor').value = DEFAULT_BRAND; saveProfile(); render(); });
   $('downloadPdf').addEventListener('click', downloadPdf);
-  $('nextInvoice').addEventListener('click', startNextInvoice);
-  $('clearInvoice').addEventListener('click', () => {
+  if ($('nextInvoice')) $('nextInvoice').addEventListener('click', startNextInvoice);
+  if ($('clearInvoice')) $('clearInvoice').addEventListener('click', () => {
     if (window.confirm('Clear this invoice and start fresh? Saved data on this device will be removed.')) resetForm();
   });
-  $('logo').addEventListener('change', (e) => loadLogo(e.target.files[0]));
-  $('removeLogo').addEventListener('click', () => {
-    logo = null;
-    $('logo').value = '';
-    $('removeLogo').hidden = true;
-    render();
-  });
+  if ($('clearProfile')) $('clearProfile').addEventListener('click', clearProfile);
+  if ($('logoInput')) $('logoInput').addEventListener('change', (e) => loadLogo(e.target.files[0]));
+  $('removeLogo').addEventListener('click', clearLogo);
 
   // Only seed dates when neither saved nor present (fresh first visit).
   if (!saved && !$('invDate').value) $('invDate').value = isoToday(0);

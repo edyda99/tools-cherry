@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Time Zone Converter — Convert Times Between Cities &amp; Time Zones</title>
+<meta name="description" content="Free time zone converter. Pick a date and time in one time zone and instantly see the matching local time in another — across hundreds of cities worldwide. Handles daylight saving automatically. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/time-zone-converter/">
+<meta property="og:title" content="Time Zone Converter">
+<meta property="og:description" content="Convert a date and time between any two time zones, with daylight saving handled automatically. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Time Zone Converter","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Convert a date and time from one time zone to another across hundreds of IANA time zones, with daylight saving handled automatically, entirely in your browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I convert a time from one time zone to another?","acceptedAnswer":{"@type":"Answer","text":"Pick the date and time you want to convert, choose the time zone it is in (the From zone), then choose the zone you want it in (the To zone). The converted local time, the offset from UTC for each zone, and the time difference between them appear instantly."}},{"@type":"Question","name":"Does the converter handle daylight saving time?","acceptedAnswer":{"@type":"Answer","text":"Yes. The tool uses your browser's built-in time-zone database, which knows each region's daylight saving rules. The offset is calculated for the exact date you pick, so summer and winter times are both correct, including the spring-forward and fall-back transitions."}},{"@type":"Question","name":"Why does the converted time sometimes land on a different day?","acceptedAnswer":{"@type":"Answer","text":"When two zones are far apart, a time in one can fall on the previous or next calendar day in the other. For example, late evening in Los Angeles is the following morning in Tokyo. The result shows the full date for each zone and flags a next-day or previous-day shift."}},{"@type":"Question","name":"What do the UTC offsets like UTC+05:30 mean?","acceptedAnswer":{"@type":"Answer","text":"UTC is the global reference time. An offset such as UTC+05:30 means that zone's clock is 5 hours and 30 minutes ahead of UTC at that moment; UTC-04:00 means 4 hours behind. The difference between the two offsets is how far apart the two zones are."}},{"@type":"Question","name":"Is my data private?","acceptedAnswer":{"@type":"Answer","text":"Yes. Everything runs in your browser using its own time-zone data. The dates, times and zones you pick stay on your device and are never sent to any server."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Time Zone Converter</h1>
+    <p class="lede">Pick a date and time, choose the zone it is in and the zone you want it in, and see the converted local time instantly. Daylight saving is handled for you, and the result flags any change of day. Nothing is uploaded — it all runs in your browser.</p>
+
+    <section class="calc" aria-label="Time zone converter">
+      <form id="tzForm" autocomplete="off" onsubmit="return false">
+        <div class="field inline">
+          <span><label for="date">Date</label><input id="date" type="date"></span>
+          <span><label for="time">Time</label><input id="time" type="time"></span>
+        </div>
+
+        <div class="field">
+          <label for="fromZone">From time zone</label>
+          <select id="fromZone"></select>
+        </div>
+
+        <div class="btn-row">
+          <button type="button" id="swapBtn" class="btn-secondary" title="Swap the two zones">↑↓ Swap zones</button>
+          <button type="button" id="nowBtn" class="btn-secondary">Use current time</button>
+        </div>
+
+        <div class="field">
+          <label for="toZone">To time zone</label>
+          <select id="toZone"></select>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-sub" id="error">Pick a date and time to convert.</p>
+
+        <div id="resultCard" hidden>
+          <div class="line"><span class="lbl"><span id="fromName">—</span> <small id="fromOffset"></small></span><span><b id="fromTime">—</b></span></div>
+          <div class="line"><span class="lbl">&nbsp;</span><span id="fromDate" class="net-sub"></span></div>
+          <div class="line"><span class="lbl"><span id="toName">—</span> <small id="toOffset"></small></span><span><b id="toTime">—</b></span></div>
+          <div class="line"><span class="lbl">&nbsp;</span><span id="toDate" class="net-sub"></span></div>
+          <p class="net-sub" id="diff"></p>
+        </div>
+      </div>
+    </section>
+
+    <p class="note">Your dates, times and zones stay in your browser — nothing is sent anywhere.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the time zone converter</h2>
+      <p>Start by setting the <strong>date and time</strong> you want to convert. They default to right now in your own time zone, but you can change them to any moment — a meeting next week, a flight departure, a live stream start time.</p>
+      <p>Choose the <strong>From time zone</strong> — the zone the time is currently expressed in — and the <strong>To time zone</strong> — the zone you want the answer in. The list covers hundreds of cities and regions worldwide, named by their region and main city, the standard way time zones are identified.</p>
+      <p>The result shows the local clock time in each zone, the date for each (so you can spot when the answer lands on a different day), each zone's offset from UTC, and a plain-language summary of how far apart the two zones are.</p>
+      <p>Use <strong>Swap zones</strong> to flip the From and To zones, and <strong>Use current time</strong> to reset the date and time to this moment.</p>
+      <p class="note">Everything runs in your browser using its own time-zone data — your inputs are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>Why are time zones named after cities?</strong> Time zones are identified by a region and a representative city, such as <em>America/New York</em> or <em>Asia/Tokyo</em>, because borders and daylight-saving rules follow places, not just a fixed offset. A city name pins down the exact rules to apply.</p>
+      <p><strong>Will it stay correct after a clock change?</strong> Yes. Because the offset is worked out for the specific date you choose, the converter automatically applies the right summer or winter time, including on the days clocks spring forward or fall back.</p>
+      <p><strong>Can I plan a meeting across several places?</strong> Convert your proposed time into each participant's zone one at a time. The day-shift note makes it easy to see when a comfortable hour for you is the middle of the night for someone else.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your inputs never leave your browser and nothing is stored.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/time-zone-converter.js"></script>
+</body>
+</html>

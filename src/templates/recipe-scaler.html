@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Recipe Scaler — Halve, Double &amp; Resize Ingredient Amounts</title>
+<meta name="description" content="Free recipe scaler. Paste your ingredient list, set the original and new serving counts, and instantly halve, double, or resize every amount — fractions and all. Works in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/recipe-scaler/">
+<meta property="og:title" content="Recipe Scaler">
+<meta property="og:description" content="Paste a recipe and rescale every ingredient amount to any serving count — fractions handled. Free and private.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Recipe Scaler","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Scale a recipe up or down by serving count. Parses ingredient amounts including fractions and mixed numbers and rewrites them to the new yield."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I scale a recipe to a different number of servings?","acceptedAnswer":{"@type":"Answer","text":"Divide the new serving count by the original to get a scale factor, then multiply every ingredient amount by it. To take a 4-serving recipe to 6, the factor is 6 ÷ 4 = 1.5, so each amount goes up by half. This tool does that for your whole list at once."}},{"@type":"Question","name":"How do I halve or double a recipe?","acceptedAnswer":{"@type":"Answer","text":"To halve a recipe, multiply every amount by 0.5; to double it, multiply by 2. Paste your ingredients and tap the ½× or 2× preset and all the amounts, including fractions like 1 1/2 cups, are rewritten instantly."}},{"@type":"Question","name":"Does it handle fractions like 3/4 cup or 1 1/2 cups?","acceptedAnswer":{"@type":"Answer","text":"Yes. It reads whole numbers, decimals, simple fractions (3/4), mixed numbers (1 1/2), and fraction symbols (½, ⅓, ¾), then writes the scaled result back as a friendly fraction such as 1 1/8 cups rather than a long decimal."}},{"@type":"Question","name":"What about lines like \"salt to taste\"?","acceptedAnswer":{"@type":"Answer","text":"Lines without a number at the start — \"a pinch of salt\", \"salt to taste\" — are left exactly as written, since there is nothing to multiply. Only the amount at the front of a line is scaled; the unit and ingredient name stay the same."}},{"@type":"Question","name":"Is my recipe private?","acceptedAnswer":{"@type":"Answer","text":"Yes. Everything runs in your browser. The ingredients you paste stay on your device and are never sent anywhere."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Recipe Scaler</h1>
+    <p class="lede">Paste your ingredient list, set the original and new serving counts, and every amount is rescaled instantly — fractions and all. Results update as you type, and nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Recipe scaler">
+      <form id="scalerForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="fromServings">Original servings</label>
+          <input id="fromServings" type="number" inputmode="numeric" step="any" min="0" value="4" placeholder="4">
+        </div>
+
+        <div class="field">
+          <label for="toServings">New servings</label>
+          <input id="toServings" type="number" inputmode="numeric" step="any" min="0" value="6" placeholder="6">
+          <div class="presets" role="group" aria-label="Quick scale presets">
+            <button type="button" class="btn-secondary" data-mult="0.5">½×</button>
+            <button type="button" class="btn-secondary" data-mult="2">2×</button>
+            <button type="button" class="btn-secondary" data-mult="3">3×</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="ingredients">Ingredients (one per line)</label>
+          <textarea id="ingredients" rows="8" spellcheck="false" placeholder="2 cups flour&#10;1 1/2 tsp baking powder&#10;3/4 cup sugar&#10;a pinch of salt">2 cups flour
+1 1/2 tsp baking powder
+3/4 cup sugar
+1/2 cup butter
+2 eggs
+a pinch of salt</textarea>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-sub" id="factorLabel"></p>
+        <div class="field">
+          <label for="output">Scaled ingredients</label>
+          <textarea id="output" rows="8" readonly spellcheck="false" aria-label="Scaled ingredients"></textarea>
+        </div>
+        <button type="button" class="btn-secondary" id="copyBtn">Copy result</button>
+      </div>
+    </section>
+
+    <p class="note">Your recipe stays in your browser — nothing is sent anywhere.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the recipe scaler</h2>
+      <p>Enter the servings the recipe is written for, then the number you actually want to make. Paste your ingredients one per line — the scaled list appears beside them as you type. Use the presets to halve (½×), double (2×), or triple (3×) without doing the math yourself.</p>
+      <p><strong>How the scaling works.</strong> The tool divides your new serving count by the original to get a scale factor — six servings from a four-serving recipe is a factor of 1.5 — then multiplies the amount at the start of each line by it.</p>
+      <p><strong>Fractions are handled.</strong> Whole numbers, decimals, simple fractions like <em>3/4</em>, mixed numbers like <em>1 1/2</em>, and symbols like <em>½</em> or <em>⅓</em> all parse, and the result is written back as a readable fraction such as <em>1 1/8 cups</em> rather than a long decimal.</p>
+      <p><strong>Non-numeric lines stay put.</strong> Anything without a leading amount — <em>"a pinch of salt"</em>, <em>"salt to taste"</em> — is left exactly as written, because there is nothing to multiply.</p>
+      <p class="note">Everything runs in your browser — the recipe you paste is never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>How do I scale a recipe to a different number of servings?</strong> Divide the new serving count by the original to get a scale factor, then multiply every ingredient amount by it. Taking a 4-serving recipe to 6 gives 6 ÷ 4 = 1.5, so each amount goes up by half — and this tool does the whole list at once.</p>
+      <p><strong>How do I halve or double a recipe?</strong> To halve, multiply every amount by 0.5; to double, multiply by 2. Paste your ingredients and tap the ½× or 2× preset and all the amounts, fractions included, are rewritten instantly.</p>
+      <p><strong>Does it handle fractions like 3/4 cup or 1 1/2 cups?</strong> Yes. It reads whole numbers, decimals, simple fractions, mixed numbers, and fraction symbols, then writes the scaled result back as a friendly fraction instead of a long decimal.</p>
+      <p><strong>What about lines like "salt to taste"?</strong> Lines without a number at the start are left exactly as written. Only the amount at the front of a line is scaled; the unit and ingredient name stay the same.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your recipe never leaves your browser and nothing is stored.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/recipe-scaler.js"></script>
+</body>
+</html>

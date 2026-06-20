@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Pregnancy Due Date Calculator — Estimate Your Baby's Due Date</title>
+<meta name="description" content="Free pregnancy due date calculator. Estimate your baby's due date from your last period (Naegele's rule) or conception date, see how many weeks along you are, your trimester, and key milestones. Works in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/due-date-calculator/">
+<meta property="og:title" content="Pregnancy Due Date Calculator">
+<meta property="og:description" content="Estimate your due date from your last period or conception date, plus how far along you are, your trimester and milestones. Free and private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Pregnancy Due Date Calculator","applicationCategory":"HealthApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Estimate a pregnancy due date from the last menstrual period (Naegele's rule, 40 weeks) or from a known conception date (38 weeks), with gestational age, trimester and milestone dates."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How is a due date calculated from the last period?","acceptedAnswer":{"@type":"Answer","text":"The standard method is Naegele's rule: add 280 days (40 weeks) to the first day of your last menstrual period. This assumes a regular 28-day cycle with ovulation around day 14. If your cycle is longer or shorter, this calculator shifts the due date by the difference, because ovulation — and therefore conception — happens later or earlier."}},{"@type":"Question","name":"How accurate is a due date calculator?","acceptedAnswer":{"@type":"Answer","text":"An estimated due date is exactly that — an estimate. Only about 1 in 20 babies arrive on their predicted date, and a normal full-term delivery can happen any time from 37 to 42 weeks. An early ultrasound dating scan is usually the most accurate way to confirm a due date, so always go by your clinician's date."}},{"@type":"Question","name":"What is gestational age and how is it measured?","acceptedAnswer":{"@type":"Answer","text":"Gestational age is how far along a pregnancy is, counted in completed weeks plus extra days (for example 12w 3d). By convention it is measured from the first day of the last menstrual period, not from conception, which is why a pregnancy is dated as roughly two weeks 'pregnant' at the moment of conception."}},{"@type":"Question","name":"When do the trimesters start and end?","acceptedAnswer":{"@type":"Answer","text":"A common convention is: first trimester through the end of week 12, second trimester from week 13 to the end of week 27, and third trimester from week 28 until birth. Slightly different cut-offs are sometimes used, so treat these as approximate."}},{"@type":"Question","name":"Is my information private?","acceptedAnswer":{"@type":"Answer","text":"Yes. The calculator runs entirely in your browser. The dates you enter stay on your device and are never sent anywhere or stored."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Pregnancy Due Date Calculator</h1>
+    <p class="lede">Estimate your baby's due date from the first day of your last period or from a known conception date. See how many weeks along you are, your current trimester, and the key milestone dates — all worked out instantly in your browser.</p>
+
+    <section class="calc" aria-label="Pregnancy due date calculator">
+      <form id="ddForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <span class="lbl">Calculate from</span>
+          <label><input type="radio" name="method" value="lmp" checked> Last menstrual period</label>
+          <label><input type="radio" name="method" value="conception"> Conception / ovulation date</label>
+        </div>
+        <div class="field inline">
+          <span><label for="refDate" id="refLabel">First day of your last period</label><input id="refDate" type="date"></span>
+          <span id="cycleField"><label for="cycle">Average cycle length (days)</label><input id="cycle" type="number" inputmode="numeric" min="20" max="45" step="1" value="28" placeholder="28"></span>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-sub" id="ddPlaceholder">Enter a date above to estimate your due date.</p>
+
+        <div id="ddResults" hidden>
+          <p class="net-sub">Estimated due date</p>
+          <p class="net-big" id="ddBig">—</p>
+          <p class="net-sub" id="ddSub"></p>
+
+          <div class="results" style="margin-top:8px">
+            <div class="line"><span class="lbl">How far along today</span><span id="ddGest">—</span></div>
+            <div class="line"><span class="lbl">Trimester</span><span id="ddTrimester">—</span></div>
+            <div class="line"><span class="lbl">Estimated conception date</span><span id="ddConception">—</span></div>
+            <div class="line"><span class="lbl">First day of last period</span><span id="ddLmp">—</span></div>
+          </div>
+
+          <table class="bracket-table" aria-label="Pregnancy milestones">
+            <thead><tr><th>Milestone</th><th>Date</th></tr></thead>
+            <tbody id="ddMilestones"></tbody>
+          </table>
+        </div>
+
+        <p class="net-sub" id="ddMsg" role="alert" hidden></p>
+      </div>
+    </section>
+
+    <p class="note">This is an estimate for general information only and is not medical advice. Your input stays in your browser — nothing is sent anywhere.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How the due date calculator works</h2>
+      <p>The most common way to estimate a due date is <strong>Naegele's rule</strong>: take the first day of your last menstrual period (LMP) and add 280 days — that is 40 weeks. This works because pregnancy is conventionally dated from the LMP rather than from conception, and the typical span from LMP to birth is about 40 weeks.</p>
+      <p>Naegele's rule assumes a regular <strong>28-day cycle</strong> with ovulation around day 14. If your cycles are longer or shorter, you ovulate — and conceive — later or earlier, so this calculator shifts your due date by the difference. Enter your average cycle length to fine-tune the estimate. If you instead know your <strong>conception or ovulation date</strong>, switch the method above and the tool adds 266 days (38 weeks) to that date.</p>
+      <p><strong>Gestational age</strong> — how far along you are — is shown in completed weeks plus extra days, like <em>12w 3d</em>. Because the clock starts at the LMP, you are counted as roughly two weeks along at the moment of conception. The milestone table marks the end of each trimester, the start of full term at 37 weeks, and the estimated due date at 40 weeks.</p>
+      <p class="note">Everything runs in your browser — the dates you enter are never uploaded or stored.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>Will my baby arrive on the due date?</strong> Probably not exactly. The due date is a single best-guess day, but only about 1 in 20 babies are born on it. A normal full-term birth can happen any time between 37 and 42 weeks.</p>
+      <p><strong>Which date is most accurate?</strong> An early ultrasound dating scan is usually the most reliable, especially if your cycles are irregular or you are unsure of your last period. Always go by the due date your doctor or midwife gives you.</p>
+      <p><strong>My cycle is not 28 days — does that matter?</strong> Yes, a little. A longer cycle pushes ovulation later, so the due date moves back; a shorter cycle moves it earlier. Set your average cycle length above to account for this.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your dates never leave your browser and nothing is stored.</p>
+      <p class="note">This calculator is for general information and planning only. It is not a substitute for professional medical advice, diagnosis, or care.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/due-date-calculator.js"></script>
+</body>
+</html>

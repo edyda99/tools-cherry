@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>PDF to Word Converter — Free, Private, In Your Browser (No Upload)</title>
+<meta name="description" content="Free PDF to Word converter that runs entirely in your browser. Turn a text-based PDF into an editable .docx — no signup, no watermark, and nothing is uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/pdf-to-word/">
+<meta property="og:title" content="PDF to Word Converter — Free, Private, In Your Browser">
+<meta property="og:description" content="Turn a PDF into an editable Word document right in your browser. Free, no signup, nothing uploaded.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"PDF to Word Converter","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Convert a text-based PDF into an editable Word (.docx) document entirely in your browser. No signup, nothing uploaded."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is this PDF to Word converter free?","acceptedAnswer":{"@type":"Answer","text":"Yes. It is completely free with no signup and no watermark. Choose a PDF and download an editable Word .docx file."}},{"@type":"Question","name":"Are my files uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"The default in-browser conversion uploads nothing. There is also an optional server conversion for higher fidelity, which uploads your PDF over an encrypted connection, converts it, and discards it right after."}},{"@type":"Question","name":"Will my formatting be kept?","acceptedAnswer":{"@type":"Answer","text":"It rebuilds the text, paragraphs and headings from text-based PDFs. Because everything runs privately in your browser, very complex layouts and tables may need a little cleanup in Word."}},{"@type":"Question","name":"Does it work on scanned PDFs?","acceptedAnswer":{"@type":"Answer","text":"No. Scanned PDFs are images of pages with no underlying text, so there is nothing to extract. Use a PDF that was exported from a word processor, browser or report tool."}},{"@type":"Question","name":"Is there a file size limit?","acceptedAnswer":{"@type":"Answer","text":"The limit is 50 MB per PDF, which covers almost any text document. Very large files take longer because the work happens on your own device."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>PDF to Word Converter</h1>
+    <p class="lede">Turn a PDF into an editable Word (.docx) document — right here in your browser. Free, no signup, no watermark, and <strong>nothing is uploaded</strong>. Works best on PDFs that contain real text.</p>
+
+    <div class="calc">
+      <div>
+        <label id="drop" class="dropzone" for="file">
+          <input id="file" type="file" accept="application/pdf,.pdf" hidden>
+          <span id="dropText">Click to choose a PDF, or drop it here</span>
+        </label>
+        <p class="muted-small" id="fileInfo" style="margin-top:10px">Up to 50 MB · converted on your device, nothing uploaded.</p>
+      </div>
+
+      <div class="results">
+        <p class="muted-small" id="status" aria-live="polite">Choose a PDF to begin.</p>
+        <div class="field inline" style="margin-bottom:0">
+          <button type="button" id="convert" class="btn-primary" disabled>Convert to Word</button>
+          <button type="button" id="clear" class="btn-secondary">Clear</button>
+        </div>
+        <p><a id="download" href="#" download hidden class="btn-primary" style="display:none">Download .docx</a></p>
+        <div id="serverFallback" class="server-fallback" hidden style="margin-top:12px;border-top:1px solid;border-color:color-mix(in srgb, currentColor 15%, transparent);padding-top:12px">
+          <p class="muted-small">Formatting not quite right? Try a <strong>higher-fidelity conversion on our server</strong> — <strong>2 free per day</strong>. This option <strong>uploads your PDF</strong> over HTTPS; it is converted and immediately discarded.</p>
+          <div id="ts-container" data-sitekey="{{TURNSTILE_SITEKEY}}" style="margin:8px 0"></div>
+          <button type="button" id="serverConvert" class="btn-secondary">Convert on server (2/day)</button>
+          <p class="muted-small" id="serverStatus" aria-live="polite" style="margin-top:8px"></p>
+          <p><a id="serverDownload" href="#" download hidden class="btn-primary" style="display:none">Download .docx</a></p>
+        </div>
+        <p class="muted-small" style="margin-top:10px">Best for text-based PDFs. Scanned pages and very complex tables or layouts may need a little cleanup in Word afterwards.</p>
+      </div>
+    </div>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to convert a PDF to Word</h2>
+      <p>Click the box above to choose a PDF, or drag one straight in. Then click <strong>Convert to Word</strong>. Your browser reads the text out of the PDF, rebuilds it as an editable <strong>.docx</strong>, and a download link appears for the Word file — usually in a second or two.</p>
+      <p>It works best on PDFs that hold <strong>real text</strong> — the kind exported from a word processor, browser, or report tool. It keeps the words, paragraphs, and headings; very complex multi-column layouts and tables may need a quick tidy-up in Word. Scanned documents are pictures of pages with no underlying text, so there is nothing to pull out.</p>
+      <p class="note"><strong>About your privacy:</strong> the default conversion runs entirely in your browser, so your PDF never leaves your device. If you choose the optional <strong>higher-fidelity server conversion</strong>, that file is uploaded over an encrypted (HTTPS) connection, converted, and immediately discarded — nothing is stored, logged, or shared.</p>
+
+      <h2>Frequently asked questions</h2>
+      <h3>Is this PDF to Word converter free?</h3>
+      <p>Yes — completely free, with no signup and no watermark on the result.</p>
+      <h3>Are my files uploaded anywhere?</h3>
+      <p>The default in-browser conversion uploads nothing — your PDF stays on your device. There is also an optional "server conversion" for higher fidelity; that one uploads your PDF over an encrypted connection, converts it, and discards it right after.</p>
+      <h3>Will my formatting be kept?</h3>
+      <p>It rebuilds the text, paragraphs, and headings from text-based PDFs. Because it runs privately in your browser, very complex layouts and tables may need a little cleanup in Word.</p>
+      <h3>Does it work on scanned PDFs?</h3>
+      <p>No. Scanned PDFs are images with no underlying text, so there is nothing to extract. Use a PDF exported from a program for the best result.</p>
+      <h3>Is there a file size limit?</h3>
+      <p>The limit is 50 MB per PDF, which covers almost any text document. Very large files take a little longer because the work happens on your device.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script src="/assets/pdf.min.js"></script>
+<script src="/assets/docx.umd.js"></script>
+<script type="module" src="/assets/pdf-to-word.js"></script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>US Inflation Calculator — Dollar Value Over Time (CPI-U)</title>
+<meta name="description" content="Free US inflation calculator. See what a dollar amount from one year is worth in another using official BLS CPI-U data. Get the total price change and average yearly inflation. Live results, no signup.">
+<link rel="canonical" href="{{SITE_URL}}/inflation-calculator/">
+<meta property="og:title" content="US Inflation Calculator">
+<meta property="og:description" content="What is a dollar worth over time? Convert any amount between years using official US CPI-U inflation data — instant results in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"US Inflation Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate the value of a US dollar amount over time using BLS CPI-U annual averages, with total price change and average annual inflation rate."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How does an inflation calculator work?","acceptedAnswer":{"@type":"Answer","text":"It compares the Consumer Price Index (CPI-U) for two years. The value in the later year equals your amount multiplied by the later year's CPI divided by the earlier year's CPI."}},{"@type":"Question","name":"What data does this calculator use?","acceptedAnswer":{"@type":"Answer","text":"It uses U.S. Bureau of Labor Statistics CPI-U annual averages (base 1982-84=100), the most widely cited measure of US consumer inflation."}},{"@type":"Question","name":"What is the average inflation rate per year?","acceptedAnswer":{"@type":"Answer","text":"The calculator shows the compound average annual inflation rate between the two years you pick, derived from the CPI change over that period."}},{"@type":"Question","name":"How do I adjust an old salary or price for inflation?","acceptedAnswer":{"@type":"Answer","text":"Enter the original amount, set the from year to when it applied, and set the to year to now or any year you want to compare. The result is what that amount would be worth at the later year's prices."}},{"@type":"Question","name":"Does inflation affect everyone the same way?","acceptedAnswer":{"@type":"Answer","text":"No. CPI-U tracks an average urban household's basket of goods and services, but your personal inflation rate depends on what you spend on. If a big share of your budget goes to categories rising faster than average, such as rent or healthcare, your real cost of living can climb faster than the headline number."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>US Inflation Calculator</h1>
+    <p class="lede">See what a dollar amount from one year is worth in another. Enter an amount, pick the years, and get the equivalent value plus how much prices changed — using official US inflation data. Results update as you type.</p>
+
+    <section class="calc" aria-label="US inflation calculator">
+      <form id="inflForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="amount">Dollar amount ($)</label>
+          <input id="amount" type="number" inputmode="decimal" step="any" min="0" value="100" placeholder="100">
+        </div>
+        <div class="field inline">
+          <span>
+            <label for="fromYear">From year</label>
+            <select id="fromYear"></select>
+          </span>
+          <span>
+            <label for="toYear">To year</label>
+            <select id="toYear"></select>
+          </span>
+        </div>
+        <div class="field">
+          <button id="swap" type="button" class="btn-secondary">↔ Swap years</button>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="resultBig">—</p>
+        <p class="net-sub" id="resultSub"></p>
+        <div class="line" id="line1" hidden><span class="lbl">Total price change</span><span class="v"></span></div>
+        <div class="line" id="line2" hidden><span class="lbl">Average inflation per year</span><span class="v"></span></div>
+        <div class="line" id="line3" hidden><span class="lbl">Cumulative multiplier</span><span class="v"></span></div>
+      </div>
+      <p class="note" id="sourceNote">Data: U.S. BLS CPI-U annual averages (1982-84=100), through <span id="rangeNote">—</span>. Estimates for general reference only.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the inflation calculator</h2>
+      <p>Type a dollar amount, choose the year it's from and the year you want to compare to, and the answer appears instantly — there's no button to press and nothing is sent anywhere.</p>
+      <p>The big number is the <strong>equivalent buying power</strong>: how many dollars in the "to" year it would take to buy what your amount bought in the "from" year. Below it you'll see the <strong>total price change</strong> across that period and the <strong>average inflation per year</strong>.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common inflation questions</h2>
+      <p><strong>How is the value over time calculated?</strong> Your amount is multiplied by the later year's price index and divided by the earlier year's index. In plain terms: if prices doubled, a dollar buys half as much, so it takes twice as many dollars to match.</p>
+      <p><strong>What is CPI-U?</strong> The Consumer Price Index for All Urban Consumers, published by the U.S. Bureau of Labor Statistics. It tracks the average price of a typical basket of goods and services and is the standard measure of US consumer inflation.</p>
+      <p><strong>What does "average inflation per year" mean?</strong> It's the compound annual rate that, applied each year, gets from the earlier year's prices to the later year's prices over the period you selected.</p>
+      <p><strong>Why doesn't it include this year?</strong> The calculator uses annual averages, which are only final after a full calendar year of data. It covers every year through the latest one shown in the data note above.</p>
+      <p><strong>Is the dollar today worth more or less than in the past?</strong> Less, in almost every case. Because prices have generally risen over time, a dollar from an earlier year had more buying power than a dollar today. That's why a salary or savings amount from decades ago "sounds" larger than it really was — enter it here to see the equivalent in today's dollars.</p>
+      <p><strong>How do I adjust an old salary or price for inflation?</strong> Put the original amount in the box, set the "from" year to when it applied, and set the "to" year to now (or any year you want to compare). The result is what that amount would be worth at the later year's prices — handy for comparing a grandparent's first paycheck, an old home price, or a historical ticket cost to today.</p>
+      <p><strong>Does inflation affect everyone the same way?</strong> No. CPI-U tracks an average urban household's basket of goods and services, but your personal inflation rate depends on what you actually spend on. If a big share of your budget goes to categories rising faster than average — such as rent, healthcare, or childcare — your real cost of living can climb faster than the headline number.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools. Inflation figures use U.S. BLS CPI-U annual averages. Estimates only.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__CPI_US__ = {{CPI_US_JSON}};
+</script>
+<script type="module" src="/assets/inflation-calculator.js"></script>
+</body>
+</html>

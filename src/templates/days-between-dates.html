@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Days Between Dates — Date Duration Calculator (Days, Weeks &amp; Business Days)</title>
+<meta name="description" content="Free date duration calculator. Pick a start and end date to see the total days between them, a years-months-days breakdown, total weeks, and business days (Mon–Fri). Option to include the end date. Also add or subtract days from a date.">
+<link rel="canonical" href="{{SITE_URL}}/days-between-dates/">
+<meta property="og:title" content="Days Between Dates Calculator">
+<meta property="og:description" content="How many days, weeks and business days are between two dates? Pick two dates for an instant duration with a years/months/days breakdown — all in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Days Between Dates Calculator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate the duration between two dates: total days, a years/months/days breakdown, total weeks, and business days (Monday to Friday), with an option to include the end date."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I count the number of days between two dates?","acceptedAnswer":{"@type":"Answer","text":"Pick a start date and an end date. The calculator shows the total whole days between them instantly. By default the start date is not counted and the end date is not counted, so a Monday-to-Tuesday range is 1 day. Turn on “Include the end date” to count the last day too."}},{"@type":"Question","name":"What counts as a business day?","acceptedAnswer":{"@type":"Answer","text":"A business day here is any weekday, Monday through Friday. Saturdays and Sundays are excluded. Public holidays are not removed, because they vary by country and region."}},{"@type":"Question","name":"Why is the years, months and days breakdown different from the total days?","acceptedAnswer":{"@type":"Answer","text":"The total days is a single running count. The years/months/days breakdown describes the same span in calendar terms — full years first, then leftover months, then remaining days — which is how durations are usually stated in everyday life."}},{"@type":"Question","name":"What happens if the end date is before the start date?","acceptedAnswer":{"@type":"Answer","text":"The calculator still shows the size of the gap between the two dates and adds a note that the dates run backwards, so you always get a usable answer."}},{"@type":"Question","name":"How do I add or subtract days from a date?","acceptedAnswer":{"@type":"Answer","text":"Use the “add or subtract days” box: pick a starting date and enter a number of days. A positive number gives the date that many days later; a negative number gives the date that many days earlier."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Days Between Dates Calculator</h1>
+    <p class="lede">Pick a start date and an end date to see how long is between them — the total number of days, a years, months and days breakdown, total weeks, and business days (Monday to Friday). Results update as you type.</p>
+
+    <section class="calc" aria-label="Days between dates calculator">
+      <form id="durForm" autocomplete="off" onsubmit="return false">
+        <div class="field inline">
+          <span><label for="startDate">Start date</label><input id="startDate" type="date"></span>
+          <span><label for="endDate">End date</label><input id="endDate" type="date"></span>
+        </div>
+        <div class="field">
+          <label><input id="includeEnd" type="checkbox"> Include the end date in the day count</label>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-sub" id="durPlaceholder">Pick a start date and an end date to see the duration.</p>
+
+        <div id="durResults" hidden>
+          <p class="net-big" id="durBig">—</p>
+          <p class="net-sub" id="durSub"></p>
+
+          <div class="cd-clock" aria-label="Duration totals">
+            <div class="seg"><b id="totDays">0</b><span>Total days</span></div>
+            <div class="seg"><b id="totWeeks">0</b><span>Weeks</span></div>
+            <div class="seg"><b id="totBiz">0</b><span>Business days</span></div>
+          </div>
+
+          <p class="net-sub" id="durMsg" role="alert" hidden></p>
+        </div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="calc" aria-label="Add or subtract days from a date">
+      <h2>Add or subtract days from a date</h2>
+      <form id="addForm" autocomplete="off" onsubmit="return false">
+        <div class="field inline">
+          <span><label for="addBase">Starting date</label><input id="addBase" type="date"></span>
+          <span><label for="addDays">Days to add (use a minus sign to subtract)</label><input id="addDays" type="number" inputmode="numeric" step="1" value="30" placeholder="30"></span>
+        </div>
+      </form>
+      <div class="results" aria-live="polite">
+        <p class="net-sub" id="addResult">Pick a date and a number of days.</p>
+      </div>
+    </section>
+
+    <section class="prose">
+      <h2>How to use the date duration calculator</h2>
+      <p>Choose your <strong>start date</strong> and <strong>end date</strong> in the two boxes. The duration appears instantly — there's no button to press and nothing is sent anywhere.</p>
+      <p>The headline shows the span as whole <strong>years, months and days</strong>, the way durations are usually said out loud. Below it you'll see the <strong>total number of days</strong>, the number of <strong>weeks</strong> (with any leftover days), and the count of <strong>business days</strong> — weekdays from Monday to Friday, with weekends left out.</p>
+      <p>By default the count measures the gap between the two dates, so a Monday-to-Tuesday range is one day. Tick <strong>“Include the end date”</strong> when you want the final day counted too — useful for things like counting the days of a trip or a project inclusively.</p>
+      <p>Need a future or past date instead? Use the <strong>add or subtract days</strong> box: pick a starting date and type a number of days. A positive number jumps forward; a negative one goes back.</p>
+      <p class="note">Everything runs in your browser using your device's clock — the dates you enter are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common date duration questions</h2>
+      <p><strong>How many days are between two dates?</strong> Pick the two dates and read the “Total days” figure. It's the exact whole-day difference in your local time zone.</p>
+      <p><strong>Should I include the end date?</strong> Leave it off to measure the gap between the dates; turn it on to count the last day as well, for example when counting the days of a stay or an event.</p>
+      <p><strong>What is a business day?</strong> Any weekday, Monday through Friday. Saturdays and Sundays are excluded. Public holidays are not removed, since they differ from place to place.</p>
+      <p><strong>Why doesn't the years/months/days breakdown match the total days?</strong> They describe the same span two ways: the total is one running day count, while the breakdown groups it into full years, then months, then days.</p>
+      <p><strong>What if my end date is earlier than my start date?</strong> The tool still shows the size of the gap and notes that the dates run backwards, so you always get an answer.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/days-between-dates.js"></script>
+</body>
+</html>

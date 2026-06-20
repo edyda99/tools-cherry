@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Savings Goal Calculator — How Much to Save Each Month to Reach Your Goal</title>
+<meta name="description" content="Free savings goal calculator. Enter your target amount, what you've already saved, an interest rate and a deadline to see how much to save each month — or how long it will take to reach your goal at a set deposit. Instant, private, in your browser.">
+<link rel="canonical" href="{{SITE_URL}}/savings-goal-calculator/">
+<meta property="og:title" content="Savings Goal Calculator">
+<meta property="og:description" content="Work out how much to save each month to hit a savings goal by a deadline — or how long it will take at a fixed deposit. Free, instant, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Savings Goal Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate how much to save each month to reach a savings goal by a deadline, or how long it will take to reach a goal at a fixed regular deposit, including interest."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How much should I save each month to reach my goal?","acceptedAnswer":{"@type":"Answer","text":"Take your goal amount, subtract what your current savings will grow to with interest, and spread the rest across the number of deposits before your deadline. This calculator does that for you: enter the goal, your starting balance, an interest rate and the number of years, and it shows the monthly amount needed."}},{"@type":"Question","name":"How does interest change how much I need to save?","acceptedAnswer":{"@type":"Answer","text":"Interest works in your favour. The higher the rate, the more your balance and each deposit grow on their own, so the amount you have to add yourself goes down. Set the rate to 0 to see the plain amount with no growth."}},{"@type":"Question","name":"How long will it take to reach my savings goal?","acceptedAnswer":{"@type":"Answer","text":"Switch the calculator to How long will it take, enter how much you can save each period, and it counts the months and years until your balance — your starting amount plus deposits plus interest — first reaches the goal."}},{"@type":"Question","name":"What interest rate should I use?","acceptedAnswer":{"@type":"Answer","text":"Use the rate your savings actually earn. A high-yield savings account or money-market fund might be a few percent; longer-term investments are often estimated higher but carry risk. If you are unsure, leave it at 0 for a conservative, growth-free estimate."}},{"@type":"Question","name":"Is my information private?","acceptedAnswer":{"@type":"Answer","text":"Yes. The whole calculator runs in your browser. The amounts you enter stay on your device and are never sent anywhere."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Savings Goal Calculator</h1>
+    <p class="lede">Find out how much to save each month to reach a goal by your deadline — or how long it will take at a deposit you choose. Enter your numbers and the answer updates as you type. Nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Savings goal calculator">
+      <form id="goalForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="mode">I want to know</label>
+          <select id="mode">
+            <option value="contribution" selected>How much to save each period</option>
+            <option value="time">How long it will take</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="target">Savings goal ($)</label>
+          <input id="target" type="number" inputmode="decimal" step="any" min="0" value="20000" placeholder="20000">
+        </div>
+
+        <div class="field">
+          <label for="principal">Already saved ($)</label>
+          <input id="principal" type="number" inputmode="decimal" step="any" min="0" value="2000" placeholder="2000">
+        </div>
+
+        <div class="field">
+          <label for="frequency">Save</label>
+          <select id="frequency">
+            <option value="12" selected>Monthly</option>
+            <option value="26">Every two weeks</option>
+            <option value="52">Weekly</option>
+            <option value="1">Yearly</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="rate">Annual interest rate (%)</label>
+          <input id="rate" type="number" inputmode="decimal" step="any" min="0" value="4" placeholder="4">
+        </div>
+
+        <div class="field" id="yearsField">
+          <label for="years">Years to reach it</label>
+          <input id="years" type="number" inputmode="decimal" step="any" min="0" value="5" placeholder="5">
+        </div>
+
+        <div class="field" id="depositField" hidden>
+          <label for="deposit">Amount you can save each period ($)</label>
+          <input id="deposit" type="number" inputmode="decimal" step="any" min="0" value="300" placeholder="300">
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="outBig">—</p>
+        <p class="net-sub" id="outSub"></p>
+        <div class="line" id="startLine" hidden><span class="lbl">Starting balance</span><span class="val"></span></div>
+        <div class="line" id="depositsLine" hidden><span class="lbl">Total you deposit</span><span class="val"></span></div>
+        <div class="line" id="interestLine" hidden><span class="lbl">Interest earned</span><span class="val"></span></div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <div class="amort-summary" id="summaryBox" hidden>
+      <strong>Your savings plan</strong>
+      <p id="summaryText" style="margin:6px 0 0;"></p>
+    </div>
+
+    <section class="prose">
+      <h2>How to use the savings goal calculator</h2>
+      <p>Start by entering your <strong>savings goal</strong> — the total you want to reach, like an emergency fund, a house deposit, or a holiday. Add anything you've <strong>already saved</strong> so it counts toward the goal, and the <strong>interest rate</strong> your savings earn.</p>
+      <p>Choose what you want to work out at the top. <strong>How much to save each period</strong> asks for your deadline in <strong>years</strong> and shows the regular deposit needed. <strong>How long it will take</strong> asks how much you can put aside each period and shows the time until you reach the goal. Everything updates instantly as you type.</p>
+      <p>Under the headline figure you'll see how much you contribute yourself versus how much is <strong>interest earned</strong> — the part that compounding does for you. Set the rate to 0 for a plain, growth-free estimate.</p>
+      <p class="note">Everything runs in your browser — the amounts you type are never uploaded. These figures are estimates based on a fixed rate, not financial advice; real savings rates and returns vary.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common savings goal questions</h2>
+      <p><strong>How much should I save each month to reach my goal?</strong> Take your goal, subtract what your current savings will grow to with interest, and spread the rest across the deposits before your deadline. This calculator does that for you and shows the monthly amount.</p>
+      <p><strong>How does interest change how much I need to save?</strong> Interest works in your favour: the higher the rate, the more your balance and deposits grow on their own, so the amount you add yourself goes down. Set the rate to 0 to see the figure with no growth.</p>
+      <p><strong>How long will it take to reach my savings goal?</strong> Switch to "How long will it take", enter how much you can save each period, and the tool counts the months and years until your balance first reaches the goal.</p>
+      <p><strong>What interest rate should I use?</strong> Use the rate your savings actually earn. A high-yield savings account might be a few percent; longer-term investments are often estimated higher but carry risk. If unsure, leave it at 0 for a conservative estimate.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — the amounts you enter never leave your browser and nothing is stored.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/savings-goal-calculator.js"></script>
+</body>
+</html>

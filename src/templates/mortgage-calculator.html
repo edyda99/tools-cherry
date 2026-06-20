@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Mortgage Calculator — Monthly Payment, Total Interest &amp; Amortization</title>
+<meta name="description" content="Free mortgage calculator. Enter home price, down payment, interest rate, and loan term to see your monthly payment, total interest, and total paid. Add property tax and insurance for an estimated total. Live results, no signup.">
+<link rel="canonical" href="{{SITE_URL}}/mortgage-calculator/">
+<meta property="og:title" content="Mortgage Calculator">
+<meta property="og:description" content="Work out your monthly mortgage payment, total interest, and total cost — instant results in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Scoped extras for the amortization table — uses the shared theme vars. */
+  .amort-summary { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin: 18px 0; font-size: 15.5px; line-height: 1.55; }
+  details.amort { margin: 4px 0 8px; }
+  details.amort > summary { cursor: pointer; font-weight: 600; color: var(--text); padding: 8px 0; }
+  .amort-table-wrap { overflow-x: auto; }
+  table.amort-table { width: 100%; border-collapse: collapse; margin: 8px 0 0; font-size: 14px; }
+  table.amort-table th, table.amort-table td { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  table.amort-table th:first-child, table.amort-table td:first-child { text-align: left; }
+  table.amort-table th { color: var(--muted); font-weight: 600; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Mortgage Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate your monthly mortgage payment, total interest, and total paid from home price, down payment, interest rate, and loan term. Optional property tax and insurance for an estimated total monthly payment."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How is a monthly mortgage payment calculated?","acceptedAnswer":{"@type":"Answer","text":"Your principal-and-interest payment is the loan amount (home price minus down payment) spread over the loan term using the interest rate. This calculator uses the standard amortization formula, so every payment is the same and gradually pays down the balance."}},{"@type":"Question","name":"Does this include property tax and home insurance?","acceptedAnswer":{"@type":"Answer","text":"Only if you fill in the optional property tax percentage and yearly home insurance. When you do, the calculator shows a clearly labeled estimated total monthly payment. It does not include HOA fees or private mortgage insurance (PMI)."}},{"@type":"Question","name":"How much total interest will I pay?","acceptedAnswer":{"@type":"Answer","text":"The calculator shows total interest over the whole loan and the total amount paid (loan plus interest). On a long loan the interest can add up to a large share of the cost, which is why a shorter term or larger down payment lowers it."}},{"@type":"Question","name":"Should I choose a 15-year or a 30-year mortgage?","acceptedAnswer":{"@type":"Answer","text":"A 30-year loan has a lower monthly payment but you pay interest for twice as long, so the total cost is much higher. A 15-year loan costs more each month but builds equity faster and saves a lot of interest. Enter each term to compare the monthly payment and total interest side by side."}},{"@type":"Question","name":"What is PMI and why isn't it included?","acceptedAnswer":{"@type":"Answer","text":"Private mortgage insurance (PMI) is an extra charge some lenders add when your down payment is under about 20%. It varies by lender and credit profile, so this calculator leaves it out — ask your lender for the exact figure and add it to the estimated total yourself."}},{"@type":"Question","name":"How much should my down payment be?","acceptedAnswer":{"@type":"Answer","text":"A larger down payment lowers both your monthly payment and the total interest, and putting down about 20% can let you avoid PMI. There's no single right number — try a few amounts here to see how each one changes your payment."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Mortgage Calculator</h1>
+    <p class="lede">Enter your home price, down payment, interest rate, and loan term to see your monthly payment, total interest, and total cost. Add property tax and insurance for an estimated total. Results update as you type.</p>
+
+    <section class="calc" aria-label="Mortgage calculator">
+      <form id="mortgageForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="price">Home price ($)</label>
+          <input id="price" type="number" inputmode="decimal" step="any" min="0" value="350000" placeholder="350000">
+        </div>
+        <div class="field">
+          <label for="down">Down payment ($)</label>
+          <input id="down" type="number" inputmode="decimal" step="any" min="0" value="70000" placeholder="70000">
+        </div>
+        <div class="field inline">
+          <span><label for="rate">Interest rate (% per year)</label><input id="rate" type="number" inputmode="decimal" step="any" min="0" value="6.5" placeholder="6.5"></span>
+          <span><label for="years">Loan term (years)</label><input id="years" type="number" inputmode="decimal" step="any" min="1" value="30" placeholder="30"></span>
+        </div>
+
+        <fieldset class="field" style="border:0;padding:0;margin:0;">
+          <legend style="font-size:13.5px;font-weight:600;color:var(--muted);margin-bottom:7px;padding:0;">Optional — for an estimated total payment</legend>
+          <div class="field inline">
+            <span><label for="taxPct">Property tax (% per year)</label><input id="taxPct" type="number" inputmode="decimal" step="any" min="0" value="" placeholder="e.g. 1.1"></span>
+            <span><label for="insurance">Home insurance ($ per year)</label><input id="insurance" type="number" inputmode="decimal" step="any" min="0" value="" placeholder="e.g. 1500"></span>
+          </div>
+        </fieldset>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="payBig">—</p>
+        <p class="net-sub" id="paySub"></p>
+        <div class="line" id="loanLine" hidden><span class="lbl">Loan amount</span><span class="val"></span></div>
+        <div class="line" id="totalInterestLine" hidden><span class="lbl">Total interest</span><span class="val"></span></div>
+        <div class="line" id="totalPaidLine" hidden><span class="lbl">Total paid over the loan</span><span class="val"></span></div>
+        <div class="line" id="estTotalLine" hidden><span class="lbl">Estimated total monthly payment</span><span class="val"></span></div>
+        <p class="net-sub" id="extrasNote" hidden></p>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <div class="amort-summary" id="summaryBox" hidden>
+      <strong>Payoff summary</strong>
+      <p id="summaryText" style="margin:6px 0 0;"></p>
+    </div>
+
+    <div id="scheduleWrap" hidden>
+      <details class="amort">
+        <summary>Show year-by-year breakdown</summary>
+        <div class="amort-table-wrap">
+          <table class="amort-table">
+            <thead>
+              <tr><th>Year</th><th>Principal paid</th><th>Interest paid</th><th>Balance left</th></tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+
+    <section class="prose">
+      <h2>How to use the mortgage calculator</h2>
+      <p>Type in the <strong>home price</strong> and your <strong>down payment</strong>. The difference is the loan amount — the part you actually borrow. Add the <strong>interest rate</strong> your lender quoted and the <strong>loan term</strong> in years (most home loans are 15 or 30 years). The monthly payment and totals update instantly — there's no button to press and nothing is sent anywhere.</p>
+      <p>The big number is your <strong>principal-and-interest payment</strong>: the fixed amount that pays down the loan and the interest each month. Below it you'll see the total interest over the life of the loan and the total amount paid.</p>
+      <p><strong>Property tax and insurance (optional).</strong> Real housing costs are usually more than just principal and interest. Enter your yearly property tax rate and home insurance to get an <strong>estimated total monthly payment</strong>. This is an estimate and does not include HOA fees or private mortgage insurance (PMI).</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded. These figures are estimates, not financial advice.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common mortgage questions</h2>
+      <p><strong>How is the monthly payment worked out?</strong> The loan amount is spread evenly over every month of the term using the interest rate, so each payment is the same. Early on, more of each payment goes to interest; later, more goes to paying down the balance.</p>
+      <p><strong>Why does a longer loan cost more overall?</strong> A 30-year loan has a lower monthly payment than a 15-year loan, but you pay interest for twice as long, so the total interest is much higher. Try changing the term to see the difference.</p>
+      <p><strong>How does a bigger down payment help?</strong> A larger down payment means a smaller loan, which lowers both your monthly payment and the total interest you pay.</p>
+      <p><strong>What's included in the estimated total payment?</strong> Only the principal, interest, and any property tax and insurance you enter. It does not include HOA fees, utilities, maintenance, or PMI.</p>
+      <p><strong>Should I choose a 15-year or a 30-year mortgage?</strong> A 30-year loan has a lower monthly payment, while a 15-year loan costs more each month but saves a lot of interest and builds equity faster. Enter each term to compare the payment and total interest side by side.</p>
+      <p><strong>What is PMI?</strong> Private mortgage insurance is an extra charge some lenders add when your down payment is under about 20%. It varies by lender, so it isn't included here — ask your lender and add it to the estimated total yourself.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools. Estimates only, not financial advice.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/mortgage-calculator.js"></script>
+</body>
+</html>

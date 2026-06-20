@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Salary to Hourly Calculator — Convert Annual Pay to an Hourly Wage</title>
+<meta name="description" content="Free salary to hourly calculator. Convert an annual salary to an hourly wage (or hourly to salary) and see weekly, biweekly, monthly, and daily equivalents. Live results, no signup.">
+<link rel="canonical" href="{{SITE_URL}}/salary-to-hourly/">
+<meta property="og:title" content="Salary to Hourly Calculator">
+<meta property="og:description" content="Convert annual salary to an hourly wage and back, with weekly, biweekly, monthly and daily pay — instant results in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Salary to Hourly Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Convert between an annual salary and an hourly wage, and see weekly, biweekly, monthly and daily gross pay."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I convert my salary to an hourly wage?","acceptedAnswer":{"@type":"Answer","text":"Divide your annual salary by the number of hours you work in a year. At 40 hours a week for 52 weeks, that is 2,080 hours, so a $52,000 salary is $25.00 per hour."}},{"@type":"Question","name":"How do I convert an hourly wage to an annual salary?","acceptedAnswer":{"@type":"Answer","text":"Multiply your hourly wage by the hours you work each week and the weeks you work each year. At $20 per hour, 40 hours a week, 52 weeks a year, that is $41,600 a year."}},{"@type":"Question","name":"Is this calculator before or after tax?","acceptedAnswer":{"@type":"Answer","text":"These figures are gross — before tax. To estimate take-home pay after federal, state, and FICA taxes, use the Paycheck Calculator instead."}},{"@type":"Question","name":"How many work hours are in a year?","acceptedAnswer":{"@type":"Answer","text":"Full-time is usually counted as 2,080 hours, which is 40 hours a week times 52 weeks. If you take unpaid weeks off, your paid hours drop below that, raising your effective hourly rate for the same salary."}},{"@type":"Question","name":"What is a $50,000 salary per hour?","acceptedAnswer":{"@type":"Answer","text":"At a standard 40-hour week and 52 weeks a year (2,080 hours), $50,000 a year is about $24.04 an hour. Divide any annual salary by 2,080 for a full-time hourly rate."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Salary to Hourly Calculator</h1>
+    <p class="lede">Convert an annual salary to an hourly wage — or an hourly wage to a salary — and see what you earn per week, every two weeks, per month, and per day. Results update as you type.</p>
+
+    <section class="calc" aria-label="Salary to hourly calculator">
+      <form id="wageForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="mode">What do you want to convert?</label>
+          <select id="mode">
+            <option value="salaryToHourly">Annual salary → hourly wage</option>
+            <option value="hourlyToSalary">Hourly wage → annual salary</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="amount" id="amountLabel">Annual salary ($ per year)</label>
+          <input id="amount" type="number" inputmode="decimal" step="any" min="0" value="52000" placeholder="52000">
+        </div>
+
+        <div class="field inline">
+          <span><label for="hours">Hours per week</label><input id="hours" type="number" inputmode="decimal" step="any" min="0" value="40" placeholder="40"></span>
+          <span><label for="vacation">Unpaid vacation (weeks/yr)</label><input id="vacation" type="number" inputmode="decimal" step="any" min="0" max="51" value="0" placeholder="0"></span>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="resultBig">—</p>
+        <p class="net-sub" id="resultSub"></p>
+        <div class="line"><span class="lbl">Hourly</span><span id="rHourly">—</span></div>
+        <div class="line"><span class="lbl">Daily (5-day week)</span><span id="rDaily">—</span></div>
+        <div class="line"><span class="lbl">Weekly</span><span id="rWeekly">—</span></div>
+        <div class="line"><span class="lbl">Biweekly</span><span id="rBiweekly">—</span></div>
+        <div class="line"><span class="lbl">Monthly</span><span id="rMonthly">—</span></div>
+        <div class="line total"><span class="lbl">Yearly</span><span id="rAnnual">—</span></div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <p class="note"><strong>These figures are gross — before tax.</strong> They show your pay before federal, state, and Social Security / Medicare withholding. To estimate your take-home pay after taxes, use the <a href="/#paycheck">Paycheck Calculator</a> and pick your state.</p>
+
+    <section class="prose">
+      <h2>How to use the salary to hourly calculator</h2>
+      <p>Choose a direction from the menu, type your salary or hourly rate, and the answer appears instantly — there's no button to press and nothing is sent anywhere.</p>
+      <p><strong>Hours per week.</strong> Full-time is usually 40 hours. Lower it for part-time or a shorter week to see how the hourly rate changes.</p>
+      <p><strong>Unpaid vacation.</strong> If you take unpaid time off, enter the number of weeks. The calculator subtracts them from the 52-week year, so your true hourly rate goes up to reflect fewer paid weeks.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Salary and hourly pay questions</h2>
+      <p><strong>How do I convert my salary to an hourly wage?</strong> Divide your annual salary by the hours you work in a year. At 40 hours a week for 52 weeks that's 2,080 hours, so a $52,000 salary works out to $25.00 an hour.</p>
+      <p><strong>How do I convert an hourly wage to a salary?</strong> Multiply your hourly rate by the hours you work each week and the weeks you work each year. $20 an hour at 40 hours a week for 52 weeks is $41,600 a year.</p>
+      <p><strong>How is the monthly figure worked out?</strong> The monthly amount is your annual salary divided by 12, so every month is equal. Biweekly is two weeks of pay, and most years have 26 biweekly pay periods.</p>
+      <p><strong>Is this my take-home pay?</strong> No — these are gross figures before any tax. Your actual paycheck will be lower. Use the <a href="/#paycheck">Paycheck Calculator</a> for an after-tax estimate.</p>
+      <p><strong>What is a $50,000 salary per hour?</strong> At a standard 40-hour week and 52 weeks a year (2,080 hours), $50,000 a year is about $24.04 an hour. The same math works for any figure: divide the annual salary by 2,080 for a full-time hourly rate. Enter your own number above to see the exact amount along with weekly and monthly pay.</p>
+      <p><strong>How many work hours are in a year?</strong> Full-time is usually counted as 2,080 hours — 40 hours a week times 52 weeks. If you take unpaid weeks off, your paid hours drop below that, which is why the calculator lets you enter unpaid vacation: fewer paid weeks means a higher effective hourly rate for the same salary.</p>
+      <p><strong>Why is hourly-to-salary higher than I expected?</strong> The straight conversion assumes you're paid for all 52 weeks. In reality, hourly workers often aren't paid for holidays or sick days, and hours can vary week to week. So the salary figure shown is the maximum if you worked every scheduled hour, not a guaranteed yearly total.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/salary-to-hourly.js"></script>
+</body>
+</html>

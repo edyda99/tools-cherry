@@ -12,16 +12,18 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Free Invoice Generator","applicationCategory":"BusinessApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Create and download a professional PDF invoice in your browser. No signup."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is this invoice generator really free, with no signup or watermark?","acceptedAnswer":{"@type":"Answer","text":"Yes. There is no account to create, no email required, and the downloaded PDF carries no watermark or branding. You can make as many invoices as you like at no cost."}},{"@type":"Question","name":"What should a simple invoice include?","acceptedAnswer":{"@type":"Answer","text":"A clear invoice has your business name and contact details, the client's name and address, a unique invoice number, the invoice date and due date, a line for each product or service with quantity and rate, the subtotal, any tax or discount, and the total due. A short note with payment terms is also helpful."}},{"@type":"Question","name":"How do I add sales tax or a discount?","acceptedAnswer":{"@type":"Answer","text":"Enter a tax percentage in the Tax field and it is applied to the subtotal automatically. Enter a flat amount in the Discount field to subtract it from the total. The running totals update as you type so you can see the final figure before downloading."}},{"@type":"Question","name":"Can I save or reuse an invoice for the next client?","acceptedAnswer":{"@type":"Answer","text":"Your business details stay on the page while it is open, so you can change only the client and line items and download a fresh PDF. For a permanent record, keep the downloaded PDF — it is your saved copy. Nothing is stored online."}},{"@type":"Question","name":"What currencies are supported?","acceptedAnswer":{"@type":"Answer","text":"You can choose US dollars, euros, British pounds, Canadian dollars, Australian dollars, or Saudi riyals. The chosen symbol is used throughout the invoice and on every total."}},{"@type":"Question","name":"Are my invoice details uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. The invoice and PDF are created entirely in your browser on your own device. Your business and client information is never uploaded or stored on a server."}}]}</script>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 <header class="site">
   <div class="wrap">
     <a class="brand" href="/">{{SITE_NAME}}</a>
-    <nav><a href="/#tools">Tools</a></nav>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
   </div>
 </header>
 
-<main>
+<main id="main">
   <div class="wrap">
     <h1>Free Invoice Generator</h1>
     <p class="lede">Fill in the details, add your line items, and download a clean PDF invoice — no signup, no watermark. Everything runs in your browser; nothing is uploaded.</p>
@@ -29,11 +31,18 @@
     <div class="inv">
       <form id="invForm" class="inv-form" autocomplete="off" onsubmit="return false">
         <h2>Your business</h2>
+        <div class="field">
+          <label for="logoInput">Logo (optional)</label>
+          <input id="logoInput" type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp">
+          <p class="muted-small" id="logoStatus">Added to the PDF — stays in your browser, never uploaded.</p>
+          <button type="button" id="removeLogo" class="btn-secondary" hidden>Remove logo</button>
+        </div>
         <div class="field"><label for="bizName">Business / your name</label><input id="bizName" value="Your Business LLC"></div>
         <div class="field"><label for="bizDetails">Address, email, phone</label><textarea id="bizDetails" rows="3">123 Main St
 City, ST 00000
 you@example.com</textarea></div>
-        <div class="field"><label for="logo">Logo (optional, PNG/JPG)</label><input id="logo" type="file" accept="image/png,image/jpeg"><button type="button" id="removeLogo" class="btn-secondary" hidden>Remove logo</button></div>
+        <p class="muted-small" id="profileStatus"></p>
+        <button type="button" id="clearProfile" class="btn-secondary" hidden>Clear saved business details</button>
 
         <h2>Bill to</h2>
         <div class="field"><label for="cliName">Client name</label><input id="cliName" value="Client Co."></div>
@@ -41,17 +50,26 @@ you@example.com</textarea></div>
 City, ST 00000</textarea></div>
         <div class="field"><label for="shipDetails">Ship to (optional)</label><textarea id="shipDetails" rows="3" placeholder="Leave blank to use the billing address"></textarea></div>
 
-        <h2>Invoice details</h2>
+        <h2>Document details</h2>
+        <div class="field">
+          <label for="docType">Document type</label>
+          <select id="docType">
+            <option value="Invoice" selected>Invoice</option>
+            <option value="Quote">Quote</option>
+            <option value="Estimate">Estimate</option>
+            <option value="Receipt">Receipt</option>
+          </select>
+        </div>
         <div class="field inline">
           <span><label for="brandColor">Brand color</label>
-            <span class="brand-input">
+            <div class="combo">
               <input id="brandColor" type="color" value="#1a7f37">
               <button type="button" id="resetBrand" class="btn-secondary">Reset</button>
-            </span>
+            </div>
           </span>
         </div>
         <div class="field inline">
-          <span><label for="invNo">Invoice #</label><input id="invNo" value="INV-001"></span>
+          <span><label for="invNo" id="invNoLabel">Invoice #</label><input id="invNo" value="INV-001"></span>
           <span><label for="poNumber">PO number (optional)</label><input id="poNumber" placeholder="e.g. PO-4521"></span>
         </div>
         <div class="field inline">
@@ -91,15 +109,17 @@ City, ST 00000</textarea></div>
 
         <h2>Totals</h2>
         <div class="field inline">
-          <span><label for="taxRate">Tax %</label><input id="taxRate" type="number" min="0" step="any" value="0"></span>
+          <span><label for="taxRate">Tax</label>
+            <div class="combo">
+              <input id="taxRate" type="number" min="0" step="any" value="0">
+              <select id="taxMode" aria-label="Tax type"><option value="percent" selected>%</option><option value="flat">flat</option></select>
+            </div>
+          </span>
           <span><label for="discount">Discount</label>
-            <span class="discount-input">
+            <div class="combo">
               <input id="discount" type="number" min="0" step="any" value="0">
-              <select id="discountType" aria-label="Discount type">
-                <option value="amount">amount</option>
-                <option value="percent">%</option>
-              </select>
-            </span>
+              <select id="discountMode" aria-label="Discount type"><option value="flat" selected>flat</option><option value="percent">%</option></select>
+            </div>
           </span>
         </div>
         <div class="field inline">
@@ -125,8 +145,26 @@ City, ST 00000</textarea></div>
 
     <section class="prose">
       <h2>How to create an invoice</h2>
-      <p>Enter your business and client details, add a line for each product or service with its quantity and rate, set any tax or discount, then click <strong>Download PDF</strong>. The totals update as you type. Your data never leaves your device — the PDF is generated locally in your browser.</p>
+      <ol>
+        <li>Enter your <strong>business name and contact details</strong>, then the client's name and address.</li>
+        <li>Set an <strong>invoice number</strong>, the date, the due date, and your currency.</li>
+        <li>Add a <strong>line item</strong> for each product or service with its quantity and rate.</li>
+        <li>Set any <strong>tax percentage or discount</strong> — the totals update as you type.</li>
+        <li>Click <strong>Download PDF</strong> to save a clean, professional invoice.</li>
+      </ol>
+      <p>A good invoice makes it easy to get paid: a unique invoice number helps both sides track it, a clear due date sets expectations, and a short payment-terms note (for example, "Payment due within 30 days") avoids confusion. Keep the downloaded PDF as your own record — it is your saved copy.</p>
+      <p class="note">Your data never leaves your device — the PDF is generated locally in your browser.</p>
       <p class="note">This tool is provided for general use and does not constitute tax or legal advice. You are responsible for the accuracy of the invoice and any applicable taxes.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Common invoice questions</h2>
+      <p><strong>Is it free, with no watermark?</strong> Yes — no signup, no email, and the PDF carries no watermark or branding.</p>
+      <p><strong>What should an invoice include?</strong> Your details, the client's details, an invoice number, the date and due date, itemized lines, any tax or discount, and the total due.</p>
+      <p><strong>How do I add tax or a discount?</strong> Type a tax percentage to apply it to the subtotal, or a flat discount amount to subtract it. The total recalculates instantly.</p>
+      <p><strong>Can I reuse it for the next client?</strong> Yes. Your business details stay in place while the page is open — just swap the client and line items and download again.</p>
+      <p><strong>Which currencies can I use?</strong> US dollar, euro, British pound, Canadian dollar, Australian dollar, and Saudi riyal.</p>
+      <p><strong>Is my information private?</strong> Yes. Everything runs in your browser; nothing is uploaded or stored online.</p>
     </section>
   </div>
 </main>

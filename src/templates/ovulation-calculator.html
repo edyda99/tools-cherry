@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Ovulation Calculator — Fertile Window & Ovulation Day Estimator</title>
+<meta name="description" content="Free ovulation calculator. Enter the first day of your last period and your average cycle length to estimate your ovulation date, your most fertile days, and your next period — for the next three cycles. Instant results, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/ovulation-calculator/">
+<meta property="og:title" content="Ovulation Calculator">
+<meta property="og:description" content="Estimate your ovulation day and fertile window from your last period and cycle length — instant results in your browser, nothing uploaded.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Ovulation Calculator","applicationCategory":"HealthApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Estimate your ovulation date and fertile window from the first day of your last period and your average cycle length, with a forecast for the next three cycles."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How is ovulation calculated?","acceptedAnswer":{"@type":"Answer","text":"Ovulation usually happens about 14 days before your next period. This calculator takes the first day of your last period and adds your cycle length minus 14 days. For an average 28-day cycle that lands ovulation around day 14, but a longer cycle ovulates later and a shorter cycle earlier."}},{"@type":"Question","name":"What is the fertile window?","acceptedAnswer":{"@type":"Answer","text":"The fertile window is the span of days when intercourse can lead to pregnancy. Because sperm can survive in the body for up to about five days and the egg lives for around 24 hours, the window covers the five days before ovulation plus the ovulation day itself — about six days in total."}},{"@type":"Question","name":"How accurate is an ovulation calculator?","acceptedAnswer":{"@type":"Answer","text":"It is an estimate based on calendar averages and assumes a fairly regular cycle. Real ovulation can vary from cycle to cycle, especially if your periods are irregular. For a closer reading, track basal body temperature, cervical mucus, or use ovulation predictor kits, and talk to your doctor."}},{"@type":"Question","name":"Can I use this for birth control?","acceptedAnswer":{"@type":"Answer","text":"No. This calculator is for planning and general information only and is not a reliable contraceptive method. Calendar estimates cannot account for cycle-to-cycle variation, so do not rely on them to avoid pregnancy. Speak to your doctor about effective contraception."}},{"@type":"Question","name":"What if my cycle length changes month to month?","acceptedAnswer":{"@type":"Answer","text":"Use your average cycle length, counted from the first day of one period to the first day of the next. If your cycles vary widely the predicted ovulation day is less precise, so treat the fertile window as a guide rather than an exact date and consider tracking physical signs as well."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Ovulation Calculator</h1>
+    <p class="lede">Estimate your ovulation day and most fertile days from the first day of your last period and your average cycle length. See your fertile window, ovulation date, and next period for the next three cycles — worked out instantly in your browser.</p>
+
+    <section class="calc" aria-label="Ovulation calculator">
+      <form id="ovForm" autocomplete="off" onsubmit="return false">
+        <div class="field inline">
+          <span><label for="lmpDate">First day of your last period</label><input id="lmpDate" type="date"></span>
+          <span><label for="cycle">Average cycle length (days)</label><input id="cycle" type="number" inputmode="numeric" min="20" max="45" step="1" value="28" placeholder="28"></span>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-sub" id="ovPlaceholder">Enter the first day of your last period to estimate ovulation.</p>
+
+        <div id="ovResults" hidden>
+          <p class="net-sub">Estimated ovulation day</p>
+          <p class="net-big" id="ovBig">—</p>
+          <p class="net-sub" id="ovSub"></p>
+
+          <div class="results" style="margin-top:8px">
+            <div class="line"><span class="lbl">Most fertile days</span><span id="ovWindow">—</span></div>
+            <div class="line"><span class="lbl">Estimated ovulation date</span><span id="ovOvulation">—</span></div>
+            <div class="line"><span class="lbl">Next period</span><span id="ovNextPeriod">—</span></div>
+          </div>
+
+          <table class="bracket-table" aria-label="Next three cycles">
+            <thead><tr><th>Fertile window</th><th>Ovulation</th><th>Next period</th></tr></thead>
+            <tbody id="ovCycles"></tbody>
+          </table>
+        </div>
+
+        <p class="net-sub" id="ovMsg" role="alert" hidden></p>
+      </div>
+    </section>
+
+    <p class="note">This is an estimate for general information and planning only and is not medical advice or a method of contraception. Your input stays in your browser — nothing is sent anywhere.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How the ovulation calculator works</h2>
+      <p>Ovulation — when an ovary releases an egg — usually happens about <strong>14 days before your next period starts</strong>. The stretch from ovulation to the next period, called the luteal phase, is fairly constant at around 14 days for most people, while the first half of the cycle is what varies. So this calculator takes the first day of your last period and adds your <strong>cycle length minus 14 days</strong> to estimate your ovulation day.</p>
+      <p>For a typical <strong>28-day cycle</strong> that places ovulation around day 14. If your cycles run longer, you ovulate later; if they run shorter, earlier. Enter your average cycle length — measured from the first day of one period to the first day of the next — to tune the estimate.</p>
+      <p>Around the ovulation day the tool marks your <strong>fertile window</strong>: the five days before ovulation plus the ovulation day itself. Sperm can survive in the body for up to about five days and the egg lives for roughly 24 hours, so these are the days when intercourse is most likely to lead to pregnancy. The table shows the window, ovulation day, and next period for the next three cycles so you can plan ahead.</p>
+      <p class="note">Everything runs in your browser — the dates you enter are never uploaded or stored.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>How is ovulation calculated?</strong> By adding your cycle length minus 14 days to the first day of your last period, since ovulation typically occurs about two weeks before the next period.</p>
+      <p><strong>What is the fertile window?</strong> The six or so days ending on ovulation day — the five days before it (because sperm survive up to five days) plus ovulation day itself (the egg lives about 24 hours).</p>
+      <p><strong>How accurate is it?</strong> It is a calendar estimate that assumes a fairly regular cycle. Actual ovulation varies cycle to cycle, so use it as a guide and consider tracking basal body temperature, cervical mucus, or ovulation test kits for a closer reading.</p>
+      <p><strong>Can I use it for birth control?</strong> No. Calendar estimates are not reliable contraception because they cannot account for cycle variation. Talk to your doctor about effective birth control.</p>
+      <p><strong>What if my cycle length changes month to month?</strong> Use your average length. The more your cycles vary, the less precise the predicted day, so treat the fertile window as a range rather than an exact date.</p>
+      <p class="note">This calculator is for general information and planning only. It is not a substitute for professional medical advice, diagnosis, or care.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/ovulation-calculator.js"></script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Discount Calculator — Sale Price &amp; Percent Off</title>
+<meta name="description" content="Free discount calculator. Enter a price and a percent off to see the sale price, how much you save, and the final price with tax. Or work out the percent off from two prices. Instant, private, in your browser.">
+<link rel="canonical" href="{{SITE_URL}}/discount-calculator/">
+<meta property="og:title" content="Discount Calculator">
+<meta property="og:description" content="Find the sale price, your savings, and the final price with tax for any percent off. Free and private.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Discount Calculator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate the sale price, amount saved, and final price with tax for a percent-off discount, plus a reverse percent-off finder."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I calculate a percentage off a price?","acceptedAnswer":{"@type":"Answer","text":"Multiply the price by the discount percent and divide by 100 to get the amount off, then subtract it from the price. For 25% off $80: 80 × 25 ÷ 100 = $20 off, so the sale price is $60."}},{"@type":"Question","name":"How much is 25% off $80?","acceptedAnswer":{"@type":"Answer","text":"25% off $80 saves you $20, for a sale price of $60. Enter 80 as the price and tap the 25% preset to see it, including the final price if you add tax."}},{"@type":"Question","name":"Is sales tax charged on the discounted price?","acceptedAnswer":{"@type":"Answer","text":"In most U.S. states, sales tax is charged on the price after the discount, not the original price. This calculator applies tax to the sale price to match how stores ring it up."}},{"@type":"Question","name":"How do I find what percent off something is?","acceptedAnswer":{"@type":"Answer","text":"Use the reverse calculator: enter the original price and the sale price, and it shows the percent discount. For example, $80 marked down to $60 is 25% off."}},{"@type":"Question","name":"Is my input private?","acceptedAnswer":{"@type":"Answer","text":"Yes. Everything runs in your browser. The prices you type stay on your device and are never sent anywhere."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Discount Calculator</h1>
+    <p class="lede">Enter a price and a percent off to see the sale price, how much you save, and the final price with tax. Results update as you type — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Discount calculator">
+      <form id="discountForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="price">Original price ($)</label>
+          <input id="price" type="number" inputmode="decimal" step="any" min="0" value="80" placeholder="80" autofocus>
+        </div>
+
+        <div class="field">
+          <label for="percentOff">Discount (% off)</label>
+          <input id="percentOff" type="number" inputmode="decimal" step="any" min="0" max="100" value="25" placeholder="25">
+          <div class="presets" role="group" aria-label="Quick discount presets">
+            <button type="button" class="btn-secondary" data-off="10">10%</button>
+            <button type="button" class="btn-secondary" data-off="20">20%</button>
+            <button type="button" class="btn-secondary" data-off="25">25%</button>
+            <button type="button" class="btn-secondary" data-off="50">50%</button>
+            <button type="button" class="btn-secondary" data-off="70">70%</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="taxPercent">Sales tax (optional, %)</label>
+          <input id="taxPercent" type="number" inputmode="decimal" step="any" min="0" placeholder="0">
+        </div>
+
+        <div class="field">
+          <label for="quantity">Quantity</label>
+          <input id="quantity" type="number" inputmode="numeric" step="1" min="1" value="1" placeholder="1">
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="resultBig">—</p>
+        <p class="net-sub" id="resultSub"></p>
+        <div class="line" id="lineSaved" hidden><span class="lbl">You save</span><span id="lineSavedV"></span></div>
+        <div class="line" id="lineTax" hidden><span class="lbl">Sales tax</span><span id="lineTaxV"></span></div>
+        <div class="line total" id="lineTotal" hidden><span class="lbl">Final price</span><span id="lineTotalV"></span></div>
+      </div>
+    </section>
+
+    <p class="note">Your input stays in your browser — nothing is sent anywhere.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="calc" aria-label="Reverse percent-off finder">
+      <h2>Find the percent off</h2>
+      <p class="muted-small">Have two prices and want to know the discount? Enter the original and the sale price.</p>
+      <form id="reverseForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="rOriginal">Original price ($)</label>
+          <input id="rOriginal" type="number" inputmode="decimal" step="any" min="0" placeholder="80">
+        </div>
+        <div class="field">
+          <label for="rSale">Sale price ($)</label>
+          <input id="rSale" type="number" inputmode="decimal" step="any" min="0" placeholder="60">
+        </div>
+        <div class="results" aria-live="polite">
+          <div class="line"><span class="lbl">Discount</span><span id="reverseOut">—</span></div>
+        </div>
+      </form>
+    </section>
+
+    <section class="prose">
+      <h2>How to use the discount calculator</h2>
+      <p>Type the original price, then either tap a discount preset (10%, 20%, 25%, 50%, or 70%) or type your own percent off. The sale price you'll pay appears instantly, along with how much you save — there's no button to press and nothing leaves your device.</p>
+      <p><strong>Sale price and savings.</strong> The calculator takes the percent off the original price to get the amount saved, then subtracts it. A 25% discount on an $80 item saves $20, so the sale price is $60.</p>
+      <p><strong>Adding sales tax.</strong> Enter a tax percent to see the final price. Tax is applied to the discounted price — the way most U.S. stores ring it up — not the original price.</p>
+      <p><strong>Buying more than one.</strong> Set the quantity to see the per-item price and the total for all of them, including total savings.</p>
+      <p class="note">Everything runs in your browser — the prices you type are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>How do I calculate a percentage off a price?</strong> Multiply the price by the discount percent and divide by 100 to get the amount off, then subtract it from the price. For 25% off $80: 80 × 25 ÷ 100 = $20 off, so the sale price is $60.</p>
+      <p><strong>How much is 25% off $80?</strong> 25% off $80 saves you $20, for a sale price of $60. Enter 80 as the price and tap the 25% preset to see it, including the final price if you add tax.</p>
+      <p><strong>Is sales tax charged on the discounted price?</strong> In most U.S. states, sales tax is charged on the price after the discount, not the original price. This calculator applies tax to the sale price to match how stores ring it up.</p>
+      <p><strong>How do I find what percent off something is?</strong> Use the "Find the percent off" box above: enter the original price and the sale price, and it shows the discount. For example, $80 marked down to $60 is 25% off.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your input never leaves your browser and nothing is stored.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/discount-calculator.js"></script>
+</body>
+</html>

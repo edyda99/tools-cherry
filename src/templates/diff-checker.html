@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Text Diff Checker — free online tool to compare two texts</title>
+<meta name="description" content="Free online text diff checker. Paste two blocks of text and instantly see line-by-line additions, deletions and unchanged lines. Ignore case or whitespace. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/diff-checker/">
+<meta property="og:title" content="Text Diff Checker">
+<meta property="og:description" content="Compare two blocks of text and see exactly what changed — added, removed and unchanged lines. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 680px) { .diff-grid { grid-template-columns: 1fr; } }
+  .diff-output {
+    margin-top: 14px; padding: 12px 14px; border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm); background: var(--surface);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 14px; line-height: 1.55; overflow-x: auto; white-space: pre;
+  }
+  .diff-output:empty { display: none; }
+  .diff-row { display: flex; gap: 10px; }
+  .diff-sign { width: 1ch; flex: 0 0 auto; color: var(--muted); user-select: none; }
+  .diff-text { white-space: pre-wrap; word-break: break-word; }
+  .diff-add { background: var(--accent-soft); }
+  .diff-add .diff-sign, .diff-add .diff-text { color: var(--accent); }
+  .diff-remove { background: rgba(180, 52, 28, 0.10); }
+  .diff-remove .diff-sign, .diff-remove .diff-text { color: var(--danger); text-decoration: line-through; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Text Diff Checker","applicationCategory":"DeveloperApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Compare two blocks of text line by line and see what was added, removed or left unchanged, with options to ignore case and whitespace. Runs entirely in your browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What does a text diff checker do?","acceptedAnswer":{"@type":"Answer","text":"It compares two blocks of text and highlights exactly what changed: lines that were added, lines that were removed, and lines that stayed the same. It works the same way the 'compare changes' view does in code review and word-processing tools."}},{"@type":"Question","name":"How is the diff calculated?","acceptedAnswer":{"@type":"Answer","text":"The tool compares the two texts line by line using a longest-common-subsequence algorithm — the standard approach used by diff and version-control tools — so that unchanged lines stay aligned and only the real additions and deletions are flagged."}},{"@type":"Question","name":"Can I ignore case or spacing differences?","acceptedAnswer":{"@type":"Answer","text":"Yes. Turn on 'Ignore case' to treat upper- and lower-case as the same, and 'Ignore whitespace' to ignore differences in indentation and spacing so only meaningful changes show up."}},{"@type":"Question","name":"Is my text uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. The comparison runs entirely in your browser. Your text is never sent to a server and nothing is stored."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Text Diff Checker</h1>
+    <p class="lede">Paste two versions of any text and instantly see what changed — added lines, removed lines and everything that stayed the same. Compare documents, configs, code snippets or drafts. Everything runs in your browser and nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Text diff checker">
+      <div class="diff-grid">
+        <div class="field">
+          <label for="textA">Original text</label>
+          <textarea id="textA" rows="12" spellcheck="false" placeholder="Paste the original version here."></textarea>
+        </div>
+        <div class="field">
+          <label for="textB">Changed text</label>
+          <textarea id="textB" rows="12" spellcheck="false" placeholder="Paste the changed version here."></textarea>
+        </div>
+      </div>
+
+      <div class="json-toolbar">
+        <button type="button" id="compareBtn" class="btn-primary">Compare</button>
+        <button type="button" id="swapBtn" class="btn-secondary">Swap</button>
+        <button type="button" id="clearBtn" class="btn-secondary">Clear</button>
+        <label><input type="checkbox" id="ignoreCase"> Ignore case</label>
+        <label><input type="checkbox" id="ignoreWhitespace"> Ignore whitespace</label>
+      </div>
+
+      <p id="status" class="json-status" role="status" aria-live="polite" hidden></p>
+
+      <div id="output" class="diff-output" aria-label="Diff result"></div>
+    </section>
+
+    <p class="note">Your text is compared on your device — nothing is sent anywhere.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to compare two texts</h2>
+      <p>Paste the earlier version into <strong>Original text</strong> and the newer one into <strong>Changed text</strong>, then press <strong>Compare</strong> (the result also updates as you type). Lines that were <strong>added</strong> appear in green with a <code>+</code>, lines that were <strong>removed</strong> appear in red with a <code>-</code> and a strike-through, and unchanged lines stay plain so you can see them in context.</p>
+      <p>Use <strong>Ignore case</strong> when capitalization doesn't matter, and <strong>Ignore whitespace</strong> when indentation or spacing changes are noise rather than real edits. <strong>Swap</strong> flips the two sides, and <strong>Clear</strong> resets both boxes.</p>
+      <p class="note">Comparison happens entirely in your browser — your text never leaves your device.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>What kind of text can I compare?</strong> Anything line-based — essays and drafts, JSON or config files, log output, code snippets, lists, or CSV rows. The tool compares whole lines, so it's ideal for spotting which lines were inserted, deleted or edited.</p>
+      <p><strong>Why is a small edit shown as one removed line and one added line?</strong> The diff works at the line level: if a line changed at all, the old version is marked removed and the new version added, side by side, so you can see both.</p>
+      <p><strong>Does it work on phones?</strong> Yes. The two boxes stack on small screens and the result scrolls horizontally for long lines.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your text never leaves your browser and nothing is stored.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/diff-checker.js"></script>
+</body>
+</html>

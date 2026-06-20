@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>BMI Calculator — Body Mass Index with Healthy Weight Range</title>
+<meta name="description" content="Free BMI calculator. Enter your height and weight in metric (cm, kg) or imperial (feet, inches, pounds) to see your Body Mass Index, category, and the healthy weight range for your height. Live results, no signup.">
+<link rel="canonical" href="{{SITE_URL}}/bmi-calculator/">
+<meta property="og:title" content="BMI Calculator">
+<meta property="og:description" content="Work out your Body Mass Index and healthy weight range in metric or imperial units — instant results in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"BMI Calculator","applicationCategory":"HealthApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate your Body Mass Index (BMI) from height and weight in metric or imperial units, with the CDC weight category and the healthy weight range for your height."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How is BMI calculated?","acceptedAnswer":{"@type":"Answer","text":"BMI is your weight in kilograms divided by the square of your height in metres. In imperial units it is 703 times your weight in pounds, divided by the square of your height in inches. This calculator does the math for you in both systems."}},{"@type":"Question","name":"What is a healthy BMI?","acceptedAnswer":{"@type":"Answer","text":"For adults the CDC considers a BMI under 18.5 underweight, 18.5 to 24.9 a normal or healthy weight, 25 to 29.9 overweight, and 30 or above obese."}},{"@type":"Question","name":"Is BMI accurate for everyone?","acceptedAnswer":{"@type":"Answer","text":"BMI is a quick general screening number, not a diagnosis. It does not account for muscle mass, body composition, age, sex, or ethnicity, so very muscular or older people can be misclassified. It is for general information only and is not medical advice — talk to your doctor about what is healthy for you."}},{"@type":"Question","name":"Does BMI work for children?","acceptedAnswer":{"@type":"Answer","text":"No. This calculator uses the adult BMI categories. Children and teens are assessed with age- and sex-specific BMI-for-age percentiles instead, so use a pediatric tool or ask your doctor."}},{"@type":"Question","name":"What is the healthy weight range for my height?","acceptedAnswer":{"@type":"Answer","text":"A healthy weight is the range that gives a BMI of 18.5 to 24.9 for your height. When you enter your height, this calculator shows that range for you, so you can see how your current weight compares. It is general guidance only, not a personal target — ask your doctor what is right for you."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>BMI Calculator</h1>
+    <p class="lede">Enter your height and weight to see your Body Mass Index, which weight category it falls into, and the healthy weight range for your height. Results update as you type, and nothing is uploaded.</p>
+
+    <section class="calc" aria-label="BMI calculator">
+      <div class="unit-toggle" role="group" aria-label="Units">
+        <button type="button" data-unit="metric" aria-pressed="true">Metric (cm, kg)</button>
+        <button type="button" data-unit="imperial" aria-pressed="false">Imperial (ft, in, lb)</button>
+      </div>
+
+      <form id="bmiForm" autocomplete="off" onsubmit="return false">
+        <div id="metricBlock">
+          <div class="field inline">
+            <span><label for="cm">Height (cm)</label><input id="cm" type="number" inputmode="decimal" step="any" min="0" value="175" placeholder="175"></span>
+            <span><label for="kg">Weight (kg)</label><input id="kg" type="number" inputmode="decimal" step="any" min="0" value="70" placeholder="70"></span>
+          </div>
+        </div>
+
+        <div id="imperialBlock" hidden>
+          <div class="field inline">
+            <span><label for="ft">Height (ft)</label><input id="ft" type="number" inputmode="numeric" step="1" min="0" value="5" placeholder="5"></span>
+            <span><label for="in">Height (in)</label><input id="in" type="number" inputmode="decimal" step="any" min="0" value="9" placeholder="9"></span>
+            <span><label for="lb">Weight (lb)</label><input id="lb" type="number" inputmode="decimal" step="any" min="0" value="154" placeholder="154"></span>
+          </div>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="resultBig">—</p>
+        <span class="bmi-badge" id="catBadge"></span>
+        <p class="net-sub" id="resultSub">Enter your height and weight to see your BMI.</p>
+        <div class="line" id="rangeLine" hidden><span class="lbl">Healthy weight for your height</span><span id="rangeLineV"></span></div>
+      </div>
+
+      <p class="disclaimer" role="note"><strong>This is for general information only and is not medical advice — talk to your doctor.</strong> BMI is a quick screening number that does not account for muscle, body composition, age, sex, or ethnicity, and these adult categories do not apply to children or teens.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <nav class="related-tools" aria-label="Related health calculators">
+      <h2>Related health calculators</h2>
+      <ul>
+        <li><a href="/calorie-calculator/">Calorie Calculator</a></li>
+        <li><a href="/ideal-weight-calculator/">Ideal Weight &amp; Macro Calculator</a></li>
+      </ul>
+    </nav>
+
+    <section class="prose">
+      <h2>How to use the BMI calculator</h2>
+      <p>Choose your units, then type your height and weight. Your BMI, weight category, and the healthy weight range for your height appear instantly — there's no button to press and nothing is sent anywhere.</p>
+      <p><strong>Metric.</strong> Enter your height in centimetres and your weight in kilograms.</p>
+      <p><strong>Imperial.</strong> Enter your height in feet and inches and your weight in pounds.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>What the BMI categories mean</h2>
+      <p>Body Mass Index sorts adults into four standard CDC weight categories based on the ratio of weight to height:</p>
+      <ul>
+        <li><strong>Underweight:</strong> BMI below 18.5</li>
+        <li><strong>Normal (healthy weight):</strong> BMI 18.5 to 24.9</li>
+        <li><strong>Overweight:</strong> BMI 25 to 29.9</li>
+        <li><strong>Obese:</strong> BMI 30 or higher</li>
+      </ul>
+
+      <h2>Common BMI questions</h2>
+      <p><strong>How is BMI calculated?</strong> In metric, divide your weight in kilograms by the square of your height in metres. In imperial, multiply your weight in pounds by 703 and divide by the square of your height in inches.</p>
+      <p><strong>What is a healthy BMI?</strong> For adults, a BMI between 18.5 and 24.9 is generally considered a healthy weight.</p>
+      <p><strong>Is BMI accurate for everyone?</strong> No. BMI is a general screening tool, not a diagnosis. Very muscular people, older adults, and others can be misclassified because BMI does not measure body fat directly.</p>
+      <p><strong>Does BMI work for children?</strong> No. This tool uses adult categories. Children and teens are assessed with age- and sex-specific BMI-for-age percentiles instead.</p>
+      <p><strong>What is the healthy weight range for my height?</strong> It's the range that gives a BMI of 18.5 to 24.9 for your height. Enter your height and the calculator shows that range so you can compare it with your current weight. This is general guidance only — ask your doctor what's right for you.</p>
+      <p class="note">This calculator is for general information only and is not medical advice. Talk to your doctor about what a healthy weight is for you.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/bmi-calculator.js"></script>
+</body>
+</html>

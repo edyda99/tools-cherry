@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Random Number Generator — Pick a Random Number in Any Range</title>
+<meta name="description" content="Free random number generator. Pick one or many random numbers in any range you choose, with an option for no repeats. Great for raffles, giveaways, games, and drawing winners. Instant, secure, and runs entirely in your browser.">
+<link rel="canonical" href="{{SITE_URL}}/random-number-generator/">
+<meta property="og:title" content="Random Number Generator">
+<meta property="og:description" content="Generate one or many random numbers in any range, with optional no-repeats — perfect for raffles, giveaways, and games. Runs in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Random Number Generator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Generate one or many random numbers within a chosen minimum and maximum range, with an option to draw unique numbers (no repeats). Useful for raffles, prize draws, games, and decisions."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How does this random number generator work?","acceptedAnswer":{"@type":"Answer","text":"Enter the lowest and highest numbers you want, choose how many to draw, and press Generate. The tool returns whole numbers within that inclusive range. The randomness comes from your browser's built-in cryptographic random number generator, so each result is unpredictable."}},{"@type":"Question","name":"Can I generate numbers with no repeats?","acceptedAnswer":{"@type":"Answer","text":"Yes. Turn on the \"No repeats\" option to draw a set of unique numbers, like picking distinct raffle or lottery numbers. Because every number must be different, the count cannot be larger than the number of values in your range."}},{"@type":"Question","name":"Is this random number generator truly random?","acceptedAnswer":{"@type":"Answer","text":"It uses your browser's crypto.getRandomValues, a cryptographically secure pseudo-random source, which is far stronger than ordinary Math.random. For everyday raffles, games, and decisions the results are unbiased and unpredictable."}},{"@type":"Question","name":"Can I use it to pick a raffle or giveaway winner?","acceptedAnswer":{"@type":"Answer","text":"Yes. Number your entrants from 1 to the total count and generate one random number in that range to pick a single winner, or use \"No repeats\" to draw several distinct winners at once."}},{"@type":"Question","name":"Does it store or upload my numbers?","acceptedAnswer":{"@type":"Answer","text":"No. Everything runs in your browser. The ranges you enter and the numbers it generates are never sent anywhere."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Random Number Generator</h1>
+    <p class="lede">Pick a random number — or a whole set of them — in any range you choose. Turn on "No repeats" for unique draws like raffle or lottery numbers. Results are generated securely in your browser and nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Random number generator">
+      <form id="rngForm" autocomplete="off">
+        <div class="field inline">
+          <span><label for="min">Minimum</label><input id="min" type="number" inputmode="numeric" step="1" value="1" placeholder="1"></span>
+          <span><label for="max">Maximum</label><input id="max" type="number" inputmode="numeric" step="1" value="100" placeholder="100"></span>
+        </div>
+        <div class="field">
+          <label for="count">How many numbers</label>
+          <input id="count" type="number" inputmode="numeric" step="1" min="1" value="1" placeholder="1">
+        </div>
+        <div class="field">
+          <label class="check" for="unique"><input id="unique" type="checkbox"> No repeats (each number is unique)</label>
+        </div>
+        <div class="rng-actions">
+          <button type="submit" id="genBtn" class="btn-primary">Generate</button>
+          <button type="button" id="copyBtn" class="btn-secondary" hidden>Copy</button>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="resultBig">—</p>
+        <p class="net-sub" id="resultSub">Set a range and press Generate.</p>
+        <div class="rng-list" id="resultList" hidden></div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the random number generator</h2>
+      <p>Set the lowest and highest numbers you want, choose how many numbers to draw, then press <strong>Generate</strong>. The result is one or more whole numbers inside that inclusive range — both your minimum and maximum can be chosen. Press Generate again any time for a fresh draw, and use <strong>Copy</strong> to put the numbers on your clipboard.</p>
+      <p><strong>No repeats.</strong> Tick this to draw a set of unique numbers, with no value appearing twice — handy for lottery-style picks or choosing several distinct winners. Because every number must be different, you can't request more numbers than there are values in your range.</p>
+      <p class="note">Everything runs in your browser — the range you enter and the numbers it generates are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>What you can use it for</h2>
+      <ul>
+        <li><strong>Raffles &amp; giveaways:</strong> number your entrants and draw a winner (or several) at random.</li>
+        <li><strong>Games:</strong> roll a die (1–6), spin a wheel, or pick a card position.</li>
+        <li><strong>Decisions:</strong> let chance settle a tie or pick who goes first.</li>
+        <li><strong>Classrooms &amp; teams:</strong> choose a student, assign turns, or form random groups.</li>
+        <li><strong>Lottery-style numbers:</strong> use "No repeats" to draw a unique set, e.g. 6 numbers from 1–49.</li>
+      </ul>
+
+      <h2>Common questions</h2>
+      <p><strong>How does it work?</strong> Enter a minimum and maximum, choose how many numbers, and press Generate. The randomness comes from your browser's built-in cryptographic generator, so results are unpredictable.</p>
+      <p><strong>Can I generate numbers with no repeats?</strong> Yes — turn on "No repeats" to get a set of distinct numbers. The count can't exceed how many values fit in your range.</p>
+      <p><strong>Is it truly random?</strong> It uses <code>crypto.getRandomValues</code>, a cryptographically secure source that's much stronger than ordinary <code>Math.random</code>. For raffles, games, and decisions the draws are unbiased.</p>
+      <p><strong>Can I pick a raffle winner with it?</strong> Yes. Number entrants from 1 to the total and generate one number, or use "No repeats" to draw several winners at once.</p>
+      <p><strong>Does it store my numbers?</strong> No. Everything runs in your browser and nothing is sent anywhere.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/random-number-generator.js"></script>
+</body>
+</html>

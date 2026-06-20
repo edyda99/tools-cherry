@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Countdown Timer — Free Online Timer with Alarm (Pomodoro, Kitchen, Workout)</title>
+<meta name="description" content="Free online countdown timer. Set hours, minutes and seconds or tap a preset (1, 3, 5, 10, 15, 30 min or Pomodoro 25). Start, pause and reset with a big readout and a gentle beep when time's up.">
+<link rel="canonical" href="{{SITE_URL}}/countdown-timer/">
+<meta property="og:title" content="Countdown Timer — Free Online Timer with Alarm">
+<meta property="og:description" content="Set a duration and count down with a big readout, quick presets, and a gentle beep when time's up. Pomodoro, kitchen, study or workout. Runs in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Countdown Timer","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"A set-a-duration countdown timer with quick presets, start/pause/reset and a gentle beep when time runs out."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I set the countdown timer?","acceptedAnswer":{"@type":"Answer","text":"Type the hours, minutes and seconds you want, or tap a preset such as 5 minutes or Pomodoro 25, then press Start. Press Pause to hold and Reset to clear."}},{"@type":"Question","name":"Will the timer beep when it reaches zero?","acceptedAnswer":{"@type":"Answer","text":"Yes. When the countdown hits zero you get a clear \"Time's up!\" message and a short, gentle beep. The sound is created only after you press Start, and you can turn it off with the sound toggle."}},{"@type":"Question","name":"Is this a Pomodoro timer?","acceptedAnswer":{"@type":"Answer","text":"It can be. Tap the Pomodoro 25 preset for a 25-minute focus session, then use the shorter presets for breaks."}},{"@type":"Question","name":"Does the timer keep accurate time if I switch tabs?","acceptedAnswer":{"@type":"Answer","text":"Yes. The timer counts down to a fixed end time rather than ticking a counter, so it stays accurate even if the browser tab is in the background. The tab title also shows the time remaining."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Countdown Timer</h1>
+    <p class="lede">Set a duration and count down to zero — for cooking, studying, workouts, or a Pomodoro session. Pick a preset or enter your own time, then Start. You'll get a clear "Time's up!" and a gentle beep when it finishes.</p>
+
+    <section class="calc" aria-label="Countdown timer">
+      <form id="cdForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <div class="field-label" id="presetLabel">Quick presets</div>
+          <div class="preset-grid" role="group" aria-labelledby="presetLabel">
+            <button type="button" class="btn-secondary preset" data-seconds="60">1 min</button>
+            <button type="button" class="btn-secondary preset" data-seconds="180">3 min</button>
+            <button type="button" class="btn-secondary preset" data-seconds="300">5 min</button>
+            <button type="button" class="btn-secondary preset" data-seconds="600">10 min</button>
+            <button type="button" class="btn-secondary preset" data-seconds="900">15 min</button>
+            <button type="button" class="btn-secondary preset" data-seconds="1800">30 min</button>
+            <button type="button" class="btn-secondary preset" data-seconds="1500">Pomodoro 25</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label" id="durLabel">…or set your own time</div>
+          <div class="inline" role="group" aria-labelledby="durLabel">
+            <input id="inpH" type="number" inputmode="numeric" min="0" max="99" placeholder="HH" aria-label="Hours">
+            <input id="inpM" type="number" inputmode="numeric" min="0" max="59" placeholder="MM" aria-label="Minutes">
+            <input id="inpS" type="number" inputmode="numeric" min="0" max="59" placeholder="SS" aria-label="Seconds">
+          </div>
+        </div>
+      </form>
+
+      <div class="results" id="cdTimer">
+        <p class="timer-readout" id="cdReadout" aria-live="off">00:05:00</p>
+        <p class="timer-status" id="cdStatus" role="status" aria-live="assertive"></p>
+        <div class="timer-actions">
+          <button type="button" class="btn-primary" id="startBtn">Start</button>
+          <button type="button" class="btn-secondary" id="resetBtn">Reset</button>
+        </div>
+        <div class="timer-mute">
+          <button type="button" class="btn-secondary" id="muteBtn" aria-pressed="false">🔔 Sound on</button>
+        </div>
+        <p class="cd-note">Tip: press the spacebar to start or pause.</p>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the countdown timer</h2>
+      <p>Tap a preset — <strong>1, 3, 5, 10, 15, 30 minutes</strong>, or <strong>Pomodoro 25</strong> — or type your own hours, minutes and seconds. Then press <strong>Start</strong> to begin counting down.</p>
+      <p>Use <strong>Pause</strong> to hold the timer and <strong>Resume</strong> to pick up where you left off. <strong>Reset</strong> clears it back to zero. The big readout shows the time remaining, and the browser tab title updates too, so you can see it from another tab.</p>
+      <p>When the timer reaches zero, the readout turns red, shows <strong>Time's up!</strong>, and plays a short, gentle beep. Prefer silence? Tap the <strong>sound toggle</strong> to mute it.</p>
+      <p class="note">The beep is created only after you press Start, so the page never plays sound on its own. Everything runs in your browser using your device's clock — nothing is uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Good for cooking, study and workouts</h2>
+      <p><strong>Kitchen timer:</strong> set minutes for eggs, pasta, or a bake and let the beep tell you when it's done.</p>
+      <p><strong>Pomodoro study timer:</strong> tap Pomodoro 25 for a focus block, then use the short presets for breaks.</p>
+      <p><strong>Workout intervals:</strong> set a round length, start, and reset between rounds.</p>
+      <p><strong>Looking for days until a date instead?</strong> This is a duration timer. For counting the days until a holiday, birthday or deadline, use the <a href="/holiday-countdown/">Holiday Countdown</a>.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Common timer questions</h2>
+      <p><strong>Will it beep when time's up?</strong> Yes — a clear "Time's up!" message plus a short, gentle three-pulse beep. You can mute it with the sound toggle.</p>
+      <p><strong>Does it stay accurate if I switch tabs?</strong> Yes. The timer counts down to a fixed end time rather than ticking a number, so background-tab throttling doesn't make it drift.</p>
+      <p><strong>What if I enter an invalid time?</strong> Blank or zero fields are treated as zero, and Start asks you to set a time first. Seconds or minutes above 59 still add up.</p>
+      <p><strong>Is it really free and private?</strong> Yes. There's no sign-up, and it runs entirely in your browser — nothing is sent anywhere.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/countdown-timer.js"></script>
+</body>
+</html>

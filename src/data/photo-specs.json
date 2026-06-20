@@ -11,7 +11,13 @@
       "widthMm": 51, "heightMm": 51, "widthPx": 600, "heightPx": 600,
       "background": "#ffffff", "headMinMm": 25, "headMaxMm": 35, "dpi": 300,
       "source": "https://travel.state.gov/content/travel/en/passports/how-apply/photos.html",
-      "note": "White/off-white background, neutral expression, no glasses. State Dept states size + head height but not DPI; 600×600 is the 300-DPI standard."
+      "note": "White/off-white background, neutral expression, no glasses. Photo must be original and unedited — the US State Dept rejects AI-generated, filtered or digitally altered photos (8 FAM 402.1). State Dept states size + head height but not DPI; 600×600 is the 300-DPI standard.",
+      "online": {
+        "buttonLabel": "Download JPEG for online upload (US visa / DV Lottery)",
+        "format": "image/jpeg", "px": 600, "maxBytes": 245760,
+        "source": "https://travel.state.gov/content/travel/en/us-visas/visa-information-resources/photos/digital-image-requirements.html",
+        "note": "US online visa/DS-160/DV Lottery upload: JPEG, square, 600–1200 px, 24-bit sRGB, file size ≤ 240 KB. (Passport renewal uploads use a different, looser spec.)"
+      }
     },
     {
       "id": "schengen-35x45",

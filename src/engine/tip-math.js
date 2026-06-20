@@ -1,63 +1,62 @@
-// tip-math.js — pure money arithmetic for the Tip Calculator.
-// No DOM, no locale dependency in the core math: callers pass plain numbers
-// (all amounts in dollars) so this is fully unit-testable in Node and renders
-// identically in the browser. All currency rounding is done to whole cents.
+// tip-math.js — pure, dependency-free tip & bill-split calculations.
+// Shared by the browser tool (tip-calculator.js) and the unit tests.
+// Functions return numbers, or NaN for non-finite / invalid input
+// (the UI is responsible for hiding NaN — keep these honest about bad input).
 
-/** Round a dollar amount to whole cents (2 decimals), avoiding binary-float
- *  drift like 0.1 + 0.2. Returns a Number. */
-export function roundCents(amount) {
-  // Scale, round half-up on the absolute value to keep .005 -> .01 symmetric,
-  // then restore sign. EPSILON nudges values that land just under .5 due to
-  // float representation (e.g. 1.005 stored as 1.00499...).
-  const sign = amount < 0 ? -1 : 1;
-  const cents = Math.round(Math.abs(amount) * 100 + Number.EPSILON);
-  return (sign * cents) / 100;
+const num = (v) => {
+  const n = typeof v === 'number' ? v : parseFloat(v);
+  return Number.isFinite(n) ? n : NaN;
+};
+
+// Tip amount for a bill at a given tip percent.
+// e.g. tipAmount(50, 20) === 10
+export function tipAmount(bill, tipPercent) {
+  const b = num(bill), p = num(tipPercent);
+  return (b * p) / 100;
 }
 
-/**
- * Core tip/bill computation.
- *
- * @param {object} opts
- * @param {number} opts.bill        Pre-tip bill amount in dollars (>= 0).
- * @param {number} opts.tipPercent  Tip rate as a percentage, e.g. 18 for 18%.
- * @param {number} [opts.tax=0]     Tax already included in `bill`, in dollars.
- *                                  When `tipOnPreTax` is true the tip is taken
- *                                  on (bill - tax) instead of the full bill.
- * @param {boolean} [opts.tipOnPreTax=false]  Tip on the pre-tax subtotal.
- * @param {number} [opts.people=1]  Number of people splitting (>= 1).
- * @param {('none'|'total'|'tip')} [opts.round='none']
- *        Rounding mode: 'total' rounds the grand total up to the next whole
- *        dollar (tip absorbs the difference); 'tip' rounds the tip up to the
- *        next whole dollar; 'none' leaves cents as-is.
- *
- * @returns {{tip, total, perPerson, tipPerPerson, effectiveTipPercent}}
- *          All monetary fields are rounded to whole cents.
- */
-export function computeTip(opts) {
-  const bill = Math.max(0, Number(opts.bill) || 0);
-  const tipPercent = Math.max(0, Number(opts.tipPercent) || 0);
-  const tax = Math.max(0, Number(opts.tax) || 0);
-  const tipOnPreTax = !!opts.tipOnPreTax;
-  const people = Math.max(1, Math.floor(Number(opts.people) || 1));
-  const round = opts.round || 'none';
+// Compute the full split. Returns an object of finite numbers, or an object of
+// NaN when inputs are invalid (bill not finite, people < 1, etc.).
+// `roundUp` rounds each person's share up to the next whole currency unit, then
+// recomputes the totals so they stay consistent with what people actually pay.
+//
+// e.g. splitBill({ bill: 50, tipPercent: 20, people: 2 })
+//   -> { tip: 10, total: 60, perPerson: 30, perPersonTip: 5 }
+// `tax` + `tipOnPreTax`: when tipOnPreTax is true, the tip is computed on the
+// pre-tax subtotal (bill − tax) rather than the full bill (common US etiquette).
+// The TOTAL still includes the full bill (you pay the tax) — only the tip basis
+// changes. Defaults (tax 0, tipOnPreTax false) reproduce the original behavior.
+export function splitBill({ bill, tipPercent, people, roundUp = false, tax = 0, tipOnPreTax = false } = {}) {
+  const b = num(bill);
+  const p = num(tipPercent);
+  let n = num(people);
+  // People must be a whole number >= 1; otherwise the split is undefined.
+  n = Number.isFinite(n) ? Math.floor(n) : NaN;
 
-  // Base the tip on the pre-tax subtotal when requested (and tax is sensible).
-  const tipBase = tipOnPreTax ? Math.max(0, bill - Math.min(tax, bill)) : bill;
-  let tip = roundCents(tipBase * (tipPercent / 100));
-  let total = roundCents(bill + tip);
-
-  if (round === 'tip') {
-    tip = Math.ceil(tip);
-    total = roundCents(bill + tip);
-  } else if (round === 'total') {
-    total = Math.ceil(total);
-    tip = roundCents(total - bill); // tip absorbs the rounding gap
+  if (!Number.isFinite(b) || !Number.isFinite(p) || !Number.isFinite(n) || n < 1) {
+    return { tip: NaN, total: NaN, perPerson: NaN, perPersonTip: NaN };
   }
 
-  const perPerson = roundCents(total / people);
-  const tipPerPerson = roundCents(tip / people);
-  // Effective tip rate against the full bill (informational; 0 when bill is 0).
-  const effectiveTipPercent = bill > 0 ? (tip / bill) * 100 : 0;
+  const t = num(tax);
+  const taxVal = Number.isFinite(t) && t > 0 ? t : 0;
+  const tipBase = tipOnPreTax ? Math.max(0, b - taxVal) : b;
+  const tip = (tipBase * p) / 100;
+  const total = b + tip;
 
-  return { tip, total, perPerson, tipPerPerson, effectiveTipPercent };
+  if (!roundUp) {
+    const perPerson = total / n;
+    return { tip, total, perPerson, perPersonTip: tip / n };
+  }
+
+  // Round each share up to the next whole unit. The collected total is then the
+  // rounded share times the number of people (everyone pays the same amount).
+  const perPerson = Math.ceil(total / n);
+  const roundedTotal = perPerson * n;
+  const roundedTip = roundedTotal - b;
+  return {
+    tip: roundedTip,
+    total: roundedTotal,
+    perPerson,
+    perPersonTip: roundedTip / n
+  };
 }

@@ -15,20 +15,26 @@
 <script type="application/ld+json">{{FAQ_JSONLD}}</script>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 <header class="site">
   <div class="wrap">
     <a class="brand" href="/">{{SITE_NAME}}</a>
-    <nav><a href="/#paycheck">Paycheck Calculators</a></nav>
+    <nav aria-label="Primary"><a href="/#paycheck">Paycheck Calculators</a></nav>
   </div>
 </header>
 
-<main>
+<main id="main">
   <div class="wrap">
     <h1>{{STATE_NAME}} Paycheck Calculator</h1>
     <p class="lede">Estimate your {{YEAR}} take-home pay in {{STATE_NAME}} after federal income tax, Social Security, Medicare{{STATE_TAX_PHRASE}}.</p>
+    {{FIGURE_BANNER}}
 
     <section class="calc" aria-label="Paycheck calculator">
       <form id="paycheckForm" autocomplete="off" onsubmit="return false">
+        <div class="field mode-row" role="radiogroup" aria-label="Calculator mode">
+          <label class="seg"><input type="radio" name="mode" value="simple" checked><span>Simple</span></label>
+          <label class="seg"><input type="radio" name="mode" value="advanced"><span>Advanced</span></label>
+        </div>
         <div class="field">
           <label for="wageType">Pay type</label>
           <select id="wageType">
@@ -62,21 +68,85 @@
             <option value="annual">Annual</option>
           </select>
         </div>
+
+        <fieldset id="advancedFields" class="adv" hidden>
+          <legend>Advanced — deductions &amp; W-4</legend>
+          <p class="adv-hint">Enter annual amounts. Leave at 0 if they don't apply.</p>
+          <div class="field">
+            <label for="retirement401k">401(k) / 403(b) contribution (per year)</label>
+            <input id="retirement401k" type="number" inputmode="decimal" min="0" step="any" value="0">
+          </div>
+          <div class="field">
+            <label for="cafeteria125">HSA / FSA + health premiums (per year)</label>
+            <input id="cafeteria125" type="number" inputmode="decimal" min="0" step="any" value="0">
+          </div>
+          <div class="field">
+            <label for="dependentsCredit">Dependent / W-4 tax credits (per year)</label>
+            <input id="dependentsCredit" type="number" inputmode="decimal" min="0" step="any" value="0" placeholder="e.g. 2000 per child">
+          </div>
+          <div class="field">
+            <label for="extraWithholding">Extra federal withholding (per year)</label>
+            <input id="extraWithholding" type="number" inputmode="decimal" min="0" step="any" value="0">
+          </div>
+          <div class="field">
+            <label for="postTax">Post-tax deductions (per year)</label>
+            <input id="postTax" type="number" inputmode="decimal" min="0" step="any" value="0">
+          </div>
+        </fieldset>
       </form>
 
       <div class="results" aria-live="polite">
+        <div class="mode-row view-toggle" role="radiogroup" aria-label="Show amounts as">
+          <label class="seg"><input type="radio" name="view" value="period" checked><span>Per paycheck</span></label>
+          <label class="seg"><input type="radio" name="view" value="annual"><span>Annual</span></label>
+        </div>
         <p class="net-big" id="netBig">$0.00</p>
         <p class="net-sub" id="netSub"></p>
+
+        <div class="breakdown" id="breakdown" aria-hidden="true">
+          <div class="bar">
+            <span class="seg-net" id="segNet" style="width:0%"></span>
+            <span class="seg-tax" id="segTax" style="width:0%"></span>
+            <span class="seg-ded" id="segDed" style="width:0%"></span>
+          </div>
+          <div class="legend">
+            <span><i class="k-net"></i>Take-home <b id="lgNet">0%</b></span>
+            <span><i class="k-tax"></i>Taxes <b id="lgTax">0%</b></span>
+            <span class="lg-ded" id="lgDedWrap"><i class="k-ded"></i>Deductions <b id="lgDed">0%</b></span>
+          </div>
+        </div>
+
         <div class="line"><span class="lbl">Gross</span><span id="rGross">$0.00</span></div>
         <div class="line"><span class="lbl">Federal income tax</span><span id="rFederal">$0.00</span></div>
         <div class="line"><span class="lbl">Social Security</span><span id="rSS">$0.00</span></div>
         <div class="line"><span class="lbl">Medicare</span><span id="rMedicare">$0.00</span></div>
         <div class="line" id="stateLine"><span class="lbl">{{STATE_NAME}} income tax</span><span id="rState">$0.00</span></div>
+        <div class="line" id="preTaxLine" hidden><span class="lbl">Pre-tax deductions</span><span id="rPreTax">$0.00</span></div>
+        <div class="line" id="postTaxLine" hidden><span class="lbl">Post-tax deductions</span><span id="rPostTax">$0.00</span></div>
         <div class="line total"><span class="lbl">Net pay</span><span id="rNet">$0.00</span></div>
         <div class="rate-row">
+          <span>Marginal rate: <strong id="rMarginal">0%</strong></span>
           <span>Effective tax rate: <strong id="rEff">0%</strong></span>
           <span>Take-home: <strong id="rTake">0%</strong></span>
         </div>
+
+        <details class="brackets" id="bracketPanel">
+          <summary>How your federal tax is calculated, bracket by bracket</summary>
+          <table class="bracket-table">
+            <thead><tr><th>Bracket</th><th>Income taxed here</th><th>Tax</th></tr></thead>
+            <tbody id="bracketBody"></tbody>
+          </table>
+          <p class="muted-small" id="bracketNote"></p>
+        </details>
+
+        <details class="brackets" id="comparePanel">
+          <summary>Compare your take-home pay in another state</summary>
+          <div class="field" style="margin-top:12px">
+            <label for="cmpState">Compare with</label>
+            <select id="cmpState"><option value="">Choose a state…</option></select>
+          </div>
+          <div id="cmpResult" class="cmp-result"></div>
+        </details>
       </div>
     </section>
 
@@ -86,7 +156,7 @@
       <h2>How {{STATE_NAME}} paychecks are taxed in {{YEAR}}</h2>
       {{STATE_BODY}}
 
-      <p class="note">Estimates for general guidance only — not tax advice. This calculator approximates withholding using {{YEAR}} federal brackets, the standard deduction, and FICA. It does not account for pre-tax deductions (401(k), HSA, health premiums), additional W-4 adjustments, local taxes, or credits. Verify with a tax professional or the IRS.</p>
+      <p class="note">Estimates for general guidance only — not tax advice. This calculator approximates withholding using {{YEAR}} federal brackets, the standard deduction, and FICA. <strong>Simple</strong> mode covers wages, filing status and state tax; switch to <strong>Advanced</strong> to factor in pre-tax deductions (401(k), HSA/FSA, health premiums), dependent/W-4 credits, extra withholding and post-tax deductions. It still does not model local (city/county) taxes or itemized deductions. Verify with a tax professional or the IRS.</p>
     </section>
 
     <div class="ad-slot" data-ad="incontent">Advertisement</div>

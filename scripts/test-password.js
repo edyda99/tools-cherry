@@ -1,120 +1,193 @@
-// test-password.js — unit tests for the pure password-generation engine.
-// A deterministic rng (a fixed byte sequence, cycled) replaces crypto so the
-// selection logic and strength math are fully reproducible without the browser.
+// test-password.js — unit tests for the pure password engine.
+// Run via `npm test`.
 import assert from 'node:assert/strict';
 import {
-  randIndex, buildPool, generatePassword, generatePassphrase,
-  estimateStrength, WORDLIST_SIZE
-} from '../src/engine/password-gen.js';
+  POOLS,
+  AMBIGUOUS,
+  buildCharset,
+  buildPools,
+  generateFromPools,
+  generatePassword,
+  passwordStrength,
+  entropyBits
+} from '../src/engine/password.js';
 
 let pass = 0;
-const t = (name, fn) => { fn(); pass++; console.log('ok  - ' + name); };
+const t = (name, fn) => {
+  fn();
+  pass++;
+  console.log('ok  - ' + name);
+};
 
-// Deterministic rng: fills the buffer from a repeating byte sequence.
-function seqRng(bytes) {
-  let i = 0;
-  return (buf) => { for (let k = 0; k < buf.length; k++) buf[k] = bytes[i++ % bytes.length]; };
-}
+// --- buildCharset: each toggle contributes its pool --------------------------
+t('buildCharset: uppercase only is the uppercase pool', () =>
+  assert.equal(buildCharset({ uppercase: true }), POOLS.uppercase));
 
-t('randIndex: returns 0 when max is 1', () => {
-  assert.equal(randIndex(seqRng([5]), 1), 0);
-});
+t('buildCharset: lowercase only is the lowercase pool', () =>
+  assert.equal(buildCharset({ lowercase: true }), POOLS.lowercase));
 
-t('randIndex: maps in-range bytes by modulo', () => {
-  // byte 7, max 5 -> 7 % 5 = 2
-  assert.equal(randIndex(seqRng([7]), 5), 2);
-});
+t('buildCharset: numbers only is the numbers pool', () =>
+  assert.equal(buildCharset({ numbers: true }), POOLS.numbers));
 
-t('randIndex: rejects bytes >= limit to avoid modulo bias', () => {
-  // max 10 -> limit 250; byte 255 is rejected, next byte 3 -> 3
-  assert.equal(randIndex(seqRng([255, 3]), 10), 3);
-});
+t('buildCharset: symbols only is the symbols pool', () =>
+  assert.equal(buildCharset({ symbols: true }), POOLS.symbols));
 
-t('randIndex: rejects out-of-range max', () => {
-  assert.throws(() => randIndex(seqRng([0]), 0));
-  assert.throws(() => randIndex(seqRng([0]), 300));
-});
-
-t('buildPool: combines selected classes, dedups', () => {
-  const { pool, usedSets } = buildPool({ lowercase: true, numbers: true });
-  assert.equal(usedSets.length, 2);
-  assert.ok(pool.includes('a') && pool.includes('5'));
-  assert.ok(!pool.includes('A'));
-  // unique chars only
-  assert.equal(pool.length, new Set(pool.split('')).size);
-});
-
-t('buildPool: avoidAmbiguous strips look-alikes', () => {
-  const { pool } = buildPool({ lowercase: true, uppercase: true, numbers: true, avoidAmbiguous: true });
-  for (const c of ['O', '0', 'l', '1', 'I']) assert.ok(!pool.includes(c), `should drop ${c}`);
-  assert.ok(pool.includes('a'));
-});
-
-t('generatePassword: respects requested length', () => {
-  const pw = generatePassword({ length: 16, lowercase: true, uppercase: true, numbers: true }, seqRng([1, 2, 3, 4, 5, 6, 7]));
-  assert.equal(pw.length, 16);
-});
-
-t('generatePassword: clamps length to [4,128]', () => {
-  const short = generatePassword({ length: 1, lowercase: true }, seqRng([1, 2, 3]));
-  assert.equal(short.length, 4);
-  const long = generatePassword({ length: 999, lowercase: true }, seqRng([1, 2, 3]));
-  assert.equal(long.length, 128);
-});
-
-t('generatePassword: includes at least one of each selected class', () => {
-  // Use the real crypto rng for a realistic multi-run guarantee check.
-  const rng = (buf) => globalThis.crypto.getRandomValues(buf);
-  for (let i = 0; i < 200; i++) {
-    const pw = generatePassword({ length: 8, lowercase: true, uppercase: true, numbers: true, symbols: true }, rng);
-    assert.ok(/[a-z]/.test(pw), 'has lowercase');
-    assert.ok(/[A-Z]/.test(pw), 'has uppercase');
-    assert.ok(/[0-9]/.test(pw), 'has digit');
-    assert.ok(/[^a-zA-Z0-9]/.test(pw), 'has symbol');
+t('buildCharset: all toggles concatenate every pool', () => {
+  const cs = buildCharset({ uppercase: true, lowercase: true, numbers: true, symbols: true });
+  for (const c of POOLS.uppercase + POOLS.lowercase + POOLS.numbers + POOLS.symbols) {
+    assert.ok(cs.includes(c), `missing ${c}`);
   }
 });
 
-t('generatePassword: only uses characters from the pool', () => {
-  const { pool } = buildPool({ lowercase: true, numbers: true });
-  const rng = (buf) => globalThis.crypto.getRandomValues(buf);
-  const pw = generatePassword({ length: 40, lowercase: true, numbers: true }, rng);
-  for (const c of pw) assert.ok(pool.includes(c), `${c} not in pool`);
+t('buildCharset: nothing selected is empty string', () =>
+  assert.equal(buildCharset({}), ''));
+
+// --- ambiguous exclusion -----------------------------------------------------
+t('buildCharset: excludeAmbiguous drops 0 O o 1 l I', () => {
+  const cs = buildCharset({
+    uppercase: true, lowercase: true, numbers: true, excludeAmbiguous: true
+  });
+  for (const c of AMBIGUOUS) assert.ok(!cs.includes(c), `should not contain ${c}`);
+  // a non-ambiguous char is still present
+  assert.ok(cs.includes('A'));
+  assert.ok(cs.includes('2'));
 });
 
-t('generatePassword: throws when no class selected', () => {
-  assert.throws(() => generatePassword({ length: 12 }, seqRng([1])));
+t('buildCharset: without excludeAmbiguous, ambiguous chars remain', () => {
+  const cs = buildCharset({ numbers: true, uppercase: true, lowercase: true });
+  assert.ok(cs.includes('0'));
+  assert.ok(cs.includes('1'));
+  assert.ok(cs.includes('O'));
 });
 
-t('generatePassphrase: word count, separator, capitalize, number', () => {
-  const rng = (buf) => globalThis.crypto.getRandomValues(buf);
-  const p = generatePassphrase({ words: 4, separator: '.', capitalize: true, number: true }, rng);
-  const parts = p.split('.');
-  assert.equal(parts.length, 4);
-  for (const w of parts) assert.match(w, /^[A-Z]/); // capitalized
-  assert.match(p, /[0-9]/); // a digit was appended somewhere
+// --- generatePassword respects length + allowed chars ------------------------
+// Deterministic injected RNG: a simple LCG so tests are repeatable.
+function seededRandomInt(seed) {
+  let state = seed >>> 0;
+  return (maxExclusive) => {
+    // xorshift32
+    state ^= state << 13; state >>>= 0;
+    state ^= state >> 17;
+    state ^= state << 5; state >>>= 0;
+    return state % maxExclusive;
+  };
+}
+
+t('generatePassword: result length equals requested length', () => {
+  const cs = buildCharset({ lowercase: true, numbers: true });
+  const pw = generatePassword(cs, 16, seededRandomInt(12345));
+  assert.equal(pw.length, 16);
 });
 
-t('generatePassphrase: clamps word count to [2,12]', () => {
-  const rng = (buf) => globalThis.crypto.getRandomValues(buf);
-  assert.equal(generatePassphrase({ words: 1 }, rng).split('-').length, 2);
-  assert.equal(generatePassphrase({ words: 50 }, rng).split('-').length, 12);
+t('generatePassword: every char comes from the charset', () => {
+  const cs = buildCharset({ uppercase: true, numbers: true, symbols: true });
+  const pw = generatePassword(cs, 64, seededRandomInt(999));
+  for (const c of pw) assert.ok(cs.includes(c), `${c} not in charset`);
 });
 
-t('estimateStrength: entropy = length * log2(poolSize)', () => {
-  const s = estimateStrength(16, 62); // ~95.3 bits
-  assert.ok(Math.abs(s.bits - 16 * Math.log2(62)) < 1e-9);
-  assert.equal(s.label, 'Strong');
-  assert.equal(s.score, 3);
+t('generatePassword: respects excludeAmbiguous in output', () => {
+  const cs = buildCharset({
+    lowercase: true, uppercase: true, numbers: true, excludeAmbiguous: true
+  });
+  const pw = generatePassword(cs, 64, seededRandomInt(7));
+  for (const c of AMBIGUOUS) assert.ok(!pw.includes(c), `output contains ambiguous ${c}`);
 });
 
-t('estimateStrength: coarse buckets', () => {
-  assert.equal(estimateStrength(4, 10).label, 'Very weak'); // ~13 bits
-  assert.equal(estimateStrength(20, 95).score, 4);          // >128 bits
-  assert.equal(estimateStrength(0, 0).bits, 0);             // degenerate
+t('generatePassword: same seed is deterministic', () => {
+  const cs = buildCharset({ lowercase: true });
+  const a = generatePassword(cs, 20, seededRandomInt(42));
+  const b = generatePassword(cs, 20, seededRandomInt(42));
+  assert.equal(a, b);
 });
 
-t('WORDLIST_SIZE is exposed and sane', () => {
-  assert.ok(WORDLIST_SIZE >= 32);
+t('generatePassword: empty charset yields empty string', () =>
+  assert.equal(generatePassword('', 16, seededRandomInt(1)), ''));
+
+t('generatePassword: non-positive length yields empty string', () =>
+  assert.equal(generatePassword('abc', 0, seededRandomInt(1)), ''));
+
+// --- passwordStrength thresholds ---------------------------------------------
+t('passwordStrength: empty is Very weak (0)', () => {
+  const r = passwordStrength('');
+  assert.equal(r.score, 0);
+  assert.equal(r.label, 'Very weak');
+});
+
+t('passwordStrength: tiny short password is Very weak', () =>
+  assert.equal(passwordStrength('ab1').score, 0));
+
+t('passwordStrength: short low-variety is Weak', () => {
+  const r = passwordStrength('abcdefg'); // 7 lowercase
+  assert.equal(r.label, 'Weak');
+  assert.equal(r.score, 1);
+});
+
+t('passwordStrength: medium mixed is Fair or better', () => {
+  const r = passwordStrength('Abcdefg1'); // 8 chars, 3 classes
+  assert.ok(r.score >= 2, `expected >=2 got ${r.score}`);
+});
+
+t('passwordStrength: long varied is Strong', () => {
+  const r = passwordStrength('Abcdef12gh34'); // 12 chars, 3 classes
+  assert.ok(r.score >= 3, `expected >=3 got ${r.score}`);
+});
+
+t('passwordStrength: long all-classes is Very strong', () => {
+  const r = passwordStrength('Abcdef12!@gh34XY'); // 16 chars, 4 classes
+  assert.equal(r.score, 4);
+  assert.equal(r.label, 'Very strong');
+});
+
+// --- buildPools + guaranteed inclusion ---------------------------------------
+t('buildPools: one string per selected class, ambiguous filtered', () => {
+  const pools = buildPools({ uppercase: true, numbers: true, excludeAmbiguous: true });
+  assert.equal(pools.length, 2);
+  assert.ok(!pools.join('').includes('0'));
+  assert.ok(!pools.join('').includes('O'));
+});
+
+t('generateFromPools: contains at least one char from EVERY selected class', () => {
+  const pools = buildPools({ uppercase: true, lowercase: true, numbers: true, symbols: true });
+  // try many seeds to be confident the guarantee holds regardless of RNG
+  for (let seed = 1; seed <= 50; seed++) {
+    const pw = generateFromPools(pools, 8, seededRandomInt(seed));
+    assert.equal(pw.length, 8);
+    assert.ok(/[A-Z]/.test(pw), `seed ${seed}: no uppercase in ${pw}`);
+    assert.ok(/[a-z]/.test(pw), `seed ${seed}: no lowercase in ${pw}`);
+    assert.ok(/[0-9]/.test(pw), `seed ${seed}: no number in ${pw}`);
+    assert.ok(/[^A-Za-z0-9]/.test(pw), `seed ${seed}: no symbol in ${pw}`);
+  }
+});
+
+t('generateFromPools: length below class count still fills exactly length', () => {
+  const pools = buildPools({ uppercase: true, lowercase: true, numbers: true, symbols: true });
+  const pw = generateFromPools(pools, 2, seededRandomInt(3));
+  assert.equal(pw.length, 2); // can't fit all 4 classes; just length 2
+});
+
+t('generateFromPools: empty pools / non-positive length -> empty', () => {
+  assert.equal(generateFromPools([], 16, seededRandomInt(1)), '');
+  assert.equal(generateFromPools(['abc'], 0, seededRandomInt(1)), '');
+});
+
+t('generateFromPools: deterministic for a fixed seed', () => {
+  const pools = buildPools({ lowercase: true, numbers: true });
+  assert.equal(
+    generateFromPools(pools, 20, seededRandomInt(42)),
+    generateFromPools(pools, 20, seededRandomInt(42))
+  );
+});
+
+// --- entropyBits -------------------------------------------------------------
+t('entropyBits: 16 chars over 26-char set ≈ 75.2 bits', () => {
+  const b = entropyBits(26, 16);
+  assert.ok(Math.abs(b - 16 * Math.log2(26)) < 1e-9);
+  assert.ok(b > 75 && b < 76);
+});
+
+t('entropyBits: degenerate inputs are 0', () => {
+  assert.equal(entropyBits(1, 16), 0);
+  assert.equal(entropyBits(90, 0), 0);
 });
 
 console.log(`\n${pass} passing`);

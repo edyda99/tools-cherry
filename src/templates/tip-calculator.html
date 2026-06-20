@@ -4,21 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Tip Calculator — How Much to Tip and Split the Bill (15%, 18%, 20%)</title>
-<meta name="description" content="Free tip calculator. Enter your bill and pick 15%, 18%, or 20% to see the tip and total instantly, split the check evenly between any number of people, tip on the pre-tax amount, and round the total. No signup; runs in your browser.">
+<title>Tip Calculator &amp; Bill Splitter — Tip, Total &amp; Per-Person Amount</title>
+<meta name="description" content="Free tip calculator and bill splitter. Enter the bill, pick a tip percent, and split it among any number of people. See the tip, total, and per-person amount instantly. Optional round-up.">
 <link rel="canonical" href="{{SITE_URL}}/tip-calculator/">
-<meta property="og:title" content="Tip Calculator — How Much to Tip &amp; Split the Bill">
-<meta property="og:description" content="Calculate the tip and total for any bill, split it between any number of people, and round the total. Free, in your browser.">
+<meta property="og:title" content="Tip Calculator &amp; Bill Splitter">
+<meta property="og:description" content="Work out the tip, the total, and how much each person owes — instant results in your browser.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="{{SITE_URL}}/tip-calculator/">
-<meta property="og:site_name" content="{{SITE_NAME}}">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Tip Calculator — How Much to Tip &amp; Split the Bill">
-<meta name="twitter:description" content="Calculate the tip and total for any bill, split it between any number of people, and round the total. Free, in your browser.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Tip Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate the tip and grand total for any bill, split the check between any number of people, tip on the pre-tax amount, and round the total — in your browser."}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How much should I tip at a restaurant?","acceptedAnswer":{"@type":"Answer","text":"In the United States, 15% is generally considered the minimum for acceptable sit-down service, 18% for good service, and 20% or more for excellent service. This calculator lets you tap a preset or type any custom percentage to see the tip and total instantly."}},{"@type":"Question","name":"How do I split the bill and tip between people?","acceptedAnswer":{"@type":"Answer","text":"Enter the bill and tip percentage, then set the number of people. The calculator divides the grand total (bill plus tip) evenly and shows the amount each person owes, including their share of the tip."}},{"@type":"Question","name":"Should I tip on the pre-tax or post-tax amount?","acceptedAnswer":{"@type":"Answer","text":"Either is common. Tipping on the pre-tax subtotal is slightly more traditional, while many people simply tip on the full bill including tax for convenience. Enter the tax amount and toggle \"Tip on pre-tax amount\" to calculate the tip on the subtotal only."}},{"@type":"Question","name":"How is the tip amount calculated?","acceptedAnswer":{"@type":"Answer","text":"The tip is the bill multiplied by the tip percentage divided by 100. For example, 18% of an $80 bill is 80 x 18 / 100 = $14.40, making the total $94.40. A quick mental shortcut for 20% is to find 10% by moving the decimal one place left, then double it."}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Tip Calculator & Bill Splitter","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate the tip and total on a bill and split it among any number of people, with quick tip presets and an optional round-up."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How much should I tip?","acceptedAnswer":{"@type":"Answer","text":"In the U.S., 15% to 20% is typical for table service, with 20% or more for great service. Use the presets as a starting point and adjust to taste."}},{"@type":"Question","name":"How do I work out a tip by hand?","acceptedAnswer":{"@type":"Answer","text":"Multiply the bill by the tip percent and divide by 100. A 20% tip on a $50 bill is 50 × 20 ÷ 100 = $10, making the total $60."}},{"@type":"Question","name":"How do I split a bill evenly?","acceptedAnswer":{"@type":"Answer","text":"Add the tip to the bill to get the total, then divide by the number of people. A $60 total split between 2 people is $30 each."}},{"@type":"Question","name":"Do I tip on the pre-tax or post-tax amount?","acceptedAnswer":{"@type":"Answer","text":"Either is common. Enter whichever bill figure you prefer — the calculator tips on whatever number you type."}},{"@type":"Question","name":"How much is a 20% tip on $50?","acceptedAnswer":{"@type":"Answer","text":"A 20% tip on $50 is $10, for a total of $60. Tap the 20% preset and enter 50 as the bill to see it, including the per-person share if you split it."}}]}</script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -31,72 +26,77 @@
 
 <main id="main">
   <div class="wrap">
-    <h1>Tip Calculator</h1>
-    <p class="lede">Work out the tip and total for any bill, then split it evenly between any number of people. Pick a tip preset or type your own, tip on the pre-tax amount, and round the total — everything is calculated in your browser, with nothing uploaded.</p>
+    <h1>Tip Calculator &amp; Bill Splitter</h1>
+    <p class="lede">Enter the bill, choose a tip, and split it among the table. You'll see the tip, the total, and how much each person pays — updated as you type.</p>
 
-    <div class="calc">
+    <section class="calc" aria-label="Tip calculator and bill splitter">
       <form id="tipForm" autocomplete="off" onsubmit="return false">
         <div class="field">
           <label for="bill">Bill amount ($)</label>
-          <input id="bill" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00">
+          <input id="bill" type="number" inputmode="decimal" step="any" min="0" value="50" placeholder="50">
         </div>
 
         <div class="field">
-          <span class="field-label">Tip percentage</span>
-          <div id="tipPresets" class="presets" role="group" aria-label="Tip percentage presets"></div>
-          <input id="tipCustom" type="number" inputmode="decimal" min="0" step="1" placeholder="Custom %" style="margin-top:8px">
-        </div>
-
-        <div class="field">
-          <label for="people">Split between</label>
-          <div class="inline">
-            <button type="button" id="peopleMinus" class="btn-secondary" aria-label="Fewer people">−</button>
-            <input id="people" type="number" inputmode="numeric" min="1" step="1" value="1">
-            <button type="button" id="peoplePlus" class="btn-secondary" aria-label="More people">+</button>
+          <label for="tipPercent">Tip (%)</label>
+          <input id="tipPercent" type="number" inputmode="decimal" step="any" min="0" value="18" placeholder="18">
+          <div class="presets" role="group" aria-label="Quick tip presets">
+            <button type="button" class="btn-secondary" data-tip="15" aria-pressed="false">15%</button>
+            <button type="button" class="btn-secondary" data-tip="18" aria-pressed="false">18%</button>
+            <button type="button" class="btn-secondary" data-tip="20" aria-pressed="false">20%</button>
+            <button type="button" class="btn-secondary" data-tip="25" aria-pressed="false">25%</button>
           </div>
         </div>
 
         <div class="field">
-          <label for="tax">Tax included in bill ($) — optional</label>
-          <input id="tax" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00">
-          <label class="check" style="margin-top:9px">
-            <input id="preTax" type="checkbox"> Tip on the pre-tax amount
-          </label>
+          <label for="people">Split between (people)</label>
+          <div class="field inline">
+            <button type="button" class="btn-secondary" id="peopleMinus" aria-label="One fewer person">−</button>
+            <input id="people" type="number" inputmode="numeric" step="1" min="1" value="2" placeholder="2">
+            <button type="button" class="btn-secondary" id="peoplePlus" aria-label="One more person">+</button>
+          </div>
         </div>
 
         <div class="field">
-          <label for="round">Rounding</label>
-          <select id="round">
-            <option value="none">No rounding (exact cents)</option>
-            <option value="total">Round total up to whole dollar</option>
-            <option value="tip">Round tip up to whole dollar</option>
-          </select>
+          <label for="tax">Tax included in the bill (optional, $)</label>
+          <input id="tax" type="number" inputmode="decimal" step="any" min="0" placeholder="0">
+        </div>
+        <div class="field">
+          <label class="check"><input id="tipPreTax" type="checkbox"> Tip on the pre-tax amount (bill − tax)</label>
+        </div>
+        <div class="field">
+          <label class="check"><input id="roundUp" type="checkbox"> Round each person up to the next whole dollar</label>
         </div>
       </form>
 
-      <div class="results">
-        <p class="muted-small">Tip</p>
-        <p id="outTip" style="font-size:1.4rem;font-weight:700;margin:2px 0 14px">$0.00</p>
-        <p class="muted-small">Total</p>
-        <p id="outTotal" style="font-size:1.6rem;font-weight:700;margin:2px 0 14px">$0.00</p>
-        <div id="splitRow" hidden>
-          <p class="muted-small" id="peopleLabel">each</p>
-          <p id="outPerPerson" style="font-size:1.4rem;font-weight:700;margin:2px 0 0">$0.00</p>
-        </div>
-        <p class="muted-small" id="effNote" hidden></p>
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="resultBig">—</p>
+        <p class="net-sub" id="resultSub"></p>
+        <div class="line" id="lineTip" hidden><span class="lbl">Tip</span><span id="lineTipV"></span></div>
+        <div class="line" id="linePerTip" hidden><span class="lbl">Tip per person</span><span id="linePerTipV"></span></div>
+        <div class="line total" id="lineTotal" hidden><span class="lbl">Total (bill + tip)</span><span id="lineTotalV"></span></div>
       </div>
-    </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the tip calculator</h2>
+      <p>Type in the bill, then either tap a tip preset (15%, 18%, 20%, or 25%) or type your own tip percent. Set how many people are sharing the bill with the plus and minus buttons, and the answer appears instantly — there's no button to press and nothing is sent anywhere.</p>
+      <p><strong>Tip and total.</strong> The calculator multiplies the bill by the tip percent to get the tip, then adds it to the bill for the total.</p>
+      <p><strong>Splitting the bill.</strong> The total is divided evenly by the number of people, so everyone pays the same share.</p>
+      <p><strong>Round up per person.</strong> Turn this on to round each person's share up to the next whole dollar. The tip and total update to match what everyone actually hands over, which makes paying in cash simpler.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded.</p>
+    </section>
 
     <div class="ad-slot" data-ad="incontent">Advertisement</div>
 
     <section class="prose">
-      <h2>How to use the tip calculator</h2>
-      <p>Type your bill amount and tap a tip preset — 10%, 15%, 18%, 20%, or 25% — and the tip and grand total appear instantly. Need a different rate? Enter any number in the custom field and it takes over from the presets. To split the check, set how many people are sharing it and the calculator shows what each person owes, including their share of the tip.</p>
-      <p>If you'd rather tip on the food and drink only, enter the tax that's included in your bill and switch on <strong>Tip on the pre-tax amount</strong> — the tip is then calculated on the subtotal, not the tax. The rounding options let you bump the total (or just the tip) up to the next whole dollar, which makes paying in cash or settling a group bill simpler.</p>
-
-      <h2>How much should you tip?</h2>
-      <p>In the United States the common guideline for sit-down restaurant service is 15% as a minimum, 18% for good service, and 20% or more for excellent service. Tipping customs vary by country and by the type of service, so treat these as a starting point rather than a rule. A fast way to estimate 20% in your head is to find 10% of the bill by moving the decimal one place to the left, then double it.</p>
-      <p class="note">Nothing you enter leaves your device — every calculation runs in your browser, with no signup and nothing stored.</p>
+      <h2>Common tipping questions</h2>
+      <p><strong>How much should I tip?</strong> In the U.S., 15% to 20% is typical for table service, with 20% or more for great service. Use the presets as a starting point and adjust to taste.</p>
+      <p><strong>How do I work out a tip by hand?</strong> Multiply the bill by the tip percent and divide by 100. A 20% tip on a $50 bill is 50 × 20 ÷ 100 = $10, making the total $60.</p>
+      <p><strong>How do I split a bill evenly?</strong> Add the tip to the bill to get the total, then divide by the number of people. A $60 total split between 2 people is $30 each.</p>
+      <p><strong>Do I tip on the pre-tax or post-tax amount?</strong> Either is common. Enter whichever bill figure you prefer — the calculator tips on whatever number you type.</p>
+      <p><strong>How much is a 20% tip on $50?</strong> A 20% tip on $50 is $10, for a total of $60. Tap the 20% preset and enter 50 as the bill to see it, including the per-person share if you split it.</p>
     </section>
   </div>
 </main>
@@ -108,6 +108,6 @@
   </div>
 </footer>
 
-<script type="module" src="/assets/tip.js"></script>
+<script type="module" src="/assets/tip-calculator.js"></script>
 </body>
 </html>

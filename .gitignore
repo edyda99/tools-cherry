@@ -3,3 +3,14 @@ dist/
 .wrangler/
 .DS_Store
 *.log
+
+# Local-only / never publish
+.claude/
+.env
+.env.*
+.dev.vars
+.invoker-key.json
+backend/pdf-to-word/.invoker-key.json
+*.pem
+aws-credentials*
+.aws/

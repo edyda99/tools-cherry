@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Pace Calculator — Running Pace, Finish Time &amp; Distance (min/km &amp; min/mile)</title>
+<meta name="description" content="Free running and walking pace calculator. Enter any two of distance, time, and pace to find the third in min/km or min/mile, plus your average speed and predicted 5K, 10K, half marathon, and marathon finish times. Live results, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/pace-calculator/">
+<meta property="og:title" content="Pace Calculator">
+<meta property="og:description" content="Work out your running pace, finish time, or distance in min/km or min/mile — with average speed and predicted race times. Free, instant, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Pace Calculator","applicationCategory":"HealthApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Running and walking pace calculator: enter any two of distance, time, and pace to find the third in min/km or min/mile, with average speed and predicted race finish times."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I calculate my running pace?","acceptedAnswer":{"@type":"Answer","text":"Pace is your total time divided by the distance you covered. For example, running 10 km in 50 minutes is a pace of 5:00 per kilometre. Choose the Pace mode, enter your distance and time, and the calculator works it out for you in min/km or min/mile."}},{"@type":"Question","name":"What is the difference between pace and speed?","acceptedAnswer":{"@type":"Answer","text":"Pace is the time it takes to cover one unit of distance — minutes per kilometre or per mile, so a smaller number is faster. Speed is the distance covered per hour — kilometres or miles per hour, so a bigger number is faster. This calculator shows both."}},{"@type":"Question","name":"How do I convert min/km to min/mile?","acceptedAnswer":{"@type":"Answer","text":"One mile is about 1.609 kilometres, so a min/mile pace is your min/km pace multiplied by 1.609. Switch the units selector between km and miles and the calculator converts the pace and distances for you."}},{"@type":"Question","name":"How are the predicted race finish times worked out?","acceptedAnswer":{"@type":"Answer","text":"They simply apply your current pace evenly across each standard distance (1 km, 1 mile, 5K, 10K, half marathon, and marathon). Real race times usually drift slower over longer distances as fatigue sets in, so treat the longer predictions as an optimistic guide."}},{"@type":"Question","name":"Is the pace calculator private?","acceptedAnswer":{"@type":"Answer","text":"Yes. Everything runs in your browser. The numbers you enter stay on your device and are never sent anywhere."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Pace Calculator</h1>
+    <p class="lede">Enter any two of distance, time, and pace and the calculator finds the third — in minutes per kilometre or per mile — along with your average speed and predicted race finish times. Results update as you type, and nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Pace calculator">
+      <div class="unit-toggle" role="group" aria-label="What to calculate">
+        <button type="button" data-mode="pace" aria-pressed="true">Find pace</button>
+        <button type="button" data-mode="time" aria-pressed="false">Find time</button>
+        <button type="button" data-mode="distance" aria-pressed="false">Find distance</button>
+      </div>
+
+      <form id="paceForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="unit">Distance unit</label>
+          <select id="unit">
+            <option value="km" selected>Kilometres (km)</option>
+            <option value="mi">Miles</option>
+          </select>
+        </div>
+
+        <div class="field" id="distRow">
+          <label for="dist">Distance</label>
+          <input id="dist" type="number" inputmode="decimal" step="any" min="0" value="10" placeholder="10">
+        </div>
+
+        <div id="timeRow">
+          <label class="field-label">Time</label>
+          <div class="field inline">
+            <span><label for="h">Hours</label><input id="h" type="number" inputmode="numeric" step="1" min="0" placeholder="0"></span>
+            <span><label for="m">Minutes</label><input id="m" type="number" inputmode="numeric" step="1" min="0" value="50" placeholder="50"></span>
+            <span><label for="s">Seconds</label><input id="s" type="number" inputmode="numeric" step="1" min="0" placeholder="0"></span>
+          </div>
+        </div>
+
+        <div id="paceRow">
+          <label class="field-label">Pace (per <span class="pace-unit-label">/km</span>)</label>
+          <div class="field inline">
+            <span><label for="paceMin">Minutes</label><input id="paceMin" type="number" inputmode="numeric" step="1" min="0" value="5" placeholder="5"></span>
+            <span><label for="paceSec">Seconds</label><input id="paceSec" type="number" inputmode="numeric" step="1" min="0" placeholder="0"></span>
+          </div>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="resultBig">—</p>
+        <p class="net-sub" id="resultSub">Enter a distance and a time to see your pace.</p>
+        <div class="line" id="extra" hidden><span class="lbl">Average speed</span><span id="extraV"></span></div>
+
+        <details class="brackets" id="racePanel" open hidden>
+          <summary>Predicted finish times at this pace</summary>
+          <table class="bracket-table">
+            <thead><tr><th>Distance</th><th>Finish time</th></tr></thead>
+            <tbody id="raceBody"></tbody>
+          </table>
+          <p class="muted-small">An even-pace estimate — most runners slow a little over longer distances.</p>
+        </details>
+      </div>
+    </section>
+
+    <p class="note">Everything runs in your browser — the numbers you enter are never uploaded.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the pace calculator</h2>
+      <p>Pick what you want to find — <strong>pace</strong>, <strong>time</strong>, or <strong>distance</strong> — then fill in the other two boxes. The answer appears instantly; there's no button to press and nothing leaves your device.</p>
+      <p><strong>Find pace.</strong> Enter how far you went and how long it took, and see your pace per kilometre or per mile.</p>
+      <p><strong>Find time.</strong> Enter a distance and a target pace to see your projected finish time — handy for planning a race.</p>
+      <p><strong>Find distance.</strong> Enter a time and a pace to see how far that would take you.</p>
+      <p>Switch between kilometres and miles with the unit selector — the pace, speed, and predicted race times all convert automatically.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Pace vs. speed</h2>
+      <p>Pace and speed describe the same effort from two angles. <strong>Pace</strong> is the time to cover one unit of distance — minutes per kilometre or per mile — so a lower number is faster. <strong>Speed</strong> is the distance covered per hour, so a higher number is faster. A 5:00 / km pace is the same as 12 km/h. This calculator shows both so you can use whichever your watch or treadmill displays.</p>
+
+      <h2>Common race paces</h2>
+      <p>These are the finish times you'd get by holding an even pace the whole way — a useful planning target, though most runners drift slightly slower over longer distances:</p>
+      <ul>
+        <li><strong>5:00 / km</strong> → 5K in 25:00, 10K in 50:00, half marathon in about 1:45:30, marathon in about 3:30:59.</li>
+        <li><strong>6:00 / km</strong> → 5K in 30:00, 10K in 1:00:00, half marathon in about 2:06:35, marathon in about 4:13:10.</li>
+        <li><strong>8:00 / km</strong> (brisk walk) → 5K in 40:00, 10K in 1:20:00.</li>
+      </ul>
+
+      <h2>Common pace questions</h2>
+      <p><strong>How do I calculate my running pace?</strong> Divide your total time by the distance. Ten kilometres in fifty minutes is 5:00 per kilometre. The Find pace mode does this for you.</p>
+      <p><strong>How do I convert min/km to min/mile?</strong> Multiply your min/km pace by about 1.609, since a mile is 1.609 km. Switch the unit selector and the calculator converts for you.</p>
+      <p><strong>What is a good 5K pace?</strong> It varies hugely by age, fitness, and goal. Many recreational runners finish a 5K between 25 and 35 minutes, which is roughly a 5:00 to 7:00 per-kilometre pace. Use the calculator to find the pace that hits your own target time.</p>
+      <p><strong>Does it work for walking and cycling too?</strong> Yes — the math is the same for any steady distance and time, so you can use it for walking, hiking, or cycling pace as well.</p>
+      <p class="note">Predicted finish times assume an even pace and are a guide only, not a performance guarantee.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/pace-calculator.js"></script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Compound Interest Calculator — See How Your Savings &amp; Investments Grow</title>
+<meta name="description" content="Free compound interest calculator. Enter a starting amount, a regular monthly or yearly deposit, an interest rate and a number of years to see your future balance, total deposits, and interest earned — with a year-by-year breakdown.">
+<link rel="canonical" href="{{SITE_URL}}/compound-interest-calculator/">
+<meta property="og:title" content="Compound Interest Calculator">
+<meta property="og:description" content="See how a starting balance plus regular deposits grows over time. Future value, total interest, and a year-by-year table — instant results in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Compound Interest Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Project how savings and investments grow with compound interest, including regular monthly or yearly contributions, with a year-by-year breakdown."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is compound interest?","acceptedAnswer":{"@type":"Answer","text":"Compound interest is interest earned on both your original money and on the interest it has already earned. Because each period's interest is added to the balance, the balance grows faster over time than with simple interest."}},{"@type":"Question","name":"How is compound interest calculated?","acceptedAnswer":{"@type":"Answer","text":"The future value of a starting amount is principal × (1 + r/n)^(n×t), where r is the annual rate, n is the number of times interest compounds per year, and t is the number of years. Regular deposits are added each period and earn interest from then on. This calculator adds both together."}},{"@type":"Question","name":"What is the difference between simple and compound interest?","acceptedAnswer":{"@type":"Answer","text":"Simple interest is paid only on the original amount, so it grows in a straight line. Compound interest is paid on the original amount plus accumulated interest, so the balance grows faster and faster over time."}},{"@type":"Question","name":"How much will $10,000 grow in 20 years?","acceptedAnswer":{"@type":"Answer","text":"At 7% a year compounded monthly, $10,000 with no further deposits grows to roughly $40,000 in 20 years. Adding regular deposits raises that figure substantially. Enter your own numbers above to see the exact total."}},{"@type":"Question","name":"Does the deposit timing matter?","acceptedAnswer":{"@type":"Answer","text":"Slightly. Deposits made at the start of each period earn one extra period of interest compared with deposits made at the end, so the start-of-period option gives a marginally higher balance."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Compound Interest Calculator</h1>
+    <p class="lede">See how a starting balance and regular deposits grow over time. Enter your numbers and the future value, total deposits, and interest earned update as you type — with a year-by-year breakdown.</p>
+
+    <section class="calc" aria-label="Compound interest calculator">
+      <form id="compoundForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="principal">Starting amount ($)</label>
+          <input id="principal" type="number" inputmode="decimal" step="any" min="0" value="1000" placeholder="1000">
+        </div>
+
+        <div class="field">
+          <label for="contribution">Regular deposit ($)</label>
+          <input id="contribution" type="number" inputmode="decimal" step="any" min="0" value="100" placeholder="100">
+        </div>
+
+        <div class="field">
+          <label for="frequency">Deposit &amp; compounding frequency</label>
+          <select id="frequency">
+            <option value="12" selected>Monthly</option>
+            <option value="1">Yearly</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="rate">Annual interest rate (%)</label>
+          <input id="rate" type="number" inputmode="decimal" step="any" min="0" value="6" placeholder="6">
+        </div>
+
+        <div class="field">
+          <label for="years">Number of years</label>
+          <input id="years" type="number" inputmode="decimal" step="any" min="0" value="20" placeholder="20">
+        </div>
+
+        <div class="field">
+          <label for="timing">Add each deposit at the</label>
+          <select id="timing">
+            <option value="end" selected>End of the period</option>
+            <option value="start">Start of the period</option>
+          </select>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="fvBig">—</p>
+        <p class="net-sub" id="fvSub"></p>
+        <div class="line" id="principalLine" hidden><span class="lbl">Starting amount</span><span class="val"></span></div>
+        <div class="line" id="contribLine" hidden><span class="lbl">Total deposits added</span><span class="val"></span></div>
+        <div class="line" id="interestLine" hidden><span class="lbl">Total interest earned</span><span class="val"></span></div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <div class="amort-summary" id="summaryBox" hidden>
+      <strong>Growth summary</strong>
+      <p id="summaryText" style="margin:6px 0 0;"></p>
+    </div>
+
+    <div id="scheduleWrap" hidden>
+      <details class="amort">
+        <summary>Show year-by-year breakdown</summary>
+        <div class="amort-table-wrap">
+          <table class="amort-table">
+            <thead>
+              <tr><th>Year</th><th>Deposits</th><th>Interest</th><th>Balance</th></tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+
+    <section class="prose">
+      <h2>How to use the compound interest calculator</h2>
+      <p>Type in your <strong>starting amount</strong> — the money you already have saved or invested. Add a <strong>regular deposit</strong> if you plan to keep paying in, and choose whether you add it <strong>monthly or yearly</strong>. Enter the <strong>annual interest rate</strong> you expect and the number of <strong>years</strong> you'll leave it to grow. The future balance updates instantly — there's no button to press and nothing is sent anywhere.</p>
+      <p>The big number is your <strong>projected balance</strong> at the end of the term. Below it you'll see how much came from your own deposits versus how much is <strong>interest earned</strong> on top — the part that compounding is doing for you.</p>
+      <p><strong>Deposit timing (optional).</strong> Deposits added at the start of each period earn one extra period of interest, so the balance is slightly higher than adding them at the end. Most people use the end-of-period default.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded. These figures are estimates based on a fixed rate, not financial advice; real returns vary.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common compound interest questions</h2>
+      <p><strong>What is compound interest?</strong> Compound interest is interest earned on both your original money and on the interest it has already earned. Because each period's interest is added to the balance, the balance grows faster over time than with simple interest.</p>
+      <p><strong>How is compound interest calculated?</strong> The future value of a starting amount is principal × (1 + r/n)^(n×t), where r is the annual rate, n is how many times interest compounds per year, and t is the number of years. Regular deposits are added each period and earn interest from then on. This calculator adds both together.</p>
+      <p><strong>What is the difference between simple and compound interest?</strong> Simple interest is paid only on the original amount, so it grows in a straight line. Compound interest is paid on the original amount plus accumulated interest, so the balance grows faster and faster over time.</p>
+      <p><strong>How much will $10,000 grow in 20 years?</strong> At 7% a year compounded monthly, $10,000 with no further deposits grows to roughly $40,000 in 20 years. Adding regular deposits raises that figure substantially. Enter your own numbers above to see the exact total.</p>
+      <p><strong>Does the deposit timing matter?</strong> Slightly. Deposits made at the start of each period earn one extra period of interest compared with deposits made at the end, so the start-of-period option gives a marginally higher balance.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/compound-interest-calculator.js"></script>
+</body>
+</html>

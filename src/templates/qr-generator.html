@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Free QR Code Generator — URL, WiFi, vCard, Email, SMS, WhatsApp, Phone, Location, Calendar Event &amp; Text (PNG &amp; SVG)</title>
+<title>Free QR Code Generator — URL, WiFi, vCard, Email &amp; More (PNG/SVG)</title>
 <meta name="description" content="Free QR code generator. Create QR codes for a URL, WiFi network, contact (vCard), email, SMS, WhatsApp chat, phone number, map location, calendar event, or plain text, then download as PNG or SVG. No signup, no watermark — generated in your browser.">
 <link rel="canonical" href="{{SITE_URL}}/qr-code-generator/">
 <meta property="og:title" content="Free QR Code Generator — URL, WiFi, vCard, Email, SMS, WhatsApp, Phone, Location, Calendar Event, Text">
@@ -12,16 +12,18 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Free QR Code Generator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Create QR codes for a URL, WiFi, vCard, email, SMS, WhatsApp, phone, map location, calendar event, or plain text and download as PNG or SVG, in your browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Do these QR codes expire or stop working?","acceptedAnswer":{"@type":"Answer","text":"No. These are static QR codes — the link or data is encoded directly in the pattern, so they never expire and keep working forever. There is no account, tracking, or redirect that could be switched off. The only way a code stops working is if the page it points to is taken down."}},{"@type":"Question","name":"Should I download my QR code as PNG or SVG?","acceptedAnswer":{"@type":"Answer","text":"Use PNG for documents, slides, and most printing — it is a ready-to-use image. Use SVG when you need to scale the code very large (a poster or banner) or hand it to a designer, because SVG stays perfectly sharp at any size."}},{"@type":"Question","name":"How does a WiFi QR code work?","acceptedAnswer":{"@type":"Answer","text":"Enter your network name, password, and security type, and the code stores those details. When a guest points their phone camera at it, the phone offers to join the network automatically — no typing the password. It is handy for cafes, offices, and guest rooms."}},{"@type":"Question","name":"What is the error correction setting for?","acceptedAnswer":{"@type":"Answer","text":"Error correction lets a code still scan when part of it is dirty, faded, or covered. Higher levels (Quartile or High) survive more damage but make the pattern denser. Medium is a good default; choose High if the code will be printed small or placed somewhere it may get scuffed."}},{"@type":"Question","name":"Why does my QR code look very dense or hard to scan?","acceptedAnswer":{"@type":"Answer","text":"The more data you encode — a long URL, a full contact card, or High error correction — the more squares the code needs. To keep it scannable, shorten the URL, lower the error correction, or print it larger with a clear white border around it."}},{"@type":"Question","name":"Is the data I enter uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. The QR code is generated entirely in your browser. The link, WiFi password, or contact details you type are never sent to a server."}}]}</script>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 <header class="site">
   <div class="wrap">
     <a class="brand" href="/">{{SITE_NAME}}</a>
-    <nav><a href="/#tools">Tools</a></nav>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
   </div>
 </header>
 
-<main>
+<main id="main">
   <div class="wrap">
     <h1>QR Code Generator</h1>
     <p class="lede">Create a QR code for a link, your WiFi network, or a contact card — then download it as a PNG or SVG. No signup; everything is generated in your browser.</p>
@@ -74,30 +76,30 @@
         </div>
 
         <div data-group="email" hidden>
-          <div class="field"><label for="emTo">To (email address)</label><input id="emTo" placeholder="jane@acme.com"></div>
+          <div class="field"><label for="emTo">To (email address)</label><input id="emTo" type="email" placeholder="jane@acme.com"></div>
           <div class="field"><label for="emSubject">Subject</label><input id="emSubject" placeholder="Hello"></div>
           <div class="field"><label for="emBody">Message</label><textarea id="emBody" rows="3" placeholder="Your message"></textarea></div>
         </div>
 
         <div data-group="sms" hidden>
-          <div class="field"><label for="smsTo">Phone number</label><input id="smsTo" placeholder="+1 555 0100"></div>
+          <div class="field"><label for="smsTo">Phone number</label><input id="smsTo" type="tel" placeholder="+1 555 0100"></div>
           <div class="field"><label for="smsBody">Message</label><textarea id="smsBody" rows="3" placeholder="Pre-filled text"></textarea></div>
         </div>
 
         <div data-group="wa" hidden>
-          <div class="field"><label for="waNum">Phone number (with country code)</label><input id="waNum" placeholder="1 555 0100"></div>
+          <div class="field"><label for="waNum">Phone number (with country code)</label><input id="waNum" type="tel" placeholder="1 555 0100"></div>
           <div class="field"><label for="waMsg">Message (optional)</label><textarea id="waMsg" rows="3" placeholder="Pre-filled chat text"></textarea></div>
           <p class="muted-small" style="margin-top:6px">Scanning opens a WhatsApp chat with this number. Enter the full international number (country code first); the leading + and spaces are removed automatically.</p>
         </div>
 
         <div data-group="phone" hidden>
-          <div class="field"><label for="phoneNum">Phone number</label><input id="phoneNum" placeholder="+1 555 0100"></div>
+          <div class="field"><label for="phoneNum">Phone number</label><input id="phoneNum" type="tel" placeholder="+1 555 0100"></div>
         </div>
 
         <div data-group="geo" hidden>
           <div class="field inline">
-            <span><label for="geoLat">Latitude</label><input id="geoLat" placeholder="40.748817"></span>
-            <span><label for="geoLng">Longitude</label><input id="geoLng" placeholder="-73.985428"></span>
+            <span><label for="geoLat">Latitude</label><input id="geoLat" type="number" step="any" placeholder="40.748817"></span>
+            <span><label for="geoLng">Longitude</label><input id="geoLng" type="number" step="any" placeholder="-73.985428"></span>
           </div>
           <p class="muted-small" style="margin-top:6px">Scanning opens the point in the phone's maps app. Copy the coordinates from Google Maps (right-click a spot &rarr; the lat,&nbsp;lng at the top).</p>
         </div>
@@ -124,7 +126,7 @@
           <span><label for="qrSize">Size (px)</label><input id="qrSize" type="number" min="128" max="2048" step="32" value="512"></span>
         </div>
         <div class="field inline">
-          <span><label for="qrFg">Foreground</label><input id="qrFg" type="color" value="#000000"></span>
+          <span><label for="qrFg">Foreground (dots)</label><input id="qrFg" type="color" value="#000000"></span>
           <span><label for="qrBg">Background</label><input id="qrBg" type="color" value="#ffffff"></span>
         </div>
         <div class="field inline">
@@ -145,15 +147,15 @@
         </div>
         <div class="field">
           <label for="qrLogo">Center logo (optional)</label>
-          <input id="qrLogo" type="file" accept="image/png,image/jpeg,image/svg+xml">
+          <input id="qrLogo" type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp">
           <p class="muted-small" id="qrLogoHint" style="margin-top:6px">Adding a logo forces High error correction so the code still scans. <button type="button" id="qrLogoClear" class="linklike" hidden style="background:none;border:0;padding:0;color:inherit;text-decoration:underline;cursor:pointer">Remove logo</button></p>
         </div>
+        <p class="qr-warn" id="qrWarn" role="alert" hidden></p>
       </form>
 
       <div class="results" style="text-align:center">
-        <div id="qrHolder" style="background:#fff;display:inline-block;padding:16px;border-radius:8px"><canvas id="qrCanvas" width="256" height="256"></canvas></div>
+        <div id="qrHolder" style="background:#fff;display:inline-block;padding:16px;border-radius:8px"><canvas id="qrCanvas" width="256" height="256" role="img" aria-label="Generated QR code preview">Your generated QR code appears here.</canvas></div>
         <p class="muted-small" id="qrStatus" style="margin-top:12px"></p>
-        <p id="qrWarn" hidden role="alert" style="font-size:13px;color:#9a6700;background:#fff8e1;border:1px solid #f0d98a;border-radius:6px;padding:8px 12px;margin:0 auto 8px;max-width:480px;text-align:left"></p>
         <div style="display:flex;gap:8px;margin-top:8px">
           <button type="button" id="dlPng" class="btn-primary" style="width:auto;flex:1">Download PNG</button>
           <button type="button" id="dlSvg" class="btn-secondary" style="flex:1">Download SVG</button>
@@ -168,8 +170,26 @@
 
     <section class="prose">
       <h2>How to use the QR code generator</h2>
-      <p>Pick a type, fill in the details, and your QR code updates instantly. For a WiFi code, anyone who scans it with a phone camera can join your network without typing the password. For a contact card, scanning adds your details straight to the phone's contacts. Download as PNG for documents and printing, or SVG for crisp scaling at any size.</p>
+      <ol>
+        <li>Choose a <strong>type</strong> — a link or text, a WiFi network, or a contact card.</li>
+        <li>Fill in the details; the QR code updates instantly as you type.</li>
+        <li>Set the <strong>size</strong> and, if needed, the <strong>error correction</strong> level.</li>
+        <li>Click <strong>Download PNG</strong> for everyday use, or <strong>Download SVG</strong> for crisp scaling at any size.</li>
+      </ol>
+      <p>For a WiFi code, anyone who scans it with a phone camera can join your network without typing the password — great for cafes, offices, and guest rooms. For a contact card (vCard), scanning adds your name, phone, and email straight to the phone's contacts. A link code simply opens a website when scanned.</p>
+      <p>These are <strong>static</strong> QR codes: the information is built directly into the pattern, so they never expire and need no account. Print as large as you like, and always leave a clear white border (a "quiet zone") around the code so cameras can find it.</p>
       <p class="note">QR codes are generated entirely in your browser — the data you enter is never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common QR code questions</h2>
+      <p><strong>Do these codes expire?</strong> No. They are static, so the data lives in the pattern itself — there is nothing to renew or switch off.</p>
+      <p><strong>PNG or SVG — which should I pick?</strong> PNG for documents, slides, and most printing; SVG when you need a poster-size code or are handing it to a designer.</p>
+      <p><strong>What does error correction do?</strong> It lets the code still scan when part of it is scuffed or covered. Medium is a sensible default; use High for small or hard-wearing prints.</p>
+      <p><strong>Why won't my code scan?</strong> Usually it's too small, too dense, or has no white border. Print it larger, shorten the URL, or leave a clear margin around it.</p>
+      <p><strong>Is my data private?</strong> Yes. Everything is generated on your device — nothing you enter is uploaded.</p>
     </section>
   </div>
 </main>

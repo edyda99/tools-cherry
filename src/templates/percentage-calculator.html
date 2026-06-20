@@ -4,21 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Percentage Calculator — What Is X% of Y, Percent Change &amp; More</title>
-<meta name="description" content="Free percentage calculator. Work out what X% of a number is, find what percent one number is of another, and calculate the percentage increase or decrease between two values — instantly, in your browser. No signup.">
+<title>Percentage Calculator — Percent of a Number, Percent Change &amp; Discounts</title>
+<meta name="description" content="Free percentage calculator. Work out what is X% of Y, what percent one number is of another, percent increase or decrease, and the price after a discount. Live results, no signup.">
 <link rel="canonical" href="{{SITE_URL}}/percentage-calculator/">
-<meta property="og:title" content="Percentage Calculator — What Is X% of Y, Percent Change &amp; More">
-<meta property="og:description" content="Find X% of a number, what percent one number is of another, and the percentage increase or decrease between two values. Free, in your browser.">
+<meta property="og:title" content="Percentage Calculator">
+<meta property="og:description" content="What is X% of Y, percent change, and discount calculator — instant results in your browser.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="{{SITE_URL}}/percentage-calculator/">
-<meta property="og:site_name" content="{{SITE_NAME}}">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Percentage Calculator">
-<meta name="twitter:description" content="Find X% of a number, what percent one number is of another, and the percentage change between two values. Free, in your browser.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Percentage Calculator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate what X% of a number is, what percent one number is of another, and the percentage increase or decrease between two values — in your browser."}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I calculate what percent of a number is?","acceptedAnswer":{"@type":"Answer","text":"To find P% of a number, multiply the number by P and divide by 100. For example, 20% of 50 is 50 x 20 / 100 = 10. Enter the percentage and the number in the first calculator above and the answer appears instantly."}},{"@type":"Question","name":"How do I find what percentage one number is of another?","acceptedAnswer":{"@type":"Answer","text":"Divide the first number by the second and multiply by 100. For example, 10 is what percent of 50? That is 10 / 50 x 100 = 20%. The second calculator above does this automatically."}},{"@type":"Question","name":"How do I calculate a percentage increase or decrease?","acceptedAnswer":{"@type":"Answer","text":"Subtract the original value from the new value, divide by the original value, and multiply by 100. Going from 50 to 75 is (75 - 50) / 50 x 100 = a 50% increase. A negative result means the value decreased. The third calculator handles both directions."}},{"@type":"Question","name":"Is this percentage calculator free and private?","acceptedAnswer":{"@type":"Answer","text":"Yes. It is completely free with no signup, and every calculation runs in your browser — nothing you type is uploaded or stored anywhere."}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Percentage Calculator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate percentage of a number, what percent one number is of another, percent increase or decrease, and discounts."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I find a percentage of a number?","acceptedAnswer":{"@type":"Answer","text":"Multiply the number by the percent, then divide by 100. For example, 20% of 150 is 150 × 20 ÷ 100 = 30."}},{"@type":"Question","name":"How do I work out what percent one number is of another?","acceptedAnswer":{"@type":"Answer","text":"Divide the first number by the second, then multiply by 100. For example, 30 ÷ 120 × 100 = 25%."}},{"@type":"Question","name":"How do I calculate a percent increase?","acceptedAnswer":{"@type":"Answer","text":"Subtract the old value from the new value, divide by the old value, then multiply by 100. Going from 100 to 125 is a 25% increase."}},{"@type":"Question","name":"How do I work out a price after a discount?","acceptedAnswer":{"@type":"Answer","text":"Multiply the price by the percent off and divide by 100 to get the savings, then subtract that from the price. $80 with 25% off becomes $60, saving $20."}},{"@type":"Question","name":"How do I calculate a percent decrease?","acceptedAnswer":{"@type":"Answer","text":"Subtract the new value from the old value, divide by the old value, then multiply by 100. Going from 200 to 150 is a 25% decrease. Use the percent increase or decrease option and the tool shows a drop as a negative change."}}]}</script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -32,53 +27,78 @@
 <main id="main">
   <div class="wrap">
     <h1>Percentage Calculator</h1>
-    <p class="lede">Three quick percentage tools in one: find what a percentage of a number is, work out what percent one number is of another, and calculate the percentage increase or decrease between two values. Everything is calculated in your browser, with nothing uploaded.</p>
+    <p class="lede">Work out a percentage of a number, what percent one number is of another, a percent increase or decrease, or the price after a discount. Results update as you type.</p>
 
-    <div class="calc">
+    <section class="calc" aria-label="Percentage calculator">
       <form id="pctForm" autocomplete="off" onsubmit="return false">
         <div class="field">
-          <span class="field-label">What is <strong>X%</strong> of a number?</span>
-          <div class="inline">
-            <input id="ofPercent" type="number" inputmode="decimal" step="any" placeholder="20" aria-label="Percentage">
-            <span class="muted-small">% of</span>
-            <input id="ofBase" type="number" inputmode="decimal" step="any" placeholder="50" aria-label="Number">
-          </div>
-          <p id="ofResult" class="result-line">—</p>
+          <label for="mode">What do you want to work out?</label>
+          <select id="mode">
+            <option value="of">What is X% of a number?</option>
+            <option value="is">X is what percent of a number?</option>
+            <option value="change">Percent increase or decrease</option>
+            <option value="discount">Discount / percent off a price</option>
+          </select>
         </div>
 
-        <div class="field">
-          <span class="field-label">A number is <strong>what percent</strong> of another?</span>
-          <div class="inline">
-            <input id="whatPart" type="number" inputmode="decimal" step="any" placeholder="10" aria-label="Part">
-            <span class="muted-small">is what % of</span>
-            <input id="whatWhole" type="number" inputmode="decimal" step="any" placeholder="50" aria-label="Whole">
+        <div data-group="of">
+          <div class="field inline">
+            <span><label for="ofPercent">Percent (%)</label><input id="ofPercent" type="number" inputmode="decimal" step="any" value="20" placeholder="20"></span>
+            <span><label for="ofValue">Of this number</label><input id="ofValue" type="number" inputmode="decimal" step="any" value="150" placeholder="150"></span>
           </div>
-          <p id="whatResult" class="result-line">—</p>
         </div>
 
-        <div class="field">
-          <span class="field-label">Percentage <strong>increase or decrease</strong></span>
-          <div class="inline">
-            <span class="muted-small">from</span>
-            <input id="changeFrom" type="number" inputmode="decimal" step="any" placeholder="50" aria-label="Original value">
-            <span class="muted-small">to</span>
-            <input id="changeTo" type="number" inputmode="decimal" step="any" placeholder="75" aria-label="New value">
+        <div data-group="is" hidden>
+          <div class="field inline">
+            <span><label for="isPart">This number</label><input id="isPart" type="number" inputmode="decimal" step="any" value="30" placeholder="30"></span>
+            <span><label for="isWhole">Is what percent of</label><input id="isWhole" type="number" inputmode="decimal" step="any" value="120" placeholder="120"></span>
           </div>
-          <p id="changeResult" class="result-line">—</p>
+        </div>
+
+        <div data-group="change" hidden>
+          <div class="field inline">
+            <span><label for="chFrom">Starting value</label><input id="chFrom" type="number" inputmode="decimal" step="any" value="100" placeholder="100"></span>
+            <span><label for="chTo">New value</label><input id="chTo" type="number" inputmode="decimal" step="any" value="125" placeholder="125"></span>
+          </div>
+        </div>
+
+        <div data-group="discount" hidden>
+          <div class="field inline">
+            <span><label for="dcPrice">Original price ($)</label><input id="dcPrice" type="number" inputmode="decimal" step="any" min="0" value="80" placeholder="80"></span>
+            <span><label for="dcOff">Percent off (%)</label><input id="dcOff" type="number" inputmode="decimal" step="any" value="25" placeholder="25"></span>
+          </div>
         </div>
       </form>
-    </div>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="resultBig">—</p>
+        <p class="net-sub" id="resultSub"></p>
+        <div class="line" id="line1" hidden><span class="lbl">Detail</span><span id="line1v"></span></div>
+        <div class="line" id="line2" hidden><span class="lbl">Detail</span><span id="line2v"></span></div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the percentage calculator</h2>
+      <p>Pick what you want to work out from the menu, then fill in the two boxes. The answer appears instantly — there's no button to press and nothing is sent anywhere.</p>
+      <p><strong>What is X% of a number?</strong> Use this for tips, sales tax, or "20% of 150." Enter the percent and the number, and you get the amount.</p>
+      <p><strong>X is what percent of a number?</strong> Use this to turn a score or a part into a percentage — for example, "30 out of 120 is 25%."</p>
+      <p><strong>Percent increase or decrease.</strong> Enter a starting value and a new value to see how much it went up or down in percent — handy for price changes, raises, or test scores.</p>
+      <p><strong>Discount / percent off.</strong> Enter a price and the percent off to see the final price and how much you save.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded.</p>
+    </section>
 
     <div class="ad-slot" data-ad="incontent">Advertisement</div>
 
     <section class="prose">
-      <h2>How to use the percentage calculator</h2>
-      <p>Each of the three calculators works on its own — fill in both numbers and the answer updates as you type. The first answers <strong>"what is X% of Y"</strong>, which is handy for discounts, tips, sales tax, or commission. The second answers <strong>"X is what percent of Y"</strong>, useful for test scores, completion rates, or working out a share of a total. The third gives the <strong>percentage increase or decrease</strong> from one value to another — for price changes, growth, weight loss, or any before-and-after comparison.</p>
-
-      <h2>The percentage formulas</h2>
-      <p>To find a percentage of a number, multiply the number by the percentage and divide by 100: <em>P% of N = N × P ÷ 100</em>. So 20% of 50 is 50 × 20 ÷ 100 = 10. To find what percent one number is of another, divide the part by the whole and multiply by 100: <em>X ÷ Y × 100</em>. To find a percentage change, subtract the original value from the new value, divide by the original value, and multiply by 100: <em>(new − old) ÷ old × 100</em>; a negative result means the value went down.</p>
-      <p>A quick mental shortcut: 10% of any number is that number with the decimal point moved one place to the left, so 10% of 80 is 8. From there you can double it for 20%, halve it for 5%, or add a 10% and a 5% chunk for 15%.</p>
-      <p class="note">Nothing you enter leaves your device — every calculation runs in your browser, with no signup and nothing stored.</p>
+      <h2>Common percentage questions</h2>
+      <p><strong>How do I find a percentage of a number?</strong> Multiply the number by the percent, then divide by 100. For example, 20% of 150 is 150 × 20 ÷ 100 = 30.</p>
+      <p><strong>How do I work out what percent one number is of another?</strong> Divide the first number by the second, then multiply by 100. For example, 30 ÷ 120 × 100 = 25%.</p>
+      <p><strong>How do I calculate a percent increase?</strong> Subtract the old value from the new value, divide by the old value, then multiply by 100. Going from 100 to 125 is a 25% increase.</p>
+      <p><strong>How do I work out a price after a discount?</strong> Multiply the price by the percent off and divide by 100 to get the savings, then subtract that from the price. $80 with 25% off becomes $60, saving $20.</p>
+      <p><strong>How do I calculate a percent decrease?</strong> Subtract the new value from the old value, divide by the old value, then multiply by 100. Going from 200 to 150 is a 25% decrease. Use the percent increase or decrease option and the tool shows a drop as a negative change.</p>
     </section>
   </div>
 </main>
@@ -90,6 +110,6 @@
   </div>
 </footer>
 
-<script type="module" src="/assets/percent.js"></script>
+<script type="module" src="/assets/percentage-calculator.js"></script>
 </body>
 </html>

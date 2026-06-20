@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Cooking Measurement Converter — Cups to ml, Tablespoons to Teaspoons &amp; More</title>
+<meta name="description" content="Free cooking converter for kitchen measurements: cups to ml, tablespoons to teaspoons, ounces to grams, oven temperatures (°F to °C), plus a recipe scaler. Live results, no signup.">
+<link rel="canonical" href="{{SITE_URL}}/cooking-converter/">
+<meta property="og:title" content="Cooking Measurement Converter">
+<meta property="og:description" content="Convert cups, tablespoons, teaspoons, ounces, grams and oven temperatures — and scale any recipe. Instant results in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Cooking Measurement Converter","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Convert kitchen measurements (cups, tablespoons, teaspoons, fluid ounces, pints, quarts, gallons, ml, litres, ounces, pounds, grams, kilograms), oven temperatures between Fahrenheit and Celsius, and scale recipes up or down."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How many ml are in a cup?","acceptedAnswer":{"@type":"Answer","text":"One US cup is 236.588 millilitres. Half a cup is about 118 ml and a quarter cup is about 59 ml."}},{"@type":"Question","name":"How many teaspoons are in a tablespoon?","acceptedAnswer":{"@type":"Answer","text":"There are exactly 3 teaspoons in 1 tablespoon. So 1 tablespoon = 3 teaspoons, and 1 teaspoon = one third of a tablespoon."}},{"@type":"Question","name":"What is 350°F in Celsius?","acceptedAnswer":{"@type":"Answer","text":"350°F is about 176.7°C (roughly gas mark 4). To convert Fahrenheit to Celsius, subtract 32 and multiply by 5/9."}},{"@type":"Question","name":"Can I convert cups to grams?","acceptedAnswer":{"@type":"Answer","text":"Only approximately, because cups measure volume and grams measure weight. The weight of one cup depends on the ingredient: one cup of flour is about 120 g, while one cup of sugar is about 200 g. Use the approximate ingredient helper for common items."}},{"@type":"Question","name":"How many tablespoons are in a stick of butter?","acceptedAnswer":{"@type":"Answer","text":"One standard US stick of butter is 8 tablespoons, which is half a cup, 4 ounces, or about 113 grams. Two sticks make one cup."}},{"@type":"Question","name":"What's the difference between a US cup and a metric cup?","acceptedAnswer":{"@type":"Answer","text":"A US cup is 236.6 ml, while the metric cup used in much of the world is a round 250 ml, and an old UK imperial cup is about 284 ml. This converter uses the US cup."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Cooking Measurement Converter</h1>
+    <p class="lede">Convert cups, tablespoons, teaspoons, ounces, grams and oven temperatures — then scale any recipe up or down. Results update as you type, and nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Cooking measurement converter">
+      <form id="convForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="category">What do you want to convert?</label>
+          <select id="category">
+            <option value="volume">Volume (cups, ml, tablespoons…)</option>
+            <option value="weight">Weight (ounces, grams, pounds…)</option>
+            <option value="temperature">Oven temperature (°F ↔ °C)</option>
+          </select>
+        </div>
+
+        <div id="unitBlock">
+          <div class="field inline">
+            <span><label for="amount">Amount</label><input id="amount" type="number" inputmode="decimal" step="any" value="1" placeholder="1"></span>
+            <span><label for="fromUnit">From</label><select id="fromUnit"></select></span>
+            <span><label for="toUnit">To</label><select id="toUnit"></select></span>
+          </div>
+          <button type="button" id="swapBtn" class="btn-secondary">↔ Swap units</button>
+        </div>
+
+        <div id="tempBlock" hidden>
+          <div class="field inline">
+            <span><label for="tempValue">Temperature</label><input id="tempValue" type="number" inputmode="decimal" step="any" value="350" placeholder="350"></span>
+            <span><label for="tempDir">Direction</label>
+              <select id="tempDir">
+                <option value="f2c">Fahrenheit → Celsius</option>
+                <option value="c2f">Celsius → Fahrenheit</option>
+              </select>
+            </span>
+          </div>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="resultBig">—</p>
+        <p class="net-sub" id="resultSub"></p>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="calc" aria-label="Recipe scaler">
+      <h2>Recipe scaler</h2>
+      <p class="lede">Cooking for more or fewer people? Enter one ingredient amount and pick how to scale it.</p>
+      <form id="scaleForm" autocomplete="off" onsubmit="return false">
+        <div class="field inline">
+          <span><label for="scaleAmount">Ingredient amount</label><input id="scaleAmount" type="number" inputmode="decimal" step="any" value="2" placeholder="2"></span>
+          <span><label for="scaleMode">Scale by</label>
+            <select id="scaleMode">
+              <option value="0.5">Half (0.5×)</option>
+              <option value="2">Double (2×)</option>
+              <option value="3">Triple (3×)</option>
+              <option value="servings">Custom servings</option>
+            </select>
+          </span>
+        </div>
+        <div class="field inline" id="servingsRow" hidden>
+          <span><label for="origServings">Original servings</label><input id="origServings" type="number" inputmode="decimal" step="any" value="4" placeholder="4"></span>
+          <span><label for="newServings">New servings</label><input id="newServings" type="number" inputmode="decimal" step="any" value="6" placeholder="6"></span>
+        </div>
+      </form>
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="scaleBig">—</p>
+        <p class="net-sub" id="scaleSub"></p>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="calc" aria-label="Approximate cups to grams helper">
+      <h2>Cups to grams (approximate)</h2>
+      <p class="lede">Volume and weight aren't the same — a cup of flour weighs less than a cup of sugar. These are <strong>approximate</strong> guides for common ingredients and will vary with packing and brand.</p>
+      <form id="densForm" autocomplete="off" onsubmit="return false">
+        <div class="field inline">
+          <span><label for="densAmount">Amount</label><input id="densAmount" type="number" inputmode="decimal" step="any" value="1" placeholder="1"></span>
+          <span><label for="densUnit">Unit</label><select id="densUnit"></select></span>
+          <span><label for="densIngredient">Ingredient</label><select id="densIngredient"></select></span>
+        </div>
+      </form>
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="densBig">—</p>
+        <p class="net-sub" id="densSub"></p>
+      </div>
+    </section>
+
+    <section class="prose">
+      <h2>How to use the cooking converter</h2>
+      <p>Pick a category, type an amount, and choose the units. The answer appears instantly — there's no button to press and nothing leaves your device.</p>
+      <p><strong>Volume to volume</strong> (cups, tablespoons, teaspoons, fluid ounces, pints, quarts, gallons, millilitres, litres) and <strong>weight to weight</strong> (ounces, pounds, grams, kilograms) are exact conversions.</p>
+      <p><strong>Oven temperature</strong> converts between Fahrenheit and Celsius, and shows the nearest UK gas mark where one applies. For example, 350°F is about 176.7°C, which is roughly gas mark 4.</p>
+      <p><strong>We don't convert volume straight to weight by default.</strong> A cup is a measure of space, while a gram is a measure of weight, so the answer depends on the ingredient. The "cups to grams" helper above gives approximate weights for a few common items only.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Handy kitchen conversion table</h2>
+      <table>
+        <thead><tr><th>Measurement</th><th>Equals</th></tr></thead>
+        <tbody>
+          <tr><td>1 tablespoon</td><td>3 teaspoons</td></tr>
+          <tr><td>1 fluid ounce</td><td>2 tablespoons</td></tr>
+          <tr><td>1 cup</td><td>16 tablespoons · 236.6 ml</td></tr>
+          <tr><td>1 cup</td><td>8 fluid ounces</td></tr>
+          <tr><td>1 pint</td><td>2 cups · 473 ml</td></tr>
+          <tr><td>1 quart</td><td>4 cups · 946 ml</td></tr>
+          <tr><td>1 gallon</td><td>4 quarts · 3.785 litres</td></tr>
+          <tr><td>1 pound</td><td>16 ounces · 453.6 g</td></tr>
+          <tr><td>1 ounce</td><td>28.35 g</td></tr>
+          <tr><td>1 kilogram</td><td>1000 g · 2.205 lb</td></tr>
+          <tr><td>325°F</td><td>≈ 163°C · gas mark 3</td></tr>
+          <tr><td>350°F</td><td>≈ 177°C · gas mark 4</td></tr>
+          <tr><td>375°F</td><td>≈ 191°C · gas mark 5</td></tr>
+          <tr><td>400°F</td><td>≈ 204°C · gas mark 6</td></tr>
+          <tr><td>425°F</td><td>≈ 218°C · gas mark 7</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="prose">
+      <h2>Common cooking conversion questions</h2>
+      <p><strong>How many ml are in a cup?</strong> One US cup is 236.588 ml. Half a cup is about 118 ml and a quarter cup is about 59 ml.</p>
+      <p><strong>How many teaspoons are in a tablespoon?</strong> Exactly 3. So 1 tablespoon equals 3 teaspoons, and 1 teaspoon is one third of a tablespoon.</p>
+      <p><strong>What is 350°F in Celsius?</strong> About 176.7°C, roughly gas mark 4. To convert °F to °C, subtract 32 then multiply by 5/9. To go the other way, multiply by 9/5 then add 32.</p>
+      <p><strong>How many grams in a pound?</strong> One pound is 453.592 grams, and one ounce is 28.35 grams. There are 16 ounces in a pound.</p>
+      <p><strong>Can I convert cups to grams?</strong> Only roughly, because it depends on the ingredient. A cup of all-purpose flour is about 120 g, a cup of granulated sugar is about 200 g, and a cup of water is about 237 g. Use the approximate helper above for common ingredients.</p>
+      <p><strong>How many tablespoons are in a stick of butter?</strong> One standard US stick of butter is 8 tablespoons, which is half a cup, 4 ounces, or about 113 grams. Two sticks make one cup. Most stick wrappers print tablespoon marks so you can slice off exactly what a recipe needs.</p>
+      <p><strong>What's the difference between a US cup and a metric cup?</strong> A US cup is 236.6 ml, while the metric cup used in much of the world is a round 250 ml, and an old UK imperial cup is about 284 ml. The difference is small for most cooking but can matter in baking, so check which standard a recipe uses. This converter uses the US cup.</p>
+      <p><strong>How do I scale a recipe up or down?</strong> Use the recipe scaler above: enter one ingredient amount and choose half, double, triple, or custom servings. For custom servings, divide the new serving count by the original to get the multiplier, then apply it to every ingredient. Cooking times change less than amounts, so adjust them gradually and check for doneness.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/cooking-converter.js"></script>
+</body>
+</html>

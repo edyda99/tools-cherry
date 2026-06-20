@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url';
 import {
   applyBrackets,
   annualizeGross,
-  computePaycheck
+  computePaycheck,
+  federalBracketBreakdown
 } from '../src/engine/paycheck-engine.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -98,6 +99,82 @@ t('Mississippi 0% on first $10k of taxable income', () => {
   );
   // taxable = 60000 - 8300 = 51700; first 10000 @0%, remaining 41700 @4% = 1668
   approx(r.annual.state, 1668);
+});
+
+// --- advanced mode: deductions + W-4 ----------------------------------------
+t('adv omitted == adv all-zero (backward compatible)', () => {
+  const base = { wage: { type: 'salary', amount: 60000 }, filingStatus: 'single', payFrequency: 'annual', stateSlug: 'texas' };
+  const a = computePaycheck(base, taxData);
+  const b = computePaycheck({ ...base, adv: { retirement401k: 0, cafeteria125: 0, dependentsCredit: 0, extraWithholding: 0, postTax: 0 } }, taxData);
+  approx(a.annual.net, b.annual.net, 0.001);
+  approx(a.annual.federal, b.annual.federal, 0.001);
+});
+
+t('401(k) cuts federal income tax but NOT FICA', () => {
+  const base = { wage: { type: 'salary', amount: 60000 }, filingStatus: 'single', payFrequency: 'annual', stateSlug: 'texas' };
+  const plain = computePaycheck(base, taxData);
+  const r = computePaycheck({ ...base, adv: { retirement401k: 10000 } }, taxData);
+  // federal taxable drops by 10000 -> at 12% marginal that's 1200 less federal
+  approx(plain.annual.federal - r.annual.federal, 1200);
+  // FICA unchanged (401k is FICA-taxable)
+  approx(r.annual.socialSecurity + r.annual.medicare, plain.annual.socialSecurity + plain.annual.medicare, 0.01);
+  // pre-tax shows in breakdown and reduces net by 401k + the federal tax saving
+  approx(r.annual.preTax, 10000);
+  approx(r.annual.net, plain.annual.net - 10000 + 1200);
+});
+
+t('cafeteria (HSA/premiums) cuts BOTH income tax and FICA', () => {
+  const base = { wage: { type: 'salary', amount: 60000 }, filingStatus: 'single', payFrequency: 'annual', stateSlug: 'texas' };
+  const plain = computePaycheck(base, taxData);
+  const r = computePaycheck({ ...base, adv: { cafeteria125: 10000 } }, taxData);
+  // FICA wages drop by 10000 -> 765 less FICA
+  approx((plain.annual.socialSecurity + plain.annual.medicare) - (r.annual.socialSecurity + r.annual.medicare), 765);
+  // federal also drops by 1200 (12% of 10000)
+  approx(plain.annual.federal - r.annual.federal, 1200);
+});
+
+t('dependents credit reduces federal, floored at 0', () => {
+  const base = { wage: { type: 'salary', amount: 60000 }, filingStatus: 'single', payFrequency: 'annual', stateSlug: 'texas' };
+  const plain = computePaycheck(base, taxData);
+  const r = computePaycheck({ ...base, adv: { dependentsCredit: 2000 } }, taxData);
+  approx(plain.annual.federal - r.annual.federal, 2000);
+  // huge credit can't push federal below 0
+  const z = computePaycheck({ ...base, adv: { dependentsCredit: 999999 } }, taxData);
+  assert.equal(z.annual.federal, 0);
+});
+
+t('extra withholding adds to federal; post-tax cuts net only', () => {
+  const base = { wage: { type: 'salary', amount: 60000 }, filingStatus: 'single', payFrequency: 'annual', stateSlug: 'texas' };
+  const plain = computePaycheck(base, taxData);
+  const r = computePaycheck({ ...base, adv: { extraWithholding: 1200, postTax: 3000 } }, taxData);
+  approx(r.annual.federal - plain.annual.federal, 1200);
+  approx(r.annual.postTax, 3000);
+  approx(r.annual.net, plain.annual.net - 1200 - 3000);
+});
+
+t('state tax also respects pre-tax (Pennsylvania flat)', () => {
+  const base = { wage: { type: 'salary', amount: 60000 }, filingStatus: 'single', payFrequency: 'annual', stateSlug: 'pennsylvania' };
+  const r = computePaycheck({ ...base, adv: { retirement401k: 10000 } }, taxData);
+  approx(r.annual.state, (60000 - 10000) * 0.0307);
+});
+
+// --- federal bracket breakdown ----------------------------------------------
+t('bracketBreakdown: bands sum to applyBrackets, marginal = top band', () => {
+  const fed = taxData.federal;
+  const bb = federalBracketBreakdown(60000, 'single', fed); // taxable 43,900
+  approx(bb.taxable, 60000 - fed.standardDeduction.single, 0.01);
+  const sumBandTax = bb.bands.reduce((s, b) => s + b.tax, 0);
+  approx(sumBandTax, applyBrackets(bb.taxable, fed.brackets.single), 0.5);
+  // 43,900 taxable falls in the 12% band (ends 50,400-ish) -> marginal 12%
+  approx(bb.marginalRate, 0.12, 0.0001);
+  // amounts only cover up to taxable (no empty higher bands beyond the one containing it)
+  approx(bb.bands.reduce((s, b) => s + b.amount, 0), bb.taxable, 0.01);
+});
+
+t('bracketBreakdown: zero taxable -> first-band marginal, no tax', () => {
+  const bb = federalBracketBreakdown(5000, 'single', taxData.federal); // below std deduction
+  assert.equal(bb.taxable, 0);
+  approx(bb.bands.reduce((s, b) => s + b.tax, 0), 0, 0.001);
 });
 
 console.log(`\n${pass} passing`);

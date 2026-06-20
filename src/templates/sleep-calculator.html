@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Sleep Calculator — Best Bedtime &amp; Wake-Up Times by Sleep Cycle</title>
+<meta name="description" content="Free sleep calculator. Enter when you want to wake up and see the best bedtimes — or when you're going to bed and see the best wake-up times — based on 90-minute sleep cycles. Instant results, no signup.">
+<link rel="canonical" href="{{SITE_URL}}/sleep-calculator/">
+<meta property="og:title" content="Sleep Calculator">
+<meta property="og:description" content="Find the best bedtime or wake-up time using 90-minute sleep cycles, so you wake at the end of a cycle feeling more rested.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Sleep Calculator","applicationCategory":"HealthApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Work out the best bedtime or wake-up time from 90-minute sleep cycles, allowing time to fall asleep, so you wake at the end of a cycle."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How does a sleep cycle calculator work?","acceptedAnswer":{"@type":"Answer","text":"Sleep moves through cycles of about 90 minutes. Waking at the end of a cycle, rather than in the middle of deep sleep, tends to feel more refreshing. The calculator counts back (or forward) in 90-minute blocks from your chosen time and adds about 15 minutes to fall asleep, so each suggested time lands on a cycle boundary."}},{"@type":"Question","name":"How many hours of sleep do I need?","acceptedAnswer":{"@type":"Answer","text":"Most adults do best on 7 to 9 hours, which is about 5 to 6 full sleep cycles. The calculator marks the 5 and 6 cycle options as the ideal range, while still showing shorter 3 and 4 cycle options for short nights."}},{"@type":"Question","name":"Why 90 minutes per cycle?","acceptedAnswer":{"@type":"Answer","text":"Ninety minutes is the commonly used average length of one full sleep cycle through light sleep, deep sleep, and REM. Real cycles vary from person to person and night to night, so treat the times as helpful targets rather than exact science."}},{"@type":"Question","name":"What if I want to go to bed now?","acceptedAnswer":{"@type":"Answer","text":"Switch the calculator to go-to-bed mode and use the current time. It will count forward in 90-minute cycles and suggest wake-up times that fall at the end of a cycle."}},{"@type":"Question","name":"Does it account for the time to fall asleep?","acceptedAnswer":{"@type":"Answer","text":"Yes. By default it allows about 15 minutes to drift off, which you can change. That buffer is added before the first cycle starts so the suggested times stay realistic."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Sleep Calculator</h1>
+    <p class="lede">Wake up feeling more rested by ending your sleep at the close of a cycle. Tell the calculator when you want to wake up — or when you're heading to bed — and it works out the best times using 90-minute sleep cycles, all in your browser with nothing uploaded.</p>
+
+    <section class="calc" aria-label="Sleep calculator">
+      <form id="sleepForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="mode">I want to…</label>
+          <select id="mode">
+            <option value="wake">Wake up at a set time (find my bedtime)</option>
+            <option value="bed">Go to bed at a set time (find my wake-up time)</option>
+          </select>
+        </div>
+        <div class="field inline">
+          <span><label for="time">Time</label><input id="time" type="time"></span>
+          <span><label for="fall">Minutes to fall asleep</label><input id="fall" type="number" inputmode="numeric" step="1" min="0" value="15" placeholder="15"></span>
+        </div>
+        <div class="field inline" style="margin-bottom:0">
+          <button type="button" id="useNow" class="btn-secondary">Use current time</button>
+        </div>
+      </form>
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="out">—</p>
+        <p class="net-sub" id="sub">Pick a time to see your options.</p>
+        <ul class="breakdown" id="detail"></ul>
+      </div>
+    </section>
+
+    <section class="prose">
+      <h2>How the sleep calculator works</h2>
+      <p>Through the night your body cycles through light sleep, deep sleep, and REM in stretches of about <strong>90 minutes</strong>. Waking at the end of a cycle — instead of being jolted out of deep sleep — is what makes the difference between groggy and refreshed.</p>
+      <p><strong>Find your bedtime.</strong> Enter when you need to wake up. The calculator counts back in 90-minute cycles and adds the time it takes to fall asleep, then lists bedtimes that each land on a clean cycle boundary.</p>
+      <p><strong>Find your wake-up time.</strong> Switch modes, enter your bedtime (or tap <em>Use current time</em>), and it counts forward to the wake times that fall at the end of a cycle.</p>
+      <p>Aim for the <strong>5 or 6 cycle</strong> options — about 7.5 to 9 hours — which suit most adults. The shorter 3 and 4 cycle options are there for naps and short nights.</p>
+      <p class="note">Everything runs in your browser — the times you enter are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Sleep calculator questions</h2>
+      <p><strong>How does it work?</strong> It counts in 90-minute cycles from your chosen time and adds time to fall asleep, so each suggestion ends at a cycle boundary.</p>
+      <p><strong>How much sleep do I need?</strong> Most adults do best on 7–9 hours, roughly 5–6 cycles, which the tool marks as ideal.</p>
+      <p><strong>Why 90 minutes?</strong> It's the common average length of one full cycle. Real cycles vary, so treat the times as targets, not exact science.</p>
+      <p><strong>Going to bed now?</strong> Use go-to-bed mode with the current time to get suggested wake-up times.</p>
+      <p><strong>Does it count the time to fall asleep?</strong> Yes — about 15 minutes by default, which you can change.</p>
+      <p class="note">This is a general wellbeing aid, not medical advice. If you regularly struggle with sleep, talk to a doctor.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/sleep-calculator.js"></script>
+</body>
+</html>

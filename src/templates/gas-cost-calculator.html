@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Gas Cost Calculator — Trip Fuel Cost, Gallons Used &amp; Cost Per Mile</title>
+<meta name="description" content="Free gas cost calculator. Plan your trip fuel cost from distance, MPG, and gas price. See gallons used, cost per mile, round-trip totals, and split the cost between people. Live results, no signup.">
+<link rel="canonical" href="{{SITE_URL}}/gas-cost-calculator/">
+<meta property="og:title" content="Gas Cost Calculator">
+<meta property="og:description" content="Plan your trip fuel cost from distance, MPG, and gas price — gallons used, cost per mile, and split between people. Instant results in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Gas Cost Calculator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate trip fuel cost from distance, fuel efficiency (MPG), and gas price, with round-trip totals, gallons used, cost per mile, and per-person split."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I calculate the gas cost of a trip?","acceptedAnswer":{"@type":"Answer","text":"Divide the trip distance by your vehicle's miles per gallon (MPG) to get the gallons used, then multiply by the gas price per gallon. For example, 300 miles at 30 MPG uses 10 gallons, and at $3.50 per gallon that is $35.00."}},{"@type":"Question","name":"How many gallons of gas will my trip use?","acceptedAnswer":{"@type":"Answer","text":"Gallons used equals the distance driven divided by your fuel efficiency in MPG. A 300-mile trip in a car that gets 30 MPG uses 10 gallons. Turn on round trip to double the distance."}},{"@type":"Question","name":"What is cost per mile?","acceptedAnswer":{"@type":"Answer","text":"Cost per mile is the total fuel cost divided by the miles driven. It tells you how much fuel you spend for each mile. At $3.50 per gallon and 30 MPG, fuel costs about $0.117 per mile."}},{"@type":"Question","name":"How do I split gas money between people?","acceptedAnswer":{"@type":"Answer","text":"Turn on the split option and enter how many people are sharing the cost. The calculator divides the total fuel cost evenly so everyone pays the same share."}},{"@type":"Question","name":"How much does it cost to drive 100 miles?","acceptedAnswer":{"@type":"Answer","text":"Divide 100 by your MPG to get the gallons, then multiply by the gas price. At 25 MPG and $3.50 a gallon, 100 miles uses 4 gallons and costs about $14."}},{"@type":"Question","name":"What MPG number should I use — city or highway?","acceptedAnswer":{"@type":"Answer","text":"For a long road trip, the highway figure is closest. For mixed or stop-and-go driving, use the combined rating or your own real-world average from tracking miles against fill-ups, since city driving and a heavy load lower MPG."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Gas Cost Calculator</h1>
+    <p class="lede">Plan what fuel will cost for a trip. Enter the distance, your vehicle's MPG, and the price of gas to see the total cost, gallons used, and cost per mile. Results update as you type.</p>
+
+    <section class="calc" aria-label="Gas cost calculator">
+      <form id="gasForm" autocomplete="off" onsubmit="return false">
+        <div class="field inline">
+          <span><label for="distance">Trip distance (miles)</label><input id="distance" type="number" inputmode="decimal" step="any" min="0" value="300" placeholder="300"></span>
+          <span><label for="mpg">Fuel efficiency (MPG)</label><input id="mpg" type="number" inputmode="decimal" step="any" min="0" value="30" placeholder="30"></span>
+        </div>
+
+        <div class="field">
+          <label for="price">Gas price ($ per gallon)</label>
+          <input id="price" type="number" inputmode="decimal" step="any" min="0" value="3.50" placeholder="3.50">
+          <small class="muted-small">Prefilled with a neutral value — edit to your local price.</small>
+        </div>
+
+        <div class="field">
+          <label class="check"><input id="roundTrip" type="checkbox"> Round trip (there and back)</label>
+        </div>
+
+        <div class="field">
+          <label class="check"><input id="split" type="checkbox"> Split the cost between people</label>
+        </div>
+
+        <div class="field" id="peopleField" hidden>
+          <label for="people">Number of people</label>
+          <input id="people" type="number" inputmode="numeric" step="1" min="1" value="2" placeholder="2">
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="resultBig">—</p>
+        <p class="net-sub" id="resultSub"></p>
+        <div class="line" id="line1" hidden><span class="lbl">Fuel used</span><span id="line1v"></span></div>
+        <div class="line" id="line2" hidden><span class="lbl">Cost per mile</span><span id="line2v"></span></div>
+        <div class="line" id="line3" hidden><span class="lbl">Per person</span><span id="line3v"></span></div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the gas cost calculator</h2>
+      <p>Type in three numbers and the cost appears instantly — there's no button to press and nothing is sent anywhere.</p>
+      <p><strong>Trip distance.</strong> How far you're driving, in miles. If you're driving there and back, tick <em>Round trip</em> and enter the one-way distance — the calculator doubles it for you.</p>
+      <p><strong>Fuel efficiency (MPG).</strong> Your vehicle's miles per gallon. Use the rating on the window sticker, or your own average from past fill-ups for a more realistic number.</p>
+      <p><strong>Gas price.</strong> The price you pay per gallon. Prices change daily and vary by region, so this is left for you to fill in — edit it to whatever you're paying locally.</p>
+      <p><strong>Split between people.</strong> Carpooling? Tick <em>Split the cost</em> and enter how many people are chipping in to see each person's share.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common gas cost questions</h2>
+      <p><strong>How do I calculate the gas cost of a trip?</strong> Divide the distance by your MPG to get gallons used, then multiply by the price per gallon. For example, 300 miles at 30 MPG is 10 gallons, and at $3.50 a gallon that's $35.00.</p>
+      <p><strong>How many gallons will my trip use?</strong> Gallons used is distance divided by MPG. A 300-mile trip at 30 MPG uses 10 gallons. Turn on round trip to double the distance.</p>
+      <p><strong>What is cost per mile?</strong> It's the total fuel cost divided by miles driven — how much fuel you spend for each mile. At $3.50 a gallon and 30 MPG, that's about $0.117 per mile.</p>
+      <p><strong>How do I split gas money fairly?</strong> Tick <em>Split the cost</em> and enter the number of people. The total is divided evenly so everyone pays the same share.</p>
+      <p><strong>What MPG number should I use — city or highway?</strong> For a long road trip, the highway figure is closest. For mixed or stop-and-go driving, use the combined rating or, better still, your own real-world average from tracking miles against fill-ups. City driving and a heavy load both lower MPG, so a real number gives a more honest estimate than the sticker.</p>
+      <p><strong>How much does it cost to drive 100 miles?</strong> Divide 100 by your MPG to get the gallons, then multiply by the gas price. At 25 MPG and $3.50 a gallon, 100 miles uses 4 gallons and costs about $14. Plug your own numbers in above to get an exact figure for your car.</p>
+      <p><strong>Does an electric or hybrid car change this?</strong> This tool is built around gasoline and MPG, so it works for gas and most hybrids in gas mode. A fully electric car is measured in kWh and electricity rates instead of gallons, so the gallons-used and cost-per-mile figures here won't apply to an EV.</p>
+      <p class="note">This is a fuel-only estimate. It doesn't include tolls, parking, wear and tear, or differences in city versus highway mileage.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/gas-cost-calculator.js"></script>
+</body>
+</html>

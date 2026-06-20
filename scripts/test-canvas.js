@@ -1,6 +1,6 @@
 // test-canvas.js — unit tests for the pure canvas math (no DOM needed).
 import assert from 'node:assert/strict';
-import { coverScale, containScale, placement, qualityForTargetBytes, clamp } from '../src/engine/canvas-math.js';
+import { coverScale, containScale, placement, qualityForTargetBytes, clamp, resizeDimensions, formatBytes, kbToBytes, pdfPagePlacement, alphaBounds } from '../src/engine/canvas-math.js';
 
 let pass = 0;
 const t = (name, fn) => { fn(); pass++; console.log('ok  - ' + name); };
@@ -48,6 +48,135 @@ t('placement is resolution-independent (same transform scales)', () => {
   const big = placement(200, 200, 400, 400, 1.5, 0.5, 0.5);
   // offsets scale with box size; ratio offX/box equal
   approx(small.offX / 100, big.offX / 400);
+});
+
+t('resizeDimensions percent scales both sides', () => {
+  const r = resizeDimensions(800, 600, { mode: 'percent', percent: 50 });
+  assert.equal(r.width, 400);
+  assert.equal(r.height, 300);
+});
+
+t('resizeDimensions locked width drives height by ratio', () => {
+  const r = resizeDimensions(800, 600, { mode: 'pixels', w: 400, lock: true, edited: 'width' });
+  assert.equal(r.width, 400);
+  assert.equal(r.height, 300); // 400 / (800/600)
+});
+
+t('resizeDimensions locked height drives width by ratio', () => {
+  const r = resizeDimensions(800, 600, { mode: 'pixels', h: 300, lock: true, edited: 'height' });
+  assert.equal(r.width, 400);
+  assert.equal(r.height, 300);
+});
+
+t('resizeDimensions unlocked keeps both sides independent', () => {
+  const r = resizeDimensions(800, 600, { mode: 'pixels', w: 123, h: 456, lock: false });
+  assert.equal(r.width, 123);
+  assert.equal(r.height, 456);
+});
+
+t('resizeDimensions never returns below 1px', () => {
+  const r = resizeDimensions(800, 600, { mode: 'percent', percent: 0 });
+  assert.equal(r.width, 1);
+  assert.equal(r.height, 1);
+});
+
+t('pdfPagePlacement auto picks landscape for wide images', () => {
+  const p = pdfPagePlacement(2000, 1000, 595, 842, { orientation: 'auto', margin: 0 });
+  assert.equal(p.orientation, 'landscape');
+  assert.equal(p.pageW, 842); // long side becomes width
+  assert.equal(p.pageH, 595);
+});
+
+t('pdfPagePlacement auto picks portrait for tall/square images', () => {
+  const p = pdfPagePlacement(1000, 2000, 595, 842, { orientation: 'auto', margin: 0 });
+  assert.equal(p.orientation, 'portrait');
+  assert.equal(p.pageW, 595);
+  assert.equal(p.pageH, 842);
+});
+
+t('pdfPagePlacement forced orientation overrides aspect', () => {
+  const p = pdfPagePlacement(2000, 1000, 595, 842, { orientation: 'portrait', margin: 0 });
+  assert.equal(p.orientation, 'portrait');
+  assert.equal(p.pageW, 595);
+});
+
+t('pdfPagePlacement fits with margins and centers', () => {
+  const p = pdfPagePlacement(500, 500, 100, 200, { orientation: 'portrait', margin: 10 });
+  approx(p.w, 80);   // box 80x180 -> square fits to 80
+  approx(p.h, 80);
+  approx(p.x, 10);   // (100-80)/2
+  approx(p.y, 60);   // (200-80)/2
+});
+
+t('pdfPagePlacement clamps oversized margins (no inverted box)', () => {
+  const p = pdfPagePlacement(500, 500, 100, 100, { orientation: 'portrait', margin: 999 });
+  assert.ok(p.w >= 1 && p.h >= 1);
+});
+
+t('formatBytes scales units and handles edge cases', () => {
+  assert.equal(formatBytes(0), '0 B');
+  assert.equal(formatBytes(512), '512 B');
+  assert.equal(formatBytes(1024), '1.0 KB');
+  assert.equal(formatBytes(1536), '1.5 KB');
+  assert.equal(formatBytes(1024 * 1024), '1.0 MB');
+  assert.equal(formatBytes(-5), '0 B');
+  assert.equal(formatBytes(NaN), '0 B');
+});
+
+t('kbToBytes converts and rejects bad input', () => {
+  assert.equal(kbToBytes(100), 102400);
+  assert.equal(kbToBytes('200'), 204800);
+  assert.equal(kbToBytes(1.5), 1536);
+  assert.equal(kbToBytes(0), 0);
+  assert.equal(kbToBytes(-5), 0);
+  assert.equal(kbToBytes(''), 0);
+  assert.equal(kbToBytes('abc'), 0);
+});
+
+t('alphaBounds reports false for a fully transparent buffer', () => {
+  const w = 4, h = 4;
+  const data = new Uint8ClampedArray(w * h * 4); // all zero alpha
+  const b = alphaBounds(data, w, h);
+  assert.equal(b.found, false);
+  assert.equal(b.width, 0);
+  assert.equal(b.height, 0);
+});
+
+t('alphaBounds finds the tight box around inked pixels', () => {
+  const w = 5, h = 5;
+  const data = new Uint8ClampedArray(w * h * 4);
+  const ink = (x, y) => { data[(y * w + x) * 4 + 3] = 255; };
+  ink(1, 1); ink(3, 2); // box spans x[1..3], y[1..2]
+  const b = alphaBounds(data, w, h);
+  assert.equal(b.found, true);
+  assert.equal(b.left, 1);
+  assert.equal(b.top, 1);
+  assert.equal(b.right, 3);
+  assert.equal(b.bottom, 2);
+  assert.equal(b.width, 3);
+  assert.equal(b.height, 2);
+});
+
+t('alphaBounds honors the alpha threshold', () => {
+  const w = 3, h = 1;
+  const data = new Uint8ClampedArray(w * h * 4);
+  data[0 * 4 + 3] = 10;  // faint
+  data[2 * 4 + 3] = 200; // solid
+  const b = alphaBounds(data, w, h, 50); // ignore alpha <= 50
+  assert.equal(b.left, 2);
+  assert.equal(b.right, 2);
+  assert.equal(b.width, 1);
+});
+
+t('alphaBounds covers a single inked pixel as 1x1', () => {
+  const w = 3, h = 3;
+  const data = new Uint8ClampedArray(w * h * 4);
+  data[(1 * w + 1) * 4 + 3] = 255;
+  const b = alphaBounds(data, w, h);
+  assert.equal(b.width, 1);
+  assert.equal(b.height, 1);
+  assert.equal(b.left, 1);
+  assert.equal(b.top, 1);
 });
 
 t('qualityForTargetBytes finds size under target', async () => {
