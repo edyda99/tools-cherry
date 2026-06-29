@@ -174,6 +174,16 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 }
 .field .inline { display: flex; gap: 12px; }
 .field .inline > * { flex: 1; }
+/* On narrow phones, stack the side-by-side label+input pairs to full width so
+   they don't cramp/overflow. Only the input-pair wrappers (> span / > .field)
+   wrap to their own line; intentionally-horizontal children stay put — the tip
+   stepper buttons (.btn-secondary) keep their fixed width beside the input, and
+   inline unit chips (span.muted-small) stay beside their input. */
+@media (max-width: 480px) {
+  .field .inline { flex-wrap: wrap; }
+  .field .inline > span:not(.muted-small),
+  .field .inline > .field { flex: 1 1 100%; min-width: 0; }
+}
 .field .combo { display: flex; gap: 6px; }
 .field .combo input { flex: 1; min-width: 0; }
 .field .combo select { flex: 0 0 70px; padding-right: 28px; background-position: right 8px center; }
@@ -242,6 +252,12 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 .breakdown .legend .k-net { background: var(--accent); }
 .breakdown .legend .k-tax { background: #e0795b; }
 .breakdown .legend .k-ded { background: #6b8cce; }
+/* Stat-row lists: `.breakdown` used as a <ul> of <li><span class="lbl">label</span><span>value</span></li>
+   (average / fraction / sleep / tile). Without this, label+value rendered with no separator ("Count6"). */
+ul.breakdown { list-style: none; padding: 0; }
+.breakdown > li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 15.5px; }
+.breakdown > li:last-child { border-bottom: 0; }
+.breakdown > li .lbl { color: var(--muted); }
 
 /* ---- Buttons --------------------------------------------------------- */
 .btn-primary {
@@ -261,6 +277,7 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 .btn-secondary:hover { background: var(--surface-2); border-color: var(--muted); }
 .btn-secondary:focus-visible { box-shadow: var(--ring); }
 .muted-small { font-size: 12.5px; color: var(--muted); min-height: 14px; margin: 0 0 12px; }
+.muted-small.error { color: var(--danger); }
 
 /* ---- Unit toggle (imperial / metric) -------------------------------- */
 .unit-toggle { display: flex; gap: 8px; margin: 0 0 16px; }
@@ -401,11 +418,11 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 .item-row .rm { background: none; border: 0; color: var(--danger); cursor: pointer; font-size: 18px; line-height: 1; }
 .item-head { display: grid; grid-template-columns: 1fr 56px 80px 80px 28px; gap: 6px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
 
-.tc-row { display: grid; grid-template-columns: 1fr 110px 110px 64px 1fr 28px; gap: 6px; margin-bottom: 6px; align-items: center; }
+.tc-row { display: grid; grid-template-columns: 1fr 132px 132px 64px 1fr 28px; gap: 6px; margin-bottom: 6px; align-items: center; }
 .tc-row input { padding: 9px; font-size: 14px; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: 6px; width: 100%; }
 .tc-row .out { font-size: 13.5px; color: var(--text); font-variant-numeric: tabular-nums; text-align: right; padding-right: 4px; }
 .tc-row .rm { background: none; border: 0; color: var(--danger); cursor: pointer; font-size: 18px; line-height: 1; padding: 0; }
-.tc-head { display: grid; grid-template-columns: 1fr 110px 110px 64px 1fr 28px; gap: 6px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+.tc-head { display: grid; grid-template-columns: 1fr 132px 132px 64px 1fr 28px; gap: 6px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
 @media (max-width: 680px) {
   .tc-row, .tc-head { grid-template-columns: 1fr 1fr; }
   .tc-head { display: none; }
@@ -413,10 +430,14 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 }
 
 .gpa-row { display: grid; grid-template-columns: 1fr 84px 104px 64px 28px; gap: 6px; margin-bottom: 6px; align-items: center; }
-.gpa-row input, .gpa-row select { padding: 9px; font-size: 14px; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: 6px; width: 100%; }
+.gpa-row input, .gpa-row select { padding: 9px; font-size: 14px; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: 6px; width: 100%; min-width: 0; }
 .gpa-row select { appearance: none; -webkit-appearance: none; }
 .gpa-row .rm { background: none; border: 0; color: var(--danger); cursor: pointer; font-size: 18px; line-height: 1; padding: 0; }
 .gpa-head { display: grid; grid-template-columns: 1fr 84px 104px 64px 28px; gap: 6px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+/* Narrow phones: trim the fixed columns so the 5-input grade row fits 390px without overflow. */
+@media (max-width: 480px) {
+  .gpa-row, .gpa-head { grid-template-columns: 1fr 64px 72px 52px 24px; gap: 5px; }
+}
 
 .inv-preview { background: #fff; color: #1a1a1a; border-radius: var(--radius); padding: 24px; font-size: 13px; line-height: 1.45; box-shadow: var(--shadow-md); }
 .inv-preview h3 { margin: 0 0 2px; font-size: 20px; color: #111; }
@@ -488,6 +509,12 @@ footer.site a:hover { color: var(--text); }
 .cd-clock .seg { flex: 1; min-width: 64px; text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 6px; }
 .cd-clock .seg b { display: block; font-size: 28px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
 .cd-clock .seg span { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-top: 4px; }
+/* Scoped variant for age-calculator's "totals lived" strip: it feeds up-to-8-digit numbers
+   (minutes lived) into a component sized for the countdown-timer's 2-digit values. Shrink the
+   number + let cells flex to 0 so big totals wrap instead of clipping. Do NOT touch base .cd-clock
+   (shared with countdown-timer). */
+.cd-clock--totals .seg { min-width: 0; flex: 1 1 0; }
+.cd-clock--totals .seg b { font-size: 19px; overflow-wrap: anywhere; }
 
 /* Password generator -------------------------------------------------------- */
 .pw-output { display: flex; gap: 8px; align-items: stretch; }
@@ -594,3 +621,16 @@ footer.site a:hover { color: var(--text); }
 /* ---- Percentage calculator ------------------------------------------ */
 .field .inline > span.muted-small { flex: 0 0 auto; align-self: center; white-space: nowrap; margin: 0; min-height: 0; }
 .result-line { margin: 12px 0 0; font-size: 1.15rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* ---- State page differentiation blocks (payroll/bracket tables, facts, sources) ---- */
+.prose .data-table { width: 100%; border-collapse: collapse; margin: 12px 0 4px; font-size: 0.95rem; }
+.prose .data-table th, .prose .data-table td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border, #e5e7eb); font-variant-numeric: tabular-nums; }
+.prose .data-table thead th { background: var(--surface-2, #f6f8fa); font-weight: 600; }
+.prose .data-table tr:last-child td { border-bottom: 0; }
+.prose ul.facts { margin: 8px 0; padding-left: 20px; }
+.prose ul.facts li { margin: 6px 0; }
+.sources { margin: 20px 0; padding: 14px 16px; border: 1px solid var(--border, #e5e7eb); border-radius: 8px; background: var(--surface-2, #f9fafb); }
+.sources h2 { font-size: 1.05rem; margin: 0 0 4px; }
+.sources ul { margin: 6px 0 0; padding-left: 18px; column-gap: 24px; }
+.sources li { margin: 3px 0; font-size: 0.9rem; word-break: break-word; }
+.sources a { color: var(--muted, #6b7280); }

@@ -18,7 +18,7 @@ const $ = (id) => document.getElementById(id);
 
 // Format a number for display: thousands separators, sensible decimals, no
 // trailing-zero noise. Returns '' for non-finite input so the UI shows a dash.
-function fmt(n, maxFrac = 4) {
+function fmt(n, maxFrac = 2) {
   if (!Number.isFinite(n)) return '';
   return n.toLocaleString('en-US', { maximumFractionDigits: maxFrac });
 }

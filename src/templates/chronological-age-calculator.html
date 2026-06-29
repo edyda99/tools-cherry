@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Chronological Age Calculator — Years, Months &amp; Days (Test Scoring)</title>
+<meta name="description" content="Free chronological age calculator in years, months & days for WISC, WPPSI, Pearson & Brigance test scoring. Enter DOB and test date — runs in your browser.">
+<link rel="canonical" href="{{SITE_URL}}/chronological-age-calculator/">
+<meta property="og:title" content="Chronological Age Calculator — Years, Months &amp; Days">
+<meta property="og:description" content="Exact chronological age in years; months; days from a date of birth and a test date, using the standard test-scoring borrowing method for WISC, WPPSI, Pearson and Brigance norm tables.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Scoped extras — all reuse the shared theme vars. */
+  .ym-readout { font-size: clamp(28px, 7vw, 38px); font-weight: 800; letter-spacing: .02em; color: var(--text); font-variant-numeric: tabular-nums; margin: 2px 0 0; }
+  .ym-caption { color: var(--muted); font-size: 12.5px; text-transform: uppercase; letter-spacing: .08em; margin: 2px 0 18px; }
+  .round-field { display: flex; align-items: flex-start; gap: 9px; margin: 14px 0 0; font-size: 14.5px; }
+  .round-field input { margin-top: 2px; }
+  .round-box { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin: 14px 0 0; }
+  .round-box .ym-readout { font-size: 22px; margin: 0; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Chronological Age Calculator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate exact chronological age in years, months and days from a date of birth and a test date, using the standard test-scoring borrowing method used for WISC, WPPSI, Pearson and Brigance norm tables."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do you calculate chronological age for test scoring?","acceptedAnswer":{"@type":"Answer","text":"Write the test date over the date of birth as year, month and day columns and subtract each column. If the day result is negative, borrow one month and add the number of days in the calendar month before the test date. If the month result is then negative, borrow 12 months from the years. The result is the child's age in years, months and days — the method printed in WISC, WPPSI, Pearson and Brigance manuals."}},{"@type":"Question","name":"Why does test-scoring age sometimes differ by a day from a normal age calculator?","acceptedAnswer":{"@type":"Answer","text":"General age calculators count from the birth anniversary, while the test-scoring method subtracts the date columns and borrows the days from the month before the test date. In a few edge cases — usually near the end of months with different lengths — the two methods can differ by one day. Norm tables are built on the borrowing method, so that is what this calculator uses by default."}},{"@type":"Question","name":"Should I round chronological age to the nearest month?","acceptedAnswer":{"@type":"Answer","text":"Only if the specific test manual tells you to. Many cognitive and language tests look up norms by exact years and months, so a 15-or-more day remainder rounds the month up and anything under 15 days rounds down. This tool defaults to the exact years; months; days and offers an optional nearest-month rounding for manuals that require it. Always follow the manual you are scoring against."}},{"@type":"Question","name":"What date should I use as the test date?","acceptedAnswer":{"@type":"Answer","text":"Use the actual date the assessment was administered, not the day you are scoring it. If testing spanned more than one session, most manuals use the date of the first administration. The test date here defaults to today's date but you can change it to any administration date."}},{"@type":"Question","name":"Is this chronological age calculator accurate for WISC, WPPSI and Brigance?","acceptedAnswer":{"@type":"Answer","text":"Yes. It uses the column-subtraction borrowing method those manuals describe, including borrowing the real number of days in the preceding month so February (28 or 29 days) is handled correctly. Always double-check against your manual's worked example, since rounding rules and the test-date convention vary between instruments."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Chronological Age Calculator for Test Scoring</h1>
+    <p class="lede">Enter a date of birth and a test date to get the exact age in <strong>years, months and days</strong>. Results update as you type, and the test date defaults to today.</p>
+    <p class="note" style="margin-top:0;">Uses the standard test-scoring borrowing method behind the WISC, WPPSI, Pearson and Brigance norm tables, so the age matches the row you read in the manual.</p>
+
+    <p class="note"><strong>To find a test-scoring chronological age, subtract the date of birth from the test date column by column — year, month, day — borrowing days from the previous calendar month when the day column goes negative, then borrowing 12 months when the month column goes negative.</strong> For example, a child born 15 March 2000 tested on 23 June 2026 is 26 years; 3 months; 8 days. Norm tables write this in <strong>Y;M;D format</strong> — for instance <strong>9;04;07</strong> means 9 years, 4 months and 7 days.</p>
+
+    <section class="calc" aria-label="Chronological age calculator">
+      <form id="ageForm" autocomplete="off" onsubmit="return false">
+        <div class="field inline">
+          <span><label for="birthDate">Date of birth</label><input id="birthDate" type="date"></span>
+          <span><label for="testDate">Test / assessment date</label><input id="testDate" type="date"></span>
+        </div>
+
+        <label class="round-field" for="roundToggle">
+          <input id="roundToggle" type="checkbox">
+          <span>Also show age rounded to the nearest month (15+ days rounds up) — only if your test manual requires it.</span>
+        </label>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-sub" id="agePlaceholder">Pick a date of birth and a test date to see the chronological age.</p>
+        <p class="net-sub" id="ageMsg" role="alert" hidden></p>
+
+        <div id="ageResults" hidden>
+          <p class="net-big" id="ageBig">—</p>
+          <p class="net-sub" id="ageSub"></p>
+
+          <p class="ym-readout" id="ymReadout">—</p>
+          <p class="ym-caption">Years : Months (norm-table format)</p>
+
+          <div class="cd-clock cd-clock--totals" aria-label="Age totals">
+            <div class="seg"><b id="totMonths">0</b><span>Total months</span></div>
+            <div class="seg"><b id="totDays">0</b><span>Total days</span></div>
+          </div>
+
+          <div class="round-box" id="roundWrap" hidden>
+            <p class="ym-caption" style="margin-top:0">Rounded to nearest month</p>
+            <p class="ym-readout" id="roundedReadout">—</p>
+            <p class="cd-note" id="roundedNote" style="margin-bottom:0"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the chronological age calculator</h2>
+      <p>Pick the <strong>date of birth</strong> in the first box and the <strong>test / assessment date</strong> in the second. The chronological age appears instantly as years; months; days — there's no button to press and nothing is sent anywhere. The test date defaults to today, so for a session you're scoring right now you only need to set the birth date.</p>
+      <p>The headline uses the <strong>test-scoring method</strong>: the test date and birth date are subtracted column by column. When the day column would go negative, the calculator borrows one month and adds the real number of days in the calendar month <em>before</em> the test date — so February correctly contributes 28 or 29 days. When the month column would go negative, it borrows 12 months from the years. This is the exact procedure printed in the WISC-V, WPPSI-IV, Pearson and Brigance scoring manuals.</p>
+      <p>Below the headline you'll see the compact <strong>years : months</strong> readout most norm tables are indexed by, plus the <strong>total whole months</strong> and <strong>total days</strong> between the two dates. Tick the rounding box only if your specific manual asks you to round to the nearest month.</p>
+      <p class="note">Everything runs in your browser using your device's clock — the dates you enter are never uploaded. For everyday "how old am I" questions, use the general <a href="/age-calculator/">age calculator</a> instead; to add or subtract a span from any date, see the <a href="/date-calculator/">date calculator</a>, or count the exact gap between two dates with <a href="/days-between-dates/">days between dates</a>.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Why a test-scoring age can differ from a general age calculator</h2>
+      <p>A general <a href="/age-calculator/">age calculator</a> counts forward from the birth anniversary: full years, then leftover months, then the days since the last monthly anniversary. The test-scoring method instead subtracts the date columns and, when it borrows, uses the length of the month immediately before the <em>test</em> date. Most of the time the two agree, but near the end of months of different lengths they can land one day apart. That isn't an error — norm tables for instruments like the WISC and Brigance were standardised using the borrowing method, so matching it keeps your standard scores, scaled scores and age-equivalents lined up with the manual.</p>
+      <p><strong>Rounding to the nearest month.</strong> Many cognitive and language tests look up norms by exact years and months and ask you to round the day remainder: 15 (some manuals say 16) days or more bumps the month up, and fewer rounds it down. Other tests use exact age bands and want no rounding at all. Because the convention varies by instrument, this calculator shows exact years; months; days by default and only rounds when you tick the box — and you should always defer to the manual you're scoring against.</p>
+      <p><strong>The test date matters.</strong> Use the date the assessment was actually administered, not the day you sit down to score it. When testing spans more than one session, most manuals tell you to use the date of the first administration. A wrong test date shifts the age band and can change which norm row you read, so it's worth double-checking before you score.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common chronological age questions</h2>
+      <p><strong>How do you calculate chronological age for test scoring?</strong> Write the test date over the birth date as year, month and day columns and subtract each column, borrowing days from the previous calendar month and then 12 months from the years when a column goes negative. The result is the age in years, months and days.</p>
+      <p><strong>Why does it sometimes differ from a normal age calculator?</strong> General calculators count from the birth anniversary; the test-scoring method borrows days from the month before the test date, so the two can differ by a day in edge cases. Norm tables use the borrowing method, so that's the default here.</p>
+      <p><strong>Should I round to the nearest month?</strong> Only if your test manual says so. Typically 15 or more leftover days rounds the month up and fewer rounds down — but some tests use exact bands with no rounding. Follow the manual.</p>
+      <p><strong>Which date is the test date?</strong> The date the assessment was administered, not the scoring day. For multi-session testing, most manuals use the first administration date.</p>
+      <p><strong>Is it accurate for WISC, WPPSI, Pearson and Brigance?</strong> Yes — it uses the column-subtraction borrowing method those manuals describe, including the correct February day count. Always verify against your manual's worked example, since rounding and date conventions vary.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools. For norm-table scoring, always follow your test manual.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/chronological-age-calculator.js"></script>
+</body>
+</html>

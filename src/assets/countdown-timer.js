@@ -12,6 +12,7 @@ let endAt = 0;        // absolute deadline (ms epoch) while running
 let remaining = 0;    // ms left while paused / before start
 let running = false;
 let finished = false;
+let started = false;  // true once the timer has been Started at least once (since last reset/finish)
 let ticker = null;
 let muted = false;
 let audioCtx = null;  // created lazily on the first Start (a user gesture)
@@ -57,7 +58,7 @@ function render(ms) {
 }
 
 function setRunningUi(state) {
-  $('startBtn').textContent = state ? 'Pause' : (remaining > 0 && !finished ? 'Resume' : 'Start');
+  $('startBtn').textContent = state ? 'Pause' : (started && remaining > 0 && !finished ? 'Resume' : 'Start');
   $('cdReadout').classList.toggle('running', state);
 }
 
@@ -90,6 +91,7 @@ function startTimer() {
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   showDone(false);
   running = true;
+  started = true; // we've now been started at least once → a later pause shows "Resume"
   endAt = Date.now() + remaining;
   setRunningUi(true);
   clearInterval(ticker);
@@ -111,6 +113,7 @@ function pauseTimer() {
 function resetTimer() {
   running = false;
   finished = false;
+  started = false;
   clearInterval(ticker);
   remaining = 0;
   endAt = 0;
@@ -123,6 +126,7 @@ function resetTimer() {
 
 function finishTimer() {
   running = false;
+  started = false; // a finished timer starts fresh, not "Resume"
   clearInterval(ticker);
   remaining = 0;
   render(0);
@@ -148,6 +152,7 @@ function applyPreset(totalSeconds) {
   // Stop any current run and load the new duration without auto-starting.
   running = false;
   finished = false;
+  started = false; // a freshly loaded preset hasn't been started → "Start", not "Resume"
   clearInterval(ticker);
   showDone(false);
   remaining = parseDuration(h, m, s);
@@ -162,6 +167,7 @@ function onInputChange() {
   if (running) return; // editing while running has no effect until reset
   remaining = parseDuration($('inpH').value, $('inpM').value, $('inpS').value);
   finished = false;
+  started = false; // editing the duration before starting → "Start", not "Resume"
   showDone(false);
   setRunningUi(false);
   render(remaining);

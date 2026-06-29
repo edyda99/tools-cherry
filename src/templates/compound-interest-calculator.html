@@ -28,6 +28,7 @@
   <div class="wrap">
     <h1>Compound Interest Calculator</h1>
     <p class="lede">See how a starting balance and regular deposits grow over time. Enter your numbers and the future value, total deposits, and interest earned update as you type — with a year-by-year breakdown.</p>
+    <p class="note"><strong>Compound interest grows a starting amount by the formula principal × (1 + r/n)^(n×t), where r is the annual rate, n is how many times a year it compounds, and t is the number of years, plus any regular deposits earning interest from when they're added.</strong><br><span class="muted-small">In plain terms: your money earns interest, then that interest earns interest too, so the balance grows faster each year.</span> For example, $10,000 at 7% compounded monthly grows to about $40,000 in 20 years with no further deposits.</p>
 
     <section class="calc" aria-label="Compound interest calculator">
       <form id="compoundForm" autocomplete="off" onsubmit="return false">
@@ -37,7 +38,7 @@
         </div>
 
         <div class="field">
-          <label for="contribution">Regular deposit ($)</label>
+          <label for="contribution" id="contribLabel">Regular deposit ($ per month)</label>
           <input id="contribution" type="number" inputmode="decimal" step="any" min="0" value="100" placeholder="100">
         </div>
 
@@ -47,6 +48,7 @@
             <option value="12" selected>Monthly</option>
             <option value="1">Yearly</option>
           </select>
+          <small class="muted-small" style="display:block;margin:2px 0 6px">Sets how often you add your deposit <strong>and</strong> how often interest compounds. The deposit field above follows this.</small>
         </div>
 
         <div class="field">
@@ -103,6 +105,7 @@
       <p>Type in your <strong>starting amount</strong> — the money you already have saved or invested. Add a <strong>regular deposit</strong> if you plan to keep paying in, and choose whether you add it <strong>monthly or yearly</strong>. Enter the <strong>annual interest rate</strong> you expect and the number of <strong>years</strong> you'll leave it to grow. The future balance updates instantly — there's no button to press and nothing is sent anywhere.</p>
       <p>The big number is your <strong>projected balance</strong> at the end of the term. Below it you'll see how much came from your own deposits versus how much is <strong>interest earned</strong> on top — the part that compounding is doing for you.</p>
       <p><strong>Deposit timing (optional).</strong> Deposits added at the start of each period earn one extra period of interest, so the balance is slightly higher than adding them at the end. Most people use the end-of-period default.</p>
+      <p>For a quick mental estimate of how long an investment takes to double, use the <a href="/rule-of-72-calculator/">Rule of 72 calculator</a>.</p>
       <p class="note">Everything runs in your browser — the numbers you type are never uploaded. These figures are estimates based on a fixed rate, not financial advice; real returns vary.</p>
     </section>
 

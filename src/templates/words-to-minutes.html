@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Words to Minutes — Speech &amp; Speaking Time Calculator</title>
+<meta name="description" content="Free words-to-minutes calculator: turn a word count or pasted text into speaking time (minutes & seconds) plus silent reading time. For speeches & presentations.">
+<link rel="canonical" href="{{SITE_URL}}/words-to-minutes/">
+<meta property="og:title" content="Words to Minutes — Speech &amp; Speaking Time Calculator">
+<meta property="og:description" content="Turn a word count (or pasted text) into speaking time in minutes and seconds, plus silent reading time. For speeches, presentations, podcasts and videos.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Words to Minutes — Speech Time Calculator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Convert a word count or pasted text into speaking time in minutes and seconds at a chosen speaking pace, plus silent reading time at about 238 words per minute."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How many minutes is a given number of words when spoken?","acceptedAnswer":{"@type":"Answer","text":"Divide the word count by your speaking pace in words per minute. At an average conversational pace of about 130 words per minute, 1,000 words take roughly 7 minutes and 42 seconds to say aloud. Slower, deliberate delivery (about 110 wpm) takes longer; a brisk pace (about 160 wpm) is faster."}},{"@type":"Question","name":"How many words should a 5-minute speech be?","acceptedAnswer":{"@type":"Answer","text":"Multiply your speaking pace by the minutes. At about 130 words per minute, a 5-minute speech is roughly 650 words. Aim a little under so you have room for pauses, emphasis and audience reaction — most speakers run long, not short."}},{"@type":"Question","name":"What is a good speaking pace in words per minute?","acceptedAnswer":{"@type":"Answer","text":"Most comfortable presentation and conversational speech sits around 130 words per minute. Audiobooks and podcasts often run 150–160 wpm, while slow, emphatic delivery is closer to 110 wpm. This tool lets you pick Slow (110), Average (130) or Fast (160), or type your own pace."}},{"@type":"Question","name":"Why is reading time shorter than speaking time?","acceptedAnswer":{"@type":"Answer","text":"People read silently far faster than they speak. The average adult silent reading speed is about 238 words per minute, while comfortable speaking is around 130. That is why the same text takes much longer to say aloud than to read on the page, so this tool shows both."}},{"@type":"Question","name":"Is my text private?","acceptedAnswer":{"@type":"Answer","text":"Yes. Everything runs in your browser. The text you paste is only used to count words on your device — it is never uploaded or stored anywhere."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Words to Minutes — Speaking Time Calculator</h1>
+    <p class="lede">Turn a word count into speaking time. Enter how many words you have — or paste your text and let it count for you — pick a speaking pace, and the speaking time in minutes and seconds updates as you type, alongside the silent reading time.</p>
+
+    <p class="note"><strong>Speaking time = word count ÷ speaking pace (words per minute).</strong> At an average conversational pace of about 130 wpm, a 1,000-word speech takes roughly 7 minutes 42 seconds to say aloud, and a 5-minute speech is about 650 words. The same 1,000 words take only about 4 minutes 12 seconds to read silently, because the average adult silent reading speed is about 238 wpm.</p>
+
+    <section class="calc" aria-label="Words to minutes calculator">
+      <form id="w2mForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="text">Paste your text (optional)</label>
+          <textarea id="text" rows="6" placeholder="Paste your speech, script or notes here to count the words automatically…"></textarea>
+          <p class="muted-small" style="margin-top:6px">Pasting text fills the word count below for you. Prefer to type the number yourself? Skip this and use the field below.</p>
+        </div>
+
+        <div class="field">
+          <label for="wordCount">Word count</label>
+          <input id="wordCount" type="number" inputmode="numeric" step="1" min="0" placeholder="e.g. 500">
+        </div>
+
+        <div class="field">
+          <label for="wpm">Speaking pace (words per minute)</label>
+          <div class="presets" id="pacePresets" role="group" aria-label="Speaking pace presets">
+            <button type="button" class="btn-secondary" data-wpm="110" aria-pressed="false">Slow · 110</button>
+            <button type="button" class="btn-secondary" data-wpm="130" aria-pressed="true">Average · 130</button>
+            <button type="button" class="btn-secondary" data-wpm="160" aria-pressed="false">Fast · 160</button>
+          </div>
+          <div class="field inline" style="margin-top:10px;">
+            <span><label for="wpm">Custom pace (wpm)</label><input id="wpm" type="number" inputmode="numeric" step="5" min="1" value="130" placeholder="130"></span>
+          </div>
+          <p class="muted-small" style="margin-top:6px">Slow ≈ 110 wpm · Average/conversational ≈ 130 wpm · Fast ≈ 160 wpm. Type any value to use your own pace.</p>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="speakBig">—</p>
+        <p class="net-sub" id="speakSub"></p>
+        <div class="line" id="readLine" hidden><span class="lbl">Silent reading time</span><span class="val"></span></div>
+        <div class="line" id="wordsLine" hidden><span class="lbl">Word count</span><span class="val"></span></div>
+        <div class="line" id="paceLine" hidden><span class="lbl">Speaking pace</span><span class="val"></span></div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <div class="amort-summary" id="summaryBox" hidden>
+      <strong>Timing summary</strong>
+      <p id="summaryText" style="margin:6px 0 0;"></p>
+    </div>
+
+    <section class="prose">
+      <h2>How to use the words-to-minutes calculator</h2>
+      <p>You have two ways to set the word count, and only one is needed. Either <strong>paste your text</strong> into the box — your speech, script, blog post or notes — and the word count fills in automatically, or simply <strong>type the number of words</strong> straight into the count field. Whichever you use, the count field always shows the exact number being timed, so there is never any guesswork. Then choose a <strong>speaking pace</strong>: tap Slow, Average or Fast, or type your own words-per-minute value. Everything updates instantly and nothing is uploaded.</p>
+      <p><strong>Worked example.</strong> Suppose you have a 650-word talk and pick the Average pace (130 wpm). The calculator returns a speaking time of about <strong>5 minutes</strong> (5:00), which is why 650 words is the classic length for a five-minute speech. It also shows the silent reading time — about 2 minutes 44 seconds — because people read on the page roughly twice as fast as they speak aloud.</p>
+      <p>The big number is the <strong>speaking time</strong> in minutes and seconds, with a friendly "about X minutes" phrase beneath it. Below that you get the <strong>silent reading time</strong> at the average adult speed of about 238 words per minute, plus the exact word count and pace used, so you can check the figures at a glance.</p>
+      <p>Don't know your exact word count yet? The <a href="/word-counter/">word counter</a> tallies words, characters and reading time from any pasted text, then bring that number here. To rehearse against the clock, set a <a href="/countdown-timer/">countdown timer</a> for your slot, or generate filler copy to test a layout with the <a href="/lorem-ipsum-generator/">lorem ipsum generator</a>.</p>
+      <p class="note">Everything runs in your browser — the text you paste is only used to count words on your device and is never uploaded. These are estimates; real delivery varies with pauses, emphasis and audience.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Choosing the right speaking pace</h2>
+      <p>Speaking pace matters more than most people expect, because the same script can run a minute longer or shorter depending on delivery. A <strong>slow, deliberate pace of about 110 words per minute</strong> suits emotional or weighty material, ceremonies and audiences listening in a second language. An <strong>average conversational pace of about 130 words per minute</strong> is the safe default for most presentations, toasts and classroom talks. A <strong>fast, energetic pace of about 160 words per minute</strong> matches upbeat podcasts, sales pitches and audiobooks, where momentum keeps attention.</p>
+      <p>When you are timing a real speech, build in a buffer. Live delivery almost always runs longer than the raw word count suggests, because you pause for emphasis, breathe, react to laughter, and sometimes ad-lib. A good rule of thumb is to aim for a script that the calculator times at <strong>roughly 10% under</strong> your slot — a 10-minute slot is comfortable at around 8 to 9 minutes of computed speaking time. That margin keeps you from rushing the ending or getting cut off.</p>
+      <p><strong>Why reading time is so different.</strong> Silent reading is far faster than speech: the average adult reads prose at about 238 words per minute, nearly double a comfortable speaking pace. That gap is why a one-minute social video script is only around 130–160 words even though you could read those words in well under a minute. When you write for the ear rather than the eye, plan around speaking time, not reading time.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common speech-timing questions</h2>
+      <p><strong>How many words is a 1-minute speech?</strong> About 130 words at an average conversational pace — roughly 110 if you speak slowly, or 160 if you speak quickly. Adjust the pace field to match your own delivery.</p>
+      <p><strong>How long does it take to say 1,000 words?</strong> Around 7 minutes 42 seconds at 130 words per minute. Slower delivery (110 wpm) is closer to 9 minutes; a brisk 160 wpm brings it down to about 6 minutes 15 seconds.</p>
+      <p><strong>How many words is a 5-minute speech?</strong> About 650 words at 130 words per minute. Aim slightly under to leave room for pauses and audience reaction.</p>
+      <p><strong>Why does the tool show reading time too?</strong> So you can compare. People read silently at about 238 words per minute — far faster than they speak — so the same text takes much longer to deliver aloud than to read on the page.</p>
+      <p><strong>Is anything uploaded?</strong> No. The calculator is fully client-side; pasted text is only used to count words in your browser and is never sent anywhere.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools. Estimates only; real delivery time varies.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/words-to-minutes.js"></script>
+</body>
+</html>

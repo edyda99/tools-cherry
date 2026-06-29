@@ -4,7 +4,9 @@
 #
 # Builds: SNS topic + email sub + kill-switch Lambda (zip, python3.12) + IAM role
 #         + SNS→Lambda wiring + SNS topic policy for Budgets + a $1 COST budget
-#         with two ACTUAL notifications (>1% and >100%) both targeting the SNS topic.
+#         with two ACTUAL notifications (>1% and >100%) both targeting the SNS topic
+#         + a USAGE budget on Lambda GB-seconds that trips the kill-switch at 95%
+#         of the monthly free tier (stops the converter BEFORE any charge — $0 bill).
 #
 # When usage spikes (CloudWatch alarm, minutes) or charges appear (budget, slow),
 # an alert publishes to SNS, which (a) emails the owner and (b) invokes the
@@ -17,13 +19,12 @@ set -euo pipefail
 PROFILE="tools-berry"
 REGION="us-east-1"
 ACCOUNT_ID="560904638428"
-API_ID="rla8s1dk10"
-STAGE='$default'
 CONVERTER_FN="pdf-to-word"
 TOPIC_NAME="pdf-to-word-budget-alerts"
 KS_FN="pdf-to-word-budget-killswitch"
 KS_ROLE="pdf-to-word-killswitch-role"
 BUDGET_NAME="pdf-to-word-freetier-guard"
+USAGE_BUDGET_NAME="pdf-to-word-freetier-gbsec-guard"
 EMAIL="edydaherz@gmail.com"
 
 AWS="aws --profile $PROFILE --region $REGION"
@@ -174,8 +175,38 @@ $AWS cloudwatch put-metric-alarm --alarm-name "pdf-to-word-gbsec-15min" \
   --alarm-actions "$TOPIC_ARN" >/dev/null
 echo "    GB-seconds alarm set (>4000 / 15 min)"
 
+echo "==> [8] USAGE budget — free-tier GB-second guard (kill at 95% of 400k, before any charge)"
+# Cumulative monthly guard the rate alarms can't provide: tracks gross Lambda compute
+# (UsageType USE1-Lambda-GB-Second, us-east-1) against the 400,000 GB-sec/mo free tier
+# and fires the SAME SNS topic (-> email + kill-switch) at 95% = 380,000 GB-sec, i.e.
+# BEFORE the first cent of paid usage. Auto-resets monthly. Limit unit is "seconds"
+# (the GB-second usage type's reported unit). NOTE: a 95% trip is a HARD monthly stop —
+# usage stays >=95% until month rollover, so restore-service.sh will be re-killed at the
+# next budget eval; bring the server path back only after accepting paid use or by
+# temporarily raising/removing this budget. If a non-us-east-1 region is ever added,
+# extend CostFilters.UsageType with that region's "<PREFIX>-Lambda-GB-Second".
+UBUD=$(mktemp); UNOTIFS=$(mktemp)
+cat > "$UBUD" <<JSON
+{"BudgetName":"${USAGE_BUDGET_NAME}","BudgetLimit":{"Amount":"400000","Unit":"seconds"},"TimeUnit":"MONTHLY","BudgetType":"USAGE","CostFilters":{"UsageType":["USE1-Lambda-GB-Second"]}}
+JSON
+cat > "$UNOTIFS" <<JSON
+[
+ {"Notification":{"NotificationType":"ACTUAL","ComparisonOperator":"GREATER_THAN","Threshold":95.0,"ThresholdType":"PERCENTAGE"},
+  "Subscribers":[{"SubscriptionType":"SNS","Address":"${TOPIC_ARN}"}]}
+]
+JSON
+if $AWS budgets describe-budget --account-id "$ACCOUNT_ID" --budget-name "$USAGE_BUDGET_NAME" >/dev/null 2>&1; then
+  echo "    usage budget already exists (leaving as-is; delete it first to recreate)"
+else
+  $AWS budgets create-budget --account-id "$ACCOUNT_ID" \
+    --budget "file://$UBUD" --notifications-with-subscribers "file://$UNOTIFS" >/dev/null
+  echo "    usage budget created (kill at 95% of 400k GB-sec)"
+fi
+rm -f "$UBUD" "$UNOTIFS"
+
 echo
 echo "Done. Confirm the SNS email subscription via the link sent to $EMAIL."
-echo "Topic:       $TOPIC_ARN"
-echo "Kill-switch: $KS_ARN"
-echo "Budget:      $BUDGET_NAME"
+echo "Topic:        $TOPIC_ARN"
+echo "Kill-switch:  $KS_ARN"
+echo "Cost budget:  $BUDGET_NAME       (\$1/mo — auto-kills a penny into paid)"
+echo "Usage budget: $USAGE_BUDGET_NAME (95% of 400k GB-sec — kills before any charge)"

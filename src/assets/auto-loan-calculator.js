@@ -1,6 +1,6 @@
 // auto-loan-calculator.js — car loan / auto payment calculator, live results.
 // Pure math via the shared amortization engine. No deps, nothing uploaded.
-import { amortize } from '/assets/amortization.js';
+import { amortize, monthsToPayoff } from '/assets/amortization.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -46,10 +46,18 @@ function show(lineId, label, value) {
 function reset() {
   $('payBig').textContent = '—';
   $('paySub').textContent = '';
-  ['financedLine', 'salesTaxLine', 'totalInterestLine', 'totalPaidLine', 'summaryBox'].forEach((id) => {
+  ['financedLine', 'salesTaxLine', 'totalInterestLine', 'totalPaidLine', 'summaryBox',
+   'payoffBox', 'newPayoffLine', 'timeSavedLine', 'newInterestLine', 'interestSavedLine'].forEach((id) => {
     const el = $(id);
     if (el) el.hidden = true;
   });
+}
+
+function monthsToYM(totalMonths) {
+  const yrs = Math.floor(totalMonths / 12);
+  const mos = Math.round(totalMonths - yrs * 12);
+  if (yrs <= 0) return `${mos} month${mos === 1 ? '' : 's'}`;
+  return `${yrs} year${yrs === 1 ? '' : 's'}` + (mos > 0 ? ` ${mos} month${mos === 1 ? '' : 's'}` : '');
 }
 
 function calc() {
@@ -108,6 +116,30 @@ function calc() {
     ` By the time the loan is paid off you'll have paid ${money(r.totalInterest)} ` +
     `in interest, for ${money(r.totalPaid)} in total.`;
   $('summaryBox').hidden = false;
+
+  // Extra-payment payoff mode (optional). Pay (monthly payment + extra) until the
+  // loan clears, then compare payoff time and total interest to the standard term.
+  const extra = optVal('extra');
+  if (extra > 0 && ratePct >= 0) {
+    const accelPayment = r.monthlyPayment + extra;
+    const payoff = monthsToPayoff(financed, ratePct, accelPayment);
+    if (Number.isFinite(payoff.months) && payoff.months > 0 && payoff.months < term) {
+      const monthsSaved = term - payoff.months;
+      const interestSaved = r.totalInterest - payoff.totalInterest;
+      show('newPayoffLine', 'New payoff time', `${payoff.months} month${payoff.months === 1 ? '' : 's'} (${monthsToYM(payoff.months)})`);
+      show('timeSavedLine', 'Time shaved off payoff', monthsToYM(monthsSaved));
+      show('newInterestLine', 'Total interest with extra payment', money(payoff.totalInterest));
+      show('interestSavedLine', 'Interest saved', money(Math.max(0, interestSaved)));
+      $('payoffText').textContent =
+        `Paying ${money(accelPayment)} a month (${money(r.monthlyPayment)} + ${money(extra)} extra) clears the loan ` +
+        `in ${monthsToYM(payoff.months)} instead of ${monthsToYM(term)} — about ${monthsToYM(monthsSaved)} sooner — ` +
+        `and saves roughly ${money(Math.max(0, interestSaved))} in interest.`;
+      $('payoffBox').hidden = false;
+    } else if (Number.isFinite(payoff.months) && payoff.months >= term) {
+      $('payoffText').textContent = 'That extra amount is too small to change the payoff meaningfully — try a larger figure.';
+      $('payoffBox').hidden = false;
+    }
+  }
 }
 
 function setTerm(months) {

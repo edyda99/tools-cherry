@@ -28,6 +28,7 @@
   <div class="wrap">
     <h1>US Inflation Calculator</h1>
     <p class="lede">See what a dollar amount from one year is worth in another. Enter an amount, pick the years, and get the equivalent value plus how much prices changed — using official US inflation data. Results update as you type.</p>
+    <p class="note"><strong>To adjust for inflation, multiply the original amount by the ratio of the two years' Consumer Price Index values: value = amount × (CPI_new ÷ CPI_old).</strong><br><span class="muted-small">CPI (Consumer Price Index) is the official measure of average prices over time.</span> For example, $100 in 2000 has roughly the buying power of $183 in 2024, because US prices rose about 83% over that span.</p>
 
     <section class="calc" aria-label="US inflation calculator">
       <form id="inflForm" autocomplete="off" onsubmit="return false">
@@ -55,7 +56,7 @@
         <p class="net-sub" id="resultSub"></p>
         <div class="line" id="line1" hidden><span class="lbl">Total price change</span><span class="v"></span></div>
         <div class="line" id="line2" hidden><span class="lbl">Average inflation per year</span><span class="v"></span></div>
-        <div class="line" id="line3" hidden><span class="lbl">Cumulative multiplier</span><span class="v"></span></div>
+        <div class="line" id="line3" hidden><span class="lbl">Cumulative multiplier <small class="muted-small">(how many times prices grew)</small></span><span class="v"></span></div>
       </div>
       <p class="note" id="sourceNote">Data: U.S. BLS CPI-U annual averages (1982-84=100), through <span id="rangeNote">—</span>. Estimates for general reference only.</p>
     </section>

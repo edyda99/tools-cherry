@@ -1,0 +1,16 @@
+{
+  "generated_utc": "2026-06-28 06:03:13",
+  "window_days": 30,
+  "total_conversions": 2,
+  "over_cap": 1,
+  "over_cap_rate_pct": 50.0,
+  "out_p50_mb": 0.04,
+  "out_p90_mb": 4.86,
+  "out_max_mb": 4.86,
+  "by_day": {
+    "2026-06-20": {
+      "total": 2,
+      "over": 1
+    }
+  }
+}

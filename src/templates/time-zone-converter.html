@@ -28,6 +28,7 @@
   <div class="wrap">
     <h1>Time Zone Converter</h1>
     <p class="lede">Pick a date and time, choose the zone it is in and the zone you want it in, and see the converted local time instantly. Daylight saving is handled for you, and the result flags any change of day. Nothing is uploaded — it all runs in your browser.</p>
+    <p class="note"><strong>To convert a time between zones, pick the date and time, choose the From zone it's in and the To zone you want, and the converted local time, each zone's UTC offset, and the difference between them appear instantly.</strong> Daylight saving is applied automatically for the exact date you pick, and the result flags when the answer lands on a different day.</p>
 
     <section class="calc" aria-label="Time zone converter">
       <form id="tzForm" autocomplete="off" onsubmit="return false">
@@ -61,6 +62,7 @@
           <div class="line"><span class="lbl"><span id="toName">—</span> <small id="toOffset"></small></span><span><b id="toTime">—</b></span></div>
           <div class="line"><span class="lbl">&nbsp;</span><span id="toDate" class="net-sub"></span></div>
           <p class="net-sub" id="diff"></p>
+          <p class="muted-small">UTC is the global reference clock; an offset like UTC+05:30 means that zone is 5h30 ahead of it.</p>
         </div>
       </div>
     </section>

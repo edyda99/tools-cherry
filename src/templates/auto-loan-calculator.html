@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Auto Loan Calculator — Car Payment, Total Interest &amp; Amount Financed</title>
-<meta name="description" content="Free auto loan calculator. Enter vehicle price, down payment, trade-in, sales tax, interest rate, and loan term to see your monthly car payment, total paid, total interest, and amount financed. Live results, no signup.">
+<title>Auto Loan Payoff Calculator — Car Payment, Interest Saved &amp; Payoff Time</title>
+<meta name="description" content="Free auto loan & car payoff calculator. Enter vehicle price, down payment, trade-in, sales tax, interest rate, and loan term to see your monthly car payment, total interest, and amount financed — then add an extra monthly payment to see how much faster you pay off the loan and how much interest you save. Live results, no signup.">
 <link rel="canonical" href="{{SITE_URL}}/auto-loan-calculator/">
-<meta property="og:title" content="Auto Loan / Car Payment Calculator">
-<meta property="og:description" content="Work out your monthly car payment, total interest, total cost, and amount financed — instant results in your browser.">
+<meta property="og:title" content="Auto Loan Payoff Calculator — Car Payment &amp; Interest Saved">
+<meta property="og:description" content="Work out your monthly car payment, total interest, and amount financed — and see how an extra monthly payment shortens your payoff and saves interest. Instant results in your browser.">
 <meta property="og:type" content="website">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
@@ -24,8 +24,8 @@
   .calc-summary { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
     padding: 18px 20px; margin: 18px 0; font-size: 15.5px; line-height: 1.55; }
 </style>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Auto Loan / Car Payment Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate your monthly car payment, total interest, total paid, and amount financed from vehicle price, down payment, trade-in, sales tax, interest rate, and loan term."}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How is a monthly car payment calculated?","acceptedAnswer":{"@type":"Answer","text":"Your payment is the amount you finance spread over the loan term using the interest rate. The amount financed is the vehicle price minus your down payment and trade-in, plus any sales tax. This calculator uses the standard amortization formula, so every payment is the same and gradually pays down the balance."}},{"@type":"Question","name":"How is sales tax handled?","acceptedAnswer":{"@type":"Answer","text":"If you enter a sales tax percentage, it is applied to the vehicle price minus your trade-in value, which is how most US states tax a car purchase. The tax is then added to the amount you finance. Rules vary by state, so treat this as an estimate."}},{"@type":"Question","name":"Does a shorter loan term cost less?","acceptedAnswer":{"@type":"Answer","text":"A shorter term (for example 36 months instead of 72) has a higher monthly payment but you pay interest for less time, so the total interest is lower. Try the term presets to compare 36, 48, 60, and 72 months."}},{"@type":"Question","name":"Should I take the manufacturer rebate or the 0% financing?","acceptedAnswer":{"@type":"Answer","text":"Many promotions make you choose one or the other. Run the loan once with the rebate subtracted from the price at your normal rate, then again at 0% with no rebate, and compare the total paid. A large cash rebate often beats 0% on a shorter loan, while 0% tends to win on longer terms."}},{"@type":"Question","name":"What does it mean to be upside down on a car loan?","acceptedAnswer":{"@type":"Answer","text":"You are upside down when you owe more than the car is worth, which is common early in a long loan because cars depreciate quickly. A bigger down payment and a shorter term reduce the time you spend underwater. It matters if you total the car or want to sell, since you would still owe the gap."}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Auto Loan Payoff Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate your monthly car payment, total interest, total paid, and amount financed, and see how an extra monthly payment shortens your auto loan payoff and saves interest."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How is a monthly car payment calculated?","acceptedAnswer":{"@type":"Answer","text":"Your payment is the amount you finance spread over the loan term using the interest rate. The amount financed is the vehicle price minus your down payment and trade-in, plus any sales tax. This calculator uses the standard amortization formula, so every payment is the same and gradually pays down the balance."}},{"@type":"Question","name":"How can I pay off my car loan faster?","acceptedAnswer":{"@type":"Answer","text":"Add an extra amount to each monthly payment and it goes straight to principal, so the balance falls faster and you pay interest for fewer months. Enter an extra monthly payment in this calculator to see exactly how many months you would shave off the payoff and how much interest you would save. Even a small extra amount makes a noticeable difference over the life of the loan."}},{"@type":"Question","name":"How is sales tax handled?","acceptedAnswer":{"@type":"Answer","text":"If you enter a sales tax percentage, it is applied to the vehicle price minus your trade-in value, which is how most US states tax a car purchase. The tax is then added to the amount you finance. Rules vary by state, so treat this as an estimate."}},{"@type":"Question","name":"Does a shorter loan term cost less?","acceptedAnswer":{"@type":"Answer","text":"A shorter term (for example 36 months instead of 72) has a higher monthly payment but you pay interest for less time, so the total interest is lower. Try the term presets to compare 36, 48, 60, and 72 months."}},{"@type":"Question","name":"Should I take the manufacturer rebate or the 0% financing?","acceptedAnswer":{"@type":"Answer","text":"Many promotions make you choose one or the other. Run the loan once with the rebate subtracted from the price at your normal rate, then again at 0% with no rebate, and compare the total paid. A large cash rebate often beats 0% on a shorter loan, while 0% tends to win on longer terms."}},{"@type":"Question","name":"What does it mean to be upside down on a car loan?","acceptedAnswer":{"@type":"Answer","text":"You are upside down when you owe more than the car is worth, which is common early in a long loan because cars depreciate quickly. A bigger down payment and a shorter term reduce the time you spend underwater. It matters if you total the car or want to sell, since you would still owe the gap."}}]}</script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -38,8 +38,10 @@
 
 <main id="main">
   <div class="wrap">
-    <h1>Auto Loan / Car Payment Calculator</h1>
-    <p class="lede">Enter the vehicle price, your down payment, and the interest rate and loan term to see your monthly car payment, total interest, total cost, and the amount you'd finance. Add a trade-in and sales tax for a fuller picture. Results update as you type.</p>
+    <h1>Auto Loan Payoff Calculator</h1>
+    <p class="lede">Enter the vehicle price, your down payment, and the interest rate and loan term to see your monthly car payment, total interest, total cost, and the amount you'd finance. Add an <strong>extra monthly payment</strong> to see how much faster you'd pay the loan off and how much interest you'd save. Results update as you type.</p>
+
+    <p class="note"><strong>Your monthly car payment is the amount financed — vehicle price minus down payment and trade-in, plus any sales tax — spread over the loan term at your interest rate.</strong> Adding an extra amount each month goes straight to principal, shortening the loan and cutting the total interest you pay.</p>
 
     <section class="calc" aria-label="Auto loan calculator">
       <form id="autoLoanForm" autocomplete="off" onsubmit="return false">
@@ -55,6 +57,7 @@
           <span><label for="taxPct">Sales tax (%, optional)</label><input id="taxPct" type="number" inputmode="decimal" step="any" min="0" value="" placeholder="e.g. 6"></span>
           <span><label for="rate">Interest rate (% per year)</label><input id="rate" type="number" inputmode="decimal" step="any" min="0" value="7.5" placeholder="7.5"></span>
         </div>
+        <p class="muted-small" style="margin-top:6px">Interest rate (APR) is the yearly rate your lender quoted.</p>
         <div class="field">
           <label for="term">Loan term (months)</label>
           <input id="term" type="number" inputmode="numeric" step="1" min="1" value="60" placeholder="60">
@@ -66,12 +69,17 @@
           </div>
           <p class="term-hint">Tap a preset or type any number of months.</p>
         </div>
+        <div class="field">
+          <label for="extra">Extra monthly payment ($, optional)</label>
+          <input id="extra" type="number" inputmode="decimal" step="any" min="0" value="" placeholder="e.g. 100">
+          <p class="term-hint">Add an amount to each payment to see how much sooner the loan is paid off and how much interest you save.</p>
+        </div>
       </form>
 
       <div class="results" aria-live="polite">
         <p class="net-big" id="payBig">—</p>
         <p class="net-sub" id="paySub"></p>
-        <div class="line" id="financedLine" hidden><span class="lbl">Amount financed</span><span class="val"></span></div>
+        <div class="line" id="financedLine" hidden><span class="lbl">Amount financed <small class="muted-small">(what you actually borrow)</small></span><span class="val"></span></div>
         <div class="line" id="salesTaxLine" hidden><span class="lbl">Sales tax</span><span class="val"></span></div>
         <div class="line" id="totalInterestLine" hidden><span class="lbl">Total interest</span><span class="val"></span></div>
         <div class="line total" id="totalPaidLine" hidden><span class="lbl">Total paid over the loan</span><span class="val"></span></div>
@@ -85,12 +93,29 @@
       <p id="summaryText" style="margin:6px 0 0;"></p>
     </div>
 
+    <div class="calc-summary" id="payoffBox" hidden>
+      <strong>Extra payment — payoff &amp; interest saved</strong>
+      <div class="results" style="margin-top:8px">
+        <div class="line" id="newPayoffLine" hidden><span class="lbl">New payoff time</span><span class="val"></span></div>
+        <div class="line" id="timeSavedLine" hidden><span class="lbl">Time shaved off payoff</span><span class="val"></span></div>
+        <div class="line" id="newInterestLine" hidden><span class="lbl">Total interest with extra payment</span><span class="val"></span></div>
+        <div class="line total" id="interestSavedLine" hidden><span class="lbl">Interest saved</span><span class="val"></span></div>
+      </div>
+      <p id="payoffText" style="margin:8px 0 0;"></p>
+    </div>
+
     <section class="prose">
       <h2>How to use the auto loan calculator</h2>
       <p>Type in the <strong>vehicle price</strong> and your <strong>down payment</strong> — the cash you pay up front. If you're trading in an older car, add its <strong>trade-in value</strong>; it lowers both what you finance and, in most states, the sales tax you owe. Enter the <strong>interest rate (APR)</strong> your lender quoted and pick a <strong>loan term</strong> in months. The monthly payment and totals update instantly — there's no button to press and nothing is sent anywhere.</p>
       <p>The big number is your <strong>monthly payment</strong>. Below it you'll see the <strong>amount financed</strong> (what you actually borrow), the <strong>total interest</strong> over the life of the loan, and the <strong>total paid</strong>.</p>
       <p><strong>Sales tax (optional).</strong> Enter your state's sales tax rate to fold it into the loan. It's applied to the price after your trade-in, which is how most US states tax a car purchase. Tax rules vary by state, so treat the figure as an estimate.</p>
       <p class="note">Everything runs in your browser — the numbers you type are never uploaded. These figures are estimates, not financial advice.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Paying off your car loan early</h2>
+      <p>Enter an <strong>extra monthly payment</strong> and the calculator shows your <strong>new payoff time</strong>, how many months you shave off, and the <strong>interest you save</strong>. Every extra dollar goes straight to the principal, so the balance falls faster and interest is charged on a smaller amount each month afterward.</p>
+      <p>This is the simplest way to pay off a car loan early — there's no fee and no refinancing. Try a few amounts to find an extra payment that fits your budget and see how much it cuts the total cost of the loan.</p>
     </section>
 
     <div class="ad-slot" data-ad="incontent">Advertisement</div>

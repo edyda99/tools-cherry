@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Biweekly Mortgage Calculator — Interest Saved &amp; Years Off Your Payoff</title>
+<meta name="description" content="Free biweekly mortgage payment calculator. See how paying half your mortgage every two weeks (26 payments a year) versus monthly shaves years off your loan and saves interest. Enter home price, down payment, rate, and term. Live results, no signup.">
+<link rel="canonical" href="{{SITE_URL}}/biweekly-mortgage-calculator/">
+<meta property="og:title" content="Biweekly Mortgage Calculator — Interest Saved &amp; Faster Payoff">
+<meta property="og:description" content="Compare biweekly mortgage payments to standard monthly payments and see the interest saved and years shaved off your payoff. Free, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .calc-summary { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin: 18px 0; font-size: 15.5px; line-height: 1.55; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Biweekly Mortgage Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Compare biweekly mortgage payments (26 half-payments a year) to standard monthly payments and see the interest saved and the time shaved off your loan payoff."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do biweekly mortgage payments save money?","acceptedAnswer":{"@type":"Answer","text":"Instead of 12 monthly payments a year, you pay half a payment every two weeks. Because a year has 52 weeks, that is 26 half-payments — the equivalent of 13 monthly payments instead of 12. The extra payment goes straight to principal, so the balance falls faster, you pay interest on a smaller balance, and the loan is paid off years early."}},{"@type":"Question","name":"How much sooner will I pay off my mortgage?","acceptedAnswer":{"@type":"Answer","text":"On a typical 30-year mortgage, paying biweekly usually shortens the term by around four to six years and saves a meaningful amount of interest, depending on the rate and balance. Enter your own numbers above to see the exact time saved and interest saved for your loan."}},{"@type":"Question","name":"Is a biweekly payment just half the monthly payment?","acceptedAnswer":{"@type":"Answer","text":"Yes. The biweekly amount is half your normal monthly payment, paid every two weeks. Over a full year those 26 half-payments add up to one extra full monthly payment, which is what drives the faster payoff."}},{"@type":"Question","name":"Will my lender let me pay biweekly?","acceptedAnswer":{"@type":"Answer","text":"Many lenders offer a biweekly option, but some charge a setup fee for it. You can often get the same result yourself for free by making one extra monthly payment a year, or by adding one-twelfth of your payment to each monthly payment. Always confirm the extra goes toward principal."}},{"@type":"Question","name":"Are there downsides to paying biweekly?","acceptedAnswer":{"@type":"Answer","text":"You commit to paying more each year, so make sure the higher annual outlay fits your budget. If your loan has a prepayment penalty, check the terms first. For most borrowers the interest savings outweigh these concerns, but the extra money could also go to higher-interest debt or investments."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Biweekly Mortgage Calculator</h1>
+    <p class="lede">See how paying your mortgage biweekly — half a payment every two weeks, 26 payments a year — compares to standard monthly payments. The interest saved and the years shaved off your payoff update as you type.</p>
+
+    <p class="note"><strong>Paying half your mortgage every two weeks makes 26 half-payments a year — the equivalent of 13 monthly payments instead of 12.</strong> That one extra payment goes entirely to principal, so the balance falls faster, you're charged interest on a smaller amount, and a 30-year loan is typically paid off about four to six years early.</p>
+
+    <section class="calc" aria-label="Biweekly mortgage calculator">
+      <form id="biweeklyForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="price">Home price ($)</label>
+          <input id="price" type="number" inputmode="decimal" step="any" min="0" value="350000" placeholder="350000">
+        </div>
+        <div class="field">
+          <label for="down">Down payment ($)</label>
+          <input id="down" type="number" inputmode="decimal" step="any" min="0" value="70000" placeholder="70000">
+        </div>
+        <div class="field inline">
+          <span><label for="rate">Interest rate (% per year)</label><input id="rate" type="number" inputmode="decimal" step="any" min="0" value="6.5" placeholder="6.5"></span>
+          <span><label for="years">Loan term (years)</label><input id="years" type="number" inputmode="decimal" step="any" min="1" value="30" placeholder="30"></span>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="savedBig">—</p>
+        <p class="net-sub" id="savedSub"></p>
+        <div class="line" id="biwklyLine" hidden><span class="lbl">Biweekly payment (every 2 weeks)</span><span class="val"></span></div>
+        <div class="line" id="monthlyInterestLine" hidden><span class="lbl">Total interest — standard monthly</span><span class="val"></span></div>
+        <div class="line" id="biwklyInterestLine" hidden><span class="lbl">Total interest — biweekly</span><span class="val"></span></div>
+        <div class="line" id="payoffLine" hidden><span class="lbl">Time shaved off payoff</span><span class="val"></span></div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <div class="calc-summary" id="summaryBox" hidden>
+      <strong>Biweekly vs monthly summary</strong>
+      <p id="summaryText" style="margin:6px 0 0;"></p>
+    </div>
+
+    <section class="prose">
+      <h2>How to use the biweekly mortgage calculator</h2>
+      <p>Enter your <strong>home price</strong> and <strong>down payment</strong> — the difference is the loan amount. Add the <strong>interest rate</strong> and <strong>loan term</strong> in years. The calculator works out your normal monthly payment, then compares it to paying <strong>half that amount every two weeks</strong>. The interest saved and the time shaved off your payoff update instantly; nothing is sent anywhere.</p>
+      <p>Because there are 52 weeks in a year, 26 half-payments equal <strong>13 monthly payments</strong> instead of 12 — one extra payment a year, all of it going toward principal. That's what pays the loan off years early and cuts the total interest.</p>
+      <p><strong>Worked example.</strong> On a $280,000 loan at 6.5% over 30 years, the monthly payment is about $1,770. Paying $885 every two weeks adds up to roughly $23,000 in extra principal across the loan's life, paying it off around 5 years early and saving tens of thousands in interest. Enter your own figures above for the exact numbers.</p>
+      <p>Want the standard monthly figures, or to add property tax and insurance? Use the <a href="/mortgage-calculator/">mortgage calculator</a> for the full monthly-payment breakdown and amortization table.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded. These figures are estimates, not financial advice.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Why 26 half-payments beat 12 full ones</h2>
+      <p>The trick hinges on the calendar. There are 52 weeks in a year, so paying every two weeks means <strong>26 payments</strong>. Each is half your normal monthly amount, so 26 halves equal 13 full monthly payments. A standard monthly schedule is only 12. That 13th payment is the whole effect: it's pure extra principal, and because mortgage interest is charged on the remaining balance, every dollar that pays down principal early stops accruing interest for the entire rest of the loan.</p>
+      <p>The earlier in the loan you start, the bigger the saving — early payments on a mortgage are mostly interest, so chipping at the principal up front has an outsized effect on the total. The exact years and interest saved depend on your rate and balance, which is why the calculator runs both schedules against your real numbers instead of quoting a generic figure.</p>
+
+      <h3>You can get the same result for free</h3>
+      <p>Some lenders sell a "biweekly program" and charge a setup or per-payment fee for it. You usually don't need to pay for it. Two free ways to replicate the effect:</p>
+      <ul>
+        <li><strong>Add one-twelfth to each monthly payment.</strong> Over 12 months that's one extra full payment — the same as biweekly, with no schedule change.</li>
+        <li><strong>Make one extra full payment a year</strong>, for example with a bonus or tax refund, marked as principal-only.</li>
+      </ul>
+      <p>Whichever route you choose, confirm with your servicer that the extra is applied to <strong>principal</strong>, not held as a prepayment of next month's bill or applied to interest. And weigh it against the alternatives: if you carry higher-interest debt or have no emergency fund, those usually deserve the money first. Check your loan for a prepayment penalty before committing — most modern mortgages don't have one, but it's worth confirming.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common biweekly mortgage questions</h2>
+      <p><strong>Why does paying biweekly save interest?</strong> You make the equivalent of 13 monthly payments a year instead of 12. The extra payment reduces principal, so interest is charged on a smaller balance every period after that.</p>
+      <p><strong>How much time will it save?</strong> On a 30-year loan it's commonly four to six years, depending on the rate and balance. Enter your numbers to see the exact figure.</p>
+      <p><strong>Is the biweekly amount half my monthly payment?</strong> Yes — half the monthly payment, paid every two weeks.</p>
+      <p><strong>Do I need my lender to set this up?</strong> Not necessarily. You can replicate it for free by making one extra monthly payment a year, or adding one-twelfth to each payment — just confirm it's applied to principal.</p>
+      <p><strong>Any downsides?</strong> You pay more each year, so make sure it fits your budget, and check for any prepayment penalty. The savings usually outweigh these, but high-interest debt may deserve the money first.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools. Estimates only, not financial advice.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/biweekly-mortgage-calculator.js"></script>
+</body>
+</html>

@@ -28,6 +28,7 @@
   <div class="wrap">
     <h1>GPA Calculator</h1>
     <p class="lede">Add each course with its letter grade and credit hours to get your weighted grade point average on the standard US 4.0 scale. Results update as you type — nothing is uploaded.</p>
+    <p class="note"><strong>GPA = total quality points ÷ total credit hours, where each course's quality points are its grade-point value (A=4.0, B=3.0, C=2.0, D=1.0, F=0) times its credit hours.</strong> Example: an A in a 3-credit course and a B in a 1-credit course give (4.0×3 + 3.0×1) ÷ 4 = 3.75; add each course's grade and credits to see your weighted average.</p>
 
     <section class="calc" aria-label="GPA calculator">
       <form id="gpaForm" autocomplete="off" onsubmit="return false">
@@ -41,7 +42,7 @@
         <p class="net-sub" id="gpaSub">Add at least one course with credit hours.</p>
         <div class="line"><span class="lbl">Weighted GPA</span><span id="weightedGpa">—</span></div>
         <div class="line"><span class="lbl">Total credit hours</span><span id="totalCredits">0</span></div>
-        <div class="line"><span class="lbl">Total quality points</span><span id="qualityPoints">0</span></div>
+        <div class="line"><span class="lbl">Total quality points <small class="muted-small">(grade value × credits, summed)</small></span><span id="qualityPoints">0</span></div>
         <p class="muted-small" id="weightedNote" hidden>Weighted GPA adds the typical bump for course difficulty (Honors +0.5, AP/IB +1.0). Schools vary — check yours.</p>
       </div>
     </section>
@@ -60,6 +61,7 @@
         <li>Divide that total by your total credit hours.</li>
       </ol>
       <p>For example, an A (4.0) in a 3-credit course and a B (3.0) in another 3-credit course give 12 + 9 = 21 quality points over 6 credit hours, for a GPA of 3.50. A course worth more credit hours pulls your average toward its grade more strongly than a smaller course.</p>
+      <p>Grading a single test rather than a whole transcript? The <a href="/ez-grader/">EZ grader</a> turns a question count and number wrong into a percentage score and letter grade, with a printable chart.</p>
     </section>
 
     <div class="ad-slot" data-ad="incontent">Advertisement</div>

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Markdown to HTML Converter — Live Preview &amp; Copyable HTML Source</title>
+<meta name="description" content="Free Markdown to HTML converter. Type or paste Markdown and see the rendered HTML preview live, then copy the clean HTML source or download it as an .html file. No signup — everything runs in your browser.">
+<link rel="canonical" href="{{SITE_URL}}/markdown-to-html/">
+<meta property="og:title" content="Markdown to HTML Converter">
+<meta property="og:description" content="Turn Markdown into HTML with a live two-pane preview, copy the HTML source, or download an .html file. Free and fully client-side.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Scoped two-pane layout — uses the shared theme vars. */
+  /* This tool is a full-width editor, not the left-inputs / right-results calc grid,
+     so override .calc's 2-column grid (otherwise input|preview and the HTML source
+     get split into three cramped columns). */
+  .calc { display: block; }
+  .md-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: stretch; }
+  @media (max-width: 720px) { .md-grid { grid-template-columns: 1fr; } }
+  .md-pane { display: flex; flex-direction: column; min-width: 0; }
+  .md-pane > label { font-size: 13.5px; font-weight: 600; color: var(--muted); margin-bottom: 7px; }
+  #mdInput { width: 100%; min-height: 340px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; line-height: 1.5; padding: 12px; box-sizing: border-box; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); }
+  #preview { min-height: 340px; overflow: auto; padding: 12px 14px; box-sizing: border-box; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); }
+  #preview > :first-child { margin-top: 0; }
+  #preview img { max-width: 100%; height: auto; }
+  #preview pre { overflow-x: auto; background: var(--surface-2); padding: 10px 12px; border-radius: var(--radius); }
+  #preview code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13.5px; }
+  #preview table { border-collapse: collapse; }
+  #preview th, #preview td { border: 1px solid var(--border); padding: 6px 10px; }
+  #preview blockquote { border-left: 3px solid var(--border); margin: 0 0 12px; padding: 2px 0 2px 14px; color: var(--muted); }
+  .md-source-wrap { margin-top: 16px; }
+  .md-source-wrap > label { display:block; font-size: 13.5px; font-weight: 600; color: var(--muted); margin-bottom: 7px; }
+  #htmlSource { width: 100%; min-height: 160px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13.5px; line-height: 1.5; padding: 12px; box-sizing: border-box; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); }
+  .md-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .md-actions .btn-primary, .md-actions .btn-secondary { width: auto; flex: 0 0 auto; padding: 0 18px; }
+  .md-actions .btn-primary.copied { background: var(--accent); }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Markdown to HTML Converter","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Convert Markdown to HTML with a live preview, copy the HTML source, or download an .html file — entirely in your browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What does this Markdown to HTML converter do?","acceptedAnswer":{"@type":"Answer","text":"You type or paste Markdown on the left and instantly see the rendered HTML preview on the right. You can then copy the clean HTML source or download it as a complete .html file. It supports headings, bold and italic, lists, links, images, code blocks, blockquotes, and GitHub-flavored tables."}},{"@type":"Question","name":"Is my Markdown uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. The conversion happens entirely in your browser using a Markdown library loaded with the page. Nothing you type is ever sent to a server, so you can safely convert private notes and documents."}},{"@type":"Question","name":"Does it support GitHub-flavored Markdown and tables?","acceptedAnswer":{"@type":"Answer","text":"Yes. It uses GitHub-flavored Markdown, so pipe tables, fenced code blocks, and task lists all render. Headings, links, images, blockquotes, and inline code work too."}},{"@type":"Question","name":"Is the generated HTML safe to paste into my site?","acceptedAnswer":{"@type":"Answer","text":"The converter strips script tags, inline event handlers, and javascript: links from the output, so the HTML it produces is clean body markup you can paste into a page or CMS. It outputs the inner HTML without a full document wrapper, while the download option wraps it in a complete HTML page."}},{"@type":"Question","name":"Can I download the result as an HTML file?","acceptedAnswer":{"@type":"Answer","text":"Yes. The Download .html button saves a complete, standalone HTML document containing your converted content, ready to open in any browser or upload to a web server."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Markdown to HTML Converter</h1>
+    <p class="lede">Type or paste Markdown on the left and see the rendered HTML on the right, live. Then copy the clean HTML source or download it as an .html file. Everything runs in your browser — nothing is uploaded.</p>
+
+    <p class="note"><strong>This tool converts Markdown into HTML in your browser: paste Markdown on the left, copy the rendered HTML source on the right.</strong> It supports GitHub-flavored Markdown — headings, bold and italic, lists, links, images, tables, blockquotes, and fenced code blocks — and strips script tags and unsafe links from the output.</p>
+
+    <div class="calc">
+      <div class="md-grid">
+        <div class="md-pane">
+          <label for="mdInput">Markdown input</label>
+          <textarea id="mdInput" spellcheck="false" aria-label="Markdown input"># Hello, world
+
+Type **Markdown** on the left and the _HTML_ appears on the right.
+
+- Lists work
+- So do [links](https://example.com)
+
+| Feature | Supported |
+| ------- | --------- |
+| Tables  | Yes       |
+| Code    | Yes       |
+
+```
+const x = 42;
+```
+
+> Blockquotes too.</textarea>
+        </div>
+        <div class="md-pane">
+          <label for="preview">Rendered preview</label>
+          <div id="preview" aria-live="polite" aria-label="Rendered HTML preview"></div>
+        </div>
+      </div>
+
+      <div class="md-source-wrap">
+        <label for="htmlSource">HTML source</label>
+        <textarea id="htmlSource" spellcheck="false" readonly aria-label="HTML source output"></textarea>
+        <div class="md-actions">
+          <button type="button" id="copyBtn" class="btn-primary">Copy HTML source</button>
+          <button type="button" id="dlBtn" class="btn-secondary">Download .html</button>
+        </div>
+        <p class="muted-small" id="copyStatus"></p>
+      </div>
+    </div>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the Markdown to HTML converter</h2>
+      <p>Paste or write your <strong>Markdown</strong> in the left pane. The <strong>rendered preview</strong> on the right updates as you type, so you can see exactly how headings, lists, links, images, tables, and code blocks will look. When you're happy, use <strong>Copy HTML source</strong> to grab the generated HTML, or <strong>Download .html</strong> to save it as a complete web page.</p>
+      <p>The converter supports <strong>GitHub-flavored Markdown</strong>: pipe tables, fenced code blocks, task lists, blockquotes, and inline formatting all work. The HTML it produces is clean body markup — script tags, inline event handlers, and <code>javascript:</code> links are stripped out — so it's safe to paste into a website, blog, or CMS.</p>
+      <p class="note">Everything runs in your browser — the text you type is never uploaded. Great for converting private notes, README files, and documentation without sending them anywhere.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Markdown to HTML: a quick example</h2>
+      <p>Markdown is a plain-text formatting syntax that maps cleanly onto HTML. You write readable shorthand and the converter expands it into tags. A few common conversions:</p>
+      <table>
+        <thead><tr><th>Markdown you type</th><th>HTML it produces</th></tr></thead>
+        <tbody>
+          <tr><td><code># Title</code></td><td><code>&lt;h1&gt;Title&lt;/h1&gt;</code></td></tr>
+          <tr><td><code>**bold**</code></td><td><code>&lt;strong&gt;bold&lt;/strong&gt;</code></td></tr>
+          <tr><td><code>[text](https://url)</code></td><td><code>&lt;a href="https://url"&gt;text&lt;/a&gt;</code></td></tr>
+          <tr><td><code>- item</code></td><td><code>&lt;ul&gt;&lt;li&gt;item&lt;/li&gt;&lt;/ul&gt;</code></td></tr>
+          <tr><td><code>`code`</code></td><td><code>&lt;code&gt;code&lt;/code&gt;</code></td></tr>
+        </tbody>
+      </table>
+      <p>So a heading line like <code># Release notes</code> becomes <code>&lt;h1&gt;Release notes&lt;/h1&gt;</code>, and the live preview shows it rendered exactly as a browser would display it. The HTML source pane gives you the same markup as text you can copy.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Why convert in the browser instead of pasting into a web tool</h2>
+      <p>Markdown often holds things you wouldn't want to send to someone else's server: unpublished release notes, internal docs, draft blog posts, or a README with private details. Most online converters upload your text to process it. This one doesn't — the Markdown library runs on the page, so your content stays on your device and nothing is logged or stored.</p>
+      <p>It also matters for the output. The HTML here is sanitized: <code>&lt;script&gt;</code> tags, inline <code>on*</code> event handlers, and <code>javascript:</code> links are removed, so you can paste the result into a CMS, email template, or static site without dragging in code that could misbehave. The conversion is deterministic too — the same Markdown always produces the same HTML, with no surprise reformatting.</p>
+      <p>Common uses: turning a GitHub README into HTML for a website, drafting formatted email or newsletter content, converting documentation for a help center, or just checking how a Markdown snippet will render before you publish it.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common Markdown to HTML questions</h2>
+      <p><strong>Is my Markdown private?</strong> Yes. Conversion happens entirely on your device using a Markdown library loaded with the page — nothing is sent to a server.</p>
+      <p><strong>Does it support tables and code blocks?</strong> Yes. It uses GitHub-flavored Markdown, so pipe tables, fenced code blocks, and task lists all render correctly.</p>
+      <p><strong>Is the output safe to paste into my site?</strong> The converter removes script tags, inline event handlers, and <code>javascript:</code> links, leaving clean HTML body markup.</p>
+      <p><strong>Can I download a full HTML file?</strong> Yes. The Download .html button wraps your content in a complete, standalone HTML document ready to open or upload.</p>
+      <p><strong>What Markdown features are supported?</strong> Headings, bold and italic, ordered and unordered lists, links, images, blockquotes, inline code, fenced code blocks, and tables.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script src="/assets/marked.min.js"></script>
+<script type="module" src="/assets/markdown-to-html.js"></script>
+</body>
+</html>

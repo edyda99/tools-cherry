@@ -19,16 +19,31 @@ const SITE = {
   adsensePublisherId: 'pub-4961606095434424' // ca-pub form is derived; drives the <head> loader + ads.txt
 };
 
-// Cloudflare Turnstile site key for the PDF->Word server-fallback widget (public).
-// Defaults to Cloudflare's "always passes" TEST key; set the real key via env for
-// production builds:  TURNSTILE_SITEKEY=0x... npm run build
-const TURNSTILE_SITEKEY = process.env.TURNSTILE_SITEKEY || '1x00000000000000000000AA';
+// Cloudflare Turnstile site key for the PDF->Word server-fallback widget. The site
+// key is PUBLIC, so it's safe to hardcode — and defaulting to the real one means a
+// build that forgets the env var still works (a forgotten env var was baking in the
+// "always passes" TEST key and breaking server-side verification). Override with the
+// test key for local dev only:  TURNSTILE_SITEKEY=1x00000000000000000000AA npm run build
+const TURNSTILE_SITEKEY = process.env.TURNSTILE_SITEKEY || '0x4AAAAAADn6GHCyPxsW8L3g';
 
 // AdSense site-verification / auto-ads loader, injected into every page's <head>.
 // Empty string when no publisher ID is set, so the build stays clean pre-AdSense.
 const ADSENSE_HEAD = SITE.adsensePublisherId
   ? `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-${SITE.adsensePublisherId}" crossorigin="anonymous"></script>\n`
   : '';
+
+// Build date (YYYY-MM-DD) — used for the sitemap's per-URL lastmod default.
+const BUILD_DATE = new Date().toISOString().slice(0, 10);
+
+// Content date — the last real site-content change, hand-bumped on deploys that
+// actually change page content. Used as the dateModified freshness signal in the
+// site-wide entity schema so AI/Google do NOT see every page "modified today" on
+// every rebuild (the always-today anti-pattern). Bump only when content changes.
+const CONTENT_DATE = '2026-06-28';
+
+// One-line description of the publisher entity, reused in the Organization node.
+const ORG_DESCRIPTION =
+  'Free, fast, privacy-friendly online calculators and converters that run entirely in your browser — nothing is uploaded.';
 
 // --- Canonical tool list (single source of truth) ----------------------------
 // Drives the "More free tools" cross-link block injected on every tool page.
@@ -65,9 +80,12 @@ const TOOLS = [
   { name: 'Holiday Countdown', path: '/holiday-countdown/' },
   { name: 'Countdown Timer', path: '/countdown-timer/' },
   { name: 'Mortgage Calculator', path: '/mortgage-calculator/' },
+  { name: 'Biweekly Mortgage Calculator', path: '/biweekly-mortgage-calculator/' },
   { name: 'Auto Loan Calculator', path: '/auto-loan-calculator/' },
   { name: 'Debt Payoff Calculator', path: '/debt-payoff-calculator/' },
   { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' },
+  { name: 'CAGR Calculator', path: '/cagr-calculator/' },
+  { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
   { name: '401(k) Retirement Calculator', path: '/401k-calculator/' },
   { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/' },
   { name: 'Inflation Calculator', path: '/inflation-calculator/' },
@@ -86,6 +104,7 @@ const TOOLS = [
   { name: 'Binary, Hex & Decimal Converter', path: '/base-converter/' },
   { name: 'Color Converter (HEX, RGB, HSL)', path: '/color-converter/' },
   { name: 'JSON Formatter & Validator', path: '/json-formatter/' },
+  { name: 'Markdown to HTML Converter', path: '/markdown-to-html/' },
   { name: 'UUID Generator', path: '/uuid-generator/' },
   { name: 'Random Number Generator', path: '/random-number-generator/' },
   { name: 'Text Diff Checker', path: '/diff-checker/' },
@@ -94,8 +113,95 @@ const TOOLS = [
   { name: 'Fraction Calculator', path: '/fraction-calculator/' },
   { name: 'Average Calculator (Mean, Median, Mode)', path: '/average-calculator/' },
   { name: 'Morse Code Translator', path: '/morse-code-translator/' },
+  { name: 'EZ Grader (Test Score Calculator)', path: '/ez-grader/' },
+  { name: 'Chronological Age Calculator', path: '/chronological-age-calculator/' },
+  { name: 'Debt Avalanche Calculator', path: '/debt-avalanche-calculator/' },
+  { name: 'Words to Minutes (Speech Time Calculator)', path: '/words-to-minutes/' },
+  { name: 'Double Time Pay Calculator', path: '/double-time-pay-calculator/' },
+  { name: 'Biweekly vs Semimonthly Paycheck Calculator', path: '/biweekly-vs-semimonthly/' },
+  { name: 'Half Birthday Calculator', path: '/half-birthday-calculator/' },
+  { name: 'Rule of 72 Calculator', path: '/rule-of-72-calculator/' },
   { name: 'Paycheck Calculators', path: '/#paycheck' }
 ];
+
+// One-line, plain-language descriptions per tool path, used to generate
+// /llms.txt (the llms.txt convention). Keyed by the same path as TOOLS, so
+// adding a tool above + a line here keeps llms.txt in sync. Any tool missing a
+// line falls back to its name, so the build never breaks on an omission.
+const TOOL_DESCRIPTIONS = {
+  '/resize-image/': 'Resize images to exact pixel dimensions or a percentage, in your browser.',
+  '/convert-image/': 'Convert images between PNG, JPG, and WebP without uploading them.',
+  '/compress-image/': 'Shrink image file size while controlling quality, fully client-side.',
+  '/crop-image-into-circle/': 'Crop any photo into a circle and export a transparent PNG.',
+  '/passport-photo-maker/': 'Create compliant passport and ID photos for many countries from one image.',
+  '/images-to-pdf/': 'Combine multiple images into a single PDF in your browser.',
+  '/pdf-to-word/': 'Convert a PDF into an editable Word (.docx) document.',
+  '/signature-maker/': 'Draw or type a signature and download it as a transparent PNG.',
+  '/percentage-calculator/': 'Work out percentages, percentage change, and percentage of a number.',
+  '/tip-calculator/': 'Calculate tips and split a bill evenly across any number of people.',
+  '/discount-calculator/': 'Find the sale price and amount saved for any percentage discount.',
+  '/paint-calculator/': 'Estimate how much paint you need for a room based on wall area and coats.',
+  '/tile-calculator/': 'Estimate the number of tiles and boxes needed to cover a floor or wall.',
+  '/sleep-calculator/': 'Find the best bedtimes or wake times based on 90-minute sleep cycles.',
+  '/cooking-converter/': 'Convert between cups, grams, ounces, and other cooking measurements.',
+  '/recipe-scaler/': 'Scale a recipe up or down and recalculate every ingredient amount.',
+  '/unit-converter/': 'Convert length, weight, temperature, volume, and more between units.',
+  '/bmi-calculator/': 'Calculate your Body Mass Index and see its weight category.',
+  '/calorie-calculator/': 'Estimate daily calorie needs from your age, sex, weight, and activity.',
+  '/ideal-weight-calculator/': 'Estimate a healthy weight range and macro targets for your height.',
+  '/pace-calculator/': 'Calculate running pace, time, or distance for any race or workout.',
+  '/due-date-calculator/': 'Estimate a pregnancy due date from the last period or conception date.',
+  '/ovulation-calculator/': 'Estimate your fertile window and ovulation date from your cycle.',
+  '/gpa-calculator/': 'Calculate weighted or unweighted GPA from your course grades and credits.',
+  '/age-calculator/': 'Find an exact age in years, months, and days from a birth date.',
+  '/days-between-dates/': 'Count the number of days, weeks, or months between two dates.',
+  '/date-calculator/': 'Add or subtract days, weeks, months, or years from any date.',
+  '/time-zone-converter/': 'Convert a time across multiple time zones at once.',
+  '/holiday-countdown/': 'See a live countdown to upcoming holidays and events.',
+  '/countdown-timer/': 'Set a custom countdown timer to any date and time.',
+  '/mortgage-calculator/': 'Estimate monthly mortgage payments, total interest, and amortization.',
+  '/biweekly-mortgage-calculator/': 'Compare biweekly versus monthly mortgage payments and payoff time.',
+  '/auto-loan-calculator/': 'Calculate a car loan payment, total interest, and amount financed.',
+  '/debt-payoff-calculator/': 'Plan a debt payoff using the snowball or avalanche method.',
+  '/compound-interest-calculator/': 'Project savings growth with compound interest and regular contributions.',
+  '/cagr-calculator/': 'Calculate the compound annual growth rate between two values.',
+  '/half-birthday-calculator/': 'Find your exact half birthday — the date six months from your birthday — plus a countdown.',
+  '/rule-of-72-calculator/': 'Estimate how long it takes an investment to double using the Rule of 72.',
+  '/words-to-minutes/': 'Convert a word count into speaking time at slow, average, or fast pace.',
+  '/double-time-pay-calculator/': 'Calculate double time pay, total earnings, and effective hourly rate.',
+  '/biweekly-vs-semimonthly/': 'Compare biweekly versus semimonthly paychecks for the same annual salary.',
+  '/ez-grader/': 'Grade tests fast — enter the number of questions to get a percentage and letter grade for every wrong-answer count.',
+  '/chronological-age-calculator/': 'Find an exact chronological age in years, months, and days between any two dates.',
+  '/debt-avalanche-calculator/': 'Plan a debt avalanche payoff that targets the highest-interest balance first to minimize total interest.',
+  '/1099-vs-w2-calculator/': 'Compare 1099 contractor versus W-2 employee take-home pay.',
+  '/401k-calculator/': 'Project 401(k) retirement balance from contributions, match, and growth.',
+  '/savings-goal-calculator/': 'Find how much to save each month to reach a savings goal.',
+  '/inflation-calculator/': 'See how the buying power of a US dollar changes over time.',
+  '/hours-calculator/': 'Add up worked hours from a time card, including breaks and overtime.',
+  '/salary-to-hourly/': 'Convert an annual salary to an hourly, weekly, or monthly rate.',
+  '/sales-tax-calculator/': 'Add or remove sales tax and find the pre-tax or after-tax price.',
+  '/gas-cost-calculator/': 'Estimate the fuel cost of a trip from distance, MPG, and gas price.',
+  '/fuel-economy-calculator/': 'Calculate fuel economy in MPG or L/100km and compare vehicles.',
+  '/qr-code-generator/': 'Create QR codes for links, WiFi, or contacts and download as PNG or SVG.',
+  '/password-generator/': 'Generate strong, random passwords with custom length and character sets.',
+  '/invoice-generator/': 'Create and download a professional PDF invoice in your browser.',
+  '/word-counter/': 'Count words, characters, sentences, and reading time in any text.',
+  '/lorem-ipsum-generator/': 'Generate placeholder Lorem Ipsum text by words, sentences, or paragraphs.',
+  '/text-case-converter/': 'Convert text between upper, lower, title, sentence, and other cases.',
+  '/roman-numeral-converter/': 'Convert numbers to Roman numerals and back.',
+  '/base-converter/': 'Convert numbers between binary, hexadecimal, decimal, and octal.',
+  '/color-converter/': 'Convert colors between HEX, RGB, and HSL formats.',
+  '/json-formatter/': 'Format, validate, and minify JSON in your browser.',
+  '/markdown-to-html/': 'Convert Markdown to clean HTML with a live preview.',
+  '/uuid-generator/': 'Generate random UUIDs (v4) one at a time or in bulk.',
+  '/random-number-generator/': 'Generate random numbers within a range, with or without repeats.',
+  '/diff-checker/': 'Compare two blocks of text and highlight the differences.',
+  '/base64-encode-decode/': 'Encode text to Base64 or decode Base64 back to text.',
+  '/aspect-ratio-calculator/': 'Solve for a missing width or height that keeps an aspect ratio.',
+  '/fraction-calculator/': 'Add, subtract, multiply, and divide fractions with simplified results.',
+  '/average-calculator/': 'Calculate the mean, median, and mode of a set of numbers.',
+  '/morse-code-translator/': 'Translate text to Morse code and Morse code back to text.'
+};
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -163,6 +269,85 @@ function injectSeo(html) {
   return html.replace('</head>', `${toInsert.join('\n')}\n</head>`);
 }
 
+// Site-wide entity schema. Injects ONE JSON-LD @graph (Organization + WebSite +
+// WebPage + BreadcrumbList) into every full page's <head>. This gives AI-search
+// engines (AI Overviews / Perplexity / ChatGPT) a citable publisher *entity* and a
+// breadcrumb trail — the gap that let pages rank without anything to cite. It
+// COMPLEMENTS, never replaces, the per-tool WebApplication + FAQPage blocks the
+// templates already carry (multiple JSON-LD blocks are valid; crawlers merge by @id).
+//
+// Derives everything from the page's own canonical URL + <title> (same source
+// injectSeo already trusts), so no per-page wiring is needed. Idempotent (skips if
+// already injected) and a no-op on fragments (no </head>).
+//
+// Deliberately NOT included (flagged for marketing verification):
+//  - Person/author node: the site has no publicly-named maintainer; a fabricated
+//    author entity is worse than none. Organization is the honest citable entity.
+//  - sameAs: omitted until real owned profile URLs (X/GitHub/Reddit) are supplied —
+//    inventing links would mislead entity resolution.
+function injectEntitySchema(html) {
+  if (!html.includes('</head>')) return html;
+  const orgId = `${SITE.url}/#organization`;
+  if (html.includes(`"@id":"${orgId}"`)) return html; // already injected
+
+  const canonMatch = html.match(/<link\s+rel=["']canonical["']\s+href=["']([\s\S]*?)["']\s*\/?>/i);
+  const titleMatch = html.match(/<title>([\s\S]*?)<\/title>/i);
+  const url = canonMatch ? canonMatch[1].trim() : `${SITE.url}/`;
+  // Titles are HTML-escaped (e.g. "Paycheck &amp; Payroll"); JSON-LD script text is
+  // NOT HTML-parsed, so decode the common entities back to literals before they
+  // enter the schema, or a consumer reads "&amp;" verbatim in the name.
+  const decodeHtml = (s) => s
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'");
+  const rawTitle = decodeHtml(titleMatch ? titleMatch[1].trim() : SITE.name);
+  // Clean breadcrumb leaf label: drop any " — tagline" / " | brand" suffix.
+  const pageName = rawTitle.split(/\s[—|]\s/)[0].trim();
+  const isHome = url === `${SITE.url}/` || url === SITE.url;
+  const siteId = `${SITE.url}/#website`;
+
+  const graph = [
+    {
+      '@type': 'Organization',
+      '@id': orgId,
+      name: SITE.name,
+      url: `${SITE.url}/`,
+      logo: { '@type': 'ImageObject', url: `${SITE.url}/favicon.svg` },
+      description: ORG_DESCRIPTION
+    },
+    {
+      '@type': 'WebSite',
+      '@id': siteId,
+      url: `${SITE.url}/`,
+      name: SITE.name,
+      publisher: { '@id': orgId }
+    },
+    {
+      '@type': 'WebPage',
+      '@id': `${url}#webpage`,
+      url,
+      name: rawTitle,
+      isPartOf: { '@id': siteId },
+      dateModified: CONTENT_DATE
+    }
+  ];
+
+  if (!isHome) {
+    const crumbId = `${url}#breadcrumb`;
+    graph[2].breadcrumb = { '@id': crumbId };
+    graph.push({
+      '@type': 'BreadcrumbList',
+      '@id': crumbId,
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE.url}/` },
+        { '@type': 'ListItem', position: 2, name: pageName, item: url }
+      ]
+    });
+  }
+
+  const block = `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@graph': graph })}</script>\n`;
+  return html.replace('</head>', `${block}</head>`);
+}
+
 function fill(tpl, map) {
   let out = tpl.replace(/{{(\w+)}}/g, (m, k) => (k in map ? map[k] : m));
   // Inject the AdSense loader into every full page (anything with a </head>).
@@ -170,6 +355,8 @@ function fill(tpl, map) {
   if (ADSENSE_HEAD && out.includes('</head>')) out = out.replace('</head>', `${ADSENSE_HEAD}</head>`);
   // Normalize/complete per-page SEO social tags (no-op on fragments).
   out = injectSeo(out);
+  // Inject the site-wide entity @graph (Organization/WebSite/WebPage/Breadcrumb).
+  out = injectEntitySchema(out);
   return out;
 }
 
@@ -248,6 +435,62 @@ function stateTaxFacts(state, year, taxData) {
     `${sdText}.${example}</p>`;
 }
 
+// Near-page-1 target states (06-28): the 5 with at least one query inside SERP
+// pos 30. Scoped on-page lifts (extractable tax-rate sentence, H1 vocab, a neutral
+// free-alternative line) land ONLY here — the rest of the catalog sits at pos 40+
+// where on-page tweaks yield nothing (the page-1-or-zero cliff).
+const TARGET_STATES = new Set(['pennsylvania', 'california', 'colorado', 'massachusetts', 'new-mexico']);
+
+// One extractable sentence stating the state's 2026 income-tax rate, derived from
+// the already-sourced tax data (never hardcoded). Serves the informational
+// "{state} income tax rate" query (PA ranks ~pos 9 for it) and the AI-answer format.
+function stateRateSentence(state, year) {
+  const t = state.tax;
+  if (!state.hasIncomeTax || !t) return '';
+  if (t.type === 'flat') return `${state.name}'s ${year} state income tax is a flat ${pctStr(t.rate)}.`;
+  const b = (t.brackets && t.brackets.single) || [];
+  if (!b.length) return '';
+  return `${state.name}'s ${year} state income tax is graduated, ranging from ${pctStr(b[0].rate)} to ${pctStr(b[b.length - 1].rate)}.`;
+}
+
+// Scoped vocab + one neutral positioning line for the target states only. Carries
+// the "salary after taxes" / "income tax calculator" query vocab and a single
+// neutral free-alternative sentence (competitor-brand queries surfaced for these).
+function targetIntro(state, year) {
+  if (!TARGET_STATES.has(state.slug)) return '';
+  return `<p class="note">Free ${state.name} salary-after-taxes and income tax calculator — a no-signup, in-browser alternative to paid tools like SmartAsset and ADP. Estimate your ${year} take-home pay for any salary, hourly rate, or pay frequency.</p>`;
+}
+
+// Extractable, plain-language direct-answer block for each state paycheck page.
+// Uses the real computed take-home for a representative $75,000 single-filer
+// salary, and omits the state-tax clause for no-income-tax states (mirrors the
+// existing hasIncomeTax handling). Highest-priority AI-SEO block: it answers the
+// page's core question in one sentence near the top.
+function stateAnswerBlock(state, year, taxData) {
+  let net = null;
+  try {
+    net = computePaycheck(
+      { wage: { type: 'salary', amount: 75000 }, filingStatus: 'single', payFrequency: 'annual', stateSlug: state.slug },
+      taxData
+    ).annual.net;
+  } catch (_) { return ''; }
+  if (!Number.isFinite(net)) return '';
+  const stateClause = state.hasIncomeTax ? `, and ${state.name} state income tax` : '';
+  const lead = pickFrame(state.slug, 'answer', [
+    `In ${state.name} for ${year}, a $75,000 salary takes home about ${usd0(net)} per year after federal income tax and FICA (Social Security and Medicare)${stateClause}.`,
+    `A $75,000 salary in ${state.name} nets roughly ${usd0(net)} a year in ${year}, once federal income tax, Social Security and Medicare${state.hasIncomeTax ? ` and ${state.name} state tax` : ''} are withheld.`,
+    `Earning $75,000 in ${state.name}? Your estimated ${year} take-home is about ${usd0(net)} after federal tax and FICA${stateClause}.`
+  ]);
+  const tail = pickFrame(state.slug, 'answertail', [
+    `Enter your own pay below to estimate your ${state.name} take-home pay for any salary or hourly wage.`,
+    `Use the calculator below for your own salary or hourly rate.`,
+    `Adjust the inputs below to see the breakdown for your own ${state.name} paycheck.`
+  ]);
+  const ratePrefix = TARGET_STATES.has(state.slug) ? stateRateSentence(state, year) : '';
+  const lead2 = ratePrefix ? `${ratePrefix} ${lead}` : lead;
+  return `<p class="note"><strong>${lead2}</strong> ${tail}</p>`;
+}
+
 // Genuinely state-specific facts for the no-income-tax states, so those pages
 // aren't a name-swapped template (scaled-content risk). Each is true for that
 // state and different from the others.
@@ -268,15 +511,20 @@ function stateBody(state, year, taxData) {
   const noTax = !state.hasIncomeTax;
   if (noTax) {
     const fact = NOTAX_FACTS[state.slug] ? ` ${NOTAX_FACTS[state.slug]}` : '';
-    return `<p>${state.name} is one of the U.S. states with <strong>no state income tax</strong>. ` +
-      `Your ${year} paycheck is reduced only by federal income tax withholding and FICA ` +
-      `(Social Security and Medicare) — there is no ${state.name} income tax line, so your take-home ` +
-      `pay is higher than in an otherwise-identical job in a state that taxes wages.${fact}</p>` +
+    const opener = pickFrame(state.slug, 'notax', [
+      `${state.name} is one of the U.S. states with <strong>no state income tax</strong>. Your ${year} paycheck is reduced only by federal income tax withholding and FICA (Social Security and Medicare) — there is no ${state.name} income tax line, so your take-home pay is higher than in an otherwise-identical job in a state that taxes wages.`,
+      `Because <strong>${state.name} levies no state income tax</strong>, the only deductions on your ${year} paycheck are federal withholding and FICA — no state line at all, which leaves more in your pocket than the same job in a taxing state.`,
+      `${state.name} workers pay <strong>no state income tax</strong> in ${year}. That means your paycheck loses only federal income tax and FICA (Social Security and Medicare), so take-home pay beats an equivalent salary in a wage-taxing state.`
+    ]);
+    const ficaClose = pickFrame(state.slug, 'fica', [
+      `Change your filing status, pay frequency, or switch between salary and hourly above to see how your take-home pay changes.`,
+      `Switch between salary and hourly or adjust your filing status above to refine the estimate.`,
+      `Enter your own salary or hourly rate above to see your full ${state.name} take-home breakdown.`
+    ]);
+    return `<p>${opener}${fact}</p>` +
       `<p>Federal withholding is estimated from the ${year} IRS tax brackets and the standard ` +
       `deduction for your filing status. FICA is 6.2% Social Security (up to the ${usd0(taxData.federal.fica.socialSecurity.wageBase)} ${year} wage base) ` +
-      `plus 1.45% Medicare on all wages, with an extra 0.9% on high earnings. Change your filing ` +
-      `status, pay frequency, or switch between salary and hourly above to see how your take-home ` +
-      `pay changes.</p>`;
+      `plus 1.45% Medicare on all wages, with an extra 0.9% on high earnings. ${ficaClose}</p>`;
   }
 
   const t = state.tax;
@@ -287,14 +535,23 @@ function stateBody(state, year, taxData) {
       ? `, applied after the state allowance/deduction for your filing status.`
       : ` on your wages, with no state standard deduction.`;
   } else {
-    how = `${state.name} taxes income on a graduated state schedule for ${year}, applied after the state deduction for your filing status.`;
+    how = pickFrame(state.slug, 'gradhow', [
+      `${state.name} taxes income on a graduated state schedule for ${year}, applied after the state deduction for your filing status.`,
+      `${state.name} uses graduated ${year} state income-tax brackets, so higher pay is taxed at higher marginal rates after the state deduction.`,
+      `Your ${state.name} state income tax for ${year} is figured on a graduated bracket schedule, layered on after the state deduction.`
+    ]);
   }
 
+  const closer = pickFrame(state.slug, 'closer', [
+    `Adjust your filing status, pay frequency, and gross wage above to update the breakdown.`,
+    `Change the salary, filing status or pay frequency above and the ${state.name} breakdown updates instantly.`,
+    `Enter your own pay and filing details above to see your ${state.name} take-home pay.`
+  ]);
   let body =
     `<p>${how} This calculator applies that on top of federal withholding and ` +
     `Social Security / Medicare to estimate your ${state.name} take-home pay.</p>` +
     stateTaxFacts(state, year, taxData) +
-    `<p>Adjust your filing status, pay frequency, and gross wage above to update the breakdown.</p>`;
+    `<p>${closer}</p>`;
 
   const disclaimers = state.disclaimer || [];
   if (disclaimers.length) {
@@ -302,6 +559,148 @@ function stateBody(state, year, taxData) {
       disclaimers.join(' ') + `</p>`;
   }
   return body;
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// AdSense Path-B differentiation (2026-06-26): genuinely-unique, REAL-sourced
+// per-state blocks rendered below the calculator. Data: src/data/state-payroll-2026.json
+// (keyed by slug under .states); every value carries a source URL. Helpers return
+// '' when data is absent — no fabrication, no empty sections. Sentence frames are
+// chosen by a stable per-slug hash so no two pages share a paragraph.
+const escHtml = (s) =>
+  String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+function slugHash(slug) {
+  let h = 2166136261;
+  for (let i = 0; i < slug.length; i++) { h ^= slug.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return h >>> 0;
+}
+const pickFrame = (slug, salt, arr) => arr[slugHash(slug + salt) % arr.length];
+
+// Full income-tax bracket ladder (single filers) — paycheck-relevant structure,
+// distinct per state. Honors figureYear so prior-year-fallback states (e.g. CA
+// 2025) show an honest year label rather than a bare 2026.
+function bracketTableBlock(state, year) {
+  if (!state.hasIncomeTax || !state.tax) return '';
+  const dispYear = state.figureYear || year;
+  const t = state.tax;
+  if (t.type === 'flat') {
+    return `<section class="prose"><h2>${state.name} income tax rate (${dispYear})</h2>` +
+      `<p>${state.name} applies a single flat rate to taxable wages for ${dispYear}.</p>` +
+      `<table class="data-table"><thead><tr><th>Filing</th><th>Rate</th></tr></thead><tbody>` +
+      `<tr><td>All taxable income</td><td>${pctStr(t.rate)}</td></tr></tbody></table></section>`;
+  }
+  const b = (t.brackets && t.brackets.single) || [];
+  if (!b.length) return '';
+  const rows = b.map((br, i) => {
+    const prev = i === 0 ? 0 : b[i - 1].upTo;
+    const open = (br.upTo == null || !Number.isFinite(br.upTo));
+    const range = open ? `${usd0(prev)} and above` : `${usd0(prev)} – ${usd0(br.upTo)}`;
+    return `<tr><td>${range}</td><td>${pctStr(br.rate)}</td></tr>`;
+  }).join('');
+  return `<section class="prose"><h2>${state.name} ${dispYear} income tax brackets (single filers)</h2>` +
+    `<p>${state.name}'s graduated single-filer schedule for ${dispYear}, applied after the state deduction:</p>` +
+    `<table class="data-table"><thead><tr><th>Taxable income</th><th>Marginal rate</th></tr></thead><tbody>${rows}</tbody></table></section>`;
+}
+
+function payrollDeductionsBlock(state, p) {
+  const items = (p && p.payrollContributions) || [];
+  if (!items.length) return '';
+  const rows = items.map((it) =>
+    `<tr><td>${escHtml(it.name)}</td><td>${escHtml(it.employeeRate2026 || '—')}</td><td>${escHtml(it.wageBaseOrCap || '—')}</td></tr>`
+  ).join('');
+  const intro = pickFrame(state.slug, 'payroll', [
+    `Beyond income tax, ${state.name} withholds these state payroll programs directly from employee wages:`,
+    `${state.name} runs employee-funded payroll programs that come off your check on top of income tax and FICA:`,
+    `On a ${state.name} paycheck, these state programs are deducted in addition to income tax and Social Security / Medicare:`
+  ]);
+  return `<section class="prose"><h2>${state.name} payroll deductions beyond income tax</h2>` +
+    `<p>${intro}</p>` +
+    `<table class="data-table"><thead><tr><th>Program</th><th>Employee rate (2026)</th><th>Wage base / cap</th></tr></thead><tbody>${rows}</tbody></table></section>`;
+}
+
+function localTaxBlock(state, p) {
+  const lt = p && p.localIncomeTax;
+  if (!lt || !lt.exists || !lt.notes) return '';
+  return `<section class="prose"><h2>Local income taxes in ${state.name}</h2>` +
+    `<p>${escHtml(lt.notes)}</p></section>`;
+}
+
+function minWageBlock(state, p, year) {
+  const mw = p && p.minWage2026;
+  if (!mw || typeof mw.amountUsd !== 'number') return '';
+  const annual = usd0(mw.amountUsd * 2080);
+  const intro = pickFrame(state.slug, 'minwage', [
+    `${state.name}'s ${year} minimum wage is <strong>$${mw.amountUsd.toFixed(2)}/hour</strong> — about ${annual} a year at 40 hours a week before taxes.`,
+    `For ${year}, the minimum wage in ${state.name} is <strong>$${mw.amountUsd.toFixed(2)}/hour</strong> (≈ ${annual}/year full-time, pre-tax).`
+  ]);
+  const note = mw.notes ? ` ${escHtml(mw.notes)}` : '';
+  return `<section class="prose"><h2>${state.name} minimum wage in ${year}</h2><p>${intro}${note}</p></section>`;
+}
+
+// Ancillary context (sales + property) — one compact paragraph so the page stays
+// paycheck-focused (relevance cap: ancillary stays a minority of net-new prose).
+function otherTaxesBlock(state, p) {
+  if (!p) return '';
+  const st = p.salesTax, pt = p.propertyTax;
+  const parts = [];
+  if (st && typeof st.stateBaseRatePct === 'number') {
+    const combined = (typeof st.combinedAvgRatePct === 'number') ? ` (about ${st.combinedAvgRatePct}% combined with local)` : '';
+    parts.push(`a ${st.stateBaseRatePct}% state sales tax${combined}`);
+  }
+  if (pt && typeof pt.effectiveRatePct === 'number') {
+    parts.push(`an effective property-tax rate near ${pt.effectiveRatePct}%${pt.rankNote ? ` — ${escHtml(pt.rankNote)}` : ''}`);
+  }
+  if (!parts.length) return '';
+  return `<section class="prose"><h2>Beyond your paycheck: other ${state.name} taxes</h2>` +
+    `<p>${state.name} also levies ${parts.join(', and ')}.</p></section>`;
+}
+
+function incomeContextBlock(state, p, taxData) {
+  const mi = p && p.medianHouseholdIncome;
+  if (!mi || typeof mi.amountUsd !== 'number') return '';
+  let net = null;
+  try {
+    net = computePaycheck({ wage: { type: 'salary', amount: mi.amountUsd }, filingStatus: 'single', payFrequency: 'annual', stateSlug: state.slug }, taxData).annual.net;
+  } catch (_) { /* leave take-home out if compute fails */ }
+  const takeHome = (net && Number.isFinite(net))
+    ? ` A single filer earning that takes home about ${usd0(net)} after federal tax, FICA${state.hasIncomeTax ? ' and state tax' : ''}.`
+    : '';
+  const yr = mi.year ? ` (${escHtml(String(mi.year))})` : '';
+  const lead = pickFrame(state.slug, 'income', [
+    `Median household income in ${state.name} is about ${usd0(mi.amountUsd)}${yr}.${takeHome}`,
+    `A typical ${state.name} household earns around ${usd0(mi.amountUsd)} a year${yr}.${takeHome}`,
+    `${state.name}'s median household income runs near ${usd0(mi.amountUsd)}${yr} — useful as a yardstick for your own pay.${takeHome}`
+  ]);
+  return `<section class="prose"><h2>How ${state.name} pay compares</h2><p>${lead}</p></section>`;
+}
+
+function distinctiveFactsBlock(state, p) {
+  const facts = [];
+  if (!state.hasIncomeTax && NOTAX_FACTS[state.slug]) facts.push(NOTAX_FACTS[state.slug]);
+  const df = (p && p.distinctiveFacts) || [];
+  for (const f of df) { if (f && f.fact) facts.push(escHtml(f.fact)); }
+  if (!facts.length) return '';
+  const lis = facts.map((f) => `<li>${f}</li>`).join('');
+  return `<section class="prose"><h2>What makes ${state.name} payroll distinctive</h2><ul class="facts">${lis}</ul></section>`;
+}
+
+function sourcesBlock(state, p) {
+  const urls = new Set();
+  const add = (u) => { if (u && /^https?:\/\//.test(u)) urls.add(u); };
+  if (p) {
+    add(p.localIncomeTax && p.localIncomeTax.source);
+    add(p.salesTax && p.salesTax.source);
+    add(p.minWage2026 && p.minWage2026.source);
+    add(p.medianHouseholdIncome && p.medianHouseholdIncome.source);
+    add(p.propertyTax && p.propertyTax.source);
+    (p.payrollContributions || []).forEach((it) => add(it.source));
+    (p.distinctiveFacts || []).forEach((f) => add(f.source));
+  }
+  if (!urls.size) return '';
+  const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (_) { return u; } };
+  const lis = [...urls].map((u) => `<li><a href="${escHtml(u)}" rel="nofollow noopener" target="_blank">${escHtml(hostOf(u))}</a></li>`).join('');
+  return `<section class="sources"><h2>Sources</h2><p class="note">Figures on this page are drawn from official and authoritative sources:</p><ul>${lis}</ul></section>`;
 }
 
 function faqJsonLd(state, year) {
@@ -334,8 +733,19 @@ function faqJsonLd(state, year) {
   });
 }
 
-function stateLinks(roster, builtSlugs, year) {
-  return roster
+// Per-page state grid. When currentSlug is given, EXCLUDE that state and order
+// the rest by a stable per-page shuffle (seeded by currentSlug) so the anchor
+// block is no longer byte-identical across the 51 pages. currentSlug null (home)
+// keeps the full roster in natural order.
+function stateLinks(roster, builtSlugs, currentSlug) {
+  let items = roster.filter((s) => s.slug !== currentSlug);
+  if (currentSlug) {
+    items = items
+      .map((s) => ({ s, k: slugHash(s.slug + currentSlug) }))
+      .sort((a, b) => a.k - b.k)
+      .map((x) => x.s);
+  }
+  return items
     .map((s) => {
       const href = `/${s.slug}-paycheck-calculator/`;
       return builtSlugs.has(s.slug)
@@ -348,6 +758,8 @@ function stateLinks(roster, builtSlugs, year) {
 async function main() {
   const taxData = await readJSON(join(SRC, 'data', 'tax-data-2026.json'));
   const roster = await readJSON(join(SRC, 'data', 'states.json'));
+  const payrollData = await readJSON(join(SRC, 'data', 'state-payroll-2026.json'));
+  const payroll = (payrollData && payrollData.states) || {};
   const stateTpl = await read(join(SRC, 'templates', 'state-page.html'));
   const homeTpl = await read(join(SRC, 'templates', 'home.html'));
   const pageTpl = await read(join(SRC, 'templates', 'page.html'));
@@ -411,6 +823,18 @@ async function main() {
   const loremTpl = await read(join(SRC, 'templates', 'lorem-ipsum-generator.html'));
   const averageTpl = await read(join(SRC, 'templates', 'average-calculator.html'));
   const morseTpl = await read(join(SRC, 'templates', 'morse-code-translator.html'));
+  const cagrTpl = await read(join(SRC, 'templates', 'cagr-calculator.html'));
+  const halfBirthdayTpl = await read(join(SRC, 'templates', 'half-birthday-calculator.html'));
+  const ruleOf72Tpl = await read(join(SRC, 'templates', 'rule-of-72-calculator.html'));
+  const wordsToMinutesTpl = await read(join(SRC, 'templates', 'words-to-minutes.html'));
+  const doubleTimePayTpl = await read(join(SRC, 'templates', 'double-time-pay-calculator.html'));
+  const biweeklyVsSemimonthlyTpl = await read(join(SRC, 'templates', 'biweekly-vs-semimonthly.html'));
+  const ezGraderTpl = await read(join(SRC, 'templates', 'ez-grader.html'));
+  const chronoAgeTpl = await read(join(SRC, 'templates', 'chronological-age-calculator.html'));
+  const debtAvalancheTpl = await read(join(SRC, 'templates', 'debt-avalanche-calculator.html'));
+  const markdownTpl = await read(join(SRC, 'templates', 'markdown-to-html.html'));
+  const w2Tpl = await read(join(SRC, 'templates', '1099-vs-w2-calculator.html'));
+  const biweeklyTpl = await read(join(SRC, 'templates', 'biweekly-mortgage-calculator.html'));
   const photoSpecs = await readJSON(join(SRC, 'data', 'photo-specs.json'));
   const cpiUs = await readJSON(join(SRC, 'data', 'cpi-us.json'));
   const year = String(taxData.taxYear);
@@ -424,7 +848,7 @@ async function main() {
   }
 
   const builtSlugs = new Set(Object.keys(taxData.states));
-  const links = stateLinks(roster, builtSlugs, year);
+  const homeLinks = stateLinks(roster, builtSlugs, null);
 
   // fresh dist
   await rm(DIST, { recursive: true, force: true });
@@ -547,21 +971,69 @@ async function main() {
   await cp(join(SRC, 'engine', 'average.js'), join(DIST, 'assets', 'average.js'));
   await cp(join(SRC, 'assets', 'morse-code-translator.js'), join(DIST, 'assets', 'morse-code-translator.js'));
   await cp(join(SRC, 'engine', 'morse.js'), join(DIST, 'assets', 'morse.js'));
+  await cp(join(SRC, 'assets', 'cagr-calculator.js'), join(DIST, 'assets', 'cagr-calculator.js'));
+  await cp(join(SRC, 'engine', 'cagr.js'), join(DIST, 'assets', 'cagr.js'));
+  await cp(join(SRC, 'assets', 'half-birthday-calculator.js'), join(DIST, 'assets', 'half-birthday-calculator.js'));
+  await cp(join(SRC, 'engine', 'half-birthday.js'), join(DIST, 'assets', 'half-birthday.js'));
+  await cp(join(SRC, 'assets', 'rule-of-72-calculator.js'), join(DIST, 'assets', 'rule-of-72-calculator.js'));
+  await cp(join(SRC, 'engine', 'rule-of-72.js'), join(DIST, 'assets', 'rule-of-72.js'));
+  await cp(join(SRC, 'assets', 'words-to-minutes.js'), join(DIST, 'assets', 'words-to-minutes.js'));
+  await cp(join(SRC, 'engine', 'words-to-time.js'), join(DIST, 'assets', 'words-to-time.js'));
+  await cp(join(SRC, 'assets', 'double-time-pay-calculator.js'), join(DIST, 'assets', 'double-time-pay-calculator.js'));
+  await cp(join(SRC, 'engine', 'double-time-pay.js'), join(DIST, 'assets', 'double-time-pay.js'));
+  await cp(join(SRC, 'assets', 'biweekly-vs-semimonthly.js'), join(DIST, 'assets', 'biweekly-vs-semimonthly.js'));
+  await cp(join(SRC, 'engine', 'pay-frequency.js'), join(DIST, 'assets', 'pay-frequency.js'));
+  await cp(join(SRC, 'assets', 'ez-grader.js'), join(DIST, 'assets', 'ez-grader.js'));
+  await cp(join(SRC, 'engine', 'grading.js'), join(DIST, 'assets', 'grading.js'));
+  await cp(join(SRC, 'assets', 'chronological-age-calculator.js'), join(DIST, 'assets', 'chronological-age-calculator.js'));
+  await cp(join(SRC, 'engine', 'chronological-age.js'), join(DIST, 'assets', 'chronological-age.js'));
+  await cp(join(SRC, 'assets', 'debt-avalanche-calculator.js'), join(DIST, 'assets', 'debt-avalanche-calculator.js'));
+  await cp(join(SRC, 'engine', 'debt-avalanche.js'), join(DIST, 'assets', 'debt-avalanche.js'));
+  await cp(join(SRC, 'assets', 'markdown-to-html.js'), join(DIST, 'assets', 'markdown-to-html.js'));
+  await cp(join(SRC, 'assets', 'marked.min.js'), join(DIST, 'assets', 'marked.min.js'));
+  await cp(join(SRC, 'assets', '1099-vs-w2-calculator.js'), join(DIST, 'assets', '1099-vs-w2-calculator.js'));
+  await cp(join(SRC, 'engine', 'employment-tax.js'), join(DIST, 'assets', 'employment-tax.js'));
+  await cp(join(SRC, 'assets', 'biweekly-mortgage-calculator.js'), join(DIST, 'assets', 'biweekly-mortgage-calculator.js'));
+  // (biweekly reuses amortization.js, already copied above)
 
   const urls = [`${SITE.url}/`];
 
   // one page per state present in tax-data
   for (const slug of builtSlugs) {
     const state = taxData.states[slug];
+    const p = payroll[slug];
     // per-page payload: federal + only this state (keeps embedded JSON small)
     const payload = stripInternal({ taxYear: taxData.taxYear, federal: taxData.federal, states: { [slug]: state } });
     const html = fill(stateTpl, {
       STATE_NAME: state.name,
+      STATE_H1: TARGET_STATES.has(slug)
+        ? `${state.name} Paycheck, Payroll &amp; Income Tax Calculator`
+        : `${state.name} Paycheck &amp; Payroll Calculator`,
       STATE_SLUG: slug,
+      STATE_ABBR: state.abbr,
       STATE_TAX_PHRASE: state.hasIncomeTax ? `, and ${state.name} state income tax` : '',
+      STATE_KEYWORD_PHRASE: state.hasIncomeTax
+        ? 'paycheck, payroll and income tax calculator'
+        : 'paycheck and payroll calculator',
+      STATE_NOTAX_NOTE: state.hasIncomeTax
+        ? ''
+        : ` ${state.name} has no state income tax, so this tool shows your federal income tax and take-home pay.`,
+      STATE_META_TAX_NOTE: state.hasIncomeTax
+        ? ` — also works as a ${state.name} income tax calculator`
+        : `. ${state.name} has no state income tax, so it doubles as a federal income tax calculator`,
       FIGURE_BANNER: figureYearBanner(state, year),
+      ANSWER_BLOCK: stateAnswerBlock(state, year, taxData),
+      TARGET_INTRO: targetIntro(state, year),
       STATE_BODY: stateBody(state, year, taxData),
-      STATE_LINKS: links,
+      BRACKET_TABLE: bracketTableBlock(state, year),
+      STATE_PAYROLL: payrollDeductionsBlock(state, p),
+      LOCAL_TAXES: localTaxBlock(state, p),
+      MIN_WAGE: minWageBlock(state, p, year),
+      OTHER_TAXES: otherTaxesBlock(state, p),
+      INCOME_CONTEXT: incomeContextBlock(state, p, taxData),
+      DISTINCTIVE_FACTS: distinctiveFactsBlock(state, p),
+      SOURCES: sourcesBlock(state, p),
+      STATE_LINKS: stateLinks(roster, builtSlugs, slug),
       FAQ_JSONLD: faqJsonLd(state, year),
       TAX_DATA_JSON: JSON.stringify(payload),
       YEAR: year,
@@ -578,7 +1050,7 @@ async function main() {
   // home
   await writeFile(
     join(DIST, 'index.html'),
-    fill(homeTpl, { STATE_LINKS: links, YEAR: year, SITE_NAME: SITE.name, SITE_URL: SITE.url })
+    fill(homeTpl, { STATE_LINKS: homeLinks, YEAR: year, SITE_NAME: SITE.name, SITE_URL: SITE.url })
   );
 
   // static content pages (privacy / terms / about / contact) — two-pass fill so
@@ -1091,6 +1563,102 @@ async function main() {
   );
   urls.push(`${SITE.url}/morse-code-translator/`);
 
+  // CAGR (compound annual growth rate) calculator (pure-math, built on the cagr engine)
+  await mkdir(join(DIST, 'cagr-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'cagr-calculator', 'index.html'),
+    fillTool(cagrTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/cagr-calculator/')
+  );
+  urls.push(`${SITE.url}/cagr-calculator/`);
+
+  // Half Birthday calculator (pure-date math, built on the half-birthday engine)
+  await mkdir(join(DIST, 'half-birthday-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'half-birthday-calculator', 'index.html'),
+    fillTool(halfBirthdayTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/half-birthday-calculator/')
+  );
+  urls.push(`${SITE.url}/half-birthday-calculator/`);
+
+  // Rule of 72 calculator (pure-math, built on the rule-of-72 engine)
+  await mkdir(join(DIST, 'rule-of-72-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'rule-of-72-calculator', 'index.html'),
+    fillTool(ruleOf72Tpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/rule-of-72-calculator/')
+  );
+  urls.push(`${SITE.url}/rule-of-72-calculator/`);
+
+  // Words to Minutes / speaking time calculator (pure-math, built on the words-to-time engine)
+  await mkdir(join(DIST, 'words-to-minutes'), { recursive: true });
+  await writeFile(
+    join(DIST, 'words-to-minutes', 'index.html'),
+    fillTool(wordsToMinutesTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/words-to-minutes/')
+  );
+  urls.push(`${SITE.url}/words-to-minutes/`);
+
+  // Double Time Pay calculator (pure-math, built on the double-time-pay engine)
+  await mkdir(join(DIST, 'double-time-pay-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'double-time-pay-calculator', 'index.html'),
+    fillTool(doubleTimePayTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/double-time-pay-calculator/')
+  );
+  urls.push(`${SITE.url}/double-time-pay-calculator/`);
+
+  // Biweekly vs Semimonthly paycheck calculator (pure-math, built on the pay-frequency engine)
+  await mkdir(join(DIST, 'biweekly-vs-semimonthly'), { recursive: true });
+  await writeFile(
+    join(DIST, 'biweekly-vs-semimonthly', 'index.html'),
+    fillTool(biweeklyVsSemimonthlyTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/biweekly-vs-semimonthly/')
+  );
+  urls.push(`${SITE.url}/biweekly-vs-semimonthly/`);
+
+  // EZ Grader / test score calculator (pure-math, built on the grading engine)
+  await mkdir(join(DIST, 'ez-grader'), { recursive: true });
+  await writeFile(
+    join(DIST, 'ez-grader', 'index.html'),
+    fillTool(ezGraderTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/ez-grader/')
+  );
+  urls.push(`${SITE.url}/ez-grader/`);
+
+  // Chronological age calculator (pure-date math, built on the chronological-age engine)
+  await mkdir(join(DIST, 'chronological-age-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'chronological-age-calculator', 'index.html'),
+    fillTool(chronoAgeTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/chronological-age-calculator/')
+  );
+  urls.push(`${SITE.url}/chronological-age-calculator/`);
+
+  // Debt avalanche calculator (pure-math, built on the debt-avalanche engine)
+  await mkdir(join(DIST, 'debt-avalanche-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'debt-avalanche-calculator', 'index.html'),
+    fillTool(debtAvalancheTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/debt-avalanche-calculator/')
+  );
+  urls.push(`${SITE.url}/debt-avalanche-calculator/`);
+
+  // Markdown to HTML converter (client-side, uses the vendored `marked` library)
+  await mkdir(join(DIST, 'markdown-to-html'), { recursive: true });
+  await writeFile(
+    join(DIST, 'markdown-to-html', 'index.html'),
+    fillTool(markdownTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/markdown-to-html/')
+  );
+  urls.push(`${SITE.url}/markdown-to-html/`);
+
+  // 1099 vs W-2 take-home calculator (pure-math federal estimate, built on the employment-tax engine)
+  await mkdir(join(DIST, '1099-vs-w2-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, '1099-vs-w2-calculator', 'index.html'),
+    fillTool(w2Tpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/1099-vs-w2-calculator/')
+  );
+  urls.push(`${SITE.url}/1099-vs-w2-calculator/`);
+
+  // biweekly mortgage payment calculator (pure-math, reuses the amortization engine)
+  await mkdir(join(DIST, 'biweekly-mortgage-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'biweekly-mortgage-calculator', 'index.html'),
+    fillTool(biweeklyTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/biweekly-mortgage-calculator/')
+  );
+  urls.push(`${SITE.url}/biweekly-mortgage-calculator/`);
+
   // public machine-readable copy of the live tax data (for the drift monitor +
   // transparency). Always reflects the deployed figures — single source of truth.
   await mkdir(join(DIST, 'data'), { recursive: true });
@@ -1135,12 +1703,42 @@ async function main() {
     join(DIST, 'robots.txt'),
     `User-agent: *\nAllow: /\nSitemap: ${SITE.url}/sitemap.xml\n`
   );
+  // lastmod = build date (YYYY-MM-DD). Gives Google a freshness signal so
+  // changed pages get recrawled sooner. Deploys are manual, so build date
+  // tracks real content changes; if builds ever become frequent, switch to a
+  // per-page content date (e.g. the tax-data verified date) to keep lastmod honest.
+  const lastmod = new Date().toISOString().slice(0, 10);
   await writeFile(
     join(DIST, 'sitemap.xml'),
     `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-      urls.map((u) => `  <url><loc>${u}</loc></url>`).join('\n') +
+      urls.map((u) => `  <url><loc>${u}</loc><lastmod>${lastmod}</lastmod></url>`).join('\n') +
       `\n</urlset>\n`
   );
+
+  // llms.txt — AI/LLM discovery file (llms.txt markdown convention). Regenerated
+  // every build from TOOLS + the built state list; NOT added to the sitemap.
+  const llmsTools = TOOLS
+    .filter((t) => t.path.startsWith('/')) // skip the in-page "/#paycheck" anchor
+    .map((t) => {
+      const d = TOOL_DESCRIPTIONS[t.path] || t.name;
+      return `- [${t.name}](${SITE.url}${t.path}): ${d}`;
+    })
+    .join('\n');
+  const builtStateLines = roster
+    .filter((s) => builtSlugs.has(s.slug))
+    .map((s) => `- [${s.name} Paycheck Calculator](${SITE.url}/${s.slug}-paycheck-calculator/)`)
+    .join('\n');
+  const llmsTxt =
+    `# ${SITE.name}\n\n` +
+    `${SITE.name} is a collection of free, fast, privacy-friendly online tools and calculators. ` +
+    `Every tool runs entirely in the browser — nothing you enter or upload is sent to a server.\n\n` +
+    `## Tools\n\n${llmsTools}\n\n` +
+    `## State paycheck calculators\n\n` +
+    `Take-home pay (paycheck) calculators for all ${builtSlugs.size} US states and Washington, D.C. ` +
+    `Each estimates ${year} take-home pay after federal income tax, Social Security, Medicare, and (where applicable) state income tax. ` +
+    `Start at the [paycheck calculator hub](${SITE.url}/#paycheck).\n\n` +
+    `${builtStateLines}\n`;
+  await writeFile(join(DIST, 'llms.txt'), llmsTxt);
 
   console.log(`Built ${builtSlugs.size} state page(s) + home + ${STATIC_PAGES.length} content pages → dist/`);
   console.log(`States: ${[...builtSlugs].join(', ')}`);

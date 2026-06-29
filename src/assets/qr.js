@@ -174,9 +174,6 @@ function buildPayload() {
     lines.push('END:VEVENT');
     return lines.join('\n');
   }
-  if (type === 'text') {
-    return $('textBody').value || '';
-  }
   return $('urlText').value || '';
 }
 

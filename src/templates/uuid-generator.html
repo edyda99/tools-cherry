@@ -27,7 +27,8 @@
 <main id="main">
   <div class="wrap">
     <h1>UUID Generator</h1>
-    <p class="lede">Generate random version-4 UUIDs (GUIDs) — one or thousands at a time, with optional uppercase, no-hyphen and braces formatting. Everything runs in your browser using a cryptographic random source, and nothing is uploaded.</p>
+    <p class="lede"><strong>A UUID is a long, one-of-a-kind ID code</strong> — used to label database rows, files, or requests so two never clash. Generate random version-4 UUIDs (GUIDs) — one or thousands at a time, with optional uppercase, no-hyphen and braces formatting. Everything runs in your browser using a cryptographic random source, and nothing is uploaded.</p>
+    <p class="note"><strong>A version-4 UUID (or GUID) is a 128-bit identifier written as 32 hexadecimal digits in five hyphen-separated groups (8-4-4-4-12), with 122 of its bits random, making collisions effectively impossible.</strong> Set how many you want (up to 1,000), press Generate, and copy the list — each value comes from your browser's cryptographic random source.</p>
 
     <section class="calc" aria-label="UUID generator">
       <div class="field">
@@ -48,6 +49,7 @@
         <button type="button" id="nilBtn" class="btn-secondary">Nil UUID</button>
         <button type="button" id="clearBtn" class="btn-secondary">Clear</button>
       </div>
+      <p class="muted-small" style="margin-top:6px">"Nil UUID" inserts the all-zeros code (00000000-…), used as an empty placeholder.</p>
 
       <div class="field">
         <label for="output">Result</label>

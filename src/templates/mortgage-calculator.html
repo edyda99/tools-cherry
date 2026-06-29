@@ -39,6 +39,7 @@
   <div class="wrap">
     <h1>Mortgage Calculator</h1>
     <p class="lede">Enter your home price, down payment, interest rate, and loan term to see your monthly payment, total interest, and total cost. Add property tax and insurance for an estimated total. Results update as you type.</p>
+    <p class="note"><strong>Your monthly principal-and-interest payment is M = P × r × (1 + r)ⁿ ÷ ((1 + r)ⁿ − 1), where P is the loan amount, r is the monthly interest rate (annual rate ÷ 12), and n is the number of payments (years × 12).</strong><br><span class="muted-small">In plain terms: it spreads your loan plus interest into the same payment every month for the whole term.</span> For example, a $300,000 loan at 6% over 30 years works out to about $1,799 a month before tax and insurance.</p>
 
     <section class="calc" aria-label="Mortgage calculator">
       <form id="mortgageForm" autocomplete="off" onsubmit="return false">
@@ -67,7 +68,7 @@
       <div class="results" aria-live="polite">
         <p class="net-big" id="payBig">—</p>
         <p class="net-sub" id="paySub"></p>
-        <div class="line" id="loanLine" hidden><span class="lbl">Loan amount</span><span class="val"></span></div>
+        <div class="line" id="loanLine" hidden><span class="lbl">Loan amount <small class="muted-small">(price minus down payment — what you borrow)</small></span><span class="val"></span></div>
         <div class="line" id="totalInterestLine" hidden><span class="lbl">Total interest</span><span class="val"></span></div>
         <div class="line" id="totalPaidLine" hidden><span class="lbl">Total paid over the loan</span><span class="val"></span></div>
         <div class="line" id="estTotalLine" hidden><span class="lbl">Estimated total monthly payment</span><span class="val"></span></div>

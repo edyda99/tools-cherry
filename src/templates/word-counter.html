@@ -28,6 +28,7 @@
   <div class="wrap">
     <h1>Word &amp; Character Counter</h1>
     <p class="lede">Type or paste your text to count words, characters, sentences, paragraphs and reading time live. It also shows your most frequent keywords and checks your length against common tweet, SMS and SEO limits — all in your browser, with nothing uploaded.</p>
+    <p class="note"><strong>Type or paste text to see live counts of words (each run of non-space characters), characters with and without spaces, sentences, and paragraphs, plus reading time at about 200 words per minute and speaking time at about 130.</strong> It also lists your most-used keywords and checks your length against tweet (280), SMS (160), and SEO title (60) limits.</p>
 
     <section class="calc" aria-label="Word and character counter">
       <form id="wcForm" autocomplete="off" onsubmit="return false">
@@ -43,6 +44,7 @@
               <span>wpm</span>
             </span>
           </div>
+          <p class="muted-small" style="margin-top:6px">"wpm" means words per minute — change it to match your own reading or speaking pace.</p>
         </div>
       </form>
 
@@ -63,7 +65,7 @@
             <thead><tr><th>Word</th><th class="num">Count</th><th class="num">Density</th></tr></thead>
             <tbody id="densityBody"></tbody>
           </table>
-          <p class="muted-small" id="densityNote">Type some text to see its most frequent words.</p>
+          <p class="muted-small" id="densityNote">Keyword density is how often each word appears as a share of the total. Type some text to see its most frequent words.</p>
         </details>
 
         <details class="brackets" id="limitPanel">
@@ -84,6 +86,7 @@
       <h2>How to use the word counter</h2>
       <p>Type directly into the box or paste text from anywhere — an essay, a blog draft, a social post or an email. Every statistic updates the instant you type, so there is no button to press and nothing leaves your device. <strong>Words</strong> counts each run of letters or numbers (with contractions and hyphenated words counted as one), while <strong>characters</strong> are shown both with and without spaces because different platforms measure each differently. You also get sentence, paragraph and line counts, plus the average number of words per sentence as a quick readability signal.</p>
       <p>The <strong>reading time</strong> and <strong>speaking time</strong> estimates are based on average speeds — 200 words per minute for reading and about 130 for speaking aloud. Change the reading-speed field to match your audience or your own pace and both figures recalculate. The <strong>keyword density</strong> list ignores common filler words so you can see the terms you actually lean on, which is handy when writing for search.</p>
+      <p>Writing a speech or presentation? Once you have your word count, the <a href="/words-to-minutes/">words-to-minutes calculator</a> turns it into speaking time at your chosen pace.</p>
       <p class="note">Everything runs in your browser — the text you type or paste is never uploaded.</p>
     </section>
 

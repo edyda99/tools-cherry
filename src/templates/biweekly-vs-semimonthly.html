@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Biweekly vs Semimonthly Paycheck Calculator — Side-by-Side</title>
+<meta name="description" content="Free biweekly vs semimonthly paycheck calculator. Compare gross pay per check on a 26-check vs 24-check schedule from your salary. Runs in your browser.">
+<link rel="canonical" href="{{SITE_URL}}/biweekly-vs-semimonthly/">
+<meta property="og:title" content="Biweekly vs Semimonthly Paycheck Calculator">
+<meta property="og:description" content="Compare biweekly (26 checks) and semimonthly (24 checks) gross pay side by side from one annual salary, with per-paycheck, monthly, and annual totals.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Scoped extras for the two-column side-by-side panel — uses shared theme vars. */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 4px; }
+  @media (max-width: 560px) { .compare-grid { grid-template-columns: 1fr; } }
+  .compare-col { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+  .compare-col h3 { margin: 0 0 2px; font-size: 17px; }
+  .compare-col .cadence { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+  .compare-col .line:last-child { border-bottom: 0; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Biweekly vs Semimonthly Paycheck Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Compare gross pay per paycheck under a biweekly schedule (26 checks a year) and a semimonthly schedule (24 checks a year) from one annual salary, with monthly and annual totals."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is the difference between biweekly and semimonthly pay?","acceptedAnswer":{"@type":"Answer","text":"Biweekly means you are paid every two weeks, which works out to 26 paychecks a year. Semimonthly means you are paid twice a month — for example on the 15th and the last day — which is 24 paychecks a year. Both add up to the same annual salary, but biweekly gives two more, slightly smaller checks."}},{"@type":"Question","name":"How much is each biweekly paycheck?","acceptedAnswer":{"@type":"Answer","text":"Divide your annual salary by 26. A $52,000 salary paid biweekly is about $2,000.00 per check, before tax. There are 26 biweekly pay periods because a year has roughly 52 weeks and you are paid once every two weeks."}},{"@type":"Question","name":"How much is each semimonthly paycheck?","acceptedAnswer":{"@type":"Answer","text":"Divide your annual salary by 24. A $52,000 salary paid semimonthly is about $2,166.67 per check, before tax. There are 24 semimonthly pay periods because you are paid twice in each of the 12 months."}},{"@type":"Question","name":"Why does biweekly give two extra paychecks a year?","acceptedAnswer":{"@type":"Answer","text":"With 52 weeks in a year and a paycheck every two weeks, you receive 26 checks instead of the 24 you would get twice a month. Because 26 checks do not divide evenly into 12 months, two months each year contain a third paycheck — often called a three-paycheck month."}},{"@type":"Question","name":"Is biweekly or semimonthly better?","acceptedAnswer":{"@type":"Answer","text":"Neither pays more over a year — both total the same salary. Biweekly suits people who like the two extra checks and budgeting in two-week blocks, while semimonthly lands on predictable calendar dates that line up neatly with monthly bills. The right choice depends on how you budget; the pay date, not the total, is what differs."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Biweekly vs Semimonthly Paycheck Calculator</h1>
+    <p class="lede">Enter your annual salary and see how it splits under a biweekly schedule (paid every two weeks, 26 checks) versus a semimonthly schedule (paid twice a month, 24 checks) — per paycheck, per month, and per year, side by side. Results update as you type.</p>
+
+    <p class="note"><strong>Biweekly pay is 26 checks a year (salary ÷ 26); semimonthly is 24 checks a year (salary ÷ 24).</strong> The annual total is identical, but each biweekly check is smaller, and two months a year carry a third biweekly paycheck. On a $52,000 salary that's about $2,000.00 biweekly versus $2,166.67 semimonthly, before tax.</p>
+
+    <section class="calc" aria-label="Biweekly vs semimonthly paycheck calculator">
+      <form id="payForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="salary">Annual gross salary ($ per year)</label>
+          <input id="salary" type="number" inputmode="decimal" step="any" min="0" value="52000" placeholder="52000">
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-sub" id="compareSub"></p>
+        <div class="compare-grid">
+          <div class="compare-col">
+            <h3>Biweekly</h3>
+            <p class="cadence">Every 2 weeks · 26 paychecks/yr</p>
+            <div class="line"><span class="lbl">Per paycheck</span><span id="bwPerCheck">—</span></div>
+            <div class="line"><span class="lbl">Per month (average)</span><span id="bwMonthly">—</span></div>
+            <div class="line total"><span class="lbl">Per year</span><span id="bwAnnual">—</span></div>
+          </div>
+          <div class="compare-col">
+            <h3>Semimonthly</h3>
+            <p class="cadence">Twice a month · 24 paychecks/yr</p>
+            <div class="line"><span class="lbl">Per paycheck</span><span id="smPerCheck">—</span></div>
+            <div class="line"><span class="lbl">Per month (average)</span><span id="smMonthly">—</span></div>
+            <div class="line total"><span class="lbl">Per year</span><span id="smAnnual">—</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <div class="amort-summary" id="summaryBox" hidden style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin: 18px 0; font-size: 15.5px; line-height: 1.55;">
+      <strong>Side-by-side summary</strong>
+      <p id="summaryText" style="margin:6px 0 0;"></p>
+    </div>
+
+    <p class="note"><strong>These figures are gross — before tax.</strong> They show pay before federal, state, and Social Security / Medicare withholding. To estimate take-home pay after taxes for either schedule, use the <a href="/#paycheck">Paycheck Calculator</a> and pick your state.</p>
+
+    <section class="prose">
+      <h2>How to use the biweekly vs semimonthly calculator</h2>
+      <p>Type your <strong>annual gross salary</strong> and the two columns fill in instantly — there's no button to press and nothing is sent anywhere. The left column shows a <strong>biweekly</strong> schedule (a check every two weeks, 26 a year) and the right shows a <strong>semimonthly</strong> schedule (two checks a month, 24 a year). Each column lists the gross amount per paycheck, the average per month, and the per-year total.</p>
+      <p><strong>Worked example.</strong> On a $52,000 salary, biweekly is $52,000 ÷ 26 = <strong>$2,000.00</strong> per check, while semimonthly is $52,000 ÷ 24 ≈ <strong>$2,166.67</strong> per check. The semimonthly check is larger because the same salary is split into fewer payments. Both still average $4,333.33 a month and total $52,000 for the year.</p>
+      <p>Paid hourly instead of salaried? Convert your wage to an annual figure with the <a href="/salary-to-hourly/">salary-to-hourly calculator</a> first, or total your hours with the <a href="/hours-calculator/">hours calculator</a>. If you're weighing biweekly mortgage payments rather than paychecks, the <a href="/biweekly-mortgage-calculator/">biweekly mortgage calculator</a> shows the interest you'd save.</p>
+      <p class="note">Everything runs in your browser — the salary you type is never uploaded. These are gross estimates, not financial advice.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Biweekly vs semimonthly: the real difference</h2>
+      <p><strong>Biweekly</strong> means a paycheck every two weeks, always on the same weekday (say, every other Friday). Because a year holds about 52 weeks, that's <strong>26 paychecks</strong>. Since 26 doesn't divide evenly into 12 months, most months have two paydays but <strong>two months each year have three</strong> — the so-called three-paycheck months that can feel like a bonus even though they're really your own salary spread differently.</p>
+      <p><strong>Semimonthly</strong> means two paychecks a month on fixed calendar dates — commonly the 15th and the last day of the month — for <strong>24 paychecks</strong> a year. The dates are predictable and line up neatly with rent, mortgage, and monthly bills, but the paydays drift across weekdays and you never get that extra third check.</p>
+      <p><strong>Which gives more money?</strong> Neither. Both schedules divide the exact same annual salary; only the size, count, and timing of the checks change. Biweekly checks are slightly smaller (salary ÷ 26) but more frequent; semimonthly checks are slightly larger (salary ÷ 24) but land on set dates. If you budget in two-week cycles, biweekly's rhythm and surprise third check may suit you; if your big bills hit monthly, semimonthly's calendar alignment can be easier to plan around.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common biweekly vs semimonthly questions</h2>
+      <p><strong>What is the difference between biweekly and semimonthly pay?</strong> Biweekly is every two weeks (26 checks a year); semimonthly is twice a month (24 checks a year). Both total the same salary, but biweekly gives two more, slightly smaller checks.</p>
+      <p><strong>How much is each biweekly paycheck?</strong> Your annual salary divided by 26. A $52,000 salary is about $2,000.00 per biweekly check before tax.</p>
+      <p><strong>How much is each semimonthly paycheck?</strong> Your annual salary divided by 24. A $52,000 salary is about $2,166.67 per semimonthly check before tax.</p>
+      <p><strong>Why does biweekly give two extra paychecks?</strong> With 52 weeks and a check every two weeks you get 26 instead of 24. Because 26 doesn't divide evenly into 12 months, two months a year contain a third paycheck.</p>
+      <p><strong>Is biweekly or semimonthly better?</strong> Neither pays more — the yearly total is identical. Biweekly suits two-week budgeting and brings two extra checks; semimonthly lands on predictable dates that match monthly bills. The difference is timing, not the amount.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools. Estimates only, not financial advice.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/biweekly-vs-semimonthly.js"></script>
+</body>
+</html>

@@ -28,6 +28,7 @@
   <div class="wrap">
     <h1>Text Case Converter</h1>
     <p class="lede">Paste or type your text, then pick a case to convert it instantly. Choose from UPPERCASE, lowercase, Title Case, Sentence case, and programmer styles like camelCase and snake_case. Nothing is uploaded — your text stays in your browser.</p>
+    <p class="note"><strong>Paste your text and click a case button to convert it instantly — Title Case capitalizes each significant word (small words like "and", "of", "the" stay lowercase), Sentence case capitalizes only the first letter of each sentence, and camelCase, snake_case and kebab-case join words with no spaces, underscores, or hyphens.</strong> The result appears in a box ready to copy.</p>
 
     <section class="calc" aria-label="Text case converter">
       <form id="caseForm" autocomplete="off" onsubmit="return false">
@@ -51,6 +52,7 @@
             <button type="button" class="btn-secondary" data-case="snake">snake_case</button>
             <button type="button" class="btn-secondary" data-case="kebab">kebab-case</button>
           </div>
+          <p class="muted-small" style="margin-top:6px">The last four — camelCase, PascalCase, snake_case, kebab-case — are programmer naming styles that join words with no spaces.</p>
         </div>
 
         <div class="field">

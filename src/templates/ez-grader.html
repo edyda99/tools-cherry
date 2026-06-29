@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>EZ Grader — Free Test Score & Grade Calculator (Printable Chart)</title>
+<meta name="description" content="Free EZ grader: enter total questions and number wrong to get the percentage score and letter grade instantly, plus a printable grade chart. No signup.">
+<link rel="canonical" href="{{SITE_URL}}/ez-grader/">
+<meta property="og:title" content="EZ Grader — Test Score Calculator">
+<meta property="og:description" content="Enter the number of questions and how many were wrong to get the percentage score and letter grade instantly, with a printable grade chart for every wrong-answer count.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Scoped extras for the grade chart — uses the shared theme vars. */
+  .amort-summary { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin: 18px 0; font-size: 15.5px; line-height: 1.55; }
+  .chart-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 18px 0 8px; }
+  .chart-actions h2 { margin: 0; font-size: 19px; flex: 1 1 auto; }
+  .amort-table-wrap { overflow-x: auto; }
+  table.amort-table { width: 100%; border-collapse: collapse; margin: 8px 0 0; font-size: 14px; }
+  table.amort-table th, table.amort-table td { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  table.amort-table th:first-child, table.amort-table td:first-child { text-align: left; }
+  table.amort-table th { color: var(--muted); font-weight: 600; }
+  .btn-secondary.copied { color: var(--accent); border-color: var(--accent); }
+  @media print {
+    /* Print just the chart — drop the site chrome, form, ads and prose. */
+    .site, .calc, .ad-slot, .prose, .amort-summary, .skip-link, .chart-actions button, .results { display: none !important; }
+    .chart-actions h2 { font-size: 22px; }
+    table.amort-table { font-size: 12px; }
+  }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"EZ Grader","applicationCategory":"EducationApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"featureList":["Printable grade chart for every wrong-answer count","Standard A–F and plus/minus grading scales","Points or question-count modes","Instant percentage score and letter grade"],"description":"Calculate a test percentage score and letter grade from the number of questions and how many were answered wrong, with a printable grade chart for every wrong-answer count."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How does an EZ grader work?","acceptedAnswer":{"@type":"Answer","text":"You enter how many questions (or points) the test is out of and how many a student got wrong. The score is the number correct divided by the total, times 100: score = (total − wrong) ÷ total × 100. The tool also reads off a letter grade and builds a chart showing the score for every possible number of wrong answers, so you can grade a whole stack of papers at a glance."}},{"@type":"Question","name":"How do you calculate a test grade percentage?","acceptedAnswer":{"@type":"Answer","text":"Subtract the number wrong from the total, divide by the total, and multiply by 100. For a 20-question test with 3 wrong, that is (20 − 3) ÷ 20 × 100 = 85%. This calculator rounds the result to one decimal place, the figure most teachers record."}},{"@type":"Question","name":"What letter grade is each percentage?","acceptedAnswer":{"@type":"Answer","text":"On the standard scale used by default, 90% and above is an A, 80–89% is a B, 70–79% is a C, 60–69% is a D, and below 60% is an F. Switch on the plus/minus scale for finer bands such as A+, A−, B+ and so on. You can always read the exact letter for any score in the chart."}},{"@type":"Question","name":"Can I use the EZ grader for points instead of questions?","acceptedAnswer":{"@type":"Answer","text":"Yes. The total can be any number of points, not just a count of questions. Enter the total points possible and how many points were lost. The percentage and letter grade work the same way, and the chart lists a row for every whole point off."}},{"@type":"Question","name":"Is this EZ grader free and private?","acceptedAnswer":{"@type":"Answer","text":"Yes. It is completely free, needs no signup, and runs entirely in your browser. Nothing you type is uploaded or stored anywhere — the scores and the printable chart are generated on your own device."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>EZ Grader — Test Score Calculator</h1>
+    <p class="lede">Grade a test in seconds. Enter how many questions (or points) the test is out of and how many a student got wrong — the percentage score, letter grade, and a full printable grade chart update as you type. Nothing is sent anywhere.</p>
+
+    <p class="note"><strong>A test score is the number answered correctly divided by the total, as a percentage: score = (total − wrong) ÷ total × 100.</strong> For a 20-question test with 3 wrong, that is (20 − 3) ÷ 20 × 100 = 85.0%, a B on the standard scale.</p>
+
+    <section class="calc" aria-label="EZ grader test score calculator">
+      <form id="graderForm" autocomplete="off" onsubmit="return false">
+        <div class="field inline">
+          <span><label for="total">Number of questions or points</label><input id="total" type="number" inputmode="numeric" step="1" min="1" value="20" placeholder="20"></span>
+          <span><label for="wrong">Number wrong</label><input id="wrong" type="number" inputmode="numeric" step="1" min="0" value="0" placeholder="0"></span>
+        </div>
+
+        <div class="field">
+          <span style="display:block;font-size:13.5px;font-weight:600;color:var(--muted);margin-bottom:7px;">Grading scale</span>
+          <div class="seg" role="radiogroup" aria-label="Grading scale" style="display:inline-flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+            <label style="padding:9px 16px;cursor:pointer;font-size:14.5px;"><input type="radio" name="scale" value="simple" checked style="margin-right:7px;">Standard (A–F)</label>
+            <label style="padding:9px 16px;cursor:pointer;font-size:14.5px;border-left:1px solid var(--border);"><input type="radio" name="scale" value="plusminus" style="margin-right:7px;">Plus / minus</label>
+          </div>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="scoreBig">—</p>
+        <p class="net-sub" id="scoreSub"></p>
+        <div class="line" id="gradeLine" hidden><span class="lbl">Letter grade</span><span class="val"></span></div>
+        <div class="line" id="correctLine" hidden><span class="lbl">Correct</span><span class="val"></span></div>
+        <div class="line" id="wrongLine" hidden><span class="lbl">Wrong</span><span class="val"></span></div>
+        <div class="line" id="totalLine" hidden><span class="lbl">Out of</span><span class="val"></span></div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <div class="amort-summary" id="summaryBox" hidden>
+      <strong>Grade summary</strong>
+      <p id="summaryText" style="margin:6px 0 0;"></p>
+    </div>
+
+    <div id="chartWrap" hidden>
+      <div class="chart-actions">
+        <h2>Printable grade chart</h2>
+        <button type="button" id="printChartBtn" class="btn-secondary">Print chart</button>
+        <button type="button" id="copyChartBtn" class="btn-secondary">Copy chart</button>
+      </div>
+      <p class="muted-small">One row for every number of wrong answers, from 0 up to the total — the chart teachers screenshot or print and tape to the desk.</p>
+      <div class="amort-table-wrap">
+        <table class="amort-table">
+          <thead>
+            <tr><th>Wrong</th><th>Correct</th><th>Score</th><th>Grade</th></tr>
+          </thead>
+          <tbody id="chartBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <section class="prose">
+      <h2>How to use the EZ grader</h2>
+      <p>Enter the <strong>number of questions or points</strong> the test is out of, then the <strong>number wrong</strong>. The big number is the <strong>percentage score</strong> — the share answered correctly — and just below it is the matching <strong>letter grade</strong>. Everything updates instantly as you type; there's no button to press and nothing is uploaded.</p>
+      <p><strong>Worked example.</strong> A 25-question quiz with 4 wrong: enter 25 and 4. The score is (25 − 4) ÷ 25 × 100 = <strong>84.0%</strong>, a B on the standard scale. Change the number wrong and watch the score and grade move in real time — handy when you're marking a stack of papers and just need the next result.</p>
+      <p>The real time-saver is the <strong>printable grade chart</strong>. It lists a row for every possible number of wrong answers, from a perfect score down to all wrong, with the percentage and letter grade for each. Print it once and you can grade the whole class by reading down a single column — no math per paper. Use <em>Print chart</em> for a clean printout, or <em>Copy chart</em> to paste it into a spreadsheet or gradebook.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded. Scores are rounded to one decimal place; round to your school's policy if it differs.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Percentage scores and letter grades explained</h2>
+      <p>A percentage score answers one question: out of everything that could have been right, how much was? That's why it's <em>number correct ÷ total</em>, not <em>wrong ÷ total</em>. A test out of 50 points with 10 points lost is 40 ÷ 50 = 80%, regardless of how many separate questions those points came from — which is why this grader works equally well for question counts and point totals.</p>
+      <p>The <strong>standard A–F scale</strong> used by default is the most common in U.S. schools: 90 and up is an A, then B, C and D in ten-point bands down to 60, and anything below 60 is an F. Switch on the <strong>plus/minus scale</strong> for finer distinctions — A+ at 97, A at 93, A− at 90, and matching plus/minus bands all the way down. Grading scales vary by school and even by teacher, so treat the letter as a guide and apply your own cut-offs where they differ; the percentage itself is exact either way.</p>
+      <p><strong>Rounding matters near a boundary.</strong> A raw 89.6% rounds to 89.6 here and still lands as a B on the standard scale, but a student sitting at 89.5 is one rounding rule away from an A−. This tool always shows the precise percentage to one decimal so you can see exactly where a score falls before applying any rounding-up policy of your own.</p>
+      <p>Need a final course grade rather than a single test? Use the <a href="/gpa-calculator/">GPA calculator</a> to weight letter grades across courses, the <a href="/percentage-calculator/">percentage calculator</a> for any other percent-of-total sum, or the <a href="/average-calculator/">average calculator</a> to average several test scores together.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common grading questions</h2>
+      <p><strong>How do you calculate a test grade?</strong> Subtract the number wrong from the total, divide by the total, and multiply by 100. A 20-question test with 3 wrong is (20 − 3) ÷ 20 × 100 = 85%.</p>
+      <p><strong>What is 85% as a letter grade?</strong> 85% is a B on the standard scale (80–89% is a B). On the plus/minus scale it's a B as well, since 83–86% falls in the plain-B band.</p>
+      <p><strong>Can I grade by points instead of questions?</strong> Yes. Put the total points possible in the first box and the points lost in the second — the percentage and letter grade are calculated the same way.</p>
+      <p><strong>What's the printable chart for?</strong> It shows the score and grade for every possible number of wrong answers, so you can grade an entire class by reading one column instead of doing the math on each paper.</p>
+      <p><strong>Is the EZ grader free and private?</strong> Yes — it's free, needs no signup, and runs entirely in your browser. Nothing you type is uploaded or stored.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools. Grading scales vary by school; use as a guide.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/ez-grader.js"></script>
+</body>
+</html>

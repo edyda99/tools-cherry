@@ -1,3 +1,6 @@
 # PDF -> Word (.docx) conversion engine.
 # pdf2docx pulls in PyMuPDF, python-docx, opencv-python-headless, fonttools, numpy.
 pdf2docx==0.5.8
+# Pillow: recompress pdf2docx's lossless-PNG images back to JPEG so photo-heavy
+# PDFs fit under the Function URL's 6 MB response cap.
+Pillow

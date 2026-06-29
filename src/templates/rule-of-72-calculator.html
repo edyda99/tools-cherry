@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Rule of 72 Calculator — Years to Double Your Money</title>
+<meta name="description" content="Free Rule of 72 calculator: see how many years to double your money at any rate — or the rate needed to double in a set time. Runs in your browser.">
+<link rel="canonical" href="{{SITE_URL}}/rule-of-72-calculator/">
+<meta property="og:title" content="Rule of 72 Calculator — Years to Double Your Money">
+<meta property="og:description" content="Work out how long it takes to double your money at a given rate, or the rate needed to double in a set number of years — with the Rule of 70 and 69.3 alongside for comparison.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Scoped extras for the comparison block — uses the shared theme vars. */
+  .amort-summary { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin: 18px 0; font-size: 15.5px; line-height: 1.55; }
+  .r72-note { color: var(--muted); font-size: 13.5px; line-height: 1.5; margin: 10px 0 0; }
+  .r72-note strong { color: var(--text); }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Rule of 72 Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate how many years it takes to double your money at a given annual interest rate, or the rate needed to double in a set number of years, using the Rule of 72 — with the Rule of 70 and 69.3 shown for comparison."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is the Rule of 72?","acceptedAnswer":{"@type":"Answer","text":"The Rule of 72 is a mental-math shortcut for compound growth. To estimate how many years it takes to double your money, divide 72 by the annual interest rate as a percent. At 6% a year, money doubles in about 72 / 6 = 12 years. You can also flip it: divide 72 by the number of years you have to find the annual rate you'd need."}},{"@type":"Question","name":"How accurate is the Rule of 72?","acceptedAnswer":{"@type":"Answer","text":"It is a close approximation, most accurate for annual rates in the 6% to 10% range, where it lands within a fraction of a year of the exact compound-interest answer. At very high or very low rates the error grows, so this calculator also shows the exact figure so you can see the difference."}},{"@type":"Question","name":"Why use 72 instead of another number?","acceptedAnswer":{"@type":"Answer","text":"The mathematically exact constant is about 69.3 (which equals 100 times the natural log of 2 and matches continuous compounding). But 72 is preferred for mental math because it divides evenly by 2, 3, 4, 6, 8, 9, and 12, and it happens to be most accurate around the rates people use most often. The Rule of 70 is a middle ground."}},{"@type":"Question","name":"What is the difference between the Rule of 72, 70, and 69.3?","acceptedAnswer":{"@type":"Answer","text":"All three use the same divide-by-a-constant shortcut; only the constant changes. 72 is the easiest to divide and is most accurate near 8%. 70 is slightly more accurate at lower rates and is common in population-growth contexts. 69.3 is the most precise because it matches continuous compounding, but it is awkward to do in your head."}},{"@type":"Question","name":"Can I use the Rule of 72 for inflation or debt?","acceptedAnswer":{"@type":"Answer","text":"Yes. The same shortcut tells you how long it takes for prices to double at a given inflation rate, or how fast a debt grows at a given interest rate. At 3% inflation, prices double in about 24 years; at 18% credit-card interest, a balance doubles in about 4 years if nothing is paid."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Rule of 72 Calculator</h1>
+    <p class="lede">Find out how long it takes to double your money — or the return you'd need to do it in a set time. Pick what you already know, an interest rate or a timeframe, type the one value, and the answer updates as you go. The Rule of 70 and Rule of 69.3 are shown alongside for comparison.</p>
+
+    <p class="note"><strong>The Rule of 72 estimates doubling time by dividing 72 by the annual interest rate.</strong> At 6% a year your money doubles in about 72 ÷ 6 = 12 years. Flip it around — 72 ÷ years — to find the rate you'd need to double in a given time.</p>
+
+    <section class="calc" aria-label="Rule of 72 calculator">
+      <form id="r72Form" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <span style="display:block;font-size:13.5px;font-weight:600;color:var(--muted);margin-bottom:7px;">What do you know?</span>
+          <div class="seg" role="radiogroup" aria-label="What do you know?" style="display:inline-flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+            <label style="padding:9px 16px;cursor:pointer;font-size:14.5px;"><input type="radio" name="r72Mode" value="rate" checked style="margin-right:7px;">I know the interest rate</label>
+            <label style="padding:9px 16px;cursor:pointer;font-size:14.5px;border-left:1px solid var(--border);"><input type="radio" name="r72Mode" value="years" style="margin-right:7px;">I know the timeframe</label>
+          </div>
+        </div>
+
+        <div class="field" id="rateMode">
+          <label for="rate">Annual interest rate (%)</label>
+          <input id="rate" type="number" inputmode="decimal" step="any" min="0" value="6" placeholder="e.g. 6">
+          <p class="muted-small" style="margin-top:6px">The average yearly return or growth rate, as a percent.</p>
+        </div>
+
+        <div class="field" id="yearsMode" hidden>
+          <label for="years">Timeframe (years)</label>
+          <input id="years" type="number" inputmode="decimal" step="any" min="0" value="10" placeholder="e.g. 10">
+          <p class="muted-small" style="margin-top:6px">How many years you want your money to take to double.</p>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="r72Big">—</p>
+        <p class="net-sub" id="r72Sub"></p>
+        <div class="line" id="r72Line" hidden><span class="lbl">Rule of 72</span><span class="val"></span></div>
+        <div class="line" id="r70Line" hidden><span class="lbl">Rule of 70</span><span class="val"></span></div>
+        <div class="line" id="r693Line" hidden><span class="lbl">Rule of 69.3</span><span class="val"></span></div>
+        <div class="line" id="exactLine" hidden><span class="lbl">Exact</span><span class="val"></span></div>
+      </div>
+      <p class="r72-note"><strong>Which divisor?</strong> 72 is easiest for mental math and most accurate around 6–10%. The Rule of 70 is slightly better at low rates. The Rule of 69.3 is the most precise because it matches continuous compounding (69.3 = 100 × ln 2).</p>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <div class="amort-summary" id="summaryBox" hidden>
+      <strong>In plain language</strong>
+      <p id="summaryText" style="margin:6px 0 0;"></p>
+    </div>
+
+    <section class="prose">
+      <h2>How to use the Rule of 72 calculator</h2>
+      <p>First pick <strong>what you already know</strong>. If you know the rate of return, choose <em>I know the interest rate</em> and type the annual percentage — the calculator divides 72 by it to show how many years your money takes to double. If instead you have a deadline in mind, choose <em>I know the timeframe</em> and type the number of years — it divides 72 by that to show the annual return you'd need. Only one input shows at a time, so there's no guessing which box to fill.</p>
+      <p><strong>Worked example.</strong> Say a fund returns about 8% a year. Enter 8 in rate mode and you'll see roughly <strong>9 years</strong> to double (72 ÷ 8 = 9). Switch to timeframe mode, enter 9, and it returns about 8% — the same relationship read the other way. Everything updates instantly as you type, and nothing you enter is sent anywhere.</p>
+      <p>Alongside the main answer you'll see the same calculation using the <strong>Rule of 70</strong> and <strong>Rule of 69.3</strong>, plus the <strong>exact</strong> figure from the real compound-interest formula, so you can judge how close the shortcut is for your numbers.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded. The Rule of 72 is an approximation; results are estimates, not financial advice.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Why the Rule of 72 works — and when to use 70 or 69.3</h2>
+      <p>The shortcut comes straight from the compound-interest formula. The exact time to double at a rate <em>r</em> is the natural log of 2 divided by the log of (1 + r), and for small rates that simplifies to roughly 69.3 divided by the rate in percent. Rounding 69.3 up to 72 barely changes the answer in the everyday 6–10% range, and 72 is far friendlier to divide in your head because it splits cleanly into halves, thirds, quarters, sixths, eighths, ninths, and twelfths.</p>
+      <p>Pick the divisor that fits the job. <strong>72</strong> is the default — quick to divide and most accurate around 8%. <strong>70</strong> is marginally more accurate at lower rates and is the version demographers use for population growth and doubling-time of anything that grows steadily. <strong>69.3</strong> is the mathematically exact constant for <em>continuous</em> compounding (it equals 100 × ln 2), so it's the most precise, but the awkward decimal makes it impractical without a calculator. This tool shows all three so you don't have to choose blind.</p>
+      <p>The rule cuts both ways and isn't only for investing. At a 3% inflation rate, prices roughly double in 24 years (72 ÷ 3). At an 18% credit-card rate, an untouched balance doubles in about 4 years. The same arithmetic that tells you how fast savings grow tells you how fast a debt — or the cost of living — grows against you.</p>
+      <p>The Rule of 72 is a quick mental estimate; for the exact figures, the <a href="/compound-interest-calculator/">compound interest calculator</a> shows real period-by-period growth, the <a href="/cagr-calculator/">CAGR calculator</a> turns a start and end value into an annual return, the <a href="/inflation-calculator/">inflation calculator</a> tracks how prices erode buying power, and the <a href="/savings-goal-calculator/">savings goal calculator</a> works out what it takes to reach a target.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common Rule of 72 questions</h2>
+      <p><strong>What is the Rule of 72?</strong> It's a mental-math shortcut: divide 72 by the annual interest rate to estimate the years to double your money, or divide 72 by the years to find the rate you'd need. At 6% a year, money doubles in about 12 years.</p>
+      <p><strong>How accurate is it?</strong> Very close for rates between about 6% and 10%, where it lands within a fraction of a year of the exact answer. The error grows at very high or very low rates, which is why this calculator also shows the exact figure.</p>
+      <p><strong>Why 72 and not 69.3?</strong> 69.3 is the mathematically exact constant for continuous compounding, but 72 divides evenly by many numbers and is most accurate near the rates people actually use, making it better for mental math.</p>
+      <p><strong>72 vs 70 vs 69.3 — what's the difference?</strong> Same shortcut, different constant. 72 is easiest to divide and most accurate near 8%; 70 is slightly better at low rates; 69.3 is the most precise because it matches continuous compounding.</p>
+      <p><strong>Can I use it for inflation or debt?</strong> Yes. It tells you how long until prices double at a given inflation rate, or how fast a balance grows at a given interest rate — at 3% inflation, prices double in about 24 years.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools. Estimates only, not financial advice.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/rule-of-72-calculator.js"></script>
+</body>
+</html>

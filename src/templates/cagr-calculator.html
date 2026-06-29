@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>CAGR Calculator — Compound Annual Growth Rate (with Year-by-Year Table)</title>
+<meta name="description" content="Free CAGR calculator. Enter a beginning value, an ending value, and the number of years (or a start and end year) to get the compound annual growth rate, total growth, and a year-by-year breakdown. Live results, no signup.">
+<link rel="canonical" href="{{SITE_URL}}/cagr-calculator/">
+<meta property="og:title" content="CAGR Calculator — Compound Annual Growth Rate">
+<meta property="og:description" content="Work out the compound annual growth rate of an investment, revenue, or any value between two points in time — with total growth and a year-by-year table.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Scoped extras for the year table — uses the shared theme vars. */
+  .amort-summary { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin: 18px 0; font-size: 15.5px; line-height: 1.55; }
+  details.amort { margin: 4px 0 8px; }
+  details.amort > summary { cursor: pointer; font-weight: 600; color: var(--text); padding: 8px 0; }
+  .amort-table-wrap { overflow-x: auto; }
+  table.amort-table { width: 100%; border-collapse: collapse; margin: 8px 0 0; font-size: 14px; }
+  table.amort-table th, table.amort-table td { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  table.amort-table th:first-child, table.amort-table td:first-child { text-align: left; }
+  table.amort-table th { color: var(--muted); font-weight: 600; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"CAGR Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate the compound annual growth rate (CAGR) from a beginning value, an ending value, and a number of years, with total growth and a year-by-year breakdown."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is CAGR?","acceptedAnswer":{"@type":"Answer","text":"CAGR stands for Compound Annual Growth Rate. It is the single, constant yearly rate that would take a beginning value to an ending value over a number of years, as if it grew by the same percentage every year. It smooths out the ups and downs of real returns into one comparable figure."}},{"@type":"Question","name":"How is CAGR calculated?","acceptedAnswer":{"@type":"Answer","text":"CAGR = (ending value / beginning value)^(1 / number of years) − 1. For example, $1,000 growing to $2,000 over 10 years is (2)^(1/10) − 1, which is about 7.18% a year. This calculator does the math for you and also shows the total growth over the whole period."}},{"@type":"Question","name":"What is the difference between CAGR and total growth?","acceptedAnswer":{"@type":"Answer","text":"Total growth is the simple overall change — ending divided by beginning, minus one — across the whole period. CAGR converts that into a per-year rate, accounting for compounding. A 100% total growth over 10 years is only about 7.2% CAGR per year, because each year's growth builds on the last."}},{"@type":"Question","name":"Can CAGR be negative?","acceptedAnswer":{"@type":"Answer","text":"Yes. If the ending value is lower than the beginning value, the CAGR is negative, meaning the value shrank by that percentage each year on average. For example, halving over one year is a −50% CAGR."}},{"@type":"Question","name":"What can I use a CAGR calculator for?","acceptedAnswer":{"@type":"Answer","text":"CAGR is widely used to compare investments, fund returns, revenue or user growth, and any value that changes over time. Because it reduces growth to one annual rate, you can fairly compare things that grew over different time spans."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>CAGR Calculator</h1>
+    <p class="lede">Find the compound annual growth rate between two values. Enter a beginning value, an ending value, and how many years apart they are — or a start and end year — and the CAGR, total growth, and a year-by-year table update as you type.</p>
+
+    <p class="note"><strong>CAGR is the single constant yearly rate that turns a starting value into an ending value over a set number of years.</strong> The formula is CAGR = (ending ÷ beginning)<sup>1 ÷ years</sup> − 1. For example, $1,000 growing to $2,500 over 5 years is a CAGR of about 20.1% per year.</p>
+
+    <section class="calc" aria-label="CAGR calculator">
+      <form id="cagrForm" autocomplete="off" onsubmit="return false">
+        <div class="field inline">
+          <span><label for="beginning">Beginning value ($)</label><input id="beginning" type="number" inputmode="decimal" step="any" min="0" value="1000" placeholder="1000"></span>
+          <span><label for="ending">Ending value ($)</label><input id="ending" type="number" inputmode="decimal" step="any" min="0" value="2500" placeholder="2500"></span>
+        </div>
+
+        <div class="field">
+          <span style="display:block;font-size:13.5px;font-weight:600;color:var(--muted);margin-bottom:7px;">Set the time span by</span>
+          <div class="seg" role="radiogroup" aria-label="How to set the time span" style="display:inline-flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+            <label style="padding:9px 16px;cursor:pointer;font-size:14.5px;"><input type="radio" name="timeMode" value="years" checked style="margin-right:7px;">Number of years</label>
+            <label style="padding:9px 16px;cursor:pointer;font-size:14.5px;border-left:1px solid var(--border);"><input type="radio" name="timeMode" value="range" style="margin-right:7px;">Start &amp; end year</label>
+          </div>
+        </div>
+
+        <div class="field" id="yearsMode">
+          <label for="years">Number of years</label>
+          <input id="years" type="number" inputmode="decimal" step="any" min="0" value="5" placeholder="5">
+        </div>
+
+        <div class="field" id="rangeMode" hidden>
+          <div class="field inline">
+            <span><label for="startYear">Start year</label><input id="startYear" type="number" inputmode="numeric" step="1" value="" placeholder="e.g. 2018"></span>
+            <span><label for="endYear">End year</label><input id="endYear" type="number" inputmode="numeric" step="1" value="" placeholder="e.g. 2023"></span>
+          </div>
+          <p class="muted-small" style="margin-top:6px">The gap between the two years is used as the number of years.</p>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="cagrBig">—</p>
+        <p class="net-sub" id="cagrSub"></p>
+        <div class="line" id="growthLine" hidden><span class="lbl">Total growth over the period</span><span class="val"></span></div>
+        <div class="line" id="beginLine" hidden><span class="lbl">Beginning value</span><span class="val"></span></div>
+        <div class="line" id="endLine" hidden><span class="lbl">Ending value</span><span class="val"></span></div>
+        <div class="line" id="yearsLine" hidden><span class="lbl">Number of years</span><span class="val"></span></div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <div class="amort-summary" id="summaryBox" hidden>
+      <strong>Growth summary</strong>
+      <p id="summaryText" style="margin:6px 0 0;"></p>
+    </div>
+
+    <div id="scheduleWrap" hidden>
+      <details class="amort">
+        <summary>Show year-by-year breakdown</summary>
+        <div class="amort-table-wrap">
+          <table class="amort-table">
+            <thead>
+              <tr><th>Year</th><th>Value at constant CAGR</th></tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+
+    <section class="prose">
+      <h2>How to use the CAGR calculator</h2>
+      <p>Enter the <strong>beginning value</strong> — what something was worth at the start — and the <strong>ending value</strong> at the end of the period. Then either type the <strong>number of years</strong> between them, or fill in a <strong>start year</strong> and <strong>end year</strong> and the gap is worked out for you. The compound annual growth rate updates instantly — there's no button to press and nothing is sent anywhere.</p>
+      <p><strong>Worked example.</strong> Say an investment grew from $1,000 to $2,500 over 5 years. Enter 1000, 2500, and 5. The calculator returns a CAGR of about <strong>20.1% per year</strong> and a total growth of 150%. Notice the two numbers are very different: 150% spread over 5 years isn't 30% a year, because each year's growth compounds on the last.</p>
+      <p>The big number is the <strong>CAGR</strong>: the single yearly rate that, compounded each year, turns the beginning value into the ending value. Below it you'll see the <strong>total growth</strong> across the whole period, and a year-by-year table showing the value as if it grew by that exact rate every year.</p>
+      <p>For a quick mental check on an annual return, the <a href="/rule-of-72-calculator/">Rule of 72 calculator</a> estimates how fast money doubles at a given rate.</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded. CAGR is a smoothed average; real returns vary year to year. These figures are estimates, not financial advice.</p>
+    </section>
+
+    <section class="prose">
+      <h2>What CAGR tells you — and what it hides</h2>
+      <p>CAGR is the standard way to compare growth across different time spans on equal footing. Because it reduces everything to one annual rate, you can fairly put a fund that grew over 3 years next to one that grew over 7, or compare revenue growth at two companies of different ages. That comparability is why analysts, investors, and finance teams reach for CAGR instead of raw total return.</p>
+      <p>Its main limitation is that it is a <strong>smoothed average</strong> — it shows the steady rate that <em>would have</em> produced the result, not the bumpy path that actually happened. A stock that lost 40% one year and doubled the next can carry the same CAGR as one that crept up steadily. CAGR also says nothing about volatility or risk, and it can be misleading over very short periods or when the beginning value is unusually high or low (the start and end points dominate the result).</p>
+      <p><strong>CAGR vs average annual return.</strong> A simple average of yearly returns almost always overstates real growth, because it ignores compounding and the order of gains and losses. CAGR (a geometric mean) reflects what you actually ended up with, which is why it's the more honest figure for multi-year performance.</p>
+      <p>If you want to see how a fixed CAGR plays out year by year, use this tool's year-by-year table. To project a known rate forward instead, the <a href="/compound-interest-calculator/">compound interest calculator</a> grows a balance at a set rate over time.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common CAGR questions</h2>
+      <p><strong>What is CAGR?</strong> CAGR is the Compound Annual Growth Rate — the constant yearly rate that would take a beginning value to an ending value over a number of years, as if it grew by the same percentage every year.</p>
+      <p><strong>How is CAGR calculated?</strong> CAGR = (ending value ÷ beginning value)<sup>1 ÷ years</sup> − 1. For example, $1,000 growing to $2,000 over 10 years is about 7.18% a year.</p>
+      <p><strong>CAGR vs total growth — what's the difference?</strong> Total growth is the simple overall change across the whole period. CAGR turns that into a per-year rate that accounts for compounding, so 100% total growth over 10 years is only about 7.2% CAGR.</p>
+      <p><strong>Can CAGR be negative?</strong> Yes. If the ending value is lower than the beginning value, CAGR is negative — the value shrank by that percentage each year on average.</p>
+      <p><strong>What is CAGR used for?</strong> Comparing investments, fund returns, revenue or user growth, and any value that changes over time, even across different time spans.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools. Estimates only, not financial advice.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/cagr-calculator.js"></script>
+</body>
+</html>

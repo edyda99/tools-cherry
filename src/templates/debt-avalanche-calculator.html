@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Debt Avalanche Calculator — Payoff Order, Months &amp; Interest Saved</title>
+<meta name="description" content="Free debt avalanche calculator: enter each debt's balance, APR & minimum plus extra cash to get your highest-APR-first payoff order, debt-free date & interest saved.">
+<link rel="canonical" href="{{SITE_URL}}/debt-avalanche-calculator/">
+<meta property="og:title" content="Debt Avalanche Calculator">
+<meta property="og:description" content="Add your debts and an extra monthly payment to get the highest-APR-first payoff order, debt-free date, total interest, and the interest the avalanche method saves over paying minimums.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Scoped extras for the debt rows + tables — all using the shared theme vars. */
+  .debt-row { display: grid; grid-template-columns: 1.4fr 1fr 0.8fr 1fr 28px; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .debt-row input { padding: 9px; font-size: 14px; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: 6px; width: 100%; min-width: 0; }
+  .debt-row input:focus { outline: none; box-shadow: var(--ring); border-color: var(--accent); }
+  .debt-row .rm { background: none; border: 0; color: var(--danger); cursor: pointer; font-size: 18px; line-height: 1; padding: 0; }
+  .debt-head { display: grid; grid-template-columns: 1.4fr 1fr 0.8fr 1fr 28px; gap: 6px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+  @media (max-width: 560px) {
+    .debt-row, .debt-head { grid-template-columns: 1.3fr 1fr 0.7fr 0.9fr 44px; gap: 5px; }
+    .debt-row input { padding: 8px 6px; font-size: 13px; }
+    /* Keep the remove "×" a full 44×44 tap target on mobile (was ~22×18). */
+    .debt-row .rm { min-width: 44px; min-height: 44px; font-size: 22px; }
+  }
+  .av-summary { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin: 18px 0; font-size: 15.5px; line-height: 1.55; }
+  .av-warn { background: color-mix(in srgb, #d29922 16%, var(--surface-2)); border: 1px solid color-mix(in srgb, #d29922 45%, var(--border)); border-radius: var(--radius); padding: 16px 18px; margin: 18px 0; font-size: 15px; line-height: 1.55; }
+  details.amort { margin: 4px 0 8px; }
+  details.amort > summary { cursor: pointer; font-weight: 600; color: var(--text); padding: 8px 0; }
+  .amort-table-wrap { overflow-x: auto; }
+  table.amort-table { width: 100%; border-collapse: collapse; margin: 8px 0 0; font-size: 14px; }
+  table.amort-table th, table.amort-table td { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  table.amort-table th:first-child, table.amort-table td:first-child { text-align: left; }
+  table.amort-table th { color: var(--muted); font-weight: 600; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Debt Avalanche Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Plan a debt-free payoff with the avalanche method: add each debt's balance, APR and minimum payment plus an extra monthly amount to get the highest-interest-first payoff order, the debt-free date, total interest, and the interest saved versus paying only minimums."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is the debt avalanche method?","acceptedAnswer":{"@type":"Answer","text":"The debt avalanche method targets your highest-interest-rate (highest APR) debt first. You pay the minimum on every debt, then throw all your spare cash at the debt with the highest APR until it is gone. Once a debt is cleared, its old minimum rolls into the extra you put toward the next-highest-rate debt. Because you always attack the most expensive interest first, the avalanche clears your total debt for the least interest overall."}},{"@type":"Question","name":"How is the debt avalanche different from the debt snowball?","acceptedAnswer":{"@type":"Answer","text":"Both methods pay every minimum and pile extra onto one debt at a time, rolling freed-up payments forward. The difference is the target order. The avalanche orders debts by highest APR first, which minimises total interest paid. The snowball orders by smallest balance first, which clears individual debts faster for an early motivational win but usually costs more interest. This calculator uses the avalanche order."}},{"@type":"Question","name":"How much does the avalanche method save me?","acceptedAnswer":{"@type":"Answer","text":"It depends on your balances, rates, and how much extra you can pay. This calculator runs a minimum-only baseline alongside your avalanche plan and shows the interest saved and the time saved between them. The bigger the gap between your highest and lowest APRs — and the more extra you can put in — the more the avalanche saves."}},{"@type":"Question","name":"Why does the calculator say a debt will never be paid off?","acceptedAnswer":{"@type":"Answer","text":"If a debt's minimum payment is smaller than the interest that builds up on it each month, the minimum alone never reduces the balance — it can even grow. The calculator flags those debts. With the avalanche they still get cleared eventually, once your extra payment and freed-up minimums reach them, but adding more each month closes the gap far faster."}},{"@type":"Question","name":"Is my financial data sent anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. The entire calculation runs in your browser using JavaScript. The balances, rates, and payments you type are never uploaded or stored anywhere, and nothing is sent to a server."}},{"@type":"Question","name":"Does the debt avalanche or snowball method save more money?","acceptedAnswer":{"@type":"Answer","text":"The debt avalanche almost always saves more money. By always paying down the highest-APR debt first, it minimises the total interest you pay, so it is the mathematically optimal order for a fixed extra payment. The snowball (smallest balance first) clears individual debts faster for motivation but usually costs a little more interest. The avalanche only meaningfully beats the snowball when there is a wide spread between your highest and lowest interest rates."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Debt Avalanche Calculator</h1>
+    <p class="lede">Pay off multiple debts for the least interest. Add each debt's balance, APR, and minimum payment, then set an extra monthly amount. The avalanche method attacks the highest-rate debt first and rolls each cleared payment forward — your payoff order, debt-free date, and interest saved update as you type.</p>
+
+    <p class="note"><strong>The avalanche method pays every minimum, then throws all spare cash — your extra plus the minimums freed up by debts already cleared — at the highest-APR debt first, rolling forward as each one clears.</strong> Targeting the most expensive interest first clears the whole pile for the lowest total interest. Example: a card at 26.99% is attacked before a 7.5% car loan, even if the loan balance is larger.</p>
+
+    <section class="calc" aria-label="Debt avalanche calculator">
+      <form id="debtForm" autocomplete="off" onsubmit="return false">
+        <h2>Your debts</h2>
+        <div id="debts"></div>
+        <button type="button" id="addDebt" class="btn-secondary">+ Add debt</button>
+
+        <div class="field" style="margin-top:18px">
+          <label for="extra">Extra payment per month ($)</label>
+          <input id="extra" type="number" inputmode="decimal" step="any" min="0" value="300" placeholder="0">
+          <p class="muted-small" style="margin-top:6px">On top of every minimum above. This is the amount the avalanche puts toward the highest-rate debt first.</p>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="avBig">—</p>
+        <p class="net-sub" id="avSub">Add at least one debt with a balance to start.</p>
+        <div class="line" id="orderLine" hidden><span class="lbl">Pay first (highest APR)</span><span class="val"></span></div>
+        <div class="line" id="dateLine" hidden><span class="lbl">Debt-free date</span><span class="val"></span></div>
+        <div class="line" id="interestSavedLine" hidden><span class="lbl">Interest saved vs minimums only</span><span class="val"></span></div>
+        <div class="line" id="monthsSavedLine" hidden><span class="lbl">Time saved vs minimums only</span><span class="val"></span></div>
+        <div class="line" id="totalInterestLine" hidden><span class="lbl">Total interest paid</span><span class="val"></span></div>
+        <div class="line" id="totalPaidLine" hidden><span class="lbl">Total amount paid</span><span class="val"></span></div>
+      </div>
+
+      <div class="av-warn" id="warnBox" hidden>
+        <strong>Heads up — a minimum won't cover its interest.</strong>
+        <p id="warnText" style="margin:6px 0 0;"></p>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <div class="av-summary" id="summaryBox" hidden>
+      <strong>Payoff summary</strong>
+      <p id="summaryText" style="margin:6px 0 0;"></p>
+    </div>
+
+    <div id="orderWrap" hidden>
+      <details class="amort" open>
+        <summary>Payoff order (highest APR first)</summary>
+        <div class="amort-table-wrap">
+          <table class="amort-table">
+            <thead>
+              <tr><th>#</th><th>Debt</th><th>APR</th><th>Balance</th><th>Min/mo</th><th>Cleared</th></tr>
+            </thead>
+            <tbody id="orderBody"></tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+
+    <div id="scheduleWrap" hidden>
+      <details class="amort">
+        <summary>Show month-by-month schedule</summary>
+        <div class="amort-table-wrap">
+          <table class="amort-table">
+            <thead id="scheduleHead"></thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+
+    <section class="prose">
+      <h2>How to use the debt avalanche calculator</h2>
+      <p>Add a row for each debt you owe. For every one, enter the <strong>balance</strong> still owed, its <strong>APR</strong> (the annual interest rate on your statement), and the <strong>minimum monthly payment</strong>. The name is optional and just helps you keep track. Use <strong>+ Add debt</strong> for more rows, or the × button to remove one. Then set the <strong>extra payment per month</strong> — the amount you can pay on top of all your minimums.</p>
+      <p>The results update instantly. The big number is how long until you're debt-free; below it you'll see which debt to pay first, your debt-free date, the total interest you'll pay, and — crucially — the interest and time the avalanche saves you compared with paying only the minimums. Expand the payoff-order table to see the exact order and when each debt clears, or the month-by-month schedule to follow every balance down to zero.</p>
+      <p class="note">Everything runs in your browser — the figures you type are never uploaded. This is a simplified estimate that assumes fixed rates and no new charges or fees; it is not financial advice.</p>
+    </section>
+
+    <section class="prose">
+      <h2>How the avalanche method works</h2>
+      <p>Each month, three things happen in order. First, interest is added to every debt at its monthly rate (the APR divided by 12). Second, the minimum payment is made on every debt. Third — and this is the heart of the method — all your remaining cash is thrown at a single debt: the one with the <strong>highest APR</strong>. That spare cash is your extra payment <em>plus</em> the minimums freed up by any debts you've already cleared, so the amount attacking your top-rate debt grows over time. This is the "avalanche": payments pile up and roll downhill onto the next debt as each one is wiped out.</p>
+      <p>Because you always pay down the most expensive interest first, the avalanche is the mathematically optimal order — it clears your total debt for the <strong>least interest possible</strong> given a fixed extra payment. The trade-off is patience: if your highest-rate debt also has a large balance, you may not clear any single debt for a while. The <a href="/debt-payoff-calculator/">debt payoff calculator</a> is handy for stress-testing one balance at a time, and the snowball method (smallest balance first) is the popular alternative when an early win matters more than saving every dollar of interest.</p>
+      <p><strong>Avalanche vs snowball.</strong> The snowball orders debts by smallest balance, clearing whole accounts quickly for motivation. The avalanche orders by highest APR, minimising interest. For most people the two finish within a few months of each other, but the avalanche almost always pays less interest. The right choice is the one you'll actually stick with — and you can switch order in this tool simply by reading the highest-APR debt off the payoff-order table.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common debt avalanche questions</h2>
+      <p><strong>What is the debt avalanche method?</strong> You pay every debt's minimum, then put all spare cash toward the highest-APR debt until it's gone, rolling each freed-up payment onto the next-highest-rate debt. Attacking the priciest interest first clears everything for the least total interest.</p>
+      <p><strong>Avalanche or snowball — which should I use?</strong> The avalanche (highest APR first) saves the most interest. The snowball (smallest balance first) clears individual debts faster for a motivational boost but usually costs a bit more. This tool uses the avalanche order; pick whichever keeps you paying.</p>
+      <p><strong>Does the avalanche or snowball save more money?</strong> The avalanche almost always saves more — paying the highest APR first minimises total interest, making it the mathematically optimal order. The snowball costs a little more but feels faster. The avalanche only meaningfully wins when there's a wide spread between your highest and lowest rates.</p>
+      <p><strong>How much will the avalanche save me?</strong> The calculator compares your plan to paying only the minimums and shows the interest and time saved. The wider the spread between your highest and lowest APRs, and the more extra you pay, the bigger the saving.</p>
+      <p><strong>Why does it warn that a debt will "never" be paid off?</strong> If a debt's minimum is smaller than its monthly interest, the minimum alone never reduces the balance. With the avalanche it's still cleared once your extra and freed-up minimums reach it — but adding more each month closes the gap far sooner.</p>
+      <p><strong>Is my data private?</strong> Yes. The whole calculation runs in your browser; the balances, rates, and payments you enter are never uploaded or stored anywhere.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools. Estimates only, not financial advice.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/debt-avalanche-calculator.js"></script>
+</body>
+</html>

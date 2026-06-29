@@ -33,6 +33,7 @@
   <div class="wrap">
     <h1>Base64 Encode &amp; Decode</h1>
     <p class="lede">Convert text to Base64 or decode Base64 back to plain text. Full Unicode (UTF-8) support means emoji and non-English text work too, and there's a URL-safe option for use in links and filenames. Everything runs in your browser — nothing is uploaded.</p>
+    <p class="note"><strong>Base64 encodes data using 64 printable ASCII characters (A–Z, a–z, 0–9, + and /) so it can travel safely through URLs, emails and JSON — to use it, paste text to encode or a Base64 string to decode.</strong> For example, the word "Hi" encodes to "SGk=". It is encoding, not encryption, so anyone can decode it.</p>
 
     <section class="calc" aria-label="Base64 encoder and decoder">
       <form id="b64Form" autocomplete="off" onsubmit="return false">
@@ -41,6 +42,7 @@
           <label><input type="radio" name="mode" value="decode"> Decode</label>
           <label><input type="checkbox" id="urlSafe"> URL-safe</label>
         </div>
+        <p class="muted-small" style="margin-top:6px">"URL-safe" swaps the + and / characters for - and _ so the result fits cleanly inside a web link.</p>
 
         <div class="b64-grid">
           <div class="field">

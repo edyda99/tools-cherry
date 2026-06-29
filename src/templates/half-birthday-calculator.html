@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Half Birthday Calculator — When Is My Half Birthday?</title>
+<meta name="description" content="Free half birthday calculator — enter your birth date to find your exact half birthday, the weekday it lands on, and a countdown to the next one.">
+<link rel="canonical" href="{{SITE_URL}}/half-birthday-calculator/">
+<meta property="og:title" content="Half Birthday Calculator — When Is My Half Birthday?">
+<meta property="og:description" content="Find your half birthday — six calendar months from your birthday — the weekday it lands on, and a countdown to the next one. Instant, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Scoped extras — uses the shared theme vars. */
+  .amort-summary { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin: 18px 0; font-size: 15.5px; line-height: 1.55; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Half Birthday Calculator","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Find your half birthday — the day six calendar months after your birthday — the day of the week it falls on, and a countdown to the next one."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is a half birthday?","acceptedAnswer":{"@type":"Answer","text":"A half birthday is the day exactly halfway through the year from your birthday — most commonly the same date six calendar months later. If you were born on 14 March, your half birthday is 14 September. People celebrate half birthdays for children whose birthdays fall on holidays, or just as a fun excuse to mark the midpoint of the year."}},{"@type":"Question","name":"How do you calculate a half birthday?","acceptedAnswer":{"@type":"Answer","text":"Take your birthday and add six calendar months. A 14 March birthday becomes 14 September; a 2 November birthday becomes 2 May the following year. If the day doesn't exist six months later — for example 31 August plus six months would be 31 February — the half birthday is clamped to the last valid day of that month, so it becomes 28 or 29 February."}},{"@type":"Question","name":"What is the 182.5-day method?","acceptedAnswer":{"@type":"Answer","text":"Instead of adding six calendar months, the midpoint method adds exactly half a year — 182.5 days — to your birthday. Because months vary in length, this lands a day or two away from the calendar half birthday. This calculator shows both: the six-month calendar date as the main answer and the 182.5-day midpoint as a secondary readout."}},{"@type":"Question","name":"What if my birthday is on August 31?","acceptedAnswer":{"@type":"Answer","text":"Six months after 31 August would be 31 February, which doesn't exist. The calculator clamps the day to the last day of February, so your half birthday is 28 February in normal years and 29 February in leap years. The same clamping handles any birth date whose day is larger than the target month allows."}},{"@type":"Question","name":"How many days until my next half birthday?","acceptedAnswer":{"@type":"Answer","text":"After you enter your birth date, the calculator finds your half birthday for this year and, if it has already passed, rolls forward to next year. It then counts the whole days from today — using your device's clock and local time zone — to that next half birthday, and tells you which day of the week it falls on."}},{"@type":"Question","name":"When is my half birthday this year?","acceptedAnswer":{"@type":"Answer","text":"Your half birthday is the same date six calendar months after your birthday, so it lands on a fixed date every year. If you were born on 14 March, it is always 14 September. Enter your birth date and the calculator shows this year's date, the weekday it falls on, and how many days away it is — rolling to next year automatically once it has passed."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Half Birthday Calculator</h1>
+    <p class="lede">Enter your birth date to find your half birthday — the day six calendar months after your birthday. See the exact date, the day of the week it falls on, the 182.5-day midpoint alternative, and a live countdown to the next one. Results update as you type.</p>
+
+    <p class="note"><strong>Your half birthday is the same date six calendar months after your birthday.</strong> For example, a 14 March birthday gives a half birthday of 14 September; a 2 November birthday gives 2 May. When the day doesn't exist six months later (like 31 August → 31 February), it's clamped to the last day of that month — 28 or 29 February.</p>
+
+    <section class="calc" aria-label="Half birthday calculator">
+      <form id="hbForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="birthDate">Your date of birth</label>
+          <input id="birthDate" type="date">
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-sub" id="hbPlaceholder">Pick your date of birth to see your half birthday.</p>
+        <p class="net-sub" id="hbMsg" role="alert" hidden></p>
+
+        <div id="hbResults" hidden>
+          <p class="net-big" id="hbBig">—</p>
+          <p class="net-sub" id="hbSub"></p>
+
+          <div class="line" id="nextDateLine" hidden><span class="lbl">Next half birthday</span><span class="val"></span></div>
+          <div class="line" id="weekdayLine" hidden><span class="lbl">Day of the week (next one)</span><span class="val"></span></div>
+          <div class="line" id="countdownLine" hidden><span class="lbl">Days until the next one</span><span class="val"></span></div>
+          <div class="line" id="midpointLine" hidden><span class="lbl">182.5-day midpoint (alternative)</span><span class="val"></span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <div class="amort-summary" id="summaryBox" hidden>
+      <strong>Your half birthday</strong>
+      <p id="summaryText" style="margin:6px 0 0;"></p>
+    </div>
+
+    <section class="prose">
+      <h2>How to use the half birthday calculator</h2>
+      <p>Pick your <strong>date of birth</strong> in the box above. The big number is your <strong>half birthday</strong> — the same calendar date six months after your birthday — and it appears instantly. There's no button to press and nothing is sent anywhere.</p>
+      <p>Below the headline you'll see the <strong>next upcoming half birthday</strong> as a full date, the <strong>day of the week</strong> it lands on that year, a <strong>countdown</strong> in days from today, and the <strong>182.5-day midpoint</strong> alternative for people who prefer the literal halfway point of the year.</p>
+      <p><strong>Worked example.</strong> Say you were born on 14 March. Six months later is 14 September, so that's your half birthday. If today is in June, the calculator counts the days from now to 14 September this year; once 14 September has passed, it automatically rolls the countdown forward to 14 September next year.</p>
+      <p>For more date math from the same birth date, the <a href="/age-calculator/">age calculator</a> gives your full age, the <a href="/date-calculator/">date calculator</a> adds or subtracts any span from a date, and <a href="/days-between-dates/">days between dates</a> counts the exact gap between two days. Planning the party? Set a <a href="/countdown-timer/">countdown timer</a> or browse the <a href="/holiday-countdown/">holiday countdown</a> for nearby dates.</p>
+      <p class="note">Everything runs in your browser using your device's clock and local time zone — the date you enter is never uploaded.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Six calendar months vs the 182.5-day midpoint</h2>
+      <p>There are two reasonable ways to define a half birthday, and they usually land a day or two apart. The <strong>calendar method</strong> — what most people mean — simply adds six months to your birthday and keeps the same day number. It's easy to remember and always falls on the same date each year, which is why this calculator uses it for the main answer.</p>
+      <p>The <strong>182.5-day midpoint method</strong> adds exactly half of a 365-day year to your birthday. Because months have different lengths, the true halfway point can be slightly before or after the six-month calendar date. Neither is more "correct" — the calendar date is friendlier for planning, while the midpoint is the literal middle of your personal year. The calculator shows both so you can pick whichever you like.</p>
+      <p><strong>Why some dates get clamped.</strong> Adding six months to a late-in-the-month birthday can produce a date that doesn't exist — 31 August plus six months would be 31 February. In those cases the half birthday is moved back to the last valid day of the target month (28 or 29 February), exactly the way calendars and reminder apps handle impossible dates. February 29 birthdays and other edge cases are handled the same consistent way.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common half birthday questions</h2>
+      <p><strong>What is a half birthday?</strong> It's the day halfway through the year from your birthday — usually the same date six calendar months later. A 14 March birthday gives a half birthday of 14 September.</p>
+      <p><strong>How do you calculate a half birthday?</strong> Add six calendar months to your birthday. If the resulting day doesn't exist, it's clamped to the last day of that month (for example 31 August becomes 28 or 29 February).</p>
+      <p><strong>What is the 182.5-day method?</strong> Instead of six calendar months, it adds exactly half a year — 182.5 days — to your birthday. It can differ from the calendar date by a day or two, and the calculator shows it as a secondary readout.</p>
+      <p><strong>What if my birthday is on August 31?</strong> Six months later would be 31 February, which isn't a real date, so your half birthday is clamped to 28 February (or 29 February in a leap year).</p>
+      <p><strong>How many days until my next half birthday?</strong> The countdown counts whole days from today — using your device's clock — to your next half birthday, rolling forward to next year automatically if this year's has already passed.</p>
+      <p><strong>When is my half birthday this year?</strong> It's the same date six calendar months after your birthday, so it falls on a fixed date every year — a 14 March birthday is always 14 September. Enter your birth date to see this year's date, weekday, and countdown.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/half-birthday-calculator.js"></script>
+</body>
+</html>

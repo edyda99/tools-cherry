@@ -11,6 +11,14 @@
 <meta property="og:description" content="Compress any photo under 100 KB, 200 KB, or a size you choose. Free, in your browser — nothing is uploaded.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Active-state highlight so it's obvious which preset set the target size. */
+  #presets .preset.is-active {
+    border-color: currentColor;
+    background: color-mix(in srgb, currentColor 12%, transparent);
+    font-weight: 600;
+  }
+</style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Image Compressor","applicationCategory":"MultimediaApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Compress an image to a target file size and download it, in your browser."}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I compress an image to under 100 KB?","acceptedAnswer":{"@type":"Answer","text":"Choose your photo, tap the 100 KB preset (or type 100 in the size box), and click Compress image. The tool lowers the quality just enough to land under 100 KB and shows you the final size before you download."}},{"@type":"Question","name":"Why do some websites require a photo under a certain size?","acceptedAnswer":{"@type":"Answer","text":"Job applications, passport and visa portals, and many forms set a maximum file size — often 100 KB, 200 KB, or 1 MB — to save storage and keep uploads fast. Compressing your image to fit lets it upload without being rejected."}},{"@type":"Question","name":"Will compressing ruin the quality of my photo?","acceptedAnswer":{"@type":"Answer","text":"Mild compression is hard to notice. The lower your target size, the more detail is removed, so if a photo looks soft, try a slightly larger target. The tool always shows the size it reached so you can find a balance."}},{"@type":"Question","name":"What if my target size is too small for the image?","acceptedAnswer":{"@type":"Answer","text":"If a target is smaller than is physically possible for that picture, the tool tells you the smallest size it can reach. Pick a target at or above that number, or resize the image to fewer pixels first to allow a smaller file."}},{"@type":"Question","name":"Is it safe to compress private photos here?","acceptedAnswer":{"@type":"Answer","text":"Yes. Compression happens entirely in your browser on your own device. Your image is never uploaded to a server, so personal or ID photos stay private."}}]}</script>
 </head>
@@ -27,6 +35,7 @@
   <div class="wrap">
     <h1>Compress Image to a Target Size</h1>
     <p class="lede">Upload a photo, pick a target file size like 100 KB or 200 KB, and download a smaller version that fits under it. Great for uploads with a size limit. Everything happens in your browser — your image never leaves your device.</p>
+    <p class="note"><strong>To compress an image to a target like 100 KB, the tool lowers JPEG quality until the file lands at or under the size you set, then shows the size it reached.</strong> Choose your photo, tap the 100 KB preset (or type a number), and click Compress — if a target is too small for the image, it tells you the smallest size possible.</p>
 
     <div class="calc">
       <div>
@@ -98,5 +107,32 @@
 </footer>
 
 <script type="module" src="/assets/image-compressor.js"></script>
+<script>
+  // Highlight the preset that matches the current target size, so it's obvious a
+  // preset filled the field. Presets fill #targetKb (wired in image-compressor.js);
+  // here we only mirror that into a visual selected state.
+  (function () {
+    function syncPresets() {
+      var input = document.getElementById('targetKb');
+      var current = input ? input.value.trim() : '';
+      document.querySelectorAll('#presets .preset').forEach(function (btn) {
+        btn.classList.toggle('is-active', current !== '' && btn.dataset.kb === current);
+      });
+    }
+    // Defer so we read #targetKb after image-compressor.js's own click handler
+    // has filled it (handler order is not guaranteed).
+    function syncSoon() { setTimeout(syncPresets, 0); }
+    function wire() {
+      var input = document.getElementById('targetKb');
+      document.querySelectorAll('#presets .preset').forEach(function (btn) {
+        btn.addEventListener('click', syncSoon);
+      });
+      if (input) input.addEventListener('input', syncPresets);
+      syncPresets();
+    }
+    if (document.readyState !== 'loading') wire();
+    else document.addEventListener('DOMContentLoaded', wire);
+  })();
+</script>
 </body>
 </html>

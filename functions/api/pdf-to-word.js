@@ -100,9 +100,10 @@ export async function onRequestPost(context) {
     return json(502, 'The server converter is unavailable right now. Please use the in-browser converter.', setCookie);
   }
   if (!resp.ok) {
-    const msg = resp.status === 413
-      ? 'That PDF is too large for the server converter.'
-      : 'The server converter could not handle that file. Try the in-browser converter.';
+    // Surface the Lambda's own message (page-count limit, too-large-after-recompress,
+    // not-a-PDF, etc.) rather than a generic guess; fall back if it isn't JSON.
+    let msg = 'The server converter could not handle that file. Try the in-browser converter.';
+    try { const j = await resp.json(); if (j && j.error) msg = j.error; } catch (_) {}
     return json(resp.status === 413 ? 413 : 502, msg, setCookie);
   }
 

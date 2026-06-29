@@ -62,8 +62,18 @@ function buildSchedule(schedule) {
   tbody.innerHTML = rows;
 }
 
+// Keep the deposit field's label cadence in sync with the frequency control,
+// so the dropdown's dual effect (deposit cadence AND compounding) is visible at the field.
+function syncDepositLabel() {
+  const lbl = $('contribLabel');
+  if (!lbl) return;
+  const perYear = parseInt($('frequency').value, 10) || 12;
+  lbl.textContent = perYear === 12 ? 'Regular deposit ($ per month)' : 'Regular deposit ($ per year)';
+}
+
 function calc() {
   reset();
+  syncDepositLabel();
 
   const principal = optVal('principal');
   const contribution = optVal('contribution');

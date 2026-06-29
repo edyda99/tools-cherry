@@ -13,8 +13,19 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
 <style>
+  /* This tool is a full-width editor, not the left-inputs / right-results calc grid.
+     Override .calc's 2-column grid, otherwise the two textareas get crammed into the
+     left column (~quarter width each) and the toolbar/output sit in the right column. */
+  .calc { display: block; }
   .diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media (max-width: 680px) { .diff-grid { grid-template-columns: 1fr; } }
+  /* A side-by-side text editor needs more room than the 940px reading column.
+     Widen the working area on large screens; keep long-form prose at a readable measure. */
+  @media (min-width: 1000px) {
+    main .wrap { max-width: 1200px; }
+    main .prose { max-width: 760px; }
+  }
+  #textA, #textB { min-height: 300px; }
   .diff-output {
     margin-top: 14px; padding: 12px 14px; border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm); background: var(--surface);
@@ -46,6 +57,7 @@
   <div class="wrap">
     <h1>Text Diff Checker</h1>
     <p class="lede">Paste two versions of any text and instantly see what changed — added lines, removed lines and everything that stayed the same. Compare documents, configs, code snippets or drafts. Everything runs in your browser and nothing is uploaded.</p>
+    <p class="note"><strong>A text diff checker compares two versions line by line and flags each line as added, removed, or unchanged.</strong> Paste the original on the left and the changed text on the right; optionally ignore case or whitespace so only meaningful edits show.</p>
 
     <section class="calc" aria-label="Text diff checker">
       <div class="diff-grid">

@@ -1,0 +1,2231 @@
+{
+ "_doc": "Per-state payroll/tax differentiation data for state paycheck pages. Sourced by the AdSense-remediation workflow (wf_6c9723d8-f87, 2026-06-26), all confidence:high, every value carries a source URL. STAGING — not yet wired into build.js or accuracy-re-verified; do not publish until the accuracy gate + collision harness pass.",
+ "_sourcedOn": "2026-06-26",
+ "states": {
+  "north-dakota": {
+   "name": "North Dakota",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "North Dakota levies only a statewide individual income tax (graduated, 0% / 1.95% / 2.50% for 2026). No county, city, or municipal income taxes exist; the state preempts local income taxation.",
+    "source": "https://www.tax.nd.gov/sites/www/files/documents/forms/individual/2026-iit/2026-income-tax-withholding-rates-booklet.pdf"
+   },
+   "payrollContributions": [],
+   "salesTax": {
+    "stateBaseRatePct": 5,
+    "combinedAvgRatePct": 6.89,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/north-dakota/"
+   },
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "North Dakota uses the federal minimum wage of $7.25/hr (unchanged since 2009). Tipped cash wage $4.86/hr with tip credit. State preempts local 'living wage' mandates above the state rate.",
+    "source": "https://www.employmentlawhandbook.com/employment-and-labor-laws/states/north-dakota/wage-and-hour/minimum-wage/"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 77871,
+    "year": "2024 (ACS, via FRED MEHOINUSNDA646N)",
+    "source": "https://fred.stlouisfed.org/series/MEHOINUSNDA646N"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.92,
+    "rankNote": "Below the ~1.0% national average; mid-pack among states. Tax Foundation lists 0.92% effective on owner-occupied housing.",
+    "source": "https://taxfoundation.org/location/north-dakota/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "North Dakota has one of the lowest income-tax burdens of any state that levies an income tax: the bottom bracket is a true 0% rate, and the top marginal rate is just 2.50% for 2026 (with brackets of 1.95% and 2.50% above the zero bracket).",
+     "source": "https://www.tax.nd.gov/sites/www/files/documents/forms/individual/2026-iit/2026-income-tax-withholding-rates-booklet.pdf"
+    },
+    {
+     "fact": "North Dakota funds over half (about 52%) of its state-and-local tax revenue from 'other taxes' (largely oil and gas severance taxes) rather than income or sales taxes, and it has no estate or inheritance tax.",
+     "source": "https://taxfoundation.org/location/north-dakota/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "district-of-columbia": {
+   "name": "District of Columbia",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "DC is itself the taxing jurisdiction; there is no separate city/county income tax layered on top. The DC individual income tax is graduated, 4.00% to 10.75% for 2026. (Note: DC cannot tax nonresident commuters' wages under federal law.)",
+    "source": "https://taxfoundation.org/location/the-district-of-columbia/"
+   },
+   "salesTax": {
+    "stateBaseRatePct": 6,
+    "combinedAvgRatePct": 6,
+    "year": "2026 (rises to 7.0% on Oct 1, 2026)",
+    "source": "https://taxfoundation.org/location/the-district-of-columbia/"
+   },
+   "minWage2026": {
+    "amountUsd": 18.4,
+    "notes": "Increases from $17.95 to $18.40/hr effective July 1, 2026 (CPI-indexed). Tipped base wage rises to $10.30/hr. Applies to all employers regardless of size.",
+    "source": "https://does.dc.gov/sites/default/files/dc/sites/does/publication/attachments/2026%20Minimum%20Wage%20Increase%20Notice_0.pdf"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 109870,
+    "year": "2024 (ACS 1-year)",
+    "source": "https://taxfoundation.org/location/the-district-of-columbia/"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.6,
+    "rankNote": "Among the lowest effective property-tax rates in the nation (0.60% on owner-occupied housing), reflecting high home values rather than low levies.",
+    "source": "https://taxfoundation.org/location/the-district-of-columbia/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "DC's Paid Family Leave program is 100% employer-funded at 0.75% of wages — by law it cannot be deducted from an employee's paycheck — so DC workers see no PFL line item, unlike employees in neighboring states.",
+     "source": "https://dcpaidfamilyleave.dc.gov/employer-information/"
+    },
+    {
+     "fact": "DC's general sales tax is scheduled to rise from 6.00% to 7.00% on October 1, 2026, and DC levies the highest top marginal individual income tax rate in the region at 10.75%.",
+     "source": "https://taxfoundation.org/location/the-district-of-columbia/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "new-mexico": {
+   "name": "New Mexico",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No local/municipal income taxes. New Mexico has only a statewide graduated individual income tax (1.50% to 5.90% for 2026). Note: New Mexico's 'sales tax' is technically a Gross Receipts Tax (GRT) imposed on the seller, with local add-ons.",
+    "source": "https://taxfoundation.org/location/new-mexico/"
+   },
+   "payrollContributions": [],
+   "salesTax": {
+    "stateBaseRatePct": 4.875,
+    "combinedAvgRatePct": 7.67,
+    "year": "2026",
+    "source": "https://www.tax.newmexico.gov/all-nm-taxes/current-historic-tax-rates-overview/gross-receipts-tax-rates/"
+   },
+   "minWage2026": {
+    "amountUsd": 12,
+    "notes": "State minimum is $12.00/hr (tipped $3.00/hr cash). Several localities are higher and supersede the state rate where work is performed: Las Cruces $13.01, City and County of Santa Fe $15.40 (2026). Albuquerque's ordinance is below the state rate, so $12.00 prevails there.",
+    "source": "https://www.dws.state.nm.us/Minimum-Wage-Information"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 64140,
+    "year": "2024 (ACS, via FRED MEHOINUSNMA646N)",
+    "source": "https://fred.stlouisfed.org/series/MEHOINUSNMA646N"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.63,
+    "rankNote": "One of the lower effective property-tax rates in the country (0.63% on owner-occupied housing), well below the ~1.0% national average.",
+    "source": "https://taxfoundation.org/location/new-mexico/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "New Mexico does not have a conventional sales tax — it levies a Gross Receipts Tax (GRT) on the business's receipts (statewide 4.875% plus local increments), which sellers commonly pass through to customers; combined rates run from about 5.1% to over 9% by location.",
+     "source": "https://www.tax.newmexico.gov/businesses/gross-receipts-overview/"
+    },
+    {
+     "fact": "A worker's applicable minimum wage in New Mexico depends on where the work is physically performed, not where the employer is based — so an employee in Santa Fe earns at least $15.40/hr while the statewide floor is $12.00/hr.",
+     "source": "https://www.dws.state.nm.us/Minimum-Wage-Information"
+    }
+   ],
+   "confidence": "high"
+  },
+  "vermont": {
+   "name": "Vermont",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No municipal or county income taxes. Vermont has only a statewide graduated individual income tax (3.35% to 8.75% for 2026).",
+    "source": "https://taxfoundation.org/location/vermont/"
+   },
+   "salesTax": {
+    "stateBaseRatePct": 6,
+    "combinedAvgRatePct": 6.39,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/vermont/"
+   },
+   "minWage2026": {
+    "amountUsd": 14.42,
+    "notes": "Increased from $14.01 to $14.42/hr effective January 1, 2026 (CPI-indexed annually). Tipped minimum cash wage rose to $7.21/hr.",
+    "source": "https://labor.vermont.gov/press-release/vermont-department-labor-announces-minimum-wage-increase-starting-january-2026"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 81203,
+    "year": "2024 (ACS 1-year)",
+    "source": "https://fred.stlouisfed.org/series/MEHOINUSVTA646N"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 1.51,
+    "rankNote": "Among the highest effective property-tax rates in the nation — Tax Foundation lists 1.51% on owner-occupied housing, placing Vermont in the top tier nationally (other methodologies rank it ~5th highest).",
+    "source": "https://taxfoundation.org/location/vermont/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Vermont's paid family and medical leave (VT-FMLI) is a voluntary insurance program, not a mandatory payroll tax — so unlike most New England states there is no required statewide PFML deduction on a Vermont paycheck.",
+     "source": "https://governor.vermont.gov/vtfmli"
+    },
+    {
+     "fact": "Vermont carries one of the heaviest property-tax burdens in the U.S. (about 1.51% effective rate per Tax Foundation), driven largely by its statewide education property tax that funds public schools.",
+     "source": "https://taxfoundation.org/location/vermont/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "west-virginia": {
+   "name": "West Virginia",
+   "localIncomeTax": {
+    "exists": true,
+    "notes": "West Virginia has no percentage-based local income tax, but several municipalities impose a flat per-worker 'City Service Fee' on anyone employed within city limits. Charleston charges $3.00/week ($6.00 per bi-weekly pay period); similar weekly fees apply in Huntington, Parkersburg, Morgantown ('Safe Streets' fee), Weirton and other cities. It is a fixed dollar fee, not a tax on income.",
+    "source": "https://payroll.org/news-resources/resources/resource-library/west-virginia-charleston-city-service-fee"
+   },
+   "payrollContributions": [],
+   "salesTax": {
+    "stateBaseRatePct": 6,
+    "combinedAvgRatePct": 6.59,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/west-virginia/"
+   },
+   "minWage2026": {
+    "amountUsd": 8.75,
+    "notes": "$8.75/hr for employers with 6+ non-exempt employees at one location (unchanged for 2026; smaller employers and certain workers fall under the federal $7.25 floor).",
+    "source": "https://labor.wv.gov/wage-hour/jobs-act/minimum-wage"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 60798,
+    "year": "2024 (ACS 1-year; ranked 50th/lowest of the states)",
+    "source": "https://www.census.gov/quickfacts/fact/table/WV/PST045224"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.51,
+    "rankNote": "One of the lowest effective property-tax rates in the nation (0.51% on owner-occupied housing), roughly 11th-lowest among states.",
+    "source": "https://taxfoundation.org/location/west-virginia/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Several West Virginia cities charge a flat weekly 'City Service Fee' on everyone who works inside city limits — Charleston's is $3.00 per week ($6.00 per bi-weekly paycheck) regardless of how much you earn — a fixed deduction unrelated to income level.",
+     "source": "https://payroll.org/news-resources/resources/resource-library/west-virginia-charleston-city-service-fee"
+    },
+    {
+     "fact": "West Virginia cut its individual income tax rates again for 2026 (top rate dropped from 4.82% to 4.58%, bottom to 2.11%) as part of a multi-year phased reduction tied to revenue triggers.",
+     "source": "https://tax.wv.gov/Individuals/Pages/PersonalIncomeTaxReductionBill.aspx"
+    }
+   ],
+   "confidence": "high"
+  },
+  "montana": {
+   "name": "Montana",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No municipal or county income taxes. Montana has only a statewide graduated individual income tax (4.70% to 5.65% for 2026, dropping to 5.40% top rate in 2027).",
+    "source": "https://taxfoundation.org/location/montana/"
+   },
+   "payrollContributions": [],
+   "salesTax": {
+    "stateBaseRatePct": 0,
+    "combinedAvgRatePct": 0,
+    "year": "2026 (no general state or local sales tax; resort communities may levy a local resort tax up to ~4%)",
+    "source": "https://taxfoundation.org/location/montana/"
+   },
+   "minWage2026": {
+    "amountUsd": 10.85,
+    "notes": "Increased to $10.85/hr effective January 1, 2026 (CPI-indexed each year per 2006 ballot measure). No separate tipped wage — tipped workers get the full minimum.",
+    "source": "https://erd.dli.mt.gov/labor-standards/wage-and-hour-payment-act/state-minimum-wage"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 72509,
+    "year": "2024 (ACS 1-year)",
+    "source": "https://fred.stlouisfed.org/series/MEHOINUSMTA646N"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.61,
+    "rankNote": "Below the national average (0.61% effective on owner-occupied housing), roughly tied for 19th. Property tax funds about a third of Montana's state-and-local revenue given the absence of a sales tax.",
+    "source": "https://taxfoundation.org/location/montana/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Montana is one of only five states with no general sales tax, so there is no statewide tax at checkout — though certain tourist/resort towns may levy a local resort tax of up to 4% on goods and services.",
+     "source": "https://taxfoundation.org/location/montana/"
+    },
+    {
+     "fact": "Montana taxes net long-term capital gains at lower, separate rates (3.0% and 4.1% for 2026) than ordinary wage income (4.70%/5.65%), so investment income is treated more favorably than paycheck income.",
+     "source": "https://revenue.mt.gov/news/recent-news/HB-337"
+    }
+   ],
+   "confidence": "high"
+  },
+  "delaware": {
+   "name": "Delaware",
+   "salesTax": {
+    "stateBaseRatePct": 0,
+    "combinedAvgRatePct": 0,
+    "year": "2026",
+    "source": "https://taxfoundation.org/data/all/state/sales-tax-rates/"
+   },
+   "localIncomeTax": {
+    "exists": true,
+    "notes": "Only the City of Wilmington levies a local earned-income (wage) tax: a flat 1.25% on all wages, applied to BOTH Wilmington residents and non-residents who work inside city limits. No other Delaware city or county has a local income tax.",
+    "source": "https://www.wilmingtonde.gov/residents/earned-income-tax-and-net-profits-tax"
+   },
+   "payrollContributions": [
+    {
+     "name": "Delaware Paid Leave (PFML) — employee share",
+     "employeeRate2026": "Up to 0.4% of wages (employee may be required to pay up to 50% of the 0.8% total premium)",
+     "wageBaseOrCap": "$184,500 (Social Security wage cap); max employee cost ~$738/yr",
+     "source": "https://labor.delaware.gov/delaware-paid-leave/"
+    }
+   ],
+   "minWage2026": {
+    "amountUsd": 15,
+    "notes": "Reached $15.00 on Jan 1, 2025 and held for 2026; tipped cash wage $2.23. Enforced by Delaware Dept. of Labor.",
+    "source": "https://www.minimum-wage.org/delaware"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 87500,
+    "year": "2024",
+    "source": "https://datausa.io/profile/geo/delaware"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.47,
+    "rankNote": "Among the lowest effective property-tax rates in the U.S. (bottom tier). County rates: New Castle 0.68%, Kent 0.42%, Sussex 0.32%.",
+    "source": "https://www.fool.com/research/property-tax-rates-by-state/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Delaware charges NO state or local sales tax (one of only five such states), so paycheck dollars stretch further at the register — but it funds this partly via a gross-receipts tax on businesses.",
+     "source": "https://taxfoundation.org/location/delaware/"
+    },
+    {
+     "fact": "Delaware's Paid Leave (PFML) program took full effect Jan 1, 2026 — the first year workers can file claims — with a new employee payroll deduction of up to 0.4% of wages (half of the 0.8% premium) appearing on paychecks.",
+     "source": "https://www.ebglaw.com/insights/publications/delawares-paid-family-medical-leave-program-to-commence-in-2026"
+    }
+   ],
+   "confidence": "high"
+  },
+  "new-york": {
+   "name": "New York",
+   "salesTax": {
+    "stateBaseRatePct": 4,
+    "combinedAvgRatePct": 8.54,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/new-york/"
+   },
+   "localIncomeTax": {
+    "exists": true,
+    "notes": "New York City levies a resident income tax (2026 withholding brackets ~3.078%–3.876%) on NYC residents only. Yonkers adds a resident surcharge — 2026 resident withholding rate 1.95975% — plus a 0.50% nonresident earnings tax on income earned in Yonkers. No other NY localities levy a wage income tax.",
+    "source": "https://www.tax.ny.gov/pit/file/nyc_yonkers_residents.htm"
+   },
+   "payrollContributions": [
+    {
+     "name": "NY Paid Family Leave (PFL) — employee-funded",
+     "employeeRate2026": "0.432% of gross wages per pay period",
+     "wageBaseOrCap": "Capped at $411.91/yr (based on 2026 NYSAWW of $1,833.63)",
+     "source": "https://paidfamilyleave.ny.gov/2026"
+    },
+    {
+     "name": "NY State Disability Insurance (SDI/DBL) — employee share",
+     "employeeRate2026": "0.5% of wages",
+     "wageBaseOrCap": "Capped at $0.60/week ($31.20/yr); employer pays the balance",
+     "source": "https://www.metlife.com/insurance/disability-insurance/paid-family-medical-leave/states/new-york/"
+    }
+   ],
+   "minWage2026": {
+    "amountUsd": 17,
+    "notes": "$17.00 in NYC, Long Island (Nassau/Suffolk) and Westchester; $16.00 in the rest of NY State. Effective Jan 1, 2026; indexed to inflation starting 2027.",
+    "source": "https://dol.ny.gov/minimum-wage"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 85820,
+    "year": "2024",
+    "source": "https://data.census.gov/table/ACSST1Y2024.S1903?q=New+York+Income+and+Poverty&g=040XX00US36"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 1.3,
+    "rankNote": "One of the higher effective property-tax rates nationally (~9th-highest by Tax Foundation, ~1.26–1.30%). Wide variation: ~0.56% in Brooklyn/Kings Co. to >2% in some upstate counties.",
+    "source": "https://taxfoundation.org/location/new-york/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "New York is one of the few states where employees pay BOTH a Paid Family Leave deduction (0.432%, up to $411.91/yr in 2026) and a State Disability deduction (0.5%, capped at just $0.60/week) — two separate line items on the paycheck.",
+     "source": "https://paidfamilyleave.ny.gov/2026"
+    },
+    {
+     "fact": "Where you LIVE inside New York changes withholding sharply: NYC residents owe an extra city income tax (~3.08%–3.88%) and Yonkers residents owe a ~1.96% surcharge — neither applies if you live elsewhere in the state, even if you commute in.",
+     "source": "https://www.tax.ny.gov/pit/file/nyc_yonkers_residents.htm"
+    }
+   ],
+   "confidence": "high"
+  },
+  "virginia": {
+   "name": "Virginia",
+   "salesTax": {
+    "stateBaseRatePct": 5.3,
+    "combinedAvgRatePct": 5.77,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/virginia/"
+   },
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No Virginia city or county levies a local income/wage tax on employees. Localities raise revenue through real-estate, personal-property (incl. on cars), and a mandatory 1% local sales-tax add-on collected by the state.",
+    "source": "https://www.tax.virginia.gov/local-tax-rates"
+   },
+   "payrollContributions": [],
+   "minWage2026": {
+    "amountUsd": 12.77,
+    "notes": "Rose from $12.41 to $12.77 on Jan 1, 2026 — a 2.9% CPI cost-of-living adjustment (South-region CPI), per Virginia Dept. of Labor and Industry.",
+    "source": "https://doli.virginia.gov/2025/07/29/virginia-minimum-wage-rate-increasing-effective-january-1-2026/"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 89393,
+    "year": "2024",
+    "source": "https://taxfoundation.org/location/virginia/"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.73,
+    "rankNote": "Roughly mid-to-low nationally (~#31 of 50), about 21% below the national average; median homeowner pays ~$2,790/yr.",
+    "source": "https://propertytaxbystate.com/virginia"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Virginia has NO employee-side state payroll deductions (no SDI, PFML, or employee SUI) — so the only mandatory paycheck withholdings are federal taxes and Virginia state income tax (2%–5.75%).",
+     "source": "https://www.tax.virginia.gov/income-tax-calculator"
+    },
+    {
+     "fact": "Virginia's minimum wage is now indexed to inflation: the Jan 1, 2026 bump to $12.77 came from an automatic CPI cost-of-living formula rather than a new legislative vote.",
+     "source": "https://doli.virginia.gov/2025/07/29/virginia-minimum-wage-rate-increasing-effective-january-1-2026/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "texas": {
+   "name": "Texas",
+   "salesTax": {
+    "stateBaseRatePct": 6.25,
+    "combinedAvgRatePct": 8.2,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/texas/"
+   },
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "Texas has no state individual income tax and no local/city income tax. State law also bars cities and counties from imposing one. Revenue leans on sales and property taxes instead.",
+    "source": "https://taxfoundation.org/location/texas/"
+   },
+   "payrollContributions": [],
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "Texas has no state minimum wage above the federal floor of $7.25/hr; state law also preempts local minimum-wage ordinances.",
+    "source": "https://onpay.com/insights/minimum-wage-by-state-summary/texas/"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 79721,
+    "year": "2024",
+    "source": "https://www.texastribune.org/2025/09/11/texas-census-housing-costs/"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 1.47,
+    "rankNote": "Among the highest effective property-tax rates in the U.S. (top ~7th-10th); Texas relies heavily on property tax in lieu of an income tax. Tax Foundation cites ~1.47% effective rate.",
+    "source": "https://taxfoundation.org/location/texas/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Texas has zero state income tax, so a Texas paycheck has only federal withholdings — no state income line — and the state constitution makes enacting a personal income tax extremely difficult (requires a statewide vote).",
+     "source": "https://taxfoundation.org/location/texas/"
+    },
+    {
+     "fact": "Texas offsets its no-income-tax model with one of the nation's heaviest property-tax burdens (~1.47% effective rate) — a cost that hits homeowners and renters rather than appearing on the paycheck.",
+     "source": "https://taxfoundation.org/data/all/state/property-taxes-by-state-county/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "florida": {
+   "name": "Florida",
+   "salesTax": {
+    "stateBaseRatePct": 6,
+    "combinedAvgRatePct": 7.02,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/florida/"
+   },
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "Florida has no state individual income tax and no local/city income tax. Counties may add a discretionary sales surtax (0.5%–2%) but not an income tax.",
+    "source": "https://taxfoundation.org/location/florida/"
+   },
+   "payrollContributions": [],
+   "minWage2026": {
+    "amountUsd": 14,
+    "notes": "$14.00/hr through Sep 29, 2026; rises to $15.00/hr on Sep 30, 2026 (final Amendment 2 step). Tipped cash wage $10.98, then $11.98 from Sep 30. Indexed to CPI from 2027.",
+    "source": "https://onpay.com/insights/minimum-wage-by-state-summary/florida/"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 77735,
+    "year": "2024",
+    "source": "https://data.census.gov/profile/Florida?g=040XX00US12"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.78,
+    "rankNote": "Below the national average (~mid-pack to lower tier); Florida leans on sales tax and tourism revenue rather than income tax.",
+    "source": "https://taxfoundation.org/location/florida/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Florida has no state income tax, so paychecks carry only federal withholdings — and the state has no employee-side SDI/PFML deductions either.",
+     "source": "https://taxfoundation.org/location/florida/"
+    },
+    {
+     "fact": "Florida is the only one of these states whose minimum wage rises mid-year on Sep 30 (not Jan 1): it hits $14.00 through Sep 29, 2026 and steps to $15.00 on Sep 30, 2026 under voter-approved Amendment 2.",
+     "source": "https://onpay.com/insights/minimum-wage-by-state-summary/florida/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "washington": {
+   "name": "Washington",
+   "salesTax": {
+    "stateBaseRatePct": 6.5,
+    "combinedAvgRatePct": 9.51,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/washington/"
+   },
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "Washington has no state individual income tax on wages and no local/city wage income tax. (It does levy a 7% capital-gains excise tax on high investment gains, which is not a paycheck withholding.)",
+    "source": "https://taxfoundation.org/location/washington/"
+   },
+   "payrollContributions": [
+    {
+     "name": "WA Paid Family & Medical Leave (PFML) — employee share",
+     "employeeRate2026": "~0.807% of gross wages (employee pays 71.43% of the 1.13% total premium)",
+     "wageBaseOrCap": "$184,500 (2026 Social Security wage cap)",
+     "source": "https://esd.wa.gov/about-us/news-release/2025/paid-family-medical-leave-premium-rate-increases-113-2026"
+    },
+    {
+     "name": "WA Cares Fund (long-term care) — fully employee-paid",
+     "employeeRate2026": "0.58% of gross wages",
+     "wageBaseOrCap": "No wage cap (applies to all wages)",
+     "source": "https://paidleave.wa.gov/employer-roles-responsibilities/"
+    }
+   ],
+   "minWage2026": {
+    "amountUsd": 17.13,
+    "notes": "$17.13/hr effective Jan 1, 2026 (2.8% CPI-W increase) — one of the highest state minimums in the U.S.; some cities (e.g., Seattle, Tukwila) exceed it. Set by WA Dept. of Labor & Industries.",
+    "source": "https://www.lni.wa.gov/news-events/article/25-27"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 99389,
+    "year": "2024",
+    "source": "https://taxfoundation.org/location/washington/"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.75,
+    "rankNote": "Below the national average effective rate; Washington relies on sales tax (highest combined avg here at 9.51%) and lacks an income tax.",
+    "source": "https://taxfoundation.org/location/washington/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Despite having no income tax, Washington has TWO mandatory employee payroll deductions in 2026: PFML (~0.807% of wages, employee share) and the WA Cares long-term-care premium (0.58% of ALL wages, with no cap) — the latter is paid entirely by the worker.",
+     "source": "https://esd.wa.gov/about-us/news-release/2025/paid-family-medical-leave-premium-rate-increases-113-2026"
+    },
+    {
+     "fact": "Washington's WA Cares 0.58% deduction has NO Social Security wage cap, unlike PFML — so high earners keep paying it on every dollar, making it proportionally costlier on large paychecks than the capped PFML premium.",
+     "source": "https://paidleave.wa.gov/employer-roles-responsibilities/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "nevada": {
+   "name": "Nevada",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "Nevada has no state individual income tax and no local/city/county income taxes. No municipality levies an earnings or wage tax.",
+    "source": "https://taxfoundation.org/location/nevada/"
+   },
+   "payrollContributions": [],
+   "salesTax": {
+    "stateBaseRatePct": 6.85,
+    "combinedAvgRatePct": 8.24,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/nevada/"
+   },
+   "minWage2026": {
+    "amountUsd": 12,
+    "notes": "Single uniform $12.00/hr effective July 1, 2024 after voters passed Question 2 (2022), which abolished Nevada's prior two-tier system (employers offering qualifying health insurance could pay $1/hr less). No tip credit allowed.",
+    "source": "https://www.nevadaemployers.org/nevada-minimum-wage-2026/"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 81134,
+    "year": "2024",
+    "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.5,
+    "rankNote": "Among the lower effective property-tax rates nationally (Tax Foundation 2026, owner-occupied housing value).",
+    "source": "https://taxfoundation.org/location/nevada/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Nevada eliminated its constitutional two-tier minimum wage on July 1, 2024 (Question 2, 2022); employers can no longer pay $1/hr less for offering health insurance, and Nevada is one of seven states that bans a tip credit, so tipped workers also get the full $12.00.",
+     "source": "https://www.nevadaemployers.org/nevada-minimum-wage-2026/"
+    },
+    {
+     "fact": "Nevada funds itself with no individual income tax but a relatively high 6.85% state sales tax (combined avg 8.24%), one of the higher base sales-tax rates among the no-income-tax states.",
+     "source": "https://taxfoundation.org/location/nevada/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "tennessee": {
+   "name": "Tennessee",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No state wage income tax and no local/city income taxes. The Hall income tax (on interest and dividends only, never on wages) was fully repealed effective Jan 1, 2021.",
+    "source": "https://revenue.support.tn.gov/hc/en-us/articles/360057828631-HIT-3-Hall-Income-Tax-Repealed-Beginning-January-1-2021"
+   },
+   "payrollContributions": [],
+   "salesTax": {
+    "stateBaseRatePct": 7,
+    "combinedAvgRatePct": 9.61,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/tennessee/"
+   },
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "Tennessee has no state minimum wage law, so the federal minimum of $7.25/hr applies.",
+    "source": "https://www.dol.gov/agencies/whd/minimum-wage/state"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 71997,
+    "year": "2024",
+    "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.52,
+    "rankNote": "Among the lower effective property-tax rates nationally (Tax Foundation 2026, owner-occupied housing value).",
+    "source": "https://taxfoundation.org/location/tennessee/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Tennessee became a fully no-income-tax state only in 2021, when the Hall income tax on interest and dividends was completely phased out (reduced 1 point/year from 2016-2020); wages were never taxed.",
+     "source": "https://revenue.support.tn.gov/hc/en-us/articles/360057828631-HIT-3-Hall-Income-Tax-Repealed-Beginning-January-1-2021"
+    },
+    {
+     "fact": "Tennessee has the second-highest average combined sales tax in the nation at 9.61% (7.00% state + ~2.61% local), the trade-off for having no wage income tax.",
+     "source": "https://taxfoundation.org/location/tennessee/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "south-dakota": {
+   "name": "South Dakota",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No state individual income tax and no local/municipal income taxes.",
+    "source": "https://taxfoundation.org/location/south-dakota/"
+   },
+   "payrollContributions": [],
+   "salesTax": {
+    "stateBaseRatePct": 4.2,
+    "combinedAvgRatePct": 6.11,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/south-dakota/"
+   },
+   "minWage2026": {
+    "amountUsd": 11.85,
+    "notes": "South Dakota's minimum wage is indexed to inflation by constitutional amendment; the 2026 rate is $11.85/hr (up from $11.50 in 2025).",
+    "source": "https://onpay.com/insights/minimum-wage-by-state-summary/"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 76881,
+    "year": "2024",
+    "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 1,
+    "rankNote": "Mid-to-higher effective property-tax rate among the no-income-tax states (Tax Foundation 2026, owner-occupied housing value).",
+    "source": "https://taxfoundation.org/location/south-dakota/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "South Dakota's 4.2% state sales tax is a temporary reduction (down from 4.5%) in effect July 1, 2023 through June 30, 2027; it is scheduled to revert to 4.5% on July 1, 2027.",
+     "source": "https://taxcloud.com/sales-tax-radar/south-dakota-sales-tax-rate-increase-in-2027/"
+    },
+    {
+     "fact": "South Dakota's minimum wage is automatically inflation-adjusted each January 1 under a 2014 voter-approved constitutional amendment, reaching $11.85/hr in 2026 — well above the federal $7.25 floor used by neighboring no-tax states.",
+     "source": "https://onpay.com/insights/minimum-wage-by-state-summary/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "wyoming": {
+   "name": "Wyoming",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No state individual income tax and no local/municipal income taxes.",
+    "source": "https://taxfoundation.org/location/wyoming/"
+   },
+   "payrollContributions": [],
+   "salesTax": {
+    "stateBaseRatePct": 4,
+    "combinedAvgRatePct": 5.36,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/wyoming/"
+   },
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "Wyoming's statutory state minimum wage is $5.15/hr, but the federal $7.25/hr applies to all employees covered by the FLSA, which is effectively the binding rate.",
+    "source": "https://www.dol.gov/agencies/whd/minimum-wage/state"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 75532,
+    "year": "2024",
+    "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.53,
+    "rankNote": "Among the lower effective property-tax rates nationally (Tax Foundation 2026, owner-occupied housing value).",
+    "source": "https://taxfoundation.org/location/wyoming/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Wyoming has the lowest non-zero state sales tax rate among the no-income-tax states at 4.00% (combined avg 5.36%), funding heavily through severance taxes on mineral and energy extraction rather than payroll.",
+     "source": "https://taxfoundation.org/location/wyoming/"
+    },
+    {
+     "fact": "Wyoming's own statutory minimum wage is just $5.15/hr (one of the lowest state floors in the country), so workers are protected only by the federal $7.25/hr under the FLSA.",
+     "source": "https://www.dol.gov/agencies/whd/minimum-wage/state"
+    }
+   ],
+   "confidence": "high"
+  },
+  "alaska": {
+   "name": "Alaska",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No state individual income tax and no local/municipal income taxes. (Localities may levy local SALES taxes, but not income taxes.)",
+    "source": "https://taxfoundation.org/location/alaska/"
+   },
+   "payrollContributions": [
+    {
+     "name": "State Unemployment Insurance (SUI) — employee share",
+     "employeeRate2026": "0.50%",
+     "wageBaseOrCap": "$54,200 taxable wage base (2026); max employee contribution ~$271/yr",
+     "source": "https://labor.alaska.gov/estax/2026-experience-rates.html"
+    }
+   ],
+   "salesTax": {
+    "stateBaseRatePct": 0,
+    "combinedAvgRatePct": 1.82,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/alaska/"
+   },
+   "minWage2026": {
+    "amountUsd": 14,
+    "notes": "$13.00/hr through June 30, 2026, rising to $14.00/hr on July 1, 2026 under Ballot Measure 1 (2024). Increases again to $15.00 on July 1, 2027. No tip credit allowed.",
+    "source": "https://labor.alaska.gov/news/2026/news26-11.htm"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 95665,
+    "year": "2024",
+    "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.94,
+    "rankNote": "Mid-range effective property-tax rate (Tax Foundation 2026, owner-occupied housing value); many Alaska boroughs levy no property tax at all.",
+    "source": "https://taxfoundation.org/location/alaska/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Alaska is one of only three states (with New Jersey and Pennsylvania) where employees pay into state unemployment insurance: 0.50% withheld from wages up to a $54,200 wage base in 2026 (max ~$271/yr) — a true paycheck deduction in an otherwise no-income-tax, no-state-sales-tax state.",
+     "source": "https://labor.alaska.gov/estax/2026-experience-rates.html"
+    },
+    {
+     "fact": "Alaska pays residents an annual Permanent Fund Dividend instead of taxing them — the 2025 PFD was $1,000 per eligible resident; note the PFD is taxable for FEDERAL income tax (reported on 1099-MISC) even though there is no state income tax.",
+     "source": "https://dor.alaska.gov/department-of-revenue/news-detail/2025/09/22/department-of-revenue-announces-2025-permanent-fund-dividend-amount"
+    }
+   ],
+   "confidence": "high"
+  },
+  "new-hampshire": {
+   "name": "New Hampshire",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No state wage income tax and no local/municipal income taxes. The Interest & Dividends tax (never on wages) was fully repealed effective Jan 1, 2025.",
+    "source": "https://taxfoundation.org/location/new-hampshire/"
+   },
+   "payrollContributions": [],
+   "salesTax": {
+    "stateBaseRatePct": 0,
+    "combinedAvgRatePct": 0,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/new-hampshire/"
+   },
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "New Hampshire has no state minimum wage above the federal floor; the federal $7.25/hr applies.",
+    "source": "https://www.dol.gov/agencies/whd/minimum-wage/state"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 99782,
+    "year": "2024",
+    "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 1.5,
+    "rankNote": "Among the highest effective property-tax rates in the nation (top ~3-5); New Hampshire's location-page rate is 1.50% on owner-occupied housing value, and it relies on property tax in lieu of sales/wage taxes (Tax Foundation 2026).",
+    "source": "https://taxfoundation.org/location/new-hampshire/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "New Hampshire became a fully tax-free-paycheck-AND-purchases state on Jan 1, 2025, when its Interest & Dividends tax was repealed — it now has no wage income tax AND no state sales tax (one of only two such states, with Alaska).",
+     "source": "https://taxfoundation.org/location/new-hampshire/"
+    },
+    {
+     "fact": "New Hampshire offsets having no sales or wage income tax with one of the highest property-tax burdens in the U.S. (1.50% effective rate, among the top nationally), so the no-paycheck-tax advantage is partly recouped through home ownership costs.",
+     "source": "https://taxfoundation.org/location/new-hampshire/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "pennsylvania": {
+   "name": "Pennsylvania",
+   "localIncomeTax": {
+    "exists": true,
+    "notes": "Nearly every PA municipality and school district levies a local Earned Income Tax (EIT) under Act 32, typically 1% combined in suburbs (split municipality/school district). Philadelphia imposes a separate Wage Tax (not EIT): 3.74% residents / 3.43% nonresidents through June 30, 2026, then 3.735% residents / 3.425% nonresidents effective July 1, 2026 (the first step of a five-year cut plan trending toward ~3.70%/3.39%). There is also a per-job Local Services Tax (LST), commonly $52/yr. EIT rates range roughly 0% to ~3.84% statewide; DCED maintains the official rate register.",
+    "source": "https://www.phila.gov/services/payments-assistance-taxes/taxes/income-taxes/earnings-tax-employees/"
+   },
+   "payrollContributions": [
+    {
+     "name": "Unemployment Compensation (employee withholding)",
+     "employeeRate2026": "0.07%",
+     "wageBaseOrCap": "No wage cap — applies to all gross wages (70 cents per $1,000)",
+     "source": "https://www.pa.gov/agencies/dli/resources/for-employers-and-educators/how-to-file/uc-tax/uc-tax-rates"
+    }
+   ],
+   "salesTax": {
+    "stateBaseRatePct": 6,
+    "combinedAvgRatePct": 6.34,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/pennsylvania/"
+   },
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "Tied to the federal floor; unchanged since 2009. PA House passed HB 2189 (raise to $15 by 2029) but it is not yet law for 2026.",
+    "source": "https://www.minimum-wage.org/pennsylvania"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 77545,
+    "year": "2024 (ACS 1-year)",
+    "source": "https://fred.stlouisfed.org/series/MEHOINUSPAA646N"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 1.26,
+    "rankNote": "Above the national median; PA's effective rate on owner-occupied housing is among the higher half of states.",
+    "source": "https://taxfoundation.org/location/pennsylvania/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Pennsylvania is one of the only states that withholds an employee-side unemployment tax: 0.07% of ALL gross wages with no wage cap, taken from every paycheck on top of state and local income tax.",
+     "source": "https://www.pa.gov/agencies/dli/resources/for-employers-and-educators/how-to-file/uc-tax/uc-tax-rates"
+    },
+    {
+     "fact": "PA's 3.07% state rate is flat with no standard deduction or personal exemption, so it applies from the first dollar of taxable compensation — and a Philadelphia resident also pays the 3.74% city Wage Tax, for a combined ~6.81% wage tax before federal.",
+     "source": "https://www.phila.gov/services/payments-assistance-taxes/taxes/income-taxes/earnings-tax-employees/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "illinois": {
+   "name": "Illinois",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No municipality or county in Illinois levies a local income or wage tax — Chicago and Cook County impose no city wage tax on employees. All wage income is taxed only at the flat state rate of 4.95%.",
+    "source": "https://onpay.com/payroll/calculator-tax-rates/illinois/"
+   },
+   "payrollContributions": [],
+   "salesTax": {
+    "stateBaseRatePct": 6.25,
+    "combinedAvgRatePct": 8.96,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/illinois/"
+   },
+   "minWage2026": {
+    "amountUsd": 15,
+    "notes": "Statewide $15.00/hr reached Jan 1, 2026, completing the 2019 phase-in. No state CPI indexing afterward, but Chicago ($17.05 as of July 1, 2026) and Cook County ($15.40) set higher local minimums.",
+    "source": "https://labor.illinois.gov/laws-rules/fls/minimum-wage-law.html"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 83211,
+    "year": "2024 (ACS 1-year)",
+    "source": "https://www.neilsberg.com/insights/illinois-median-household-income/"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 1.88,
+    "rankNote": "Among the highest effective property-tax rates in the nation — typically ranked 2nd-highest, behind only New Jersey.",
+    "source": "https://taxfoundation.org/location/illinois/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Illinois taxes wages at a flat 4.95% with no local income tax anywhere — but it pairs the third-highest combined sales tax (8.96% average) with one of the nation's highest effective property-tax rates (1.88%), shifting the burden off the paycheck and onto spending and homeownership.",
+     "source": "https://taxfoundation.org/location/illinois/"
+    },
+    {
+     "fact": "Illinois has no employee-side payroll deductions for disability, paid family leave, or unemployment — SUI is fully employer-paid (0.675%-6.875% on the first $13,271 of wages in 2026), so an Illinois paycheck shows only the flat 4.95% state income tax beyond federal items.",
+     "source": "https://onpay.com/payroll/calculator-tax-rates/illinois/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "north-carolina": {
+   "name": "North Carolina",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No city, county, or municipality in North Carolina levies a local income tax. Wage income is taxed only at the flat state rate (3.99% for tax year 2026).",
+    "source": "https://www.ncdor.gov/taxes-forms/individual-income-tax/tax-rate-schedules"
+   },
+   "payrollContributions": [],
+   "salesTax": {
+    "stateBaseRatePct": 4.75,
+    "combinedAvgRatePct": 6.99,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/north-carolina/"
+   },
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "Tied to the federal floor; unchanged since 2009. No local minimum wage (state preemption).",
+    "source": "https://www.labor.nc.gov/workplace-rights/employee-rights-regarding-time-worked-and-wages-earned/minimum-wage-nc"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 73958,
+    "year": "2024 (ACS 1-year)",
+    "source": "https://www.carolinajournal.com/nc-median-household-income-reaches-74k-in-2024-according-to-census/"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.66,
+    "rankNote": "Below the national median — one of the lower effective property-tax rates among states.",
+    "source": "https://taxfoundation.org/location/north-carolina/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "North Carolina's flat income-tax rate dropped to 3.99% for tax year 2026 (down from 4.25% in 2025) and is scheduled by statute to fall to 3.49% in 2027 and 2.99% in 2028 if revenue triggers are met — so paychecks keep getting a slightly larger take-home each year.",
+     "source": "https://www.ncdor.gov/taxes-forms/individual-income-tax/tax-rate-schedules"
+    },
+    {
+     "fact": "NC's paycheck is unusually simple: a single flat state rate, zero local income tax statewide, and no employee SDI/PFML/SUI deductions — the only NC-specific items beyond federal are the flat 3.99% withholding.",
+     "source": "https://www.paylocity.com/resources/tax-compliance/tax-facts/north-carolina/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "utah": {
+   "name": "Utah",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No Utah city or county levies a local income tax. Wage income is taxed only at the flat state rate (4.45% effective for tax year 2026).",
+    "source": "https://house.utleg.gov/utahs-tax-cut-streak-six-years-and-1-5-billion/"
+   },
+   "payrollContributions": [],
+   "salesTax": {
+    "stateBaseRatePct": 6.1,
+    "combinedAvgRatePct": 7.19,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/utah/"
+   },
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "Tied to the federal floor; unchanged since 2009. State law preempts local minimum-wage ordinances, so the rate is uniform statewide.",
+    "source": "https://www.minimum-wage.org/utah"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 95166,
+    "year": "2024 (ACS 1-year, inflation-adjusted dollars)",
+    "source": "https://datausa.io/profile/geo/utah"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.48,
+    "rankNote": "Among the lowest effective property-tax rates in the nation.",
+    "source": "https://taxfoundation.org/location/utah/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Utah cut its flat income-tax rate for the sixth consecutive year — SB 60 (2026 session) lowered it from 4.50% to 4.45%, down from 5.00% in 2018 — making it one of the most consistently falling state withholding rates in the country.",
+     "source": "https://atr.org/utah-enacts-6th-income-tax-cut-in-6-years-and-shaves-6-cents-off-gas-tax/"
+    },
+    {
+     "fact": "Despite a flat 4.45% income tax, Utah's $7.25 minimum wage sits well below its high $95K+ median household income — the gap reflects a low-property-tax (0.48%), high-earnings economy where the state minimum has not moved since 2009.",
+     "source": "https://taxfoundation.org/location/utah/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "michigan": {
+   "name": "Michigan",
+   "localIncomeTax": {
+    "exists": true,
+    "notes": "24 Michigan cities levy a local income tax under the Uniform City Income Tax Ordinance (Act 284 of 1964). Detroit is highest at 2.4% residents / 1.2% nonresidents; Grand Rapids and Saginaw at 1.5% / 0.75%; Highland Park at 2.0% / 1.0%; the remaining ~20 cities (e.g., Lansing, Flint, Pontiac, Battle Creek, Walker, Hamtramck) at 1.0% / 0.5%. Nonresidents are taxed only on income earned within city limits.",
+    "source": "https://www.michigan.gov/taxes/questions/iit/accordion/general/what-cities-impose-an-income-tax"
+   },
+   "payrollContributions": [],
+   "salesTax": {
+    "stateBaseRatePct": 6,
+    "combinedAvgRatePct": 6,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/michigan/"
+   },
+   "minWage2026": {
+    "amountUsd": 13.73,
+    "notes": "Effective Jan 1, 2026 (up from $12.48); scheduled to reach $15.00 on Jan 1, 2027. Tipped cash wage is 40% of standard ($5.49) under the 2025 legislative compromise.",
+    "source": "https://www.michigan.gov/leo/news/2025/12/08/michigans-minimum-wage-set-to-increase-on-jan-1-2026"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 72389,
+    "year": "2024 (ACS 1-year)",
+    "source": "https://www.michigan.gov/mcda/population/michigan-population-analysis/2025/09/12/2025-acs-1yr"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 1.19,
+    "rankNote": "Above the national median effective property-tax rate.",
+    "source": "https://taxfoundation.org/location/michigan/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Michigan's 4.25% state rate is officially confirmed for tax year 2026: the Treasury announced (April 15, 2026) that the statutory rollback formula did NOT trigger because FY2025 general-fund revenue fell 1.56% while inflation rose 2.70% — so the temporary 4.05% (2023) did not return.",
+     "source": "https://www.michigan.gov/treasury/reference/taxpayer-notices/2026/04/15/425-income-tax-rate-for-individuals-and-fiduciaries-in-2026-tax-year"
+    },
+    {
+     "fact": "On top of the 4.25% state tax, 24 Michigan cities add a local income tax — a Detroit resident pays 2.4% city tax for a combined 6.65% Michigan income tax before federal, while nonresidents working in those cities are taxed at half the resident rate on city-earned wages only.",
+     "source": "https://www.michigan.gov/taxes/questions/iit/accordion/general/what-cities-impose-an-income-tax"
+    }
+   ],
+   "confidence": "high"
+  },
+  "arizona": {
+   "name": "Arizona",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No Arizona city or county may levy an income or wage tax — the state prohibits municipal/county income taxes. Phoenix, Tucson, Mesa, Scottsdale, and all other municipalities operate under the state-only flat 2.5% income tax.",
+    "source": "https://www.paylocity.com/resources/tax-compliance/tax-facts/arizona/"
+   },
+   "payrollContributions": [],
+   "salesTax": {
+    "stateBaseRatePct": 5.6,
+    "combinedAvgRatePct": 8.52,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/arizona/"
+   },
+   "minWage2026": {
+    "amountUsd": 15.15,
+    "notes": "Effective Jan 1, 2026 (up from $14.70), CPI-indexed annually by the Industrial Commission of Arizona. Flagstaff ($18.35) and Tucson ($15.45) set higher local minimums.",
+    "source": "https://www.azica.gov/sites/default/files/2025-10/2026%20Minimum%20Wage.pdf"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 79964,
+    "year": "2024 (ACS 1-year)",
+    "source": "https://www.neilsberg.com/insights/topic/arizona-income/"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.48,
+    "rankNote": "Among the lowest effective property-tax rates in the nation.",
+    "source": "https://taxfoundation.org/location/arizona/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Arizona's 2.5% flat income tax is the lowest flat rate of any state that taxes wage income, and the state bars all cities and counties from adding any local income tax — so a paycheck statewide shows just one 2.5% state line.",
+     "source": "https://taxfoundation.org/location/arizona/"
+    },
+    {
+     "fact": "Arizona's $15.15 state minimum wage is CPI-indexed each January 1 by the Industrial Commission (the $0.45 bump for 2026 came from Aug 2024-Aug 2025 inflation), and home-rule cities like Flagstaff ($18.35) can set substantially higher local minimums.",
+     "source": "https://www.azica.gov/sites/default/files/2025-10/2026%20Minimum%20Wage.pdf"
+    }
+   ],
+   "confidence": "high"
+  },
+  "colorado": {
+   "name": "Colorado",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "Colorado does not allow municipalities or counties to levy a personal income tax. The state has a single flat individual income tax rate; no local/city income tax anywhere in the state. (Note: some CO cities like Denver, Aurora, Greenwood Village, Glendale, Sheridan levy a flat per-month 'Occupational Privilege Tax'/head tax of a few dollars on employees who earn above a threshold — this is a fixed-dollar head tax, not a percentage income tax.)",
+    "source": "https://taxfoundation.org/location/colorado/"
+   },
+   "salesTax": {
+    "stateBaseRatePct": 2.9,
+    "combinedAvgRatePct": 7.89,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/colorado/"
+   },
+   "payrollContributions": [
+    {
+     "name": "FAMLI (Paid Family & Medical Leave Insurance) — employee share",
+     "employeeRate2026": "0.44% (employee half of the 0.88% total premium)",
+     "wageBaseOrCap": "Up to the federal Social Security wage cap, $184,500 for 2026",
+     "source": "https://famli.colorado.gov/employers"
+    }
+   ],
+   "minWage2026": {
+    "amountUsd": 15.16,
+    "notes": "Statewide minimum wage effective Jan 1, 2026 (up from $14.81), CPI-adjusted by the CDLE 2026 PAY CALC Order. Tipped minimum is $12.14/hr. Local jurisdictions (Denver, Boulder, Edgewater) set higher rates.",
+    "source": "https://cdle.colorado.gov/sites/cdle/files/adopted_2026_pay_calc_order_7_ccr_1103-14_12.8.25.pdf"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 97113,
+    "year": "2024 (ACS 1-year estimate)",
+    "source": "https://www.census.gov/quickfacts/fact/table/CO/PST040224"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.5,
+    "rankNote": "0.50% effective rate on owner-occupied housing — among the lowest in the nation (roughly 3rd-lowest of the 50 states).",
+    "source": "https://taxfoundation.org/location/colorado/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Colorado's flat income tax was temporarily cut from 4.40% to 4.25% via a TABOR (Taxpayer's Bill of Rights) surplus mechanism that applies to the 2025 tax year filed in 2026; the standing statutory rate is 4.40%, and TABOR can refund excess state revenue directly to taxpayers.",
+     "source": "https://taxfoundation.org/location/colorado/"
+    },
+    {
+     "fact": "Colorado's FAMLI paid-leave premium dropped to 0.88% of wages for 2026 (from 0.90% in 2025), split evenly so employees pay 0.44%; employers with 9 or fewer workers owe no employer share, meaning a small-business employee still pays only 0.44%.",
+     "source": "https://famli.colorado.gov/employers"
+    }
+   ],
+   "confidence": "high"
+  },
+  "indiana": {
+   "name": "Indiana",
+   "localIncomeTax": {
+    "exists": true,
+    "notes": "All 92 Indiana counties levy a local income tax (LIT), withheld by employers based on the employee's COUNTY OF RESIDENCE (not work county) as of Jan 1. 2026 county rates range roughly from 0.5% to 3.0%+. Six counties raised rates effective Jan 1, 2026. Marion (Indianapolis) ~2.02%, Hamilton ~1.1%, Allen ~1.59%. Official rates are in DOR Departmental Notice #1.",
+    "source": "https://www.in.gov/dor/files/dn01.pdf"
+   },
+   "salesTax": {
+    "stateBaseRatePct": 7,
+    "combinedAvgRatePct": 7,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/indiana/"
+   },
+   "payrollContributions": [],
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "Indiana's minimum wage equals the federal $7.25/hr and has been unchanged since 2009; no 2026 increase.",
+    "source": "https://www.dol.gov/agencies/whd/minimum-wage/state"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 71959,
+    "year": "2024 (ACS 1-year estimate)",
+    "source": "https://www.census.gov/quickfacts/fact/table/IN/INC110224"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.76,
+    "rankNote": "0.76% effective rate on owner-occupied housing — below the national average, around the middle-to-lower third of states.",
+    "source": "https://taxfoundation.org/location/indiana/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Indiana's flat state individual income tax rate dropped to 2.95% effective Jan 1, 2026 (down from 3.00% in 2025), per DOR Departmental Notice #1 — one of the lowest flat-rate state income taxes in the country.",
+     "source": "https://taxfoundation.org/location/indiana/"
+    },
+    {
+     "fact": "Every one of Indiana's 92 counties imposes its own local income tax stacked on top of the state rate, and it is withheld based on where you LIVE on Jan 1, not where you work — so two coworkers at the same employer can have different total withholding.",
+     "source": "https://www.in.gov/dor/files/dn01.pdf"
+    }
+   ],
+   "confidence": "high"
+  },
+  "kentucky": {
+   "name": "Kentucky",
+   "localIncomeTax": {
+    "exists": true,
+    "notes": "Kentucky cities AND counties may each levy a local 'occupational license fee' (a wage tax on gross earnings) and the two can STACK. 87 of 120 counties levied it; rates run roughly 0.5%-2.5%. Louisville/Jefferson County: 2.2% for residents (1.25% Louisville Metro + 0.2% TARC + 0.75% school board); nonresidents pay 1.45% (exempt from the 0.75% school-board portion). Lexington-Fayette: 2.25%. Withheld by employers where work is performed.",
+    "source": "https://www.klc.org/InfoCentral/Detail/31/occupational-license-tax"
+   },
+   "salesTax": {
+    "stateBaseRatePct": 6,
+    "combinedAvgRatePct": 6,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/kentucky/"
+   },
+   "payrollContributions": [],
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "Kentucky's minimum wage equals the federal $7.25/hr; no state increase for 2026.",
+    "source": "https://www.dol.gov/agencies/whd/minimum-wage/state"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 64526,
+    "year": "2024 (ACS 1-year estimate)",
+    "source": "https://www.census.gov/quickfacts/fact/table/KY/INC110223"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.74,
+    "rankNote": "0.74% effective rate on owner-occupied housing — below the national average, mid-range nationally.",
+    "source": "https://taxfoundation.org/location/kentucky/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Kentucky's flat state income tax fell to 3.5% effective Jan 1, 2026 (from 4.0%), the next step in a triggered phase-down toward eventual elimination authorized by 2022 reforms and HB 1 (2025).",
+     "source": "https://taxnews.ey.com/news/2025-0543-kentucky-lowers-personal-income-tax-rate-effective-january-1-2026"
+    },
+    {
+     "fact": "Unlike most states, Kentucky has no statewide payroll insurance tax but its local occupational license fees can stack city + county on the same wages — e.g. a Louisville resident pays a combined 2.2% local wage tax on top of the 3.5% state rate.",
+     "source": "https://www.klc.org/InfoCentral/Detail/31/occupational-license-tax"
+    }
+   ],
+   "confidence": "high"
+  },
+  "mississippi": {
+   "name": "Mississippi",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "Mississippi has no local, city, or county income tax. Only the state flat individual income tax applies to wages.",
+    "source": "https://taxfoundation.org/location/mississippi/"
+   },
+   "salesTax": {
+    "stateBaseRatePct": 7,
+    "combinedAvgRatePct": 7.06,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/mississippi/"
+   },
+   "payrollContributions": [],
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "Mississippi has no state minimum wage law; the federal $7.25/hr applies to covered workers.",
+    "source": "https://www.dol.gov/agencies/whd/minimum-wage/state"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 56447,
+    "year": "2024 (ACS, in 2024 inflation-adjusted dollars)",
+    "source": "https://www.census.gov/quickfacts/fact/table/MS/BZA115223"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.58,
+    "rankNote": "0.58% effective rate on owner-occupied housing — among the lowest in the nation (bottom ~10 states).",
+    "source": "https://taxfoundation.org/location/mississippi/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Mississippi's flat income tax dropped to 4.0% for 2026 (from 4.4%), and the first $10,000 of taxable income is fully exempt — so the 4.0% rate applies only to income above $10,000.",
+     "source": "https://taxfoundation.org/location/mississippi/"
+    },
+    {
+     "fact": "Under the 2025 'Build Up Mississippi Act,' the income tax is scheduled to fall to 3% by 2030 and is set to phase out entirely (potentially by ~2040) through revenue-growth triggers, which would make Mississippi a no-income-tax state.",
+     "source": "https://tax.thomsonreuters.com/news/mississippi-governor-signs-legislation-phasing-out-individual-income-tax/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "georgia": {
+   "name": "Georgia",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "Georgia does not permit municipalities or counties to levy an income tax on wages; only the state flat individual income tax applies. Local jurisdictions raise revenue via sales and property taxes instead.",
+    "source": "https://dor.georgia.gov/taxes"
+   },
+   "salesTax": {
+    "stateBaseRatePct": 4,
+    "combinedAvgRatePct": 7.4,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/georgia/"
+   },
+   "payrollContributions": [],
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "Georgia's statutory state minimum wage is $5.15/hr, but FLSA-covered employers must pay the federal $7.25/hr, which applies to the vast majority of workers.",
+    "source": "https://dol.georgia.gov/minimum-wage"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 77353,
+    "year": "2024 (ACS, in 2024 inflation-adjusted dollars)",
+    "source": "https://www.census.gov/quickfacts/fact/table/GA/INC110224"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.79,
+    "rankNote": "0.79% effective rate on owner-occupied housing — slightly below the national average, mid-range nationally.",
+    "source": "https://taxfoundation.org/location/georgia/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Georgia's flat income tax was cut to 4.99% retroactive to Jan 1, 2026 under HB 463 (signed by Gov. Kemp May 11, 2026), accelerating a phase-down plan that targets a 3.99% flat rate via annual 0.10-point reductions.",
+     "source": "https://gov.georgia.gov/press-releases/2026-05-11/gov-kemp-signs-legislation-lowering-taxes-and-supporting-economic-growth"
+    },
+    {
+     "fact": "Georgia levies no statewide payroll insurance tax and no local income tax, so a worker's only income-tax withholding is the single state flat rate — but the state's notoriously low $5.15 statutory minimum is overridden by federal $7.25 for nearly all employees.",
+     "source": "https://dol.georgia.gov/minimum-wage"
+    }
+   ],
+   "confidence": "high"
+  },
+  "louisiana": {
+   "name": "Louisiana",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "Louisiana parishes and municipalities do not levy a local income tax on wages; only the state flat individual income tax applies. Local revenue comes from sales and property taxes (Louisiana has the nation's highest average local sales tax).",
+    "source": "https://taxfoundation.org/location/louisiana/"
+   },
+   "salesTax": {
+    "stateBaseRatePct": 5,
+    "combinedAvgRatePct": 10.11,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/louisiana/"
+   },
+   "payrollContributions": [],
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "Louisiana has no state minimum wage law; the federal $7.25/hr applies to covered workers.",
+    "source": "https://www.dol.gov/agencies/whd/minimum-wage/state"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 60986,
+    "year": "2024 (ACS 1-year estimate)",
+    "source": "https://data.census.gov/profile/Louisiana?g=0400000US22"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.55,
+    "rankNote": "0.55% effective rate on owner-occupied housing — among the lowest in the nation (bottom ~5 states), partly due to Louisiana's large homestead exemption.",
+    "source": "https://taxfoundation.org/location/louisiana/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Louisiana has the highest combined state-plus-local sales tax in the United States at an average 10.11% — its 5.00% state rate is mid-pack, but its ~5.11% average local rate is the nation's highest.",
+     "source": "https://taxfoundation.org/location/louisiana/"
+    },
+    {
+     "fact": "Louisiana's 2025 tax reform replaced its graduated income tax with a flat 3% rate and raised the standard deduction to $12,500 single / $25,000 joint; the state sales tax was raised to 5.00% (from 4.45%) through 2029 and is scheduled to drop to 4.75% on Jan 1, 2030.",
+     "source": "https://revenue.louisiana.gov/tax-education-and-faqs/faqs/income-tax-reform/what-are-the-individual-income-tax-rates-and-brackets/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "iowa": {
+   "name": "Iowa",
+   "salesTax": {
+    "stateBaseRatePct": 6,
+    "combinedAvgRatePct": 6.94,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/iowa/"
+   },
+   "localIncomeTax": {
+    "exists": true,
+    "notes": "Iowa school districts levy a local income surtax assessed as a percentage of state income tax liability (up to 20%), not of income. About 87% of districts impose it; the income-weighted average is roughly 0.3%. Three counties (Appanoose, Pocahontas, Winnebago) also use a surtax for EMS. It is filed with the state IA 1040 return based on the district you reside in on the last day of the tax year.",
+    "source": "https://revenue.iowa.gov/taxes/tax-guidance/individual-income-tax/1040-expanded-instructions/school-district-surtaxemergency"
+   },
+   "payrollContributions": [],
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "Iowa has no state minimum wage above the federal floor, so the federal $7.25/hour applies in 2026.",
+    "source": "https://www.aarp.org/states/iowa/state-tax-guide/"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 75501,
+    "year": "2024 (ACS 1-Year)",
+    "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 1.33,
+    "rankNote": "Among the higher-burden states; Tax Foundation property tax rankings place Iowa near 10th-highest in the nation.",
+    "source": "https://taxfoundation.org/location/iowa/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Iowa completed its move to a single flat individual income tax rate of 3.8% effective January 1, 2025, so all taxable income in 2026 is taxed at 3.8% with no brackets.",
+     "source": "https://revenue.iowa.gov/press-release/2025-10-21/idr-announces-2026-individual-income-tax-and-interest-rates"
+    },
+    {
+     "fact": "Unemployment insurance is funded entirely by employers in Iowa; employees have nothing withheld from their paychecks for state UI, and 2026 employer rates draw from Table D, the lowest allowed by law.",
+     "source": "https://workforce.iowa.gov/press-release/2025-09-05/unemployment-insurance-rates-iowa-employers-remain-lowest-possible-level-2026"
+    }
+   ],
+   "confidence": "high"
+  },
+  "idaho": {
+   "name": "Idaho",
+   "salesTax": {
+    "stateBaseRatePct": 6,
+    "combinedAvgRatePct": 6.03,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/idaho/"
+   },
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "Idaho has no local or municipal income taxes; only the state flat income tax of 5.3% applies.",
+    "source": "https://tax.idaho.gov/taxes/income-tax/individual-income/individual-income-tax-rate-schedule/"
+   },
+   "payrollContributions": [],
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "Idaho's minimum wage equals the federal floor of $7.25/hour, with no separate state minimum or inflation adjustment for 2026.",
+    "source": "https://www.aarp.org/states/idaho/state-tax-guide/"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 81166,
+    "year": "2024 (ACS 1-Year)",
+    "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.43,
+    "rankNote": "One of the lowest effective property tax rates in the nation, well below the U.S. median.",
+    "source": "https://taxfoundation.org/location/idaho/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Idaho retroactively cut its flat individual income tax rate to 5.3% (from 5.695%) via House Bill 40 enacted March 2025, so 2026 wages are taxed at a single 5.3% rate.",
+     "source": "https://tax.idaho.gov/taxes/income-tax/individual-income/individual-income-tax-rate-schedule/"
+    },
+    {
+     "fact": "Idaho is one of the few states that taxes groceries at the full 6% sales tax, but offsets it with a refundable grocery (food) tax credit of $155 per person/dependent claimed on the income tax return, even by non-filers.",
+     "source": "https://tax.idaho.gov/taxes/income-tax/individual-income/popular-credits-and-deductions/idaho-grocery-credit/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "massachusetts": {
+   "name": "Massachusetts",
+   "salesTax": {
+    "stateBaseRatePct": 6.25,
+    "combinedAvgRatePct": 6.25,
+    "year": "2026",
+    "source": "https://www.mass.gov/guides/sales-and-use-tax"
+   },
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "Massachusetts has no local or municipal income tax; only the state 5% flat tax (plus the 4% surtax on income over the inflation-adjusted threshold) applies.",
+    "source": "https://www.mass.gov/info-details/massachusetts-tax-rates"
+   },
+   "payrollContributions": [
+    {
+     "name": "Paid Family and Medical Leave (PFML) - employee share",
+     "employeeRate2026": "Up to 0.46% of eligible wages (0.28% medical leave + 0.18% family leave)",
+     "wageBaseOrCap": "Social Security wage base of $184,500 for 2026 (max employee contribution ~$848.70/year)",
+     "source": "https://www.mass.gov/info-details/paid-family-and-medical-leave-employer-contribution-rates-and-calculator"
+    }
+   ],
+   "minWage2026": {
+    "amountUsd": 15,
+    "notes": "Massachusetts minimum wage is $15.00/hour, unchanged since January 1, 2023, with no scheduled increase for 2026.",
+    "source": "https://www.mass.gov/info-details/massachusetts-law-about-minimum-wage"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 103960,
+    "year": "2024 (ACS 1-Year)",
+    "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 1,
+    "rankNote": "Roughly mid-pack nationally; near or slightly above the U.S. average effective rate.",
+    "source": "https://taxfoundation.org/location/massachusetts/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "A 4% 'millionaire' surtax applies on top of the 5% flat rate to all income above $1,107,750 for tax year 2026 (threshold indexed annually for inflation), making the top marginal rate 9% on income over that level.",
+     "source": "https://www.mass.gov/info-details/massachusetts-4-surtax-on-taxable-income"
+    },
+    {
+     "fact": "Employers with fewer than 25 covered workers owe no employer PFML share but may still withhold up to the full employee portion (0.46%) from paychecks; the employee share of the medical-leave portion can be up to 100% (0.28%).",
+     "source": "https://www.mass.gov/info-details/paid-family-and-medical-leave-employer-contribution-rates-and-calculator"
+    }
+   ],
+   "confidence": "high"
+  },
+  "new-jersey": {
+   "name": "New Jersey",
+   "salesTax": {
+    "stateBaseRatePct": 6.625,
+    "combinedAvgRatePct": 6.6,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/new-jersey/"
+   },
+   "localIncomeTax": {
+    "exists": true,
+    "notes": "New Jersey has no general local income tax, but Newark levies a 1% payroll tax that is employer-paid (not deducted from employee paychecks). For employees, only state income tax and state payroll deductions apply.",
+    "source": "https://www.nj.gov/treasury/taxation/taxtables.shtml"
+   },
+   "payrollContributions": [
+    {
+     "name": "Temporary Disability Insurance (TDI) - employee share",
+     "employeeRate2026": "0.19%",
+     "wageBaseOrCap": "$171,100 (max employee contribution $325.09)",
+     "source": "https://www.nj.gov/labor/lwdhome/press/2025/20251229_newbenefitrates2026.shtml"
+    },
+    {
+     "name": "Family Leave Insurance (FLI) - employee share",
+     "employeeRate2026": "0.23%",
+     "wageBaseOrCap": "$171,100",
+     "source": "https://www.nj.gov/labor/lwdhome/press/2025/20251229_newbenefitrates2026.shtml"
+    },
+    {
+     "name": "Unemployment Insurance (UI) - employee share",
+     "employeeRate2026": "0.3825%",
+     "wageBaseOrCap": "$44,800",
+     "source": "https://www.nj.gov/labor/lwdhome/press/2025/20251229_newbenefitrates2026.shtml"
+    },
+    {
+     "name": "Workforce Development/Supplemental Workforce Funds (WF/SWF) - employee share",
+     "employeeRate2026": "0.0425%",
+     "wageBaseOrCap": "$44,800",
+     "source": "https://www.nj.gov/labor/lwdhome/press/2025/20251229_newbenefitrates2026.shtml"
+    }
+   ],
+   "minWage2026": {
+    "amountUsd": 15.92,
+    "notes": "Effective January 1, 2026, New Jersey's minimum wage rose to $15.92/hour for most employees; seasonal and small employers (fewer than 6 workers) are at $15.23.",
+    "source": "https://www.nj.gov/labor/lwdhome/press/2025/20251001_Minimum_Wage.shtml"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 103556,
+    "year": "2024 (ACS 1-Year)",
+    "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 2.23,
+    "rankNote": "Highest effective property tax rate in the nation; median annual bill near $9,500 vs. a national median around $2,800.",
+    "source": "https://taxfoundation.org/data/all/state/property-taxes-by-state-county/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "New Jersey has the nation's 4th-highest top marginal income tax rate at 10.75% on income over $1,000,000 (behind only California, Hawaii, and New York).",
+     "source": "https://njbia.org/nj-individual-state-income-tax-rate-remains-4th-highest-in-nation-for-2026/"
+    },
+    {
+     "fact": "For 2026 NJ employees pay into four separate state payroll funds with two different wage caps: UI (0.3825%) and WF/SWF (0.0425%) on the first $44,800, plus TDI (0.19%) and FLI (0.23%) up to $171,100.",
+     "source": "https://www.nj.gov/labor/lwdhome/press/2025/20251229_newbenefitrates2026.shtml"
+    }
+   ],
+   "confidence": "high"
+  },
+  "ohio": {
+   "name": "Ohio",
+   "salesTax": {
+    "stateBaseRatePct": 5.75,
+    "combinedAvgRatePct": 7.29,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/ohio/"
+   },
+   "localIncomeTax": {
+    "exists": true,
+    "notes": "Ohio has extensive municipal income taxes: most cities levy 1.8%-2.75% (Columbus 2.5%, Cleveland 2.5%, Cincinnati 1.8%, Toledo 2.25%, Akron 2.5%, Dayton 2.5%), collected mostly by RITA or the CCA rather than the state. Many school districts also levy a separate school district income tax. Credits typically apply between work-city and home-city taxes.",
+    "source": "https://www.ritaohio.com/TaxRatesTable"
+   },
+   "payrollContributions": [],
+   "minWage2026": {
+    "amountUsd": 11,
+    "notes": "Effective January 1, 2026, Ohio's minimum wage rose to $11.00/hour for non-tipped employees (tipped $5.50) for employers grossing over the threshold; smaller employers and 14-15 year-olds remain at the federal $7.25.",
+    "source": "https://com.ohio.gov/about-us/media-center/news/ohio+minimum+wage+set+to+increase+in+2026"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 71389,
+    "year": "2024 (ACS 1-Year)",
+    "source": "https://www.census.gov/quickfacts/fact/table/OH/INC110224"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 1.36,
+    "rankNote": "Among the top ~10 highest effective property tax rates nationally.",
+    "source": "https://taxfoundation.org/location/ohio/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Under HB 96, Ohio became a true flat-tax state in 2026: 0% on the first $26,050 of nonbusiness income and a single 2.75% rate above that, the nation's second-lowest flat income tax rate.",
+     "source": "https://itrfoundation.org/ohios-new-2-75-flat-tax-puts-pressure-on-other-states/"
+    },
+    {
+     "fact": "Because of widespread municipal income taxes (collected by RITA/CCA), an Ohio worker's combined state-plus-local income tax can reach roughly 5%-5.25% in major cities even though the state rate is only 2.75%.",
+     "source": "https://www.ritaohio.com/TaxRatesTable"
+    }
+   ],
+   "confidence": "high"
+  },
+  "maryland": {
+   "name": "Maryland",
+   "salesTax": {
+    "stateBaseRatePct": 6,
+    "combinedAvgRatePct": 6,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/maryland/"
+   },
+   "localIncomeTax": {
+    "exists": true,
+    "notes": "All 23 Maryland counties plus Baltimore City levy a local 'piggyback' income tax, deducted via withholding and paid with the state return. The maximum local rate for 2026 is 3.30% (the cap rose from 3.20% for tax years after 2024). Rates range from 2.25% (Worcester, the lowest) up to 3.30%; most large counties - Howard, Montgomery, Prince George's and Baltimore City - are at 3.20%, while only Dorchester and Kent are at the 3.30% cap. Anne Arundel and Frederick counties use income-tiered rates.",
+    "source": "https://www.marylandtaxes.gov/individual/income/tax-info/index.php"
+   },
+   "payrollContributions": [],
+   "minWage2026": {
+    "amountUsd": 15,
+    "notes": "Maryland's state minimum wage is frozen at $15.00/hour with no scheduled increase; Montgomery, Howard, and Prince George's counties set higher local minimums.",
+    "source": "https://www.labor.maryland.gov/labor/wages/wagehrfacts.shtml"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 102905,
+    "year": "2024 (ACS 1-Year)",
+    "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.9,
+    "rankNote": "Near the U.S. median effective property tax rate.",
+    "source": "https://taxfoundation.org/location/maryland/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Maryland's 2025 legislative session added two new top income tax brackets for 2026 (6.25% and 6.5%), raising the top marginal state rate from 5.75% to 6.5%; combined with the county piggyback tax (now capped at 3.3%) the top combined rate can reach about 9.8%.",
+     "source": "https://www.marylandcomptroller.gov/content/dam/mdcomp/tax/legal-publications/alerts/tax-alert-changes-to-standard-and-itemized-deductions-and-to-state-and-local-income-tax-rates-from-the-2025-legislative-session.pdf"
+    },
+    {
+     "fact": "Maryland's FAMLI paid family and medical leave program has no employee payroll deduction in 2026; contributions were delayed to begin January 1, 2027, with benefits starting in 2028.",
+     "source": "https://www.bakerdonelson.com/maryland-paid-famli-program-current-status-and-key-updates"
+    }
+   ],
+   "confidence": "high"
+  },
+  "minnesota": {
+   "name": "Minnesota",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "Minnesota has no local/city/county income taxes; only the state income tax applies. Local governments fund services via property tax, local sales taxes, and state Local Government Aid.",
+    "source": "https://www.revenue.state.mn.us/minnesota-income-tax-rates-and-brackets"
+   },
+   "payrollContributions": [
+    {
+     "name": "Paid Leave (PFML) — employee share",
+     "employeeRate2026": "0.44% (employer may deduct up to half of the 0.88% total premium)",
+     "wageBaseOrCap": "Capped at the 2026 Social Security wage base, $184,500",
+     "source": "https://pl.mn.gov/resources/calculators/premium-rate-and-contributions"
+    }
+   ],
+   "salesTax": {
+    "stateBaseRatePct": 6.875,
+    "combinedAvgRatePct": 8.14,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/minnesota/"
+   },
+   "minWage2026": {
+    "amountUsd": 11.41,
+    "notes": "Statewide rate effective Jan 1, 2026 (inflation-adjusted, applies to all employers). 90-day training wage for under-20 workers is $9.31. Minneapolis ($16.37) and St. Paul (large/macro employers, $16.37) set higher local minimums.",
+    "source": "https://www.dli.mn.gov/news/new-minimum-wage-rates-changes-meal-and-rest-break-laws-take-effect-jan-1-2026"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 87117,
+    "year": "2024 (ACS 1-Year)",
+    "source": "https://www.census.gov/quickfacts/fact/table/MN/INC110223"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 1,
+    "rankNote": "Roughly middle of the pack nationally; ~1.00% effective rate on owner-occupied homes per Tax Foundation 2026.",
+    "source": "https://taxfoundation.org/location/minnesota/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Minnesota's new statewide Paid Leave program launched Jan 1, 2026: the total premium is 0.88% of wages (0.61% medical + 0.27% family), and employers may withhold up to half (0.44%) from the employee — a brand-new line item on 2026 Minnesota paychecks.",
+     "source": "https://pl.mn.gov/resources/calculators/premium-rate-and-contributions"
+    },
+    {
+     "fact": "Minnesota's top marginal income tax rate of 9.85% is among the highest in the nation and kicks in above $193,240 (single) / $321,450 (married filing jointly) for tax year 2026; brackets were inflation-adjusted 2.369% from 2025.",
+     "source": "https://www.revenue.state.mn.us/press-release/2025-12-16/minnesota-income-tax-brackets-standard-deduction-and-dependent-exemption"
+    }
+   ],
+   "confidence": "high"
+  },
+  "wisconsin": {
+   "name": "Wisconsin",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No city or county income taxes anywhere in Wisconsin; residents pay only the state income tax. (Milwaukee levies a 2% city sales tax and 70 counties a 0.5% county sales tax, but no local income tax exists.)",
+    "source": "https://www.revenue.wi.gov/Pages/FAQS/pcs-taxrates.aspx"
+   },
+   "payrollContributions": [],
+   "salesTax": {
+    "stateBaseRatePct": 5,
+    "combinedAvgRatePct": 5.72,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/wisconsin/"
+   },
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "Unchanged since July 2009; equals the federal minimum. Tipped/server cash wage is $2.33; 'opportunity employee' (under 20, first 90 days) rate is $5.90. Wisconsin does not index to inflation.",
+    "source": "https://dwd.wisconsin.gov/er/laborstandards/minimumwage.htm"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 77485,
+    "year": "2024 (ACS 1-Year)",
+    "source": "https://www.census.gov/quickfacts/WI"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 1.32,
+    "rankNote": "Among the top ~10 highest in the nation; ~1.32% effective rate on owner-occupied homes per Tax Foundation 2026. Wisconsin relies heavily on local property tax for school funding.",
+    "source": "https://taxfoundation.org/location/wisconsin/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Wisconsin has no employee-side state payroll taxes (no SDI/PFML/FLI) — unemployment insurance is fully employer-funded — so the only state withholding on a Wisconsin paycheck is the income tax.",
+     "source": "https://dwd.wisconsin.gov/ui/employers/taxrates.htm"
+    },
+    {
+     "fact": "Wisconsin's minimum wage of $7.25 has been frozen since July 2009 — the same rate for 16+ years and tied to the federal floor — making it one of the lowest-paying minimum-wage states in 2026.",
+     "source": "https://dwd.wisconsin.gov/er/laborstandards/minimumwage.htm"
+    }
+   ],
+   "confidence": "high"
+  },
+  "connecticut": {
+   "name": "Connecticut",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No municipal or local income taxes; only the state income tax (2%–6.99%) applies. Connecticut towns rely almost entirely on property tax for local revenue since there are no local income or sales taxes.",
+    "source": "https://portal.ct.gov/drs/individuals/individual-income-tax"
+   },
+   "payrollContributions": [
+    {
+     "name": "CT Paid Leave (PFML) — employee-funded",
+     "employeeRate2026": "0.5% (fully employee-paid; rate held flat for 2026)",
+     "wageBaseOrCap": "Capped at the 2026 Social Security wage base, $184,500 (max contribution $922.50)",
+     "source": "https://www.ctpaidleave.org/how-ct-paid-leave-works/contributions"
+    }
+   ],
+   "salesTax": {
+    "stateBaseRatePct": 6.35,
+    "combinedAvgRatePct": 6.35,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/connecticut/"
+   },
+   "minWage2026": {
+    "amountUsd": 16.94,
+    "notes": "Effective Jan 1, 2026; a $0.59 increase from $16.35, indexed to the federal employment cost index (3.6% over the year ending June 30, 2025) under Public Act 19-4.",
+    "source": "https://portal.ct.gov/governor/news/press-releases/2025/09-2025/governor-lamont-announces-minimum-wage-will-increase"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 95781,
+    "year": "2024 (ACS 1-Year)",
+    "source": "https://www.census.gov/quickfacts/fact/table/CT/INC110224"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 1.54,
+    "rankNote": "Third-highest effective property tax rate in the nation (trailing only New Jersey and Illinois) per Tax Foundation 2026.",
+    "source": "https://taxfoundation.org/location/connecticut/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Connecticut Paid Leave is entirely employee-funded: workers pay the full 0.5% premium (no employer match) on wages up to $184,500, capping the 2026 deduction at $922.50 — unlike most PFML states that split the cost with employers.",
+     "source": "https://www.ctpaidleave.org/how-ct-paid-leave-works/contributions"
+    },
+    {
+     "fact": "Connecticut has no local sales taxes — the 6.35% rate is identical statewide — so a paycheck-to-spending comparison needs no city/county sales-tax lookup, unlike most states.",
+     "source": "https://taxfoundation.org/location/connecticut/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "oregon": {
+   "name": "Oregon",
+   "localIncomeTax": {
+    "exists": true,
+    "notes": "Portland metro area levies multiple local personal income taxes administered by the City of Portland Revenue Division: Metro Supportive Housing Services (SHS) tax of 1% on income above $128,000 single / $205,000 joint (2026, first inflation-adjusted year), and Multnomah County Preschool for All (PFA) tax of 1.5% above $125,000 single / $200,000 joint, plus an extra 1.5% above $250,000 single / $400,000 joint. No statewide local income tax outside the Portland metro.",
+    "source": "https://www.portland.gov/revenue/personal-tax"
+   },
+   "payrollContributions": [
+    {
+     "name": "Paid Leave Oregon (PFML) — employee share",
+     "employeeRate2026": "0.6% (employees pay 60% of the 1.0% total contribution)",
+     "wageBaseOrCap": "Wages up to $184,500 (2026 Social Security wage base)",
+     "source": "https://paidleave.oregon.gov/employers/contributions-calculator.html"
+    }
+   ],
+   "salesTax": {
+    "stateBaseRatePct": 0,
+    "combinedAvgRatePct": 0,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/oregon/"
+   },
+   "minWage2026": {
+    "amountUsd": 15.55,
+    "notes": "Standard rate effective July 1, 2026 (Oregon adjusts mid-year). Three regional tiers: Portland Metro (urban growth boundary) $16.80, Standard $15.55, Non-Urban (18 rural counties) $14.55. Driven by 3.3% CPI (Mar 2025–Mar 2026).",
+    "source": "https://www.oregon.gov/boli/workers/pages/minimum-wage-schedule.aspx"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 85220,
+    "year": "2024 (ACS 1-Year)",
+    "source": "https://www.census.gov/quickfacts/fact/table/OR/INC110223"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.81,
+    "rankNote": "Below the national average; ~0.81% effective rate on owner-occupied homes per Tax Foundation 2026.",
+    "source": "https://taxfoundation.org/location/oregon/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Oregon has no sales tax at all (one of only five such states), but funds services with a high top income tax rate of 9.9% — so a Portland-area paycheck can carry state income tax plus two stacked local income taxes (Metro SHS 1% and Multnomah County PFA up to 3%) above the income thresholds.",
+     "source": "https://taxfoundation.org/location/oregon/"
+    },
+    {
+     "fact": "Oregon's minimum wage uses three regional tiers and changes every July 1 (not January 1): $16.80 Portland Metro, $15.55 Standard, $14.55 Non-Urban as of July 1, 2026 — uncommon both in its mid-year timing and its geography-based rates.",
+     "source": "https://www.oregon.gov/boli/workers/pages/minimum-wage-schedule.aspx"
+    }
+   ],
+   "confidence": "high"
+  },
+  "california": {
+   "name": "California",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No California city or county levies a personal income tax — state law gives the Franchise Tax Board exclusive authority over personal income tax. San Francisco's Gross Receipts Tax is a business tax, not a wage tax, and does not affect W-2 take-home pay.",
+    "source": "https://taxfoundation.org/location/california/"
+   },
+   "payrollContributions": [
+    {
+     "name": "State Disability Insurance (SDI, includes PFL)",
+     "employeeRate2026": "1.3% of all wages",
+     "wageBaseOrCap": "No wage cap — SB 951 eliminated the taxable wage ceiling effective Jan 1, 2024, so SDI applies to all wages",
+     "source": "https://edd.ca.gov/en/disability/Contribution_Rates_and_Benefit_Amounts/"
+    }
+   ],
+   "salesTax": {
+    "stateBaseRatePct": 7.25,
+    "combinedAvgRatePct": 8.99,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/california/"
+   },
+   "minWage2026": {
+    "amountUsd": 16.9,
+    "notes": "Statewide rate effective Jan 1, 2026 (+$0.40, CPI-indexed at 2.49%). Fast-food chain workers have a $20 floor (AB 1228); health-care workers $18–$23 by facility. Many cities/counties set higher local minimums.",
+    "source": "https://www.dir.ca.gov/DIRNews/2025/2025-118.html"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 102900,
+    "year": "2024 (ACS 1-Year)",
+    "source": "https://www.census.gov/library/publications/2025/acs/acsbr-025.html"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.7,
+    "rankNote": "Well below the national average (~0.70% effective rate per Tax Foundation 2026) thanks to Proposition 13's 1% cap and 2% annual assessment-growth limit; ranks in the lower third of states.",
+    "source": "https://taxfoundation.org/location/california/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "California SDI has no wage cap as of 2026: the 1.3% employee contribution applies to every dollar of wages (SB 951 removed the taxable-wage ceiling in 2024), so high earners see SDI withheld all year — unlike capped programs in other states.",
+     "source": "https://edd.ca.gov/en/disability/Contribution_Rates_and_Benefit_Amounts/"
+    },
+    {
+     "fact": "California's top income tax rate is 13.3% (the highest state rate in the U.S.), and combined with the uncapped 1.3% SDI it reaches an effective ~14.6% top marginal rate on wage income.",
+     "source": "https://taxfoundation.org/location/california/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "missouri": {
+   "name": "Missouri",
+   "localIncomeTax": {
+    "exists": true,
+    "notes": "Only Kansas City and St. Louis City levy a 1% local earnings tax; Missouri law bars any other municipality from imposing a local income tax. Residents of those cities pay 1% on all earnings; non-residents pay 1% on income earned within city limits.",
+    "source": "https://www.kcmo.gov/city-hall/departments/finance/earnings-tax"
+   },
+   "payrollContributions": [],
+   "salesTax": {
+    "stateBaseRatePct": 4.225,
+    "combinedAvgRatePct": 8.44,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/missouri/"
+   },
+   "minWage2026": {
+    "amountUsd": 15,
+    "notes": "Effective Jan 1, 2026 under voter-approved Proposition A (2024). HB 567 (signed July 2025) removed the future automatic inflation adjustments Prop A had set. Does not apply to public employers.",
+    "source": "https://labor.mo.gov/news/press-releases/minimum-wage-increases-1500-hour-2026"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 70702,
+    "year": "2024 (ACS 1-Year)",
+    "source": "https://www.census.gov/quickfacts/fact/table/MO/PST045224"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.89,
+    "rankNote": "Below the national average (~0.89% effective rate per Tax Foundation 2026); county rates range from 0.34% (Wright) to 1.14% (St. Louis County).",
+    "source": "https://taxfoundation.org/location/missouri/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Workers in Kansas City or St. Louis City pay a flat 1% local earnings tax on top of Missouri state income tax — the only two Missouri jurisdictions allowed to impose a local income tax, and it follows residents on all earnings regardless of where they work.",
+     "source": "https://www.kcmo.gov/city-hall/departments/finance/earnings-tax"
+    },
+    {
+     "fact": "Missouri's top state income tax rate dropped to 4.7% for 2026 (one of the lowest among states that tax wages), and the state has no employee-side payroll contributions (no SDI/PFML), so outside KC/STL the only state withholding is the income tax.",
+     "source": "https://dor.mo.gov/forms/Withholding%20Formula_2026.pdf"
+    }
+   ],
+   "confidence": "high"
+  },
+  "kansas": {
+   "name": "Kansas",
+   "salesTax": {
+    "stateBaseRatePct": 6.5,
+    "combinedAvgRatePct": 8.69,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/kansas/"
+   },
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No Kansas city or county levies a local income tax on wages. Some counties, cities and townships do levy a local 'intangibles tax' on income from intangible property (bank interest, dividends, CD earnings) — filed on Form 200 with the county clerk by April 15 if $5+ is due — but it does NOT apply to wages/salary, so it never appears in payroll withholding.",
+    "source": "https://www.ksrevenue.gov/perstaxtypesint.html"
+   },
+   "payrollContributions": [],
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "Kansas statutory minimum wage equals the federal $7.25/hr; no change for 2026.",
+    "source": "https://www.dol.gov/agencies/whd/minimum-wage/state"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 75514,
+    "year": "2024",
+    "source": "https://www.census.gov/library/publications/2025/acs/acsbr-025.html"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 1.21,
+    "rankNote": "1.21% effective rate on owner-occupied housing value — above the national average; Kansas property taxes are among the higher in the region.",
+    "source": "https://taxfoundation.org/location/kansas/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Kansas individual income tax is a two-bracket system for 2026, with rates ranging from 5.20% to 5.58% — a relatively high entry rate compared with neighboring states.",
+     "source": "https://taxfoundation.org/location/kansas/"
+    },
+    {
+     "fact": "Kansas localities can tax interest and dividend income via a local 'intangibles tax' (Form 200, filed with the county clerk), but it explicitly excludes wages, so a paycheck shows no local withholding.",
+     "source": "https://www.ksrevenue.gov/perstaxtypesint.html"
+    }
+   ],
+   "confidence": "high"
+  },
+  "nebraska": {
+   "name": "Nebraska",
+   "salesTax": {
+    "stateBaseRatePct": 5.5,
+    "combinedAvgRatePct": 6.98,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/nebraska/"
+   },
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "Nebraska does not authorize any city or county local income/payroll tax; only state income tax is withheld.",
+    "source": "https://taxfoundation.org/location/nebraska/"
+   },
+   "payrollContributions": [],
+   "minWage2026": {
+    "amountUsd": 15,
+    "notes": "Rose to $15.00/hr on Jan 1, 2026 — the final step of Initiative 433 (2022 ballot measure, $1.50/yr increases from $9.00). Indexed to Midwest CPI-U starting 2027.",
+    "source": "https://ballotpedia.org/Nebraska_Initiative_433,_Minimum_Wage_Increase_Initiative_(2022)"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 76376,
+    "year": "2024",
+    "source": "https://www.census.gov/library/publications/2025/acs/acsbr-025.html"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 1.44,
+    "rankNote": "1.44% effective rate on owner-occupied housing value — one of the higher property tax burdens in the country, a key offset to Nebraska's relatively low sales tax.",
+    "source": "https://taxfoundation.org/location/nebraska/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Nebraska's top marginal income tax rate dropped from 5.20% to 4.55% on Jan 1, 2026, part of a phasedown toward 3.99% by 2027.",
+     "source": "https://taxfoundation.org/location/nebraska/"
+    },
+    {
+     "fact": "At $15.00/hr in 2026, Nebraska has by far the highest minimum wage of the six neighboring/Southern states in this group (the others sit at $7.25–$11.00), driven by voter-approved Initiative 433.",
+     "source": "https://ballotpedia.org/Nebraska_Initiative_433,_Minimum_Wage_Increase_Initiative_(2022)"
+    }
+   ],
+   "confidence": "high"
+  },
+  "oklahoma": {
+   "name": "Oklahoma",
+   "salesTax": {
+    "stateBaseRatePct": 4.5,
+    "combinedAvgRatePct": 8.99,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/oklahoma/"
+   },
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No Oklahoma city or county levies a local income/payroll tax; only state income tax is withheld.",
+    "source": "https://taxfoundation.org/location/oklahoma/"
+   },
+   "payrollContributions": [],
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "Oklahoma's minimum wage equals the federal $7.25/hr; no change for 2026.",
+    "source": "https://www.dol.gov/agencies/whd/minimum-wage/state"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 66148,
+    "year": "2024",
+    "source": "https://www.census.gov/library/publications/2025/acs/acsbr-025.html"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.79,
+    "rankNote": "0.79% effective rate on owner-occupied housing value — below the national average and the lowest among this group's income-tax states except the Deep South.",
+    "source": "https://taxfoundation.org/location/oklahoma/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Effective Jan 1, 2026, Oklahoma collapsed its income tax from six brackets to three, with rates of 0.50% to 4.50% — a top-rate cut that lowers withholding for many filers.",
+     "source": "https://taxfoundation.org/location/oklahoma/"
+    },
+    {
+     "fact": "Oklahoma eliminated the 4.5% STATE sales tax on groceries effective Aug 29, 2024, but local city/county sales taxes (up to ~7%) still apply to food — so groceries are not fully tax-free.",
+     "source": "https://oklahoma.gov/tax/businesses/state-sales-tax-on-food-and-food-ingredients.html"
+    }
+   ],
+   "confidence": "high"
+  },
+  "arkansas": {
+   "name": "Arkansas",
+   "salesTax": {
+    "stateBaseRatePct": 6.5,
+    "combinedAvgRatePct": 9.48,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/arkansas/"
+   },
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No Arkansas city or county levies a local income/payroll tax; only state income tax is withheld.",
+    "source": "https://taxfoundation.org/location/arkansas/"
+   },
+   "payrollContributions": [],
+   "minWage2026": {
+    "amountUsd": 11,
+    "notes": "Arkansas minimum wage is $11.00/hr (set by 2018 ballot Issue 5, fully phased in 2021); no change for 2026. Exceeds the federal rate.",
+    "source": "https://www.dol.gov/agencies/whd/minimum-wage/state"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 62106,
+    "year": "2024",
+    "source": "https://www.census.gov/library/publications/2025/acs/acsbr-025.html"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.56,
+    "rankNote": "0.56% effective rate on owner-occupied housing value — one of the lowest property tax rates nationally.",
+    "source": "https://taxfoundation.org/location/arkansas/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Arkansas cut its top individual income tax rate to 3.7% retroactive to Jan 1, 2026 (down from 3.9%) — its fourth income tax cut in four years.",
+     "source": "https://taxfoundation.org/blog/arkansas-income-tax-cut-rates/"
+    },
+    {
+     "fact": "Arkansas has the second-highest combined average sales tax in this group at 9.48%, pairing a 6.5% state rate with heavy local add-ons — a notable hit to take-home spending power despite the low income tax.",
+     "source": "https://taxfoundation.org/location/arkansas/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "alabama": {
+   "name": "Alabama",
+   "salesTax": {
+    "stateBaseRatePct": 4,
+    "combinedAvgRatePct": 9.46,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/alabama/"
+   },
+   "localIncomeTax": {
+    "exists": true,
+    "notes": "Several Alabama municipalities levy a local 'occupational tax' withheld from wages of anyone working in the city (resident or not): Birmingham 1.0%, Bessemer 1.0%, Gadsden 2.0%, plus others (e.g., Macon County). It applies to earned wages only — not dividends, rent or capital gains — and the employer withholds and remits it.",
+    "source": "https://www.symmetry.com/payroll-tax-insights/alabama-state-local-tax-system"
+   },
+   "payrollContributions": [],
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "Alabama has NO state minimum wage law; FLSA-covered workers default to the federal $7.25/hr.",
+    "source": "https://www.dol.gov/agencies/whd/minimum-wage/state"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 66659,
+    "year": "2024",
+    "source": "https://www.census.gov/library/publications/2025/acs/acsbr-025.html"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.37,
+    "rankNote": "0.37% effective rate on owner-occupied housing value — the lowest among these six states and among the lowest in the entire nation.",
+    "source": "https://taxfoundation.org/location/alabama/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Alabama lets taxpayers deduct their full federal income tax liability before computing state tax (a 1965 constitutional provision) — one of the very few states still allowing a full federal income tax deduction, which meaningfully lowers effective state withholding.",
+     "source": "https://www.revenue.alabama.gov/faqs/does-alabama-provide-for-a-federal-income-tax-deduction/"
+    },
+    {
+     "fact": "Workers in cities like Gadsden (2.0%), Birmingham (1.0%) and Bessemer (1.0%) have a municipal occupational tax withheld from every paycheck on top of the 2%–5% state income tax — a local deduction non-Alabamians rarely expect.",
+     "source": "https://www.symmetry.com/payroll-tax-insights/alabama-state-local-tax-system"
+    }
+   ],
+   "confidence": "high"
+  },
+  "south-carolina": {
+   "name": "South Carolina",
+   "salesTax": {
+    "stateBaseRatePct": 6,
+    "combinedAvgRatePct": 7.49,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/south-carolina/"
+   },
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No South Carolina city or county levies a local income/payroll tax; only state income tax is withheld.",
+    "source": "https://taxfoundation.org/location/south-carolina/"
+   },
+   "payrollContributions": [],
+   "minWage2026": {
+    "amountUsd": 7.25,
+    "notes": "South Carolina has NO state minimum wage law; FLSA-covered workers default to the federal $7.25/hr.",
+    "source": "https://www.dol.gov/agencies/whd/minimum-wage/state"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 72350,
+    "year": "2024",
+    "source": "https://www.census.gov/library/publications/2025/acs/acsbr-025.html"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.49,
+    "rankNote": "0.49% effective rate on owner-occupied housing value — among the lowest property tax rates in the nation, aided by the owner-occupied (4% assessment) classification.",
+    "source": "https://taxfoundation.org/location/south-carolina/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Under H.4216 (signed March 2026), South Carolina restructured its income tax to two rates — 1.99% on income below $30,000 and 5.21% above (top rate down from the prior 6.2% schedule) — with future cuts toward a flat structure if revenue triggers are met.",
+     "source": "https://dor.sc.gov/news/information-about-h-4216"
+    },
+    {
+     "fact": "H.4216 decouples South Carolina from the federal standard/itemized deductions, starting from federal AGI and substituting a new 'SC Income Adjusted Deduction' (SCIAD) — changing how taxable income (and withholding) is computed for 2026 paychecks.",
+     "source": "https://dor.sc.gov/news/information-about-h-4216"
+    }
+   ],
+   "confidence": "high"
+  },
+  "maine": {
+   "name": "Maine",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No municipal, county, or city income taxes in Maine. Only the state levies an income tax (graduated 5.8%-7.15% for 2026). No Maine locality is authorized to impose a local income or local sales tax.",
+    "source": "https://taxfoundation.org/location/maine/"
+   },
+   "payrollContributions": [
+    {
+     "name": "Paid Family and Medical Leave (PFML) - employee premium",
+     "employeeRate2026": "0.5% of wages (employee max deduction); total program rate is 1% for employers with 15+ employees, of which up to 0.5% is deducted from the employee. Employers with <15 employees pay 0.5% total, fully deductible from the employee.",
+     "wageBaseOrCap": "Wages up to the Social Security taxable maximum, $184,500 for 2026; max annual employee contribution ~$922.50. Contributions began Jan 1, 2025; benefits begin May 1, 2026.",
+     "source": "https://www.maine.gov/paidleave/"
+    }
+   ],
+   "salesTax": {
+    "stateBaseRatePct": 5.5,
+    "combinedAvgRatePct": 5.5,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/maine/"
+   },
+   "minWage2026": {
+    "amountUsd": 15.1,
+    "notes": "Effective Jan 1, 2026 (up from $14.65); CPI-indexed annually (CPI-W, Northeast Region). Tipped/service direct cash wage is $7.55/hr.",
+    "source": "https://www.maine.gov/labor/news_events/article.shtml?id=13338762"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 74733,
+    "year": "2024 (ACS 5-year)",
+    "source": "https://www.census.gov/quickfacts/fact/table/ME"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.98,
+    "rankNote": "Roughly mid-to-upper among states; Maine's property tax structure is considered among the least competitive in the nation (it pairs high property taxes with no local sales taxes).",
+    "source": "https://taxfoundation.org/location/maine/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Maine's PFML payroll deduction is brand-new for paychecks: employee withholding of up to 0.5% of wages began Jan 1, 2025, but the leave benefits themselves only become claimable starting May 1, 2026 - so 2026 is the first year workers can actually use what they've been paying for.",
+     "source": "https://www.maine.gov/paidleave/"
+    },
+    {
+     "fact": "Maine is a single-rate sales tax state at 5.5% with zero local add-ons (no city or county can levy sales tax), giving it one of the lowest combined sales tax burdens in the country - the trade-off is comparatively high property taxes.",
+     "source": "https://taxfoundation.org/location/maine/"
+    }
+   ],
+   "confidence": "high"
+  },
+  "hawaii": {
+   "name": "Hawaii",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No local, county, or city income taxes. Only the state levies income tax, with a graduated rate topping out at 11.00% - the highest top marginal individual income tax rate of any U.S. state. Hawaii's 'sales tax' is technically the General Excise Tax (GET) on business gross receipts, not a true retail sales tax.",
+    "source": "https://taxfoundation.org/location/hawaii/"
+   },
+   "payrollContributions": [
+    {
+     "name": "Temporary Disability Insurance (TDI) - employee contribution",
+     "employeeRate2026": "Up to 0.5% of the employee's weekly wages (employer may withhold one-half of the premium cost, capped at 0.5% of weekly wages)",
+     "wageBaseOrCap": "Maximum weekly taxable wage base of $1,500.21 for 2026; maximum weekly employee deduction $7.50. Max weekly TDI benefit is $871 (58% of average weekly wage).",
+     "source": "https://labor.hawaii.gov/dcd/files/2025/12/2026-Maximum-Weekly-Wage-Base.pdf"
+    }
+   ],
+   "salesTax": {
+    "stateBaseRatePct": 4,
+    "combinedAvgRatePct": 4.5,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/hawaii/"
+   },
+   "minWage2026": {
+    "amountUsd": 16,
+    "notes": "Effective Jan 1, 2026 (up from $14.00). Scheduled to rise to $18.00 on Jan 1, 2028. Tip credit allowed up to $1.50/hr if combined tips+wage meets a threshold.",
+    "source": "https://labor.hawaii.gov/hawai%CA%BBis-minimum-wage-increases-to-16-00-on-january-1/"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 100700,
+    "year": "2024 (ACS 1-year)",
+    "source": "https://files.hawaii.gov/dbedt/census/acs/acs2024/1yr/acs2024_1-yr_highlights_2025-09-11.pdf"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 0.29,
+    "rankNote": "Lowest effective property tax rate of any U.S. state. Low rates are offset by the nation's highest median home values, so dollar bills are not as low as the rate implies.",
+    "source": "https://taxfoundation.org/location/hawaii/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Hawaii has the highest top marginal individual income tax rate in the U.S. at 11.00%, so high earners see a steeper state withholding bite than in any other state.",
+     "source": "https://taxfoundation.org/location/hawaii/"
+    },
+    {
+     "fact": "Hawaii's TDI is the only mandatory employee-side payroll deduction in the state and is tiny in absolute terms: capped at 0.5% of weekly wages with a maximum deduction of just $7.50 per week (on a $1,500.21 weekly wage base) for 2026 - there is no state PFML/SDI beyond TDI.",
+     "source": "https://labor.hawaii.gov/dcd/files/2025/12/2026-Maximum-Weekly-Wage-Base.pdf"
+    }
+   ],
+   "confidence": "high"
+  },
+  "rhode-island": {
+   "name": "Rhode Island",
+   "localIncomeTax": {
+    "exists": false,
+    "notes": "No local, county, or city income taxes. Only the state levies income tax (graduated 3.75%-5.99% for 2025/2026). No municipality imposes a local income or local sales tax.",
+    "source": "https://taxfoundation.org/location/rhode-island/"
+   },
+   "payrollContributions": [
+    {
+     "name": "Temporary Disability Insurance (TDI) / Temporary Caregiver Insurance (TCI) - employee contribution",
+     "employeeRate2026": "1.1% of taxable wages (down from 1.3% in 2025); this single rate funds both TDI and TCI. Entirely employee-funded.",
+     "wageBaseOrCap": "2026 taxable wage base of $100,000 (up from $89,200 in 2025); maximum annual employee contribution $1,100.00.",
+     "source": "https://dlt.ri.gov/press-releases/2026-tax-rates-unemployment-insurance-and-temporary-disability-insurance"
+    }
+   ],
+   "salesTax": {
+    "stateBaseRatePct": 7,
+    "combinedAvgRatePct": 7,
+    "year": "2026",
+    "source": "https://taxfoundation.org/location/rhode-island/"
+   },
+   "minWage2026": {
+    "amountUsd": 16,
+    "notes": "Effective Jan 1, 2026 (up from $15.00). Scheduled to rise to $17.00 on Jan 1, 2027. Full-time students under 19 working <=24 hrs/week may be paid 75% ($12.00).",
+    "source": "https://dlt.ri.gov/regulation-and-safety/labor-standards/minimum-wage"
+   },
+   "medianHouseholdIncome": {
+    "amountUsd": 87796,
+    "year": "2024 (ACS, inflation-adjusted)",
+    "source": "https://www.census.gov/quickfacts/fact/table/RI"
+   },
+   "propertyTax": {
+    "effectiveRatePct": 1.19,
+    "rankNote": "Among the higher-tax states; effective rate well above the national average. Rates vary widely by municipality (roughly 0.86% in Newport County to ~1.37% in Kent County).",
+    "source": "https://taxfoundation.org/location/rhode-island/"
+   },
+   "distinctiveFacts": [
+    {
+     "fact": "Rhode Island's TDI/TCI is fully employee-funded (employers pay nothing), and for 2026 the rate dropped to 1.1% while the taxable wage base jumped 12.5% to $100,000 - the higher cap means high earners can still pay up to $1,100/year even though the rate fell.",
+     "source": "https://dlt.ri.gov/press-releases/2026-tax-rates-unemployment-insurance-and-temporary-disability-insurance"
+    },
+    {
+     "fact": "Rhode Island levies a flat 7% statewide sales tax with no local add-ons - tied for the second-highest statewide base sales tax rate in the U.S. (only California's 7.25% base is higher), so the combined rate is 7% everywhere in the state.",
+     "source": "https://taxfoundation.org/location/rhode-island/"
+    }
+   ],
+   "confidence": "high"
+  }
+ },
+ "_accuracyVerified": "2026-06-26 (marketing 2-pass: 39 confirmed, 5 corrected, 2 dropped)"
+}

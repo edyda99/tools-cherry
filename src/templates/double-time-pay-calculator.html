@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Double Time Pay Calculator — 2x Overtime Pay (with Time-and-a-Half)</title>
+<meta name="description" content="Free double time pay calculator. Enter your hourly rate, then split hours into regular, overtime (1.5x) and double-time (2x) to see each line and your gross.">
+<link rel="canonical" href="{{SITE_URL}}/double-time-pay-calculator/">
+<meta property="og:title" content="Double Time Pay Calculator — 2x Overtime Pay">
+<meta property="og:description" content="Work out regular, overtime (1.5×), and double-time (2×) pay from your hourly rate and hours — see each line item and your gross total.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Scoped extras for the pay breakdown — uses the shared theme vars. */
+  .amort-summary { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin: 18px 0; font-size: 15.5px; line-height: 1.55; }
+  .line .lbl small { display: block; font-weight: 400; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Double Time Pay Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"isPartOf":{"@id":"{{SITE_URL}}/#website"},"publisher":{"@id":"{{SITE_URL}}/#organization"},"description":"Calculate regular pay, overtime pay at time-and-a-half (1.5×), and double-time pay at 2× from an hourly rate and the hours worked, with each line item and a gross total."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is double time pay?","acceptedAnswer":{"@type":"Answer","text":"Double time pay is twice your normal hourly rate (2×). For every double-time hour you work, you earn two hours' worth of regular pay. It is higher than overtime, which is usually time-and-a-half (1.5×). At $20 an hour, double time is $40 an hour."}},{"@type":"Question","name":"How do I calculate double time pay?","acceptedAnswer":{"@type":"Answer","text":"Multiply your hourly rate by 2, then by the number of double-time hours. For example, $20 an hour for 4 double-time hours is 20 × 2 × 4 = $160. This calculator does that for regular, overtime, and double-time hours at once and adds them into a gross total."}},{"@type":"Question","name":"When does double time apply?","acceptedAnswer":{"@type":"Answer","text":"Federal U.S. law does not require double time, but some states and many union or company contracts do. In California, non-exempt employees earn double time for hours over 12 in a single workday and for hours over 8 on the seventh consecutive day worked in a workweek. Always check your state law and your contract."}},{"@type":"Question","name":"What is the difference between overtime and double time?","acceptedAnswer":{"@type":"Answer","text":"Overtime is usually paid at time-and-a-half, which is 1.5 times your regular rate. Double time is paid at 2 times your regular rate. Overtime commonly kicks in after 40 hours in a week (or 8 in a day in some states); double time, where it applies, kicks in after a higher threshold such as 12 hours in a day."}},{"@type":"Question","name":"Is double time calculated on the base rate or the overtime rate?","acceptedAnswer":{"@type":"Answer","text":"Double time is calculated on your regular base hourly rate, not on the overtime rate — it is the base rate multiplied by 2, not 1.5 multiplied again. This calculator applies 1.5× to overtime hours and 2× to double-time hours, each from the same base rate you enter."}},{"@type":"Question","name":"Does double time apply on holidays?","acceptedAnswer":{"@type":"Answer","text":"Not automatically. U.S. federal law does not require any premium for working a holiday, so holiday double time only applies where a state law, union contract, or company policy specifically grants it. Many employers do pay time-and-a-half or double time on holidays as a matter of policy, but it is not a legal default — check your contract or employee handbook for the exact rate."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Double Time Pay Calculator</h1>
+    <p class="lede">Work out your pay when some hours are paid at double time. Enter your hourly rate and split your hours into regular, overtime (1.5×), and double-time (2×) — each line item and your gross total update as you type.</p>
+
+    <p class="note"><strong>Double time pay is your hourly rate times 2 times your double-time hours; overtime is the rate times 1.5 times your overtime hours; and gross pay is regular plus overtime plus double time.</strong> For example, at $20/hr with 40 regular, 5 overtime, and 2 double-time hours: $800 + $150 + $80 = $1,030 gross.</p>
+
+    <section class="calc" aria-label="Double time pay calculator">
+      <form id="dtForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="rate">Hourly rate ($/hr)</label>
+          <input id="rate" type="number" inputmode="decimal" step="any" min="0" value="20" placeholder="20">
+        </div>
+
+        <div class="field inline">
+          <span><label for="regularHours">Regular hours (1×)</label><input id="regularHours" type="number" inputmode="decimal" step="any" min="0" value="40" placeholder="40"></span>
+          <span><label for="overtimeHours">Overtime hours (1.5×)</label><input id="overtimeHours" type="number" inputmode="decimal" step="any" min="0" value="5" placeholder="0"></span>
+        </div>
+
+        <div class="field">
+          <label for="doubleHours">Double-time hours (2×)</label>
+          <input id="doubleHours" type="number" inputmode="decimal" step="any" min="0" value="2" placeholder="0">
+          <p class="muted-small" style="margin-top:6px">All hours are per pay period. Leave a box blank for 0.</p>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="grossBig">—</p>
+        <p class="net-sub" id="grossSub"></p>
+        <div class="line" id="regularLine" hidden><span class="lbl">Regular pay <small id="regularDesc"></small></span><span class="val"></span></div>
+        <div class="line" id="overtimeLine" hidden><span class="lbl">Overtime pay (1.5×) <small id="overtimeDesc"></small></span><span class="val"></span></div>
+        <div class="line" id="doubleLine" hidden><span class="lbl">Double-time pay (2×) <small id="doubleDesc"></small></span><span class="val"></span></div>
+        <div class="line" id="totalHoursLine" hidden><span class="lbl">Total hours</span><span class="val"></span></div>
+        <div class="line" id="effectiveLine" hidden><span class="lbl">Effective rate (blended)</span><span class="val"></span></div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <div class="amort-summary" id="summaryBox" hidden>
+      <strong>Pay summary</strong>
+      <p id="summaryText" style="margin:6px 0 0;"></p>
+    </div>
+
+    <section class="prose">
+      <h2>How to use the double time pay calculator</h2>
+      <p>Enter your <strong>hourly rate</strong>, then split your hours for the pay period into three boxes: <strong>regular hours</strong> paid at your normal rate, <strong>overtime hours</strong> paid at time-and-a-half (1.5×), and <strong>double-time hours</strong> paid at twice your rate (2×). The breakdown and gross total update instantly — there's no button to press and nothing is sent anywhere.</p>
+      <p><strong>Worked example.</strong> Say you earn $20 an hour and this period you worked 40 regular hours, 5 hours of overtime, and 2 hours of double time. The calculator returns $800 regular ($20 × 40), $150 overtime ($20 × 1.5 × 5), and $80 double time ($20 × 2 × 2), for a <strong>gross total of $1,030</strong>. The blended effective rate works out to about $21.91 an hour across all 47 hours.</p>
+      <p>Only the tiers you actually use appear in the breakdown, so if you leave overtime or double time blank they're simply treated as 0. Each line shows the hours and the multiplier behind it, so you can check every figure against your timesheet.</p>
+      <p>Not sure of your hours yet? Add up a timecard with the <a href="/hours-calculator/">hours calculator</a> first, then bring the totals here. Salaried but want an hourly rate to enter? Convert it with the <a href="/salary-to-hourly/">salary-to-hourly calculator</a>. To turn this gross figure into take-home pay, run it through the <a href="/california-paycheck-calculator/">California paycheck calculator</a> (or your own state).</p>
+      <p class="note">Everything runs in your browser — the numbers you type are never uploaded. This tool computes pay from the hours and multipliers you enter; it does not decide which hours qualify for overtime or double time. These figures are estimates of gross pay before taxes and deductions, not payroll or legal advice.</p>
+    </section>
+
+    <section class="prose">
+      <h2>When does double time apply?</h2>
+      <p>Double time is <strong>not</strong> required by U.S. federal law. The Fair Labor Standards Act (FLSA) only mandates overtime at 1.5× for hours over 40 in a workweek for non-exempt employees — it has no double-time rule at all. Double time comes from <strong>state law, union contracts, or company policy</strong>, so whether you get it depends on where you work and what you agreed to.</p>
+      <p><strong>California is the most common example.</strong> Under California law, non-exempt employees earn double time for hours worked <strong>over 12 in a single workday</strong>, and for hours <strong>over 8 on the seventh consecutive day</strong> worked in a single workweek. (Overtime at 1.5× applies after 8 hours in a day or 40 in a week, and after the first 8 hours on that seventh day.) A handful of other states and many collective bargaining agreements set their own double-time triggers — for instance, work on holidays or after a set number of consecutive hours.</p>
+      <p>This calculator is <strong>informational on those rules</strong> and does not auto-apply them: you decide how many hours fall into each tier based on your own situation, and it does the arithmetic. To know exactly which of your hours qualify, check your state labor department's rules and your employment or union contract.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Time and a half (1.5×) calculator</h2>
+      <p>This tool doubles as a <strong>time-and-a-half calculator</strong>. Overtime under the FLSA is paid at 1.5× your base rate, and the <strong>overtime hours (1.5×)</strong> box computes exactly that — just leave the double-time box at 0 if you only need time and a half. At $20 an hour, time and a half is $30 an hour, so 5 overtime hours add $150 to your gross. Enter your regular hours alongside it and the breakdown shows your base pay and the overtime premium side by side.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common double time pay questions</h2>
+      <p><strong>What is double time pay?</strong> Double time pay is twice your normal hourly rate (2×). For every double-time hour, you earn two hours' worth of regular pay — at $20 an hour, double time is $40 an hour.</p>
+      <p><strong>How do I calculate double time pay?</strong> Multiply your hourly rate by 2, then by the number of double-time hours. $20 an hour for 4 double-time hours is 20 × 2 × 4 = $160.</p>
+      <p><strong>When does double time apply?</strong> Federal law doesn't require it, but some states and many contracts do. In California it applies after 12 hours in a workday and after 8 hours on the seventh consecutive day worked.</p>
+      <p><strong>Overtime vs double time — what's the difference?</strong> Overtime is usually 1.5× your rate; double time is 2×. Overtime commonly starts after 40 hours a week, while double time (where it applies) starts after a higher daily threshold.</p>
+      <p><strong>Is double time based on the base rate or the overtime rate?</strong> It's based on your regular base rate, multiplied by 2 — not the overtime rate multiplied again.</p>
+      <p><strong>Does double time apply on holidays?</strong> Not by default — federal law requires no holiday premium at all. Holiday double time only applies where a state law, union contract, or company policy grants it, so check your contract or handbook for the rate.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools. Estimates only, not payroll or legal advice.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/double-time-pay-calculator.js"></script>
+</body>
+</html>
