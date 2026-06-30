@@ -4,7 +4,7 @@
 Replaces the flaky Chrome-dashboard read (splash-hangs). Pulls real visits +
 pageviews for the last 24h and 7d, plus top pages and top countries for 7d.
 
-Auth: reads CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID from the environment
+Auth: reads CLOUDFLARE_ANALYTICS_API_TOKEN + CLOUDFLARE_ACCOUNT_ID from the environment
 (source ~/Documents/utility-portfolio/.env first). Never hardcodes the token.
 
 Usage:
@@ -23,7 +23,11 @@ API = "https://api.cloudflare.com/client/v4"
 GQL = "https://api.cloudflare.com/client/v4/graphql"
 HOST_MATCH = "tools-berry"  # pick the RUM site whose hostname contains this
 
-TOKEN = os.environ.get("CLOUDFLARE_API_TOKEN", "").strip()
+# Analytics token is named CLOUDFLARE_ANALYTICS_API_TOKEN (NOT CLOUDFLARE_API_TOKEN)
+# so wrangler can't auto-load it during a Pages deploy and fail with auth 10000.
+# Fall back to the old name for safety on un-migrated envs.
+TOKEN = (os.environ.get("CLOUDFLARE_ANALYTICS_API_TOKEN")
+         or os.environ.get("CLOUDFLARE_API_TOKEN", "")).strip()
 ACCT = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "").strip()
 
 
@@ -112,7 +116,7 @@ def top(tag, start, end):
 
 def main():
     if not TOKEN or not ACCT:
-        die("CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID not set (source devops/.env)")
+        die("CLOUDFLARE_ANALYTICS_API_TOKEN / CLOUDFLARE_ACCOUNT_ID not set (source devops/.env)")
     now = datetime.now(timezone.utc)
     tag = find_site_tag()
     host = "tools-berry.com"
