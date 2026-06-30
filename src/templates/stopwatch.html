@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Online Stopwatch — Free Stopwatch with Lap Timer</title>
+<meta name="description" content="Free online stopwatch with a lap timer. Start, stop and reset with a big HH:MM:SS.cc readout, record unlimited laps with best and worst lap highlighted, and copy your splits. Runs in your browser.">
+<link rel="canonical" href="{{SITE_URL}}/stopwatch/">
+<meta property="og:title" content="Online Stopwatch — Free Stopwatch with Lap Timer">
+<meta property="og:description" content="Start, stop and reset a precise stopwatch, record unlimited laps with best/worst highlighted, and copy your splits. Runs entirely in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Online Stopwatch","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"A precise online stopwatch with a lap timer that records unlimited laps and highlights the best and worst lap."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is the difference between a stopwatch and a timer?","acceptedAnswer":{"@type":"Answer","text":"A stopwatch counts up from zero to measure how long something takes, while a countdown timer counts down from a duration you set and alerts you when it reaches zero. Use the stopwatch to time an activity and a timer to be reminded after a set period."}},{"@type":"Question","name":"Are my lap times saved?","acceptedAnswer":{"@type":"Answer","text":"Laps are kept on screen for as long as the page is open, and you can copy them as text with the Copy laps button. They are not stored on a server and clearing or reloading the page removes them, so copy or screenshot anything you want to keep."}},{"@type":"Question","name":"Does the stopwatch keep running in the background?","acceptedAnswer":{"@type":"Answer","text":"Yes. The elapsed time is calculated from the device clock rather than by counting animation frames, so it stays accurate even if you switch to another tab or the browser throttles the page. The tab title also shows the running time."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Online Stopwatch</h1>
+    <p class="lede">An online stopwatch counts up from zero so you can measure exactly how long something takes — a workout, a study sprint, a lap around the track — with start, stop and lap controls in your browser.</p>
+    <p class="note"><strong>Press Start to begin timing, Lap to record a split, Stop to pause and Reset to clear.</strong> Each lap shows its own time and the cumulative total, and the fastest and slowest laps are highlighted automatically.</p>
+
+    <section class="calc" aria-label="Stopwatch">
+      <div class="results" id="swBox">
+        <p class="timer-readout" id="swReadout" aria-live="off">00:00:00.00</p>
+        <div class="timer-actions">
+          <button type="button" class="btn-primary" id="startBtn" aria-pressed="false">Start</button>
+          <button type="button" class="btn-secondary" id="lapBtn">Lap</button>
+          <button type="button" class="btn-secondary" id="resetBtn">Reset</button>
+        </div>
+        <p class="cd-note">Tip: Space starts/stops, L records a lap, R resets.</p>
+
+        <div id="lapWrap" hidden>
+          <table class="bracket-table lap-table">
+            <thead>
+              <tr><th>Lap</th><th>Lap time</th><th>Total</th></tr>
+            </thead>
+            <tbody id="lapBody"></tbody>
+          </table>
+          <div class="btn-row">
+            <button type="button" class="btn-secondary" id="copyLapsBtn">Copy laps</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the stopwatch</h2>
+      <p>Press <strong>Start</strong> to begin counting up from zero. The readout shows <strong>hours, minutes, seconds and centiseconds</strong> (HH:MM:SS.cc), and the browser tab title updates too, so you can keep an eye on it from another tab.</p>
+      <p>Tap <strong>Lap</strong> whenever you want to mark a split — each press adds a row showing that lap's time and the running total. Press <strong>Stop</strong> to pause and <strong>Resume</strong> to continue from where you left off. <strong>Reset</strong> clears the time and all laps.</p>
+      <p>Prefer the keyboard? <strong>Space</strong> starts and stops, <strong>L</strong> records a lap, and <strong>R</strong> resets — as long as you are not typing in a field.</p>
+      <p class="note">Everything runs in your browser using your device's clock — nothing is uploaded, and there's no sign-up.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Lap and split times</h2>
+      <p><strong>Lap time</strong> is how long that individual lap took. <strong>Total</strong> (the cumulative split) is the elapsed time from the start up to that lap. The <strong>fastest lap</strong> is marked as <em>best</em> and the <strong>slowest</strong> as <em>worst</em> once you have at least two laps, so you can spot your strongest and weakest segments at a glance.</p>
+      <p>Use <strong>Copy laps</strong> to copy the whole table as plain text you can paste into a note, spreadsheet or message.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Stopwatch questions</h2>
+      <p><strong>What's the difference between a stopwatch and a timer?</strong> A stopwatch counts <em>up</em> to measure how long something takes; a <a href="/countdown-timer/">countdown timer</a> counts <em>down</em> from a duration and alerts you at zero. Want a focus-and-break cycle instead? Try the <a href="/pomodoro-timer/">Pomodoro timer</a>.</p>
+      <p><strong>Are my lap times saved?</strong> They stay on screen while the page is open and you can copy them out, but they are not stored anywhere — reloading clears them.</p>
+      <p><strong>Does it keep accurate time if I switch tabs?</strong> Yes. The elapsed time is computed from the device clock, not by counting frames, so background-tab throttling doesn't make it drift.</p>
+      <p><strong>Is it really free and private?</strong> Yes — no sign-up, and it runs entirely in your browser.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/stopwatch.js"></script>
+</body>
+</html>

@@ -79,6 +79,8 @@ const TOOLS = [
   { name: 'Time Zone Converter', path: '/time-zone-converter/' },
   { name: 'Holiday Countdown', path: '/holiday-countdown/' },
   { name: 'Countdown Timer', path: '/countdown-timer/' },
+  { name: 'Stopwatch', path: '/stopwatch/' },
+  { name: 'Pomodoro Timer', path: '/pomodoro-timer/' },
   { name: 'Mortgage Calculator', path: '/mortgage-calculator/' },
   { name: 'Biweekly Mortgage Calculator', path: '/biweekly-mortgage-calculator/' },
   { name: 'Auto Loan Calculator', path: '/auto-loan-calculator/' },
@@ -159,6 +161,8 @@ const TOOL_DESCRIPTIONS = {
   '/time-zone-converter/': 'Convert a time across multiple time zones at once.',
   '/holiday-countdown/': 'See a live countdown to upcoming holidays and events.',
   '/countdown-timer/': 'Set a custom countdown timer to any date and time.',
+  '/stopwatch/': 'Time anything with a precise stopwatch and unlimited lap splits, in your browser.',
+  '/pomodoro-timer/': 'Run 25-minute focus sessions with short and long breaks using the Pomodoro technique.',
   '/mortgage-calculator/': 'Estimate monthly mortgage payments, total interest, and amortization.',
   '/biweekly-mortgage-calculator/': 'Compare biweekly versus monthly mortgage payments and payoff time.',
   '/auto-loan-calculator/': 'Calculate a car loan payment, total interest, and amount financed.',
@@ -779,6 +783,8 @@ async function main() {
   const debtPayoffTpl = await read(join(SRC, 'templates', 'debt-payoff-calculator.html'));
   const countdownTpl = await read(join(SRC, 'templates', 'holiday-countdown.html'));
   const timerTpl = await read(join(SRC, 'templates', 'countdown-timer.html'));
+  const stopwatchTpl = await read(join(SRC, 'templates', 'stopwatch.html'));
+  const pomodoroTpl = await read(join(SRC, 'templates', 'pomodoro-timer.html'));
   const ageTpl = await read(join(SRC, 'templates', 'age-calculator.html'));
   const daysBetweenTpl = await read(join(SRC, 'templates', 'days-between-dates.html'));
   const timeZoneTpl = await read(join(SRC, 'templates', 'time-zone-converter.html'));
@@ -879,6 +885,8 @@ async function main() {
   await cp(join(SRC, 'assets', 'debt-payoff-calculator.js'), join(DIST, 'assets', 'debt-payoff-calculator.js'));
   await cp(join(SRC, 'assets', 'holiday-countdown.js'), join(DIST, 'assets', 'holiday-countdown.js'));
   await cp(join(SRC, 'assets', 'countdown-timer.js'), join(DIST, 'assets', 'countdown-timer.js'));
+  await cp(join(SRC, 'assets', 'stopwatch.js'), join(DIST, 'assets', 'stopwatch.js'));
+  await cp(join(SRC, 'assets', 'pomodoro-timer.js'), join(DIST, 'assets', 'pomodoro-timer.js'));
   await cp(join(SRC, 'engine', 'duration.js'), join(DIST, 'assets', 'duration.js'));
   await cp(join(SRC, 'assets', 'age-calculator.js'), join(DIST, 'assets', 'age-calculator.js'));
   await cp(join(SRC, 'assets', 'days-between-dates.js'), join(DIST, 'assets', 'days-between-dates.js'));
@@ -1227,6 +1235,22 @@ async function main() {
     fillTool(timerTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/countdown-timer/')
   );
   urls.push(`${SITE.url}/countdown-timer/`);
+
+  // stopwatch (count-up timer with unlimited lap splits; pure client-side)
+  await mkdir(join(DIST, 'stopwatch'), { recursive: true });
+  await writeFile(
+    join(DIST, 'stopwatch', 'index.html'),
+    fillTool(stopwatchTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/stopwatch/')
+  );
+  urls.push(`${SITE.url}/stopwatch/`);
+
+  // pomodoro timer (focus/break phase machine; pure client-side)
+  await mkdir(join(DIST, 'pomodoro-timer'), { recursive: true });
+  await writeFile(
+    join(DIST, 'pomodoro-timer', 'index.html'),
+    fillTool(pomodoroTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/pomodoro-timer/')
+  );
+  urls.push(`${SITE.url}/pomodoro-timer/`);
 
   // age calculator (pure date-math tool page, reuses ageBreakdown + nextBirthday)
   await mkdir(join(DIST, 'age-calculator'), { recursive: true });

@@ -553,6 +553,26 @@ footer.site a:hover { color: var(--text); }
 .timer-mute { margin-top: 12px; text-align: center; }
 .timer-mute .btn-secondary { width: auto; padding: 8px 16px; font-size: 14px; }
 
+/* ---- Stopwatch lap table -------------------------------------------- */
+.lap-table { margin-top: 18px; }
+.lap-table td, .lap-table th { font-variant-numeric: tabular-nums; }
+.lap-table .lap-best td { color: var(--ok, #16a34a); font-weight: 700; }
+.lap-table .lap-worst td { color: var(--danger, #dc2626); font-weight: 700; }
+.lap-tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; opacity: .8; }
+
+/* ---- Pomodoro timer ------------------------------------------------- */
+.pomo-box { text-align: center; transition: border-color .25s ease; }
+.pomo-box.is-work { border-color: var(--accent); }
+.pomo-box.is-break { border-color: var(--ok, #16a34a); }
+.pomo-phase { font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 6px; }
+.pomo-box.is-break .pomo-phase { color: var(--ok, #16a34a); }
+.pomo-meta { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 14px; margin: 0 0 14px; }
+#pomoSettings { margin-top: 18px; }
+.pomo-field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); flex: 1 1 0; min-width: 72px; }
+.pomo-field input { width: 100%; }
+.pomo-auto { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 14px; }
+.pomo-auto input { width: auto; }
+
 /* ---- Text case converter helpers ------------------------------------ */
 .case-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .case-buttons .btn-secondary { flex: 0 1 auto; padding: 9px 12px; }

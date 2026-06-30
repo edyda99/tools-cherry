@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Pomodoro Timer — Free Online Focus Timer (25 / 5)</title>
+<meta name="description" content="Free online Pomodoro timer. Work in 25-minute focus sessions with 5-minute short breaks and a longer break every four rounds. Configurable lengths, auto-start, a gentle chime and a session counter. Runs in your browser.">
+<link rel="canonical" href="{{SITE_URL}}/pomodoro-timer/">
+<meta property="og:title" content="Pomodoro Timer — Free Online Focus Timer">
+<meta property="og:description" content="Focus in 25-minute sessions with short and long breaks. Configurable lengths, auto-start, a gentle chime and a session counter. Runs entirely in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Pomodoro Timer","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"A Pomodoro focus timer that cycles 25-minute work sessions with short and long breaks, with configurable lengths and a gentle end-of-phase chime."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is the Pomodoro technique?","acceptedAnswer":{"@type":"Answer","text":"The Pomodoro technique is a time-management method where you work in focused intervals — traditionally 25 minutes — separated by short breaks, taking a longer break after every four intervals. Each 25-minute focus block is called a pomodoro, named after the tomato-shaped kitchen timer its creator used."}},{"@type":"Question","name":"How long is a pomodoro?","acceptedAnswer":{"@type":"Answer","text":"A classic pomodoro is 25 minutes of uninterrupted focus on a single task. You can change the work length on this timer if a shorter or longer block suits you better."}},{"@type":"Question","name":"What are the break lengths?","acceptedAnswer":{"@type":"Answer","text":"The standard short break is 5 minutes after each focus session, and the long break is 15 minutes after every four sessions. All three lengths and the number of rounds before a long break are configurable here."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Pomodoro Timer</h1>
+    <p class="lede">The Pomodoro technique is a focus method where you work in 25-minute sessions separated by short breaks, with a longer break after every four sessions — this timer runs the whole cycle for you in your browser.</p>
+    <p class="note"><strong>Press Start to begin a 25-minute focus session; the timer automatically moves to a 5-minute break, then back to focus, with a 15-minute long break after four sessions.</strong> Change any length below, and a gentle chime marks the end of each phase.</p>
+
+    <section class="calc" aria-label="Pomodoro timer">
+      <div class="results pomo-box is-work" id="pomoBox">
+        <p class="pomo-phase" id="pomoPhase">Focus</p>
+        <p class="timer-readout" id="pomoReadout" aria-live="off">25:00</p>
+        <p class="timer-status" id="pomoStatus" role="status" aria-live="assertive"></p>
+        <div class="pomo-meta">
+          <span id="pomoRound">Round 1 of 4</span>
+          <span id="pomoSession">Completed focus sessions: 0</span>
+        </div>
+        <div class="timer-actions">
+          <button type="button" class="btn-primary" id="startBtn">Start</button>
+          <button type="button" class="btn-secondary" id="skipBtn">Skip</button>
+          <button type="button" class="btn-secondary" id="resetBtn">Reset</button>
+        </div>
+        <div class="timer-mute">
+          <button type="button" class="btn-secondary" id="muteBtn" aria-pressed="false">🔔 Sound on</button>
+        </div>
+        <p class="cd-note">Tip: press the spacebar to start or pause.</p>
+      </div>
+
+      <form id="pomoSettings" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <div class="field-label" id="lenLabel">Lengths (minutes)</div>
+          <div class="inline" role="group" aria-labelledby="lenLabel">
+            <label class="pomo-field">Focus<input id="cfgWork" type="number" inputmode="numeric" min="1" max="180" value="25" aria-label="Focus minutes"></label>
+            <label class="pomo-field">Short break<input id="cfgShort" type="number" inputmode="numeric" min="1" max="60" value="5" aria-label="Short break minutes"></label>
+            <label class="pomo-field">Long break<input id="cfgLong" type="number" inputmode="numeric" min="1" max="60" value="15" aria-label="Long break minutes"></label>
+            <label class="pomo-field">Rounds<input id="cfgRounds" type="number" inputmode="numeric" min="1" max="12" value="4" aria-label="Focus sessions before a long break"></label>
+          </div>
+        </div>
+        <label class="pomo-auto"><input type="checkbox" id="autoStart" checked> Auto-start the next phase</label>
+      </form>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the Pomodoro timer</h2>
+      <p>Press <strong>Start</strong> to begin a focus session. When it ends you hear a short chime and the timer switches to a break; after the break it returns to focus. After your set number of focus sessions (4 by default) you get a longer break, then the cycle starts again.</p>
+      <p>Use <strong>Pause</strong> to hold the current phase and <strong>Resume</strong> to continue. <strong>Skip</strong> jumps to the next phase immediately, and <strong>Reset</strong> clears the session counter and returns to a fresh focus block.</p>
+      <p>Set your own <strong>focus, short break and long break</strong> lengths and how many <strong>rounds</strong> come before a long break. Turn off <strong>Auto-start the next phase</strong> if you'd rather start each phase yourself, and use the <strong>sound toggle</strong> to mute the chime.</p>
+      <p class="note">The chime is created with the Web Audio API only after you press Start, so the page never plays sound on its own. Everything runs in your browser — nothing is uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Why the Pomodoro technique works</h2>
+      <p>Breaking work into focused intervals makes large tasks feel manageable and gives you frequent, guilt-free breaks. The fixed end of each session encourages you to start, and the short breaks help you sustain attention across a long day.</p>
+      <p>Need a plain duration instead? Use the <a href="/countdown-timer/">countdown timer</a>. Timing how long something takes? Try the <a href="/stopwatch/">stopwatch</a>.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Pomodoro questions</h2>
+      <p><strong>What is the Pomodoro technique?</strong> A time-management method: work in focused intervals (classically 25 minutes), take a short break between them, and a longer break after every four. Each focus block is one "pomodoro."</p>
+      <p><strong>How long is a pomodoro?</strong> Traditionally 25 minutes of uninterrupted focus on one task — though you can change it here.</p>
+      <p><strong>What are the break lengths?</strong> 5 minutes for a short break and 15 minutes for the long break by default, both adjustable.</p>
+      <p><strong>Is it really free and private?</strong> Yes — no sign-up, and it runs entirely in your browser.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/pomodoro-timer.js"></script>
+</body>
+</html>
