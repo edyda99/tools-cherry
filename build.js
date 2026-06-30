@@ -2,6 +2,8 @@
 // build.js — pSEO static generator. Reads templates + tax data, emits ./dist.
 // Cloudflare Pages: build command `npm run build`, output dir `dist`.
 import { readFile, writeFile, mkdir, cp, rm } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { STATIC_PAGES } from './src/content/static-pages.js';
@@ -40,6 +42,33 @@ const BUILD_DATE = new Date().toISOString().slice(0, 10);
 // site-wide entity schema so AI/Google do NOT see every page "modified today" on
 // every rebuild (the always-today anti-pattern). Bump only when content changes.
 const CONTENT_DATE = '2026-06-28';
+
+// Per-URL sitemap lastmod: use each page's REAL last-change date from git
+// (`git log -1 --format=%cs`) instead of stamping every URL with today's build
+// date — Google distrusts uniformly-fresh sitemaps (the always-today anti-pattern).
+// Resolves a URL to its source file (home/tool template, or the state payroll data
+// for the generated paycheck pages); a brand-new tool's freshly-committed template
+// naturally returns its commit date. Non-template/static URLs fall back to
+// CONTENT_DATE (the hand-bumped real content date) — never today-for-all.
+function gitDate(relFile) {
+  try {
+    const d = execSync(`git log -1 --format=%cs -- "${relFile}"`, { cwd: __dirname })
+      .toString()
+      .trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : '';
+  } catch {
+    return '';
+  }
+}
+function sitemapLastmod(u) {
+  const seg = u.replace(SITE.url, '').replace(/^\/+|\/+$/g, '');
+  if (!seg) return gitDate('src/templates/home.html') || CONTENT_DATE;
+  if (/-paycheck-calculator$/.test(seg))
+    return gitDate('src/data/state-payroll-2026.json') || CONTENT_DATE;
+  const tpl = `src/templates/${seg}.html`;
+  if (existsSync(join(__dirname, tpl))) return gitDate(tpl) || CONTENT_DATE;
+  return CONTENT_DATE;
+}
 
 // One-line description of the publisher entity, reused in the Organization node.
 const ORG_DESCRIPTION =
@@ -1703,15 +1732,12 @@ async function main() {
     join(DIST, 'robots.txt'),
     `User-agent: *\nAllow: /\nSitemap: ${SITE.url}/sitemap.xml\n`
   );
-  // lastmod = build date (YYYY-MM-DD). Gives Google a freshness signal so
-  // changed pages get recrawled sooner. Deploys are manual, so build date
-  // tracks real content changes; if builds ever become frequent, switch to a
-  // per-page content date (e.g. the tax-data verified date) to keep lastmod honest.
-  const lastmod = new Date().toISOString().slice(0, 10);
+  // Per-URL lastmod = each page's real git change-date (see sitemapLastmod) so the
+  // sitemap carries honest, varied freshness signals instead of today-for-all.
   await writeFile(
     join(DIST, 'sitemap.xml'),
     `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-      urls.map((u) => `  <url><loc>${u}</loc><lastmod>${lastmod}</lastmod></url>`).join('\n') +
+      urls.map((u) => `  <url><loc>${u}</loc><lastmod>${sitemapLastmod(u)}</lastmod></url>`).join('\n') +
       `\n</urlset>\n`
   );
 
