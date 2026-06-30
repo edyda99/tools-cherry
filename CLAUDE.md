@@ -23,9 +23,11 @@ memory dir (`MEMORY.md` index loads each session).
   (pdf-to-word's optional server path is the sole, already-approved exception).
 - **Workflow:** one branch per feature off `main` → merge to `main` → deploy. No more clone.
 - **Deploy is pre-authorized — no need to ask Edmond.** From `main`: `npm run build`, then
-  `unset CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID` (the `.env` token is **Analytics-only** and
-  fails Pages deploy with auth 10000), then `npx wrangler pages deploy dist --project-name=tools-cherry`
-  using the stored wrangler OAuth login. The ship pipeline for a feature (branch → merge to `main`
+  `npx wrangler pages deploy dist --project-name=tools-cherry` using the stored wrangler OAuth login.
+  **NEVER set `CLOUDFLARE_API_TOKEN` for a deploy** — the Cloudflare token is **Analytics-only** and
+  fails Pages deploy with auth 10000. It lives in `.env` as `CLOUDFLARE_ANALYTICS_API_TOKEN` (renamed
+  so wrangler, which auto-loads `.env`, can't grab it — it falls through to OAuth). cf-metrics /
+  tb-metrics read the renamed var. The ship pipeline for a feature (branch → merge to `main`
   → push `origin main` → deploy) is pre-authorized for this repo.
 - **Never deploy the pdf-to-word AWS Lambda backend** without explicit approval (git-committing its
   source is fine; uploading to AWS is not).
