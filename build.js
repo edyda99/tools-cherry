@@ -18,7 +18,10 @@ const SITE = {
   name: 'Tools Berry',
   url: 'https://tools-berry.com',
   contactEmail: 'hello@tools-berry.com', // set up Cloudflare Email Routing (free) so this inbox receives
-  adsensePublisherId: 'pub-4961606095434424' // ca-pub form is derived; drives the <head> loader + ads.txt
+  adsensePublisherId: 'pub-4961606095434424', // ca-pub form is derived; drives the <head> loader + ads.txt
+  // IndexNow key — PUBLIC by design (hosted openly at /<key>.txt). Lets us push URL
+  // updates straight into Bing + Yandex indexes. Used by scripts/indexnow-submit.py.
+  indexNowKey: '9372e11bcbe34b0e993865299aae29dc'
 };
 
 // Cloudflare Turnstile site key for the PDF->Word server-fallback widget. The site
@@ -131,6 +134,7 @@ const TOOLS = [
   { name: 'Word & Character Counter', path: '/word-counter/' },
   { name: 'Lorem Ipsum Generator', path: '/lorem-ipsum-generator/' },
   { name: 'Text Case Converter', path: '/text-case-converter/' },
+  { name: 'Bionic Reading Converter', path: '/bionic-reading-converter/' },
   { name: 'Roman Numeral Converter', path: '/roman-numeral-converter/' },
   { name: 'Binary, Hex & Decimal Converter', path: '/base-converter/' },
   { name: 'Color Converter (HEX, RGB, HSL)', path: '/color-converter/' },
@@ -221,6 +225,7 @@ const TOOL_DESCRIPTIONS = {
   '/word-counter/': 'Count words, characters, sentences, and reading time in any text.',
   '/lorem-ipsum-generator/': 'Generate placeholder Lorem Ipsum text by words, sentences, or paragraphs.',
   '/text-case-converter/': 'Convert text between upper, lower, title, sentence, and other cases.',
+  '/bionic-reading-converter/': 'Bold the leading letters of each word to help you read and skim faster (bionic-style).',
   '/roman-numeral-converter/': 'Convert numbers to Roman numerals and back.',
   '/base-converter/': 'Convert numbers between binary, hexadecimal, decimal, and octal.',
   '/color-converter/': 'Convert colors between HEX, RGB, and HSL formats.',
@@ -839,6 +844,7 @@ async function main() {
   const wordCounterTpl = await read(join(SRC, 'templates', 'word-counter.html'));
   const hoursCalcTpl = await read(join(SRC, 'templates', 'hours-calculator.html'));
   const textCaseTpl = await read(join(SRC, 'templates', 'text-case-converter.html'));
+  const bionicTpl = await read(join(SRC, 'templates', 'bionic-reading-converter.html'));
   const romanTpl = await read(join(SRC, 'templates', 'roman-numeral-converter.html'));
   const baseConverterTpl = await read(join(SRC, 'templates', 'base-converter.html'));
   const colorConverterTpl = await read(join(SRC, 'templates', 'color-converter.html'));
@@ -970,6 +976,7 @@ async function main() {
   await cp(join(SRC, 'assets', 'hours-calculator.js'), join(DIST, 'assets', 'hours-calculator.js'));
   await cp(join(SRC, 'engine', 'timecard.js'), join(DIST, 'assets', 'timecard.js'));
   await cp(join(SRC, 'assets', 'text-case-converter.js'), join(DIST, 'assets', 'text-case-converter.js'));
+  await cp(join(SRC, 'assets', 'bionic-reading-converter.js'), join(DIST, 'assets', 'bionic-reading-converter.js'));
   await cp(join(SRC, 'assets', 'roman-numeral-converter.js'), join(DIST, 'assets', 'roman-numeral-converter.js'));
   await cp(join(SRC, 'engine', 'roman.js'), join(DIST, 'assets', 'roman.js'));
   await cp(join(SRC, 'assets', 'base-converter.js'), join(DIST, 'assets', 'base-converter.js'));
@@ -1464,6 +1471,14 @@ async function main() {
   );
   urls.push(`${SITE.url}/text-case-converter/`);
 
+  // bionic reading converter (bold word-prefixes for faster skimming, on-device)
+  await mkdir(join(DIST, 'bionic-reading-converter'), { recursive: true });
+  await writeFile(
+    join(DIST, 'bionic-reading-converter', 'index.html'),
+    fillTool(bionicTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/bionic-reading-converter/')
+  );
+  urls.push(`${SITE.url}/bionic-reading-converter/`);
+
   // roman numeral converter (two-way, pure-logic tool page, built on roman.js)
   await mkdir(join(DIST, 'roman-numeral-converter'), { recursive: true });
   await writeFile(
@@ -1764,6 +1779,12 @@ async function main() {
       urls.map((u) => `  <url><loc>${u}</loc><lastmod>${sitemapLastmod(u)}</lastmod></url>`).join('\n') +
       `\n</urlset>\n`
   );
+
+  // IndexNow key file — hosted at the site root so Bing/Yandex can verify ownership
+  // before accepting our URL submissions (scripts/indexnow-submit.py posts the list).
+  if (SITE.indexNowKey) {
+    await writeFile(join(DIST, `${SITE.indexNowKey}.txt`), `${SITE.indexNowKey}\n`);
+  }
 
   // llms.txt — AI/LLM discovery file (llms.txt markdown convention). Regenerated
   // every build from TOOLS + the built state list; NOT added to the sitemap.

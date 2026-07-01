@@ -986,6 +986,14 @@
     {
      "fact": "On top of the 4.25% state tax, 24 Michigan cities add a local income tax — a Detroit resident pays 2.4% city tax for a combined 6.65% Michigan income tax before federal, while nonresidents working in those cities are taxed at half the resident rate on city-earned wages only.",
      "source": "https://www.michigan.gov/taxes/questions/iit/accordion/general/what-cities-impose-an-income-tax"
+    },
+    {
+     "fact": "Michigan gives lower- and moderate-income workers a state Earned Income Tax Credit worth 30% of the federal EITC for 2026 — expanded from 6% by Public Act 4 of 2023 — a refundable credit paid on top of the federal EITC that raises take-home pay after filing.",
+     "source": "https://www.michigan.gov/taxes/iit/tax-guidance/credits-exemptions/eitc"
+    },
+    {
+     "fact": "Michigan's retirement-and-pension income deduction is fully phased in for the 2026 tax year under Public Act 4 of 2023: retirees of any birth year can deduct up to $64,040 (single) / $128,080 (joint) of pension income, and Social Security benefits remain untaxed.",
+     "source": "https://www.michigan.gov/taxes/rep-legal/rab/2026-revenue-administrative-bulletins/revenue-administrative-bulletin-2026-1"
     }
    ],
    "confidence": "high"

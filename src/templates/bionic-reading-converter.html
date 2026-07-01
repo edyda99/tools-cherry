@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Bionic Reading Converter — Bold Text for Faster Focus &amp; Reading</title>
+<meta name="description" content="Free bionic reading converter. Paste any text and bold the leading letters of each word to guide your eyes and read faster. Adjustable fixation strength, copy formatted or as bold text. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/bionic-reading-converter/">
+<meta property="og:title" content="Bionic Reading Converter">
+<meta property="og:description" content="Turn any text into bionic-style reading — bold the start of each word to skim faster. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .bionic-out { white-space: pre-wrap; word-break: break-word; line-height: 1.75; font-size: 1.08rem; min-height: 8rem; padding: 14px 16px; border-radius: 10px; }
+  .bionic-out:empty::before { content: "Your bionic-style text will appear here…"; opacity: .5; }
+  .bionic-out b { font-weight: 700; }
+  .strength-row { display: flex; align-items: center; gap: 12px; }
+  .strength-row input[type=range] { flex: 1; }
+  .strength-row .val { min-width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Bionic Reading Converter","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Convert any text into a bionic-style fixation format that bolds the leading letters of each word to help you read and skim faster, entirely in your browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is bionic reading?","acceptedAnswer":{"@type":"Answer","text":"Bionic-style reading bolds the first part of each word so your eyes fixate on those letters and your brain fills in the rest. The idea is to guide your gaze across a line and help you skim faster. It is an aid some readers — including people with ADHD or dyslexia — find helpful, though results vary from person to person."}},{"@type":"Question","name":"Does bionic reading actually make you read faster?","acceptedAnswer":{"@type":"Answer","text":"Evidence is mixed and effects vary by reader. Many people say the emphasis helps them focus and skim long text, while formal studies have not shown a consistent speed gain for everyone. Try it on your own text and keep it if it helps you."}},{"@type":"Question","name":"Can I paste the result into a document or social post?","acceptedAnswer":{"@type":"Answer","text":"Yes. Use Copy formatted to keep the bold when pasting into a document, email, or editor that supports rich text. Use Copy as bold text to get Unicode-bold characters that survive a paste into plain-text places like social media bios."}},{"@type":"Question","name":"Is my text private?","acceptedAnswer":{"@type":"Answer","text":"Yes. Everything runs in your browser. The text you type or paste stays on your device and is never sent to any server."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Bionic Reading Converter</h1>
+    <p class="lede">Paste any text and this tool bolds the first few letters of each word — a bionic-style "fixation" format that helps your eyes skim across the line. Adjust how much of each word is bold, then copy the result. Nothing is uploaded — your text stays in your browser.</p>
+    <p class="note"><strong>Type or paste your text below and the bold version updates live.</strong> Drag the fixation slider to bold more or less of each word, and use the copy buttons to keep the formatting (rich text) or grab Unicode-bold characters for plain-text places like social bios.</p>
+
+    <section class="calc" aria-label="Bionic reading converter">
+      <form id="bionicForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="text">Your text</label>
+          <textarea id="text" rows="6" placeholder="Type or paste your text here…" autofocus></textarea>
+        </div>
+
+        <div class="field">
+          <label for="strength">Fixation strength <span class="muted-small">(how much of each word to bold)</span></label>
+          <div class="strength-row">
+            <span class="muted-small">Light</span>
+            <input type="range" id="strength" min="30" max="70" step="10" value="50" aria-describedby="strengthVal">
+            <span class="muted-small">Strong</span>
+            <span class="val" id="strengthVal">50%</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="inline"><input type="checkbox" id="skipShort"> Skip short words (1–3 letters)</label>
+        </div>
+
+        <div class="field">
+          <span class="lbl">Result</span>
+          <div id="out" class="bionic-out" aria-live="polite"></div>
+        </div>
+
+        <div class="btn-row">
+          <button type="button" id="copyRichBtn" class="btn-primary" data-label="Copy formatted">Copy formatted</button>
+          <button type="button" id="copyBoldBtn" class="btn-secondary" data-label="Copy as bold text">Copy as bold text</button>
+          <button type="button" id="clearBtn" class="btn-secondary">Clear</button>
+        </div>
+      </form>
+
+      <div class="results" aria-live="polite">
+        <div class="line"><span class="lbl">Words</span><span id="wordCount">0</span></div>
+      </div>
+    </section>
+
+    <p class="note">Your text stays in your browser — nothing is sent anywhere.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to use the bionic reading converter</h2>
+      <p>Type directly into the box or paste text from an article, a study PDF, an email, or your own writing. The tool immediately shows a version where the first part of each word is bold, so your eyes have an anchor to fixate on as they move across the line.</p>
+      <p><strong>Fixation strength</strong> controls how much of each word is bold. A lighter setting bolds just the first letter or two of longer words; a stronger setting bolds closer to half. Short words already only need their first letter, so the slider mostly affects longer words.</p>
+      <p><strong>Skip short words</strong> leaves one-, two-, and three-letter words (like "a", "of", "the") in plain text, so only the longer, information-carrying words are emphasized. Some readers find this cleaner; turn it off to bold every word.</p>
+      <p><strong>Copy formatted</strong> copies the result as rich text, so the bold survives when you paste into a document, email, or any editor that supports formatting. <strong>Copy as bold text</strong> converts the emphasized letters into Unicode-bold characters, which keep their bold look even in plain-text places like social media bios or chat.</p>
+      <p class="note">Everything runs in your browser — the text you type or paste is never uploaded.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>What is bionic-style reading?</strong> It bolds the leading letters of each word so your eyes fixate on them and your brain fills in the rest. The goal is to guide your gaze and help you skim. Some readers — including people with ADHD or dyslexia — find it helpful, but it is a personal aid and results vary.</p>
+      <p><strong>Will it make me read faster?</strong> The evidence is mixed and depends on the reader. Many people say it helps them focus on long text; formal studies have not shown a consistent speed gain for everyone. The honest answer: try it on your own text and keep it if it helps.</p>
+      <p><strong>Why do short words stay plain sometimes?</strong> When "Skip short words" is on, one-to-three-letter words are left unbolded so the emphasis lands on the words that carry meaning.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your text never leaves your browser and nothing is stored.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/bionic-reading-converter.js"></script>
+</body>
+</html>
