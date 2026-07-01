@@ -1,0 +1,814 @@
+{
+  "_meta": {
+    "description": "Federal OBBBA (One Big Beautiful Bill Act, P.L. 119-21) 'no tax on tips' (IRC §224) and 'no tax on overtime' (IRC §225) above-the-line deduction parameters, plus per-state conformity (does the state income tax also allow the federal deduction). Drives /tips-tax-calculator and /overtime-tax-calculator and the state-page conformity blocks. Figures are FIXED statutory amounts for tax years 2025–2028 (not inflation-indexed).",
+    "lastSourced": "2026-07-02",
+    "computationGuidance": "IRS Notice 2025-69",
+    "confidence": "high — federal figures double-researched and adversarially verified (0 of 21 refute attempts succeeded)"
+  },
+  "federal": {
+    "effectiveYears": "2025-2028",
+    "common": {
+      "aboveTheLine": true,
+      "availableToNonItemizers": true,
+      "ficaStillApplies": true,
+      "mfjRequiredIfMarried": true,
+      "mfsEligible": false,
+      "ssnRequired": true,
+      "reducesFederalIncomeTaxOnly": true,
+      "note": "These are deductions that reduce federal taxable income, not credits and not a withholding exemption. The dollar benefit ≈ the deduction amount × your marginal federal income-tax rate. Social Security (6.2%) and Medicare (1.45%) still apply to tips and overtime."
+    },
+    "overtime": {
+      "statute": "IRC §225 (added by OBBBA §70202)",
+      "cap": {
+        "single": 12500,
+        "married": 25000,
+        "head_of_household": 12500
+      },
+      "phaseoutStartMagi": {
+        "single": 150000,
+        "married": 300000,
+        "head_of_household": 150000
+      },
+      "phaseoutReductionPer1000": 100,
+      "qualifies": "Only the FLSA-required overtime PREMIUM — the extra 'half' paid above your regular rate (0.5× regular rate), NOT the full time-and-a-half. Overtime required only by state law, contract, or a collective-bargaining agreement (not by FLSA §7) does not qualify.",
+      "fullPhaseoutMagi": {
+        "single": 275000,
+        "married": 550000,
+        "head_of_household": 275000
+      },
+      "sources": [
+        {
+          "claim": "Cap $12,500 single / $25,000 joint; MAGI phase-out over $150,000/$300,000 at $100 per $1,000; only the FLSA premium qualifies; SSN + MFJ required; FICA still applies.",
+          "url": "https://www.irs.gov/newsroom/questions-and-answers-about-the-new-deduction-for-qualified-overtime-compensation"
+        },
+        {
+          "claim": "Above-the-line deduction available to itemizers and non-itemizers; effective tax years 2025–2028.",
+          "url": "https://www.irs.gov/newsroom/one-big-beautiful-bill-act-tax-deductions-for-working-americans-and-seniors"
+        },
+        {
+          "claim": "Codified at IRC §225 'Qualified overtime compensation'; only the 0.5× premium portion of FLSA-required overtime is deductible.",
+          "url": "https://www.bakertilly.com/insights/no-tax-on-overtime-deduction-under-code-225"
+        },
+        {
+          "claim": "IRS Notice 2025-69 — safe-harbor / reasonable methods to compute the 2025 deduction and phase-out.",
+          "url": "https://www.irs.gov/pub/irs-drop/n-25-69.pdf"
+        }
+      ]
+    },
+    "tips": {
+      "statute": "IRC §224 (added by OBBBA §70201)",
+      "cap": {
+        "single": 25000,
+        "married": 25000,
+        "head_of_household": 25000
+      },
+      "phaseoutStartMagi": {
+        "single": 150000,
+        "married": 300000,
+        "head_of_household": 150000
+      },
+      "phaseoutReductionPer1000": 100,
+      "qualifies": "Cash or charged tips (cash, check, card, or tokens exchangeable for cash) paid voluntarily by the customer, in an occupation that 'customarily and regularly' received tips — per the Treasury final-regs occupation list. The $25,000 cap is a single per-return limit (it is NOT doubled for joint filers). Self-employed claimants are limited to net business income and specified-service trades (SSTBs) are excluded.",
+      "fullPhaseoutMagi": {
+        "single": 400000,
+        "married": 550000,
+        "head_of_household": 400000
+      },
+      "sources": [
+        {
+          "claim": "Cap $25,000 per return (same single and joint); MAGI phase-out over $150,000/$300,000 at $100 per $1,000; above-the-line; SSN + MFJ required; FICA still applies; tax years 2025–2028.",
+          "url": "https://www.irs.gov/newsroom/one-big-beautiful-bill-act-tax-deductions-for-working-americans-and-seniors"
+        },
+        {
+          "claim": "Definition of qualified tips and the customarily-tipped requirement; self-employed limits and SSTB exclusion.",
+          "url": "https://rsmus.com/insights/services/business-tax/no-tax-on-tips-rules.html"
+        },
+        {
+          "claim": "Treasury/IRS final regulations listing the occupations that customarily and regularly receive tips.",
+          "url": "https://www.irs.gov/newsroom/treasury-irs-issue-final-regulations-listing-occupations-where-workers-customarily-and-regularly-receive-tips-under-the-one-big-beautiful-bill"
+        },
+        {
+          "claim": "Treasury detailed tipped-occupation list (published 2025-08-27).",
+          "url": "https://home.treasury.gov/system/files/136/Tipped-Occupations-Detailed-8-27-2025.pdf"
+        }
+      ]
+    }
+  },
+  "states": {
+    "_note": "Per-state conformity filled from the state re-verification pass. conformity values: 'no_wage_income_tax' | 'decouples' (federal deduction does NOT reduce state tax) | 'conforms' (does reduce state tax) | 'partial'/year- or deduction-dependent (see per-field). Each carries tips/overtime × 2025 / 2026plus where they differ, plus a source.",
+    "north-dakota": {
+      "name": "North Dakota",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "yes",
+        "y2026": "unclear"
+      },
+      "tips": {
+        "y2025": "yes",
+        "y2026": "unclear"
+      },
+      "note": "North Dakota starts from federal taxable income and likely allows the deductions for 2025; 2026+ is not yet confirmed by state guidance.",
+      "source": "https://taxfoundation.org/research/all/state/big-beautiful-bill-state-tax-impact/"
+    },
+    "district-of-columbia": {
+      "name": "District of Columbia",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "District of Columbia has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://www.kiplinger.com/taxes/emergency-tax-bill-ends-key-tax-breaks-in-d-c"
+    },
+    "new-mexico": {
+      "name": "New Mexico",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "New Mexico has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://www.nmlegis.gov/handouts/ZFFSS%20073125%20Item%203%20OBBBA%20Tax%20Presentation.pdf"
+    },
+    "vermont": {
+      "name": "Vermont",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Vermont has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://tax.vermont.gov/individuals/personal-income-tax/taxable-income"
+    },
+    "west-virginia": {
+      "name": "West Virginia",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "West Virginia has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://taxfoundation.org/oped/west-virginia-income-tax-cut-no-taxes-tips-overtime/"
+    },
+    "montana": {
+      "name": "Montana",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "yes",
+        "y2026": "yes"
+      },
+      "tips": {
+        "y2025": "yes",
+        "y2026": "yes"
+      },
+      "note": "Montana conforms; its 2025 forms allow the tips and overtime deductions.",
+      "source": "https://revenuefiles.mt.gov/files/Forms/Montana-Individual-Income-Tax-Return-Form-2-Instructions/2025_Montana_Individual_Income_Tax_Return_Form_2_Instructions.pdf"
+    },
+    "delaware": {
+      "name": "Delaware",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Delaware has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://tax.thomsonreuters.com/blog/implementing-obbba-tax-law-changes/"
+    },
+    "new-york": {
+      "name": "New York",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "New York has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://www.osc.ny.gov/files/reports/pdf/tax-provisions-under-the-federal-reconciliation-bill.pdf"
+    },
+    "virginia": {
+      "name": "Virginia",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Virginia has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://taxnews.ey.com/news/2025-1326-virginia-updates-income-tax-withholding-formula-and-tables-legislation-could-prevent-conformity-with-federal-tax-exemption-for-overtime-pay-and-tips"
+    },
+    "texas": {
+      "name": "Texas",
+      "hasWageTax": false,
+      "overtime": {
+        "y2025": "n/a",
+        "y2026": "n/a"
+      },
+      "tips": {
+        "y2025": "n/a",
+        "y2026": "n/a"
+      },
+      "note": "Texas has no state income tax on wages, so there is no state return to deduct on — your federal saving is the whole story.",
+      "source": "https://taxfoundation.org/data/all/state/state-income-tax-rates/"
+    },
+    "florida": {
+      "name": "Florida",
+      "hasWageTax": false,
+      "overtime": {
+        "y2025": "n/a",
+        "y2026": "n/a"
+      },
+      "tips": {
+        "y2025": "n/a",
+        "y2026": "n/a"
+      },
+      "note": "Florida has no state income tax on wages, so there is no state return to deduct on — your federal saving is the whole story.",
+      "source": "https://taxfoundation.org/data/all/state/state-income-tax-rates/"
+    },
+    "washington": {
+      "name": "Washington",
+      "hasWageTax": false,
+      "overtime": {
+        "y2025": "n/a",
+        "y2026": "n/a"
+      },
+      "tips": {
+        "y2025": "n/a",
+        "y2026": "n/a"
+      },
+      "note": "Washington has no state income tax on wages, so there is no state return to deduct on — your federal saving is the whole story.",
+      "source": "https://taxfoundation.org/data/all/state/state-income-tax-rates/"
+    },
+    "nevada": {
+      "name": "Nevada",
+      "hasWageTax": false,
+      "overtime": {
+        "y2025": "n/a",
+        "y2026": "n/a"
+      },
+      "tips": {
+        "y2025": "n/a",
+        "y2026": "n/a"
+      },
+      "note": "Nevada has no state income tax on wages, so there is no state return to deduct on — your federal saving is the whole story.",
+      "source": "https://taxfoundation.org/data/all/state/state-income-tax-rates/"
+    },
+    "tennessee": {
+      "name": "Tennessee",
+      "hasWageTax": false,
+      "overtime": {
+        "y2025": "n/a",
+        "y2026": "n/a"
+      },
+      "tips": {
+        "y2025": "n/a",
+        "y2026": "n/a"
+      },
+      "note": "Tennessee has no state income tax on wages, so there is no state return to deduct on — your federal saving is the whole story.",
+      "source": "https://taxfoundation.org/data/all/state/state-income-tax-rates/"
+    },
+    "south-dakota": {
+      "name": "South Dakota",
+      "hasWageTax": false,
+      "overtime": {
+        "y2025": "n/a",
+        "y2026": "n/a"
+      },
+      "tips": {
+        "y2025": "n/a",
+        "y2026": "n/a"
+      },
+      "note": "South Dakota has no state income tax on wages, so there is no state return to deduct on — your federal saving is the whole story.",
+      "source": "https://taxfoundation.org/data/all/state/state-income-tax-rates/"
+    },
+    "wyoming": {
+      "name": "Wyoming",
+      "hasWageTax": false,
+      "overtime": {
+        "y2025": "n/a",
+        "y2026": "n/a"
+      },
+      "tips": {
+        "y2025": "n/a",
+        "y2026": "n/a"
+      },
+      "note": "Wyoming has no state income tax on wages, so there is no state return to deduct on — your federal saving is the whole story.",
+      "source": "https://taxfoundation.org/data/all/state/state-income-tax-rates/"
+    },
+    "alaska": {
+      "name": "Alaska",
+      "hasWageTax": false,
+      "overtime": {
+        "y2025": "n/a",
+        "y2026": "n/a"
+      },
+      "tips": {
+        "y2025": "n/a",
+        "y2026": "n/a"
+      },
+      "note": "Alaska has no state income tax on wages, so there is no state return to deduct on — your federal saving is the whole story.",
+      "source": "https://taxfoundation.org/data/all/state/state-income-tax-rates/"
+    },
+    "new-hampshire": {
+      "name": "New Hampshire",
+      "hasWageTax": false,
+      "overtime": {
+        "y2025": "n/a",
+        "y2026": "n/a"
+      },
+      "tips": {
+        "y2025": "n/a",
+        "y2026": "n/a"
+      },
+      "note": "New Hampshire has no state income tax on wages, so there is no state return to deduct on — your federal saving is the whole story.",
+      "source": "https://www.revenue.nh.gov/news-and-media/repeal-nh-interest-and-dividends-tax-now-effect"
+    },
+    "pennsylvania": {
+      "name": "Pennsylvania",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Pennsylvania has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://www.pa.gov/content/dam/copapwp-pagov/en/budget/documents/for-commonwealth-agencies-and-employees/for-agencies/payroll/payroll-memo-25-07-obbba-no-tax-on-overtime.pdf"
+    },
+    "illinois": {
+      "name": "Illinois",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Illinois has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://tax.thomsonreuters.com/blog/state-decoupling-from-federal-tax-provisions/"
+    },
+    "north-carolina": {
+      "name": "North Carolina",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "North Carolina has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://www.ncdor.gov/taxes-forms/information-tax-professionals/tax-bulletins-directives-and-other-important-notices/important-notices-and-frequently-asked-questions-personal-taxes/questions-and-answers-about-impact-federal-law-nc-individual-and-corporate-income-tax-returns"
+    },
+    "utah": {
+      "name": "Utah",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Utah does not allow these federal deductions to reduce your Utah state tax.",
+      "source": "https://tax.utah.gov/general/new-info"
+    },
+    "michigan": {
+      "name": "Michigan",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "yes"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "yes"
+      },
+      "note": "Michigan starts from federal AGI, so there is no automatic flow-through. A state subtraction applies for 2026–2028 but NOT for 2025.",
+      "source": "https://www.michigan.gov/treasury/reference/taxpayer-notices/notice-regarding-new-deductions-for-qualified-overtime-compensation-and-qualified-tips"
+    },
+    "arizona": {
+      "name": "Arizona",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "yes",
+        "y2026": "unclear"
+      },
+      "tips": {
+        "y2025": "yes",
+        "y2026": "unclear"
+      },
+      "note": "Claimed on 2025 Arizona returns via Executive Order 2025-15 (administrative, not yet codified). 2026–2028 is unresolved after state conformity bills were vetoed.",
+      "source": "https://azdor.gov/news-center/ador-outlines-executive-order-and-2025-tax-year-income-tax-forms"
+    },
+    "colorado": {
+      "name": "Colorado",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "yes",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "yes",
+        "y2026": "yes"
+      },
+      "note": "Colorado allows the tips deduction both years. The overtime deduction flows through for 2025 but is added back from 2026 (HB25-1296), which is under a pending legal challenge.",
+      "source": "https://leg.colorado.gov/bills/hb25-1296"
+    },
+    "indiana": {
+      "name": "Indiana",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "yes"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "yes"
+      },
+      "note": "Indiana decouples for 2025. SB243 couples for 2026 ONLY and currently sunsets after 2026 — 2027–2028 are not yet conformed.",
+      "source": "https://rsmus.com/insights/tax-alerts/2026/indiana-federal-tax-conformity-bay-latest-tax-bill.html"
+    },
+    "kentucky": {
+      "name": "Kentucky",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Kentucky has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://deandorton.com/kentuckys-2026-legislative-session-brings-income-and-sales-tax-changes/"
+    },
+    "mississippi": {
+      "name": "Mississippi",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Mississippi has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://tax.thomsonreuters.com/blog/implementing-obbba-tax-law-changes/"
+    },
+    "georgia": {
+      "name": "Georgia",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "partial"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "partial"
+      },
+      "note": "Georgia decouples from the full federal deductions. For 2026 it offers a smaller capped state exclusion (HB463, up to ~$1,750), not the full federal amount.",
+      "source": "https://www.bdo.com/insights/tax/georgia-enacts-important-salt-bills-several-others-await-kemps-signature"
+    },
+    "louisiana": {
+      "name": "Louisiana",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Louisiana has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://revenue.louisiana.gov/individuals/general-resources/individual-income-tax/"
+    },
+    "iowa": {
+      "name": "Iowa",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "yes",
+        "y2026": "yes"
+      },
+      "tips": {
+        "y2025": "yes",
+        "y2026": "yes"
+      },
+      "note": "Iowa conforms (federal-taxable-income base); the deductions flow through to the state return.",
+      "source": "https://revenue.iowa.gov/taxes/tax-guidance/withholding-tax/impact-one-big-beautiful-bill-act-employee-withholding"
+    },
+    "idaho": {
+      "name": "Idaho",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "yes",
+        "y2026": "yes"
+      },
+      "tips": {
+        "y2025": "yes",
+        "y2026": "yes"
+      },
+      "note": "Idaho starts from federal taxable income and conformed via HB559 (2026), retroactive to 2025 — the deductions flow through.",
+      "source": "https://rsmus.com/insights/tax-alerts/2026/idaho-conforms-one-big-beautiful-bill.html"
+    },
+    "massachusetts": {
+      "name": "Massachusetts",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Massachusetts has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://arbcpa.com/state-conformity-to-obbba-tax-provisions-what-businesses-and-taxpayers-in-maine-massachusetts-and-new-hampshire-need-to-know/"
+    },
+    "new-jersey": {
+      "name": "New Jersey",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "New Jersey has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://tax.thomsonreuters.com/blog/state-decoupling-from-federal-tax-provisions/"
+    },
+    "ohio": {
+      "name": "Ohio",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Ohio has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://dam.assets.ohio.gov/image/upload/tax.ohio.gov/forms/ohio_individual/individual/2025/it1040-booklet.pdf"
+    },
+    "maryland": {
+      "name": "Maryland",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Maryland has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://www.marylandcomptroller.gov/content/dam/mdcomp/tax/legal-publications/alerts/tax-alert-maryland-impacts-of-the-one-big-beautiful-bill-act.pdf"
+    },
+    "minnesota": {
+      "name": "Minnesota",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Minnesota has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://www.revenue.state.mn.us/2025-federal-nonconformity-income-tax"
+    },
+    "wisconsin": {
+      "name": "Wisconsin",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Wisconsin has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://wisconsinexaminer.com/2026/04/03/evers-vetoes-gop-bills-for-no-tax-on-overtime-and-tips-requiring-counties-to-cooperate-with-ice/"
+    },
+    "connecticut": {
+      "name": "Connecticut",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Connecticut has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://tax.thomsonreuters.com/blog/state-decoupling-from-federal-tax-provisions/"
+    },
+    "oregon": {
+      "name": "Oregon",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "yes",
+        "y2026": "yes"
+      },
+      "tips": {
+        "y2025": "yes",
+        "y2026": "yes"
+      },
+      "note": "Oregon conforms (rolling conformity); the deductions flow through to the state return.",
+      "source": "https://www.taxformfinder.org/oregon/form-or-40-instructions"
+    },
+    "california": {
+      "name": "California",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "California has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://www.grantthornton.com/insights/alerts/tax/2025/salt/a-e/ca-conformity-date-update-excludes-obbba-10-21"
+    },
+    "missouri": {
+      "name": "Missouri",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Missouri has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://extension.missouri.edu/news/new-tax-break-on-overtime-pay-comes-with-limits"
+    },
+    "kansas": {
+      "name": "Kansas",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Kansas has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://admin.ks.gov/media/cms/No_Tax_on_Overtime_Employee_Flyer_2025_W2s_b22cab92ada95.pdf"
+    },
+    "nebraska": {
+      "name": "Nebraska",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Nebraska has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://www.wowt.com/2025/09/02/report-big-beautiful-bill-could-cost-nebraska-4065-million-tax-revenue/"
+    },
+    "oklahoma": {
+      "name": "Oklahoma",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Oklahoma has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://oklahoma.gov/content/dam/ok/en/tax/documents/forms/individuals/current/511-Pkt.pdf"
+    },
+    "arkansas": {
+      "name": "Arkansas",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Arkansas has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://tax.thomsonreuters.com/blog/state-decoupling-from-federal-tax-provisions/"
+    },
+    "alabama": {
+      "name": "Alabama",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Alabama has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://www.revenue.alabama.gov/notice-overtime-exemption-ends-june-30-2025/"
+    },
+    "south-carolina": {
+      "name": "South Carolina",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "South Carolina has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://dor.sc.gov/income-tax-south-carolina-internal-revenue-code-conformity-update"
+    },
+    "maine": {
+      "name": "Maine",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Maine has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://www.maine.gov/revenue/sites/maine.gov.revenue/files/inline-files/ta_october2025_vol35_iss14_0.pdf"
+    },
+    "hawaii": {
+      "name": "Hawaii",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Hawaii has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://www.tfhawaii.org/wordpress/blog/no-tax-on-tips/"
+    },
+    "rhode-island": {
+      "name": "Rhode Island",
+      "hasWageTax": true,
+      "overtime": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "tips": {
+        "y2025": "no",
+        "y2026": "no"
+      },
+      "note": "Rhode Island has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "source": "https://tax.thomsonreuters.com/news/rhode-island-decouples-from-federal-tax-changes-employers-must-keep-withholding-on-tips-and-overtime/"
+    }
+  }
+}

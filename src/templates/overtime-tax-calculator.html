@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>No Tax on Overtime Calculator (2025–2028) — How Much Overtime Is Tax-Free?</title>
+<meta name="description" content="Free 'no tax on overtime' calculator for the 2025 One Big Beautiful Bill Act deduction. See how much of your overtime premium is deductible, your federal tax saving, the income phase-out, and whether your state conforms. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/overtime-tax-calculator/">
+<meta property="og:title" content="No Tax on Overtime Calculator (2025–2028)">
+<meta property="og:description" content="Estimate the federal 'no tax on overtime' deduction and your tax saving. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; }
+  .obbba-note { font-size:.9rem; opacity:.85; margin-top:8px; }
+  .phaseout-flag { color:#b26b00; font-weight:600; }
+  .state-verdict { margin-top:10px; padding:10px 12px; border-radius:8px; background:rgba(128,128,128,.10); font-size:.95rem; }
+  .est-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  details.estimator { margin-top:6px; }
+  details.estimator summary { cursor:pointer; font-size:.92rem; opacity:.9; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"No Tax on Overtime Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Estimate the federal One Big Beautiful Bill Act 'no tax on overtime' deduction (IRC §225): how much of your overtime premium is deductible after the income phase-out, and your federal income-tax saving for tax years 2025–2028."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is overtime really tax-free in 2025?","acceptedAnswer":{"@type":"Answer","text":"Not entirely. The 2025 One Big Beautiful Bill Act created a federal income-tax deduction for the overtime PREMIUM — the extra 'half' of time-and-a-half required by the Fair Labor Standards Act — up to $12,500 (single) or $25,000 (married filing jointly) per year, for tax years 2025 through 2028. It reduces your federal income tax only; Social Security and Medicare (FICA) still apply, and your state may still tax it."}},{"@type":"Question","name":"How much of my overtime qualifies?","acceptedAnswer":{"@type":"Answer","text":"Only the premium portion — the amount paid above your regular rate. If your regular rate is $20/hour and overtime pays $30/hour, only the $10/hour premium counts, not the full $30. Overtime required only by a contract or state law (not by the federal FLSA) does not qualify."}},{"@type":"Question","name":"Does the overtime deduction phase out at higher incomes?","acceptedAnswer":{"@type":"Answer","text":"Yes. The deduction is reduced by $100 for every $1,000 your modified adjusted gross income exceeds $150,000 (single) or $300,000 (joint). It fully phases out at $275,000 (single) or $550,000 (joint)."}},{"@type":"Question","name":"Do I still pay Social Security and Medicare on overtime?","acceptedAnswer":{"@type":"Answer","text":"Yes. The deduction lowers federal income tax only. Social Security (6.2%) and Medicare (1.45%) are still withheld from overtime pay, and the deduction does not change your paycheck withholding — you claim it when you file."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>No Tax on Overtime Calculator</h1>
+    <p class="lede">The 2025 One Big Beautiful Bill Act lets you <strong>deduct your overtime premium</strong> — the extra "half" of time-and-a-half — from your federal taxable income, up to $12,500 (single) or $25,000 (married filing jointly), for tax years 2025–2028. Enter your numbers to see how much is deductible and what it saves you. Everything runs in your browser — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Overtime tax deduction calculator">
+      <form id="otForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="income">Your total annual income (all wages, before tax)</label>
+          <input type="number" id="income" inputmode="numeric" min="0" step="1000" value="60000">
+        </div>
+
+        <div class="field">
+          <label for="premium">Overtime premium for the year <span class="muted-small">(the extra "half" above your normal rate — only this qualifies)</span></label>
+          <input type="number" id="premium" inputmode="numeric" min="0" step="100" value="5000">
+          <details class="estimator">
+            <summary>Not sure? Estimate it from your rate and hours</summary>
+            <div class="est-row" style="margin-top:8px">
+              <div class="field" style="margin:0"><label for="regRate">Regular hourly rate ($)</label><input type="number" id="regRate" inputmode="decimal" min="0" step="0.5" placeholder="20"></div>
+              <div class="field" style="margin:0"><label for="otHours">Overtime hours this year</label><input type="number" id="otHours" inputmode="numeric" min="0" step="1" placeholder="250"></div>
+            </div>
+            <p class="muted-small" style="margin-top:6px">Premium = ½ × your regular rate × overtime hours. We fill the box above for you.</p>
+          </details>
+        </div>
+
+        <div class="field">
+          <label for="filing">Filing status</label>
+          <select id="filing">
+            <option value="single">Single</option>
+            <option value="married">Married filing jointly</option>
+            <option value="head_of_household">Head of household</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">Married filing separately can't claim this deduction.</p>
+        </div>
+
+        <div class="field">
+          <label for="state">Your state <span class="muted-small">(for state conformity — optional)</span></label>
+          <select id="state"><option value="">— Select a state —</option></select>
+        </div>
+      </form>
+
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+      <div class="state-verdict" id="stateVerdict" hidden></div>
+    </section>
+
+    <p class="note">Estimate for general guidance only — not tax advice. Figures use the 2026 federal brackets and standard deduction; your actual deduction depends on your full return. Verify with the IRS or a tax professional.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How the "no tax on overtime" deduction works</h2>
+      <p>The One Big Beautiful Bill Act (signed July 2025) added a temporary federal deduction, at Internal Revenue Code §225, for <strong>qualified overtime compensation</strong>. It is an above-the-line deduction, so you can take it whether or not you itemize, on top of your standard deduction.</p>
+      <p><strong>Only the premium qualifies.</strong> Federal law (the Fair Labor Standards Act) requires "time-and-a-half" for overtime — 1.5× your regular rate. The deduction covers just the extra 0.5× — the "half." If you earn $20/hour normally and $30/hour on overtime, the $10/hour difference is the premium that counts, not the full $30.</p>
+      <p><strong>Annual caps.</strong> Up to <strong>$12,500</strong> of premium if you're single or head of household, or <strong>$25,000</strong> if married filing jointly, per year, for tax years <strong>2025 through 2028</strong>.</p>
+      <p><strong>Income phase-out.</strong> The deduction shrinks by $100 for every $1,000 your modified adjusted gross income (MAGI) is over $150,000 (single) or $300,000 (joint), reaching zero at $275,000 / $550,000.</p>
+      <p><strong>It's a deduction, not a refund.</strong> It lowers your taxable income, so the dollar you save is roughly the deduction times your marginal tax rate. And it's income-tax only: <strong>Social Security and Medicare are still withheld</strong> on overtime, and withholding on your paycheck doesn't change — you claim the deduction when you file.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Who can claim it</h2>
+      <p>You need a Social Security number valid for employment, and if you're married you must file jointly (married filing separately is not eligible). It's available to both employees (overtime reported on your W-2) and, in limited cases, others whose FLSA-required overtime is reported on a payee statement. For tax year 2025, employers weren't required to break out qualified overtime separately, so you may need to total it from your pay stubs; from 2026 it appears in a dedicated box on the W-2.</p>
+      <h2>Does your state tax overtime?</h2>
+      <p>This deduction is federal. Whether it also lowers your <em>state</em> income tax depends on your state — many states do not conform, some conform only from 2026, and nine states have no wage income tax at all. Pick your state above to see its treatment, or open your state's paycheck calculator for the detail.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>Is overtime completely tax-free now?</strong> No. Only the FLSA premium is deductible, only up to the annual cap, only for federal income tax, and only for 2025–2028. Social Security and Medicare still apply, and your state may still tax it.</p>
+      <p><strong>What if I don't know my exact premium?</strong> Use the estimator — enter your regular hourly rate and total overtime hours and it computes the premium (½ × rate × hours).</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your numbers never leave your browser.</p>
+      <p class="muted-small">Sources: IRS, <a href="https://www.irs.gov/newsroom/questions-and-answers-about-the-new-deduction-for-qualified-overtime-compensation" rel="nofollow">Questions and answers about the deduction for qualified overtime compensation</a>; IRS Notice 2025-69.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__OBBBA__ = {{OBBBA_JSON}};
+  window.__FED__ = {{FED_JSON}};
+  window.__STATES__ = {{STATES_JSON}};
+</script>
+<script type="module" src="/assets/overtime-tax-calculator.js"></script>
+</body>
+</html>

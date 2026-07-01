@@ -120,6 +120,8 @@ const TOOLS = [
   { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' },
   { name: 'CAGR Calculator', path: '/cagr-calculator/' },
   { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
+  { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
+  { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
   { name: '401(k) Retirement Calculator', path: '/401k-calculator/' },
   { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/' },
   { name: 'Inflation Calculator', path: '/inflation-calculator/' },
@@ -211,6 +213,8 @@ const TOOL_DESCRIPTIONS = {
   '/chronological-age-calculator/': 'Find an exact chronological age in years, months, and days between any two dates.',
   '/debt-avalanche-calculator/': 'Plan a debt avalanche payoff that targets the highest-interest balance first to minimize total interest.',
   '/1099-vs-w2-calculator/': 'Compare 1099 contractor versus W-2 employee take-home pay.',
+  '/overtime-tax-calculator/': 'See how much of your overtime is deductible under the 2025 "no tax on overtime" law and what it saves you.',
+  '/tips-tax-calculator/': 'See how much of your tips are deductible under the 2025 "no tax on tips" law (up to $25,000) and what it saves you.',
   '/401k-calculator/': 'Project 401(k) retirement balance from contributions, match, and growth.',
   '/savings-goal-calculator/': 'Find how much to save each month to reach a savings goal.',
   '/inflation-calculator/': 'See how the buying power of a US dollar changes over time.',
@@ -723,6 +727,44 @@ function distinctiveFactsBlock(state, p) {
   return `<section class="prose"><h2>What makes ${state.name} payroll distinctive</h2><ul class="facts">${lis}</ul></section>`;
 }
 
+// Per-state OBBBA "no tax on tips / overtime" conformity block. Genuinely unique
+// per-state content (the state return differs by state and year), so it both
+// serves the fresh-query search demand and deepens each page's differentiation.
+function obbbaConformityBlock(state, obbba, year) {
+  const e = obbba && obbba.states && obbba.states[state.slug];
+  if (!e) return '';
+  const calcLinks =
+    `Estimate your own saving with the <a href="/overtime-tax-calculator/">No Tax on Overtime Calculator</a> ` +
+    `and the <a href="/tips-tax-calculator/">No Tax on Tips Calculator</a>.`;
+  const fed =
+    `<p>Under the federal One Big Beautiful Bill Act (2025), workers can deduct qualified <strong>overtime premium pay</strong> ` +
+    `(up to $12,500 single / $25,000 married filing jointly) and <strong>tips</strong> (up to $25,000) from federal income tax for ` +
+    `tax years 2025–2028. Those federal deductions apply to ${state.name} workers — Social Security and Medicare still apply.</p>`;
+
+  if (!e.hasWageTax) {
+    return `<section class="prose"><h2>Is overtime and tips tax-free in ${state.name}?</h2>${fed}` +
+      `<p>${escHtml(e.note)} ${calcLinks}</p></section>`;
+  }
+
+  const verdict = (v) => ({
+    yes: `deductible on your ${state.name} return too`,
+    no: `not deductible on your ${state.name} return (still state-taxed)`,
+    unclear: `not yet confirmed for ${state.name}`,
+    partial: `a smaller capped ${state.name} break`
+  }[v] || v);
+  const row = (label, d) =>
+    `<li><strong>${label}:</strong> 2025 — ${verdict(d.y2025)}; 2026–2028 — ${verdict(d.y2026)}.</li>`;
+  const srcHost = (() => { try { return new URL(e.source).hostname.replace(/^www\./, ''); } catch (_) { return ''; } })();
+  const srcLink = e.source && srcHost
+    ? ` <span class="muted-small">(source: <a href="${escHtml(e.source)}" rel="nofollow noopener" target="_blank">${escHtml(srcHost)}</a>)</span>`
+    : '';
+
+  return `<section class="prose"><h2>Is overtime and tips tax-free in ${state.name}?</h2>${fed}` +
+    `<p><strong>${state.name} state income tax:</strong> ${escHtml(e.note)}${srcLink}</p>` +
+    `<ul class="facts">${row('Overtime', e.overtime)}${row('Tips', e.tips)}</ul>` +
+    `<p>${calcLinks}</p></section>`;
+}
+
 function sourcesBlock(state, p) {
   const urls = new Set();
   const add = (u) => { if (u && /^https?:\/\//.test(u)) urls.add(u); };
@@ -875,6 +917,13 @@ async function main() {
   const debtAvalancheTpl = await read(join(SRC, 'templates', 'debt-avalanche-calculator.html'));
   const markdownTpl = await read(join(SRC, 'templates', 'markdown-to-html.html'));
   const w2Tpl = await read(join(SRC, 'templates', '1099-vs-w2-calculator.html'));
+  const overtimeTaxTpl = await read(join(SRC, 'templates', 'overtime-tax-calculator.html'));
+  const tipsTaxTpl = await read(join(SRC, 'templates', 'tips-tax-calculator.html'));
+  const obbba = await readJSON(join(SRC, 'data', 'obbba-deductions-2026.json'));
+  // Client-injected JSON for the OBBBA tools (internal _keys stripped).
+  const OBBBA_FED_JSON = JSON.stringify(stripInternal(obbba.federal));
+  const OBBBA_STATES_JSON = JSON.stringify(stripInternal(obbba.states));
+  const OBBBA_FED_TAX_JSON = JSON.stringify(stripInternal({ standardDeduction: taxData.federal.standardDeduction, brackets: taxData.federal.brackets }));
   const biweeklyTpl = await read(join(SRC, 'templates', 'biweekly-mortgage-calculator.html'));
   const photoSpecs = await readJSON(join(SRC, 'data', 'photo-specs.json'));
   const cpiUs = await readJSON(join(SRC, 'data', 'cpi-us.json'));
@@ -1036,6 +1085,9 @@ async function main() {
   await cp(join(SRC, 'assets', 'markdown-to-html.js'), join(DIST, 'assets', 'markdown-to-html.js'));
   await cp(join(SRC, 'assets', 'marked.min.js'), join(DIST, 'assets', 'marked.min.js'));
   await cp(join(SRC, 'assets', '1099-vs-w2-calculator.js'), join(DIST, 'assets', '1099-vs-w2-calculator.js'));
+  await cp(join(SRC, 'engine', 'obbba-deduction.js'), join(DIST, 'assets', 'obbba-deduction.js'));
+  await cp(join(SRC, 'assets', 'overtime-tax-calculator.js'), join(DIST, 'assets', 'overtime-tax-calculator.js'));
+  await cp(join(SRC, 'assets', 'tips-tax-calculator.js'), join(DIST, 'assets', 'tips-tax-calculator.js'));
   await cp(join(SRC, 'engine', 'employment-tax.js'), join(DIST, 'assets', 'employment-tax.js'));
   await cp(join(SRC, 'assets', 'biweekly-mortgage-calculator.js'), join(DIST, 'assets', 'biweekly-mortgage-calculator.js'));
   // (biweekly reuses amortization.js, already copied above)
@@ -1076,6 +1128,7 @@ async function main() {
       OTHER_TAXES: otherTaxesBlock(state, p),
       INCOME_CONTEXT: incomeContextBlock(state, p, taxData),
       DISTINCTIVE_FACTS: distinctiveFactsBlock(state, p),
+      OBBBA_CONFORMITY: obbbaConformityBlock(state, obbba, year),
       SOURCES: sourcesBlock(state, p),
       STATE_LINKS: stateLinks(roster, builtSlugs, slug),
       FAQ_JSONLD: faqJsonLd(state, year),
@@ -1719,6 +1772,23 @@ async function main() {
   );
   urls.push(`${SITE.url}/1099-vs-w2-calculator/`);
 
+  // OBBBA "no tax on overtime" (IRC §225) deduction calculator — fresh-query wedge,
+  // reuses the paycheck engine's federal bracket math + the sourced obbba data.
+  await mkdir(join(DIST, 'overtime-tax-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'overtime-tax-calculator', 'index.html'),
+    fillTool(overtimeTaxTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON }, '/overtime-tax-calculator/')
+  );
+  urls.push(`${SITE.url}/overtime-tax-calculator/`);
+
+  // OBBBA "no tax on tips" (IRC §224) deduction calculator
+  await mkdir(join(DIST, 'tips-tax-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'tips-tax-calculator', 'index.html'),
+    fillTool(tipsTaxTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON }, '/tips-tax-calculator/')
+  );
+  urls.push(`${SITE.url}/tips-tax-calculator/`);
+
   // biweekly mortgage payment calculator (pure-math, reuses the amortization engine)
   await mkdir(join(DIST, 'biweekly-mortgage-calculator'), { recursive: true });
   await writeFile(
@@ -1732,6 +1802,7 @@ async function main() {
   await mkdir(join(DIST, 'data'), { recursive: true });
   await mkdir(join(DIST, 'data'), { recursive: true });
   await writeFile(join(DIST, 'data', 'tax-data-2026.json'), JSON.stringify(stripInternal(taxData), null, 2) + '\n');
+  await writeFile(join(DIST, 'data', 'obbba-deductions-2026.json'), JSON.stringify(stripInternal(obbba), null, 2) + '\n');
 
   // 404 (Cloudflare Pages serves /404.html on miss)
   await writeFile(

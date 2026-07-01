@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>No Tax on Tips Calculator (2025–2028) — How Much of Your Tips Are Tax-Free?</title>
+<meta name="description" content="Free 'no tax on tips' calculator for the 2025 One Big Beautiful Bill Act deduction. See how much of your tip income is deductible (up to $25,000), your federal tax saving, the income phase-out, and whether your state conforms. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/tips-tax-calculator/">
+<meta property="og:title" content="No Tax on Tips Calculator (2025–2028)">
+<meta property="og:description" content="Estimate the federal 'no tax on tips' deduction and your tax saving. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; }
+  .obbba-note { font-size:.9rem; opacity:.85; margin-top:8px; }
+  .phaseout-flag { color:#b26b00; font-weight:600; }
+  .state-verdict { margin-top:10px; padding:10px 12px; border-radius:8px; background:rgba(128,128,128,.10); font-size:.95rem; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"No Tax on Tips Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Estimate the federal One Big Beautiful Bill Act 'no tax on tips' deduction (IRC §224): how much of your tip income is deductible (up to $25,000) after the income phase-out, and your federal income-tax saving for tax years 2025–2028."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Are tips really tax-free in 2025?","acceptedAnswer":{"@type":"Answer","text":"Partly. The 2025 One Big Beautiful Bill Act created a federal income-tax deduction for up to $25,000 of qualified tips per year, for tax years 2025 through 2028. It reduces your federal income tax only; Social Security and Medicare (FICA) still apply to tips, and your state may still tax them. You must work in an occupation that customarily and regularly receives tips."}},{"@type":"Question","name":"Is the $25,000 tip deduction doubled if I'm married?","acceptedAnswer":{"@type":"Answer","text":"No. The $25,000 cap is a single per-return limit — it is the same whether you file single or married filing jointly, it is not doubled. Married taxpayers must file jointly to claim it."}},{"@type":"Question","name":"Does the tips deduction phase out at higher incomes?","acceptedAnswer":{"@type":"Answer","text":"Yes. The deduction is reduced by $100 for every $1,000 your modified adjusted gross income exceeds $150,000 (single) or $300,000 (joint). It fully phases out at $400,000 (single) or $550,000 (joint)."}},{"@type":"Question","name":"Do I still pay Social Security and Medicare on tips?","acceptedAnswer":{"@type":"Answer","text":"Yes. The deduction lowers federal income tax only. Social Security and Medicare are still owed on tips, and you still report all your tips as usual — you claim the deduction when you file."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>No Tax on Tips Calculator</h1>
+    <p class="lede">The 2025 One Big Beautiful Bill Act lets you <strong>deduct up to $25,000 of tips</strong> from your federal taxable income, for tax years 2025–2028. Enter your tips and income to see how much is deductible and what it saves you. Everything runs in your browser — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Tips tax deduction calculator">
+      <form id="tipsForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="income">Your total annual income (all wages + tips, before tax)</label>
+          <input type="number" id="income" inputmode="numeric" min="0" step="1000" value="45000">
+        </div>
+
+        <div class="field">
+          <label for="tips">Tips you received this year</label>
+          <input type="number" id="tips" inputmode="numeric" min="0" step="500" value="18000">
+          <p class="muted-small" style="margin-top:6px">Cash and charged tips you reported. Up to $25,000 can be deducted.</p>
+        </div>
+
+        <div class="field">
+          <label for="filing">Filing status</label>
+          <select id="filing">
+            <option value="single">Single</option>
+            <option value="married">Married filing jointly</option>
+            <option value="head_of_household">Head of household</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">Married filing separately can't claim this deduction.</p>
+        </div>
+
+        <div class="field">
+          <label for="state">Your state <span class="muted-small">(for state conformity — optional)</span></label>
+          <select id="state"><option value="">— Select a state —</option></select>
+        </div>
+      </form>
+
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+      <div class="state-verdict" id="stateVerdict" hidden></div>
+    </section>
+
+    <p class="note">Estimate for general guidance only — not tax advice. Figures use the 2026 federal brackets and standard deduction; your actual deduction depends on your full return and your occupation. Verify with the IRS or a tax professional.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>How the "no tax on tips" deduction works</h2>
+      <p>The One Big Beautiful Bill Act (signed July 2025) added a temporary federal deduction, at Internal Revenue Code §224, for <strong>qualified tips</strong>. It is an above-the-line deduction, so you can claim it whether or not you itemize, on top of your standard deduction.</p>
+      <p><strong>Annual cap.</strong> Up to <strong>$25,000</strong> of qualified tips per year, for tax years <strong>2025 through 2028</strong>. This is a single per-return limit — it is <em>not</em> doubled for married couples filing jointly.</p>
+      <p><strong>Which tips qualify.</strong> Cash and charged tips (cash, check, card, or tokens exchangeable for cash) paid voluntarily by the customer, in an occupation that "customarily and regularly" receives tips — the Treasury has published the list of qualifying occupations. Mandatory service charges (an automatic 18% on a large party, for example) are not tips and don't count.</p>
+      <p><strong>Income phase-out.</strong> The deduction shrinks by $100 for every $1,000 your modified adjusted gross income (MAGI) is over $150,000 (single) or $300,000 (joint), reaching zero at $400,000 / $550,000.</p>
+      <p><strong>It's a deduction, not a refund.</strong> It lowers your taxable income, so the dollar you save is roughly the deduction times your marginal tax rate. And it's income-tax only: <strong>Social Security and Medicare still apply to tips</strong>, and you still report all your tips as normal — you claim the deduction when you file.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Who can claim it</h2>
+      <p>You need a Social Security number valid for employment, and if you're married you must file jointly (married filing separately is not eligible). Both employees (tips on your W-2) and self-employed workers can claim it — the self-employed are limited to their net business income, and specified service businesses are excluded. You must work in one of the occupations the Treasury lists as customarily tipped.</p>
+      <h2>Does your state tax tips?</h2>
+      <p>This deduction is federal. Whether it also lowers your <em>state</em> income tax depends on your state — many states do not conform, some conform only from 2026, and nine states have no wage income tax at all. Pick your state above to see its treatment, or open your state's paycheck calculator for the detail.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>Are all my tips tax-free now?</strong> No. Only up to $25,000 is deductible, only for federal income tax, and only for 2025–2028. Social Security and Medicare still apply, and your state may still tax tips.</p>
+      <p><strong>Do mandatory service charges count?</strong> No. An automatic gratuity or service charge added by the business is treated as wages, not a voluntary tip, so it doesn't qualify.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your numbers never leave your browser.</p>
+      <p class="muted-small">Sources: IRS, <a href="https://www.irs.gov/newsroom/one-big-beautiful-bill-act-tax-deductions-for-working-americans-and-seniors" rel="nofollow">tax deductions for working Americans and seniors</a>; Treasury final regulations on qualifying tipped occupations; IRS Notice 2025-69.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__OBBBA__ = {{OBBBA_JSON}};
+  window.__FED__ = {{FED_JSON}};
+  window.__STATES__ = {{STATES_JSON}};
+</script>
+<script type="module" src="/assets/tips-tax-calculator.js"></script>
+</body>
+</html>
