@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Embed a Free Tax Calculator on Your Site — Tools Berry</title>
+<meta name="description" content="Add a free, always-updated 'no tax on overtime' or 'no tax on tips' calculator to your website with one line of HTML. Great for payroll, HR, bookkeeping, and finance blogs. No signup, nothing to maintain.">
+<link rel="canonical" href="{{SITE_URL}}/embed/">
+<meta property="og:title" content="Embed a free tax calculator on your site">
+<meta property="og:description" content="One line of HTML adds a working overtime or tips tax-deduction calculator to your page. Free, no signup.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .embed-card { border:1px solid rgba(128,128,128,.25); border-radius:12px; padding:16px; margin:16px 0; }
+  .embed-card h3 { margin:0 0 8px; }
+  .embed-snippet { width:100%; min-height:92px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.82rem; padding:10px; border-radius:8px; border:1px solid rgba(128,128,128,.35); background:rgba(128,128,128,.06); resize:vertical; }
+  .embed-preview { margin-top:12px; }
+  .embed-preview iframe { border:1px solid rgba(128,128,128,.25); border-radius:12px; width:100%; max-width:560px; }
+  .copy-row { margin-top:8px; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Embed a Free Tax Calculator on Your Site","description":"Add a free no-tax-on-overtime or no-tax-on-tips calculator to your website with one line of HTML."}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Embed a free tax calculator on your site</h1>
+    <p class="lede">Add a working, always-up-to-date calculator to your own website, blog, or intranet in one line of HTML. It's free, there's no signup, and nothing to maintain — we keep the tax figures current. Ideal for payroll and HR sites, bookkeeping and accounting blogs, and employee resource pages.</p>
+    <p class="note">Copy the snippet, paste it where you want the calculator to appear, and keep the small credit line — that link is all we ask in return.</p>
+
+    <div class="embed-card">
+      <h3>No Tax on Overtime Calculator</h3>
+      <p>Shows how much of a worker's overtime premium is deductible under the 2025 law, and the federal tax saved — with a per-state conformity note.</p>
+      <label class="lbl" for="snip-ot">Embed code</label>
+      <textarea id="snip-ot" class="embed-snippet" readonly>&lt;iframe src="{{SITE_URL}}/embed/overtime-tax-calculator/" width="100%" height="640" style="border:1px solid #e2e2e2;border-radius:12px;max-width:560px" title="No Tax on Overtime Calculator by Tools Berry" loading="lazy"&gt;&lt;/iframe&gt;
+&lt;p&gt;Free &lt;a href="{{SITE_URL}}/overtime-tax-calculator/"&gt;No Tax on Overtime Calculator&lt;/a&gt; by Tools Berry&lt;/p&gt;</textarea>
+      <div class="copy-row"><button type="button" class="btn-primary" data-copy="snip-ot">Copy embed code</button></div>
+      <div class="embed-preview">
+        <p class="muted-small">Live preview:</p>
+        <iframe src="{{SITE_URL}}/embed/overtime-tax-calculator/" height="640" title="No Tax on Overtime Calculator preview" loading="lazy"></iframe>
+      </div>
+    </div>
+
+    <div class="embed-card">
+      <h3>No Tax on Tips Calculator</h3>
+      <p>Shows how much of a worker's tips are deductible (up to $25,000) under the 2025 law, and the federal tax saved — with a per-state conformity note.</p>
+      <label class="lbl" for="snip-tips">Embed code</label>
+      <textarea id="snip-tips" class="embed-snippet" readonly>&lt;iframe src="{{SITE_URL}}/embed/tips-tax-calculator/" width="100%" height="560" style="border:1px solid #e2e2e2;border-radius:12px;max-width:560px" title="No Tax on Tips Calculator by Tools Berry" loading="lazy"&gt;&lt;/iframe&gt;
+&lt;p&gt;Free &lt;a href="{{SITE_URL}}/tips-tax-calculator/"&gt;No Tax on Tips Calculator&lt;/a&gt; by Tools Berry&lt;/p&gt;</textarea>
+      <div class="copy-row"><button type="button" class="btn-primary" data-copy="snip-tips">Copy embed code</button></div>
+      <div class="embed-preview">
+        <p class="muted-small">Live preview:</p>
+        <iframe src="{{SITE_URL}}/embed/tips-tax-calculator/" height="560" title="No Tax on Tips Calculator preview" loading="lazy"></iframe>
+      </div>
+    </div>
+
+    <section class="prose">
+      <h2>Questions</h2>
+      <p><strong>Is it really free?</strong> Yes. The calculators are free to embed on any site. We just ask that you keep the small "by Tools Berry" credit link under the calculator.</p>
+      <p><strong>Do I have to update anything?</strong> No. The calculator is loaded from Tools Berry, so tax figures and rules stay current automatically — you never touch the code again.</p>
+      <p><strong>Will it slow my page down?</strong> The embed loads lazily and is lightweight. Nothing your visitors enter is uploaded — the math runs in their browser.</p>
+      <p><strong>Can I change the size?</strong> Yes — adjust the <code>height</code> and <code>max-width</code> in the snippet to fit your layout.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/embed-gallery.js"></script>
+</body>
+</html>

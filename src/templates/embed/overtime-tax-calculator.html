@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>No Tax on Overtime Calculator — Tools Berry (embed)</title>
+<meta name="robots" content="noindex, follow">
+<link rel="canonical" href="{{SITE_URL}}/overtime-tax-calculator/">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  body { margin: 0; padding: 14px; background: transparent; }
+  .embed-wrap { max-width: 560px; margin: 0 auto; }
+  .embed-wrap h1 { font-size: 1.25rem; margin: 0 0 10px; }
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.1rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; }
+  .obbba-note { font-size:.85rem; opacity:.85; margin-top:8px; }
+  .phaseout-flag { color:#b26b00; font-weight:600; }
+  .state-verdict { margin-top:10px; padding:9px 11px; border-radius:8px; background:rgba(128,128,128,.10); font-size:.9rem; }
+  .est-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  details.estimator summary { cursor:pointer; font-size:.9rem; opacity:.9; }
+  .embed-credit { margin-top:14px; text-align:center; font-size:.85rem; opacity:.9; }
+</style>
+</head>
+<body>
+<div class="embed-wrap">
+  <h1>No Tax on Overtime Calculator</h1>
+  <section class="calc" aria-label="Overtime tax deduction calculator">
+    <form id="otForm" autocomplete="off" onsubmit="return false">
+      <div class="field">
+        <label for="income">Total annual income (all wages)</label>
+        <input type="number" id="income" inputmode="numeric" min="0" step="1000" value="60000">
+      </div>
+      <div class="field">
+        <label for="premium">Overtime premium for the year <span class="muted-small">(the extra "half" above your normal rate)</span></label>
+        <input type="number" id="premium" inputmode="numeric" min="0" step="100" value="5000">
+        <details class="estimator">
+          <summary>Estimate it from rate &amp; hours</summary>
+          <div class="est-row" style="margin-top:8px">
+            <div class="field" style="margin:0"><label for="regRate">Regular rate ($/hr)</label><input type="number" id="regRate" inputmode="decimal" min="0" step="0.5" placeholder="20"></div>
+            <div class="field" style="margin:0"><label for="otHours">Overtime hours/yr</label><input type="number" id="otHours" inputmode="numeric" min="0" step="1" placeholder="250"></div>
+          </div>
+        </details>
+      </div>
+      <div class="field">
+        <label for="filing">Filing status</label>
+        <select id="filing">
+          <option value="single">Single</option>
+          <option value="married">Married filing jointly</option>
+          <option value="head_of_household">Head of household</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="state">Your state <span class="muted-small">(optional)</span></label>
+        <select id="state"><option value="">— Select a state —</option></select>
+      </div>
+    </form>
+    <div class="obbba-out" id="out" aria-live="polite"></div>
+    <div class="state-verdict" id="stateVerdict" hidden></div>
+  </section>
+  <p class="embed-credit">Free <a href="{{SITE_URL}}/overtime-tax-calculator/" target="_blank" rel="noopener">No Tax on Overtime Calculator</a> by {{SITE_NAME}}</p>
+</div>
+
+<script>
+  window.__OBBBA__ = {{OBBBA_JSON}};
+  window.__FED__ = {{FED_JSON}};
+  window.__STATES__ = {{STATES_JSON}};
+</script>
+<script type="module" src="/assets/overtime-tax-calculator.js"></script>
+</body>
+</html>

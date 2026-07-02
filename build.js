@@ -919,6 +919,9 @@ async function main() {
   const w2Tpl = await read(join(SRC, 'templates', '1099-vs-w2-calculator.html'));
   const overtimeTaxTpl = await read(join(SRC, 'templates', 'overtime-tax-calculator.html'));
   const tipsTaxTpl = await read(join(SRC, 'templates', 'tips-tax-calculator.html'));
+  const embedOvertimeTpl = await read(join(SRC, 'templates', 'embed', 'overtime-tax-calculator.html'));
+  const embedTipsTpl = await read(join(SRC, 'templates', 'embed', 'tips-tax-calculator.html'));
+  const embedGalleryTpl = await read(join(SRC, 'templates', 'embed-gallery.html'));
   const obbba = await readJSON(join(SRC, 'data', 'obbba-deductions-2026.json'));
   // Client-injected JSON for the OBBBA tools (internal _keys stripped).
   const OBBBA_FED_JSON = JSON.stringify(stripInternal(obbba.federal));
@@ -1088,6 +1091,7 @@ async function main() {
   await cp(join(SRC, 'engine', 'obbba-deduction.js'), join(DIST, 'assets', 'obbba-deduction.js'));
   await cp(join(SRC, 'assets', 'overtime-tax-calculator.js'), join(DIST, 'assets', 'overtime-tax-calculator.js'));
   await cp(join(SRC, 'assets', 'tips-tax-calculator.js'), join(DIST, 'assets', 'tips-tax-calculator.js'));
+  await cp(join(SRC, 'assets', 'embed-gallery.js'), join(DIST, 'assets', 'embed-gallery.js'));
   await cp(join(SRC, 'engine', 'employment-tax.js'), join(DIST, 'assets', 'employment-tax.js'));
   await cp(join(SRC, 'assets', 'biweekly-mortgage-calculator.js'), join(DIST, 'assets', 'biweekly-mortgage-calculator.js'));
   // (biweekly reuses amortization.js, already copied above)
@@ -1788,6 +1792,22 @@ async function main() {
     fillTool(tipsTaxTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON }, '/tips-tax-calculator/')
   );
   urls.push(`${SITE.url}/tips-tax-calculator/`);
+
+  // Embeddable calculator pages (iframe targets for the /embed/ link engine).
+  // Deliberately bypass fill(): NO ad loader (ads inside a third-party iframe would
+  // violate AdSense policy) and NO site schema. They are noindex + canonical to the
+  // real tool (set in-template) and are NOT added to the sitemap. Function-form
+  // replace keeps '$' in the injected JSON literal (same reason fill() uses one).
+  const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON };
+  const fillEmbed = (tpl) => tpl.replace(/{{(\w+)}}/g, (m, k) => (k in embedMap ? embedMap[k] : m));
+  await mkdir(join(DIST, 'embed', 'overtime-tax-calculator'), { recursive: true });
+  await writeFile(join(DIST, 'embed', 'overtime-tax-calculator', 'index.html'), fillEmbed(embedOvertimeTpl));
+  await mkdir(join(DIST, 'embed', 'tips-tax-calculator'), { recursive: true });
+  await writeFile(join(DIST, 'embed', 'tips-tax-calculator', 'index.html'), fillEmbed(embedTipsTpl));
+  // Indexable embed gallery (fillTool is fine here — real page, benefits from schema
+  // + the More-tools cross-links). This one IS in the sitemap.
+  await writeFile(join(DIST, 'embed', 'index.html'), fillTool(embedGalleryTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/embed/'));
+  urls.push(`${SITE.url}/embed/`);
 
   // biweekly mortgage payment calculator (pure-math, reuses the amortization engine)
   await mkdir(join(DIST, 'biweekly-mortgage-calculator'), { recursive: true });

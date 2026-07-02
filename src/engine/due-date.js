@@ -21,9 +21,13 @@ export const CONCEPTION_TO_EDD_DAYS = 266;  // 38 weeks from conception
 export const STANDARD_CYCLE = 28;           // assumed cycle length in Naegele's rule
 
 // Add a whole number of days to a Date, returning a fresh local-midnight Date.
+// Uses calendar arithmetic (not millisecond arithmetic) so it is DST-safe: adding
+// a day always advances the calendar day and stays at local midnight, even when
+// a daylight-saving transition makes a day 23 or 25 hours long. (Raw ms math drifts
+// local-midnight by the DST offset, which snapped chained calls back a day.)
 export function addDays(date, days) {
   const d = startOfDay(date);
-  return new Date(d.getTime() + days * MS_PER_DAY);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + days, 0, 0, 0, 0);
 }
 
 // Estimated due date (EDD) from the first day of the last menstrual period.
