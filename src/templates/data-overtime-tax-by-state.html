@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Which States Still Tax Overtime in 2026? All 51 Jurisdictions — Tools Berry</title>
+<meta name="description" content="A state-by-state study: after the 2025 One Big Beautiful Bill Act created a federal 'no tax on overtime' deduction, which states still tax overtime pay in 2026? We computed conformity across all 50 states and DC, with primary sources.">
+<link rel="canonical" href="{{SITE_URL}}/data/overtime-tax-by-state/">
+<meta property="og:title" content="Which States Still Tax Overtime in 2026?">
+<meta property="og:description" content="We computed 'no tax on overtime' state conformity across all 51 US jurisdictions for tax year 2026 — with primary sources and a free embeddable calculator.">
+<meta property="og:type" content="article">
+<meta name="author" content="Edmond Daher">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .study-byline { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; font-size:.92rem; color:var(--muted); margin:2px 0 18px; }
+  .study-byline .who { font-weight:600; color:var(--text); }
+  .stat-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:18px 0 6px; }
+  .stat-card { border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; background:var(--surface); }
+  .stat-card .n { font-size:2rem; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums; }
+  .stat-card .k { font-size:.85rem; color:var(--muted); margin-top:4px; }
+  .stat-card.tax .n { color:#b42318; }
+  .stat-card.free .n { color:var(--accent); }
+  .stat-card.nowage .n { color:#1d4ed8; }
+  .stat-card.other .n { color:#b26b00; }
+  .study-callout { border-left:4px solid var(--brand); background:var(--brand-soft); border-radius:0 var(--radius) var(--radius) 0; padding:12px 16px; margin:16px 0; font-size:.98rem; }
+  .table-scroll { overflow-x:auto; margin:10px 0; -webkit-overflow-scrolling:touch; }
+  table.study { border-collapse:collapse; width:100%; font-size:.92rem; min-width:560px; }
+  table.study th, table.study td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  table.study thead th { position:sticky; top:0; background:var(--surface); cursor:pointer; white-space:nowrap; border-bottom:2px solid var(--border-strong); }
+  table.study thead th::after { content:" \2195"; opacity:.35; font-size:.8em; }
+  table.study tbody tr:hover { background:rgba(128,128,128,.06); }
+  .chip { display:inline-block; padding:2px 9px; border-radius:var(--radius-pill); font-size:.82rem; font-weight:600; white-space:nowrap; }
+  .chip.v-no { background:#fdecea; color:#b42318; }
+  .chip.v-yes { background:var(--accent-soft); color:var(--accent); }
+  .chip.v-partial { background:#fff3e0; color:#b26b00; }
+  .chip.v-unclear { background:rgba(128,128,128,.14); color:var(--muted); }
+  .chip.v-na { background:#eaf1ff; color:#1d4ed8; }
+  .changed { display:inline-block; margin-left:6px; font-size:.74rem; color:#b26b00; font-weight:600; }
+  td.note { color:var(--muted); font-size:.86rem; }
+  td.note a { color:inherit; }
+  .author-box { display:flex; gap:14px; align-items:flex-start; border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin:22px 0; background:var(--surface); }
+  .author-box .av { flex:0 0 44px; width:44px; height:44px; border-radius:50%; background:var(--brand); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.1rem; }
+  .author-box .bio { font-size:.9rem; color:var(--muted); }
+  .author-box .bio strong { color:var(--text); }
+  .method dt { font-weight:600; margin-top:10px; }
+  .method dd { margin:2px 0 0; color:var(--muted); font-size:.92rem; }
+  .cta-tools { display:flex; flex-wrap:wrap; gap:10px; margin:14px 0; }
+  .cta-tools a { display:inline-block; padding:10px 16px; border-radius:var(--radius); border:1px solid var(--border-strong); font-weight:600; text-decoration:none; }
+  .cta-tools a.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+</style>
+<script type="application/ld+json">{{ARTICLE_LD}}</script>
+<script type="application/ld+json">{{DATASET_LD}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Which states still tax overtime in 2026?","acceptedAnswer":{"@type":"Answer","text":"For tax year 2026, {{CNT_TAX}} taxing jurisdictions (states plus the District of Columbia) do not conform to the federal 'no tax on overtime' deduction, so overtime pay remains fully taxable at the state level. {{CNT_NOWAGE}} states have no wage income tax at all, and {{CNT_FREE}} states let the deduction flow through so the overtime premium is effectively state-tax-free."}},{"@type":"Question","name":"Does the federal no-tax-on-overtime deduction lower my state income tax?","acceptedAnswer":{"@type":"Answer","text":"Only if your state conforms. The One Big Beautiful Bill Act deduction (IRC §225) is federal and reduces federal income tax for 2025–2028. Whether it also reduces your state income tax depends on whether your state adopts the federal change; many states decouple and still tax the overtime premium."}},{"@type":"Question","name":"Is overtime completely tax-free anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. Even where a state conforms, only the FLSA overtime premium is deductible for federal income tax, up to the annual cap, and Social Security and Medicare (FICA) still apply. States with no wage income tax never taxed the pay to begin with, but federal FICA still applies everywhere."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article>
+    <h1>Which states still tax overtime in 2026?</h1>
+    <div class="study-byline">
+      <span>By <span class="who">Edmond Daher</span></span>
+      <span>·</span>
+      <span>Updated {{PUB_DATE}}</span>
+      <span>·</span>
+      <span>All 50 states + DC · primary sources</span>
+    </div>
+    <p class="lede">The 2025 <strong>One Big Beautiful Bill Act</strong> created a federal <a href="/overtime-tax-calculator/">deduction for overtime pay</a> — but it only cuts <em>federal</em> income tax. Whether your <em>state</em> also stops taxing overtime depends entirely on where you live. We computed the answer for every US jurisdiction for tax year 2026, from primary state sources. Here is where overtime is still taxed, where it is now effectively tax-free, and where it is still unsettled.</p>
+
+    <div class="stat-cards">
+      <div class="stat-card tax"><div class="n">{{CNT_TAX}}</div><div class="k">jurisdictions still tax overtime (states + DC)</div></div>
+      <div class="stat-card free"><div class="n">{{CNT_FREE}}</div><div class="k">states make the premium effectively tax-free</div></div>
+      <div class="stat-card nowage"><div class="n">{{CNT_NOWAGE}}</div><div class="k">states with no wage income tax at all</div></div>
+      <div class="stat-card other"><div class="n">{{CNT_OTHER}}</div><div class="k">partial or still-unclear for 2026</div></div>
+    </div>
+
+    <div class="study-callout">
+      <strong>The short version:</strong> most states still tax overtime in 2026. The federal deduction is the headline, but state conformity is the deciding factor for your take-home pay — and the map is still moving. {{CALLOUT_MOVERS}}
+    </div>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <h2>State-by-state: overtime &amp; tips conformity, tax year 2026</h2>
+    <p class="muted-small">Tap a column header to sort. "Still taxed" means the state does not adopt the federal deduction, so the overtime premium remains taxable on your state return. Figures are for tax year 2026 and reflect the federal <abbr title="One Big Beautiful Bill Act">OBBBA</abbr> premium deduction only.</p>
+    <div class="table-scroll">
+      <table class="study" id="studyTable">
+        <thead><tr>
+          <th data-sort="text">State</th>
+          <th data-sort="rank">Overtime taxed? (2026)</th>
+          <th data-sort="rank">Tips taxed? (2026)</th>
+          <th data-sort="text">Notes &amp; source</th>
+        </tr></thead>
+        <tbody>{{STUDY_ROWS}}</tbody>
+      </table>
+    </div>
+    <p class="muted-small">Download the full machine-readable dataset: <a href="/data/obbba-deductions-2026.json">obbba-deductions-2026.json</a>. Free to reuse with attribution to Tools Berry.</p>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <div class="cta-tools">
+      <a class="primary" href="/overtime-tax-calculator/">Calculate your overtime tax saving →</a>
+      <a href="/tips-tax-calculator/">No-tax-on-tips calculator →</a>
+      <a href="/embed/">Embed these calculators free →</a>
+    </div>
+
+    <section class="prose method">
+      <h2>How we computed this</h2>
+      <p>The federal deduction is fixed nationwide; the variation is entirely at the state level, driven by whether each state starts its income tax from federal adjusted gross income or taxable income, and whether it has passed legislation to adopt or decouple from the new federal deduction.</p>
+      <dl>
+        <dt>Federal baseline (IRC §225)</dt>
+        <dd>An above-the-line deduction for the FLSA overtime <em>premium</em> only — the extra "half" of time-and-a-half — capped at $12,500 (single) or $25,000 (married filing jointly), for tax years 2025–2028, phasing out above $150,000 / $300,000 modified AGI. It reduces federal income tax only; FICA still applies.</dd>
+        <dt>State conformity call</dt>
+        <dd>For each of the 50 states and DC we recorded whether, for tax year 2026, the state's tax base lets the federal overtime (and tips) deduction flow through ("still taxed" = no; "tax-free" = yes), plus partial or unclear cases where legislation is capped, pending, or administrative only.</dd>
+        <dt>Sources</dt>
+        <dd>Primary sources per state — the state Department of Revenue / Taxation guidance and the enacting bill text — supplemented by non-partisan trackers (Tax Foundation, Bloomberg Tax, Thomson Reuters). Each row links its source. Nine states have no wage income tax, so the question is moot there.</dd>
+        <dt>Scope &amp; limits</dt>
+        <dd>This covers state <em>income</em> tax treatment of the federal deduction for 2026 only; several states' 2027–2028 treatment is unsettled and some 2026 rules face legal challenges (noted per state). This is computed general information, not tax advice.</dd>
+      </dl>
+    </section>
+
+    <div class="author-box">
+      <div class="av" aria-hidden="true">ED</div>
+      <div class="bio"><strong>Edmond Daher</strong> is a software engineer and the creator of Tools Berry, a suite of free, privacy-first calculators that run entirely in your browser. He built the 51-jurisdiction OBBBA conformity dataset and the overtime and tips calculators behind this study. This analysis computes figures from primary state and federal sources; it is general information, not tax advice, and Edmond is not a CPA — verify your own situation with the IRS, your state tax authority, or a tax professional.</div>
+    </div>
+
+    <p class="muted-small">Press &amp; reuse: the dataset and the embeddable calculators are free to cite with attribution. Questions or a correction? <a href="/contact/">Contact us</a>.</p>
+    </article>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var table = document.getElementById('studyTable');
+  if (!table) return;
+  var tbody = table.querySelector('tbody');
+  var headers = table.querySelectorAll('thead th');
+  headers.forEach(function (th, col) {
+    var dir = 1;
+    th.addEventListener('click', function () {
+      dir = -dir;
+      var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+      var mode = th.getAttribute('data-sort');
+      rows.sort(function (a, b) {
+        var x = a.children[col], y = b.children[col];
+        if (mode === 'rank') {
+          return (Number(x.getAttribute('data-rank')) - Number(y.getAttribute('data-rank'))) * dir;
+        }
+        return x.textContent.trim().localeCompare(y.textContent.trim()) * dir;
+      });
+      rows.forEach(function (r) { tbody.appendChild(r); });
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -101,14 +101,14 @@
       "hasWageTax": true,
       "overtime": {
         "y2025": "yes",
-        "y2026": "unclear"
+        "y2026": "yes"
       },
       "tips": {
         "y2025": "yes",
-        "y2026": "unclear"
+        "y2026": "yes"
       },
-      "note": "North Dakota starts from federal taxable income and likely allows the deductions for 2025; 2026+ is not yet confirmed by state guidance.",
-      "source": "https://taxfoundation.org/research/all/state/big-beautiful-bill-state-tax-impact/"
+      "note": "North Dakota is a rolling-conformity state that starts from federal taxable income, so it automatically incorporates the federal overtime and tips deductions for tax years 2025–2028. No decoupling legislation has been enacted.",
+      "source": "https://tax.thomsonreuters.com/blog/state-decoupling-from-federal-tax-provisions/"
     },
     "district-of-columbia": {
       "name": "District of Columbia",
@@ -423,14 +423,14 @@
       "hasWageTax": true,
       "overtime": {
         "y2025": "yes",
-        "y2026": "unclear"
+        "y2026": "yes"
       },
       "tips": {
         "y2025": "yes",
-        "y2026": "unclear"
+        "y2026": "yes"
       },
-      "note": "Claimed on 2025 Arizona returns via Executive Order 2025-15 (administrative, not yet codified). 2026–2028 is unresolved after state conformity bills were vetoed.",
-      "source": "https://azdor.gov/news-center/ador-outlines-executive-order-and-2025-tax-year-income-tax-forms"
+      "note": "Arizona adopted full OBBBA conformity in HB 4168, signed June 13, 2026 as part of the FY2026 budget deal. It creates a mandatory individual income-tax subtraction for qualified overtime and tips under A.R.S. §43-1022, retroactive to tax year 2025 and applying to 2026 and forward. (Earlier standalone conformity bills were vetoed in early 2026; the budget resolved it.)",
+      "source": "https://www.currentfederaltaxdevelopments.com/blog/2026/6/14/arizona-hb-4168-title-43-income-tax-overhaul-aligned-with-the-one-big-beautiful-bill-act-obbba"
     },
     "colorado": {
       "name": "Colorado",

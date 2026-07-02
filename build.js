@@ -922,6 +922,7 @@ async function main() {
   const embedOvertimeTpl = await read(join(SRC, 'templates', 'embed', 'overtime-tax-calculator.html'));
   const embedTipsTpl = await read(join(SRC, 'templates', 'embed', 'tips-tax-calculator.html'));
   const embedGalleryTpl = await read(join(SRC, 'templates', 'embed-gallery.html'));
+  const overtimeStudyTpl = await read(join(SRC, 'templates', 'data-overtime-tax-by-state.html'));
   const obbba = await readJSON(join(SRC, 'data', 'obbba-deductions-2026.json'));
   // Client-injected JSON for the OBBBA tools (internal _keys stripped).
   const OBBBA_FED_JSON = JSON.stringify(stripInternal(obbba.federal));
@@ -1792,6 +1793,101 @@ async function main() {
     fillTool(tipsTaxTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON }, '/tips-tax-calculator/')
   );
   urls.push(`${SITE.url}/tips-tax-calculator/`);
+
+  // OBBBA "which states still tax overtime in 2026" DATA STUDY (/data/overtime-tax-by-state/).
+  // A citable, author-bylined data asset for the journalist link sprint. The table is
+  // rendered server-side from the SAME sourced obbba dataset the calculators use, so the
+  // study can never drift from the tools. Counts + movers are derived, not hardcoded.
+  {
+    const esc = (s) => String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const STUDY_DATE_ISO = '2026-07-02';
+    const STUDY_DATE_HUMAN = 'July 2, 2026';
+    const OT_LABEL = {
+      no: { txt: 'Still taxed', cls: 'v-no', rank: 1 },
+      partial: { txt: 'Partial', cls: 'v-partial', rank: 2 },
+      unclear: { txt: 'Unclear', cls: 'v-unclear', rank: 3 },
+      yes: { txt: 'Tax-free', cls: 'v-yes', rank: 4 },
+      'n/a': { txt: 'No state wage tax', cls: 'v-na', rank: 5 },
+    };
+    const chip = (v) => {
+      const m = OT_LABEL[v] || OT_LABEL.unclear;
+      return { html: `<span class="chip ${m.cls}">${m.txt}</span>`, rank: m.rank };
+    };
+    const entries = Object.entries(obbba.states)
+      .filter(([, s]) => s && typeof s === 'object' && s.overtime)
+      .sort((a, b) => a[1].name.localeCompare(b[1].name));
+    const cnt = { no: 0, yes: 0, partial: 0, unclear: 0, nowage: 0 };
+    const newlyFree = [], newlyTaxed = [], partialList = [], unclearList = [];
+    const rows = entries.map(([, s]) => {
+      const ot = s.overtime || {}, tp = s.tips || {};
+      const ot26 = ot.y2026, tp26 = tp.y2026;
+      if (ot26 === 'no') cnt.no++;
+      else if (ot26 === 'yes') cnt.yes++;
+      else if (ot26 === 'partial') cnt.partial++;
+      else if (ot26 === 'unclear') cnt.unclear++;
+      if (s.hasWageTax === false) cnt.nowage++;
+      if (ot.y2025 === 'no' && ot26 === 'yes') newlyFree.push(s.name);
+      if (ot.y2025 === 'yes' && ot26 === 'no') newlyTaxed.push(s.name);
+      if (ot26 === 'partial') partialList.push(s.name);
+      if (ot26 === 'unclear') unclearList.push(s.name);
+      const otC = chip(ot26), tpC = chip(tp26);
+      const changed = (ot.y2025 && ot26 && ot.y2025 !== ot26)
+        ? ' <span class="changed">changed from 2025</span>' : '';
+      const src = s.source
+        ? `<a href="${esc(s.source)}" rel="nofollow noopener" target="_blank">source</a>` : '';
+      const note = [s.note ? esc(s.note) : '', src].filter(Boolean).join(' ');
+      return `<tr><td>${esc(s.name)}</td>` +
+        `<td data-rank="${otC.rank}">${otC.html}${changed}</td>` +
+        `<td data-rank="${tpC.rank}">${tpC.html}</td>` +
+        `<td class="note">${note}</td></tr>`;
+    }).join('\n');
+
+    const cntOther = cnt.partial + cnt.unclear;
+    const jn = (arr) => arr.join(', ');
+    const movers = [];
+    if (newlyFree.length) movers.push(`${jn(newlyFree)} — overtime newly tax-free for 2026`);
+    if (newlyTaxed.length) movers.push(`${jn(newlyTaxed)} — overtime taxed again in 2026 (subject to change)`);
+    if (partialList.length) movers.push(`${jn(partialList)} — only a partial state exclusion`);
+    if (unclearList.length) movers.push(`${jn(unclearList)} — still unsettled for 2026`);
+    const calloutMovers = movers.length ? movers.join('; ') + '.' : '';
+
+    const articleLd = JSON.stringify({
+      '@context': 'https://schema.org', '@type': 'Article',
+      headline: 'Which States Still Tax Overtime in 2026?',
+      description: `A state-by-state analysis of which US states still tax overtime pay in 2026 after the federal One Big Beautiful Bill Act deduction. ${cnt.no} jurisdictions still tax it; ${cnt.yes} make it effectively tax-free; ${cnt.nowage} have no wage income tax.`,
+      datePublished: STUDY_DATE_ISO, dateModified: STUDY_DATE_ISO,
+      author: { '@type': 'Person', name: 'Edmond Daher', url: `${SITE.url}/about/` },
+      publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+      mainEntityOfPage: `${SITE.url}/data/overtime-tax-by-state/`,
+      isAccessibleForFree: true,
+    });
+    const datasetLd = JSON.stringify({
+      '@context': 'https://schema.org', '@type': 'Dataset',
+      name: 'OBBBA overtime & tips state conformity, tax year 2026',
+      description: 'Per-jurisdiction conformity of all 50 US states and DC to the 2025 One Big Beautiful Bill Act federal deductions for overtime (IRC §225) and tips (IRC §224), for tax year 2026.',
+      creator: { '@type': 'Person', name: 'Edmond Daher' },
+      publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+      license: 'https://creativecommons.org/licenses/by/4.0/',
+      temporalCoverage: '2026',
+      distribution: { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/obbba-deductions-2026.json` },
+      isAccessibleForFree: true,
+    });
+
+    await mkdir(join(DIST, 'data', 'overtime-tax-by-state'), { recursive: true });
+    await writeFile(
+      join(DIST, 'data', 'overtime-tax-by-state', 'index.html'),
+      fillTool(overtimeStudyTpl, {
+        SITE_NAME: SITE.name, SITE_URL: SITE.url,
+        STUDY_ROWS: rows,
+        CNT_TAX: String(cnt.no), CNT_FREE: String(cnt.yes),
+        CNT_NOWAGE: String(cnt.nowage), CNT_OTHER: String(cntOther),
+        CALLOUT_MOVERS: calloutMovers, PUB_DATE: STUDY_DATE_HUMAN,
+        ARTICLE_LD: articleLd, DATASET_LD: datasetLd,
+      }, '/data/overtime-tax-by-state/')
+    );
+    urls.push(`${SITE.url}/data/overtime-tax-by-state/`);
+  }
 
   // Embeddable calculator pages (iframe targets for the /embed/ link engine).
   // Deliberately bypass fill(): NO ad loader (ads inside a third-party iframe would
