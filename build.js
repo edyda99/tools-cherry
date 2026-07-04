@@ -1887,6 +1887,21 @@ async function main() {
       }, '/data/overtime-tax-by-state/')
     );
     urls.push(`${SITE.url}/data/overtime-tax-by-state/`);
+
+    // Flat CSV of the dataset — journalist-liftable citation kit (same source JSON).
+    const csvEsc = (v) => {
+      const s = String(v == null ? '' : v);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const csvLines = [['State', 'Has state wage tax', 'Overtime 2025', 'Overtime 2026',
+                       'Tips 2025', 'Tips 2026', 'Note', 'Source']];
+    for (const [, s] of entries) {
+      const ot = s.overtime || {}, tp = s.tips || {};
+      csvLines.push([s.name, s.hasWageTax ? 'yes' : 'no', ot.y2025 || '', ot.y2026 || '',
+                     tp.y2025 || '', tp.y2026 || '', s.note || '', s.source || '']);
+    }
+    await writeFile(join(DIST, 'data', 'overtime-tax-by-state-2026.csv'),
+      csvLines.map(r => r.map(csvEsc).join(',')).join('\n') + '\n');
   }
 
   // Embeddable calculator pages (iframe targets for the /embed/ link engine).
