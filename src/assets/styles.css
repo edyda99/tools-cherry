@@ -135,6 +135,7 @@ h1 {
 h2 { font-size: 23px; line-height: 1.25; letter-spacing: -.015em; margin: 40px 0 14px; font-weight: 700; }
 h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 .lede { color: var(--muted); font-size: 19px; margin: 0 0 26px; max-width: 60ch; }
+.updated { font-size: 13px; color: var(--muted); margin: 2px 0 10px; }
 
 /* ---- Hero (home) ----------------------------------------------------- */
 .hero { padding: 16px 0 8px; }

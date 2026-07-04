@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>{{STATE_NAME}} Paycheck &amp; Payroll Calculator {{YEAR}} ({{STATE_ABBR}}) — Take-Home Pay After Taxes</title>
-<meta name="description" content="Free {{YEAR}} {{STATE_NAME}} ({{STATE_ABBR}}) paycheck and payroll calculator. Enter your salary or hourly wage to see your take-home pay after federal tax, Social Security, Medicare{{STATE_TAX_PHRASE}}{{STATE_META_TAX_NOTE}}. Supports weekly, biweekly, monthly and more.">
+<title>{{STATE_TITLE}}</title>
+<meta name="description" content="{{STATE_META_DESC}}">
 <link rel="canonical" href="{{SITE_URL}}/{{STATE_SLUG}}-paycheck-calculator/">
 <meta property="og:title" content="{{STATE_NAME}} Paycheck &amp; Payroll Calculator {{YEAR}} ({{STATE_ABBR}})">
 <meta property="og:description" content="Estimate your {{STATE_NAME}} take-home pay after taxes for {{YEAR}}.">
@@ -26,6 +26,7 @@
 <main id="main">
   <div class="wrap">
     <h1>{{STATE_H1}}</h1>
+    <p class="updated">Data compiled and maintained by <a href="/data/overtime-tax-by-state/#author">Edmond Daher</a> · Updated {{VERIFIED}}</p>
     <p class="lede">Use this free {{STATE_NAME}} ({{STATE_ABBR}}) {{STATE_KEYWORD_PHRASE}} to estimate your {{YEAR}} take-home pay after federal income tax, Social Security, Medicare{{STATE_TAX_PHRASE}}.{{STATE_NOTAX_NOTE}}</p>
     {{FIGURE_BANNER}}
     {{ANSWER_BLOCK}}

@@ -765,7 +765,7 @@
         "y2025": "no",
         "y2026": "no"
       },
-      "note": "South Carolina has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
+      "note": "South Carolina's IRC conformity date (December 31, 2024) pre-dates the federal OBBBA, and the 2026 conformity bill (H3368) was not enacted, so the tips (§224) and overtime (§225) deductions must be added back on the South Carolina return — they reduce your federal tax only.",
       "source": "https://dor.sc.gov/income-tax-south-carolina-internal-revenue-code-conformity-update"
     },
     "maine": {

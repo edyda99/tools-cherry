@@ -322,9 +322,10 @@ function injectSeo(html) {
 // injectSeo already trusts), so no per-page wiring is needed. Idempotent (skips if
 // already injected) and a no-op on fragments (no </head>).
 //
-// Deliberately NOT included (flagged for marketing verification):
-//  - Person/author node: the site has no publicly-named maintainer; a fabricated
-//    author entity is worse than none. Organization is the honest citable entity.
+// Includes a shared-@id author Person (Edmond Daher) on the WebPage node so the
+// site-wide entity graph, the per-state pages, and the overtime/tips studies all
+// resolve to ONE author entity (E-E-A-T entity merge; crawlers merge by @id).
+// Still deliberately NOT included:
 //  - sameAs: omitted until real owned profile URLs (X/GitHub/Reddit) are supplied —
 //    inventing links would mislead entity resolution.
 function injectEntitySchema(html) {
@@ -369,6 +370,13 @@ function injectEntitySchema(html) {
       url,
       name: rawTitle,
       isPartOf: { '@id': siteId },
+      author: {
+        '@type': 'Person',
+        '@id': `${SITE.url}/#edmond-daher`,
+        name: 'Edmond Daher',
+        url: `${SITE.url}/data/overtime-tax-by-state/#author`,
+        jobTitle: 'Software Engineer'
+      },
       dateModified: CONTENT_DATE
     }
   ];
@@ -495,6 +503,44 @@ function stateRateSentence(state, year) {
   return `${state.name}'s ${year} state income tax is graduated, ranging from ${pctStr(b[0].rate)} to ${pctStr(b[b.length - 1].rate)}.`;
 }
 
+// Compact "answer figure" for a state's income tax — the state's flat rate or its
+// low→top graduated range, derived from the same sourced data (never hardcoded).
+// Feeds the query-led <title>/meta for the NEAR_PAGE_1 target states only.
+function stateRateFigure(state) {
+  const t = state.tax;
+  if (!state.hasIncomeTax || !t) return null;
+  if (t.type === 'flat') return { title: `Flat ${pctStr(t.rate)}`, desc: `a flat ${pctStr(t.rate)}` };
+  const b = (t.brackets && t.brackets.single) || [];
+  if (!b.length) return null;
+  const lo = pctStr(b[0].rate), hi = pctStr(b[b.length - 1].rate);
+  return { title: `${lo}–${hi}`, desc: `graduated from ${lo} to ${hi}` };
+}
+
+// <title> per state. For NEAR_PAGE_1 target states, lead with the exact
+// "{State} income tax rate {year}" query and surface the rate figure up front;
+// every other state keeps the original paycheck-calculator title verbatim.
+function stateTitle(state, year) {
+  if (TARGET_STATES.has(state.slug)) {
+    const fig = stateRateFigure(state);
+    if (fig) return `${state.name} Income Tax Rate ${year}: ${fig.title} — Paycheck &amp; Take-Home Pay Calculator (${state.abbr})`;
+  }
+  return `${state.name} Paycheck &amp; Payroll Calculator ${year} (${state.abbr}) — Take-Home Pay After Taxes`;
+}
+
+// Meta description per state. Target states lead with the query + the rate answer
+// in the first ~150 chars; all others keep the original description verbatim.
+function stateMetaDesc(state, year) {
+  if (TARGET_STATES.has(state.slug)) {
+    const fig = stateRateFigure(state);
+    if (fig) return `${state.name} income tax rate ${year}: ${fig.desc}. Free ${state.name} paycheck and take-home pay calculator — enter your salary or hourly wage to see your ${year} take-home after federal tax, FICA and ${state.name} state income tax.`;
+  }
+  const taxPhrase = state.hasIncomeTax ? `, and ${state.name} state income tax` : '';
+  const metaTaxNote = state.hasIncomeTax
+    ? ` — also works as a ${state.name} income tax calculator`
+    : `. ${state.name} has no state income tax, so it doubles as a federal income tax calculator`;
+  return `Free ${year} ${state.name} (${state.abbr}) paycheck and payroll calculator. Enter your salary or hourly wage to see your take-home pay after federal tax, Social Security, Medicare${taxPhrase}${metaTaxNote}. Supports weekly, biweekly, monthly and more.`;
+}
+
 // Scoped vocab + one neutral positioning line for the target states only. Carries
 // the "salary after taxes" / "income tax calculator" query vocab and a single
 // neutral free-alternative sentence (competitor-brand queries surfaced for these).
@@ -528,9 +574,14 @@ function stateAnswerBlock(state, year, taxData) {
     `Use the calculator below for your own salary or hourly rate.`,
     `Adjust the inputs below to see the breakdown for your own ${state.name} paycheck.`
   ]);
-  const ratePrefix = TARGET_STATES.has(state.slug) ? stateRateSentence(state, year) : '';
-  const lead2 = ratePrefix ? `${ratePrefix} ${lead}` : lead;
-  return `<p class="note"><strong>${lead2}</strong> ${tail}</p>`;
+  const rateSentence = TARGET_STATES.has(state.slug) ? stateRateSentence(state, year) : '';
+  if (rateSentence) {
+    // NEAR_PAGE_1 target states: surface the exact search query as an <h2>
+    // directly above the extractable rate sentence.
+    const h2 = `<h2>${state.name} income tax rate ${year}</h2>`;
+    return `${h2}<p class="note"><strong>${rateSentence} ${lead}</strong> ${tail}</p>`;
+  }
+  return `<p class="note"><strong>${lead}</strong> ${tail}</p>`;
 }
 
 // Genuinely state-specific facts for the no-income-tax states, so those pages
@@ -738,6 +789,8 @@ function obbbaConformityBlock(state, obbba, year) {
     `and the <a href="/tips-tax-calculator/">No Tax on Tips Calculator</a>.`;
   const studyLink =
     ` <a href="/data/overtime-tax-by-state/#state-${state.slug}">See how ${state.name} compares across all 50 states and DC →</a>`;
+  const tipsStudyLink =
+    ` <a href="/data/tips-tax-by-state/#state-${state.slug}">See where tips are still taxed in ${state.name} and every other state →</a>`;
   const fed =
     `<p>Under the federal One Big Beautiful Bill Act (2025), workers can deduct qualified <strong>overtime premium pay</strong> ` +
     `(up to $12,500 single / $25,000 married filing jointly) and <strong>tips</strong> (up to $25,000) from federal income tax for ` +
@@ -745,7 +798,7 @@ function obbbaConformityBlock(state, obbba, year) {
 
   if (!e.hasWageTax) {
     return `<section class="prose"><h2>Is overtime and tips tax-free in ${state.name}?</h2>${fed}` +
-      `<p>${escHtml(e.note)} ${calcLinks}${studyLink}</p></section>`;
+      `<p>${escHtml(e.note)} ${calcLinks}${studyLink}${tipsStudyLink}</p></section>`;
   }
 
   const verdict = (v) => ({
@@ -764,10 +817,10 @@ function obbbaConformityBlock(state, obbba, year) {
   return `<section class="prose"><h2>Is overtime and tips tax-free in ${state.name}?</h2>${fed}` +
     `<p><strong>${state.name} state income tax:</strong> ${escHtml(e.note)}${srcLink}</p>` +
     `<ul class="facts">${row('Overtime', e.overtime)}${row('Tips', e.tips)}</ul>` +
-    `<p>${calcLinks}${studyLink}</p></section>`;
+    `<p>${calcLinks}${studyLink}${tipsStudyLink}</p></section>`;
 }
 
-function sourcesBlock(state, p) {
+function sourcesBlock(state, p, meta) {
   const urls = new Set();
   const add = (u) => { if (u && /^https?:\/\//.test(u)) urls.add(u); };
   if (p) {
@@ -779,6 +832,9 @@ function sourcesBlock(state, p) {
     (p.payrollContributions || []).forEach((it) => add(it.source));
     (p.distinctiveFacts || []).forEach((f) => add(f.source));
   }
+  // Federal primary sources (IRS 2026 brackets / standard deduction, SSA wage base)
+  // apply to every paycheck page — cite them alongside the per-state sources.
+  if (meta && meta.sources) Object.values(meta.sources).forEach(add);
   if (!urls.size) return '';
   const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (_) { return u; } };
   const lis = [...urls].map((u) => `<li><a href="${escHtml(u)}" rel="nofollow noopener" target="_blank">${escHtml(hostOf(u))}</a></li>`).join('');
@@ -925,6 +981,7 @@ async function main() {
   const embedTipsTpl = await read(join(SRC, 'templates', 'embed', 'tips-tax-calculator.html'));
   const embedGalleryTpl = await read(join(SRC, 'templates', 'embed-gallery.html'));
   const overtimeStudyTpl = await read(join(SRC, 'templates', 'data-overtime-tax-by-state.html'));
+  const tipsStudyTpl = await read(join(SRC, 'templates', 'data-tips-tax-by-state.html'));
   const obbba = await readJSON(join(SRC, 'data', 'obbba-deductions-2026.json'));
   // Client-injected JSON for the OBBBA tools (internal _keys stripped).
   const OBBBA_FED_JSON = JSON.stringify(stripInternal(obbba.federal));
@@ -1109,6 +1166,8 @@ async function main() {
     const payload = stripInternal({ taxYear: taxData.taxYear, federal: taxData.federal, states: { [slug]: state } });
     const html = fill(stateTpl, {
       STATE_NAME: state.name,
+      STATE_TITLE: stateTitle(state, year),
+      STATE_META_DESC: stateMetaDesc(state, year),
       STATE_H1: TARGET_STATES.has(slug)
         ? `${state.name} Paycheck, Payroll &amp; Income Tax Calculator`
         : `${state.name} Paycheck &amp; Payroll Calculator`,
@@ -1136,7 +1195,7 @@ async function main() {
       INCOME_CONTEXT: incomeContextBlock(state, p, taxData),
       DISTINCTIVE_FACTS: distinctiveFactsBlock(state, p),
       OBBBA_CONFORMITY: obbbaConformityBlock(state, obbba, year),
-      SOURCES: sourcesBlock(state, p),
+      SOURCES: sourcesBlock(state, p, taxData._meta),
       STATE_LINKS: stateLinks(roster, builtSlugs, slug),
       FAQ_JSONLD: faqJsonLd(state, year),
       TAX_DATA_JSON: JSON.stringify(payload),
@@ -1859,7 +1918,7 @@ async function main() {
       headline: 'Which States Still Tax Overtime in 2026?',
       description: `A state-by-state analysis of which US states still tax overtime pay in 2026 after the federal One Big Beautiful Bill Act deduction. ${cnt.no} jurisdictions still tax it; ${cnt.yes} make it effectively tax-free; ${cnt.nowage} have no wage income tax.`,
       datePublished: STUDY_DATE_ISO, dateModified: STUDY_DATE_ISO,
-      author: { '@type': 'Person', name: 'Edmond Daher', url: `${SITE.url}/about/` },
+      author: { '@type': 'Person', '@id': `${SITE.url}/#edmond-daher`, name: 'Edmond Daher', url: `${SITE.url}/about/` },
       publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
       mainEntityOfPage: `${SITE.url}/data/overtime-tax-by-state/`,
       isAccessibleForFree: true,
@@ -1903,6 +1962,116 @@ async function main() {
                      tp.y2025 || '', tp.y2026 || '', s.note || '', s.source || '']);
     }
     await writeFile(join(DIST, 'data', 'overtime-tax-by-state-2026.csv'),
+      csvLines.map(r => r.map(csvEsc).join(',')).join('\n') + '\n');
+  }
+
+  // OBBBA "which states still tax tips in 2026" DATA STUDY (/data/tips-tax-by-state/).
+  // Companion to the overtime study: same sourced obbba dataset, but keyed on the TIPS
+  // field so the two studies can never drift from each other or from the calculators.
+  // Counts + movers are derived from the data, not hardcoded.
+  {
+    const esc = (s) => String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const STUDY_DATE_ISO = '2026-07-02';
+    const STUDY_DATE_HUMAN = 'July 2, 2026';
+    const TP_LABEL = {
+      no: { txt: 'Still taxed', cls: 'v-no', rank: 1 },
+      partial: { txt: 'Partial', cls: 'v-partial', rank: 2 },
+      unclear: { txt: 'Unclear', cls: 'v-unclear', rank: 3 },
+      yes: { txt: 'Tax-free', cls: 'v-yes', rank: 4 },
+      'n/a': { txt: 'No state wage tax', cls: 'v-na', rank: 5 },
+    };
+    const chip = (v) => {
+      const m = TP_LABEL[v] || TP_LABEL.unclear;
+      return { html: `<span class="chip ${m.cls}">${m.txt}</span>`, rank: m.rank };
+    };
+    const entries = Object.entries(obbba.states)
+      .filter(([, s]) => s && typeof s === 'object' && s.tips)
+      .sort((a, b) => a[1].name.localeCompare(b[1].name));
+    const cnt = { no: 0, yes: 0, partial: 0, unclear: 0, nowage: 0 };
+    const newlyFree = [], newlyTaxed = [], partialList = [], unclearList = [];
+    const rows = entries.map(([slug, s]) => {
+      const ot = s.overtime || {}, tp = s.tips || {};
+      const tp26 = tp.y2026, ot26 = ot.y2026;
+      if (tp26 === 'no') cnt.no++;
+      else if (tp26 === 'yes') cnt.yes++;
+      else if (tp26 === 'partial') cnt.partial++;
+      else if (tp26 === 'unclear') cnt.unclear++;
+      if (s.hasWageTax === false) cnt.nowage++;
+      if (tp.y2025 === 'no' && tp26 === 'yes') newlyFree.push(s.name);
+      if (tp.y2025 === 'yes' && tp26 === 'no') newlyTaxed.push(s.name);
+      if (tp26 === 'partial') partialList.push(s.name);
+      if (tp26 === 'unclear') unclearList.push(s.name);
+      const tpC = chip(tp26), otC = chip(ot26);
+      const changed = (tp.y2025 && tp26 && tp.y2025 !== tp26)
+        ? ' <span class="changed">changed from 2025</span>' : '';
+      const src = s.source
+        ? `<a href="${esc(s.source)}" rel="nofollow noopener" target="_blank">source</a>` : '';
+      const note = [s.note ? esc(s.note) : '', src].filter(Boolean).join(' ');
+      return `<tr id="state-${slug}"><td><a href="/${slug}-paycheck-calculator/">${esc(s.name)}</a></td>` +
+        `<td data-rank="${tpC.rank}">${tpC.html}${changed}</td>` +
+        `<td data-rank="${otC.rank}">${otC.html}</td>` +
+        `<td class="note">${note}</td></tr>`;
+    }).join('\n');
+
+    const cntOther = cnt.partial + cnt.unclear;
+    const jn = (arr) => arr.join(', ');
+    const movers = [];
+    if (newlyFree.length) movers.push(`${jn(newlyFree)} — tips newly tax-free for 2026`);
+    if (newlyTaxed.length) movers.push(`${jn(newlyTaxed)} — tips taxed again in 2026 (subject to change)`);
+    if (partialList.length) movers.push(`${jn(partialList)} — only a partial state exclusion`);
+    if (unclearList.length) movers.push(`${jn(unclearList)} — still unsettled for 2026`);
+    const calloutMovers = movers.length ? movers.join('; ') + '.' : '';
+
+    const articleLd = JSON.stringify({
+      '@context': 'https://schema.org', '@type': 'Article',
+      headline: 'Which States Still Tax Tips in 2026?',
+      description: `A state-by-state analysis of which US states still tax tip income in 2026 after the federal One Big Beautiful Bill Act deduction. ${cnt.no} jurisdictions still tax it; ${cnt.yes} make it effectively tax-free; ${cnt.nowage} have no wage income tax.`,
+      datePublished: STUDY_DATE_ISO, dateModified: STUDY_DATE_ISO,
+      author: { '@type': 'Person', '@id': `${SITE.url}/#edmond-daher`, name: 'Edmond Daher', url: `${SITE.url}/about/` },
+      publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+      mainEntityOfPage: `${SITE.url}/data/tips-tax-by-state/`,
+      isAccessibleForFree: true,
+    });
+    const datasetLd = JSON.stringify({
+      '@context': 'https://schema.org', '@type': 'Dataset',
+      name: 'OBBBA tips & overtime state conformity, tax year 2026',
+      description: 'Per-jurisdiction conformity of all 50 US states and DC to the 2025 One Big Beautiful Bill Act federal deductions for tips (IRC §224) and overtime (IRC §225), for tax year 2026.',
+      creator: { '@type': 'Person', name: 'Edmond Daher' },
+      publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+      license: 'https://creativecommons.org/licenses/by/4.0/',
+      temporalCoverage: '2026',
+      distribution: { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/obbba-deductions-2026.json` },
+      isAccessibleForFree: true,
+    });
+
+    await mkdir(join(DIST, 'data', 'tips-tax-by-state'), { recursive: true });
+    await writeFile(
+      join(DIST, 'data', 'tips-tax-by-state', 'index.html'),
+      fillTool(tipsStudyTpl, {
+        SITE_NAME: SITE.name, SITE_URL: SITE.url,
+        STUDY_ROWS: rows,
+        CNT_TAX: String(cnt.no), CNT_FREE: String(cnt.yes),
+        CNT_NOWAGE: String(cnt.nowage), CNT_OTHER: String(cntOther),
+        CALLOUT_MOVERS: calloutMovers, PUB_DATE: STUDY_DATE_HUMAN,
+        ARTICLE_LD: articleLd, DATASET_LD: datasetLd,
+      }, '/data/tips-tax-by-state/')
+    );
+    urls.push(`${SITE.url}/data/tips-tax-by-state/`);
+
+    // Flat CSV of the dataset — journalist-liftable citation kit (same source JSON).
+    const csvEsc = (v) => {
+      const s = String(v == null ? '' : v);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const csvLines = [['State', 'Has state wage tax', 'Tips 2025', 'Tips 2026',
+                       'Overtime 2025', 'Overtime 2026', 'Note', 'Source']];
+    for (const [, s] of entries) {
+      const ot = s.overtime || {}, tp = s.tips || {};
+      csvLines.push([s.name, s.hasWageTax ? 'yes' : 'no', tp.y2025 || '', tp.y2026 || '',
+                     ot.y2025 || '', ot.y2026 || '', s.note || '', s.source || '']);
+    }
+    await writeFile(join(DIST, 'data', 'tips-tax-by-state-2026.csv'),
       csvLines.map(r => r.map(csvEsc).join(',')).join('\n') + '\n');
   }
 
