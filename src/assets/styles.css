@@ -437,6 +437,8 @@ ul.breakdown { list-style: none; padding: 0; }
 /* Narrow phones: trim the fixed columns so the 5-input grade row fits 390px without overflow. */
 @media (max-width: 480px) {
   .gpa-row, .gpa-head { grid-template-columns: 1fr 64px 72px 52px 24px; gap: 5px; }
+  /* Remove-row "×" buttons need a >=44px tap target on touch (WCAG 2.5.5). */
+  .item-row .rm, .tc-row .rm, .gpa-row .rm { min-width: 44px; min-height: 44px; }
 }
 
 .inv-preview { background: #fff; color: #1a1a1a; border-radius: var(--radius); padding: 24px; font-size: 13px; line-height: 1.45; box-shadow: var(--shadow-md); }
