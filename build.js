@@ -736,6 +736,8 @@ function obbbaConformityBlock(state, obbba, year) {
   const calcLinks =
     `Estimate your own saving with the <a href="/overtime-tax-calculator/">No Tax on Overtime Calculator</a> ` +
     `and the <a href="/tips-tax-calculator/">No Tax on Tips Calculator</a>.`;
+  const studyLink =
+    ` <a href="/data/overtime-tax-by-state/#state-${state.slug}">See how ${state.name} compares across all 50 states and DC →</a>`;
   const fed =
     `<p>Under the federal One Big Beautiful Bill Act (2025), workers can deduct qualified <strong>overtime premium pay</strong> ` +
     `(up to $12,500 single / $25,000 married filing jointly) and <strong>tips</strong> (up to $25,000) from federal income tax for ` +
@@ -743,7 +745,7 @@ function obbbaConformityBlock(state, obbba, year) {
 
   if (!e.hasWageTax) {
     return `<section class="prose"><h2>Is overtime and tips tax-free in ${state.name}?</h2>${fed}` +
-      `<p>${escHtml(e.note)} ${calcLinks}</p></section>`;
+      `<p>${escHtml(e.note)} ${calcLinks}${studyLink}</p></section>`;
   }
 
   const verdict = (v) => ({
@@ -762,7 +764,7 @@ function obbbaConformityBlock(state, obbba, year) {
   return `<section class="prose"><h2>Is overtime and tips tax-free in ${state.name}?</h2>${fed}` +
     `<p><strong>${state.name} state income tax:</strong> ${escHtml(e.note)}${srcLink}</p>` +
     `<ul class="facts">${row('Overtime', e.overtime)}${row('Tips', e.tips)}</ul>` +
-    `<p>${calcLinks}</p></section>`;
+    `<p>${calcLinks}${studyLink}</p></section>`;
 }
 
 function sourcesBlock(state, p) {
@@ -1819,7 +1821,7 @@ async function main() {
       .sort((a, b) => a[1].name.localeCompare(b[1].name));
     const cnt = { no: 0, yes: 0, partial: 0, unclear: 0, nowage: 0 };
     const newlyFree = [], newlyTaxed = [], partialList = [], unclearList = [];
-    const rows = entries.map(([, s]) => {
+    const rows = entries.map(([slug, s]) => {
       const ot = s.overtime || {}, tp = s.tips || {};
       const ot26 = ot.y2026, tp26 = tp.y2026;
       if (ot26 === 'no') cnt.no++;
@@ -1837,7 +1839,7 @@ async function main() {
       const src = s.source
         ? `<a href="${esc(s.source)}" rel="nofollow noopener" target="_blank">source</a>` : '';
       const note = [s.note ? esc(s.note) : '', src].filter(Boolean).join(' ');
-      return `<tr><td>${esc(s.name)}</td>` +
+      return `<tr id="state-${slug}"><td><a href="/${slug}-paycheck-calculator/">${esc(s.name)}</a></td>` +
         `<td data-rank="${otC.rank}">${otC.html}${changed}</td>` +
         `<td data-rank="${tpC.rank}">${tpC.html}</td>` +
         `<td class="note">${note}</td></tr>`;
