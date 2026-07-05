@@ -87,16 +87,39 @@ from your use of, or reliance on, the site or its tools.</p>
 <p>{{SITE_NAME}} builds free, fast online tools that run entirely in your browser — no signup, no
 download, nothing to install. Type your numbers, get your answer.</p>
 
-<h2>Our paycheck calculators</h2>
-<p>Our state paycheck calculators estimate your take-home pay after federal income tax withholding,
-Social Security and Medicare (FICA), and state income tax. Each state page uses the current-year
-federal tax brackets and standard deduction, the FICA wage base and rates, and that state's own
-income tax rules.</p>
+<h2>What you'll find here</h2>
+<p>The site covers four families of tools. <strong>Money and tax:</strong> paycheck calculators for
+all 50 states and D.C., the 2025 no-tax-on-overtime and no-tax-on-tips deduction calculators,
+mortgage, loan, inflation and savings tools. <strong>Data studies:</strong> original, sourced
+research such as our <a href="/data/overtime-tax-by-state/">51-jurisdiction overtime-tax
+study</a> and its <a href="/data/tips-tax-by-state/">tips companion</a>. <strong>Everyday
+calculators and converters:</strong> dates, units, cooking, fitness, grades. <strong>Text, developer
+and image utilities:</strong> diff checker, QR codes, JSON formatting, image conversion and more.</p>
+
+<p>Everything is client-side: your numbers, text and images are processed on your device and never
+uploaded to a server. Several calculators are also available as free
+<a href="/embed/">embeddable widgets</a>.</p>
 
 <h2>Where our numbers come from</h2>
-<p>Federal figures are drawn from IRS releases for the tax year; state figures come from each state's
-department of revenue and published tax schedules. Tax rules change, and our calculators are
-estimates — see our <a href="/terms/">Terms of Use</a>.</p>
+<p>Federal figures are drawn from IRS and Social Security Administration releases for the tax year;
+state figures come from each state's department of revenue, published tax schedules, and — for new
+laws — the enacted bill text itself. Money pages list their sources at the bottom of the page and
+carry a visible "Updated" date. Tax rules change, and our calculators are estimates — see our
+<a href="/terms/">Terms of Use</a>.</p>
+
+<h2>How the data is verified</h2>
+<p>Every published figure is traced to a primary source before it goes live, and high-stakes claims
+(such as whether a state taxes overtime or tips in 2026) are re-verified independently before
+publication. When a state issues new guidance, the affected pages are updated and the dateline
+refreshed. If we can't source a claim, we say the position is unclear rather than guess. Found an
+error? Email us — corrections ship within days.</p>
+
+<h2 id="author">Who runs this site</h2>
+<p><strong>Edmond Daher</strong> is a software engineer and the creator of {{SITE_NAME}}. He builds
+and maintains every tool on the site, compiled the 51-jurisdiction OBBBA conformity dataset behind
+the overtime and tips studies, and personally reviews the tax data each cycle. Edmond is not a CPA,
+and nothing on this site is tax, legal or financial advice — for decisions about your own money,
+verify with the IRS, your state tax authority, or a licensed professional.</p>
 
 <h2>Contact</h2>
 <p>Feedback or a correction? Email <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a>.</p>

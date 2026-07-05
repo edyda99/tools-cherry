@@ -306,6 +306,10 @@ ul.breakdown { list-style: none; padding: 0; }
 }
 
 /* ---- Ad slots (do not remove) --------------------------------------- */
+/* Hidden while AdSense is unapproved — empty "Advertisement" boxes read as
+   made-for-AdSense to a manual reviewer. Restore the rules below on approval. */
+.ad-slot { display: none; }
+/*
 .ad-slot {
   margin: 32px 0; min-height: 90px;
   display: flex; align-items: center; justify-content: center;
@@ -313,6 +317,7 @@ ul.breakdown { list-style: none; padding: 0; }
   background: var(--surface-2);
   color: var(--muted); font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
 }
+*/
 
 /* ---- Tool cards (home — the first impression) ----------------------- */
 .tool-grid {
