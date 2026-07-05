@@ -471,9 +471,32 @@ function fill(tpl, map) {
 // fill() for tool pages: same as fill(), then injects the centralized
 // "Related tools" block just before the site footer. Only tool-page writes
 // call this, so the homepage and legal/static pages stay untouched.
+// Weakest commodity tool pages: kept live and linked for users, but excluded from
+// Google's index + the sitemap so quality reviews sample a smaller, stronger site.
+// Criteria (2026-07-05): me-too utility, thin prose, and ZERO recorded search traction
+// in marketing-insights.md. Anything with impressions/clicks, the finance/tax cluster,
+// and the alternativeto trio (diff/qr/color) must never be added here.
+const NOINDEX_TOOLS = new Set([
+  '/morse-code-translator/',
+  '/json-formatter/',
+  '/base-converter/',
+  '/stopwatch/',
+  '/uuid-generator/',
+  '/pomodoro-timer/',
+  '/sleep-calculator/',
+  '/random-number-generator/',
+  '/lorem-ipsum-generator/',
+  '/text-case-converter/',
+  '/base64-encode-decode/',
+  '/time-zone-converter/',
+]);
+
 function fillTool(tpl, map, currentPath) {
   let out = fill(tpl, map);
   out = out.replace('<footer class="site">', `${relatedToolsBlock(currentPath)}\n<footer class="site">`);
+  if (NOINDEX_TOOLS.has(currentPath)) {
+    out = out.replace('</head>', '  <meta name="robots" content="noindex, follow">\n</head>');
+  }
   return out;
 }
 
@@ -2276,10 +2299,12 @@ async function main() {
   );
   // Per-URL lastmod = each page's real git change-date (see sitemapLastmod) so the
   // sitemap carries honest, varied freshness signals instead of today-for-all.
+  // Noindexed tools are dropped — a sitemap must never list noindex pages.
+  const sitemapUrls = urls.filter((u) => !NOINDEX_TOOLS.has(u.replace(SITE.url, '')));
   await writeFile(
     join(DIST, 'sitemap.xml'),
     `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-      urls.map((u) => `  <url><loc>${u}</loc><lastmod>${sitemapLastmod(u)}</lastmod></url>`).join('\n') +
+      sitemapUrls.map((u) => `  <url><loc>${u}</loc><lastmod>${sitemapLastmod(u)}</lastmod></url>`).join('\n') +
       `\n</urlset>\n`
   );
 
