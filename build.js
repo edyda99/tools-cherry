@@ -622,6 +622,49 @@ function stateMetaDesc(state, year) {
   return `Free ${year} ${state.name} (${state.abbr}) paycheck and payroll calculator. Enter your salary or hourly wage to see your take-home pay after federal tax, Social Security, Medicare${taxPhrase}${metaTaxNote}. Supports weekly, biweekly, monthly and more.`;
 }
 
+// Spell small counts out as words ("nine-bracket ladder") — headings and ledes
+// keyed on structural facts must differ in LETTERS, not just digits, so pages
+// with different structures stop sharing a template skeleton.
+const NUM_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+const numWord = (n) => NUM_WORDS[n] || String(n);
+
+// Data-keyed lede: the opening sentence embeds the state's actual tax structure
+// (flat rate / bracket count + range / no tax) instead of a shared template
+// sentence, so the 51 ledes differ because the FACTS differ.
+function stateLede(state, year) {
+  const kw = state.hasIncomeTax
+    ? 'paycheck, payroll and income tax calculator'
+    : 'paycheck and payroll calculator';
+  const open = `Use this free ${state.name} (${state.abbr}) ${kw} to estimate your ${year} take-home pay`;
+  const t = state.tax;
+  if (!state.hasIncomeTax || !t) {
+    const angle = NOTAX_ANGLE[state.slug];
+    return `${open} — ${state.name} runs on ${angle || 'other taxes'}, not a wage tax, so just federal tax and FICA come out.`;
+  }
+  if (t.type === 'flat') {
+    return `${open} after federal income tax, Social Security, Medicare, and ${state.name}'s flat ${pctStr(t.rate)} state income tax.`;
+  }
+  const b = (t.brackets && t.brackets.single) || [];
+  const range = b.length ? ` (${numWord(b.length)} brackets, ${pctStr(b[0].rate)} to ${pctStr(b[b.length - 1].rate)})` : '';
+  return `${open} after federal income tax, Social Security, Medicare, and ${state.name}'s graduated state income tax${range}.`;
+}
+
+// Data-keyed H2 for the main explainer section: the heading itself states the
+// structure of the state's tax (flat rate, bracket-ladder count, or none), so
+// no two structurally-different states share it.
+function stateBodyH2(state, year) {
+  const t = state.tax;
+  if (!state.hasIncomeTax || !t) {
+    return `No state income tax in ${state.name} — so what still shrinks your ${year} paycheck?`;
+  }
+  if (t.type === 'flat') {
+    return `How ${state.name}'s flat ${pctStr(t.rate)} income tax hits your ${year} paycheck`;
+  }
+  const b = (t.brackets && t.brackets.single) || [];
+  if (!b.length) return `How ${state.name} paychecks are taxed in ${year}`;
+  return `${state.name}'s ${numWord(b.length)}-bracket ladder (${pctStr(b[0].rate)}–${pctStr(b[b.length - 1].rate)}): what comes out of each ${year} check`;
+}
+
 // Scoped vocab + one neutral positioning line for the target states only. Carries
 // the "salary after taxes" / "income tax calculator" query vocab and a single
 // neutral free-alternative sentence (competitor-brand queries surfaced for these).
@@ -665,6 +708,21 @@ function stateAnswerBlock(state, year, taxData) {
   return `<p class="note"><strong>${lead}</strong> ${tail}</p>`;
 }
 
+// Each no-income-tax state's revenue model in a short phrase — condensed from
+// that state's NOTAX_FACTS / sales- & property-tax data below (same sources),
+// so ledes and FAQ answers differ in words because the funding models differ.
+const NOTAX_ANGLE = {
+  alaska: 'oil revenues and the Permanent Fund',
+  florida: 'sales tax and tourism revenue',
+  nevada: 'gaming, tourism and sales taxes',
+  'new-hampshire': 'some of the nation\'s highest property taxes',
+  'south-dakota': 'sales and property taxes, with no corporate income tax either',
+  tennessee: 'sales taxes',
+  texas: 'unusually high property taxes plus sales tax',
+  washington: 'sales tax plus a capital-gains excise on high earners',
+  wyoming: 'mineral severance taxes and federal mineral royalties'
+};
+
 // Genuinely state-specific facts for the no-income-tax states, so those pages
 // aren't a name-swapped template (scaled-content risk). Each is true for that
 // state and different from the others.
@@ -690,15 +748,9 @@ function stateBody(state, year, taxData) {
       `Because <strong>${state.name} levies no state income tax</strong>, the only deductions on your ${year} paycheck are federal withholding and FICA — no state line at all, which leaves more in your pocket than the same job in a taxing state.`,
       `${state.name} workers pay <strong>no state income tax</strong> in ${year}. That means your paycheck loses only federal income tax and FICA (Social Security and Medicare), so take-home pay beats an equivalent salary in a wage-taxing state.`
     ]);
-    const ficaClose = pickFrame(state.slug, 'fica', [
-      `Change your filing status, pay frequency, or switch between salary and hourly above to see how your take-home pay changes.`,
-      `Switch between salary and hourly or adjust your filing status above to refine the estimate.`,
-      `Enter your own salary or hourly rate above to see your full ${state.name} take-home breakdown.`
-    ]);
-    return `<p>${opener}${fact}</p>` +
-      `<p>Federal withholding is estimated from the ${year} IRS tax brackets and the standard ` +
-      `deduction for your filing status. FICA is 6.2% Social Security (up to the ${usd0(taxData.federal.fica.socialSecurity.wageBase)} ${year} wage base) ` +
-      `plus 1.45% Medicare on all wages, with an extra 0.9% on high earnings. ${ficaClose}</p>`;
+    // No federal-mechanics paragraph here: the calculator's bracket-by-bracket
+    // panel above covers it interactively (was verbatim across all 9 pages).
+    return `<p>${opener}${fact}</p>`;
   }
 
   const t = state.tax;
@@ -716,16 +768,10 @@ function stateBody(state, year, taxData) {
     ]);
   }
 
-  const closer = pickFrame(state.slug, 'closer', [
-    `Adjust your filing status, pay frequency, and gross wage above to update the breakdown.`,
-    `Change the salary, filing status or pay frequency above and the ${state.name} breakdown updates instantly.`,
-    `Enter your own pay and filing details above to see your ${state.name} take-home pay.`
-  ]);
   let body =
     `<p>${how} This calculator applies that on top of federal withholding and ` +
     `Social Security / Medicare to estimate your ${state.name} take-home pay.</p>` +
-    stateTaxFacts(state, year, taxData) +
-    `<p>${closer}</p>`;
+    stateTaxFacts(state, year, taxData);
 
   const disclaimers = state.disclaimer || [];
   if (disclaimers.length) {
@@ -759,7 +805,7 @@ function bracketTableBlock(state, year) {
   const dispYear = state.figureYear || year;
   const t = state.tax;
   if (t.type === 'flat') {
-    return `<section class="prose"><h2>${state.name} income tax rate (${dispYear})</h2>` +
+    return `<section class="prose"><h2>One rate on every taxable dollar: ${state.name}'s ${pctStr(t.rate)} flat tax (${dispYear})</h2>` +
       `<p>${state.name} applies a single flat rate to taxable wages for ${dispYear}.</p>` +
       `<table class="data-table"><thead><tr><th>Filing</th><th>Rate</th></tr></thead><tbody>` +
       `<tr><td>All taxable income</td><td>${pctStr(t.rate)}</td></tr></tbody></table></section>`;
@@ -772,7 +818,7 @@ function bracketTableBlock(state, year) {
     const range = open ? `${usd0(prev)} and above` : `${usd0(prev)} – ${usd0(br.upTo)}`;
     return `<tr><td>${range}</td><td>${pctStr(br.rate)}</td></tr>`;
   }).join('');
-  return `<section class="prose"><h2>${state.name} ${dispYear} income tax brackets (single filers)</h2>` +
+  return `<section class="prose"><h2>${state.name}'s ${numWord(b.length)} ${dispYear} brackets, from ${pctStr(b[0].rate)} to ${pctStr(b[b.length - 1].rate)} (single filers)</h2>` +
     `<p>${state.name}'s graduated single-filer schedule for ${dispYear}, applied after the state deduction:</p>` +
     `<table class="data-table"><thead><tr><th>Taxable income</th><th>Marginal rate</th></tr></thead><tbody>${rows}</tbody></table></section>`;
 }
@@ -788,15 +834,24 @@ function payrollDeductionsBlock(state, p) {
     `${state.name} runs employee-funded payroll programs that come off your check on top of income tax and FICA:`,
     `On a ${state.name} paycheck, these state programs are deducted in addition to income tax and Social Security / Medicare:`
   ]);
-  return `<section class="prose"><h2>${state.name} payroll deductions beyond income tax</h2>` +
+  // Heading names the actual program(s) — e.g. "State Disability Insurance" —
+  // so each state's heading carries its own facts.
+  const shortName = (n) => String(n).replace(/\s*\(.*$/, '');
+  const names = items.slice(0, 2).map((it) => shortName(it.name)).join(' and ');
+  return `<section class="prose"><h2>${names}: what else ${state.name} takes from your check</h2>` +
     `<p>${intro}</p>` +
     `<table class="data-table"><thead><tr><th>Program</th><th>Employee rate (2026)</th><th>Wage base / cap</th></tr></thead><tbody>${rows}</tbody></table></section>`;
 }
 
 function localTaxBlock(state, p) {
   const lt = p && p.localIncomeTax;
-  if (!lt || !lt.exists || !lt.notes) return '';
-  return `<section class="prose"><h2>Local income taxes in ${state.name}</h2>` +
+  if (!lt || !lt.notes) return '';
+  // Data-keyed heading: whether any city/county wage tax exists is itself the
+  // state's answer. The sourced notes are unique per state either way.
+  const h2 = lt.exists
+    ? `Local income taxes in ${state.name}`
+    : `No city or county income tax anywhere in ${state.name}`;
+  return `<section class="prose"><h2>${h2}</h2>` +
     `<p>${escHtml(lt.notes)}</p></section>`;
 }
 
@@ -804,12 +859,14 @@ function minWageBlock(state, p, year) {
   const mw = p && p.minWage2026;
   if (!mw || typeof mw.amountUsd !== 'number') return '';
   const annual = usd0(mw.amountUsd * 2080);
-  const intro = pickFrame(state.slug, 'minwage', [
-    `${state.name}'s ${year} minimum wage is <strong>$${mw.amountUsd.toFixed(2)}/hour</strong> — about ${annual} a year at 40 hours a week before taxes.`,
-    `For ${year}, the minimum wage in ${state.name} is <strong>$${mw.amountUsd.toFixed(2)}/hour</strong> (≈ ${annual}/year full-time, pre-tax).`
-  ]);
+  const intro = `<strong>$${mw.amountUsd.toFixed(2)}/hour</strong> (≈${annual}/year full-time).`;
   const note = mw.notes ? ` ${escHtml(mw.notes)}` : '';
-  return `<section class="prose"><h2>${state.name} minimum wage in ${year}</h2><p>${intro}${note}</p></section>`;
+  // Data-keyed heading: states at the federal $7.25 floor get a structurally
+  // different heading than states with their own higher minimum.
+  const h2 = mw.amountUsd > 7.25
+    ? `${state.name}'s own $${mw.amountUsd.toFixed(2)} minimum wage — above the federal floor (${year})`
+    : `${state.name} stays on the federal $7.25 minimum wage in ${year}`;
+  return `<section class="prose"><h2>${h2}</h2><p>${intro}${note}</p></section>`;
 }
 
 // Ancillary context (sales + property) — one compact paragraph so the page stays
@@ -819,15 +876,22 @@ function otherTaxesBlock(state, p) {
   const st = p.salesTax, pt = p.propertyTax;
   const parts = [];
   if (st && typeof st.stateBaseRatePct === 'number') {
-    const combined = (typeof st.combinedAvgRatePct === 'number') ? ` (about ${st.combinedAvgRatePct}% combined with local)` : '';
-    parts.push(`a ${st.stateBaseRatePct}% state sales tax${combined}`);
+    const combined = (typeof st.combinedAvgRatePct === 'number') ? ` (≈${st.combinedAvgRatePct}% with local)` : '';
+    parts.push(`<tr><td>Sales tax</td><td>${st.stateBaseRatePct}%${combined}</td></tr>`);
   }
   if (pt && typeof pt.effectiveRatePct === 'number') {
-    parts.push(`an effective property-tax rate near ${pt.effectiveRatePct}%${pt.rankNote ? ` — ${escHtml(pt.rankNote)}` : ''}`);
+    parts.push(`<tr><td>Property tax</td><td>≈${pt.effectiveRatePct}%${pt.rankNote ? ` — ${escHtml(pt.rankNote)}` : ''}</td></tr>`);
   }
   if (!parts.length) return '';
-  return `<section class="prose"><h2>Beyond your paycheck: other ${state.name} taxes</h2>` +
-    `<p>${state.name} also levies ${parts.join(', and ')}.</p></section>`;
+  // Data-keyed heading: embed the sales-tax rate and (for no-income-tax states)
+  // the fact that these taxes stand in for a wage tax. Table body, not prose —
+  // the numbers ARE the content.
+  const ratePart = (st && typeof st.stateBaseRatePct === 'number') ? `${st.stateBaseRatePct}% sales tax` : 'sales tax';
+  const h2 = state.hasIncomeTax
+    ? `Beyond the paycheck: ${state.name}'s ${ratePart} and property tax`
+    : `What ${state.name} levies instead: ${ratePart} and property tax`;
+  return `<section class="prose"><h2>${h2}</h2>` +
+    `<table class="data-table"><tbody>${parts.join('')}</tbody></table></section>`;
 }
 
 function incomeContextBlock(state, p, taxData) {
@@ -837,26 +901,30 @@ function incomeContextBlock(state, p, taxData) {
   try {
     net = computePaycheck({ wage: { type: 'salary', amount: mi.amountUsd }, filingStatus: 'single', payFrequency: 'annual', stateSlug: state.slug }, taxData).annual.net;
   } catch (_) { /* leave take-home out if compute fails */ }
-  const takeHome = (net && Number.isFinite(net))
-    ? ` A single filer earning that takes home about ${usd0(net)} after federal tax, FICA${state.hasIncomeTax ? ' and state tax' : ''}.`
-    : '';
+  // Table body, not prose — the two figures are the whole point.
   const yr = mi.year ? ` (${escHtml(String(mi.year))})` : '';
-  const lead = pickFrame(state.slug, 'income', [
-    `Median household income in ${state.name} is about ${usd0(mi.amountUsd)}${yr}.${takeHome}`,
-    `A typical ${state.name} household earns around ${usd0(mi.amountUsd)} a year${yr}.${takeHome}`,
-    `${state.name}'s median household income runs near ${usd0(mi.amountUsd)}${yr} — useful as a yardstick for your own pay.${takeHome}`
-  ]);
-  return `<section class="prose"><h2>How ${state.name} pay compares</h2><p>${lead}</p></section>`;
+  const rows = [`<tr><td>Median household income${yr}</td><td>${usd0(mi.amountUsd)}</td></tr>`];
+  if (net && Number.isFinite(net)) {
+    rows.push(`<tr><td>Take-home (single filer)</td><td>≈${usd0(net)}</td></tr>`);
+  }
+  return `<section class="prose"><h2>Your paycheck vs the ${usd0(mi.amountUsd)} ${state.name} median</h2>` +
+    `<table class="data-table"><tbody>${rows.join('')}</tbody></table></section>`;
 }
 
-function distinctiveFactsBlock(state, p) {
+function distinctiveFactsBlock(state, p, faqEntries) {
+  // NOTAX_FACTS already appear in the body opener, and a fact used as the
+  // page's unique FAQ answer shouldn't repeat here — no duplicated sentences.
+  const usedInFaq = new Set((faqEntries || []).map((e) => e.a));
   const facts = [];
-  if (!state.hasIncomeTax && NOTAX_FACTS[state.slug]) facts.push(NOTAX_FACTS[state.slug]);
   const df = (p && p.distinctiveFacts) || [];
-  for (const f of df) { if (f && f.fact) facts.push(escHtml(f.fact)); }
+  for (const f of df) { if (f && f.fact && !usedInFaq.has(String(f.fact))) facts.push(escHtml(f.fact)); }
   if (!facts.length) return '';
   const lis = facts.map((f) => `<li>${f}</li>`).join('');
-  return `<section class="prose"><h2>What makes ${state.name} payroll distinctive</h2><ul class="facts">${lis}</ul></section>`;
+  // Count word is real data (fact count differs by state).
+  const h2 = facts.length === 1
+    ? `One ${state.name} payroll quirk worth knowing`
+    : `${numWord(facts.length).replace(/^./, (c) => c.toUpperCase())} ${state.name} payroll quirks worth knowing`;
+  return `<section class="prose"><h2>${h2}</h2><ul class="facts">${lis}</ul></section>`;
 }
 
 // Per-state OBBBA "no tax on tips / overtime" conformity block. Genuinely unique
@@ -865,21 +933,33 @@ function distinctiveFactsBlock(state, p) {
 function obbbaConformityBlock(state, obbba, year) {
   const e = obbba && obbba.states && obbba.states[state.slug];
   if (!e) return '';
-  const calcLinks =
-    `Estimate your own saving with the <a href="/overtime-tax-calculator/">No Tax on Overtime Calculator</a> ` +
-    `and the <a href="/tips-tax-calculator/">No Tax on Tips Calculator</a>.`;
-  const studyLink =
-    ` <a href="/data/overtime-tax-by-state/#state-${state.slug}">See how ${state.name} compares across all 50 states and DC →</a>`;
-  const tipsStudyLink =
-    ` <a href="/data/tips-tax-by-state/#state-${state.slug}">See where tips are still taxed in ${state.name} and every other state →</a>`;
+  // Boilerplate cut (was repeated near-verbatim on all 51 pages): one linked
+  // sentence for the federal rule, one compact sentence for the four links.
+  const calcLinks = 'Related: ' + orderAncillary(state.slug, [
+    `<a href="/overtime-tax-calculator/">overtime calculator</a>`,
+    `<a href="/tips-tax-calculator/">tips calculator</a>`,
+    `<a href="/data/overtime-tax-by-state/#state-${state.slug}">overtime by state</a>`,
+    `<a href="/data/tips-tax-by-state/#state-${state.slug}">tips by state</a>`
+  ]).join(' · ') + '.';
   const fed =
-    `<p>Under the federal One Big Beautiful Bill Act (2025), workers can deduct qualified <strong>overtime premium pay</strong> ` +
-    `(up to $12,500 single / $25,000 married filing jointly) and <strong>tips</strong> (up to $25,000) from federal income tax for ` +
-    `tax years 2025–2028. Those federal deductions apply to ${state.name} workers — Social Security and Medicare still apply.</p>`;
+    `<p>Qualified <strong>overtime premium pay</strong> and <strong>tips</strong> are federally deductible for 2025–2028 ` +
+    `(<a href="/data/overtime-tax-by-state/">OBBBA caps &amp; rules</a>); FICA still applies.</p>`;
+  // Verdict-keyed heading: the query stays, and the state's actual 2026
+  // treatment (from the sourced conformity data) is answered in the heading.
+  const otV = e.overtime && e.overtime.y2026, tipV = e.tips && e.tips.y2026;
+  let verdictTail;
+  if (!e.hasWageTax) verdictTail = `Federally yes — no ${state.name} wage tax anyway`;
+  else if (otV === 'yes' && tipV === 'yes') verdictTail = `Federally yes — and on the ${state.name} return too`;
+  else if (otV === 'no' && tipV === 'no') verdictTail = `Federally yes, but ${state.name} still taxes both`;
+  else if (otV === 'partial' && tipV === 'partial') verdictTail = `Federally yes; ${state.name} allows a smaller capped break`;
+  else if (otV === 'unclear' && tipV === 'unclear') verdictTail = `Federally yes; ${state.name}'s rules aren't confirmed yet`;
+  else verdictTail = `Federally yes; ${state.name}'s state treatment is mixed`;
+  const h2 = `Is overtime and tips tax-free in ${state.name}? ${verdictTail}`;
 
   if (!e.hasWageTax) {
-    return `<section class="prose"><h2>Is overtime and tips tax-free in ${state.name}?</h2>${fed}` +
-      `<p>${escHtml(e.note)} ${calcLinks}${studyLink}${tipsStudyLink}</p></section>`;
+    // The data note for no-wage-tax states restates what the heading already
+    // answers (identical sentence across all nine) — link out instead.
+    return `<section class="prose"><h2>${h2}</h2>${fed}<p>${calcLinks}</p></section>`;
   }
 
   const verdict = (v) => ({
@@ -895,10 +975,10 @@ function obbbaConformityBlock(state, obbba, year) {
     ? ` <span class="muted-small">(source: <a href="${escHtml(e.source)}" rel="nofollow noopener" target="_blank">${escHtml(srcHost)}</a>)</span>`
     : '';
 
-  return `<section class="prose"><h2>Is overtime and tips tax-free in ${state.name}?</h2>${fed}` +
+  return `<section class="prose"><h2>${h2}</h2>${fed}` +
     `<p><strong>${state.name} state income tax:</strong> ${escHtml(e.note)}${srcLink}</p>` +
     `<ul class="facts">${row('Overtime', e.overtime)}${row('Tips', e.tips)}</ul>` +
-    `<p>${calcLinks}${studyLink}${tipsStudyLink}</p></section>`;
+    `<p>${calcLinks}</p></section>`;
 }
 
 function sourcesBlock(state, p, meta) {
@@ -918,38 +998,94 @@ function sourcesBlock(state, p, meta) {
   if (meta && meta.sources) Object.values(meta.sources).forEach(add);
   if (!urls.size) return '';
   const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (_) { return u; } };
-  const lis = [...urls].map((u) => `<li><a href="${escHtml(u)}" rel="nofollow noopener" target="_blank">${escHtml(hostOf(u))}</a></li>`).join('');
-  return `<section class="sources"><h2>Sources</h2><p class="note">Figures on this page are drawn from official and authoritative sources:</p><ul>${lis}</ul></section>`;
+  // One entry per host (the list shows hostnames, so duplicate hosts read as
+  // repeated identical entries) — keep the first URL seen for each.
+  const byHost = new Map();
+  for (const u of urls) { const h = hostOf(u); if (!byHost.has(h)) byHost.set(h, u); }
+  const lis = [...byHost.entries()].map(([h, u]) => `<li><a href="${escHtml(u)}" rel="nofollow noopener" target="_blank">${escHtml(h)}</a></li>`).join('');
+  return `<section class="sources"><h2>Sources</h2><ul>${lis}</ul></section>`;
 }
 
-function faqJsonLd(state, year) {
-  const taxLine = state.hasIncomeTax
-    ? `federal income tax, Social Security, Medicare, and ${state.name} state income tax`
-    : `federal income tax, Social Security, and Medicare (${state.name} has no state income tax)`;
+// One state-UNIQUE FAQ entry, generated from that state's own sourced data.
+// The pick is keyed on data SALIENCE, not a hash: a real local wage tax is the
+// question a resident actually asks; failing that, the state's own payroll
+// programs; failing that, an above-federal minimum wage; else the state's most
+// distinctive payroll fact. Each answer carries that state's numbers.
+function stateUniqueFaq(state, p, year) {
+  const lt = p && p.localIncomeTax;
+  if (lt && lt.exists && lt.notes) {
+    return {
+      q: `Do cities or counties in ${state.name} take a local income tax out of paychecks?`,
+      a: String(lt.notes)
+    };
+  }
+  const pc = (p && p.payrollContributions) || [];
+  if (pc.length) {
+    const list = pc.map((it) => `${it.name} at ${it.employeeRate2026 || 'a state-set rate'}`).join('; ');
+    return {
+      q: `Besides income tax, what does ${state.name} deduct from paychecks?`,
+      a: `On top of federal tax and FICA, ${state.name} withholds ${list}. The full rates and wage caps are in the payroll-deductions table on this page.`
+    };
+  }
+  const mw = p && p.minWage2026;
+  if (mw && typeof mw.amountUsd === 'number' && mw.amountUsd > 7.25) {
+    return {
+      q: `What does a full-time minimum-wage job in ${state.name} pay in ${year}?`,
+      a: `${state.name}'s ${year} minimum wage is $${mw.amountUsd.toFixed(2)}/hour — about ${usd0(mw.amountUsd * 2080)} a year at 40 hours a week before taxes. Details and exceptions are in the minimum-wage section above.`
+    };
+  }
+  const df = (p && p.distinctiveFacts) || [];
+  if (df.length && df[0].fact) {
+    return {
+      q: `What is unusual about how ${state.name} handles payroll taxes?`,
+      a: String(df[0].fact)
+    };
+  }
+  return null;
+}
+
+// FAQ entries shared by the JSON-LD block and the visible FAQ section (Google
+// requires FAQ markup to reflect on-page content).
+function stateFaqEntries(state, p, year) {
+  // Data-keyed answer: states the structure (flat rate / bracket range / the
+  // state's actual funding model) rather than a shared yes/no template.
+  let a1;
+  const t = state.tax;
+  if (!state.hasIncomeTax || !t) {
+    const angle = NOTAX_ANGLE[state.slug];
+    a1 = `No — ${state.name} runs on ${angle || 'other taxes'}, not a wage tax.`;
+  } else if (t.type === 'flat') {
+    a1 = `Yes — a flat ${pctStr(t.rate)} on taxable wages in ${year}, on top of federal tax and FICA.`;
+  } else {
+    const b = (t.brackets && t.brackets.single) || [];
+    a1 = b.length
+      ? `Yes — ${numWord(b.length)} graduated brackets from ${pctStr(b[0].rate)} to ${pctStr(b[b.length - 1].rate)} in ${year}, on top of federal tax and FICA.`
+      : `Yes. ${state.name} levies a state income tax in ${year}, applied on top of federal tax and FICA.`;
+  }
+  const entries = [{ q: `Does ${state.name} have a state income tax in ${year}?`, a: a1 }];
+  const unique = stateUniqueFaq(state, p, year);
+  if (unique) entries.push(unique);
+  // Slug-stable order (JSON-LD and visible section share it via the caller).
+  return orderAncillary(state.slug, entries);
+}
+
+function faqJsonLd(entries) {
   return JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: [
-      {
-        '@type': 'Question',
-        name: `Does ${state.name} have a state income tax in ${year}?`,
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: state.hasIncomeTax
-            ? `Yes. ${state.name} levies a state income tax in ${year}, applied on top of federal tax and FICA.`
-            : `No. ${state.name} has no state income tax, so paychecks are reduced only by federal income tax and FICA (Social Security and Medicare).`
-        }
-      },
-      {
-        '@type': 'Question',
-        name: `How is take-home pay calculated in ${state.name}?`,
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: `Take-home pay is your gross wage minus ${taxLine}. Enter your salary or hourly rate, filing status, and pay frequency to see the estimate.`
-        }
-      }
-    ]
+    mainEntity: entries.map((e) => ({
+      '@type': 'Question',
+      name: e.q,
+      acceptedAnswer: { '@type': 'Answer', text: e.a }
+    }))
   });
+}
+
+function stateFaqBlock(state, entries) {
+  const items = entries
+    .map((e) => `<h3>${escHtml(e.q)}</h3><p>${escHtml(e.a)}</p>`)
+    .join('');
+  return `<section class="prose"><h2>${state.name} paycheck FAQ</h2>${items}</section>`;
 }
 
 // Per-page state grid. When currentSlug is given, EXCLUDE that state and order
@@ -1012,17 +1148,85 @@ const STATE_NEIGHBORS = {
   wyoming: ['colorado', 'montana', 'utah', 'idaho', 'south-dakota', 'nebraska']
 };
 
+// The (up to 3) neighbor states linked on a state page — shared by the link
+// grid and the section heading, so the heading can name the actual neighbors.
+function neighborStates(roster, builtSlugs, currentSlug) {
+  const bySlug = new Map(roster.map((s) => [s.slug, s]));
+  return (STATE_NEIGHBORS[currentSlug] || [])
+    .map((slug) => bySlug.get(slug))
+    .filter((s) => s && s.slug !== currentSlug && builtSlugs.has(s.slug))
+    .slice(0, 3);
+}
+
+// Data-keyed heading for the neighbor-links section: names the actual states.
+function neighborHeading(roster, builtSlugs, currentSlug) {
+  const names = neighborStates(roster, builtSlugs, currentSlug).map((s) => s.name);
+  if (!names.length) return 'More state paycheck calculators';
+  const last = names.pop();
+  return names.length
+    ? `Compare a paycheck next door: ${names.join(', ')} &amp; ${last}`
+    : `Compare a paycheck next door in ${last}`;
+}
+
+// Slug-stable ordering for the ancillary sections (min wage, distinctive facts,
+// other taxes, income context): the order differs page to page but is
+// deterministic per slug, so rebuilds are byte-stable. The core sequence
+// (answer block → calculator → explainer → brackets → payroll) never moves.
+function orderAncillary(slug, blocks) {
+  // NOTE: the varying index goes FIRST in the hashed string — FNV-1a only
+  // diffuses a character through the multiplications that FOLLOW it, so a
+  // trailing index yields near-identical keys and the same order everywhere.
+  return blocks
+    .map((v, i) => ({ v, k: slugHash(`anc${i}#${slug}`) }))
+    .sort((a, b) => a.k - b.k)
+    .map((x) => x.v);
+}
+
+// Neighbor take-home comparison: real numbers from the same engine + data, so
+// every page's table differs because the neighboring tax systems differ. The
+// structure column is in WORDS (flat / bracket-count / none), keeping the 51
+// pages genuinely distinct, not digit-swapped.
+function neighborCompareTable(roster, builtSlugs, currentSlug, taxData, year) {
+  const structPhrase = (st) => {
+    if (!st.hasIncomeTax || !st.tax) return 'no state income tax';
+    if (st.tax.type === 'flat') return `flat ${pctStr(st.tax.rate)}`;
+    const b = (st.tax.brackets && st.tax.brackets.single) || [];
+    return b.length ? `${numWord(b.length)} brackets, ${pctStr(b[0].rate)}–${pctStr(b[b.length - 1].rate)}` : 'graduated';
+  };
+  const net75 = (slug) => {
+    try {
+      const n = computePaycheck({ wage: { type: 'salary', amount: 75000 }, filingStatus: 'single', payFrequency: 'annual', stateSlug: slug }, taxData).annual.net;
+      return Number.isFinite(n) ? usd0(n) : null;
+    } catch (_) { return null; }
+  };
+  const cur = taxData.states[currentSlug];
+  const rows = [];
+  const pushRow = (st, slug, link) => {
+    const net = net75(slug);
+    if (!net) return;
+    const name = link ? `<a href="/${slug}-paycheck-calculator/">${esc(st.name)}</a>` : esc(st.name);
+    rows.push(`<tr><td>${name}</td><td>${structPhrase(st)}</td><td>${net}</td></tr>`);
+  };
+  if (cur) pushRow(cur, currentSlug, false);
+  const bySlug = new Map(roster.map((s) => [s.slug, s]));
+  for (const nslug of (STATE_NEIGHBORS[currentSlug] || [])) {
+    const n = bySlug.get(nslug);
+    if (!n || !builtSlugs.has(nslug)) continue;
+    const st = taxData.states[nslug];
+    if (st) pushRow(st, nslug, true);
+  }
+  if (rows.length < 2) return '';
+  return `<table class="data-table"><thead><tr><th>State</th><th>State income tax (${year})</th><th>Take-home on $75,000 (single)</th></tr></thead>` +
+    `<tbody>${rows.join('')}</tbody></table>`;
+}
+
 function stateLinks(roster, builtSlugs, currentSlug) {
   let items = roster.filter((s) => s.slug !== currentSlug);
   if (currentSlug) {
     // On a state page, link only 3 genuinely neighboring states (the full
     // 51-state directory lives on the homepage only — see relatedToolsBlock's
     // rationale: no sitewide link blocks on inner pages).
-    const bySlug = new Map(items.map((s) => [s.slug, s]));
-    items = (STATE_NEIGHBORS[currentSlug] || [])
-      .map((slug) => bySlug.get(slug))
-      .filter((s) => s && builtSlugs.has(s.slug))
-      .slice(0, 3);
+    items = neighborStates(roster, builtSlugs, currentSlug);
   }
   return items
     .map((s) => {
@@ -1307,13 +1511,25 @@ async function main() {
     const payload = stripInternal({ taxYear: taxData.taxYear, federal: taxData.federal, states: { [slug]: state } });
     // State pages relate to the paycheck/OBBBA cluster, not the full tool
     // directory: the 2 OBBBA calculators, the 2 data studies, salary-to-hourly.
-    const stateRelated = relatedLinksHtml([
+    const stateRelated = relatedLinksHtml(orderAncillary(slug, [
       { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
       { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
       { name: 'Overtime Tax by State (Data Study)', path: '/data/overtime-tax-by-state/' },
       { name: 'Tip Income Tax by State (Data Study)', path: '/data/tips-tax-by-state/' },
       { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' }
-    ]);
+    ]));
+    // Ancillary sections in a slug-stable per-state order (split around the
+    // in-content ad slot) — same content, page-specific skeleton. FAQ entries
+    // come first so the facts they consume aren't repeated in the quirks list.
+    const faqEntries = stateFaqEntries(state, p, year);
+    const ancillary = orderAncillary(slug, [
+      localTaxBlock(state, p),
+      minWageBlock(state, p, year),
+      distinctiveFactsBlock(state, p, faqEntries),
+      otherTaxesBlock(state, p),
+      incomeContextBlock(state, p, taxData)
+    ]).filter(Boolean);
+    const ancSplit = Math.ceil(ancillary.length / 2);
     const html = fill(stateTpl, {
       STATE_NAME: state.name,
       STATE_TITLE: stateTitle(state, year),
@@ -1336,18 +1552,20 @@ async function main() {
       FIGURE_BANNER: figureYearBanner(state, year),
       ANSWER_BLOCK: stateAnswerBlock(state, year, taxData),
       TARGET_INTRO: targetIntro(state, year),
+      STATE_LEDE: stateLede(state, year),
+      STATE_BODY_H2: stateBodyH2(state, year),
       STATE_BODY: stateBody(state, year, taxData),
       BRACKET_TABLE: bracketTableBlock(state, year),
       STATE_PAYROLL: payrollDeductionsBlock(state, p),
-      LOCAL_TAXES: localTaxBlock(state, p),
-      MIN_WAGE: minWageBlock(state, p, year),
-      OTHER_TAXES: otherTaxesBlock(state, p),
-      INCOME_CONTEXT: incomeContextBlock(state, p, taxData),
-      DISTINCTIVE_FACTS: distinctiveFactsBlock(state, p),
+      ANCILLARY_A: ancillary.slice(0, ancSplit).join('\n'),
+      ANCILLARY_B: ancillary.slice(ancSplit).join('\n'),
+      STATE_FAQ: stateFaqBlock(state, faqEntries),
       OBBBA_CONFORMITY: obbbaConformityBlock(state, obbba, year),
       SOURCES: sourcesBlock(state, p, taxData._meta),
       STATE_LINKS: stateLinks(roster, builtSlugs, slug),
-      FAQ_JSONLD: faqJsonLd(state, year),
+      NEIGHBOR_H2: neighborHeading(roster, builtSlugs, slug),
+      NEIGHBOR_COMPARE: neighborCompareTable(roster, builtSlugs, slug, taxData, year),
+      FAQ_JSONLD: faqJsonLd(faqEntries),
       TAX_DATA_JSON: JSON.stringify(payload),
       YEAR: year,
       VERIFIED: verified,

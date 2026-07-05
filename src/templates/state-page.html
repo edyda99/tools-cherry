@@ -27,7 +27,7 @@
   <div class="wrap">
     <h1>{{STATE_H1}}</h1>
     <p class="updated">Data compiled and maintained by <a href="/data/overtime-tax-by-state/#author">Edmond Daher</a> · Updated {{VERIFIED}}</p>
-    <p class="lede">Use this free {{STATE_NAME}} ({{STATE_ABBR}}) {{STATE_KEYWORD_PHRASE}} to estimate your {{YEAR}} take-home pay after federal income tax, Social Security, Medicare{{STATE_TAX_PHRASE}}.{{STATE_NOTAX_NOTE}}</p>
+    <p class="lede">{{STATE_LEDE}}</p>
     {{FIGURE_BANNER}}
     {{ANSWER_BLOCK}}
     {{TARGET_INTRO}}
@@ -156,26 +156,25 @@
     <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
 
     <section class="prose">
-      <h2>How {{STATE_NAME}} paychecks are taxed in {{YEAR}}</h2>
+      <h2>{{STATE_BODY_H2}}</h2>
       {{STATE_BODY}}
 
-      <p class="note">Estimates for general guidance only — not tax advice. This calculator approximates withholding using {{YEAR}} federal brackets, the standard deduction, and FICA. <strong>Simple</strong> mode covers wages, filing status and state tax; switch to <strong>Advanced</strong> to factor in pre-tax deductions (401(k), HSA/FSA, health premiums), dependent/W-4 credits, extra withholding and post-tax deductions. It still does not model local (city/county) taxes or itemized deductions. Verify with a tax professional or the IRS.</p>
+      <p class="note">Estimates only, not tax advice — our <a href="/terms/">terms</a> cover what's modeled.</p>
     </section>
 
     {{BRACKET_TABLE}}
     {{STATE_PAYROLL}}
-    {{LOCAL_TAXES}}
-    {{MIN_WAGE}}
-    {{DISTINCTIVE_FACTS}}
+    {{ANCILLARY_A}}
 
     <div class="ad-slot" data-ad="incontent">Advertisement</div>
 
     {{OBBBA_CONFORMITY}}
-    {{OTHER_TAXES}}
-    {{INCOME_CONTEXT}}
+    {{ANCILLARY_B}}
+    {{STATE_FAQ}}
 
     <section class="prose">
-      <h2>Neighboring state paycheck calculators</h2>
+      <h2>{{NEIGHBOR_H2}}</h2>
+      {{NEIGHBOR_COMPARE}}
       <div class="state-grid">{{STATE_LINKS}}</div>
       <p><a href="/#paycheck">All state paycheck calculators &rarr;</a></p>
     </section>
