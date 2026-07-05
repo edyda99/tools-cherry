@@ -9,7 +9,7 @@ export const STATIC_PAGES = [
     desc: 'How {{SITE_NAME}} handles data, cookies, and advertising.',
     robots: 'index, follow',
     body: `
-<p><em>Last updated: 2026.</em></p>
+<p><em>Last updated: July 5, 2026.</em></p>
 
 <p>{{SITE_NAME}} ("we", "us") operates {{SITE_URL}}. This page explains what information
 is collected when you use our free online tools, and how it is used.</p>
@@ -25,8 +25,9 @@ information (such as your IP address, browser type, referring page, and pages vi
 used to operate, secure, and improve the site.</p>
 
 <h2>Cookies and advertising</h2>
-<p>We display advertising to keep our tools free. Third-party vendors, including Google, use cookies
-to serve ads based on your prior visits to this and other websites.</p>
+<p>We display advertising served by <strong>Google AdSense</strong> to keep our tools free.
+Third-party vendors, including Google, use cookies to serve ads based on your prior visits to this
+and other websites.</p>
 <ul>
   <li>Google's use of advertising cookies enables it and its partners to serve ads to you based on
   your visits to this site and/or other sites on the Internet.</li>
@@ -53,7 +54,7 @@ parts of the site may not function as intended if you disable cookies.</p>
     desc: 'Terms governing use of {{SITE_NAME}} and its tools.',
     robots: 'index, follow',
     body: `
-<p><em>Last updated: 2026.</em></p>
+<p><em>Last updated: July 5, 2026.</em></p>
 
 <h2>Estimates only — not professional advice</h2>
 <p>The tools on {{SITE_NAME}}, including all paycheck and tax calculators, provide
