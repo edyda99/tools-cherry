@@ -78,87 +78,88 @@ const ORG_DESCRIPTION =
   'Free, fast, privacy-friendly online calculators and converters that run entirely in your browser — nothing is uploaded.';
 
 // --- Canonical tool list (single source of truth) ----------------------------
-// Drives the "More free tools" cross-link block injected on every tool page.
-// Add a tool here once and it appears in every other tool page's footer block.
+// Drives the "Related tools" cross-link block injected on every tool page.
+// `cat` mirrors the homepage grid sections (image / calc / money / make /
+// devtext) and is what relatedToolsBlock() uses to pick genuinely related
+// tools — money relates to money, text to text, etc.
 const TOOLS = [
-  { name: 'Image Resizer', path: '/resize-image/' },
-  { name: 'Image Format Converter', path: '/convert-image/' },
-  { name: 'Compress Image', path: '/compress-image/' },
-  { name: 'Crop Image Into Circle', path: '/crop-image-into-circle/' },
-  { name: 'Passport & ID Photo', path: '/passport-photo-maker/' },
-  { name: 'Images to PDF', path: '/images-to-pdf/' },
-  { name: 'PDF to Word', path: '/pdf-to-word/' },
-  { name: 'Signature Maker', path: '/signature-maker/' },
-  { name: 'Percentage Calculator', path: '/percentage-calculator/' },
-  { name: 'Tip & Bill Split', path: '/tip-calculator/' },
-  { name: 'Discount Calculator', path: '/discount-calculator/' },
-  { name: 'Paint Calculator', path: '/paint-calculator/' },
-  { name: 'Tile Calculator', path: '/tile-calculator/' },
-  { name: 'Sleep Calculator', path: '/sleep-calculator/' },
-  { name: 'Cooking Converter', path: '/cooking-converter/' },
-  { name: 'Recipe Scaler', path: '/recipe-scaler/' },
-  { name: 'Unit Converter', path: '/unit-converter/' },
-  { name: 'BMI Calculator', path: '/bmi-calculator/' },
-  { name: 'Calorie Calculator', path: '/calorie-calculator/' },
-  { name: 'Ideal Weight & Macro Calculator', path: '/ideal-weight-calculator/' },
-  { name: 'Running Pace Calculator', path: '/pace-calculator/' },
-  { name: 'Pregnancy Due Date Calculator', path: '/due-date-calculator/' },
-  { name: 'Ovulation Calculator', path: '/ovulation-calculator/' },
-  { name: 'GPA Calculator', path: '/gpa-calculator/' },
-  { name: 'Age Calculator', path: '/age-calculator/' },
-  { name: 'Days Between Dates', path: '/days-between-dates/' },
-  { name: 'Date Calculator (Add or Subtract)', path: '/date-calculator/' },
-  { name: 'Time Zone Converter', path: '/time-zone-converter/' },
-  { name: 'Holiday Countdown', path: '/holiday-countdown/' },
-  { name: 'Countdown Timer', path: '/countdown-timer/' },
-  { name: 'Stopwatch', path: '/stopwatch/' },
-  { name: 'Pomodoro Timer', path: '/pomodoro-timer/' },
-  { name: 'Mortgage Calculator', path: '/mortgage-calculator/' },
-  { name: 'Biweekly Mortgage Calculator', path: '/biweekly-mortgage-calculator/' },
-  { name: 'Auto Loan Calculator', path: '/auto-loan-calculator/' },
-  { name: 'Debt Payoff Calculator', path: '/debt-payoff-calculator/' },
-  { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' },
-  { name: 'CAGR Calculator', path: '/cagr-calculator/' },
-  { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
-  { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
-  { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
-  { name: '401(k) Retirement Calculator', path: '/401k-calculator/' },
-  { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/' },
-  { name: 'Inflation Calculator', path: '/inflation-calculator/' },
-  { name: 'Hours Calculator (Time Card)', path: '/hours-calculator/' },
-  { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
-  { name: 'Sales Tax Calculator', path: '/sales-tax-calculator/' },
-  { name: 'Gas Cost Calculator', path: '/gas-cost-calculator/' },
-  { name: 'Fuel Economy Calculator (MPG, L/100km)', path: '/fuel-economy-calculator/' },
-  { name: 'QR Code Generator', path: '/qr-code-generator/' },
-  { name: 'Password Generator', path: '/password-generator/' },
-  { name: 'Invoice Generator', path: '/invoice-generator/' },
-  { name: 'Word & Character Counter', path: '/word-counter/' },
-  { name: 'Lorem Ipsum Generator', path: '/lorem-ipsum-generator/' },
-  { name: 'Text Case Converter', path: '/text-case-converter/' },
-  { name: 'Bionic Reading Converter', path: '/bionic-reading-converter/' },
-  { name: 'Roman Numeral Converter', path: '/roman-numeral-converter/' },
-  { name: 'Binary, Hex & Decimal Converter', path: '/base-converter/' },
-  { name: 'Color Converter (HEX, RGB, HSL)', path: '/color-converter/' },
-  { name: 'JSON Formatter & Validator', path: '/json-formatter/' },
-  { name: 'Markdown to HTML Converter', path: '/markdown-to-html/' },
-  { name: 'UUID Generator', path: '/uuid-generator/' },
-  { name: 'Random Number Generator', path: '/random-number-generator/' },
-  { name: 'Text Diff Checker', path: '/diff-checker/' },
-  { name: 'Base64 Encode & Decode', path: '/base64-encode-decode/' },
-  { name: 'Aspect Ratio Calculator', path: '/aspect-ratio-calculator/' },
-  { name: 'Fraction Calculator', path: '/fraction-calculator/' },
-  { name: 'Average Calculator (Mean, Median, Mode)', path: '/average-calculator/' },
-  { name: 'Morse Code Translator', path: '/morse-code-translator/' },
-  { name: 'EZ Grader (Test Score Calculator)', path: '/ez-grader/' },
-  { name: 'Chronological Age Calculator', path: '/chronological-age-calculator/' },
-  { name: 'Debt Avalanche Calculator', path: '/debt-avalanche-calculator/' },
-  { name: 'Words to Minutes (Speech Time Calculator)', path: '/words-to-minutes/' },
-  { name: 'Double Time Pay Calculator', path: '/double-time-pay-calculator/' },
-  { name: 'Biweekly vs Semimonthly Paycheck Calculator', path: '/biweekly-vs-semimonthly/' },
-  { name: 'Half Birthday Calculator', path: '/half-birthday-calculator/' },
-  { name: 'Rule of 72 Calculator', path: '/rule-of-72-calculator/' },
-  { name: 'Paycheck Calculators', path: '/#paycheck' }
+  { name: 'Image Resizer', path: '/resize-image/', cat: 'image' },
+  { name: 'Image Format Converter', path: '/convert-image/', cat: 'image' },
+  { name: 'Compress Image', path: '/compress-image/', cat: 'image' },
+  { name: 'Crop Image Into Circle', path: '/crop-image-into-circle/', cat: 'image' },
+  { name: 'Passport & ID Photo', path: '/passport-photo-maker/', cat: 'image' },
+  { name: 'Images to PDF', path: '/images-to-pdf/', cat: 'image' },
+  { name: 'PDF to Word', path: '/pdf-to-word/', cat: 'image' },
+  { name: 'Signature Maker', path: '/signature-maker/', cat: 'make' },
+  { name: 'Percentage Calculator', path: '/percentage-calculator/', cat: 'calc' },
+  { name: 'Tip & Bill Split', path: '/tip-calculator/', cat: 'calc' },
+  { name: 'Discount Calculator', path: '/discount-calculator/', cat: 'calc' },
+  { name: 'Paint Calculator', path: '/paint-calculator/', cat: 'calc' },
+  { name: 'Tile Calculator', path: '/tile-calculator/', cat: 'calc' },
+  { name: 'Sleep Calculator', path: '/sleep-calculator/', cat: 'calc' },
+  { name: 'Cooking Converter', path: '/cooking-converter/', cat: 'calc' },
+  { name: 'Recipe Scaler', path: '/recipe-scaler/', cat: 'calc' },
+  { name: 'Unit Converter', path: '/unit-converter/', cat: 'calc' },
+  { name: 'BMI Calculator', path: '/bmi-calculator/', cat: 'calc' },
+  { name: 'Calorie Calculator', path: '/calorie-calculator/', cat: 'calc' },
+  { name: 'Ideal Weight & Macro Calculator', path: '/ideal-weight-calculator/', cat: 'calc' },
+  { name: 'Running Pace Calculator', path: '/pace-calculator/', cat: 'calc' },
+  { name: 'Pregnancy Due Date Calculator', path: '/due-date-calculator/', cat: 'calc' },
+  { name: 'Ovulation Calculator', path: '/ovulation-calculator/', cat: 'calc' },
+  { name: 'GPA Calculator', path: '/gpa-calculator/', cat: 'calc' },
+  { name: 'Age Calculator', path: '/age-calculator/', cat: 'calc' },
+  { name: 'Days Between Dates', path: '/days-between-dates/', cat: 'calc' },
+  { name: 'Date Calculator (Add or Subtract)', path: '/date-calculator/', cat: 'calc' },
+  { name: 'Time Zone Converter', path: '/time-zone-converter/', cat: 'calc' },
+  { name: 'Holiday Countdown', path: '/holiday-countdown/', cat: 'calc' },
+  { name: 'Countdown Timer', path: '/countdown-timer/', cat: 'calc' },
+  { name: 'Stopwatch', path: '/stopwatch/', cat: 'calc' },
+  { name: 'Pomodoro Timer', path: '/pomodoro-timer/', cat: 'calc' },
+  { name: 'Mortgage Calculator', path: '/mortgage-calculator/', cat: 'money' },
+  { name: 'Biweekly Mortgage Calculator', path: '/biweekly-mortgage-calculator/', cat: 'money' },
+  { name: 'Auto Loan Calculator', path: '/auto-loan-calculator/', cat: 'money' },
+  { name: 'Debt Payoff Calculator', path: '/debt-payoff-calculator/', cat: 'money' },
+  { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/', cat: 'money' },
+  { name: 'CAGR Calculator', path: '/cagr-calculator/', cat: 'money' },
+  { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/', cat: 'money' },
+  { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/', cat: 'money' },
+  { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/', cat: 'money' },
+  { name: '401(k) Retirement Calculator', path: '/401k-calculator/', cat: 'money' },
+  { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/', cat: 'money' },
+  { name: 'Inflation Calculator', path: '/inflation-calculator/', cat: 'money' },
+  { name: 'Hours Calculator (Time Card)', path: '/hours-calculator/', cat: 'money' },
+  { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/', cat: 'money' },
+  { name: 'Sales Tax Calculator', path: '/sales-tax-calculator/', cat: 'money' },
+  { name: 'Gas Cost Calculator', path: '/gas-cost-calculator/', cat: 'money' },
+  { name: 'Fuel Economy Calculator (MPG, L/100km)', path: '/fuel-economy-calculator/', cat: 'money' },
+  { name: 'QR Code Generator', path: '/qr-code-generator/', cat: 'make' },
+  { name: 'Password Generator', path: '/password-generator/', cat: 'make' },
+  { name: 'Invoice Generator', path: '/invoice-generator/', cat: 'make' },
+  { name: 'Word & Character Counter', path: '/word-counter/', cat: 'make' },
+  { name: 'Lorem Ipsum Generator', path: '/lorem-ipsum-generator/', cat: 'devtext' },
+  { name: 'Text Case Converter', path: '/text-case-converter/', cat: 'devtext' },
+  { name: 'Bionic Reading Converter', path: '/bionic-reading-converter/', cat: 'devtext' },
+  { name: 'Roman Numeral Converter', path: '/roman-numeral-converter/', cat: 'calc' },
+  { name: 'Binary, Hex & Decimal Converter', path: '/base-converter/', cat: 'devtext' },
+  { name: 'Color Converter (HEX, RGB, HSL)', path: '/color-converter/', cat: 'devtext' },
+  { name: 'JSON Formatter & Validator', path: '/json-formatter/', cat: 'devtext' },
+  { name: 'Markdown to HTML Converter', path: '/markdown-to-html/', cat: 'devtext' },
+  { name: 'UUID Generator', path: '/uuid-generator/', cat: 'devtext' },
+  { name: 'Random Number Generator', path: '/random-number-generator/', cat: 'calc' },
+  { name: 'Text Diff Checker', path: '/diff-checker/', cat: 'devtext' },
+  { name: 'Base64 Encode & Decode', path: '/base64-encode-decode/', cat: 'devtext' },
+  { name: 'Aspect Ratio Calculator', path: '/aspect-ratio-calculator/', cat: 'calc' },
+  { name: 'Fraction Calculator', path: '/fraction-calculator/', cat: 'calc' },
+  { name: 'Average Calculator (Mean, Median, Mode)', path: '/average-calculator/', cat: 'calc' },
+  { name: 'Morse Code Translator', path: '/morse-code-translator/', cat: 'devtext' },
+  { name: 'EZ Grader (Test Score Calculator)', path: '/ez-grader/', cat: 'calc' },
+  { name: 'Chronological Age Calculator', path: '/chronological-age-calculator/', cat: 'calc' },
+  { name: 'Debt Avalanche Calculator', path: '/debt-avalanche-calculator/', cat: 'money' },
+  { name: 'Words to Minutes (Speech Time Calculator)', path: '/words-to-minutes/', cat: 'make' },
+  { name: 'Double Time Pay Calculator', path: '/double-time-pay-calculator/', cat: 'money' },
+  { name: 'Biweekly vs Semimonthly Paycheck Calculator', path: '/biweekly-vs-semimonthly/', cat: 'money' },
+  { name: 'Half Birthday Calculator', path: '/half-birthday-calculator/', cat: 'calc' },
+  { name: 'Rule of 72 Calculator', path: '/rule-of-72-calculator/', cat: 'money' }
 ];
 
 // One-line, plain-language descriptions per tool path, used to generate
@@ -247,20 +248,77 @@ const TOOL_DESCRIPTIONS = {
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-// Build the "More free tools" cross-link block, excluding the current page's
-// own path so a tool never links to itself.
-function moreToolsBlock(currentPath) {
-  const links = TOOLS.filter((t) => t.path !== currentPath)
+// Hand-picked related links for pages that aren't in TOOLS (data studies, the
+// embed gallery). Keyed by currentPath.
+const RELATED_OVERRIDES = {
+  '/data/overtime-tax-by-state/': [
+    { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
+    { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
+    { name: 'Tip Income Tax by State (Data Study)', path: '/data/tips-tax-by-state/' },
+    { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
+    { name: 'Double Time Pay Calculator', path: '/double-time-pay-calculator/' },
+    { name: 'Hours Calculator (Time Card)', path: '/hours-calculator/' },
+    { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' }
+  ],
+  '/data/tips-tax-by-state/': [
+    { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
+    { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
+    { name: 'Overtime Tax by State (Data Study)', path: '/data/overtime-tax-by-state/' },
+    { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
+    { name: 'Tip & Bill Split', path: '/tip-calculator/' },
+    { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
+    { name: 'Biweekly vs Semimonthly Paycheck Calculator', path: '/biweekly-vs-semimonthly/' }
+  ],
+  '/embed/': [
+    { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
+    { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
+    { name: 'Overtime Tax by State (Data Study)', path: '/data/overtime-tax-by-state/' },
+    { name: 'Tip Income Tax by State (Data Study)', path: '/data/tips-tax-by-state/' },
+    { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
+    { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' }
+  ]
+};
+
+// Same-category fallback when a category is too small to fill the block.
+const CAT_FALLBACK = { image: 'make', make: 'devtext', devtext: 'make', calc: 'money', money: 'calc' };
+
+// Shared renderer: a compact "Related tools" section (6-8 genuinely related
+// links + one "All tools" link to the homepage directory). Replaces the old
+// full ~80-link "More free tools" directory, which now lives ONLY on the
+// homepage grid — inner pages no longer carry a sitewide link block.
+function relatedLinksHtml(picks) {
+  const links = picks
     .map((t) => `      <a href="${t.path}">${esc(t.name)}</a>`)
     .join('\n');
   return (
-    `<section class="more-tools" aria-label="More free tools">\n` +
+    `<section class="more-tools" aria-label="Related tools">\n` +
     `  <div class="wrap">\n` +
-    `    <h2>More free tools</h2>\n` +
-    `    <div class="more-tools-grid">\n${links}\n    </div>\n` +
+    `    <h2>Related tools</h2>\n` +
+    `    <div class="more-tools-grid">\n${links}\n      <a href="/">All tools &rarr;</a>\n    </div>\n` +
     `  </div>\n` +
     `</section>\n`
   );
+}
+
+// Pick 6-8 related tools for a tool page: same homepage category as the current
+// tool, deterministically shuffled per page (slugHash) so different pages don't
+// all show the identical subset; padded from a sibling category when small.
+function relatedToolsBlock(currentPath) {
+  if (RELATED_OVERRIDES[currentPath]) return relatedLinksHtml(RELATED_OVERRIDES[currentPath]);
+  const cur = TOOLS.find((t) => t.path === currentPath);
+  const cat = cur ? cur.cat : 'calc';
+  const shuffled = (arr) =>
+    arr
+      .map((t) => ({ t, k: slugHash(t.path + currentPath) }))
+      .sort((a, b) => a.k - b.k)
+      .map((x) => x.t);
+  let picks = shuffled(TOOLS.filter((t) => t.cat === cat && t.path !== currentPath)).slice(0, 7);
+  if (picks.length < 6) {
+    picks = picks.concat(
+      shuffled(TOOLS.filter((t) => t.cat === CAT_FALLBACK[cat] && t.path !== currentPath)).slice(0, 7 - picks.length)
+    );
+  }
+  return relatedLinksHtml(picks);
 }
 
 const read = (p) => readFile(p, 'utf8');
@@ -411,11 +469,11 @@ function fill(tpl, map) {
 }
 
 // fill() for tool pages: same as fill(), then injects the centralized
-// "More free tools" block just before the site footer. Only tool-page writes
+// "Related tools" block just before the site footer. Only tool-page writes
 // call this, so the homepage and legal/static pages stay untouched.
 function fillTool(tpl, map, currentPath) {
   let out = fill(tpl, map);
-  out = out.replace('<footer class="site">', `${moreToolsBlock(currentPath)}\n<footer class="site">`);
+  out = out.replace('<footer class="site">', `${relatedToolsBlock(currentPath)}\n<footer class="site">`);
   return out;
 }
 
@@ -875,13 +933,73 @@ function faqJsonLd(state, year) {
 // the rest by a stable per-page shuffle (seeded by currentSlug) so the anchor
 // block is no longer byte-identical across the 51 pages. currentSlug null (home)
 // keeps the full roster in natural order.
+// Geographic neighbors per state (first 3 are used on that state's page).
+// AK/HI have no land borders — nearest/most-relevant states are listed instead.
+const STATE_NEIGHBORS = {
+  alabama: ['georgia', 'tennessee', 'mississippi', 'florida'],
+  alaska: ['washington', 'oregon', 'hawaii'],
+  arizona: ['california', 'nevada', 'new-mexico', 'utah'],
+  arkansas: ['texas', 'tennessee', 'missouri', 'oklahoma'],
+  california: ['nevada', 'oregon', 'arizona'],
+  colorado: ['utah', 'kansas', 'wyoming', 'new-mexico'],
+  connecticut: ['new-york', 'massachusetts', 'rhode-island'],
+  delaware: ['maryland', 'pennsylvania', 'new-jersey'],
+  'district-of-columbia': ['maryland', 'virginia', 'pennsylvania'],
+  florida: ['georgia', 'alabama', 'south-carolina'],
+  georgia: ['florida', 'south-carolina', 'tennessee', 'alabama'],
+  hawaii: ['california', 'washington', 'alaska'],
+  idaho: ['washington', 'utah', 'montana', 'oregon'],
+  illinois: ['indiana', 'wisconsin', 'missouri', 'iowa'],
+  indiana: ['illinois', 'ohio', 'michigan', 'kentucky'],
+  iowa: ['illinois', 'minnesota', 'nebraska', 'missouri'],
+  kansas: ['missouri', 'oklahoma', 'colorado', 'nebraska'],
+  kentucky: ['tennessee', 'ohio', 'indiana', 'west-virginia'],
+  louisiana: ['texas', 'mississippi', 'arkansas'],
+  maine: ['new-hampshire', 'massachusetts', 'vermont'],
+  maryland: ['virginia', 'district-of-columbia', 'pennsylvania', 'delaware'],
+  massachusetts: ['new-hampshire', 'connecticut', 'rhode-island', 'new-york'],
+  michigan: ['ohio', 'indiana', 'wisconsin', 'illinois'],
+  minnesota: ['wisconsin', 'iowa', 'north-dakota', 'south-dakota'],
+  mississippi: ['louisiana', 'alabama', 'tennessee', 'arkansas'],
+  missouri: ['kansas', 'illinois', 'arkansas', 'tennessee'],
+  montana: ['idaho', 'wyoming', 'north-dakota', 'south-dakota'],
+  nebraska: ['iowa', 'kansas', 'colorado', 'south-dakota'],
+  nevada: ['california', 'arizona', 'utah', 'oregon'],
+  'new-hampshire': ['massachusetts', 'maine', 'vermont'],
+  'new-jersey': ['new-york', 'pennsylvania', 'delaware'],
+  'new-mexico': ['texas', 'arizona', 'colorado', 'oklahoma'],
+  'new-york': ['new-jersey', 'pennsylvania', 'connecticut', 'massachusetts'],
+  'north-carolina': ['south-carolina', 'virginia', 'tennessee', 'georgia'],
+  'north-dakota': ['minnesota', 'south-dakota', 'montana'],
+  ohio: ['pennsylvania', 'michigan', 'indiana', 'kentucky'],
+  oklahoma: ['texas', 'kansas', 'arkansas', 'new-mexico'],
+  oregon: ['washington', 'california', 'idaho', 'nevada'],
+  pennsylvania: ['new-york', 'new-jersey', 'ohio', 'maryland'],
+  'rhode-island': ['massachusetts', 'connecticut', 'new-york'],
+  'south-carolina': ['north-carolina', 'georgia', 'tennessee'],
+  'south-dakota': ['north-dakota', 'nebraska', 'minnesota', 'iowa'],
+  tennessee: ['georgia', 'kentucky', 'north-carolina', 'alabama'],
+  texas: ['oklahoma', 'louisiana', 'new-mexico', 'arkansas'],
+  utah: ['colorado', 'nevada', 'arizona', 'idaho'],
+  vermont: ['new-hampshire', 'new-york', 'massachusetts'],
+  virginia: ['maryland', 'north-carolina', 'district-of-columbia', 'west-virginia'],
+  washington: ['oregon', 'idaho', 'california'],
+  'west-virginia': ['virginia', 'ohio', 'pennsylvania', 'kentucky'],
+  wisconsin: ['minnesota', 'illinois', 'michigan', 'iowa'],
+  wyoming: ['colorado', 'montana', 'utah', 'idaho', 'south-dakota', 'nebraska']
+};
+
 function stateLinks(roster, builtSlugs, currentSlug) {
   let items = roster.filter((s) => s.slug !== currentSlug);
   if (currentSlug) {
-    items = items
-      .map((s) => ({ s, k: slugHash(s.slug + currentSlug) }))
-      .sort((a, b) => a.k - b.k)
-      .map((x) => x.s);
+    // On a state page, link only 3 genuinely neighboring states (the full
+    // 51-state directory lives on the homepage only — see relatedToolsBlock's
+    // rationale: no sitewide link blocks on inner pages).
+    const bySlug = new Map(items.map((s) => [s.slug, s]));
+    items = (STATE_NEIGHBORS[currentSlug] || [])
+      .map((slug) => bySlug.get(slug))
+      .filter((s) => s && builtSlugs.has(s.slug))
+      .slice(0, 3);
   }
   return items
     .map((s) => {
@@ -1164,6 +1282,15 @@ async function main() {
     const p = payroll[slug];
     // per-page payload: federal + only this state (keeps embedded JSON small)
     const payload = stripInternal({ taxYear: taxData.taxYear, federal: taxData.federal, states: { [slug]: state } });
+    // State pages relate to the paycheck/OBBBA cluster, not the full tool
+    // directory: the 2 OBBBA calculators, the 2 data studies, salary-to-hourly.
+    const stateRelated = relatedLinksHtml([
+      { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
+      { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
+      { name: 'Overtime Tax by State (Data Study)', path: '/data/overtime-tax-by-state/' },
+      { name: 'Tip Income Tax by State (Data Study)', path: '/data/tips-tax-by-state/' },
+      { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' }
+    ]);
     const html = fill(stateTpl, {
       STATE_NAME: state.name,
       STATE_TITLE: stateTitle(state, year),
@@ -1206,7 +1333,10 @@ async function main() {
     });
     const dir = join(DIST, `${slug}-paycheck-calculator`);
     await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, 'index.html'), html);
+    await writeFile(
+      join(dir, 'index.html'),
+      html.replace('<footer class="site">', `${stateRelated}\n<footer class="site">`)
+    );
     urls.push(`${SITE.url}/${slug}-paycheck-calculator/`);
   }
 
