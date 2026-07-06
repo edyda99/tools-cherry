@@ -2258,8 +2258,9 @@ async function main() {
   {
     const esc = (s) => String(s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    const STUDY_DATE_ISO = '2026-07-02';
-    const STUDY_DATE_HUMAN = 'July 2, 2026';
+    const STUDY_PUBLISHED_ISO = '2026-07-02';
+    const STUDY_UPDATED_ISO = '2026-07-07';
+    const STUDY_DATE_HUMAN = 'July 7, 2026';
     const OT_LABEL = {
       no: { txt: 'Still taxed', cls: 'v-no', rank: 1 },
       partial: { txt: 'Partial', cls: 'v-partial', rank: 2 },
@@ -2313,7 +2314,7 @@ async function main() {
       '@context': 'https://schema.org', '@type': 'Article',
       headline: 'Which States Still Tax Overtime in 2026?',
       description: `A state-by-state analysis of which US states still tax overtime pay in 2026 after the federal One Big Beautiful Bill Act deduction. ${cnt.no} jurisdictions still tax it; ${cnt.yes} make it effectively tax-free; ${cnt.nowage} have no wage income tax.`,
-      datePublished: STUDY_DATE_ISO, dateModified: STUDY_DATE_ISO,
+      datePublished: STUDY_PUBLISHED_ISO, dateModified: STUDY_UPDATED_ISO,
       author: { '@type': 'Person', '@id': `${SITE.url}/#edmond-daher`, name: 'Edmond Daher', url: `${SITE.url}/about/` },
       publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
       mainEntityOfPage: `${SITE.url}/data/overtime-tax-by-state/`,
@@ -2368,8 +2369,9 @@ async function main() {
   {
     const esc = (s) => String(s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    const STUDY_DATE_ISO = '2026-07-02';
-    const STUDY_DATE_HUMAN = 'July 2, 2026';
+    const STUDY_PUBLISHED_ISO = '2026-07-02';
+    const STUDY_UPDATED_ISO = '2026-07-07';
+    const STUDY_DATE_HUMAN = 'July 7, 2026';
     const TP_LABEL = {
       no: { txt: 'Still taxed', cls: 'v-no', rank: 1 },
       partial: { txt: 'Partial', cls: 'v-partial', rank: 2 },
@@ -2423,7 +2425,7 @@ async function main() {
       '@context': 'https://schema.org', '@type': 'Article',
       headline: 'Which States Still Tax Tips in 2026?',
       description: `A state-by-state analysis of which US states still tax tip income in 2026 after the federal One Big Beautiful Bill Act deduction. ${cnt.no} jurisdictions still tax it; ${cnt.yes} make it effectively tax-free; ${cnt.nowage} have no wage income tax.`,
-      datePublished: STUDY_DATE_ISO, dateModified: STUDY_DATE_ISO,
+      datePublished: STUDY_PUBLISHED_ISO, dateModified: STUDY_UPDATED_ISO,
       author: { '@type': 'Person', '@id': `${SITE.url}/#edmond-daher`, name: 'Edmond Daher', url: `${SITE.url}/about/` },
       publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
       mainEntityOfPage: `${SITE.url}/data/tips-tax-by-state/`,

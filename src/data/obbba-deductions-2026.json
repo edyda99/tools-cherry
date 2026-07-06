@@ -1,7 +1,7 @@
 {
   "_meta": {
     "description": "Federal OBBBA (One Big Beautiful Bill Act, P.L. 119-21) 'no tax on tips' (IRC §224) and 'no tax on overtime' (IRC §225) above-the-line deduction parameters, plus per-state conformity (does the state income tax also allow the federal deduction). Drives /tips-tax-calculator and /overtime-tax-calculator and the state-page conformity blocks. Figures are FIXED statutory amounts for tax years 2025–2028 (not inflation-indexed).",
-    "lastSourced": "2026-07-02",
+    "lastSourced": "2026-07-07",
     "computationGuidance": "IRS Notice 2025-69",
     "confidence": "high — federal figures double-researched and adversarially verified (0 of 21 refute attempts succeeded)"
   },
@@ -253,10 +253,10 @@
       },
       "tips": {
         "y2025": "no",
-        "y2026": "no"
+        "y2026": "yes"
       },
-      "note": "New York has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
-      "source": "https://www.osc.ny.gov/files/reports/pdf/tax-provisions-under-the-federal-reconciliation-bill.pdf"
+      "note": "New York adopted its own 'no tax on tips' break in the FY2027 budget (signed May 28, 2026): up to $25,000 of tipped income is excluded from New York State income tax for tax years beginning in and after 2026, mirroring the federal rule. Overtime was NOT included — the federal overtime deduction reduces your federal tax only, and 2025 tips got no state relief.",
+      "source": "https://www.budget.ny.gov/pubs/press/2026/fy27-enacted-signed.html"
     },
     "virginia": {
       "name": "Virginia",
@@ -549,8 +549,8 @@
         "y2025": "no",
         "y2026": "partial"
       },
-      "note": "Georgia decouples from the full federal deductions. For 2026 it offers a smaller capped state exclusion (HB463, up to ~$1,750), not the full federal amount.",
-      "source": "https://www.bdo.com/insights/tax/georgia-enacts-important-salt-bills-several-others-await-kemps-signature"
+      "note": "Georgia decouples from the full federal deductions. For tax years 2026 through 2028 it offers a smaller capped state exclusion instead (HB 463, signed May 11, 2026: up to $1,750 of qualified overtime and $1,750 of cash tips), not the full federal amount.",
+      "source": "https://gov.georgia.gov/press-releases/2026-05-11/gov-kemp-signs-legislation-lowering-taxes-and-supporting-economic-growth"
     },
     "louisiana": {
       "name": "Louisiana",
@@ -795,14 +795,14 @@
       "hasWageTax": true,
       "overtime": {
         "y2025": "no",
-        "y2026": "no"
+        "y2026": "partial"
       },
       "tips": {
         "y2025": "no",
         "y2026": "no"
       },
-      "note": "Alabama has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
-      "source": "https://www.revenue.alabama.gov/notice-overtime-exemption-ends-june-30-2025/"
+      "note": "Alabama does not conform to the full federal overtime deduction, but HB 527 (signed April 16, 2026) allows a smaller capped state deduction of up to $1,000 of qualified overtime compensation for tax years 2026–2028. Tips got no state relief — the federal tips deduction reduces your federal tax only. (Alabama's own earlier full overtime exemption ended June 30, 2025.)",
+      "source": "https://governor.alabama.gov/newsroom/2026/04/governor-ivey-signs-bill-to-provide-tax-relief-to-hardworking-alabamians/"
     },
     "south-carolina": {
       "name": "South Carolina",
