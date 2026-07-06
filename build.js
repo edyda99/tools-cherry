@@ -124,6 +124,7 @@ const TOOLS = [
   { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/', cat: 'money' },
   { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/', cat: 'money' },
   { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/', cat: 'money' },
+  { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/', cat: 'money' },
   { name: '401(k) Retirement Calculator', path: '/401k-calculator/', cat: 'money' },
   { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/', cat: 'money' },
   { name: 'Inflation Calculator', path: '/inflation-calculator/', cat: 'money' },
@@ -216,6 +217,7 @@ const TOOL_DESCRIPTIONS = {
   '/1099-vs-w2-calculator/': 'Compare 1099 contractor versus W-2 employee take-home pay.',
   '/overtime-tax-calculator/': 'See how much of your overtime is deductible under the 2025 "no tax on overtime" law and what it saves you.',
   '/tips-tax-calculator/': 'See how much of your tips are deductible under the 2025 "no tax on tips" law (up to $25,000) and what it saves you.',
+  '/senior-deduction-calculator/': 'Calculate the 2025 law\'s $6,000 senior bonus deduction for people 65+ — the "no tax on Social Security" break — and what it saves you.',
   '/401k-calculator/': 'Project 401(k) retirement balance from contributions, match, and growth.',
   '/savings-goal-calculator/': 'Find how much to save each month to reach a savings goal.',
   '/inflation-calculator/': 'See how the buying power of a US dollar changes over time.',
@@ -251,6 +253,15 @@ const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, 
 // Hand-picked related links for pages that aren't in TOOLS (data studies, the
 // embed gallery). Keyed by currentPath.
 const RELATED_OVERRIDES = {
+  '/senior-deduction-calculator/': [
+    { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
+    { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
+    { name: '401(k) Retirement Calculator', path: '/401k-calculator/' },
+    { name: 'Inflation Calculator', path: '/inflation-calculator/' },
+    { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' },
+    { name: 'Age Calculator', path: '/age-calculator/' },
+    { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/' }
+  ],
   '/data/overtime-tax-by-state/': [
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
@@ -272,6 +283,7 @@ const RELATED_OVERRIDES = {
   '/embed/': [
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
+    { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
     { name: 'Overtime Tax by State (Data Study)', path: '/data/overtime-tax-by-state/' },
     { name: 'Tip Income Tax by State (Data Study)', path: '/data/tips-tax-by-state/' },
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
@@ -1324,6 +1336,8 @@ async function main() {
   const tipsTaxTpl = await read(join(SRC, 'templates', 'tips-tax-calculator.html'));
   const embedOvertimeTpl = await read(join(SRC, 'templates', 'embed', 'overtime-tax-calculator.html'));
   const embedTipsTpl = await read(join(SRC, 'templates', 'embed', 'tips-tax-calculator.html'));
+  const seniorTaxTpl = await read(join(SRC, 'templates', 'senior-deduction-calculator.html'));
+  const embedSeniorTpl = await read(join(SRC, 'templates', 'embed', 'senior-deduction-calculator.html'));
   const embedGalleryTpl = await read(join(SRC, 'templates', 'embed-gallery.html'));
   const overtimeStudyTpl = await read(join(SRC, 'templates', 'data-overtime-tax-by-state.html'));
   const tipsStudyTpl = await read(join(SRC, 'templates', 'data-tips-tax-by-state.html'));
@@ -1496,6 +1510,7 @@ async function main() {
   await cp(join(SRC, 'engine', 'obbba-deduction.js'), join(DIST, 'assets', 'obbba-deduction.js'));
   await cp(join(SRC, 'assets', 'overtime-tax-calculator.js'), join(DIST, 'assets', 'overtime-tax-calculator.js'));
   await cp(join(SRC, 'assets', 'tips-tax-calculator.js'), join(DIST, 'assets', 'tips-tax-calculator.js'));
+  await cp(join(SRC, 'assets', 'senior-deduction-calculator.js'), join(DIST, 'assets', 'senior-deduction-calculator.js'));
   await cp(join(SRC, 'assets', 'embed-gallery.js'), join(DIST, 'assets', 'embed-gallery.js'));
   await cp(join(SRC, 'engine', 'employment-tax.js'), join(DIST, 'assets', 'employment-tax.js'));
   await cp(join(SRC, 'assets', 'biweekly-mortgage-calculator.js'), join(DIST, 'assets', 'biweekly-mortgage-calculator.js'));
@@ -2226,6 +2241,16 @@ async function main() {
   );
   urls.push(`${SITE.url}/tips-tax-calculator/`);
 
+  // OBBBA senior bonus deduction (IRC §151(d)(5)(C)) calculator — the $6,000
+  // deduction for 65+ marketed as "no tax on Social Security". No state-conformity
+  // selector: it flows to states only via federal taxable income (static note in-page).
+  await mkdir(join(DIST, 'senior-deduction-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'senior-deduction-calculator', 'index.html'),
+    fillTool(seniorTaxTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON }, '/senior-deduction-calculator/')
+  );
+  urls.push(`${SITE.url}/senior-deduction-calculator/`);
+
   // OBBBA "which states still tax overtime in 2026" DATA STUDY (/data/overtime-tax-by-state/).
   // A citable, author-bylined data asset for the journalist link sprint. The table is
   // rendered server-side from the SAME sourced obbba dataset the calculators use, so the
@@ -2457,6 +2482,8 @@ async function main() {
   await writeFile(join(DIST, 'embed', 'overtime-tax-calculator', 'index.html'), fillEmbed(embedOvertimeTpl));
   await mkdir(join(DIST, 'embed', 'tips-tax-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'tips-tax-calculator', 'index.html'), fillEmbed(embedTipsTpl));
+  await mkdir(join(DIST, 'embed', 'senior-deduction-calculator'), { recursive: true });
+  await writeFile(join(DIST, 'embed', 'senior-deduction-calculator', 'index.html'), fillEmbed(embedSeniorTpl));
   // Indexable embed gallery (fillTool is fine here — real page, benefits from schema
   // + the More-tools cross-links). This one IS in the sitemap.
   await writeFile(join(DIST, 'embed', 'index.html'), fillTool(embedGalleryTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/embed/'));

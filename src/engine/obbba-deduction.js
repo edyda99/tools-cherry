@@ -82,6 +82,93 @@ export function overtimePremium(regularRate, overtimeHours) {
   return 0.5 * r * h;
 }
 
+// ---------------------------------------------------------------------------
+// OBBBA "senior bonus" deduction (IRC §151(d)(5)(C), added by OBBBA §70103) —
+// the $6,000-per-person deduction for taxpayers 65+ that is widely (and
+// wrongly) marketed as "no tax on Social Security". Unlike tips/overtime it is
+// BELOW the line, per-PERSON, phases out CONTINUOUSLY at 6% of the MAGI excess
+// (no $1,000 steps), and is denied outright to married-filing-separately.
+// Parameters live in obbba-deductions-2026.json federal.senior.
+
+/**
+ * The senior deduction for one return.
+ * Rules (statute + Schedule 1-A): $6,000 per qualified individual (65 by the
+ * end of the tax year, work-eligible SSN); married must file jointly (MFS = 0);
+ * the PER-PERSON $6,000 is reduced by 6% of MAGI over $75,000 ($150,000 for a
+ * joint return — all other statuses, incl. QSS/HoH, use $75,000), never below
+ * zero; tax years 2025–2028 only, not indexed.
+ *
+ * @param {object} a
+ * @param {number}  a.year          tax year (deduction exists 2025–2028)
+ * @param {string}  a.filingStatus  'single' | 'married' (MFJ) | 'married_separate' | 'head_of_household' | 'qss'
+ * @param {boolean} a.age65         taxpayer is 65+ by Dec 31 of the tax year
+ * @param {boolean} a.spouseAge65   spouse is 65+ by Dec 31 (only counts when MFJ)
+ * @param {number}  a.magi          modified AGI (AGI + §911/§931/§933 exclusions)
+ * @param {object}  a.params        obbba.federal.senior
+ * @returns {{eligibleCount:number, threshold:number, excess:number,
+ *   perPersonReduction:number, deductionBeforePhaseout:number,
+ *   phaseoutReduction:number, deduction:number, phasedOut:boolean,
+ *   fullyPhasedOut:boolean, notes:string[]}}
+ */
+export function seniorDeduction({ year, filingStatus, age65, spouseAge65, magi, params }) {
+  const amount = params.amountPerPerson;
+  const threshold = pick(params.phaseoutStartMagi, filingStatus);
+  const m = Math.max(0, magi || 0);
+  const excess = Math.max(0, m - threshold);
+  const perPersonReduction = Math.min(amount, params.phaseoutRate * excess);
+
+  const notes = [];
+  let eligibleCount = (age65 ? 1 : 0) + (filingStatus === 'married' && spouseAge65 ? 1 : 0);
+  if (year < params.firstYear || year > params.lastYear) {
+    eligibleCount = 0;
+    notes.push('not_in_effect'); // Sec. 70103(c): taxable years 2025–2028 only
+  } else if (filingStatus === 'married_separate') {
+    eligibleCount = 0;
+    notes.push('mfs_denied'); // clause (v): married taxpayers must file jointly
+  } else if (eligibleCount === 0) {
+    notes.push('not_65'); // nobody attained 65 before the close of the tax year
+  }
+
+  const deductionBeforePhaseout = eligibleCount * amount;
+  const phaseoutReduction = eligibleCount * perPersonReduction;
+  const deduction = Math.max(0, deductionBeforePhaseout - phaseoutReduction);
+  const phasedOut = eligibleCount > 0 && perPersonReduction > 0;
+  const fullyPhasedOut = eligibleCount > 0 && perPersonReduction >= amount;
+  if (fullyPhasedOut) notes.push('fully_phased_out');
+  else if (phasedOut) notes.push('phased_out');
+
+  return {
+    eligibleCount, threshold, excess, perPersonReduction,
+    deductionBeforePhaseout, phaseoutReduction, deduction,
+    phasedOut, fullyPhasedOut, notes
+  };
+}
+
+// Bracket table to use for the tax-saved estimate. QSS uses the MFJ brackets
+// under federal law (but keeps the $75,000 senior threshold above); MFS maps to
+// single only for safety — its deduction is always $0, so nothing is computed.
+const SENIOR_BRACKET_STATUS = {
+  single: 'single',
+  married: 'married',
+  head_of_household: 'head_of_household',
+  qss: 'married',
+  married_separate: 'single'
+};
+
+/**
+ * One-call estimate for the senior-deduction tool: the deduction plus the
+ * federal income tax saved (same exact bracket-diff method as tips/overtime).
+ * NOTE: the estimate treats MAGI as total income against the regular standard
+ * deduction; it does not model the taxable-Social-Security computation or the
+ * pre-existing extra standard deduction for 65+.
+ */
+export function estimateSenior({ year, filingStatus, age65, spouseAge65, magi, federal, fed }) {
+  const d = seniorDeduction({ year, filingStatus, age65, spouseAge65, magi, params: federal.senior });
+  const bracketStatus = SENIOR_BRACKET_STATUS[filingStatus] || 'single';
+  const saved = federalTaxSaved(Math.max(0, magi || 0), bracketStatus, d.deduction, fed);
+  return { ...d, taxSaved: saved.taxSaved, marginalRate: saved.marginalRate };
+}
+
 /**
  * One-call estimate for a tool: given the eligible amount + income + status,
  * return the allowed deduction and the federal tax saved.

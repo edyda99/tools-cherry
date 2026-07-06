@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Senior Bonus Deduction Calculator 2025–2028 — the $6,000 "No Tax on Social Security" Deduction</title>
+<meta name="description" content="Free calculator for the 2025 One Big Beautiful Bill Act $6,000 senior bonus deduction (65+) — the one marketed as 'no tax on Social Security'. See your deduction, the income phase-out, and your federal tax saving. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/senior-deduction-calculator/">
+<meta property="og:title" content="Senior Bonus Deduction Calculator (2025–2028)">
+<meta property="og:description" content="Estimate the $6,000 senior deduction for people 65+ and what it saves you. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; }
+  .obbba-note { font-size:.9rem; opacity:.85; margin-top:8px; }
+  .phaseout-flag { color:#b26b00; font-weight:600; }
+  .ineligible-flag { color:#b23a00; font-weight:600; }
+  .check-field { display:flex; align-items:flex-start; gap:10px; }
+  .check-field input[type="checkbox"] { width:20px; height:20px; margin-top:2px; flex:none; }
+  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
+  .mythbust h2 { margin-top:0; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Senior Bonus Deduction Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Estimate the One Big Beautiful Bill Act $6,000 senior bonus deduction (IRC §151(d)(5)(C)) for taxpayers 65 and older: your deduction after the 6% income phase-out, and your federal income-tax saving for tax years 2025–2028. Often marketed as 'no tax on Social Security' — Social Security benefit taxation is actually unchanged."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Did the 2025 law end taxes on Social Security benefits?","acceptedAnswer":{"@type":"Answer","text":"No. The One Big Beautiful Bill Act did not change how Social Security benefits are taxed — up to 85% of benefits remain taxable under the same rules and thresholds as before. What the law added is a separate, temporary $6,000 deduction for each person 65 or older, for tax years 2025 through 2028. It offsets taxable income afterward; the benefit-taxation rules in IRC §86 are untouched."}},{"@type":"Question","name":"How much is the senior bonus deduction?","acceptedAnswer":{"@type":"Answer","text":"$6,000 per qualifying person who is 65 or older by December 31 of the tax year — so $12,000 for a married couple where both spouses qualify. It shrinks by 6 cents for every dollar of modified adjusted gross income above $75,000 (single, head of household, or qualifying surviving spouse) or $150,000 (married filing jointly), reaching zero at $175,000 / $250,000."}},{"@type":"Question","name":"Do I have to itemize to claim the senior deduction?","acceptedAnswer":{"@type":"Answer","text":"No. It is available whether you itemize or take the standard deduction, and it stacks on top of the older, smaller additional standard deduction for people 65 and older ($2,000 single / $1,600 per qualifying spouse in 2025)."}},{"@type":"Question","name":"Can I claim the senior deduction if I'm married filing separately?","acceptedAnswer":{"@type":"Answer","text":"No. Married taxpayers must file a joint return to claim it — married filing separately gets $0. Each qualifying person also needs a work-eligible Social Security number on the return."}},{"@type":"Question","name":"Do I need to receive Social Security to get the senior deduction?","acceptedAnswer":{"@type":"Answer","text":"No. Despite the 'no tax on Social Security' branding, the deduction is based only on age and income — any qualifying taxpayer 65 or older can claim it, even one who receives no Social Security benefits at all."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Senior Bonus Deduction Calculator</h1>
+    <p class="lede">The 2025 One Big Beautiful Bill Act gives people <strong>65 and older a $6,000 tax deduction each</strong> ($12,000 for a couple where both qualify) for tax years 2025–2028 — the break widely marketed as <em>"no tax on Social Security."</em> Enter your details to see your deduction, the income phase-out, and your estimated federal tax saving. Everything runs in your browser — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Senior bonus deduction calculator">
+      <form id="seniorForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="year">Tax year</label>
+          <select id="year">
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+            <option value="2027">2027</option>
+            <option value="2028">2028</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">The deduction exists for 2025 through 2028 only.</p>
+        </div>
+
+        <div class="field">
+          <label for="filing">Filing status</label>
+          <select id="filing">
+            <option value="single">Single</option>
+            <option value="married">Married filing jointly</option>
+            <option value="married_separate">Married filing separately</option>
+            <option value="head_of_household">Head of household</option>
+            <option value="qss">Qualifying surviving spouse</option>
+          </select>
+        </div>
+
+        <div class="field check-field">
+          <input type="checkbox" id="age65" checked>
+          <label for="age65">I will be <strong>65 or older on December 31</strong> of the tax year <span class="muted-small">(for 2025: born before January 2, 1961)</span></label>
+        </div>
+
+        <div class="field check-field" id="spouseRow" hidden>
+          <input type="checkbox" id="spouseAge65">
+          <label for="spouseAge65">My spouse will be <strong>65 or older on December 31</strong> of the tax year</label>
+        </div>
+
+        <div class="field">
+          <label for="magi">Your modified adjusted gross income (MAGI)</label>
+          <input type="number" id="magi" inputmode="numeric" min="0" step="1000" value="60000">
+          <p class="muted-small" style="margin-top:6px">Roughly your AGI — line 11 on Form 1040 — for most people. Filing jointly? Use your combined income.</p>
+        </div>
+      </form>
+
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+    </section>
+
+    <p class="note">Estimate for general guidance only — not tax advice. The tax-saving figure uses the 2026 federal brackets and regular standard deduction; it does not model the taxable portion of your Social Security benefits or the separate extra standard deduction for 65+, so your actual saving depends on your full return. Verify with the IRS or a tax professional.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose mythbust">
+      <h2>Is this really "no tax on Social Security"? No — here's what it actually is</h2>
+      <p><strong>Social Security benefit taxation is unchanged.</strong> The 2025 law did not touch the rules that make up to 50% or 85% of benefits taxable — the same provisional-income thresholds ($25,000 single / $32,000 joint, then $34,000 / $44,000) still apply, exactly as before. The Congressional Research Service puts it plainly: the determination of taxable Social Security benefits "is located in Section 86 of the Internal Revenue Code and was not changed by P.L. 119-21," and the senior deduction "is age based and applied after taxable Social Security benefits are calculated." Thomson Reuters likewise: "the longstanding rules governing the taxability of Social Security benefits remain unchanged."</p>
+      <p><strong>What you actually get</strong> is a new, temporary <strong>$6,000 deduction per person 65+</strong> that offsets taxable income afterward. Because it is a <em>below-the-line</em> deduction (taken after AGI), it does <strong>not</strong> reduce your AGI, your provisional income, how much of your benefits are taxable, or your Medicare IRMAA income. And it isn't tied to receiving benefits at all — any qualifying 65+ filer can claim it, even with zero Social Security income.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How the senior bonus deduction works</h2>
+      <p>The One Big Beautiful Bill Act (signed July 2025) added a temporary deduction at Internal Revenue Code §151(d)(5)(C), claimed on Schedule 1-A of Form 1040. You can take it <strong>whether or not you itemize</strong>, and it stacks on top of the older, smaller additional standard deduction for 65+ ($2,000 single / $1,600 per qualifying spouse in 2025).</p>
+      <p><strong>Amount.</strong> <strong>$6,000 per qualifying person</strong> — someone who turns 65 on or before December 31 of the tax year (for 2025 returns: born before January 2, 1961, so a January 1 birthday still qualifies). A married couple where both spouses qualify gets $12,000. Each claimant needs a work-eligible Social Security number on the return.</p>
+      <p><strong>Income phase-out.</strong> Each person's $6,000 shrinks by <strong>6 cents per dollar</strong> of modified adjusted gross income (MAGI) over <strong>$75,000</strong> (single, head of household, or qualifying surviving spouse) or <strong>$150,000</strong> (married filing jointly) — about $60 lost per $1,000 over the line. It reaches zero at $175,000 single / $250,000 joint (the joint figure is $250,000 even when both spouses qualify, because the reduction hits each person's $6,000, not the combined $12,000).</p>
+      <p><strong>Temporary and flat.</strong> Tax years <strong>2025 through 2028</strong> only, and neither the $6,000 nor the thresholds are indexed for inflation.</p>
+      <p><strong>Married? File jointly.</strong> Married taxpayers must file a joint return — married filing separately gets $0.</p>
+      <p>65 and still working overtime or for tips? The same law added separate deductions — see the <a href="/overtime-tax-calculator/">no tax on overtime calculator</a> and the <a href="/tips-tax-calculator/">no tax on tips calculator</a>.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Does it help on your state taxes?</h2>
+      <p>Mostly no. Because the deduction doesn't reduce federal AGI, it flows through automatically only in the few states that start their income-tax math from federal <em>taxable income</em> — Colorado, Idaho, North Dakota, and South Carolina (Idaho and South Carolina only once their conformity dates update). In AGI-based states it has no effect on your state return, and it doesn't change how your state taxes Social Security benefits.</p>
+      <h2>Common questions</h2>
+      <p><strong>Do I need to receive Social Security to claim it?</strong> No. It's age-based — any qualifying 65+ filer can claim it, benefits or not.</p>
+      <p><strong>I turn 65 in January — do I qualify this year?</strong> Only if you turn 65 by December 31 of the tax year. One exception at the edge: for 2025 the IRS form says "born before January 2, 1961," so a January 1, 1961 birthday qualifies.</p>
+      <p><strong>Will my Social Security checks or Medicare premiums change?</strong> No. The deduction doesn't touch your benefits, the tax withheld from them, provisional income, or the income Medicare uses to set IRMAA surcharges — it only lowers your federal taxable income when you file.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your numbers never leave your browser.</p>
+      <p class="muted-small">Sources: Public Law 119-21 §70103, <a href="https://www.govinfo.gov/content/pkg/PLAW-119publ21/html/PLAW-119publ21.htm" rel="nofollow">statute text (govinfo)</a>; IRS, <a href="https://www.irs.gov/newsroom/one-big-beautiful-bill-act-tax-deductions-for-working-americans-and-seniors" rel="nofollow">tax deductions for working Americans and seniors</a>; IRS <a href="https://www.irs.gov/pub/irs-pdf/f1040s1a.pdf" rel="nofollow">Schedule 1-A</a>; CRS report <a href="https://www.everycrsreport.com/reports/R48613.html" rel="nofollow">R48613</a>; Thomson Reuters, <a href="https://tax.thomsonreuters.com/news/2025-tax-act-myths-social-security-tax-rules-unchanged-new-senior-deduction/" rel="nofollow">2025 Tax Act myths</a>; Tax Foundation, <a href="https://taxfoundation.org/blog/no-tax-on-social-security-senior-tax-deduction/" rel="nofollow">senior deduction phase-out</a>.</p>
+    </section>
+
+    <div class="note"><strong>Embed this calculator.</strong> Put this calculator on your site — free, one copy-paste snippet, no scripts from third parties. <a href="/embed/">Get the snippet</a>.</div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__OBBBA__ = {{OBBBA_JSON}};
+  window.__FED__ = {{FED_JSON}};
+</script>
+<script type="module" src="/assets/senior-deduction-calculator.js"></script>
+</body>
+</html>

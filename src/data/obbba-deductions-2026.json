@@ -92,6 +92,56 @@
           "url": "https://home.treasury.gov/system/files/136/Tipped-Occupations-Detailed-8-27-2025.pdf"
         }
       ]
+    },
+    "senior": {
+      "statute": "IRC §151(d)(5)(C) (added by OBBBA §70103)",
+      "amountPerPerson": 6000,
+      "phaseoutStartMagi": {
+        "single": 75000,
+        "married": 150000,
+        "head_of_household": 75000,
+        "qss": 75000,
+        "married_separate": 75000
+      },
+      "phaseoutRate": 0.06,
+      "firstYear": 2025,
+      "lastYear": 2028,
+      "fullPhaseoutMagi": {
+        "single": 175000,
+        "married": 250000,
+        "head_of_household": 175000,
+        "qss": 175000
+      },
+      "notIndexed": true,
+      "belowTheLine": true,
+      "mfsEligible": false,
+      "qualifies": "Anyone who attains age 65 on or before the last day of the tax year (TY2025 forms: born before January 2, 1961) with a work-eligible SSN on the return. $6,000 per qualified individual ($12,000 for a joint return where both spouses qualify). Married taxpayers must file jointly — MFS gets $0. Unlike tips/overtime this is a BELOW-the-line §151 deduction: it does not reduce AGI, MAGI, provisional income, or Medicare IRMAA, and it did NOT change how Social Security benefits are taxed (IRC §86 is untouched). Only 'a joint return' gets the $150,000 threshold — single, HoH, and qualifying surviving spouse all use $75,000. Not indexed for inflation.",
+      "sources": [
+        {
+          "claim": "$6,000 for each qualified individual; 65 by year-end; 6% of MAGI over $75,000 ($150,000 joint) reduces the per-person $6,000; joint return required if married; SSN required; tax years 2025–2028.",
+          "url": "https://www.govinfo.gov/content/pkg/PLAW-119publ21/html/PLAW-119publ21.htm"
+        },
+        {
+          "claim": "Per eligible individual ($12,000 total for a married couple where both spouses qualify); available to itemizers and non-itemizers; in addition to the existing extra standard deduction for 65+.",
+          "url": "https://www.irs.gov/newsroom/one-big-beautiful-bill-act-tax-deductions-for-working-americans-and-seniors"
+        },
+        {
+          "claim": "Schedule 1-A Part V mechanics: 'born before January 2, 1961'; $75,000 ($150,000 if married filing jointly); multiply excess by 6%; if married you must file jointly.",
+          "url": "https://www.irs.gov/pub/irs-pdf/f1040s1a.pdf"
+        },
+        {
+          "claim": "Fully phased out at $175,000 single / $250,000 joint (arithmetic endpoints — not stated by the IRS).",
+          "url": "https://taxfoundation.org/blog/no-tax-on-social-security-senior-tax-deduction/"
+        },
+        {
+          "claim": "Social Security benefit taxation (IRC §86) was NOT changed by P.L. 119-21; the senior deduction is applied after taxable benefits are calculated.",
+          "url": "https://www.everycrsreport.com/reports/R48613.html"
+        },
+        {
+          "claim": "Below-the-line: taken after AGI, so it does not affect the taxability of Social Security benefits; declines $60 per $1,000 over the threshold.",
+          "url": "https://tax.thomsonreuters.com/news/2025-tax-act-myths-social-security-tax-rules-unchanged-new-senior-deduction/"
+        }
+      ]
     }
   },
   "states": {
