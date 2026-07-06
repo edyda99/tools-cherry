@@ -142,6 +142,93 @@
           "url": "https://tax.thomsonreuters.com/news/2025-tax-act-myths-social-security-tax-rules-unchanged-new-senior-deduction/"
         }
       ]
+    },
+    "salt": {
+      "statute": "IRC §164(b)(6) as amended by OBBBA §70120",
+      "itemizedOnly": true,
+      "firstYear": 2025,
+      "lastPhaseYear": 2029,
+      "revertCap": 10000,
+      "floor": 10000,
+      "mfsHalved": true,
+      "phaseDownRate": 0.3,
+      "capByYear": {
+        "2025": 40000,
+        "2026": 40400,
+        "2027": 40804,
+        "2028": 41212,
+        "2029": 41624
+      },
+      "thresholdByYear": {
+        "2025": 500000,
+        "2026": 505000,
+        "2027": 510050,
+        "2028": 515150.5,
+        "2029": 520302.01
+      },
+      "pendingGuidanceYears": [2028, 2029],
+      "standardDeductionByYear": {
+        "2025": {
+          "single": 15750,
+          "married": 31500,
+          "married_separate": 15750,
+          "head_of_household": 23625
+        },
+        "2026": {
+          "single": 16100,
+          "married": 32200,
+          "married_separate": 16100,
+          "head_of_household": 24150
+        }
+      },
+      "torpedo": {
+        "extraTaxablePerDollar": 1.3,
+        "effectiveRateAt35": 0.455,
+        "effectiveRateAt37": 0.481
+      },
+      "qualifies": "State and local income taxes (OR general sales taxes in lieu of income taxes, taxpayer's election) plus state/local real property taxes and personal property taxes (IRC §164(a), unchanged by OBBBA). Itemizers only — the cap limits Schedule A line 5e; non-itemizers get nothing from this provision. Cap: $40,000 (2025) / $40,400 (2026) / $40,804 (2027), then 101%/yr through 2029 (2028–2029 exact values pending IRS guidance; publisher consensus $41,212 / $41,624 and computed thresholds are flagged), MFS = half. Phase-down 2025–2029 only: cap reduced by 30% of MAGI over $500,000 (2025) / $505,000 (2026) / $510,050 (2027) (MFS = half), never below the $10,000 ($5,000 MFS) floor. 2030+: flat $10,000 ($5,000 MFS), no phase-down. MAGI here = AGI + §911/§931/§933 exclusions (= AGI for nearly all US-resident filers).",
+      "sources": [
+        {
+          "claim": "Statute strikes the $10,000/$5,000 cap and inserts 'the applicable limitation amount' — $40,000 for 2025, $40,400 for 2026, then 101% of the preceding year through 2029; reduced by 30% of MAGI excess over the threshold ($500,000 in 2025, $505,000 in 2026, then 101%/yr); never below $10,000; $10,000 flat after 2029.",
+          "url": "https://www.congress.gov/119/plaws/publ21/PLAW-119publ21.pdf"
+        },
+        {
+          "claim": "Amended IRC §164(b)(6) as codified: the $40,400 / $505,000 2026 amounts, the 30% reduction, the $10,000 floor, MAGI = AGI + §911/§931/§933 exclusions, and the post-2029 $10,000 reversion.",
+          "url": "https://www.law.cornell.edu/uscode/text/26/164"
+        },
+        {
+          "claim": "Cap increased to $40,000 for 2025 and $40,400 for 2026; thresholds $500,000 / $505,000; for tax years beginning in 2030 the cap reverts to $10,000 ($5,000 MFS).",
+          "url": "https://tax.thomsonreuters.com/en/glossary/salt-deduction"
+        },
+        {
+          "claim": "Married-filing-separately halves: $20,000 / $20,200 cap, $250,000 / $252,500 threshold, and the cap cannot be reduced below $10,000 overall or $5,000 for MFS.",
+          "url": "https://www.fidelity.com/learning-center/personal-finance/SALT-deduction-increase"
+        },
+        {
+          "claim": "The reduction cannot take the cap below $10,000 ($5,000 in the case of a married taxpayer filing separately).",
+          "url": "https://www.foster.com/larry-s-tax-law/one-big-beautiful-bill-act-part-1-the-salt-deduction"
+        },
+        {
+          "claim": "SALT torpedo: within the phase-down range each extra $1 of MAGI adds $1.30 of taxable income — effective marginal rate 1.3 × 35% = 45.5% (48.1% in the 37% bracket); the cap is fully phased back to $10,000 at $600,000 MAGI (2025); OBBBA includes no restrictions on state PTET workarounds.",
+          "url": "https://www.kitces.com/blog/obbba-one-big-beautiful-bill-act-tax-planning-salt-cap-senior-deduction-qbi-deduction-tax-cut-and-jobs-act-tcja-amt-trump-accounts/"
+        },
+        {
+          "claim": "Published 2027–2029 cap projections under the 101% rule: $40,804 / $41,212 / $41,624 (2028–2029 rounding pending IRS guidance).",
+          "url": "https://nstp.org/article/salt-deduction-increase"
+        },
+        {
+          "claim": "2025 standard deduction (OBBBA-set): $15,750 single/MFS, $31,500 MFJ, $23,625 HoH.",
+          "url": "https://www.irs.gov/newsroom/one-big-beautiful-bill-provisions-individuals-and-workers"
+        },
+        {
+          "claim": "2026 standard deduction (Rev. Proc. 2025-32): $16,100 single/MFS, $32,200 MFJ, $24,150 HoH.",
+          "url": "https://www.irs.gov/pub/irs-drop/rp-25-32.pdf"
+        },
+        {
+          "claim": "SALT is not deductible under the AMT — taxes from Schedule A are added back on Form 6251 line 2a, so taxpayers in AMT get less or no benefit from the higher cap.",
+          "url": "https://www.irs.gov/instructions/i6251"
+        }
+      ]
     }
   },
   "states": {

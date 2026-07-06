@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>SALT Cap Calculator 2025–2026 — the $40,000 SALT Deduction Cap (OBBBA)</title>
+<meta name="description" content="Free SALT deduction cap calculator for the 2025 One Big Beautiful Bill Act: the $10,000 cap raised to $40,000 ($40,400 in 2026), the 30% high-income phase-down, the $10,000 floor, and whether itemizing beats your standard deduction. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/salt-cap-calculator/">
+<meta property="og:title" content="SALT Cap Calculator (2025–2026)">
+<meta property="og:description" content="See your allowed SALT deduction under the new $40,000 cap, the high-income phase-down, and your federal tax saving vs the old $10,000 cap. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; }
+  .obbba-note { font-size:.9rem; opacity:.85; margin-top:8px; }
+  .phaseout-flag { color:#b26b00; font-weight:600; }
+  .ineligible-flag { color:#b23a00; font-weight:600; }
+  .torpedo-warn { margin-top:10px; padding:12px 14px; border-left:4px solid #b23a00; border-radius:8px; background:rgba(178,58,0,.08); font-size:.95rem; }
+  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
+  .mythbust h2 { margin-top:0; }
+  .est-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"SALT Cap Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Estimate your allowed state-and-local-tax (SALT) deduction under the One Big Beautiful Bill Act's raised cap (IRC §164(b)(6)): $40,000 for 2025 and $40,400 for 2026, reduced by 30% of income over $500,000 / $505,000 but never below $10,000, with the itemize-vs-standard comparison and your federal tax saving vs the old $10,000 cap."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is the SALT deduction cap for 2025 and 2026?","acceptedAnswer":{"@type":"Answer","text":"$40,000 for tax year 2025 and $40,400 for 2026 ($20,000 and $20,200 if married filing separately). The cap shrinks by 30 cents for every dollar of modified adjusted gross income over $500,000 in 2025 or $505,000 in 2026 ($250,000 / $252,500 for married filing separately), but never below $10,000 ($5,000 married filing separately). It only matters if you itemize — the standard deduction is unaffected."}},{"@type":"Question","name":"What is the SALT torpedo?","acceptedAnswer":{"@type":"Answer","text":"Inside the phase-down band (about $500,000 to $600,000 of income in 2025), each extra dollar you earn also takes away 30 cents of SALT deduction — so taxable income rises by $1.30 per $1 earned. That makes the effective marginal tax rate about 45.5% in the 35% bracket (1.3 × 35%) and 48.1% in the 37% bracket, which tax professionals have dubbed the 'SALT torpedo'."}},{"@type":"Question","name":"Did the pass-through entity tax (PTET) workaround survive the 2025 law?","acceptedAnswer":{"@type":"Answer","text":"Yes. The final One Big Beautiful Bill Act includes no restrictions on state-level pass-through entity taxes. The House version of the bill would have curtailed PTETs, but those rules were dropped from the Senate version that became law, so business owners in PTET states can still deduct state taxes at the entity level, outside the SALT cap."}},{"@type":"Question","name":"Does the higher SALT cap help if I owe the alternative minimum tax (AMT)?","acceptedAnswer":{"@type":"Answer","text":"Less or not at all. State and local taxes are not deductible under the AMT — the SALT you deduct on Schedule A is added back on Form 6251 (line 2a) when computing AMT income. A taxpayer pulled into the AMT loses some or all of the benefit of the bigger cap."}},{"@type":"Question","name":"When does the $40,000 SALT cap end?","acceptedAnswer":{"@type":"Answer","text":"After 2029. The cap is $40,000 (2025), $40,400 (2026), $40,804 (2027), then rises 1% a year through 2029. For tax years beginning in 2030 it reverts to a flat $10,000 ($5,000 married filing separately) with no income phase-down — the old TCJA cap, permanently."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>SALT Cap Calculator</h1>
+    <p class="lede">The 2025 One Big Beautiful Bill Act raised the cap on deducting <strong>state and local taxes (SALT)</strong> from $10,000 to <strong>$40,000</strong> for 2025 ($40,400 for 2026) — but only for itemizers, and it phases back down above $500,000 of income. Enter your numbers to see your allowed SALT deduction, whether itemizing beats your standard deduction, and what the raise actually saves you. Everything runs in your browser — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="SALT deduction cap calculator">
+      <form id="saltForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="year">Tax year</label>
+          <select id="year">
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">2025 and 2026 figures are final. The cap keeps rising 1% a year through 2029, then reverts to $10,000 in 2030 — see below.</p>
+        </div>
+
+        <div class="field">
+          <label for="filing">Filing status</label>
+          <select id="filing">
+            <option value="single">Single</option>
+            <option value="married">Married filing jointly</option>
+            <option value="married_separate">Married filing separately</option>
+            <option value="head_of_household">Head of household</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">Married filing separately gets half of every amount — cap, income threshold, and floor.</p>
+        </div>
+
+        <div class="field">
+          <label for="magi">Your adjusted gross income (AGI / MAGI)</label>
+          <input type="number" id="magi" inputmode="numeric" min="0" step="1000" value="300000">
+          <p class="muted-small" style="margin-top:6px">Form 1040 line 11. The law technically uses MAGI — AGI plus foreign-income exclusions — which equals AGI for nearly everyone. Filing jointly? Use your combined income.</p>
+        </div>
+
+        <div class="field est-row">
+          <div class="field" style="margin:0">
+            <label for="incomeTax">State &amp; local income tax paid ($)</label>
+            <input type="number" id="incomeTax" inputmode="numeric" min="0" step="100" value="28000">
+          </div>
+          <div class="field" style="margin:0">
+            <label for="propTax">Property tax paid ($)</label>
+            <input type="number" id="propTax" inputmode="numeric" min="0" step="100" value="20000">
+          </div>
+        </div>
+        <p class="muted-small" style="margin-top:-6px">Income tax (or general sales tax, if you deduct that instead) plus real-estate and personal-property tax — together these are your SALT.</p>
+
+        <div class="field">
+          <label for="other">Other itemized deductions <span class="muted-small">(optional — mortgage interest, charity, …)</span></label>
+          <input type="number" id="other" inputmode="numeric" min="0" step="100" value="10000">
+          <p class="muted-small" style="margin-top:6px">Used to check whether itemizing beats your standard deduction — the cap only matters if you itemize.</p>
+        </div>
+      </form>
+
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+      <div class="torpedo-warn" id="torpedo" hidden></div>
+    </section>
+
+    <p class="note">Estimate for general guidance only — not tax advice. The tax-saving figure compares your best deduction under the new cap against the old $10,000 cap in the same year, using the 2026 federal brackets (married filing separately is estimated with the single table). It does not model the AMT, PTET elections, or other Schedule A limits. Verify with the IRS or a tax professional.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose mythbust">
+      <h2>Does everyone get a $40,000 deduction now? No — three catches</h2>
+      <p><strong>1. Itemizers only.</strong> SALT is an itemized deduction (Schedule A). With the 2025 standard deduction at $15,750 single / $31,500 married filing jointly, roughly nine in ten filers take the standard deduction — and get <strong>$0</strong> from this change. You benefit only to the extent your capped SALT plus other itemized deductions exceed your standard deduction.</p>
+      <p><strong>2. You deduct what you paid, up to the cap.</strong> The cap is a ceiling, not a grant. If you paid $14,000 in state and local taxes, you deduct $14,000 — not $40,000.</p>
+      <p><strong>3. High earners phase back to $10,000.</strong> Above $500,000 of income (2025), the cap shrinks by 30 cents per extra dollar. By $600,000 you are back at the old $10,000 cap — that floor is as low as it goes, but for six-figure-SALT households the raise is fully gone. And in <strong>2030 the cap reverts to a flat $10,000 for everyone</strong>, with no phase-down.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How the new SALT cap works</h2>
+      <p>The One Big Beautiful Bill Act (signed July 2025) amended Internal Revenue Code §164(b)(6). What counts as SALT is unchanged: state and local <strong>income taxes</strong> (or general <strong>sales taxes</strong> in lieu, your choice) plus <strong>real-estate and personal-property taxes</strong>, all still claimed on Schedule A.</p>
+      <p><strong>The cap by year.</strong> $40,000 for 2025, $40,400 for 2026, $40,804 for 2027, then 101% of the prior year through 2029 (about $41,212 and $41,624 — the IRS hasn't published official figures for those years yet). Married filing separately gets exactly half each year. For tax years beginning in <strong>2030 the cap reverts to $10,000</strong> ($5,000 married filing separately), permanently and with no phase-down.</p>
+      <p><strong>The phase-down (2025–2029).</strong> The cap is reduced by <strong>30% of the amount your MAGI exceeds the threshold</strong> — $500,000 in 2025, $505,000 in 2026, $510,050 in 2027 (half those amounts for married filing separately) — but <strong>never below $10,000</strong> ($5,000 married filing separately). In 2025 the cap is fully phased back to $10,000 at $600,000 of income; in 2026 at about $606,333.</p>
+      <p><strong>Filing jointly vs separately.</strong> Unusually, the cap is <em>not</em> doubled for joint filers — a married couple filing jointly gets the same $40,000 as a single filer, while married filing separately gets half. This is the same "marriage penalty" structure the old $10,000 cap had.</p>
+      <p>Working overtime or earning tips? The same law added separate deductions — see the <a href="/overtime-tax-calculator/">no tax on overtime calculator</a> and the <a href="/tips-tax-calculator/">no tax on tips calculator</a>. 65 or older? There's also the <a href="/senior-deduction-calculator/">$6,000 senior bonus deduction</a>.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>The SALT torpedo: a 45.5% marginal rate zone</h2>
+      <p>Inside the phase-down band — roughly <strong>$500,000 to $600,000</strong> of income in 2025 — each extra dollar you earn also strips away 30 cents of SALT deduction (if your SALT paid is at least the current cap). Your taxable income therefore rises by <strong>$1.30 for every $1 earned</strong>: in the 35% bracket that is an effective marginal rate of 1.3 × 35% = <strong>45.5%</strong>, and in the 37% bracket <strong>48.1%</strong>. Tax professionals have dubbed this the <em>"SALT torpedo."</em> Sanity check across the whole band: earning $100,000 more (from $500,000 to $600,000) costs $30,000 of deduction, so taxable income rises $130,000 — at 35% that is $45,500 of tax on $100,000 of income, i.e. 45.5%. If you can time income (bonuses, Roth conversions, capital gains) to stay out of the band, each dollar kept out avoids the surcharge.</p>
+      <h2>Common questions</h2>
+      <p><strong>What is the SALT cap for 2025 and 2026?</strong> $40,000 and $40,400 ($20,000 / $20,200 married filing separately), phased down by 30% of income over $500,000 / $505,000, never below the $10,000 / $5,000 floor.</p>
+      <p><strong>When does the $40,000 cap end?</strong> After 2029. From 2030 the cap is a flat $10,000 ($5,000 married filing separately) again — no phase-down, no indexing.</p>
+      <p><strong>Did the PTET workaround survive?</strong> Yes. The final law places no restrictions on state pass-through entity taxes — the House version's limits were dropped in the Senate. Owners of pass-through businesses in PTET states can still deduct state tax at the entity level, outside the cap.</p>
+      <p><strong>Does the bigger cap help under the AMT?</strong> Less or not at all — SALT is added back on Form 6251 (line 2a) when computing alternative minimum taxable income, so filers in AMT territory lose some or all of the benefit.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your numbers never leave your browser.</p>
+      <p class="muted-small">Sources: Public Law 119-21 §70120, <a href="https://www.congress.gov/119/plaws/publ21/PLAW-119publ21.pdf" rel="nofollow">statute text (congress.gov)</a>; <a href="https://www.law.cornell.edu/uscode/text/26/164" rel="nofollow">26 USC §164 as amended (Cornell LII)</a>; IRS, <a href="https://www.irs.gov/newsroom/one-big-beautiful-bill-provisions-individuals-and-workers" rel="nofollow">One Big Beautiful Bill provisions</a> and <a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf" rel="nofollow">Rev. Proc. 2025-32</a>; Kitces, <a href="https://www.kitces.com/blog/obbba-one-big-beautiful-bill-act-tax-planning-salt-cap-senior-deduction-qbi-deduction-tax-cut-and-jobs-act-tcja-amt-trump-accounts/" rel="nofollow">OBBBA tax planning</a>; Thomson Reuters, <a href="https://tax.thomsonreuters.com/en/glossary/salt-deduction" rel="nofollow">SALT deduction</a>; IRS, <a href="https://www.irs.gov/instructions/i6251" rel="nofollow">Form 6251 instructions</a>.</p>
+    </section>
+
+    <div class="note"><strong>Embed this calculator.</strong> Put this calculator on your site — free, one copy-paste snippet, no scripts from third parties. <a href="/embed/">Get the snippet</a>.</div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__OBBBA__ = {{OBBBA_JSON}};
+  window.__FED__ = {{FED_JSON}};
+</script>
+<script type="module" src="/assets/salt-cap-calculator.js"></script>
+</body>
+</html>

@@ -125,6 +125,7 @@ const TOOLS = [
   { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/', cat: 'money' },
   { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/', cat: 'money' },
   { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/', cat: 'money' },
+  { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/', cat: 'money' },
   { name: '401(k) Retirement Calculator', path: '/401k-calculator/', cat: 'money' },
   { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/', cat: 'money' },
   { name: 'Inflation Calculator', path: '/inflation-calculator/', cat: 'money' },
@@ -218,6 +219,7 @@ const TOOL_DESCRIPTIONS = {
   '/overtime-tax-calculator/': 'See how much of your overtime is deductible under the 2025 "no tax on overtime" law and what it saves you.',
   '/tips-tax-calculator/': 'See how much of your tips are deductible under the 2025 "no tax on tips" law (up to $25,000) and what it saves you.',
   '/senior-deduction-calculator/': 'Calculate the 2025 law\'s $6,000 senior bonus deduction for people 65+ — the "no tax on Social Security" break — and what it saves you.',
+  '/salt-cap-calculator/': 'See your allowed SALT deduction under the 2025 law\'s $40,000 cap — with the high-income phase-down, the itemize-vs-standard check, and your saving vs the old $10,000 cap.',
   '/401k-calculator/': 'Project 401(k) retirement balance from contributions, match, and growth.',
   '/savings-goal-calculator/': 'Find how much to save each month to reach a savings goal.',
   '/inflation-calculator/': 'See how the buying power of a US dollar changes over time.',
@@ -253,9 +255,19 @@ const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, 
 // Hand-picked related links for pages that aren't in TOOLS (data studies, the
 // embed gallery). Keyed by currentPath.
 const RELATED_OVERRIDES = {
+  '/salt-cap-calculator/': [
+    { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
+    { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
+    { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
+    { name: 'Mortgage Calculator', path: '/mortgage-calculator/' },
+    { name: 'Sales Tax Calculator', path: '/sales-tax-calculator/' },
+    { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
+    { name: 'Inflation Calculator', path: '/inflation-calculator/' }
+  ],
   '/senior-deduction-calculator/': [
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
+    { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
     { name: '401(k) Retirement Calculator', path: '/401k-calculator/' },
     { name: 'Inflation Calculator', path: '/inflation-calculator/' },
     { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' },
@@ -284,6 +296,7 @@ const RELATED_OVERRIDES = {
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
     { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
+    { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
     { name: 'Overtime Tax by State (Data Study)', path: '/data/overtime-tax-by-state/' },
     { name: 'Tip Income Tax by State (Data Study)', path: '/data/tips-tax-by-state/' },
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
@@ -1338,6 +1351,8 @@ async function main() {
   const embedTipsTpl = await read(join(SRC, 'templates', 'embed', 'tips-tax-calculator.html'));
   const seniorTaxTpl = await read(join(SRC, 'templates', 'senior-deduction-calculator.html'));
   const embedSeniorTpl = await read(join(SRC, 'templates', 'embed', 'senior-deduction-calculator.html'));
+  const saltCapTpl = await read(join(SRC, 'templates', 'salt-cap-calculator.html'));
+  const embedSaltTpl = await read(join(SRC, 'templates', 'embed', 'salt-cap-calculator.html'));
   const embedGalleryTpl = await read(join(SRC, 'templates', 'embed-gallery.html'));
   const overtimeStudyTpl = await read(join(SRC, 'templates', 'data-overtime-tax-by-state.html'));
   const tipsStudyTpl = await read(join(SRC, 'templates', 'data-tips-tax-by-state.html'));
@@ -1511,6 +1526,7 @@ async function main() {
   await cp(join(SRC, 'assets', 'overtime-tax-calculator.js'), join(DIST, 'assets', 'overtime-tax-calculator.js'));
   await cp(join(SRC, 'assets', 'tips-tax-calculator.js'), join(DIST, 'assets', 'tips-tax-calculator.js'));
   await cp(join(SRC, 'assets', 'senior-deduction-calculator.js'), join(DIST, 'assets', 'senior-deduction-calculator.js'));
+  await cp(join(SRC, 'assets', 'salt-cap-calculator.js'), join(DIST, 'assets', 'salt-cap-calculator.js'));
   await cp(join(SRC, 'assets', 'embed-gallery.js'), join(DIST, 'assets', 'embed-gallery.js'));
   await cp(join(SRC, 'engine', 'employment-tax.js'), join(DIST, 'assets', 'employment-tax.js'));
   await cp(join(SRC, 'assets', 'biweekly-mortgage-calculator.js'), join(DIST, 'assets', 'biweekly-mortgage-calculator.js'));
@@ -2251,6 +2267,17 @@ async function main() {
   );
   urls.push(`${SITE.url}/senior-deduction-calculator/`);
 
+  // OBBBA SALT deduction cap (IRC §164(b)(6) as amended by §70120) calculator —
+  // the $10,000 → $40,000 cap raise with the 30% high-income phase-down. No
+  // state selector: SALT is a federal itemized deduction; the itemize-vs-standard
+  // comparison and the old-cap counterfactual are the page's edge.
+  await mkdir(join(DIST, 'salt-cap-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'salt-cap-calculator', 'index.html'),
+    fillTool(saltCapTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON }, '/salt-cap-calculator/')
+  );
+  urls.push(`${SITE.url}/salt-cap-calculator/`);
+
   // OBBBA "which states still tax overtime in 2026" DATA STUDY (/data/overtime-tax-by-state/).
   // A citable, author-bylined data asset for the journalist link sprint. The table is
   // rendered server-side from the SAME sourced obbba dataset the calculators use, so the
@@ -2486,6 +2513,8 @@ async function main() {
   await writeFile(join(DIST, 'embed', 'tips-tax-calculator', 'index.html'), fillEmbed(embedTipsTpl));
   await mkdir(join(DIST, 'embed', 'senior-deduction-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'senior-deduction-calculator', 'index.html'), fillEmbed(embedSeniorTpl));
+  await mkdir(join(DIST, 'embed', 'salt-cap-calculator'), { recursive: true });
+  await writeFile(join(DIST, 'embed', 'salt-cap-calculator', 'index.html'), fillEmbed(embedSaltTpl));
   // Indexable embed gallery (fillTool is fine here — real page, benefits from schema
   // + the More-tools cross-links). This one IS in the sitemap.
   await writeFile(join(DIST, 'embed', 'index.html'), fillTool(embedGalleryTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/embed/'));
