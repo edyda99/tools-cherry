@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { allowedDeduction, federalTaxSaved, overtimePremium, estimate, seniorDeduction, estimateSenior, saltCap, saltComparison } from '../src/engine/obbba-deduction.js';
+import { allowedDeduction, federalTaxSaved, overtimePremium, estimate, seniorDeduction, estimateSenior, saltCap, saltComparison, carLoanFirstYearInterest, carLoanDeduction, estimateCarLoan } from '../src/engine/obbba-deduction.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const obbba = JSON.parse(readFileSync(join(__dirname, '../src/data/obbba-deductions-2026.json'), 'utf8'));
@@ -239,6 +239,80 @@ const f3b = sc({ year: 2025, filingStatus: 'married', magi: 550000, saltPaid: 45
 eq('SALT F3 bracket-diff spanning 35->32', f3b.taxSaved, 2901.5);
 // Benefit 0 -> taxSaved 0 through the bracket machinery too (F4 inputs)
 eq('SALT F4 taxSaved 0', sc({ year: 2025, filingStatus: 'married', magi: 600000, saltPaid: 55000, otherItemized: 25000 }).taxSaved, 0);
+
+// --- car-loan interest deduction (IRC §163(h)(4), OBBBA §70203) -------------
+// All 14 fixtures from the sourced spec (obbba-car-loan-spec.md, §6).
+// Fixture filing statuses map to engine ids: mfj->married, mfs->married_separate.
+// expected_deduction = max(0, min(interest, 10000) - 200*ceil(max(0, magi-threshold)/1000)),
+// gated by eligibility + the 2025–2028 window. The reduction hits the CAPPED
+// interest, not the $10,000 cap (statutory clause order). MFS IS eligible here
+// (unlike tips/overtime/senior) and uses the $100,000 threshold ($200,000 is
+// joint-only). F15's "574.55 at 24% marginal" is ILLUSTRATIVE (deduction ×
+// assumed rate); production taxSaved uses exact bracket-diff, spot-checked below.
+const CL = obbba.federal.carLoan;
+const cl = (a) => carLoanDeduction({ ...a, params: CL }).deduction;
+
+// F01 under threshold, full deduction
+eq('CL F01 under threshold full', cl({ year: 2025, filingStatus: 'single', magi: 80000, interest: 2393.96 }), 2393.96);
+// F02 interest above the $10,000 cap
+eq('CL F02 interest above cap', cl({ year: 2025, filingStatus: 'single', magi: 95000, interest: 12500 }), 10000);
+// F04 phase-out midpoint: cap 10,000; excess 25,000; 25*200=5,000
+eq('CL F04 phaseout midpoint', cl({ year: 2025, filingStatus: 'single', magi: 125000, interest: 11000 }), 5000);
+// F05 "portion thereof" ceil + reduction hits the deduction (not the cap): 3,000-2,200=800
+eq('CL F05 portion thereof ceil', cl({ year: 2025, filingStatus: 'single', magi: 110500, interest: 3000 }), 800);
+// F06 edge 149,000: excess 49,000; 49*200=9,800; 10,000-9,800=200
+eq('CL F06 edge 149000', cl({ year: 2025, filingStatus: 'single', magi: 149000, interest: 10000 }), 200);
+// F07 fully phased out single at 150,000: 50*200=10,000 -> 0
+eq('CL F07 fully phased out single', cl({ year: 2025, filingStatus: 'single', magi: 150000, interest: 10000 }), 0);
+// F08 fully phased out mfj at 250,000: reduction 10,000 > min(8,000,10,000) -> 0
+eq('CL F08 fully phased out mfj', cl({ year: 2025, filingStatus: 'married', magi: 250000, interest: 8000 }), 0);
+// F09 used vehicle -> ineligible -> 0
+eq('CL F09 used vehicle ineligible', cl({ year: 2025, filingStatus: 'single', magi: 80000, interest: 2500, eligible: false }), 0);
+// F10 lease -> ineligible -> 0
+eq('CL F10 lease ineligible', cl({ year: 2025, filingStatus: 'single', magi: 80000, interest: 1800, eligible: false }), 0);
+// F11 loan originated 2024 -> ineligible -> 0
+eq('CL F11 loan originated 2024 ineligible', cl({ year: 2025, filingStatus: 'single', magi: 80000, interest: 2200, eligible: false }), 0);
+// F12 foreign assembled -> ineligible -> 0
+eq('CL F12 foreign assembled ineligible', cl({ year: 2025, filingStatus: 'single', magi: 80000, interest: 2600, eligible: false }), 0);
+// F13 year 2029 expired -> year gate forces 0 even when otherwise eligible
+eq('CL F13 year 2029 expired', cl({ year: 2029, filingStatus: 'single', magi: 80000, interest: 2000, eligible: true }), 0);
+is('CL F13 not_in_effect note', carLoanDeduction({ year: 2029, filingStatus: 'single', magi: 80000, interest: 2000, params: CL }).notes.includes('not_in_effect'), true);
+// F14 MFS allowed: threshold 100,000 (200,000 is joint-only); excess 20,000; 20*200=4,000; 5,000-4,000=1,000
+eq('CL F14 mfs allowed', cl({ year: 2025, filingStatus: 'married_separate', magi: 120000, interest: 5000 }), 1000);
+// F15 estimate from loan terms: r=0.00541667; M=782.65; year-1 interest=2,393.96
+const clFyi = carLoanFirstYearInterest({ amount: 40000, apr: 0.065, termMonths: 60 });
+eq('CL F15 first-year interest', clFyi.firstYearInterest, 2393.96, 0.05);
+eq('CL F15 monthly payment', clFyi.monthlyPayment, 782.65, 0.01);
+const clF15 = estimateCarLoan({ year: 2025, filingStatus: 'single', magi: 90000, interest: clFyi.firstYearInterest, federal: obbba.federal, fed });
+eq('CL F15 deduction full', clF15.deduction, 2393.96, 0.05);
+// F15 illustrative saving at the fixture's assumed 24% marginal rate (deduction × rate)
+eq('CL F15 illustrative saving @24%', clF15.deduction * 0.24, 574.55, 0.05);
+
+// Structure + spec-mandated extras beyond the 14 fixtures.
+// Reference-loan year-2..year-5 interest cross-check (spec §3): monthsPaid rolls
+// the amortization forward; total interest over the 60-month loan = $6,958.76.
+const yrInt = (mp, k) => { const a = carLoanFirstYearInterest({ amount: 40000, apr: 0.065, termMonths: 60, monthsPaid: mp }); const b = carLoanFirstYearInterest({ amount: 40000, apr: 0.065, termMonths: 60, monthsPaid: mp - 12 }); return a.firstYearInterest - b.firstYearInterest; };
+eq('CL ref loan year-2 interest', yrInt(24), 1925.31, 0.05);
+eq('CL ref loan year-5 interest', yrInt(60), 322.48, 0.05);
+eq('CL ref loan total interest', carLoanFirstYearInterest({ amount: 40000, apr: 0.065, termMonths: 60, monthsPaid: 60 }).firstYearInterest, 6958.76, 0.05);
+// 0% APR loan -> zero deductible interest
+eq('CL 0% APR no interest', carLoanFirstYearInterest({ amount: 30000, apr: 0, termMonths: 60 }).firstYearInterest, 0);
+// HoH uses the $100,000 threshold (single-side), not the joint $200,000
+eq('CL hoh threshold 100k', carLoanDeduction({ year: 2025, filingStatus: 'head_of_household', magi: 100000, interest: 4000, params: CL }).threshold, 100000);
+// MFS eligibility flag on the params (unlike tips/overtime/senior)
+is('CL mfs eligible', CL.mfsEligible, true);
+// phasedOut / fullyPhasedOut flags
+is('CL F04 phasedOut flag', carLoanDeduction({ year: 2025, filingStatus: 'single', magi: 125000, interest: 11000, params: CL }).phasedOut, true);
+is('CL F07 fullyPhasedOut flag', carLoanDeduction({ year: 2025, filingStatus: 'single', magi: 150000, interest: 10000, params: CL }).fullyPhasedOut, true);
+// Ineligible note surfaced for the UI
+is('CL ineligible note', carLoanDeduction({ year: 2025, filingStatus: 'single', magi: 80000, interest: 2500, eligible: false, params: CL }).notes.includes('ineligible'), true);
+// Exact bracket-diff taxSaved spot check (F15 inputs): single, MAGI 90,000 ->
+// taxable 73,900 (2026 std 16,100) sits in the 22% band, so deduction × 22%.
+const clSaved = estimateCarLoan({ year: 2025, filingStatus: 'single', magi: 90000, interest: 2393.96, federal: obbba.federal, fed });
+eq('CL F15 exact bracket-diff taxSaved', clSaved.taxSaved, 2393.96 * clSaved.marginalRate, 0.5);
+is('CL F15 marginal 22% band', clSaved.marginalRate > 0.21 && clSaved.marginalRate < 0.23, true);
+// Ineligible end-to-end -> deduction 0 -> saved 0
+eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single', magi: 90000, interest: 2500, eligible: false, federal: obbba.federal, fed }).taxSaved, 0);
 
 console.log(`\nOBBBA engine: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

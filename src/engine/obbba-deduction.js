@@ -318,6 +318,126 @@ export function saltComparison({ year, filingStatus, magi, saltPaid, otherItemiz
   };
 }
 
+// ---------------------------------------------------------------------------
+// OBBBA car-loan interest deduction (IRC §163(h)(4) "qualified passenger
+// vehicle loan interest", added by OBBBA §70203) — up to $10,000 of loan
+// INTEREST (per RETURN, not per vehicle) on a loan for a NEW, US-final-
+// assembly, personal-use vehicle originated after 2024-12-31 (not a lease).
+// BELOW the line but available to non-itemizers; it does NOT reduce AGI.
+// Unlike tips/overtime/senior, married-filing-separately IS eligible (its own
+// $10,000 cap, $100,000 threshold). Phase-out: $200 per $1,000 (or portion
+// thereof) of MAGI over $100,000 ($200,000 for a joint return only),
+// subtracted from the CAPPED interest AFTER the $10,000 ceiling, never below
+// zero. Tax years 2025–2028, not indexed. Parameters live in
+// obbba-deductions-2026.json federal.carLoan.
+
+/**
+ * First-year interest on an amortizing car loan from its terms — the amount
+ * that becomes the deductible base (before the $10,000 cap). Assumes a fully
+ * amortizing fixed-rate loan with `monthsPaid` payments in the first tax year
+ * (12 for a full year; fewer if the term is shorter). Uses the closed-form
+ * balance after k payments Bk = P(1+r)^k − M((1+r)^k − 1)/r, so the interest
+ * paid over those k months = k·M − (P − Bk).
+ *
+ * @param {object} a
+ * @param {number} a.amount        loan principal P (USD)
+ * @param {number} a.apr           annual percentage rate as a decimal (0.065 = 6.5%)
+ * @param {number} a.termMonths    loan term n (months)
+ * @param {number} [a.monthsPaid]  payments in the first tax year (default min(12, n))
+ * @returns {{monthlyPayment:number, firstYearInterest:number, months:number}}
+ */
+export function carLoanFirstYearInterest({ amount, apr, termMonths, monthsPaid }) {
+  const P = Math.max(0, amount || 0);
+  const n = Math.max(0, Math.round(termMonths || 0));
+  const r = (apr || 0) / 12;
+  if (P <= 0 || n <= 0) return { monthlyPayment: 0, firstYearInterest: 0, months: 0 };
+  const k = Math.min(monthsPaid && monthsPaid > 0 ? Math.round(monthsPaid) : 12, n);
+  if (r <= 0) {
+    return { monthlyPayment: P / n, firstYearInterest: 0, months: k }; // 0% loan: no interest
+  }
+  const M = P * r / (1 - Math.pow(1 + r, -n));
+  const Bk = P * Math.pow(1 + r, k) - M * (Math.pow(1 + r, k) - 1) / r;
+  const firstYearInterest = Math.max(0, k * M - (P - Bk));
+  return { monthlyPayment: M, firstYearInterest, months: k };
+}
+
+// Filing statuses that get the JOINT $200,000 threshold. Everything else —
+// single, head of household, and (unlike tips/overtime) married-filing-
+// separately — uses $100,000; the map in params.phaseoutStartMagi encodes this.
+
+/**
+ * The car-loan interest deduction for one return.
+ * Rules (statute): min(interest, $10,000) reduced by $200 for each $1,000 (or
+ * portion thereof) of MAGI over the threshold ($100,000; $200,000 only for a
+ * joint return — single, HoH, and MFS all use $100,000), never below zero.
+ * The reduction hits the CAPPED interest, not the $10,000 ceiling (statutory
+ * clause order: apply the cap first, then subtract the reduction). Gated on
+ * eligibility (new / US final assembly / personal-use / non-lease loan
+ * originated after 2024-12-31) and on the 2025–2028 window.
+ *
+ * @param {object} a
+ * @param {number}  a.year          tax year (deduction exists 2025–2028)
+ * @param {string}  a.filingStatus  'single' | 'married' (MFJ) | 'head_of_household' | 'married_separate'
+ * @param {number}  a.magi          modified AGI (AGI + §911/§931/§933 exclusions)
+ * @param {number}  a.interest      qualified interest paid in the year (USD)
+ * @param {boolean} [a.eligible]    vehicle/loan passes the eligibility checklist (default true)
+ * @param {object}  a.params        obbba.federal.carLoan
+ * @returns {{statutoryCap:number, threshold:number, excess:number,
+ *   reduction:number, cappedInterest:number, deduction:number,
+ *   phasedOut:boolean, fullyPhasedOut:boolean, inWindow:boolean,
+ *   eligible:boolean, notes:string[]}}
+ */
+export function carLoanDeduction({ year, filingStatus, magi, interest, eligible = true, params }) {
+  const cap = params.interestCap;
+  const threshold = pick(params.phaseoutStartMagi, filingStatus);
+  const per1000 = params.phaseoutReductionPer1000;
+  const paidInterest = Math.max(0, interest || 0);
+  const cappedInterest = Math.min(paidInterest, cap);
+  const m = Math.max(0, magi || 0);
+  const excess = Math.max(0, m - threshold);
+  const steps = excess > 0 ? Math.ceil(excess / 1000) : 0; // "$1,000 or portion thereof"
+  const reduction = steps * per1000;
+
+  const notes = [];
+  const inWindow = year >= params.firstYear && year <= params.lastYear;
+  if (!inWindow) notes.push('not_in_effect'); // §70203: taxable years 2025–2028 only
+  if (!eligible) notes.push('ineligible');
+
+  const deduction = (inWindow && eligible) ? Math.max(0, cappedInterest - reduction) : 0;
+  const phasedOut = inWindow && eligible && reduction > 0;
+  const fullyPhasedOut = inWindow && eligible && cappedInterest > 0 && reduction >= cappedInterest;
+  if (fullyPhasedOut) notes.push('fully_phased_out');
+  else if (phasedOut) notes.push('phased_out');
+
+  return {
+    statutoryCap: cap, threshold, excess, reduction, cappedInterest,
+    deduction, phasedOut, fullyPhasedOut, inWindow, eligible, notes
+  };
+}
+
+// Bracket table for the car-loan tax-saved estimate. MFS maps to single — the
+// closest published table carried (MFS IS eligible here, unlike tips/overtime),
+// so the estimate is labeled approximate for MFS in the tool.
+const CAR_LOAN_BRACKET_STATUS = {
+  single: 'single',
+  married: 'married',
+  head_of_household: 'head_of_household',
+  married_separate: 'single'
+};
+
+/**
+ * One-call estimate for the car-loan tool: the allowed deduction plus the
+ * federal income tax saved (exact bracket-diff, same as the siblings). The
+ * deduction is below-the-line but available to non-itemizers, so it stacks on
+ * the standard deduction and reduces taxable income only (NOT AGI).
+ */
+export function estimateCarLoan({ year, filingStatus, magi, interest, eligible = true, federal, fed }) {
+  const d = carLoanDeduction({ year, filingStatus, magi, interest, eligible, params: federal.carLoan });
+  const bracketStatus = CAR_LOAN_BRACKET_STATUS[filingStatus] || 'single';
+  const saved = federalTaxSaved(Math.max(0, magi || 0), bracketStatus, d.deduction, fed);
+  return { ...d, interest: Math.max(0, interest || 0), taxSaved: saved.taxSaved, marginalRate: saved.marginalRate };
+}
+
 /**
  * One-call estimate for a tool: given the eligible amount + income + status,
  * return the allowed deduction and the federal tax saved.

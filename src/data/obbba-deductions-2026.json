@@ -229,6 +229,64 @@
           "url": "https://www.irs.gov/instructions/i6251"
         }
       ]
+    },
+    "carLoan": {
+      "statute": "IRC §163(h)(4) 'qualified passenger vehicle loan interest' (added by OBBBA §70203)",
+      "interestCap": 10000,
+      "phaseoutStartMagi": {
+        "single": 100000,
+        "married": 200000,
+        "head_of_household": 100000,
+        "married_separate": 100000
+      },
+      "phaseoutReductionPer1000": 200,
+      "firstYear": 2025,
+      "lastYear": 2028,
+      "fullPhaseoutMagi": {
+        "single": 150000,
+        "married": 250000,
+        "head_of_household": 150000,
+        "married_separate": 150000
+      },
+      "notIndexed": true,
+      "belowTheLine": true,
+      "availableToNonItemizers": true,
+      "reducesAgi": false,
+      "mfsEligible": true,
+      "perReturnNotPerVehicle": true,
+      "qualifies": "Interest — not principal — on a loan used to buy a qualifying vehicle, up to $10,000 per RETURN per year (not per vehicle; a joint return is capped at $10,000 total, and each married-filing-separately return gets its own $10,000). The vehicle must be NEW (original use begins with you — used cars and lease-end buyouts do not qualify), a car/minivan/van/SUV/pickup/motorcycle (not an ATV, trailer, camper, or RV) under 14,000 lbs GVWR, have its FINAL ASSEMBLY in the United States (checkable from the VIN plant code at the NHTSA decoder or the final-assembly point on the window sticker), and be for personal (not business) use. The loan must be incurred after 2024-12-31, secured by a first lien on the vehicle, not a lease, and not from a related party. The VIN must be reported on the return (Schedule 1-A, Part IV). BELOW the line but available to itemizers and non-itemizers alike — it reduces federal taxable income only, NOT AGI. Married-filing-separately is eligible (unlike the tips/overtime/senior deductions). Phase-out: min(interest, $10,000) is reduced by $200 for each $1,000 (or portion thereof) of MAGI over $100,000 ($200,000 for a joint return only), never below zero. MAGI = AGI + §911/§931/§933 exclusions (= AGI for nearly everyone). Tax years 2025–2028 only; not indexed for inflation.",
+      "eligibilityChecklist": [
+        "New vehicle — original use commences with you (used cars and lease-end buyouts do not qualify)",
+        "Final assembly in the United States (VIN plant code or the window-sticker final-assembly point)",
+        "Loan incurred after 2024-12-31, secured by a first lien on the vehicle",
+        "Personal use, not business or commercial — and not a lease"
+      ],
+      "sources": [
+        {
+          "claim": "$10,000 annual limit on qualified passenger vehicle loan interest, per return; phase-out $200 per $1,000 of MAGI over $100,000 ($200,000 joint), reduction applied after the $10,000 cap; new-vehicle original-use, US final assembly, first-lien, non-lease, non-related-party, VIN-on-return requirements; tax years 2025–2028.",
+          "url": "https://www.law.cornell.edu/uscode/text/26/163"
+        },
+        {
+          "claim": "Deduction for car loan interest 2025–2028; phases out for MAGI over $100,000 ($200,000 joint); vehicle must have final assembly in the United States and original use starting with the taxpayer; available to itemizers and non-itemizers.",
+          "url": "https://www.irs.gov/newsroom/one-big-beautiful-bill-act-tax-deductions-for-working-americans-and-seniors"
+        },
+        {
+          "claim": "Claimed on new Schedule 1-A (Part IV), flowing to Form 1040 line 13b after AGI — reduces taxable income, not AGI; VIN reported on the return.",
+          "url": "https://www.irs.gov/newsroom/schedule-1-a-additional-deductions-what-to-know-about-the-new-form"
+        },
+        {
+          "claim": "$10,000 limit applies per tax return (not per person or per vehicle); used cars and cars bought at lease-end do not qualify; leases are excluded; the deduction is not indexed to inflation.",
+          "url": "https://tax.thomsonreuters.com/news/2025-2028-vehicle-loan-interest-deduction-what-you-need-to-know/"
+        },
+        {
+          "claim": "Proposed regulations: joint return capped at $10,000; the $10,000 limit applies separately to each married-filing-separately return; final-assembly verification via the VIN (49 CFR 565) or the vehicle-information label (49 CFR 583.5).",
+          "url": "https://www.calt.iastate.edu/post/proposed-regulations-explain-new-deduction-personal-car-loan-interest"
+        },
+        {
+          "claim": "Senate narrowed the break to new vehicles ('the original use ... commences with the taxpayer'), so used vehicles do not qualify; ATVs/trailers/campers dropped from the final law.",
+          "url": "https://www.nbcwashington.com/news/business/money-report/senate-gop-tax-bill-gives-break-on-car-loan-interest-but-not-all-vehicles-qualify/3939560/"
+        }
+      ]
     }
   },
   "states": {

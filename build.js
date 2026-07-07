@@ -126,6 +126,7 @@ const TOOLS = [
   { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/', cat: 'money' },
   { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/', cat: 'money' },
   { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/', cat: 'money' },
+  { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/', cat: 'money' },
   { name: '401(k) Retirement Calculator', path: '/401k-calculator/', cat: 'money' },
   { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/', cat: 'money' },
   { name: 'Inflation Calculator', path: '/inflation-calculator/', cat: 'money' },
@@ -220,6 +221,7 @@ const TOOL_DESCRIPTIONS = {
   '/tips-tax-calculator/': 'See how much of your tips are deductible under the 2025 "no tax on tips" law (up to $25,000) and what it saves you.',
   '/senior-deduction-calculator/': 'Calculate the 2025 law\'s $6,000 senior bonus deduction for people 65+ — the "no tax on Social Security" break — and what it saves you.',
   '/salt-cap-calculator/': 'See your allowed SALT deduction under the 2025 law\'s $40,000 cap — with the high-income phase-down, the itemize-vs-standard check, and your saving vs the old $10,000 cap.',
+  '/car-loan-interest-calculator/': 'See how much of your new-car loan interest is deductible under the 2025 law (up to $10,000/yr, 2025–2028) — with the income phase-out and what it really saves you.',
   '/401k-calculator/': 'Project 401(k) retirement balance from contributions, match, and growth.',
   '/savings-goal-calculator/': 'Find how much to save each month to reach a savings goal.',
   '/inflation-calculator/': 'See how the buying power of a US dollar changes over time.',
@@ -255,21 +257,30 @@ const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, 
 // Hand-picked related links for pages that aren't in TOOLS (data studies, the
 // embed gallery). Keyed by currentPath.
 const RELATED_OVERRIDES = {
+  '/car-loan-interest-calculator/': [
+    { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
+    { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
+    { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
+    { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
+    { name: 'Auto Loan Calculator', path: '/auto-loan-calculator/' },
+    { name: 'Sales Tax Calculator', path: '/sales-tax-calculator/' },
+    { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' }
+  ],
   '/salt-cap-calculator/': [
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
     { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
+    { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
     { name: 'Mortgage Calculator', path: '/mortgage-calculator/' },
     { name: 'Sales Tax Calculator', path: '/sales-tax-calculator/' },
-    { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
-    { name: 'Inflation Calculator', path: '/inflation-calculator/' }
+    { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' }
   ],
   '/senior-deduction-calculator/': [
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
+    { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
     { name: '401(k) Retirement Calculator', path: '/401k-calculator/' },
-    { name: 'Inflation Calculator', path: '/inflation-calculator/' },
     { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' },
     { name: 'Age Calculator', path: '/age-calculator/' },
     { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/' }
@@ -297,9 +308,9 @@ const RELATED_OVERRIDES = {
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
     { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
+    { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
     { name: 'Overtime Tax by State (Data Study)', path: '/data/overtime-tax-by-state/' },
     { name: 'Tip Income Tax by State (Data Study)', path: '/data/tips-tax-by-state/' },
-    { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
     { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' }
   ]
 };
@@ -1353,6 +1364,8 @@ async function main() {
   const embedSeniorTpl = await read(join(SRC, 'templates', 'embed', 'senior-deduction-calculator.html'));
   const saltCapTpl = await read(join(SRC, 'templates', 'salt-cap-calculator.html'));
   const embedSaltTpl = await read(join(SRC, 'templates', 'embed', 'salt-cap-calculator.html'));
+  const carLoanTpl = await read(join(SRC, 'templates', 'car-loan-interest-calculator.html'));
+  const embedCarLoanTpl = await read(join(SRC, 'templates', 'embed', 'car-loan-interest-calculator.html'));
   const embedGalleryTpl = await read(join(SRC, 'templates', 'embed-gallery.html'));
   const overtimeStudyTpl = await read(join(SRC, 'templates', 'data-overtime-tax-by-state.html'));
   const tipsStudyTpl = await read(join(SRC, 'templates', 'data-tips-tax-by-state.html'));
@@ -1527,6 +1540,7 @@ async function main() {
   await cp(join(SRC, 'assets', 'tips-tax-calculator.js'), join(DIST, 'assets', 'tips-tax-calculator.js'));
   await cp(join(SRC, 'assets', 'senior-deduction-calculator.js'), join(DIST, 'assets', 'senior-deduction-calculator.js'));
   await cp(join(SRC, 'assets', 'salt-cap-calculator.js'), join(DIST, 'assets', 'salt-cap-calculator.js'));
+  await cp(join(SRC, 'assets', 'car-loan-interest-calculator.js'), join(DIST, 'assets', 'car-loan-interest-calculator.js'));
   await cp(join(SRC, 'assets', 'embed-gallery.js'), join(DIST, 'assets', 'embed-gallery.js'));
   await cp(join(SRC, 'engine', 'employment-tax.js'), join(DIST, 'assets', 'employment-tax.js'));
   await cp(join(SRC, 'assets', 'biweekly-mortgage-calculator.js'), join(DIST, 'assets', 'biweekly-mortgage-calculator.js'));
@@ -2278,6 +2292,18 @@ async function main() {
   );
   urls.push(`${SITE.url}/salt-cap-calculator/`);
 
+  // OBBBA car-loan interest deduction (IRC §163(h)(4) "qualified passenger
+  // vehicle loan interest", added by §70203) calculator — up to $10,000/yr of
+  // interest on a new, US-assembled, personal-use vehicle loan for 2025–2028,
+  // with the $100,000/$200,000 MAGI phase-out and an eligibility checklist. No
+  // state selector: it's a federal deduction; MFS IS eligible (unlike tips/OT).
+  await mkdir(join(DIST, 'car-loan-interest-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'car-loan-interest-calculator', 'index.html'),
+    fillTool(carLoanTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON }, '/car-loan-interest-calculator/')
+  );
+  urls.push(`${SITE.url}/car-loan-interest-calculator/`);
+
   // OBBBA "which states still tax overtime in 2026" DATA STUDY (/data/overtime-tax-by-state/).
   // A citable, author-bylined data asset for the journalist link sprint. The table is
   // rendered server-side from the SAME sourced obbba dataset the calculators use, so the
@@ -2515,6 +2541,8 @@ async function main() {
   await writeFile(join(DIST, 'embed', 'senior-deduction-calculator', 'index.html'), fillEmbed(embedSeniorTpl));
   await mkdir(join(DIST, 'embed', 'salt-cap-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'salt-cap-calculator', 'index.html'), fillEmbed(embedSaltTpl));
+  await mkdir(join(DIST, 'embed', 'car-loan-interest-calculator'), { recursive: true });
+  await writeFile(join(DIST, 'embed', 'car-loan-interest-calculator', 'index.html'), fillEmbed(embedCarLoanTpl));
   // Indexable embed gallery (fillTool is fine here — real page, benefits from schema
   // + the More-tools cross-links). This one IS in the sitemap.
   await writeFile(join(DIST, 'embed', 'index.html'), fillTool(embedGalleryTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/embed/'));

@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Car Loan Interest Deduction Calculator 2025–2028 (OBBBA) — up to $10,000</title>
+<meta name="description" content="Free car loan interest deduction calculator for the 2025 One Big Beautiful Bill Act: deduct up to $10,000 of interest on a new, US-assembled vehicle loan (2025–2028), with the income phase-out and what it really saves you. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/car-loan-interest-calculator/">
+<meta property="og:title" content="Car Loan Interest Deduction Calculator (2025–2028)">
+<meta property="og:description" content="See how much of your new-car loan interest is deductible under the 2025 law (up to $10,000/yr), the income phase-out, and your federal tax saving. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; }
+  .obbba-note { font-size:.9rem; opacity:.85; margin-top:8px; }
+  .phaseout-flag { color:#b26b00; font-weight:600; }
+  .ineligible-flag { color:#b23a00; font-weight:600; }
+  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
+  .mythbust h2 { margin-top:0; }
+  .loan-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  .elig { margin:0; padding:0; list-style:none; }
+  .elig li { display:flex; gap:10px; align-items:flex-start; padding:7px 0; }
+  .elig input { margin-top:3px; flex:0 0 auto; width:18px; height:18px; }
+  .elig label { cursor:pointer; }
+  @media (max-width:520px){ .loan-row { grid-template-columns:1fr; } }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Car Loan Interest Deduction Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Estimate the new car loan interest deduction under the One Big Beautiful Bill Act (IRC §163(h)(4)): up to $10,000 of qualified vehicle-loan interest a year for 2025–2028, with the $100,000/$200,000 income phase-out ($200 per $1,000 over), an eligibility check for new / US-assembled / personal-use / non-lease loans, and your estimated federal tax saving."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How much car loan interest can I deduct under the 2025 law?","acceptedAnswer":{"@type":"Answer","text":"Up to $10,000 of interest (not principal) per tax return per year, for tax years 2025 through 2028. It is one $10,000 limit for the whole return — not per person and not per vehicle — and a married couple filing jointly still shares a single $10,000 cap. The deduction phases out for modified adjusted gross income over $100,000 ($200,000 for joint filers), losing $200 for every $1,000 of income above that line."}},{"@type":"Question","name":"Is this a $10,000 tax credit — does it cut my tax bill by $10,000?","acceptedAnswer":{"@type":"Answer","text":"No. It is a deduction, not a credit. It lowers your taxable income by up to $10,000 of interest, so the actual saving is that amount times your marginal tax rate. For a typical first-year interest of about $2,400 on a $40,000 loan, a filer in the 22% bracket saves roughly $527 — not $2,400 and certainly not $10,000."}},{"@type":"Question","name":"Do used cars or leased vehicles qualify?","acceptedAnswer":{"@type":"Answer","text":"No. The vehicle must be new — its original use has to begin with you — so used cars and cars you buy at the end of a lease do not qualify. Lease financing is excluded outright, as are RVs, campers, trailers, and ATVs. The vehicle must also be a car, minivan, van, SUV, pickup, or motorcycle under 14,000 lbs, with final assembly in the United States, bought for personal use with a loan secured by a first lien and taken out after December 31, 2024."}},{"@type":"Question","name":"How do I check whether my car was assembled in the United States?","acceptedAnswer":{"@type":"Answer","text":"Two ways. Enter your 17-character VIN in the free NHTSA VIN Decoder (vpic.nhtsa.dot.gov/decoder) and look at the plant of manufacture, or read the 'Final Assembly Point' line on the Monroney window sticker that came with the car. Final assembly must be in the United States — where the brand is headquartered does not matter."}},{"@type":"Question","name":"Do I have to itemize to claim the car loan interest deduction?","acceptedAnswer":{"@type":"Answer","text":"No. It is available whether you take the standard deduction or itemize. It is claimed on the new Schedule 1-A and flows to Form 1040 line 13b after your adjusted gross income (AGI), so it reduces your taxable income but does not lower your AGI. You must report the vehicle's VIN on the return."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Car Loan Interest Deduction Calculator</h1>
+    <p class="lede">The 2025 One Big Beautiful Bill Act lets you deduct up to <strong>$10,000 of interest</strong> a year on a loan for a <strong>new, US-assembled</strong> vehicle bought for personal use — for tax years <strong>2025 through 2028</strong>. Enter your loan and income to see your estimated first-year interest, how much is deductible after the income phase-out, and what it actually saves you. Everything runs in your browser — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Car loan interest deduction calculator">
+      <form id="carForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="year">Tax year</label>
+          <select id="year">
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+            <option value="2027">2027</option>
+            <option value="2028">2028</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">The deduction exists for 2025 through 2028 only. The $10,000 cap and the income thresholds are the same every year — they are not indexed for inflation.</p>
+        </div>
+
+        <div class="field">
+          <label for="filing">Filing status</label>
+          <select id="filing">
+            <option value="single">Single</option>
+            <option value="married">Married filing jointly</option>
+            <option value="married_separate">Married filing separately</option>
+            <option value="head_of_household">Head of household</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">Married filing separately is allowed here (unlike the tips and overtime deductions) and uses the $100,000 threshold. Only a joint return gets the $200,000 threshold.</p>
+        </div>
+
+        <div class="field">
+          <label for="magi">Your adjusted gross income (AGI / MAGI)</label>
+          <input type="number" id="magi" inputmode="numeric" min="0" step="1000" value="90000">
+          <p class="muted-small" style="margin-top:6px">Roughly Form 1040 line 11. The law uses MAGI — AGI plus a few foreign-income exclusions — which equals AGI for nearly everyone. Filing jointly? Use your combined income.</p>
+        </div>
+
+        <div class="field">
+          <label>Your car loan</label>
+          <div class="loan-row">
+            <div class="field" style="margin:0">
+              <label for="amount" class="muted-small">Loan amount ($)</label>
+              <input type="number" id="amount" inputmode="numeric" min="0" step="500" value="40000">
+            </div>
+            <div class="field" style="margin:0">
+              <label for="apr" class="muted-small">APR (%)</label>
+              <input type="number" id="apr" inputmode="decimal" min="0" step="0.1" value="6.5">
+            </div>
+            <div class="field" style="margin:0">
+              <label for="term" class="muted-small">Term (months)</label>
+              <input type="number" id="term" inputmode="numeric" min="1" step="12" value="60">
+            </div>
+          </div>
+          <p class="muted-small" style="margin-top:6px">We estimate the interest in the first full year of the loan from these terms. Interest is highest in year one and falls each year as you pay down the balance.</p>
+        </div>
+
+        <div class="field">
+          <label>Does your vehicle and loan qualify? Check each that is true:</label>
+          <ul class="elig">
+            <li><input type="checkbox" id="e-new" checked><label for="e-new"><strong>New vehicle</strong> — its original use begins with you (not a used car or a lease buyout)</label></li>
+            <li><input type="checkbox" id="e-usa" checked><label for="e-usa"><strong>Assembled in the United States</strong> — final assembly in the US (check your VIN or the window sticker)</label></li>
+            <li><input type="checkbox" id="e-origin" checked><label for="e-origin"><strong>Loan taken out in 2025 or later</strong> — incurred after December 31, 2024, secured by a first lien on the car</label></li>
+            <li><input type="checkbox" id="e-personal" checked><label for="e-personal"><strong>Personal use, financed with a loan</strong> — not a business/commercial vehicle and not a lease</label></li>
+          </ul>
+          <p class="muted-small" style="margin-top:2px">Unchecking any box means the interest isn't deductible — the result explains why.</p>
+        </div>
+      </form>
+
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+    </section>
+
+    <p class="note">Estimate for general guidance only — not tax advice. The first-year interest assumes a fully amortizing fixed-rate loan and 12 monthly payments in the first year. The tax-saving figure uses the 2026 federal brackets and treats your income as taxed against the standard deduction (married filing separately is estimated with the single table). It does not model state tax, AMT, or your full return. Verify with the IRS or a tax professional, and report the vehicle's VIN on Schedule 1-A.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose mythbust">
+      <h2>Does every car loan get a $10,000 write-off? No — read this first</h2>
+      <p><strong>1. It's a deduction, not a credit.</strong> The $10,000 is a ceiling on deductible <em>interest</em>, not $10,000 off your tax bill. Your real saving is the deduction times your marginal rate — for a typical first-year interest of about $2,400, a filer in the 22% bracket saves roughly <strong>$527</strong>, not $2,400.</p>
+      <p><strong>2. Used cars and leases don't qualify.</strong> The vehicle must be <strong>new</strong> — original use begins with you. Used cars, lease-end buyouts, and any lease financing are out, and so are RVs, campers, trailers, and ATVs.</p>
+      <p><strong>3. Only loans taken out in 2025 or later.</strong> The loan must be incurred after December 31, 2024 and secured by a first lien on the car. A loan you signed in 2024 doesn't qualify even though you're still paying interest on it.</p>
+      <p><strong>4. It must be assembled in the US.</strong> Final assembly has to be in the United States. Check the plant code in your <strong>VIN</strong> at the free NHTSA decoder, or the "Final Assembly Point" line on the <strong>window sticker</strong> — the brand's headquarters is irrelevant.</p>
+      <p><strong>5. Available to non-itemizers.</strong> Good news: you don't have to itemize. It's claimed on Schedule 1-A and reduces taxable income after your AGI, so you can take it alongside the standard deduction — but it does <em>not</em> lower your AGI.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How the car loan interest deduction works</h2>
+      <p>The One Big Beautiful Bill Act (signed July 2025) added Internal Revenue Code §163(h)(4), "qualified passenger vehicle loan interest." For 2025 through 2028 you can deduct the interest you pay on a qualifying auto loan, up to <strong>$10,000 a year</strong>.</p>
+      <p><strong>Per return, not per vehicle.</strong> The $10,000 cap applies to the whole return. A married couple filing jointly still shares one $10,000 limit; two qualifying cars' interest is added together under that single cap. Married filing separately is the exception — each spouse's return gets its own $10,000.</p>
+      <p><strong>The income phase-out.</strong> If your modified adjusted gross income (MAGI) is over <strong>$100,000</strong> ($200,000 for a joint return only — single, head of household, and married filing separately all use $100,000), the deduction drops by <strong>$200 for every $1,000</strong> (or part of $1,000) above the threshold. Because the reduction comes off your deductible interest <em>after</em> the $10,000 cap, a taxpayer with a full $10,000 is fully phased out at $150,000 of income (single) or $250,000 (joint) — but someone with only $3,000 of interest phases out much sooner, around $114,000.</p>
+      <p><strong>What counts as interest.</strong> Only the interest portion of your payments — not principal, and not the whole payment. Interest is front-loaded, so year one is the biggest deduction and it shrinks every year as the balance falls. For a $40,000 loan at 6.5% over 60 months, first-year interest is about $2,394, falling to roughly $1,925, $1,425, $892, and $322 in years two through five.</p>
+      <p><strong>Above or below the line?</strong> It's a below-the-line deduction that's still available to non-itemizers. It's claimed on the new Schedule 1-A and flows to Form 1040 line 13b, after your AGI — so it reduces taxable income but not AGI, and anything keyed to AGI (IRMAA, most state returns) is unchanged. You must report the vehicle's VIN on the return.</p>
+      <p>Working overtime or earning tips? The same law added separate deductions — see the <a href="/overtime-tax-calculator/">no tax on overtime calculator</a> and the <a href="/tips-tax-calculator/">no tax on tips calculator</a>. 65 or older? There's the <a href="/senior-deduction-calculator/">$6,000 senior bonus deduction</a>. Itemizing in a high-tax state? It also raised the <a href="/salt-cap-calculator/">SALT deduction cap to $40,000</a>.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>How much can I deduct?</strong> Up to $10,000 of interest per return per year (2025–2028), phased down by $200 per $1,000 of MAGI over $100,000 ($200,000 joint), never below zero.</p>
+      <p><strong>Is it a $10,000 credit?</strong> No — it's a deduction. The saving is the deduction times your marginal rate: about $527 on $2,394 of interest in the 22% bracket.</p>
+      <p><strong>Do used cars or leases qualify?</strong> No. New vehicles only (original use begins with you), and lease financing is excluded — including buying your car at the end of a lease.</p>
+      <p><strong>How do I check US final assembly?</strong> Decode your 17-character VIN at the free <a href="https://vpic.nhtsa.dot.gov/decoder/" rel="nofollow">NHTSA VIN Decoder</a> (plant of manufacture) or read the "Final Assembly Point" on the window sticker.</p>
+      <p><strong>Do I have to itemize?</strong> No. It's available to non-itemizers, claimed on Schedule 1-A after AGI — but it does not reduce your AGI.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your numbers never leave your browser.</p>
+      <p class="muted-small">Sources: Public Law 119-21 §70203, <a href="https://www.law.cornell.edu/uscode/text/26/163" rel="nofollow">26 USC §163(h)(4) (Cornell LII)</a>; IRS, <a href="https://www.irs.gov/newsroom/one-big-beautiful-bill-act-tax-deductions-for-working-americans-and-seniors" rel="nofollow">tax deductions for working Americans and seniors</a> and <a href="https://www.irs.gov/newsroom/schedule-1-a-additional-deductions-what-to-know-about-the-new-form" rel="nofollow">Schedule 1-A</a>; Thomson Reuters, <a href="https://tax.thomsonreuters.com/news/2025-2028-vehicle-loan-interest-deduction-what-you-need-to-know/" rel="nofollow">2025–2028 vehicle loan interest deduction</a>; Center for Agricultural Law and Taxation, <a href="https://www.calt.iastate.edu/post/proposed-regulations-explain-new-deduction-personal-car-loan-interest" rel="nofollow">proposed regulations</a>; Bipartisan Policy Center, <a href="https://bipartisanpolicy.org/explainer/how-the-new-auto-loan-interest-deduction-works-from-the-one-big-beautiful-bill/" rel="nofollow">how the auto-loan interest deduction works</a>.</p>
+    </section>
+
+    <div class="note"><strong>Embed this calculator.</strong> Put this calculator on your site — free, one copy-paste snippet, no scripts from third parties. <a href="/embed/">Get the snippet</a>.</div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__OBBBA__ = {{OBBBA_JSON}};
+  window.__FED__ = {{FED_JSON}};
+</script>
+<script type="module" src="/assets/car-loan-interest-calculator.js"></script>
+</body>
+</html>
