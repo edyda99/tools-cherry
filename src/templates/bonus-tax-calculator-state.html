@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{STATE_TITLE}}</title>
+<meta name="description" content="{{STATE_META_DESC}}">
+<link rel="canonical" href="{{SITE_URL}}/{{STATE_SLUG}}-bonus-tax-calculator/">
+<meta property="og:title" content="{{STATE_NAME}} Bonus Tax Calculator {{YEAR}} ({{STATE_ABBR}})">
+<meta property="og:description" content="See what's withheld from your {{STATE_NAME}} bonus now versus what it will really cost at tax time.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.1rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; text-align:right; }
+  .obbba-note { font-size:.9rem; opacity:.92; margin-top:8px; }
+  .ok-flag { color:#2f6f4f; font-weight:700; }
+  .bt-headline { margin:4px 0 14px; padding:12px 15px; border-radius:9px; font-size:1.02rem; }
+  .bt-headline.refund { border-left:4px solid #2f6f4f; background:rgba(47,111,79,.10); }
+  .bt-headline.owe { border-left:4px solid #b26b00; background:rgba(178,107,0,.10); }
+  .bt-headline.even { border-left:4px solid #4a6785; background:rgba(74,103,133,.10); }
+  .bt-cols { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:6px; }
+  .bt-col h3 { margin:0 0 6px; font-size:1rem; }
+  @media (max-width:640px){ .bt-cols { grid-template-columns:1fr; } }
+  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
+  .mythbust h2 { margin-top:0; }
+</style>
+<script type="application/ld+json">{{FAQ_JSONLD}}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/bonus-tax-calculator/">Bonus Tax Calculator</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>{{STATE_H1}}</h1>
+    <p class="updated">Data compiled and maintained by <a href="/data/overtime-tax-by-state/#author">Edmond Daher</a> · Updated {{VERIFIED}}</p>
+    <p class="lede">{{STATE_LEDE}}</p>
+    {{BONUS_INTRO}}
+
+    <section class="calc" aria-label="{{STATE_NAME}} bonus tax calculator">
+      <form id="bonusForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="bonus">Bonus amount (USD)</label>
+          <input id="bonus" type="number" inputmode="decimal" min="0" step="any" value="10000" placeholder="10000">
+        </div>
+        <div class="field">
+          <label for="regIncome">Your regular annual income (USD)</label>
+          <input id="regIncome" type="number" inputmode="decimal" min="0" step="any" value="70000" placeholder="70000">
+          <p class="muted-small" style="margin-top:6px">Your salary or wages for the year, not counting this bonus. Drives your true <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> and the Social Security wage cap.</p>
+        </div>
+        <div class="field">
+          <label for="filingStatus"><a href="/tax-glossary/#filing-status">Filing status</a></label>
+          <select id="filingStatus">
+            <option value="single">Single / Married filing separately</option>
+            <option value="married">Married filing jointly</option>
+            <option value="head_of_household">Head of household</option>
+          </select>
+        </div>
+        <div class="field" id="paymentTypeRow" style="display:none">
+          <label for="paymentType">Payment type (California dual rate)</label>
+          <select id="paymentType">
+            <option value="bonus">Bonus or stock options (10.23%)</option>
+            <option value="other">Other supplemental wages (6.6%)</option>
+          </select>
+        </div>
+        <details class="adv">
+          <summary>Advanced options</summary>
+          <div class="field" style="margin-top:12px">
+            <label for="ytdSupp">Bonuses already paid this year (USD)</label>
+            <input id="ytdSupp" type="number" inputmode="decimal" min="0" step="any" value="0">
+            <p class="muted-small" style="margin-top:6px">Only matters past $1,000,000 of total bonuses in a year, where federal withholding jumps to 37% on the excess.</p>
+          </div>
+          <div class="field">
+            <label for="method">Withholding method</label>
+            <select id="method">
+              <option value="flat">Flat / percentage (default — bonus on its own check)</option>
+              <option value="aggregate">Aggregate (bonus lumped with a regular paycheck)</option>
+            </select>
+          </div>
+        </details>
+      </form>
+
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+    </section>
+
+    <p class="note">Estimate only, not tax advice — <a href="/terms/">terms</a>.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    {{SECTIONS_A}}
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    {{SECTIONS_B}}
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    {{STATE_FAQ}}
+
+    <section class="prose">
+      <h2>Bonus tax calculators near {{STATE_NAME}}</h2>
+      <div class="state-grid">{{STATE_LINKS}}</div>
+      <p><a href="/{{STATE_SLUG}}-paycheck-calculator/">{{STATE_NAME}} paycheck calculator</a> · <a href="/bonus-tax-calculator/">all state bonus tax calculators &rarr;</a></p>
+    </section>
+
+    {{SOURCES}}
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools. Tax year {{YEAR}} figures (IRS / state DOR), verified {{VERIFIED}}. Estimates only.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a> · <a href="/tax-glossary/">Tax Glossary</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__BONUS_TAX__ = {{BONUS_TAX_JSON}};
+  window.__BONUS_STATE__ = "{{STATE_SLUG}}";
+</script>
+<script type="module" src="/assets/bonus-tax-calculator.js"></script>
+</body>
+</html>

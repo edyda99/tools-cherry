@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Bonus Tax Calculator by State ({{YEAR}}) — Why Is So Much of My Bonus Withheld?</title>
+<meta name="description" content="Free {{YEAR}} bonus tax calculator for all 50 states + DC. See what's withheld from your bonus now (flat 22% federal + your state's supplemental rate + FICA) versus what it will really cost at tax time — and the refund or amount owed. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/bonus-tax-calculator/">
+<meta property="og:title" content="Bonus Tax Calculator by State ({{YEAR}})">
+<meta property="og:description" content="Your bonus isn't taxed at a higher rate — it's just withheld differently. See what's held back now vs. what you'll actually owe, for any state. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.1rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; text-align:right; }
+  .obbba-note { font-size:.9rem; opacity:.92; margin-top:8px; }
+  .ok-flag { color:#2f6f4f; font-weight:700; }
+  .bt-headline { margin:4px 0 14px; padding:12px 15px; border-radius:9px; font-size:1.02rem; }
+  .bt-headline.refund { border-left:4px solid #2f6f4f; background:rgba(47,111,79,.10); }
+  .bt-headline.owe { border-left:4px solid #b26b00; background:rgba(178,107,0,.10); }
+  .bt-headline.even { border-left:4px solid #4a6785; background:rgba(74,103,133,.10); }
+  .bt-cols { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:6px; }
+  .bt-col h3 { margin:0 0 6px; font-size:1rem; }
+  @media (max-width:640px){ .bt-cols { grid-template-columns:1fr; } }
+  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
+  .mythbust h2 { margin-top:0; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Bonus Tax Calculator by State","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate how a bonus is withheld versus taxed in any US state for {{YEAR}}: the flat 22% federal supplemental rate (37% above $1,000,000), the state supplemental withholding rate, and FICA, beside the true income tax on the bonus at your marginal rate — showing the expected refund or amount owed."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Are bonuses taxed at a higher rate?","acceptedAnswer":{"@type":"Answer","text":"No. A bonus is ordinary income taxed at your normal marginal rate when you file. What you see on the check is withholding, not tax: the IRS default is to withhold a flat 22% of a bonus for federal income tax (37% on any part above $1,000,000 in a year), plus your state's supplemental rate and FICA. If 22% is more than your real rate — true for most people — the difference comes back as a refund. If your real rate is higher (high earners), you'll owe the rest at filing."}},{"@type":"Question","name":"Why was so much taken out of my bonus?","acceptedAnswer":{"@type":"Answer","text":"A separately paid bonus is usually withheld at a flat 22% for federal income tax, plus your state's supplemental rate, plus 7.65% FICA (Social Security and Medicare). In a high-tax state that can top 40% of the bonus. But only the income-tax part is a prepayment that trues up when you file — FICA is a real tax. Most workers get part of the income-tax withholding back as a refund."}},{"@type":"Question","name":"What is the federal bonus withholding rate in 2026?","acceptedAnswer":{"@type":"Answer","text":"A flat 22% on supplemental wages up to $1,000,000 in a calendar year, and a mandatory 37% on the portion above $1,000,000. These rates were made permanent by the 2025 tax law (P.L. 119-21) and carry into 2026 unchanged (IRS Publication 15)."}},{"@type":"Question","name":"Does getting a bonus push all my income into a higher tax bracket?","acceptedAnswer":{"@type":"Answer","text":"No. Tax brackets are marginal — only the dollars above each threshold are taxed at the higher rate. A bonus can push part of itself into the next bracket, but it never re-taxes the income you already earned. Your average (effective) rate barely moves."}},{"@type":"Question","name":"Is FICA refunded like the income-tax withholding?","acceptedAnswer":{"@type":"Answer","text":"No. Social Security (6.2% up to the wage base) and Medicare (1.45%, plus 0.9% above $200,000) are true taxes on the bonus, owed at the same rate they're withheld. Only the income-tax slice (federal plus state) is a prepayment that can come back as a refund."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#money">Money Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Bonus Tax Calculator by State</h1>
+    <p class="updated">Data compiled and maintained by <a href="/data/overtime-tax-by-state/#author">Edmond Daher</a> · Updated {{VERIFIED}}</p>
+    <p class="lede">Your bonus is <strong>not taxed at a higher rate</strong> — it's just <strong><a href="/tax-glossary/#withholding">withheld</a> differently</strong>. Employers usually hold back a flat <strong>22%</strong> for federal income tax (37% on any part over $1,000,000), plus your state's supplemental rate, plus <a href="/tax-glossary/#fica">FICA</a>. Pick your state and enter your numbers to see what's held back now beside what the bonus will <em>really</em> cost at tax time — and the refund or amount you'll owe. Everything runs in your browser; nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Bonus tax calculator">
+      <form id="bonusForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="bonus">Bonus amount (USD)</label>
+          <input id="bonus" type="number" inputmode="decimal" min="0" step="any" value="10000" placeholder="10000">
+        </div>
+        <div class="field">
+          <label for="state">State</label>
+          <select id="state"></select>
+        </div>
+        <div class="field">
+          <label for="regIncome">Your regular annual income (USD)</label>
+          <input id="regIncome" type="number" inputmode="decimal" min="0" step="any" value="70000" placeholder="70000">
+          <p class="muted-small" style="margin-top:6px">Your salary or wages for the year, not counting this bonus. Drives your true <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> and the Social Security wage cap.</p>
+        </div>
+        <div class="field">
+          <label for="filingStatus"><a href="/tax-glossary/#filing-status">Filing status</a></label>
+          <select id="filingStatus">
+            <option value="single">Single / Married filing separately</option>
+            <option value="married">Married filing jointly</option>
+            <option value="head_of_household">Head of household</option>
+          </select>
+        </div>
+        <div class="field" id="paymentTypeRow" style="display:none">
+          <label for="paymentType">Payment type (California dual rate)</label>
+          <select id="paymentType">
+            <option value="bonus">Bonus or stock options (10.23%)</option>
+            <option value="other">Other supplemental wages (6.6%)</option>
+          </select>
+        </div>
+        <details class="adv">
+          <summary>Advanced options</summary>
+          <div class="field" style="margin-top:12px">
+            <label for="ytdSupp">Bonuses already paid this year (USD)</label>
+            <input id="ytdSupp" type="number" inputmode="decimal" min="0" step="any" value="0">
+            <p class="muted-small" style="margin-top:6px">Only matters past $1,000,000 of total bonuses in a year, where federal withholding jumps to 37% on the excess.</p>
+          </div>
+          <div class="field">
+            <label for="method">Withholding method</label>
+            <select id="method">
+              <option value="flat">Flat / percentage (default — bonus on its own check)</option>
+              <option value="aggregate">Aggregate (bonus lumped with a regular paycheck)</option>
+            </select>
+          </div>
+        </details>
+      </form>
+
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+    </section>
+
+    <p class="note">Estimate for general guidance only — not tax advice. Withholding is what your employer sends in now; your real tax is settled when you file. Local city/county taxes (e.g. NYC, Yonkers) may also apply and are not modeled. See our <a href="/terms/">terms</a>.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose mythbust">
+      <h2>The myth: "my bonus got taxed at 40%"</h2>
+      <p><strong>What it feels like:</strong> a $10,000 bonus lands and only about $6,000 shows up — so it must be taxed at some brutal "bonus rate."</p>
+      <p><strong>What's actually true:</strong> there is <em>no</em> special bonus tax rate. Your bonus is ordinary income. The chunk that vanished is <a href="/tax-glossary/#withholding">withholding</a> — a flat <strong>22%</strong> federal prepayment (the third <a href="/tax-glossary/#tax-bracket">bracket's</a> rate, used as a convenient default), plus your state's supplemental rate, plus <strong>7.65% FICA</strong>. When you file, the bonus is taxed at your true <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> along with the rest of your income. If that rate is under 22% — the case for most people on most bonuses — the extra withholding comes back as a <strong>refund</strong>. If it's over 22% (high earners), you'll <strong>owe</strong> the difference. Either way, the 22% wasn't a tax rate.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How a bonus is withheld in {{YEAR}}</h2>
+      <p><strong>Federal — the flat 22% method.</strong> When a bonus is identified separately from regular wages, the employer can withhold federal income tax at a flat <strong>22%</strong> (IRS Publication 15). On the part of your bonuses that exceeds <strong>$1,000,000</strong> in a calendar year, the rate is a mandatory <strong>37%</strong>. The 22% ties to the third federal bracket — it's a withholding convenience, not a "bonus tax rate."</p>
+      <p><strong>State — four different playbooks.</strong> Every state falls into one of four buckets:</p>
+      <ul>
+        <li><strong>No state income tax (9 states)</strong> — Alaska, Florida, Nevada, New Hampshire, South Dakota, Tennessee, Texas, Washington and Wyoming withhold <strong>0%</strong> state tax on a bonus.</li>
+        <li><strong>Own flat supplemental rate</strong> — states like California (10.23% on bonuses), New York (11.7%), Oregon (8%) and Minnesota (6.25%) publish a specific rate applied as <em>bonus × rate</em>.</li>
+        <li><strong>Regular (aggregate) method</strong> — states like Illinois, Pennsylvania and Colorado have no separate rate and withhold as if the bonus were ordinary wages.</li>
+        <li><strong>Special formulas</strong> — Vermont withholds 30% of the <em>federal</em> withholding (not of the bonus); Wisconsin uses a graduated rate by income band; California has two rates by payment type.</li>
+      </ul>
+      <p><strong>FICA — the part that's really a tax.</strong> Social Security (6.2% up to the wage base) and Medicare (1.45%, plus 0.9% above $200,000) are withheld on the bonus and owed at the same rate. Unlike the income-tax withholding, FICA does <em>not</em> come back — it's a true tax, so it's the same in both columns of the calculator.</p>
+      <p>Related: the <a href="/overtime-tax-calculator/">overtime</a> and <a href="/tips-tax-calculator/">tips</a> calculators cover other supplemental pay, and your state's <a href="/#paycheck">paycheck calculator</a> handles your regular salary.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>A worked example: a $10,000 bonus on a $70,000 salary</h2>
+      <p>Take a single filer earning $70,000 who gets a $10,000 bonus, paid on its own check:</p>
+      <ul>
+        <li><strong>Withheld now (in a no-income-tax state like Texas):</strong> $2,200 federal (22%) + $0 state + $765 FICA = <strong>$2,965</strong> held back, so about $7,035 lands in the account — a 29.65% bite.</li>
+        <li><strong>What it actually costs:</strong> the bonus sits partly in the 12% band and partly in the 22% band, so the true federal income tax on it is about <strong>$1,550</strong>, not $2,200.</li>
+        <li><strong>The gap:</strong> roughly <strong>$650</strong> of federal over-withholding comes back as a refund when you file. FICA ($765) stays — it's a real tax.</li>
+      </ul>
+      <p>Add a state and the withholding rises, but the same logic holds: only the income-tax slice trues up. Pick your state above to run your own numbers. High earners see the mirror image — a $50,000 bonus on a $500,000 salary is withheld at 22% but taxed at 35%, so you'd <em>owe</em> about $6,500 at filing.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>Are bonuses taxed at a higher rate?</strong> No. A bonus is ordinary income taxed at your normal <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> when you file. The flat 22% you see is <a href="/tax-glossary/#withholding">withholding</a>, not a tax rate — most people get part of it back.</p>
+      <p><strong>Why was so much taken out of my bonus?</strong> A separately paid bonus is withheld at 22% federal + your state's supplemental rate + 7.65% <a href="/tax-glossary/#fica">FICA</a>. In a high-tax state that can top 40% of the bonus — but only the income-tax part is a prepayment that trues up.</p>
+      <p><strong>Does a bonus push all my income into a higher bracket?</strong> No. <a href="/tax-glossary/#tax-bracket">Brackets</a> are marginal — only the dollars above each threshold are taxed higher. A bonus never re-taxes income you already earned.</p>
+      <p><strong>Is the FICA refunded too?</strong> No. Social Security and Medicare are true taxes on the bonus. Only the federal and state income-tax withholding can come back as a refund.</p>
+      <p><strong>Flat vs. aggregate — does it change my tax?</strong> No. The two methods only change how much is withheld <em>now</em>; the tax you owe at year-end is identical either way.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The calculator is fully client-side — your numbers never leave your browser.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Bonus tax calculators for every state</h2>
+      <div class="state-grid">{{STATE_LINKS}}</div>
+    </section>
+
+    <section class="sources"><h2>Sources</h2>
+      <ul>
+        <li><a href="https://www.irs.gov/publications/p15" rel="nofollow noopener" target="_blank">IRS Publication 15 (Circular E), 2026 — Supplemental Wages</a> (flat 22% / mandatory 37% above $1M)</li>
+        <li><a href="https://edd.ca.gov/siteassets/files/pdf_pub_ctr/de44.pdf" rel="nofollow noopener" target="_blank">California EDD DE 44 (2026)</a> · <a href="https://www.tax.ny.gov/pdf/publications/withholding/nys50_t_nys.pdf" rel="nofollow noopener" target="_blank">New York NYS-50-T-NYS</a> · <a href="https://taxnews.ey.com/news/2026-0153-2026-state-supplemental-flat-tax-and-highest-income-tax-withholding-rates-with-hyperlinks-to-the-latest-withholding-tables-instructions" rel="nofollow noopener" target="_blank">EY 2026 state supplemental-rate chart</a></li>
+        <li>State Department of Revenue withholding guides for each state's supplemental rate — cited on each state's own page.</li>
+      </ul>
+    </section>
+
+    <div class="note"><strong>Embed this calculator.</strong> Put this calculator on your site — free, one copy-paste snippet, no third-party scripts. <a href="/embed/">Get the snippet</a>.</div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools. Tax year {{YEAR}} figures (IRS / state DOR), verified {{VERIFIED}}. Estimates only.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a> · <a href="/tax-glossary/">Tax Glossary</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__BONUS_TAX__ = {{BONUS_TAX_JSON}};
+</script>
+<script type="module" src="/assets/bonus-tax-calculator.js"></script>
+</body>
+</html>
