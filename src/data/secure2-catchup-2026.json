@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "description": "SECURE 2.0 Act §603 mandatory Roth catch-up parameters (IRC §414(v)(7); final reg 26 CFR 1.414(v)-2). Drives /mandatory-roth-catch-up-calculator. High earners (prior-year FICA/Box 3 wages over the threshold, from the plan-sponsoring employer) must make age-50+ catch-up contributions as designated Roth (after-tax) instead of pre-tax. NOT an OBBBA provision — a separate SECURE 2.0 retirement-plan rule. Constants are year-keyed: 2026 figures are from IRS Notice 2025-67; 2027 COLA figures are not yet published and are deliberately absent (do not fabricate).",
+    "description": "SECURE 2.0 Act §603 mandatory Roth catch-up parameters (IRC §414(v)(7); final reg 26 CFR 1.414(v)-2). Drives /roth-catchup-calculator/. High earners (prior-year FICA/Box 3 wages over the threshold, from the plan-sponsoring employer) must make age-50+ catch-up contributions as designated Roth (after-tax) instead of pre-tax. NOT an OBBBA provision — a separate SECURE 2.0 retirement-plan rule. Constants are year-keyed: 2026 figures are from IRS Notice 2025-67; 2027 COLA figures are not yet published and are deliberately absent (do not fabricate).",
     "lastSourced": "2026-07-11",
     "confidence": "high — every 2026 hard number traced to IRS Notice 2025-67 and 26 CFR 1.414(v)-2; 0 of 10 adversarial refute attempts succeeded (see docs/roth-catchup-spec.md §5)"
   },

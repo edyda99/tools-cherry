@@ -35,6 +35,19 @@ function reasonLine(r, year) {
   }
 }
 
+// Bottom-line takeaway for the NOT-subject branch, keyed to the real reason so it
+// never promises "you keep your full catch-up room, pre-tax" in cases where there
+// is no catch-up room (under 50) or no published figures (pending IRS guidance).
+function takeawayLine(r) {
+  if (r.reason === 'pending_irs_guidance') {
+    return `We don’t have official constants for this year yet — check back once the IRS publishes guidance.`;
+  }
+  if (r.band === 'none') {
+    return `Catch-up contributions start at age 50 — until then this rule can’t affect you.`;
+  }
+  return `Bottom line: you keep your full catch-up room and, with these inputs, you can still make it <strong>pre-tax</strong> — the forced-Roth rule doesn’t touch you here.`;
+}
+
 function bandLabel(band) {
   if (band === 'super') return 'Ages 60–63 “super” catch-up';
   if (band === 'standard') return 'Standard age-50+ catch-up';
@@ -67,7 +80,7 @@ function render() {
       `<div class="line big"><span>Subject to the mandatory-Roth rule?</span><span class="num ok-flag">No</span></div>` +
       maxLine +
       `<div class="obbba-note">${reasonLine(r, year)}</div>` +
-      `<div class="takeaway">Bottom line: you keep your full catch-up room and, with these inputs, you can still make it <strong>pre-tax</strong> — the forced-Roth rule doesn’t touch you here.</div>`;
+      `<div class="takeaway">${takeawayLine(r)}</div>`;
     return;
   }
 
