@@ -203,6 +203,12 @@ const run = (input) => computeBonus(input, taxData, suppData);
   eq('WI band2 (12,760-25,520)', wisconsinBandedRate(20000, wi.bands), 0.0465);
   eq('WI band3 (25,520-280,950)', wisconsinBandedRate(100000, wi.bands), 0.053);
   eq('WI band4 (>280,950)', wisconsinBandedRate(400000, wi.bands), 0.0765);
+  // Boundary: Pub W-166 bands are "at least X, but LESS THAN Y" — an exact
+  // threshold falls in the HIGHER band, not the lower one.
+  eq('WI boundary $12,760 -> band2', wisconsinBandedRate(12760, wi.bands), 0.0465);
+  eq('WI boundary $25,520 -> band3', wisconsinBandedRate(25520, wi.bands), 0.053);
+  eq('WI boundary $280,950 -> band4', wisconsinBandedRate(280950, wi.bands), 0.0765);
+  eq('WI just under $12,760 -> band1', wisconsinBandedRate(12759, wi.bands), 0.0354);
   // computeBonus uses annual gross (reg+bonus) to pick the band.
   const r = run({ bonus: 10000, regIncome: 60000, filingStatus: 'single', stateSlug: 'wisconsin' });
   eq('WI bonus WH', r.withheld.state, 10000 * 0.053); // 70k gross -> band3

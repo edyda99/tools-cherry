@@ -30,7 +30,9 @@ export function federalSupplementalWithholding(bonus, ytdSupp, fedSupp) {
 export function wisconsinBandedRate(annualGross, bands) {
   const g = Math.max(0, annualGross || 0);
   for (const band of bands) {
-    if (band.upTo == null || g <= band.upTo) return band.rate;
+    // WI Pub W-166 bands are "at least X, but less than Y" — an exact-boundary
+    // gross belongs to the HIGHER band, so use strict `<` (not `<=`).
+    if (band.upTo == null || g < band.upTo) return band.rate;
   }
   return bands.length ? bands[bands.length - 1].rate : 0;
 }
