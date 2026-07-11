@@ -127,6 +127,7 @@ const TOOLS = [
   { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/', cat: 'money' },
   { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/', cat: 'money' },
   { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/', cat: 'money' },
+  { name: 'Mandatory Roth Catch-Up Calculator', path: '/roth-catchup-calculator/', cat: 'money' },
   { name: '401(k) Retirement Calculator', path: '/401k-calculator/', cat: 'money' },
   { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/', cat: 'money' },
   { name: 'Inflation Calculator', path: '/inflation-calculator/', cat: 'money' },
@@ -222,6 +223,7 @@ const TOOL_DESCRIPTIONS = {
   '/senior-deduction-calculator/': 'Calculate the 2025 law\'s $6,000 senior bonus deduction for people 65+ — the "no tax on Social Security" break — and what it saves you.',
   '/salt-cap-calculator/': 'See your allowed SALT deduction under the 2025 law\'s $40,000 cap — with the high-income phase-down, the itemize-vs-standard check, and your saving vs the old $10,000 cap.',
   '/car-loan-interest-calculator/': 'See how much of your new-car loan interest is deductible under the 2025 law (up to $10,000/yr, 2025–2028) — with the income phase-out and what it really saves you.',
+  '/roth-catchup-calculator/': 'Earn over $150,000? See if the 2026 SECURE 2.0 rule forces your 401(k) catch-up into Roth (after-tax), what that costs this year, and the Roth-vs-pre-tax break-even.',
   '/401k-calculator/': 'Project 401(k) retirement balance from contributions, match, and growth.',
   '/savings-goal-calculator/': 'Find how much to save each month to reach a savings goal.',
   '/inflation-calculator/': 'See how the buying power of a US dollar changes over time.',
@@ -294,13 +296,23 @@ const RELATED_OVERRIDES = {
     { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' }
   ],
   '/senior-deduction-calculator/': [
+    { name: 'Mandatory Roth Catch-Up Calculator', path: '/roth-catchup-calculator/' },
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
     { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
     { name: '401(k) Retirement Calculator', path: '/401k-calculator/' },
     { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' },
-    { name: 'Age Calculator', path: '/age-calculator/' },
+    { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/' }
+  ],
+  '/roth-catchup-calculator/': [
+    { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
+    { name: '401(k) Retirement Calculator', path: '/401k-calculator/' },
+    { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
+    { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
+    { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
+    { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
+    { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' },
     { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/' }
   ],
   '/data/overtime-tax-by-state/': [
@@ -327,8 +339,8 @@ const RELATED_OVERRIDES = {
     { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
     { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
+    { name: 'Mandatory Roth Catch-Up Calculator', path: '/roth-catchup-calculator/' },
     { name: 'Overtime Tax by State (Data Study)', path: '/data/overtime-tax-by-state/' },
-    { name: 'Tip Income Tax by State (Data Study)', path: '/data/tips-tax-by-state/' },
     { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' }
   ]
 };
@@ -1384,6 +1396,8 @@ async function main() {
   const embedSaltTpl = await read(join(SRC, 'templates', 'embed', 'salt-cap-calculator.html'));
   const carLoanTpl = await read(join(SRC, 'templates', 'car-loan-interest-calculator.html'));
   const embedCarLoanTpl = await read(join(SRC, 'templates', 'embed', 'car-loan-interest-calculator.html'));
+  const rothCatchupTpl = await read(join(SRC, 'templates', 'roth-catchup-calculator.html'));
+  const embedRothCatchupTpl = await read(join(SRC, 'templates', 'embed', 'roth-catchup-calculator.html'));
   const embedGalleryTpl = await read(join(SRC, 'templates', 'embed-gallery.html'));
   const overtimeStudyTpl = await read(join(SRC, 'templates', 'data-overtime-tax-by-state.html'));
   const tipsStudyTpl = await read(join(SRC, 'templates', 'data-tips-tax-by-state.html'));
@@ -1392,6 +1406,9 @@ async function main() {
   const OBBBA_FED_JSON = JSON.stringify(stripInternal(obbba.federal));
   const OBBBA_STATES_JSON = JSON.stringify(stripInternal(obbba.states));
   const OBBBA_FED_TAX_JSON = JSON.stringify(stripInternal({ standardDeduction: taxData.federal.standardDeduction, brackets: taxData.federal.brackets }));
+  // SECURE 2.0 §603 mandatory Roth catch-up params (separate rule, its own dataset).
+  const secure2 = await readJSON(join(SRC, 'data', 'secure2-catchup-2026.json'));
+  const ROTHCATCHUP_JSON = JSON.stringify(stripInternal(secure2.rothCatchUp));
   const biweeklyTpl = await read(join(SRC, 'templates', 'biweekly-mortgage-calculator.html'));
   const photoSpecs = await readJSON(join(SRC, 'data', 'photo-specs.json'));
   const cpiUs = await readJSON(join(SRC, 'data', 'cpi-us.json'));
@@ -1554,11 +1571,13 @@ async function main() {
   await cp(join(SRC, 'assets', 'marked.min.js'), join(DIST, 'assets', 'marked.min.js'));
   await cp(join(SRC, 'assets', '1099-vs-w2-calculator.js'), join(DIST, 'assets', '1099-vs-w2-calculator.js'));
   await cp(join(SRC, 'engine', 'obbba-deduction.js'), join(DIST, 'assets', 'obbba-deduction.js'));
+  await cp(join(SRC, 'engine', 'roth-catchup.js'), join(DIST, 'assets', 'roth-catchup.js'));
   await cp(join(SRC, 'assets', 'overtime-tax-calculator.js'), join(DIST, 'assets', 'overtime-tax-calculator.js'));
   await cp(join(SRC, 'assets', 'tips-tax-calculator.js'), join(DIST, 'assets', 'tips-tax-calculator.js'));
   await cp(join(SRC, 'assets', 'senior-deduction-calculator.js'), join(DIST, 'assets', 'senior-deduction-calculator.js'));
   await cp(join(SRC, 'assets', 'salt-cap-calculator.js'), join(DIST, 'assets', 'salt-cap-calculator.js'));
   await cp(join(SRC, 'assets', 'car-loan-interest-calculator.js'), join(DIST, 'assets', 'car-loan-interest-calculator.js'));
+  await cp(join(SRC, 'assets', 'roth-catchup-calculator.js'), join(DIST, 'assets', 'roth-catchup-calculator.js'));
   await cp(join(SRC, 'assets', 'embed-gallery.js'), join(DIST, 'assets', 'embed-gallery.js'));
   await cp(join(SRC, 'engine', 'employment-tax.js'), join(DIST, 'assets', 'employment-tax.js'));
   await cp(join(SRC, 'assets', 'biweekly-mortgage-calculator.js'), join(DIST, 'assets', 'biweekly-mortgage-calculator.js'));
@@ -2322,6 +2341,18 @@ async function main() {
   );
   urls.push(`${SITE.url}/car-loan-interest-calculator/`);
 
+  // SECURE 2.0 §603 mandatory Roth catch-up (IRC §414(v)(7)) calculator — a
+  // SEPARATE retirement-plan rule (NOT OBBBA): high earners (prior-year FICA/Box 3
+  // wages over $150k) must make their 401(k)/403(b)/457(b) catch-up as Roth. Its
+  // own engine + dataset; injects only the SECURE 2.0 constants (asks for the
+  // marginal rate directly, so no federal-bracket JSON needed).
+  await mkdir(join(DIST, 'roth-catchup-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'roth-catchup-calculator', 'index.html'),
+    fillTool(rothCatchupTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, ROTHCATCHUP_JSON }, '/roth-catchup-calculator/')
+  );
+  urls.push(`${SITE.url}/roth-catchup-calculator/`);
+
   // OBBBA "which states still tax overtime in 2026" DATA STUDY (/data/overtime-tax-by-state/).
   // A citable, author-bylined data asset for the journalist link sprint. The table is
   // rendered server-side from the SAME sourced obbba dataset the calculators use, so the
@@ -2549,7 +2580,7 @@ async function main() {
   // violate AdSense policy) and NO site schema. They are noindex + canonical to the
   // real tool (set in-template) and are NOT added to the sitemap. Function-form
   // replace keeps '$' in the injected JSON literal (same reason fill() uses one).
-  const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON };
+  const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON, ROTHCATCHUP_JSON };
   const fillEmbed = (tpl) => tpl.replace(/{{(\w+)}}/g, (m, k) => (k in embedMap ? embedMap[k] : m));
   await mkdir(join(DIST, 'embed', 'overtime-tax-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'overtime-tax-calculator', 'index.html'), fillEmbed(embedOvertimeTpl));
@@ -2561,6 +2592,8 @@ async function main() {
   await writeFile(join(DIST, 'embed', 'salt-cap-calculator', 'index.html'), fillEmbed(embedSaltTpl));
   await mkdir(join(DIST, 'embed', 'car-loan-interest-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'car-loan-interest-calculator', 'index.html'), fillEmbed(embedCarLoanTpl));
+  await mkdir(join(DIST, 'embed', 'roth-catchup-calculator'), { recursive: true });
+  await writeFile(join(DIST, 'embed', 'roth-catchup-calculator', 'index.html'), fillEmbed(embedRothCatchupTpl));
   // Indexable embed gallery (fillTool is fine here — real page, benefits from schema
   // + the More-tools cross-links). This one IS in the sitemap.
   await writeFile(join(DIST, 'embed', 'index.html'), fillTool(embedGalleryTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/embed/'));
@@ -2580,6 +2613,7 @@ async function main() {
   await mkdir(join(DIST, 'data'), { recursive: true });
   await writeFile(join(DIST, 'data', 'tax-data-2026.json'), JSON.stringify(stripInternal(taxData), null, 2) + '\n');
   await writeFile(join(DIST, 'data', 'obbba-deductions-2026.json'), JSON.stringify(stripInternal(obbba), null, 2) + '\n');
+  await writeFile(join(DIST, 'data', 'secure2-catchup-2026.json'), JSON.stringify(stripInternal(secure2), null, 2) + '\n');
 
   // 404 (Cloudflare Pages serves /404.html on miss)
   await writeFile(
