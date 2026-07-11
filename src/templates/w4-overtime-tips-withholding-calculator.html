@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>W-4 Overtime &amp; Tips Withholding Calculator (2026) — get the money in your paycheck now</title>
+<meta name="description" content="Free 2026 Form W-4 calculator for the no-tax-on-tips and no-tax-on-overtime deductions. See exactly what to enter on the Step 4(b) Deductions Worksheet (lines 1a and 1b) so your employer withholds less now — and how much extra take-home that adds to each paycheck. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/w4-overtime-tips-withholding-calculator/">
+<meta property="og:title" content="W-4 Overtime &amp; Tips Withholding Calculator (2026)">
+<meta property="og:description" content="Turn the no-tax-on-tips / no-tax-on-overtime deduction into bigger paychecks now instead of a refund next spring. See what to put on your 2026 W-4 Step 4(b) and the extra take-home per paycheck. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; }
+  .obbba-note { font-size:.9rem; opacity:.85; margin-top:8px; }
+  .phaseout-flag { color:#b26b00; font-weight:600; }
+  .empty-flag { color:#b23a00; font-weight:600; }
+  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
+  .mythbust h2 { margin-top:0; }
+  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
+  .w4box { margin-top:14px; padding:14px 16px; border:2px solid #2f6f4f; border-radius:10px; background:rgba(47,111,79,.06); }
+  .w4box h3 { margin:0 0 8px; font-size:1rem; }
+  .w4box .wline { display:flex; justify-content:space-between; gap:12px; padding:5px 0; font-variant-numeric:tabular-nums; border-bottom:1px dashed rgba(47,111,79,.35); }
+  .w4box .wline.total { font-weight:700; border-bottom:none; margin-top:4px; }
+  .w4box .w4-code { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  .ot-modes { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:8px; }
+  .ot-modes label { cursor:pointer; font-weight:500; }
+  .ot-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:520px){ .ot-row { grid-template-columns:1fr; } }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"W-4 Overtime & Tips Withholding Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Turn the 2025 One Big Beautiful Bill Act no-tax-on-tips (IRC §224) and no-tax-on-overtime (IRC §225) deductions into a paycheck adjustment. Estimates the qualified tips (worksheet line 1a) and qualified overtime-premium (line 1b) deductions after their caps and MAGI phase-out, the combined amount to enter on the 2026 Form W-4 Step 4(b) Deductions Worksheet, the annual federal withholding reduction, and the extra take-home per paycheck for weekly, biweekly, semimonthly, or monthly pay."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Do I have to wait until I file to benefit from no tax on tips or overtime?","acceptedAnswer":{"@type":"Answer","text":"No. By default your employer withholds federal income tax on tips and overtime as if they were fully taxable, so you over-withhold all year and get the deduction back as a bigger refund. You can instead adjust your 2026 Form W-4 now: put an estimate of the deduction on the Step 4(b) Deductions Worksheet so your employer withholds less each payday and you keep more in every paycheck. Doing nothing is fine too — you just wait for the refund."}},{"@type":"Question","name":"Which W-4 step do I use — Step 4(b) or Step 4(c)?","acceptedAnswer":{"@type":"Answer","text":"Step 4(b), Deductions. Step 4(b) lowers the income your employer withholds on, so it raises your take-home pay. Step 4(c) is the opposite — it is EXTRA withholding that shrinks your paycheck. Any guide telling tipped or overtime workers to use 4(c) for this is wrong. On the 2026 W-4, the tips estimate goes on the Deductions Worksheet line 1a and the overtime-premium estimate on line 1b; they roll into the line-15 total, which you copy to Step 4(b) on the form itself."}},{"@type":"Question","name":"How much extra will my paycheck actually go up?","acceptedAnswer":{"@type":"Answer","text":"Roughly your deduction times your marginal tax rate, spread across the year. Because Publication 15-T subtracts your Step 4(b) amount from your annualized wages before applying the tax brackets, the annual withholding reduction is about the deduction times your marginal rate, and the per-paycheck increase is that annual figure divided by your number of pay periods (52 weekly, 26 biweekly, 24 semimonthly, 12 monthly). It is an estimate, not a guarantee."}},{"@type":"Question","name":"Does adjusting my W-4 change my Social Security and Medicare?","acceptedAnswer":{"@type":"Answer","text":"No. Social Security (6.2%) and Medicare (1.45%) — FICA — are still withheld on every tip and overtime dollar. The tips and overtime deductions reduce federal income tax only, so the W-4 Step 4(b) adjustment changes your federal income-tax withholding and nothing else."}},{"@type":"Question","name":"How much overtime counts — my full overtime pay or just part of it?","acceptedAnswer":{"@type":"Answer","text":"Only the premium, the extra 'half' of time-and-a-half. If your regular rate is $20/hour and overtime pays $30/hour, only the $10/hour premium qualifies, not the full $30. That is the same 'and-a-half portion' the 2026 W-4 asks for on line 1b, and the same amount that will appear in the new W-2 Box 12 code TT next January."}},{"@type":"Question","name":"What are the W-2 codes TT and TP, and do they change my paycheck?","acceptedAnswer":{"@type":"Answer","text":"They are year-end reporting, not a paycheck lever. On your 2026 W-2, Box 12 code TT reports your total qualified overtime (the premium portion only) and code TP reports your total reported tips. Those figures are what you use to fill in Schedule 1-A when you file next year — they confirm the real numbers. They do not change withholding; the W-4 Step 4(b) adjustment is the only thing that does that during the year."}},{"@type":"Question","name":"A big refund is good, isn't it?","acceptedAnswer":{"@type":"Answer","text":"A big refund is your own money that the IRS held all year with no interest. Over-withholding on tips and overtime is an interest-free loan to the government. Adjusting Step 4(b) matches your withholding to your real tax so the money shows up in your paychecks instead. It is optional — if you prefer the forced-savings feel of a refund, do nothing."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>W-4 Overtime &amp; Tips Withholding Calculator (2026)</h1>
+    <p class="lede">The 2025 law's <strong>no tax on tips</strong> and <strong>no tax on overtime</strong> deductions are claimed when you file — so all year your employer keeps <a href="/tax-glossary/#withholding">withholding</a> federal income tax as if that money were fully taxable, and you get it back as a bigger refund next spring. You don't have to wait. This tool estimates the deduction you'll actually get and tells you <strong>exactly what to enter on your 2026 Form W-4 Step 4(b) Deductions Worksheet</strong> so your employer withholds less <strong>now</strong> — turning that once-a-year refund into more take-home every payday. Everything runs in your browser; nothing is uploaded.</p>
+
+    <p class="note" style="margin-top:0"><strong>Companion to the filing-time tools.</strong> The <a href="/overtime-tax-calculator/">no tax on overtime calculator</a> and <a href="/tips-tax-calculator/">no tax on tips calculator</a> answer "how much will this deduction save me on my return?" This one answers the other half: "how do I get that money in my paychecks now instead of as a refund?"</p>
+
+    <section class="calc" aria-label="W-4 overtime and tips withholding calculator">
+      <form id="w4Form" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="filing">Filing status</label>
+          <select id="filing">
+            <option value="single">Single</option>
+            <option value="married">Married filing jointly</option>
+            <option value="head_of_household">Head of household</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">Married workers must file jointly to claim these deductions — married filing separately is not eligible, so it isn't offered.</p>
+        </div>
+
+        <div class="field">
+          <label for="income">Your total expected 2026 income (all sources)</label>
+          <input type="number" id="income" inputmode="numeric" min="0" step="1000" value="52000">
+          <p class="muted-small" style="margin-top:6px">Roughly your modified adjusted gross income. It sets your tax bracket and the income phase-out. Filing jointly? Use your combined income.</p>
+        </div>
+
+        <div class="field">
+          <label for="freq">How often are you paid?</label>
+          <select id="freq">
+            <option value="weekly">Weekly (52 paychecks a year)</option>
+            <option value="biweekly">Every two weeks (26)</option>
+            <option value="semimonthly">Twice a month (24)</option>
+            <option value="monthly">Monthly (12)</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">Sets how the yearly withholding change is split across your paychecks.</p>
+        </div>
+
+        <div class="field">
+          <label for="tips">Expected qualified tips for the year ($)</label>
+          <input type="number" id="tips" inputmode="numeric" min="0" step="500" value="0">
+          <p class="muted-small" style="margin-top:6px">Cash and charged tips you expect for all of 2026, up to a $25,000 cap. Leave at 0 if you don't earn tips.</p>
+        </div>
+
+        <div class="field">
+          <label>Your overtime</label>
+          <div class="ot-modes" role="radiogroup" aria-label="How to enter overtime">
+            <label><input type="radio" name="otmode" value="hours" checked> Enter hours &amp; rate</label>
+            <label><input type="radio" name="otmode" value="premium"> I know my premium</label>
+          </div>
+          <div id="ot-hours">
+            <div class="ot-row">
+              <div class="field" style="margin:0">
+                <label for="otrate" class="muted-small">Regular hourly rate ($)</label>
+                <input type="number" id="otrate" inputmode="decimal" min="0" step="0.5" value="20">
+              </div>
+              <div class="field" style="margin:0">
+                <label for="othours" class="muted-small">Overtime hours for the year</label>
+                <input type="number" id="othours" inputmode="numeric" min="0" step="10" value="300">
+              </div>
+            </div>
+            <p class="muted-small" style="margin-top:6px">Only the <strong>premium</strong> counts — the extra "half" of time-and-a-half. We compute it as ½ &times; your rate &times; overtime hours (so $20/hr &times; 300 hrs = $3,000 of premium).</p>
+          </div>
+          <div id="ot-premium" hidden>
+            <label for="otpremium" class="muted-small">Overtime premium for the year ($) — the "half" portion</label>
+            <input type="number" id="otpremium" inputmode="numeric" min="0" step="250" value="3000">
+            <p class="muted-small" style="margin-top:6px">Read it off a pay stub or your anticipated W-2 Box 12 <span class="w4-code">TT</span>. Enter only the premium (the extra half), not your full overtime pay.</p>
+          </div>
+        </div>
+
+        <details class="field">
+          <summary>Adjusting part-way through the year? (optional)</summary>
+          <div style="margin-top:10px">
+            <label for="months">Months left in 2026 when you file the new W-4</label>
+            <input type="number" id="months" inputmode="numeric" min="1" max="12" step="1" value="12">
+            <p class="muted-small" style="margin-top:6px">Leave at 12 for a full-year adjustment. If you file the W-4 mid-year, the full annual reduction is spread over your <em>remaining</em> paychecks, so each remaining check rises by more.</p>
+          </div>
+        </details>
+      </form>
+
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+    </section>
+
+    <p class="note">Estimate for general guidance only — not tax advice. Withholding is an approximation: Publication 15-T's built-in standard-deduction proxy and your Step 2 checkbox affect which bracket your adjusted wage lands in, so the per-paycheck figure is an estimate, not a guarantee. Figures use the 2026 federal brackets and standard deduction. This tool is federal-only — it does not model state withholding (most states don't conform; see the state pages) or FICA. Verify with the IRS or a tax professional.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose mythbust">
+      <h2>Read this before you touch your W-4</h2>
+      <p><strong>1. Use Step 4(b), never Step 4(c).</strong> Step 4(b) is <em>Deductions</em> — it <strong>lowers</strong> the income your employer withholds on, so your paycheck goes <strong>up</strong>. Step 4(c) is <em>extra withholding</em> — it makes your paycheck go <strong>down</strong>. To keep more of your tips and overtime now, you increase the Step 4(b) deduction total. Never use 4(c) for this.</p>
+      <p><strong>2. It's a deduction, not a paycheck exemption.</strong> Employers withhold on tips and overtime by default; nothing is automatic. The W-4 is the only lever, and it's optional — doing nothing just means a bigger refund, not a lost deduction.</p>
+      <p><strong>3. A big refund isn't a bonus — it's your money the IRS held interest-free.</strong> Over-withholding on tips and overtime all year is an interest-free loan to the government. Adjusting Step 4(b) fixes it and moves the money into your paychecks.</p>
+      <p><strong>4. Overtime means the premium only.</strong> Just the extra "half" of time-and-a-half qualifies — not your full overtime pay. That's the "and-a-half portion" line 1b asks for.</p>
+      <p><strong>5. <a href="/tax-glossary/#fica">FICA</a> still applies.</strong> Social Security and Medicare come out of every tip and overtime dollar regardless. This only reduces federal income-tax withholding.</p>
+      <p><strong>6. Your W-2's new TT / TP boxes are for next April, not your paycheck.</strong> Box 12 code <span class="w4-code">TT</span> (overtime premium) and <span class="w4-code">TP</span> (tips) are year-end reporting you use to file — they don't change withholding.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How the Step 4(b) adjustment works</h2>
+      <p><strong>The timing gap.</strong> The no-tax-on-tips (Internal Revenue Code §224) and no-tax-on-overtime (§225) deductions are claimed at filing on your 2026 return (new Schedule 1-A). Your paycheck doesn't automatically know about them, so your employer withholds federal income tax as if that income were fully taxable. The result is over-withholding all year — money that comes back as a refund instead of showing up now.</p>
+      <p><strong>What actually changed on the 2026 W-4.</strong> There's no new "step" and no separate overtime/tips worksheet. The 2026 Form W-4 added <strong>new lines 1a (qualified tips) and 1b (qualified overtime)</strong> to the pre-existing <strong>Step 4(b) Deductions Worksheet</strong> on page 4. You estimate your tips on line 1a and your overtime <em>premium</em> on line 1b; they roll up through line 2 into the line-15 total, which you copy to <strong>Step 4(b)</strong> on the form itself.</p>
+      <p><strong>Why that lowers withholding.</strong> Publication 15-T has your employer subtract your Step 4(b) amount from your annualized wages <em>before</em> applying the tax brackets. So adding a deduction to Step 4(b) lowers your annual withholding by about that deduction times your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> — and dividing by your number of pay periods gives the extra take-home per check.</p>
+      <p><strong>The caps and the phase-out.</strong> Tips are deductible up to <strong>$25,000</strong>; the overtime premium up to <strong>$12,500</strong> ($25,000 if married filing jointly). Both shrink by $100 for every $1,000 your income is over <strong>$150,000</strong> ($300,000 joint). The W-4 worksheet uses a simple income cliff at that line, but the real filing-time deduction phases out <em>gradually</em> — so this tool computes the accurate gradual figure and, if your income is above the line but not fully phased out, tells you that you can enter that more accurate number straight on Step 4(b) rather than needlessly entering $0.</p>
+      <p>Want the filing-time picture instead? See the <a href="/overtime-tax-calculator/">no tax on overtime calculator</a> and the <a href="/tips-tax-calculator/">no tax on tips calculator</a>. Other 2025-law deductions: the <a href="/senior-deduction-calculator/">$6,000 senior bonus deduction</a>, the <a href="/salt-cap-calculator/">$40,000 SALT cap</a>, and the <a href="/car-loan-interest-calculator/">car loan interest deduction</a>.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>A worked example: Marisol the server</h2>
+      <p>Marisol is single, expects about $38,000 of income in 2026, and is paid every two weeks (26 paychecks). She expects roughly $18,000 of tips for the year and works no overtime. Here's what the tool tells her:</p>
+      <ul>
+        <li><strong>Line 1a (qualified tips):</strong> her $18,000 of tips is under the $25,000 cap and her income is under the $150,000 phase-out line, so the full <strong>$18,000</strong> is deductible.</li>
+        <li><strong>Line 1b (qualified overtime):</strong> $0 — she works no overtime.</li>
+        <li><strong>What she enters on the W-4:</strong> $18,000 on Step 4(b) Deductions Worksheet line 1a, which adds <strong>$18,000</strong> to her Step 4(b) total (line 15).</li>
+        <li><strong>Annual withholding reduction:</strong> that $18,000 comes off income in her bracket, cutting her annual federal withholding by about <strong>$1,990</strong>.</li>
+        <li><strong>Extra take-home per paycheck:</strong> $1,990 ÷ 26 ≈ <strong>$76.54</strong> more in every biweekly check — instead of a $1,990 refund a year later.</li>
+      </ul>
+      <p>Marisol still has Social Security and Medicare withheld on all her tips, and if her state doesn't conform she still owes state tax on them. The W-4 change only touches federal income-tax withholding — but it puts about $77 back in each paycheck now.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>Do I have to wait until I file?</strong> No. That's the whole point of this tool. Put an estimate of the deduction on your 2026 W-4 Step 4(b) Deductions Worksheet and your employer withholds less each payday. Doing nothing is fine too — you just get it back as a refund.</p>
+      <p><strong>Step 4(b) or Step 4(c)?</strong> Step 4(b), Deductions — it lowers withholding and raises take-home. Step 4(c) is extra withholding and does the opposite; don't use it for this.</p>
+      <p><strong>How much overtime qualifies?</strong> Only the premium — the extra "half" of time-and-a-half, not your full overtime pay. It's the same amount that appears in W-2 Box 12 code <span class="w4-code">TT</span>.</p>
+      <p><strong>What is my <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>?</strong> It's the tax rate on your next dollar of income. Your withholding reduction is roughly the deduction times this rate.</p>
+      <p><strong>What is <a href="/tax-glossary/#withholding">withholding</a>?</strong> It's the federal income tax your employer holds back from each paycheck and sends to the IRS on your behalf. Step 4(b) tells the employer to hold back less.</p>
+      <p><strong>How does <a href="/tax-glossary/#filing-status">filing status</a> matter?</strong> It sets your brackets, your caps, and your phase-out threshold. Married workers must file jointly to claim these deductions.</p>
+      <p><strong>What are the <a href="/tax-glossary/#w-2">W-2</a> TT and TP boxes?</strong> On your 2026 W-2, Box 12 code TT reports your qualified overtime (premium only) and TP reports your tips — the real figures you use to file next year. They don't change your paycheck.</p>
+      <p><strong>Does my state tax change?</strong> Usually no — most states don't conform to these federal deductions, so your state withholding is unaffected. Check your state's page for its rule.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your numbers never leave your browser.</p>
+      <p class="muted-small">Sources: <a href="https://www.irs.gov/pub/irs-pdf/fw4.pdf" rel="nofollow">2026 Form W-4</a> (Step 4(b) Deductions Worksheet, lines 1a / 1b → line 15 → Step 4(b)); IRS <a href="https://www.irs.gov/publications/p15t" rel="nofollow">Publication 15-T (2026)</a>, Worksheet 1A (Step 4(b) subtracted dollar-for-dollar before the brackets); <a href="https://www.irs.gov/instructions/iw2w3" rel="nofollow">2026 General Instructions for Forms W-2 and W-3</a> (Box 12 codes TT / TP); IRS, <a href="https://www.irs.gov/newsroom/one-big-beautiful-bill-act-tax-deductions-for-working-americans-and-seniors" rel="nofollow">tax deductions for working Americans and seniors</a> and <a href="https://www.irs.gov/newsroom/questions-and-answers-about-the-new-deduction-for-qualified-overtime-compensation" rel="nofollow">Q&amp;A on qualified overtime</a> (premium/half portion only); Public Law 119-21 §§70201–70202 (IRC §§224, 225).</p>
+    </section>
+
+    <div class="note"><strong>Embed this calculator.</strong> Put this calculator on your site — free, one copy-paste snippet, no scripts from third parties. <a href="/embed/">Get the snippet</a>.</div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__OBBBA__ = {{OBBBA_JSON}};
+  window.__FED__ = {{FED_JSON}};
+</script>
+<script type="module" src="/assets/w4-overtime-tips-withholding-calculator.js"></script>
+</body>
+</html>
