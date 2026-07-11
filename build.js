@@ -128,6 +128,7 @@ const TOOLS = [
   { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/', cat: 'money' },
   { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/', cat: 'money' },
   { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/', cat: 'money' },
+  { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/', cat: 'money' },
   { name: 'Mandatory Roth Catch-Up Calculator', path: '/roth-catchup-calculator/', cat: 'money' },
   { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/', cat: 'money' },
   { name: '401(k) Retirement Calculator', path: '/401k-calculator/', cat: 'money' },
@@ -225,6 +226,7 @@ const TOOL_DESCRIPTIONS = {
   '/senior-deduction-calculator/': 'Calculate the 2025 law\'s $6,000 senior bonus deduction for people 65+ — the "no tax on Social Security" break — and what it saves you.',
   '/salt-cap-calculator/': 'See your allowed SALT deduction under the 2025 law\'s $40,000 cap — with the high-income phase-down, the itemize-vs-standard check, and your saving vs the old $10,000 cap.',
   '/car-loan-interest-calculator/': 'See how much of your new-car loan interest is deductible under the 2025 law (up to $10,000/yr, 2025–2028) — with the income phase-out and what it really saves you.',
+  '/w4-overtime-tips-withholding-calculator/': 'Turn the no-tax-on-tips / no-tax-on-overtime deduction into bigger paychecks now: see what to enter on your 2026 Form W-4 Step 4(b) (lines 1a/1b) and the extra take-home per paycheck, instead of waiting for a refund.',
   '/roth-catchup-calculator/': 'Earn over $150,000? See if the 2026 SECURE 2.0 rule forces your 401(k) catch-up into Roth (after-tax), what that costs this year, and the Roth-vs-pre-tax break-even.',
   '/bonus-tax-calculator/': 'See what\'s withheld from your bonus now (flat 22% federal + your state\'s supplemental rate + FICA) versus what it will really cost at tax time — with the refund or amount owed, for all 50 states + DC.',
   '/401k-calculator/': 'Project 401(k) retirement balance from contributions, match, and growth.',
@@ -263,24 +265,34 @@ const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, 
 // embed gallery). Keyed by currentPath.
 const RELATED_OVERRIDES = {
   '/overtime-tax-calculator/': [
+    { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
     { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
     { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
     { name: 'Hours Calculator (Time Card)', path: '/hours-calculator/' },
-    { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
-    { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' }
+    { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' }
   ],
   '/tips-tax-calculator/': [
+    { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
     { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
-    { name: 'Tip & Bill Split', path: '/tip-calculator/' },
-    { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' }
+    { name: 'Tip & Bill Split', path: '/tip-calculator/' }
+  ],
+  '/w4-overtime-tips-withholding-calculator/': [
+    { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
+    { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
+    { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
+    { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
+    { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
+    { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
+    { name: 'Hours Calculator (Time Card)', path: '/hours-calculator/' },
+    { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' }
   ],
   '/car-loan-interest-calculator/': [
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
@@ -340,6 +352,7 @@ const RELATED_OVERRIDES = {
   ],
   '/embed/': [
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
+    { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
     { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
@@ -1949,6 +1962,8 @@ async function main() {
   const embedSaltTpl = await read(join(SRC, 'templates', 'embed', 'salt-cap-calculator.html'));
   const carLoanTpl = await read(join(SRC, 'templates', 'car-loan-interest-calculator.html'));
   const embedCarLoanTpl = await read(join(SRC, 'templates', 'embed', 'car-loan-interest-calculator.html'));
+  const w4OtTipsTpl = await read(join(SRC, 'templates', 'w4-overtime-tips-withholding-calculator.html'));
+  const embedW4OtTipsTpl = await read(join(SRC, 'templates', 'embed', 'w4-overtime-tips-withholding-calculator.html'));
   const rothCatchupTpl = await read(join(SRC, 'templates', 'roth-catchup-calculator.html'));
   const embedRothCatchupTpl = await read(join(SRC, 'templates', 'embed', 'roth-catchup-calculator.html'));
   const bonusTaxTpl = await read(join(SRC, 'templates', 'bonus-tax-calculator.html'));
@@ -2158,6 +2173,7 @@ async function main() {
   await cp(join(SRC, 'assets', 'senior-deduction-calculator.js'), join(DIST, 'assets', 'senior-deduction-calculator.js'));
   await cp(join(SRC, 'assets', 'salt-cap-calculator.js'), join(DIST, 'assets', 'salt-cap-calculator.js'));
   await cp(join(SRC, 'assets', 'car-loan-interest-calculator.js'), join(DIST, 'assets', 'car-loan-interest-calculator.js'));
+  await cp(join(SRC, 'assets', 'w4-overtime-tips-withholding-calculator.js'), join(DIST, 'assets', 'w4-overtime-tips-withholding-calculator.js'));
   await cp(join(SRC, 'assets', 'roth-catchup-calculator.js'), join(DIST, 'assets', 'roth-catchup-calculator.js'));
   await cp(join(SRC, 'engine', 'bonus-tax.js'), join(DIST, 'assets', 'bonus-tax.js'));
   await cp(join(SRC, 'assets', 'bonus-tax-calculator.js'), join(DIST, 'assets', 'bonus-tax-calculator.js'));
@@ -3003,6 +3019,19 @@ async function main() {
   );
   urls.push(`${SITE.url}/car-loan-interest-calculator/`);
 
+  // 2026 Form W-4 Step 4(b) overtime & tips WITHHOLDING helper — the paycheck-now
+  // companion to the filing-time tips/overtime tools. Reuses the same OBBBA engine
+  // (allowedDeduction + a single combined federalTaxSaved on tips+overtime) to
+  // translate the deduction into a Step 4(b) Deductions Worksheet entry (line 1a
+  // tips / line 1b overtime premium) and an extra-take-home-per-paycheck figure.
+  // Step 4(b) DEDUCTIONS (lowers withholding), NOT Step 4(c). No state selector.
+  await mkdir(join(DIST, 'w4-overtime-tips-withholding-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'w4-overtime-tips-withholding-calculator', 'index.html'),
+    fillTool(w4OtTipsTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON }, '/w4-overtime-tips-withholding-calculator/')
+  );
+  urls.push(`${SITE.url}/w4-overtime-tips-withholding-calculator/`);
+
   // SECURE 2.0 §603 mandatory Roth catch-up (IRC §414(v)(7)) calculator — a
   // SEPARATE retirement-plan rule (NOT OBBBA): high earners (prior-year FICA/Box 3
   // wages over $150k) must make their 401(k)/403(b)/457(b) catch-up as Roth. Its
@@ -3254,6 +3283,8 @@ async function main() {
   await writeFile(join(DIST, 'embed', 'salt-cap-calculator', 'index.html'), fillEmbed(embedSaltTpl));
   await mkdir(join(DIST, 'embed', 'car-loan-interest-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'car-loan-interest-calculator', 'index.html'), fillEmbed(embedCarLoanTpl));
+  await mkdir(join(DIST, 'embed', 'w4-overtime-tips-withholding-calculator'), { recursive: true });
+  await writeFile(join(DIST, 'embed', 'w4-overtime-tips-withholding-calculator', 'index.html'), fillEmbed(embedW4OtTipsTpl));
   await mkdir(join(DIST, 'embed', 'roth-catchup-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'roth-catchup-calculator', 'index.html'), fillEmbed(embedRothCatchupTpl));
   await mkdir(join(DIST, 'embed', 'bonus-tax-calculator'), { recursive: true });

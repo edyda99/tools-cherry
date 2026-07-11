@@ -438,6 +438,96 @@ export function estimateCarLoan({ year, filingStatus, magi, interest, eligible =
   return { ...d, interest: Math.max(0, interest || 0), taxSaved: saved.taxSaved, marginalRate: saved.marginalRate };
 }
 
+// ---------------------------------------------------------------------------
+// 2026 Form W-4 Step 4(b) Deductions Worksheet helper for the OBBBA tips
+// (line 1a) and overtime-premium (line 1b) deductions. This turns the SAME
+// filing-time deduction the tips/overtime tools already compute into a
+// PAYCHECK-NOW adjustment: how much to add to the W-4 Step 4(b) Deductions
+// Worksheet so the employer withholds less each payday, instead of the worker
+// over-withholding all year and getting it back as a refund.
+//
+// IMPORTANT (per the sourced spec): this is Step 4(b) — DEDUCTIONS, which LOWER
+// withholding (more take-home now). It is NOT Step 4(c), which is EXTRA
+// withholding (the opposite direction). Pub 15-T subtracts Step 4(b)
+// dollar-for-dollar from the annualized wage before the brackets apply, so the
+// annual withholding reduction ≈ federalTaxSaved(income, status, D_total) — one
+// COMBINED exact-bracket-diff on the summed deduction, never the sum of two
+// separate single-deduction calls (that mis-handles a bracket boundary the
+// combined deduction spans; see spec fixture F9 at $280k MFJ).
+
+// Pay periods per year for the per-paycheck divisor (the only new literal —
+// mirrors PAY_PERIODS in paycheck-engine.js but scoped to the four the W-4
+// helper offers; MFS-ineligible tips/overtime never use 'annual').
+export const W4_PAY_PERIODS = { weekly: 52, biweekly: 26, semimonthly: 24, monthly: 12 };
+
+/**
+ * Estimate the 2026 W-4 Step 4(b) adjustment for tips + overtime.
+ * Computes the allowed tips deduction (worksheet line 1a) and the allowed
+ * overtime-PREMIUM deduction (line 1b) — each after its own statutory cap and
+ * gradual MAGI phase-out via allowedDeduction — sums them into D_total (the
+ * amount they add to the Step 4(b) total on worksheet line 15), then estimates:
+ *   - annualReduction ≈ federalTaxSaved(income, status, D_total)  (ONE combined call)
+ *   - perPaycheck     = annualReduction / payPeriodsPerYear       (full-year adjustment)
+ *   - perPaycheckRemaining = annualReduction / remainingPeriods   (if adjusting mid-year)
+ *
+ * @param {object} a
+ * @param {number}  a.income           total expected 2026 income (≈ MAGI)
+ * @param {string}  a.filingStatus     'single' | 'married' (MFJ) | 'head_of_household'
+ * @param {number}  a.tips             expected qualified tips for the year (0 = tips off)
+ * @param {number}  a.overtimePremium  the overtime PREMIUM (0.5× portion) for the year
+ * @param {keyof W4_PAY_PERIODS} a.payFrequency
+ * @param {number}  [a.monthsRemaining] months left in the year (default 12 = full year)
+ * @param {object}  a.federal          obbba.federal (uses .tips and .overtime)
+ * @param {object}  a.fed              taxData.federal (brackets + standardDeduction)
+ * @returns {{tips:object, overtime:object, dTips:number, dOt:number, dTotal:number,
+ *   tipsCapBound:boolean, otCapBound:boolean, tipsPhasedOut:boolean, otPhasedOut:boolean,
+ *   anyPhasedOut:boolean, annualReduction:number, marginalRate:number,
+ *   periodsPerYear:number, remainingPeriods:number, fullYear:boolean,
+ *   perPaycheck:number, perPaycheckRemaining:number, ficaStillApplies:boolean}}
+ */
+export function estimateW4Adjustment({ income, filingStatus, tips, overtimePremium, payFrequency, monthsRemaining, federal, fed }) {
+  const magi = Math.max(0, income || 0);
+  const tipsIn = Math.max(0, tips || 0);
+  const otIn = Math.max(0, overtimePremium || 0);
+
+  // Line 1a (tips) and line 1b (overtime premium): cap + gradual phase-out.
+  const tipsRes = allowedDeduction({ eligibleAmount: tipsIn, filingStatus, magi, params: federal.tips });
+  const otRes = allowedDeduction({ eligibleAmount: otIn, filingStatus, magi, params: federal.overtime });
+  const dTips = tipsRes.deduction;
+  const dOt = otRes.deduction;
+  const dTotal = dTips + dOt;
+
+  // Annual withholding reduction: ONE combined exact-bracket-diff on D_total.
+  const saved = federalTaxSaved(magi, filingStatus, dTotal, fed);
+
+  const periodsPerYear = W4_PAY_PERIODS[payFrequency] ?? 52;
+  const fullYear = !(monthsRemaining > 0 && monthsRemaining < 12);
+  const monthsLeft = fullYear ? 12 : monthsRemaining;
+  const remainingPeriods = Math.max(1, Math.round((periodsPerYear * monthsLeft) / 12));
+
+  return {
+    tips: tipsRes,
+    overtime: otRes,
+    dTips,
+    dOt,
+    dTotal,
+    // The entered amount exceeded the (possibly phased-down) allowed cap.
+    tipsCapBound: tipsIn > tipsRes.allowedCap && tipsRes.allowedCap > 0,
+    otCapBound: otIn > otRes.allowedCap && otRes.allowedCap > 0,
+    tipsPhasedOut: tipsRes.phasedOut,
+    otPhasedOut: otRes.phasedOut,
+    anyPhasedOut: tipsRes.phasedOut || otRes.phasedOut,
+    annualReduction: saved.taxSaved,
+    marginalRate: saved.marginalRate,
+    periodsPerYear,
+    remainingPeriods,
+    fullYear,
+    perPaycheck: saved.taxSaved / periodsPerYear,
+    perPaycheckRemaining: saved.taxSaved / remainingPeriods,
+    ficaStillApplies: true
+  };
+}
+
 /**
  * One-call estimate for a tool: given the eligible amount + income + status,
  * return the allowed deduction and the federal tax saved.
