@@ -137,5 +137,61 @@ verify with the IRS, your state tax authority, or a licensed professional.</p>
 <p>If you're reporting a tax figure you think is wrong, please include the state, filing status, and
 the source you're comparing against — it helps us verify and fix quickly.</p>
 `
+  },
+  {
+    slug: 'tax-glossary',
+    title: 'Tax Glossary: Plain-English Definitions',
+    desc: 'Plain-English definitions of common US tax terms — itemizing, standard deduction, MAGI, FICA, W-2, withholding, filing status, marginal rate, AGI, tax bracket, deduction vs. credit and more. No background assumed.',
+    robots: 'index, follow',
+    body: `
+<p class="lede">Plain-English definitions of the tax terms our calculators use — <strong>no background assumed</strong>. If a word on one of our tax pages is unfamiliar, it's probably explained here. These are general explanations for US federal taxes, not tax advice; for your own situation, check the <a href="https://www.irs.gov/" rel="nofollow">IRS</a> or a tax professional.</p>
+
+<h2 id="itemizing">Itemizing</h2>
+<p>Itemizing means listing out specific deductible expenses — state and local taxes, mortgage interest, charitable gifts, some medical costs — on Schedule A of your federal return and deducting the total. You do it <em>instead of</em> taking the standard deduction, and only when your itemized total is larger. Most filers (roughly nine in ten) take the standard deduction and don't itemize.</p>
+
+<h2 id="standard-deduction">Standard deduction</h2>
+<p>The standard deduction is a flat amount the IRS lets you subtract from your income without listing any expenses. For 2025 it is $15,750 for single filers and $31,500 for married couples filing jointly. You take either the standard deduction or your <a href="#itemizing">itemized</a> deductions — whichever is larger, never both.</p>
+
+<h2 id="magi">MAGI (modified adjusted gross income)</h2>
+<p>MAGI is your <a href="#agi">adjusted gross income</a> with a few items added back — mainly foreign earned income and housing exclusions. For almost everyone, MAGI equals their AGI. Tax laws use MAGI to decide who qualifies for a deduction or credit and where it starts to phase out.</p>
+
+<h2 id="fica">FICA (Social Security and Medicare tax)</h2>
+<p>FICA is the payroll tax for Social Security (6.2%) and Medicare (1.45%) that your employer withholds from every paycheck, with the employer paying a matching share. It is separate from federal income tax. The 2025 "no tax on tips" and "no tax on overtime" deductions lower income tax only — FICA is still owed on that pay.</p>
+
+<h2 id="w-2">W-2</h2>
+<p>A W-2 is the year-end form your employer sends showing how much you were paid and how much tax was withheld. You use it to file your federal and state returns. From tax year 2026, qualified tips and overtime appear in their own boxes on the W-2.</p>
+
+<h2 id="withholding">Withholding</h2>
+<p>Withholding is the income tax your employer takes out of each paycheck and sends to the IRS for you, based on the W-4 form you filled out. It's a prepayment: when you file, you settle up — a refund if too much was withheld, a bill if too little. The new tips, overtime, senior and car-loan deductions do not change your withholding; you claim them when you file.</p>
+
+<h2 id="filing-status">Filing status</h2>
+<p>Your filing status is the category you file under — single, married filing jointly, married filing separately, head of household, or qualifying surviving spouse. It sets your standard deduction, your <a href="#tax-bracket">tax brackets</a>, and the income thresholds used throughout these calculators. Married couples usually must file jointly to claim the 2025 deductions.</p>
+
+<h2 id="above-the-line-deduction">Above-the-line deduction</h2>
+<p>An above-the-line deduction is subtracted before your <a href="#agi">AGI</a> is figured, so you can take it whether or not you itemize ("the line" is the AGI line on Form 1040). The tips and overtime deductions work this way, which is why non-itemizers still benefit from them.</p>
+
+<h2 id="marginal-tax-rate">Marginal tax rate</h2>
+<p>Your marginal tax rate is the rate applied to your last (highest) dollar of income — the <a href="#tax-bracket">bracket</a> you are "in." It is what a deduction actually saves you: a $1,000 deduction for someone in the 22% bracket cuts their tax by about $220, not $1,000. It is usually higher than your average (effective) rate.</p>
+
+<h2 id="agi">Adjusted gross income (AGI)</h2>
+<p>AGI is your total income minus above-the-line adjustments (such as retirement-plan contributions and the tips/overtime deductions). It's a key figure on Form 1040 — line 11 — and many tax breaks phase out based on it. Your <a href="#magi">MAGI</a> is your AGI with a few items added back.</p>
+
+<h2 id="tax-bracket">Tax bracket</h2>
+<p>A tax bracket is an income range taxed at a set rate. The US uses a progressive system with brackets from 10% to 37%: only the income inside each range is taxed at that range's rate, so moving into a higher bracket never lowers your take-home on the income below it.</p>
+
+<h2 id="deduction-vs-credit">Deduction vs. credit</h2>
+<p>A deduction lowers the income you are taxed on; a credit lowers your tax bill directly, dollar for dollar. A $1,000 deduction saves you your <a href="#marginal-tax-rate">marginal rate</a> (say $220); a $1,000 credit saves the full $1,000. The 2025 breaks for tips, overtime, seniors, SALT and car-loan interest are all deductions, not credits.</p>
+
+<h2 id="dependent">Dependent</h2>
+<p>A dependent is a qualifying child or relative you support and claim on your return, which can unlock certain credits and the head-of-household filing status. Being 65 or older and claiming these 2025 deductions does not depend on having dependents.</p>
+
+<h2 id="tax-year">Tax year</h2>
+<p>A tax year is the 12-month period your return covers — for individuals, the calendar year. You file the return the following spring (the 2025 tax year is filed by April 2026). The tips, overtime, senior and car-loan deductions apply to tax years 2025 through 2028.</p>
+
+<h2 id="irs">IRS (Internal Revenue Service)</h2>
+<p>The IRS is the US federal agency that collects taxes and administers the tax code. It publishes the forms, instructions and official guidance these calculators are based on. State income taxes are handled separately by each state's own tax agency.</p>
+
+<p class="note">This glossary covers US federal income tax terms in general and is not tax, legal or financial advice. Rules change; verify specifics with the <a href="https://www.irs.gov/" rel="nofollow">IRS</a> or a licensed professional.</p>
+`
   }
 ];

@@ -63,7 +63,8 @@ function render() {
     `<div class="line"><span>Your senior bonus deduction (${year})</span><span class="num">${usd(r.deduction)}</span></div>` +
     `<div class="line big"><span>Estimated federal tax saved</span><span class="num">${usd(r.taxSaved)}</span></div>` +
     `<div class="line"><span>Your marginal federal rate</span><span class="num">${pct(r.marginalRate)}</span></div>` +
-    `<div class="obbba-note">Claimed on Schedule 1-A when you file — available whether or not you itemize, on top of the regular and 65+ standard deductions. It does NOT change how much of your Social Security is taxable, your AGI, or Medicare IRMAA.</div>`;
+    `<div class="obbba-note">Claimed on Schedule 1-A when you file — available whether or not you itemize, on top of the regular and 65+ standard deductions. It does NOT change how much of your Social Security is taxable, your AGI, or Medicare IRMAA.</div>` +
+    `<div class="takeaway">In plain terms: you claim this when you file, so it lands as a bigger refund or a smaller tax bill — it doesn't add anything to your Social Security check or change how that check is taxed.</div>`;
 }
 
 function init() {
