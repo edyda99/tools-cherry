@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Mandatory Roth Catch-Up Calculator (2026 SECURE 2.0 Rule) — Do High Earners Lose Their 401(k) Catch-Up?</title>
+<meta name="description" content="Free calculator for the 2026 SECURE 2.0 §603 mandatory Roth catch-up rule. Earn over $150,000? See if your 401(k) catch-up must be Roth, what the forced after-tax treatment costs this year, and the Roth-vs-pre-tax break-even. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/roth-catchup-calculator/">
+<meta property="og:title" content="Mandatory Roth Catch-Up Calculator (2026)">
+<meta property="og:description" content="Over $150k? See if your 401(k) catch-up must go in as Roth in 2026, what it costs, and whether that's actually a loss. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; text-align:right; }
+  .obbba-note { font-size:.9rem; opacity:.9; margin-top:8px; }
+  .phaseout-flag { color:#b26b00; font-weight:600; }
+  .warn-flag { color:#b26b00; font-weight:700; }
+  .ok-flag { color:#2f6f4f; font-weight:700; }
+  .check-field { display:flex; align-items:flex-start; gap:10px; }
+  .check-field input[type="checkbox"] { width:20px; height:20px; margin-top:2px; flex:none; }
+  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
+  .mythbust h2 { margin-top:0; }
+  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Mandatory Roth Catch-Up Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Check whether the SECURE 2.0 Act §603 mandatory Roth catch-up rule (IRC §414(v)(7)) applies to you for 2026: if your prior-year Social Security (Box 3) wages exceed $150,000, your 401(k)/403(b)/457(b) catch-up must be a designated Roth contribution. Shows your catch-up band and maximum, the extra federal tax the forced-Roth treatment costs this year, and the Roth-vs-pre-tax break-even."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Do I lose my 401(k) catch-up if I earn over $150,000?","acceptedAnswer":{"@type":"Answer","text":"No. You keep every dollar of catch-up room — the full $8,000 (ages 50–59 and 64+) or $11,250 (ages 60–63) for 2026. The only change under the SECURE 2.0 §603 rule is that the catch-up now goes in as Roth (after-tax) instead of pre-tax. You lose the upfront deduction on that portion, but the money then grows and comes out tax-free in retirement. It's a change in the timing of tax, not a lost benefit and not a new tax."}},{"@type":"Question","name":"Who is subject to the mandatory Roth catch-up rule?","acceptedAnswer":{"@type":"Answer","text":"For 2026 contributions, someone who is 50 or older and whose Social Security (FICA, W-2 Box 3) wages from the same employer that sponsors the plan were more than $150,000 in 2025. All three must be true. It applies in 401(k), 403(b), governmental 457(b) plans and the federal Thrift Savings Plan. Exactly $150,000 is not over the line, and someone with no FICA wages from the plan sponsor (a partner or sole proprietor with self-employment income only) is not subject."}},{"@type":"Question","name":"Which year's wages count for the $150,000 test?","acceptedAnswer":{"@type":"Answer","text":"The immediately preceding calendar year. For 2026 contributions the test looks at your 2025 wages — not this year's salary, not two years prior. It is specifically your Social Security (Box 3) wages from the employer that sponsors your plan, not your total or household income and not self-employment income."}},{"@type":"Question","name":"Is $150,000 or $145,000 the threshold?","acceptedAnswer":{"@type":"Answer","text":"$145,000 is the statutory base amount. Indexed for inflation, the threshold first rose to $150,000 for 2026 (per IRS Notice 2025-67). So the number that matters for 2026 contributions is $150,000."}},{"@type":"Question","name":"Does the Roth requirement apply to my whole 401(k)?","acceptedAnswer":{"@type":"Answer","text":"No. Only the catch-up portion. Your regular elective deferral — up to $24,500 in 2026 — can still be pre-tax. The Roth requirement touches only the extra catch-up contributions available to people 50 and older."}},{"@type":"Question","name":"Does forced Roth always cost me money?","acceptedAnswer":{"@type":"Answer","text":"Not necessarily. If your tax rate in retirement is at least your current rate, the Roth treatment leaves you even or ahead — you pay tax now at the same or a lower rate than you would later. You only come out behind if you expect a lower tax rate in retirement. The calculator's break-even output shows which side you are on."}},{"@type":"Question","name":"What is a catch-up contribution?","acceptedAnswer":{"@type":"Answer","text":"A catch-up contribution is an extra amount people age 50 and older can add to a workplace retirement plan on top of the normal annual limit. For 2026 it is $8,000 for most people, or $11,250 in the year you are 60, 61, 62, or 63 (a temporary 'super' catch-up), reverting to $8,000 at 64. The SECURE 2.0 rule changes only how high earners' catch-up is taxed, not how much they can contribute."}},{"@type":"Question","name":"What does 'Roth' mean here?","acceptedAnswer":{"@type":"Answer","text":"A Roth (designated Roth) contribution is made with after-tax dollars: you get no deduction the year you contribute, but qualified withdrawals of both your contributions and their earnings are tax-free in retirement. Pre-tax (traditional) contributions are the reverse — deductible now, taxed when withdrawn. The mandatory Roth catch-up rule forces high earners' catch-up into the after-tax bucket."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Mandatory Roth Catch-Up Calculator</h1>
+    <p class="lede">Starting with <strong>2026</strong>, if you’re <strong>50 or older</strong> and earned <strong>more than $150,000</strong> in Social Security (Box 3) wages last year from the employer that sponsors your plan, your 401(k) <strong>catch-up</strong> can no longer go in pre-tax — it must go in as <strong>Roth (after-tax)</strong>. This is the SECURE 2.0 Act §603 rule. Enter your details to see whether it hits you, what the forced-Roth treatment costs this year, and whether that cost is actually a loss. Everything runs in your browser — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Mandatory Roth catch-up calculator">
+      <form id="rothForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="year">Contribution tax year</label>
+          <select id="year">
+            <option value="2026" selected>2026</option>
+            <option value="2025">2025</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">The rule is in force for 2026 (2025 was under transition relief). 2027 figures aren’t published yet.</p>
+        </div>
+
+        <div class="field">
+          <label for="age">Your age at the end of the tax year</label>
+          <input type="number" id="age" inputmode="numeric" min="0" max="120" step="1" value="55">
+          <p class="muted-small" style="margin-top:6px">Sets your catch-up band: $8,000 at 50–59 and 64+, $11,250 at 60–63 (2026).</p>
+        </div>
+
+        <div class="field">
+          <label for="wages">Last year’s Social Security (Box 3) wages from this employer</label>
+          <input type="number" id="wages" inputmode="numeric" min="0" step="1000" value="180000">
+          <p class="muted-small" style="margin-top:6px">Use <strong>Box 3</strong> of last year’s <a href="/tax-glossary/#w-2">W-2</a> (Social Security wages) from the employer that sponsors your plan — <strong>not</strong> this year’s salary, not Box 1, and not your household or self-employment income. This is a <a href="/tax-glossary/#fica">FICA</a> wage test.</p>
+        </div>
+
+        <div class="field">
+          <label for="catchUp">Catch-up you plan to contribute this year</label>
+          <input type="number" id="catchUp" inputmode="numeric" min="0" step="500" value="8000">
+          <p class="muted-small" style="margin-top:6px">How much extra you’ll add on top of the regular limit. We cap it at your age band’s maximum. Enter 0 if you don’t plan to make a catch-up.</p>
+        </div>
+
+        <div class="field">
+          <label for="rateNow">Your current federal <a href="/tax-glossary/#marginal-tax-rate">marginal tax rate</a></label>
+          <select id="rateNow">
+            <option value="0.10">10%</option>
+            <option value="0.12">12%</option>
+            <option value="0.22">22%</option>
+            <option value="0.24" selected>24%</option>
+            <option value="0.32">32%</option>
+            <option value="0.35">35%</option>
+            <option value="0.37">37%</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">The rate on your next dollar of income — it sets how much the lost upfront deduction is worth.</p>
+        </div>
+
+        <div class="field">
+          <label for="rateRetire">Expected federal marginal rate in retirement</label>
+          <select id="rateRetire">
+            <option value="0.10">10%</option>
+            <option value="0.12">12%</option>
+            <option value="0.22" selected>22%</option>
+            <option value="0.24">24%</option>
+            <option value="0.32">32%</option>
+            <option value="0.35">35%</option>
+            <option value="0.37">37%</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">Your best guess for the rate when you’ll withdraw. This drives the Roth-vs-pre-tax break-even.</p>
+        </div>
+
+        <div class="field">
+          <label for="years">Years until you withdraw</label>
+          <input type="number" id="years" inputmode="numeric" min="0" max="60" step="1" value="10">
+        </div>
+
+        <div class="field">
+          <label for="growth">Expected annual investment growth</label>
+          <div class="inline">
+            <input type="number" id="growth" inputmode="decimal" min="0" max="20" step="0.5" value="6">
+            <span class="muted-small">% / year</span>
+          </div>
+        </div>
+
+        <div class="field check-field">
+          <input type="checkbox" id="planRoth" checked>
+          <label for="planRoth">My plan <strong>offers a Roth option</strong> <span class="muted-small">(uncheck if it doesn’t — a no-Roth plan can bar high earners from catch-ups entirely)</span></label>
+        </div>
+      </form>
+
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+    </section>
+
+    <p class="note">Estimate for general guidance only — not tax or investment advice. The forced-Roth cost uses the marginal rate you pick; the future-value comparison is a simplified Roth-vs-pre-tax model (it doesn’t model state tax, RMDs, or IRMAA). For 2026 the mandate is in force under a “reasonable, good-faith” standard; strict compliance with the final regulations applies from 2027, and many collectively bargained and governmental plans have later start dates. Verify with your plan administrator or a tax professional.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose mythbust">
+      <h2>Do I lose my catch-up? No — the 2026 Roth rule only changes how it’s taxed</h2>
+      <p><strong>What people fear:</strong> “I make over $150k, so in 2026 I can’t do my 401(k) catch-up anymore” — or “this is a new tax on high earners.”</p>
+      <p><strong>What’s actually true:</strong> You keep <strong>every dollar</strong> of catch-up room — the full <strong>$8,000</strong> (or <strong>$11,250</strong> at ages 60–63). Nothing about the <em>amount</em> changes. The only change is that the catch-up now goes in as <strong>Roth (after-tax)</strong> instead of pre-tax: you don’t get the upfront deduction on it, but the money then grows and comes out <strong>completely tax-free</strong> in retirement. It’s a change in the <em>timing of tax</em>, not a new tax and not a lost benefit.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How the mandatory Roth catch-up rule works</h2>
+      <p>The SECURE 2.0 Act of 2022 added §603, now written into law as Internal Revenue Code §414(v)(7), with final regulations at 26 CFR 1.414(v)-2. It applies to <strong>401(k), 403(b), and governmental 457(b) plans</strong> and the federal Thrift Savings Plan. (SEP and SIMPLE IRA plans are excluded.)</p>
+      <p><strong>Three gates, all must be true.</strong> The rule catches you only if: (1) you’re <strong>50 or older</strong> by year-end, (2) your <strong>prior-year Social Security (Box 3) wages exceeded $150,000</strong> from the employer that sponsors the plan, and (3) the plan <strong>offers Roth</strong>. Miss any one and your catch-up can still be pre-tax.</p>
+      <p><strong>It’s last year’s wages, from that employer.</strong> For 2026 contributions the test uses your <strong>2025</strong> Social Security wages — Box 3 of your W-2, which is a <a href="/tax-glossary/#fica">FICA</a> wage figure — from the same employer whose plan you’re in. Not this year’s pay, not your total or household income, and not self-employment income. A brand-new employee with no prior-year wages from that employer isn’t subject. The test is “<strong>exceed</strong>”: exactly $150,000 is not over the line.</p>
+      <p><strong>$145,000 vs $150,000.</strong> The statute’s base amount is $145,000; indexed for inflation, it first moved to <strong>$150,000 for 2026</strong> (IRS Notice 2025-67). $150,000 is the number that matters for 2026 contributions.</p>
+      <p><strong>The catch-up amounts don’t change.</strong> For 2026 the age-50+ catch-up is <strong>$8,000</strong>, and the “super” catch-up for the year you turn 60, 61, 62, or 63 is <strong>$11,250</strong>, reverting to $8,000 at 64. The mandate applies to whichever amount is yours — an over-threshold 62-year-old must Roth the full $11,250; an over-threshold 64-year-old must Roth $8,000. Your regular elective deferral (up to <strong>$24,500</strong> in 2026) can still be pre-tax.</p>
+      <p><strong>If your plan has no Roth option,</strong> it isn’t forced to add one — it can instead simply bar high earners from making catch-up contributions at all until it does. So in a no-Roth plan a subject participant’s catch-up capacity is $0, not “pre-tax allowed.”</p>
+      <p>Thinking about the tax side of retirement more broadly? If you’re 65+, check the <a href="/senior-deduction-calculator/">senior bonus deduction calculator</a> for the $6,000 “no tax on Social Security” deduction, and the <a href="/401k-calculator/">401(k) retirement calculator</a> to project your balance.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>A worked example: Priya, 61, earning $220,000</h2>
+      <p>Priya turns 61 this year, contributes to her employer’s 401(k), and her 2025 W-2 Box 3 wages were $220,000. She’s in the 35% federal bracket now and expects to be in the 24% bracket in retirement, 8 years out. Here’s what the rule does for her:</p>
+      <ul>
+        <li><strong>Is she subject?</strong> Yes — she’s over 50 and her prior-year Social Security wages ($220,000) exceed the $150,000 threshold, in a plan that offers Roth.</li>
+        <li><strong>Her catch-up band:</strong> at 61 she’s in the 60–63 “super” band, so her 2026 catch-up maximum is <strong>$11,250</strong> — unchanged by the rule.</li>
+        <li><strong>What changes:</strong> that $11,250 must go in as <strong>Roth</strong>, not pre-tax. She forgoes the upfront deduction: $11,250 × 35% = <strong>$3,937.50</strong> in extra federal tax this year.</li>
+        <li><strong>Is that a real loss?</strong> Because she expects a <em>lower</em> 24% rate in retirement, paying 35% now is the worse side of the trade. At 6%/year over 8 years the Roth choice costs her roughly <strong>$1,970</strong> in after-tax retirement value versus pre-tax — a genuine cost, though she still gets tax-free growth and no required minimum distributions in return.</li>
+        <li><strong>What it is NOT:</strong> she does not lose the $11,250 of catch-up room, and it isn’t a new tax — it’s the same money, taxed now instead of later.</li>
+      </ul>
+      <p>Flip Priya’s expectation — if she thought her retirement rate would be <em>higher</em> than 35% — and the forced-Roth treatment would come out ahead. That’s the whole point of the break-even: the answer depends on your rates, not on a blanket “Roth is worse.”</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>What is a catch-up contribution?</strong> An extra amount people 50 and older can add to a workplace plan on top of the normal annual limit — $8,000 for 2026 (or $11,250 at ages 60–63). The rule changes only how a high earner’s catch-up is taxed, not how much they can put in.</p>
+      <p><strong>What does “Roth” mean here?</strong> A designated <strong>Roth</strong> contribution is made with <strong>after-tax</strong> dollars: no deduction the year you contribute, but qualified withdrawals of contributions <em>and</em> earnings are tax-free in retirement. <strong>Pre-tax</strong> (traditional) is the reverse — deductible now, taxed at withdrawal. This rule forces high earners’ catch-up into the Roth (after-tax) bucket.</p>
+      <p><strong>Which wages count — Box 1, Box 3, or Box 5?</strong> <strong>Box 3</strong>, your Social Security (<a href="/tax-glossary/#fica">FICA</a>) wages, from the employer that sponsors your plan. Not Box 1 (federal taxable wages) and not Box 5 (Medicare wages). Note that your pre-tax 401(k) deferrals are still included in Box 3, so contributing more pre-tax won’t pull you under the line.</p>
+      <p><strong>Does it apply to a SEP or SIMPLE IRA?</strong> No. The rule covers 401(k), 403(b), governmental 457(b), and the federal TSP. SEP (§408(k)) and SIMPLE IRA (§408(p)) arrangements are excluded.</p>
+      <p><strong>I’m self-employed — am I caught?</strong> If your only earnings are self-employment income (which is SECA, not FICA), you have no Box 3 wages from a plan sponsor, so there’s nothing to test — you’re not subject.</p>
+      <p><strong>If my plan has no Roth option, am I forced to open one?</strong> No — but the plan can then bar you from catch-ups entirely until it adds Roth. Most large plans are adding a Roth option.</p>
+      <p><strong>What is the marginal tax rate this uses?</strong> Your <a href="/tax-glossary/#marginal-tax-rate">marginal tax rate</a> is the rate on your next dollar of income. It sets how much the upfront deduction you forgo is worth, and it’s the break-even point for the Roth-vs-pre-tax comparison.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your numbers never leave your browser.</p>
+      <p class="muted-small">Sources: IRS <a href="https://www.irs.gov/pub/irs-drop/n-25-67.pdf" rel="nofollow">Notice 2025-67</a> (2026 threshold $150,000; $24,500 deferral; $8,000 catch-up; $11,250 super catch-up; SEP/SIMPLE exclusion); IRS newsroom, <a href="https://www.irs.gov/newsroom/401k-limit-increases-to-24500-for-2026-ira-limit-increases-to-7500" rel="nofollow">401(k) limit increases to $24,500 for 2026</a>; final regulation <a href="https://www.law.cornell.edu/cfr/text/26/1.414(v)-2" rel="nofollow">26 CFR 1.414(v)-2</a> (preceding-year §3121(a) FICA wages, $145,000 base, no-FICA-wages exemption, applicability after Dec 31, 2026); <a href="https://www.federalregister.gov/documents/2025/09/16/2025-17865/catch-up-contributions" rel="nofollow">T.D. 10033</a> (good-faith relief for 2026, governmental/CBA dates); IRS <a href="https://www.irs.gov/pub/irs-drop/n-23-62.pdf" rel="nofollow">Notice 2023-62</a> (transition period through 2025); statute <a href="https://www.law.cornell.edu/uscode/text/26/414" rel="nofollow">IRC §414(v)(7)</a> (SECURE 2.0 §603).</p>
+    </section>
+
+    <div class="note"><strong>Embed this calculator.</strong> Put this calculator on your site — free, one copy-paste snippet, no scripts from third parties. <a href="/embed/">Get the snippet</a>.</div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__ROTHCATCHUP__ = {{ROTHCATCHUP_JSON}};
+</script>
+<script type="module" src="/assets/roth-catchup-calculator.js"></script>
+</body>
+</html>

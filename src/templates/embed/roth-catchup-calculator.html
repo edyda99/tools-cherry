@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Mandatory Roth Catch-Up Calculator — Tools Berry (embed)</title>
+<meta name="robots" content="noindex, follow">
+<link rel="canonical" href="{{SITE_URL}}/roth-catchup-calculator/">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  body { margin: 0; padding: 14px; background: transparent; }
+  .embed-wrap { max-width: 560px; margin: 0 auto; }
+  .embed-wrap h1 { font-size: 1.25rem; margin: 0 0 10px; }
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.1rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; text-align:right; }
+  .obbba-note { font-size:.85rem; opacity:.9; margin-top:8px; }
+  .phaseout-flag { color:#b26b00; font-weight:600; }
+  .warn-flag { color:#b26b00; font-weight:700; }
+  .ok-flag { color:#2f6f4f; font-weight:700; }
+  .takeaway { margin-top:12px; padding:10px 12px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.9rem; }
+  .check-field { display:flex; align-items:flex-start; gap:10px; }
+  .check-field input[type="checkbox"] { width:20px; height:20px; margin-top:2px; flex:none; }
+  .embed-credit { margin-top:14px; text-align:center; font-size:.85rem; opacity:.9; }
+</style>
+</head>
+<body>
+<div class="embed-wrap">
+  <h1>Mandatory Roth Catch-Up Calculator</h1>
+  <section class="calc" aria-label="Mandatory Roth catch-up calculator">
+    <form id="rothForm" autocomplete="off" onsubmit="return false">
+      <div class="field">
+        <label for="year">Contribution tax year</label>
+        <select id="year">
+          <option value="2026" selected>2026</option>
+          <option value="2025">2025</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="age">Your age at year-end</label>
+        <input type="number" id="age" inputmode="numeric" min="0" max="120" step="1" value="55">
+      </div>
+      <div class="field">
+        <label for="wages">Last year’s Social Security (Box 3) wages from this employer</label>
+        <input type="number" id="wages" inputmode="numeric" min="0" step="1000" value="180000">
+        <p class="muted-small" style="margin-top:6px">Box 3 of last year’s W-2 — not this year’s salary, not household income.</p>
+      </div>
+      <div class="field">
+        <label for="catchUp">Catch-up you plan to contribute</label>
+        <input type="number" id="catchUp" inputmode="numeric" min="0" step="500" value="8000">
+      </div>
+      <div class="field">
+        <label for="rateNow">Current federal marginal tax rate</label>
+        <select id="rateNow">
+          <option value="0.10">10%</option>
+          <option value="0.12">12%</option>
+          <option value="0.22">22%</option>
+          <option value="0.24" selected>24%</option>
+          <option value="0.32">32%</option>
+          <option value="0.35">35%</option>
+          <option value="0.37">37%</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="rateRetire">Expected marginal rate in retirement</label>
+        <select id="rateRetire">
+          <option value="0.10">10%</option>
+          <option value="0.12">12%</option>
+          <option value="0.22" selected>22%</option>
+          <option value="0.24">24%</option>
+          <option value="0.32">32%</option>
+          <option value="0.35">35%</option>
+          <option value="0.37">37%</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="years">Years until you withdraw</label>
+        <input type="number" id="years" inputmode="numeric" min="0" max="60" step="1" value="10">
+      </div>
+      <div class="field">
+        <label for="growth">Expected annual growth</label>
+        <div class="inline">
+          <input type="number" id="growth" inputmode="decimal" min="0" max="20" step="0.5" value="6">
+          <span class="muted-small">% / year</span>
+        </div>
+      </div>
+      <div class="field check-field">
+        <input type="checkbox" id="planRoth" checked>
+        <label for="planRoth">My plan <strong>offers a Roth option</strong></label>
+      </div>
+    </form>
+    <div class="obbba-out" id="out" aria-live="polite"></div>
+  </section>
+  <p class="embed-credit">Free <a href="{{SITE_URL}}/roth-catchup-calculator/" target="_blank" rel="noopener">Mandatory Roth Catch-Up Calculator</a> by {{SITE_NAME}}</p>
+</div>
+
+<script>
+  window.__ROTHCATCHUP__ = {{ROTHCATCHUP_JSON}};
+</script>
+<script type="module" src="/assets/roth-catchup-calculator.js"></script>
+</body>
+</html>

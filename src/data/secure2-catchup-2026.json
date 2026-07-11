@@ -1,0 +1,53 @@
+{
+  "_meta": {
+    "description": "SECURE 2.0 Act §603 mandatory Roth catch-up parameters (IRC §414(v)(7); final reg 26 CFR 1.414(v)-2). Drives /mandatory-roth-catch-up-calculator. High earners (prior-year FICA/Box 3 wages over the threshold, from the plan-sponsoring employer) must make age-50+ catch-up contributions as designated Roth (after-tax) instead of pre-tax. NOT an OBBBA provision — a separate SECURE 2.0 retirement-plan rule. Constants are year-keyed: 2026 figures are from IRS Notice 2025-67; 2027 COLA figures are not yet published and are deliberately absent (do not fabricate).",
+    "lastSourced": "2026-07-11",
+    "confidence": "high — every 2026 hard number traced to IRS Notice 2025-67 and 26 CFR 1.414(v)-2; 0 of 10 adversarial refute attempts succeeded (see docs/roth-catchup-spec.md §5)"
+  },
+  "rothCatchUp": {
+    "statute": "SECURE 2.0 Act §603 / IRC §414(v)(7); final regulations 26 CFR 1.414(v)-2 (T.D. 10033)",
+    "catchUpMinAge": 50,
+    "superBand": { "minAge": 60, "maxAge": 63 },
+    "firstEnforcedYear": 2026,
+    "statutoryThresholdBase": 145000,
+    "byYear": {
+      "2025": { "deferral": 23500, "cStd": 7500, "cSuper": 11250, "threshold": 145000, "enforced": false },
+      "2026": { "deferral": 24500, "cStd": 8000, "cSuper": 11250, "threshold": 150000, "enforced": true }
+    },
+    "pendingGuidanceYears": [2027, 2028],
+    "coveredPlans": ["401(k)", "403(b)", "governmental 457(b)", "federal Thrift Savings Plan (TSP)"],
+    "excludedPlans": ["SEP (§408(k))", "SIMPLE IRA (§408(p))"],
+    "notIndexedNote": "The $150,000 threshold is a flat per-person wage test with no filing-status or MAGI phase-out. The statutory base is $145,000, indexed like §415(d) from the calendar quarter beginning July 1, 2023, rounded down to the next lower $5,000; it first moved to $150,000 for 2026.",
+    "qualifies": "A participant age 50 or older whose Social Security (FICA, Box 3) wages for the immediately preceding calendar year, from the same employer that sponsors the plan, EXCEED the threshold ($150,000 for 2026 contributions, tested against 2025 wages) must make every catch-up contribution as a designated Roth (after-tax) contribution — no pre-tax catch-up option remains. The full catch-up amount is unchanged: $8,000 (ages 50–59 and 64+) or $11,250 (ages 60–63) for 2026. Exactly $150,000 is NOT over the line (the test is 'exceed'). Someone with no FICA wages from the plan sponsor (e.g. a partner or sole proprietor with self-employment/SECA income only) is not subject. Applies to 401(k)/403(b)/governmental 457(b)/TSP; SEP and SIMPLE IRA plans are excluded. In force for 2026 under a reasonable good-faith standard (Notice 2023-62 transition relief ended Dec 31, 2025); strict compliance with the final regs from 2027; later still for many collectively bargained and governmental plans. If the participant's plan offers no Roth option, it may bar high earners from catch-ups entirely rather than being forced to add Roth.",
+    "sources": [
+      {
+        "claim": "$150,000 threshold for 2026 (up from $145,000); $24,500 §402(g) deferral limit; $8,000 age-50 catch-up; $11,250 age-60–63 super catch-up remains $11,250; SEP/SIMPLE (§408(k)/(p)) excluded.",
+        "url": "https://www.irs.gov/pub/irs-drop/n-25-67.pdf"
+      },
+      {
+        "claim": "Same 2026 figures in plain language (401(k) limit increases to $24,500 for 2026).",
+        "url": "https://www.irs.gov/newsroom/401k-limit-increases-to-24500-for-2026-ira-limit-increases-to-7500"
+      },
+      {
+        "claim": "Final reg: $145,000 statutory base, Q3-2023 base period, $5,000 round-down; §3121(a) FICA wages for the preceding calendar year; wages from the plan-sponsoring employer; no-FICA-wages exemption; deemed Roth election; detailed regs applicable to taxable years beginning after Dec 31, 2026.",
+        "url": "https://www.law.cornell.edu/cfr/text/26/1.414(v)-2"
+      },
+      {
+        "claim": "Final-reg preamble (T.D. 10033): applicability dates, reasonable good-faith relief for pre-2027 years, later dates for governmental and collectively bargained plans.",
+        "url": "https://www.federalregister.gov/documents/2025/09/16/2025-17865/catch-up-contributions"
+      },
+      {
+        "claim": "Plain-language IRS confirmation of the final regulations and prior-year wage aggregation rules.",
+        "url": "https://www.irs.gov/newsroom/treasury-irs-issue-final-regulations-on-new-roth-catch-up-rule-other-secure-2point0-act-provisions"
+      },
+      {
+        "claim": "The two-year administrative transition period (mandate treated as satisfied even if catch-ups stayed pre-tax) ended for taxable years beginning on or before Dec 31, 2025.",
+        "url": "https://www.irs.gov/pub/irs-drop/n-23-62.pdf"
+      },
+      {
+        "claim": "Statute: $145,000 base, 'preceding taxable year' wage test, covered-plan scope (SECURE 2.0 §603 / IRC §414(v)(7)).",
+        "url": "https://www.law.cornell.edu/uscode/text/26/414"
+      }
+    ]
+  }
+}
