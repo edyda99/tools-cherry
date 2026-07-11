@@ -867,7 +867,21 @@ function slugHash(slug) {
   for (let i = 0; i < slug.length; i++) { h ^= slug.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
   return h >>> 0;
 }
-const pickFrame = (slug, salt, arr) => arr[slugHash(slug + salt) % arr.length];
+// FNV-1a has weak avalanche in its LOW bits, and `% n` reads exactly those bits,
+// so similar short slugs (e.g. "maine"/"montana") correlate across many salts and
+// end up picking the same variant in several sections at once — a large shared
+// run between two same-bucket pages. Run the hash through the MurmurHash3 fmix
+// finalizer first so every output bit depends on all input bits; similar slugs
+// then decorrelate across salts, spreading variant picks evenly.
+function mixIndex(h, n) {
+  h = (h ^ (h >>> 16)) >>> 0;
+  h = Math.imul(h, 2246822507) >>> 0;
+  h = (h ^ (h >>> 13)) >>> 0;
+  h = Math.imul(h, 3266489909) >>> 0;
+  h = (h ^ (h >>> 16)) >>> 0;
+  return h % n;
+}
+const pickFrame = (slug, salt, arr) => arr[mixIndex(slugHash(slug + salt), arr.length)];
 
 // Full income-tax bracket ladder (single filers) — paycheck-relevant structure,
 // distinct per state. Honors figureYear so prior-year-fallback states (e.g. CA
@@ -1361,7 +1375,12 @@ function bonusLede(state, supp, year) {
   let stateBit;
   if (supp.method === 'none') {
     const angle = NOTAX_ANGLE[state.slug];
-    stateBit = `${state.name} takes <strong>no state income tax</strong>${angle ? ` (it runs on ${angle})` : ''}, so only the flat <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a> come out.`;
+    const angleBit = angle ? ` (it runs on ${angle})` : '';
+    stateBit = pickFrame(state.slug, 'btledeNo', [
+      `${state.name} takes <strong>no state income tax</strong>${angleBit}, so only the flat <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a> come out.`,
+      `With <strong>no ${state.name} income tax</strong>${angleBit}, the only bites are the flat <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a>.`,
+      `Because ${state.name} levies <strong>no income tax</strong>${angleBit}, nothing goes to the state — just the <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a>.`
+    ]);
   } else if (supp.method === 'flat') stateBit = `${state.name} adds a flat <strong>${pctStr(supp.rate)}</strong> on top of the <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a>.`;
   else if (supp.special === 'ca_dual') stateBit = `California adds <strong>10.23%</strong> on bonuses (6.6% on other supplemental pay) on top of the <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a>.`;
   else if (supp.special === 'pct_of_federal') stateBit = `Vermont adds <strong>30% of the federal amount</strong> (not of the bonus) on top of the <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a>.`;
@@ -1371,19 +1390,28 @@ function bonusLede(state, supp, year) {
     `In ${state.name}, a bonus is ordinary income — the slice that vanishes on payday is <a href="/tax-glossary/#withholding">withholding</a>, not a higher tax rate.`,
     `Got a bonus in ${state.name}? It isn't taxed at a special rate — what shrinks it is <a href="/tax-glossary/#withholding">withholding</a>.`,
     `A ${state.name} bonus feels heavily taxed, but the missing chunk is <a href="/tax-glossary/#withholding">withholding</a>, not a bonus tax.`,
-    `Your ${state.name} bonus is ordinary income; the payday deduction is a flat <a href="/tax-glossary/#withholding">withholding</a> prepayment, not a higher rate.`
+    `Your ${state.name} bonus is ordinary income; the payday deduction is a flat <a href="/tax-glossary/#withholding">withholding</a> prepayment, not a higher rate.`,
+    `That big bite out of a ${state.name} bonus is <a href="/tax-glossary/#withholding">withholding</a> at work — a prepayment, not a special bonus tax.`,
+    `A bonus in ${state.name} is taxed like any wages; the chunk missing on payday is up-front <a href="/tax-glossary/#withholding">withholding</a>, nothing more.`,
+    `Wondering why your ${state.name} bonus shrank so much? It's <a href="/tax-glossary/#withholding">withholding</a>, a flat prepayment, not a higher rate on bonuses.`
   ]);
   const close = pickFrame(state.slug, 'btledeC', [
     `Enter your numbers to see what's held back now beside what the bonus will really cost when you file, and your refund or amount owed.`,
     `Put in your figures below to compare what's withheld now with your real tax at filing — and the refund or shortfall.`,
-    `Run your numbers to see the "now" withholding next to the "at tax time" total, and how much comes back or is still owed.`
+    `Run your numbers to see the "now" withholding next to the "at tax time" total, and how much comes back or is still owed.`,
+    `Type in your salary and bonus below and the tool lines up today's withholding against your true tax, with the refund or balance due.`,
+    `Drop your figures in to watch the payday deduction sit next to the real filing cost, plus whatever you get back or owe.`
   ]);
   return `${open} ${stateBit} ${close} Everything runs in your browser.`;
 }
 
 function bonusAnswerBlock(state, supp) {
   let stateClause;
-  if (supp.method === 'none') stateClause = `<strong>0%</strong> for state tax (${state.name} has no income tax)`;
+  if (supp.method === 'none') stateClause = pickFrame(state.slug, 'btansState', [
+    `<strong>0%</strong> for state tax (${state.name} has no income tax)`,
+    `nothing for the state — ${state.name} levies no income tax`,
+    `<strong>$0</strong> in ${state.name} tax, since the state has no income tax`
+  ]);
   else if (supp.method === 'flat') stateClause = `<strong>${pctStr(supp.rate)}</strong> for ${state.name}`;
   else if (supp.special === 'ca_dual') stateClause = `<strong>10.23%</strong> for California (6.6% on non-bonus supplemental pay)`;
   else if (supp.special === 'pct_of_federal') stateClause = `<strong>30% of that federal amount</strong> for Vermont`;
@@ -1392,9 +1420,16 @@ function bonusAnswerBlock(state, supp) {
   const tail = pickFrame(state.slug, 'btans', [
     `That's a prepayment, not your final tax — the bonus is really taxed at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> when you file, and the calculator below shows the refund or amount you'll owe.`,
     `Those are <a href="/tax-glossary/#withholding">withholding</a> rates, not the tax itself; your bonus settles at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> on your return — the tool below shows by how much.`,
-    `But that's only <a href="/tax-glossary/#withholding">withholding</a>. Your real bill is your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> at filing; run the calculator to see the refund or shortfall.`
+    `But that's only <a href="/tax-glossary/#withholding">withholding</a>. Your real bill is your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> at filing; run the calculator to see the refund or shortfall.`,
+    `None of that is the final number — a bonus is taxed at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> once you file, so the calculator below estimates what comes back or is still due.`,
+    `Treat it as money on account. The real tax is your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>, reconciled on your return; the tool below shows the gap either way.`
   ]);
-  return `<section class="prose"><p><strong>Quick answer:</strong> a separately paid bonus in ${state.name} is <a href="/tax-glossary/#withholding">withheld</a> at a flat <strong>22%</strong> for federal income tax plus ${stateClause}, plus <strong>7.65%</strong> FICA. ${tail}</p></section>`;
+  const lead = pickFrame(state.slug, 'btansLead', [
+    `<strong>Quick answer:</strong> a separately paid bonus in ${state.name} is <a href="/tax-glossary/#withholding">withheld</a> at a flat <strong>22%</strong> for federal income tax plus ${stateClause}, plus <strong>7.65%</strong> FICA.`,
+    `<strong>Short version:</strong> in ${state.name}, a bonus paid on its own is <a href="/tax-glossary/#withholding">withheld</a> at the flat federal <strong>22%</strong>, ${stateClause}, and <strong>7.65%</strong> FICA.`,
+    `<strong>The quick take:</strong> a stand-alone ${state.name} bonus has a flat <strong>22%</strong> federal tax <a href="/tax-glossary/#withholding">withheld</a>, ${stateClause}, plus <strong>7.65%</strong> FICA.`
+  ]);
+  return `<section class="prose"><p>${lead} ${tail}</p></section>`;
 }
 
 function bonusMythBust(state, supp, ex) {
@@ -1410,40 +1445,85 @@ function bonusMythBust(state, supp, ex) {
   let exLine = '';
   if (ex && Math.abs(ex.delta) >= 1) {
     exLine = ex.refund
-      ? ` In this page's ${usd0(ex.bonus)} example, about <strong>${usd0(ex.delta)}</strong> of what's withheld is really over-payment you'd get back.`
-      : ` In this page's ${usd0(ex.bonus)} example, withholding falls about <strong>${usd0(-ex.delta)}</strong> short of the real tax, so you'd owe the rest.`;
+      ? pickFrame(state.slug, 'btmythExR', [
+          ` In this page's ${usd0(ex.bonus)} example, about <strong>${usd0(ex.delta)}</strong> of what's withheld is really over-payment you'd get back.`,
+          ` On the ${usd0(ex.bonus)} example below, roughly <strong>${usd0(ex.delta)}</strong> is over-withheld and comes back to you at filing.`,
+          ` Worked out for the ${usd0(ex.bonus)} bonus here, about <strong>${usd0(ex.delta)}</strong> returns as a refund.`
+        ])
+      : pickFrame(state.slug, 'btmythExO', [
+          ` In this page's ${usd0(ex.bonus)} example, withholding falls about <strong>${usd0(-ex.delta)}</strong> short of the real tax, so you'd owe the rest.`,
+          ` For the ${usd0(ex.bonus)} bonus below, the flat withholding runs roughly <strong>${usd0(-ex.delta)}</strong> light, leaving that to owe.`,
+          ` Worked out here on a ${usd0(ex.bonus)} bonus, you'd still owe about <strong>${usd0(-ex.delta)}</strong> when you file.`
+        ]);
   }
   const body = pickFrame(state.slug, 'btmythB', [
     `The flat 22% federal figure (and your state's rate) is a <a href="/tax-glossary/#withholding">withholding</a> default — not a tax that applies only to bonuses. A bonus is ordinary income, taxed at your true <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> when the year runs through the <a href="/tax-glossary/#tax-bracket">brackets</a>.`,
     `There is no special bonus tax rate. The 22% is a <a href="/tax-glossary/#withholding">withholding</a> convenience; at filing the bonus is taxed like the rest of your income, at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> across the <a href="/tax-glossary/#tax-bracket">brackets</a>.`,
     `Bonuses aren't taxed differently — only <a href="/tax-glossary/#withholding">withheld</a> differently. The real tax is your ordinary <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>, settled on your return, not the flat 22% on the check.`,
     `"Bonus tax" is a nickname for over-<a href="/tax-glossary/#withholding">withholding</a>. The 22% is a flat prepayment; your bonus is ordinary income taxed at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> once the year's <a href="/tax-glossary/#tax-bracket">brackets</a> are applied.`,
-    `Nothing about a bonus changes the tax rate — it changes the <a href="/tax-glossary/#withholding">withholding</a>. The bonus is stacked onto your other income and taxed at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>, not at a bonus-only rate.`
+    `Nothing about a bonus changes the tax rate — it changes the <a href="/tax-glossary/#withholding">withholding</a>. The bonus is stacked onto your other income and taxed at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>, not at a bonus-only rate.`,
+    `A bonus doesn't trigger a different tax — just a flat <a href="/tax-glossary/#withholding">withholding</a> up front. When you file, it's folded into your income and taxed at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> through the normal <a href="/tax-glossary/#tax-bracket">brackets</a>.`,
+    `The 22% you see isn't a bonus levy; it's a <a href="/tax-glossary/#withholding">withholding</a> placeholder. Your bonus is ordinary income, and its real tax is whatever your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> works out to across the <a href="/tax-glossary/#tax-bracket">brackets</a>.`,
+    `Think of the flat rate as a deposit, not a bill. A bonus is taxed like any wages — at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> when the year's income runs through the <a href="/tax-glossary/#tax-bracket">brackets</a> — and the 22% is only how it's <a href="/tax-glossary/#withholding">withheld</a>.`
+  ]);
+  const rule = pickFrame(state.slug, 'btmythRule', [
+    `Under 22% (most people) the extra comes back as a refund; over 22% you owe the difference.`,
+    `If your real rate sits under 22%, the surplus refunds; if it runs above, you cover the shortfall.`,
+    `Below a 22% real rate you get money back; above it, you settle the gap at filing.`,
+    `Most people's real rate is under 22%, so the extra returns; higher earners above 22% owe more.`,
+    `When 22% overshoots your rate you're refunded; when it undershoots, the balance is due.`
+  ]);
+  const ficaTail = pickFrame(state.slug, 'btmythFica', [
+    `Only <a href="/tax-glossary/#fica">FICA</a> (7.65%) is a true tax that never returns.`,
+    `The one piece that never refunds is <a href="/tax-glossary/#fica">FICA</a> (7.65%) — a genuine tax, not a prepayment.`,
+    `Just the 7.65% <a href="/tax-glossary/#fica">FICA</a> slice is a real tax you won't get back.`,
+    `Set aside the 7.65% <a href="/tax-glossary/#fica">FICA</a> — that part is owed for good and never refunds.`,
+    `The lone exception is <a href="/tax-glossary/#fica">FICA</a> (7.65%), which is a real tax rather than a prepayment.`
   ]);
   return `<section class="prose mythbust"><h2>${heading}</h2>` +
-    `<p>${body} Under 22% (most people) the extra comes back as a refund; over 22% you owe the difference.${exLine} Only <a href="/tax-glossary/#fica">FICA</a> (7.65%) is a true tax that never returns.</p></section>`;
+    `<p>${body} ${rule}${exLine} ${ficaTail}</p></section>`;
 }
 
+// btfed / btfica are on EVERY page, so a full-paragraph frame collision between
+// any two pages shares a large block. Each is assembled from two INDEPENDENTLY
+// picked sentences, so a full collision needs both halves to match (~1/30, not
+// 1/6) — collapsing the biggest cross-page shingle-overlap contributor.
 function bonusFederalPara(state) {
-  return pickFrame(state.slug, 'btfed', [
-    `<p><strong>Federal: a flat 22% prepayment.</strong> Paid on its own check, a bonus has federal income tax <a href="/tax-glossary/#withholding">withheld</a> at a flat <strong>22%</strong> (IRS Publication 15), rising to a mandatory <strong>37%</strong> on any bonus dollars past <strong>$1,000,000</strong> in a year — the third <a href="/tax-glossary/#tax-bracket">bracket's</a> rate as a default, not a bonus tax.</p>`,
-    `<p><strong>The 22% isn't a bonus tax.</strong> It's the flat rate an employer may use to <a href="/tax-glossary/#withholding">withhold</a> federal income tax from a separately paid bonus (IRS Pub 15). Only the part of your yearly bonuses above <strong>$1,000,000</strong> is withheld at <strong>37%</strong>; everything under that is a flat <strong>22%</strong>.</p>`,
-    `<p><strong>How the federal 22% works.</strong> A bonus identified separately from regular wages is <a href="/tax-glossary/#withholding">withheld</a> at a flat <strong>22%</strong> federally, with a mandatory <strong>37%</strong> on supplemental pay beyond <strong>$1,000,000</strong> a year (IRS Publication 15). It's a withholding shortcut, not a rate reserved for bonuses.</p>`,
-    `<p><strong>Federal withholding on a bonus.</strong> The IRS default holds back a flat <strong>22%</strong> for federal income tax when the bonus is separate from your regular pay, and <strong>37%</strong> on any bonus dollars over <strong>$1,000,000</strong> in the year (IRS Pub 15) — a <a href="/tax-glossary/#withholding">withholding</a> convenience tied to the third <a href="/tax-glossary/#tax-bracket">bracket</a>.</p>`,
-    `<p><strong>Where the 22% comes from.</strong> Employers may <a href="/tax-glossary/#withholding">withhold</a> a flat <strong>22%</strong> of a separately identified bonus for federal income tax, and must switch to <strong>37%</strong> once your year's supplemental pay tops <strong>$1,000,000</strong> (IRS Publication 15). It borrows the third <a href="/tax-glossary/#tax-bracket">bracket's</a> rate — it is not a levy on bonuses.</p>`,
-    `<p><strong>The federal side is a flat prepayment.</strong> A bonus on its own check has <strong>22%</strong> <a href="/tax-glossary/#withholding">withheld</a> for federal income tax (IRS Pub 15); only supplemental wages beyond <strong>$1,000,000</strong> a year jump to the mandatory <strong>37%</strong>. Neither figure is a special "bonus" rate — both are withholding defaults.</p>`
+  const s1 = pickFrame(state.slug, 'btfed1', [
+    `<strong>Federal: a flat 22% prepayment.</strong> Paid on its own check, a bonus has federal income tax <a href="/tax-glossary/#withholding">withheld</a> at a flat <strong>22%</strong> (IRS Publication 15).`,
+    `<strong>The 22% isn't a bonus tax.</strong> It's the flat rate an employer may use to <a href="/tax-glossary/#withholding">withhold</a> federal income tax from a separately paid bonus (IRS Pub 15).`,
+    `<strong>How the federal 22% works.</strong> A bonus identified separately from regular wages is <a href="/tax-glossary/#withholding">withheld</a> at a flat <strong>22%</strong> federally (IRS Publication 15).`,
+    `<strong>Federal withholding on a bonus.</strong> The IRS default holds back a flat <strong>22%</strong> for federal income tax when the bonus is separate from your regular pay (IRS Pub 15).`,
+    `<strong>Where the 22% comes from.</strong> Employers may <a href="/tax-glossary/#withholding">withhold</a> a flat <strong>22%</strong> of a separately identified bonus for federal income tax (IRS Publication 15).`,
+    `<strong>The federal side is a flat prepayment.</strong> A bonus on its own check has <strong>22%</strong> <a href="/tax-glossary/#withholding">withheld</a> for federal income tax (IRS Pub 15).`
   ]);
+  const s2 = pickFrame(state.slug, 'btfed2', [
+    ` It rises to a mandatory <strong>37%</strong> on any bonus dollars past <strong>$1,000,000</strong> in a year — the third <a href="/tax-glossary/#tax-bracket">bracket's</a> rate as a default, not a bonus tax.`,
+    ` Only the part of your yearly bonuses above <strong>$1,000,000</strong> is withheld at <strong>37%</strong>; everything under that stays a flat <strong>22%</strong> — a shortcut, not a rate reserved for bonuses.`,
+    ` A mandatory <strong>37%</strong> hits supplemental pay beyond <strong>$1,000,000</strong> a year; neither figure is a special "bonus" rate, both are <a href="/tax-glossary/#withholding">withholding</a> defaults.`,
+    ` Once your year's supplemental pay tops <strong>$1,000,000</strong>, the rate jumps to <strong>37%</strong>. It borrows the third <a href="/tax-glossary/#tax-bracket">bracket's</a> rate — it is not a levy on bonuses.`,
+    ` Bonus dollars over <strong>$1,000,000</strong> in the year switch to a mandatory <strong>37%</strong>; below that it's a flat <strong>22%</strong> prepayment tied to the third <a href="/tax-glossary/#tax-bracket">bracket</a>.`
+  ]);
+  return `<p>${s1}${s2}</p>`;
 }
 
 function bonusFicaPara(state) {
-  return pickFrame(state.slug, 'btfica', [
-    `<p><strong>FICA is the real tax.</strong> Social Security (6.2% to the wage base) and Medicare (1.45%, +0.9% above $200,000) are owed at the same rate they're withheld, so <a href="/tax-glossary/#fica">FICA</a> reads the same in both columns of the calculator.</p>`,
-    `<p><strong>The 7.65% FICA slice doesn't true up.</strong> Social Security and Medicare are genuine taxes on a bonus, not a prepayment — that's why the calculator shows the same <a href="/tax-glossary/#fica">FICA</a> under "withheld now" and "what it really costs."</p>`,
-    `<p><strong>Don't expect FICA back.</strong> Of the total held back, <strong>7.65%</strong> is <a href="/tax-glossary/#fica">FICA</a> (Social Security to the wage base, plus Medicare) and it's owed at that rate; only the income-tax portion is a prepayment that settles up.</p>`,
-    `<p><strong>FICA: withheld and owed.</strong> Social Security and Medicare take <strong>7.65%</strong> of the bonus — a true tax, identical in the "now" and "at tax time" columns because there's nothing to refund. Only the income-tax withholding trues up.</p>`,
-    `<p><strong>The 7.65% is real, not a prepayment.</strong> <a href="/tax-glossary/#fica">FICA</a> — Social Security up to the wage base, plus 1.45% Medicare (and 0.9% more above $200,000) — is owed on the bonus at exactly the rate it's withheld, so it doesn't come back at filing.</p>`,
-    `<p><strong>Set FICA aside as final.</strong> Unlike the income-tax withholding, the <strong>7.65%</strong> <a href="/tax-glossary/#fica">FICA</a> bite on your bonus is the tax itself — Social Security stops at the annual wage base, Medicare doesn't, and neither refunds.</p>`
+  const s1 = pickFrame(state.slug, 'btfica1', [
+    `<strong>FICA is the real tax.</strong> Social Security (6.2% to the wage base) and Medicare (1.45%, +0.9% above $200,000) are owed at the same rate they're withheld.`,
+    `<strong>The 7.65% FICA slice doesn't true up.</strong> Social Security and Medicare are genuine taxes on a bonus, not a prepayment.`,
+    `<strong>Don't expect FICA back.</strong> Of the total held back, <strong>7.65%</strong> is <a href="/tax-glossary/#fica">FICA</a> — Social Security to the wage base, plus Medicare — owed at that rate.`,
+    `<strong>FICA: withheld and owed.</strong> Social Security and Medicare take <strong>7.65%</strong> of the bonus — a true tax, not a prepayment.`,
+    `<strong>The 7.65% is real.</strong> <a href="/tax-glossary/#fica">FICA</a> — Social Security up to the wage base, plus 1.45% Medicare (and 0.9% more above $200,000) — is owed at exactly the rate it's withheld.`,
+    `<strong>Set FICA aside as final.</strong> The <strong>7.65%</strong> <a href="/tax-glossary/#fica">FICA</a> bite is the tax itself — Social Security stops at the annual wage base, Medicare doesn't.`
   ]);
+  const s2 = pickFrame(state.slug, 'btfica2', [
+    ` That's why the calculator shows the same <a href="/tax-glossary/#fica">FICA</a> under "withheld now" and "what it really costs" — there's nothing to refund; only the income-tax portion trues up.`,
+    ` So <a href="/tax-glossary/#fica">FICA</a> reads identically in both columns of the calculator; only the income-tax withholding settles up at filing.`,
+    ` It reads the same in the "now" and "at tax time" columns because none of it comes back — just the income-tax slice is a prepayment that reconciles.`,
+    ` Neither piece refunds at filing, so both columns of the tool show it unchanged; the income-tax withholding is the only part that trues up.`,
+    ` The income-tax withholding is the only part that can come back — the <a href="/tax-glossary/#fica">FICA</a> share is settled the moment it's taken.`
+  ]);
+  return `<p>${s1}${s2}</p>`;
 }
 
 function bonusHowItWorks(state, supp, year) {
@@ -1454,14 +1534,20 @@ function bonusHowItWorks(state, supp, year) {
     st = pickFrame(state.slug, 'btst_n', [
       `<p><strong>${state.name}: $0 state.</strong> ${state.name} levies no state income tax on wages, so nothing is withheld for state tax on your bonus — only the federal 22% and FICA.${fact}</p>`,
       `<p><strong>${state.name}: nothing at the state level.</strong> With no ${state.name} wage income tax, your bonus loses <strong>$0</strong> to state withholding; just the federal 22% and FICA apply.${fact}</p>`,
-      `<p><strong>${state.name} takes no cut.</strong> Because ${state.name} has no state income tax, there's no state line on your bonus at all — the only withholding is the flat 22% federal and FICA.${fact}</p>`
+      `<p><strong>${state.name} takes no cut.</strong> Because ${state.name} has no state income tax, there's no state line on your bonus at all — the only withholding is the flat 22% federal and FICA.${fact}</p>`,
+      `<p><strong>No state line in ${state.name}.</strong> ${state.name} doesn't tax wage income, so your bonus keeps every state dollar — the withholding you see is purely federal 22% plus FICA.${fact}</p>`,
+      `<p><strong>${state.name}: state withholding is zero.</strong> Since ${state.name} imposes no income tax on wages, a bonus has nothing deducted for the state; only the 22% federal prepayment and FICA come off.${fact}</p>`,
+      `<p><strong>${state.name} skips the state tax.</strong> A ${state.name} bonus faces no state income-tax withholding whatsoever — the flat 22% federal and FICA are the entire bite.${fact}</p>`
     ]);
   } else if (supp.method === 'flat') {
     const extra = `${state.slug === 'north-carolina' ? ' This 4.09% is deliberately distinct from the 3.99% flat income-tax rate.' : ''}${state.slug === 'new-york' ? ' New York City (4.25%) and Yonkers add local supplemental rates on top for residents there.' : ''}`;
     st = pickFrame(state.slug, 'btst_f', [
       `<p><strong>${state.name}: flat ${pctStr(supp.rate)}.</strong> ${state.name} withholds a flat <strong>${pctStr(supp.rate)}</strong> of a separately paid bonus for state income tax, per ${src}.${extra}</p>`,
       `<p><strong>${state.name}'s ${pctStr(supp.rate)} supplemental rate.</strong> When a bonus is paid on its own, ${src} sets a flat <strong>${pctStr(supp.rate)}</strong> of it for ${state.name} withholding.${extra}</p>`,
-      `<p><strong>${state.name}: a set ${pctStr(supp.rate)}.</strong> ${state.name} applies one flat supplemental rate — <strong>${pctStr(supp.rate)}</strong> of the bonus — for state withholding (${src}).${extra}</p>`
+      `<p><strong>${state.name}: a set ${pctStr(supp.rate)}.</strong> ${state.name} applies one flat supplemental rate — <strong>${pctStr(supp.rate)}</strong> of the bonus — for state withholding (${src}).${extra}</p>`,
+      `<p><strong>${state.name} withholds ${pctStr(supp.rate)} flat.</strong> On a stand-alone bonus, ${state.name} takes a straight <strong>${pctStr(supp.rate)}</strong> for state income tax (${src}).${extra}</p>`,
+      `<p><strong>The ${state.name} rate: ${pctStr(supp.rate)}.</strong> ${src} has ${state.name} employers hold back a flat <strong>${pctStr(supp.rate)}</strong> on a separately paid bonus.${extra}</p>`,
+      `<p><strong>${state.name} keeps it simple: ${pctStr(supp.rate)}.</strong> A separately paid bonus is subject to one flat state rate in ${state.name}, <strong>${pctStr(supp.rate)}</strong> (${src}).${extra}</p>`
     ]);
   } else if (supp.special === 'ca_dual') {
     st = `<p><strong>California: two rates.</strong> California withholds <strong>10.23%</strong> on bonuses and stock options, and <strong>6.6%</strong> on other supplemental wages (${src}). SDI is also withheld but is not an income tax.</p>`;
@@ -1487,12 +1573,16 @@ function bonusHowItWorks(state, supp, year) {
   const heading = pickFrame(state.slug, 'bthowH', [
     `How a ${state.name} bonus is withheld: 22% federal + ${bonusRateWord(supp)}`,
     `What comes out of a ${state.name} bonus in ${year}`,
-    `${state.name} bonus withholding, piece by piece`
+    `${state.name} bonus withholding, piece by piece`,
+    `Breaking down the withholding on a ${state.name} bonus`,
+    `The three cuts on a ${state.name} bonus: federal, state, and FICA`
   ]);
   const close = pickFrame(state.slug, 'bthowC', [
     `<p>For your regular salary rather than a bonus, use the <a href="/${state.slug}-paycheck-calculator/">${state.name} paycheck calculator</a>.</p>`,
     `<p>The <a href="/${state.slug}-paycheck-calculator/">${state.name} paycheck calculator</a> covers take-home pay on a normal ${state.name} paycheck.</p>`,
-    `<p>Working out a whole paycheck? See the <a href="/${state.slug}-paycheck-calculator/">${state.name} paycheck calculator</a>.</p>`
+    `<p>Working out a whole paycheck? See the <a href="/${state.slug}-paycheck-calculator/">${state.name} paycheck calculator</a>.</p>`,
+    `<p>For everyday pay instead of a bonus, the <a href="/${state.slug}-paycheck-calculator/">${state.name} paycheck calculator</a> is the tool to use.</p>`,
+    `<p>Need your normal take-home instead? Try the <a href="/${state.slug}-paycheck-calculator/">${state.name} paycheck calculator</a>.</p>`
   ]);
   return `<section class="prose"><h2>${heading}</h2>${bonusFederalPara(state)}${st}${bonusFicaPara(state)}${close}</section>`;
 }
@@ -1516,10 +1606,31 @@ function bonusNeighborTable(state, supp, roster, builtSlugs, taxData, suppData) 
   }).join('');
   const nbrNames = neigh.map((s) => suppData.states[s].name);
   const nbrList = nbrNames.length ? nbrNames.slice(0, -1).join(', ') + (nbrNames.length > 1 ? ' and ' : '') + nbrNames[nbrNames.length - 1] : 'nearby states';
-  return `<section class="prose"><h2>${state.name} vs. ${nbrList}: bonus withholding compared</h2>` +
-    `<p>A single filer earning $70,000 who gets a $10,000 bonus, in ${state.name} and neighboring ${nbrList}:</p>` +
+  const heading = pickFrame(state.slug, 'btnbrH', [
+    `${state.name} vs. ${nbrList}: bonus withholding compared`,
+    `How ${state.name} bonus withholding stacks up against ${nbrList}`,
+    `${state.name} and ${nbrList}: a bonus-withholding comparison`,
+    `Bonus withholding in ${state.name} next to ${nbrList}`,
+    `Cross-border check: ${state.name} vs. ${nbrList} on a bonus`
+  ]);
+  const intro = pickFrame(state.slug, 'btnbrI', [
+    `A single filer earning $70,000 who gets a $10,000 bonus, in ${state.name} and neighboring ${nbrList}:`,
+    `Here's a $10,000 bonus on a $70,000 salary compared across ${state.name} and nearby ${nbrList}:`,
+    `Side by side, a $70,000 earner's $10,000 bonus in ${state.name} versus ${nbrList}:`,
+    `Take a $10,000 bonus for someone on $70,000 and compare ${state.name} with bordering ${nbrList}:`,
+    `The same $10,000 bonus and $70,000 salary, in ${state.name} and its neighbors ${nbrList}:`
+  ]);
+  const foot = pickFrame(state.slug, 'btnbrF', [
+    `Total = federal 22% + state + FICA. Illustrative single-filer figures; the income tax you actually owe trues up at filing.`,
+    `Total combines the 22% federal, the state line, and FICA. Single-filer estimates — your real income tax settles when you file.`,
+    `Figures are the 22% federal plus state plus FICA for a single filer; the income tax you owe reconciles on your return.`,
+    `Each total adds the flat federal 22%, the state amount, and FICA; single-filer estimates that true up at filing time.`,
+    `Totals stack federal 22%, state, and FICA for a single filer — the actual income tax lands when the return is filed.`
+  ]);
+  return `<section class="prose"><h2>${heading}</h2>` +
+    `<p>${intro}</p>` +
     `<table class="data-table"><thead><tr><th>State</th><th>Bonus method</th><th>State withheld</th><th>Total withheld</th></tr></thead><tbody>${rows}</tbody></table>` +
-    `<p class="muted-small">Total = federal 22% + state + FICA. Illustrative single-filer figures; the income tax you actually owe trues up at filing.</p></section>`;
+    `<p class="muted-small">${foot}</p></section>`;
 }
 
 function bonusSizeTable(state, supp, taxData, suppData) {
@@ -1529,10 +1640,31 @@ function bonusSizeTable(state, supp, taxData, suppData) {
     const r = computeBonus({ bonus: b, regIncome: 70000, filingStatus: 'single', stateSlug: state.slug }, taxData, suppData);
     return `<tr><td>${usd0(b)}</td><td>${usd0(r.withheld.federal)}</td><td>${usd0(r.withheld.state)}</td><td>${usd0(r.withheld.fica)}</td><td>${usd0(r.withheld.total)}</td><td>${(r.withheld.pctOfBonus * 100).toFixed(1)}%</td></tr>`;
   }).join('');
-  return `<section class="prose"><h2>${state.name} bonus withholding at $5,000, $25,000 and $100,000</h2>` +
-    `<p>What's held back from three bonus sizes in ${state.name} (single filer, $70,000 salary):</p>` +
+  const heading = pickFrame(state.slug, 'btsizeH', [
+    `${state.name} bonus withholding at $5,000, $25,000 and $100,000`,
+    `What ${state.name} holds back on a $5,000, $25,000, or $100,000 bonus`,
+    `${state.name} bonus withholding across three bonus sizes`,
+    `Three bonus sizes in ${state.name}: $5,000, $25,000 and $100,000 withheld`,
+    `How ${state.name} withholding scales from a $5,000 to a $100,000 bonus`
+  ]);
+  const intro = pickFrame(state.slug, 'btsizeI', [
+    `What's held back from three bonus sizes in ${state.name} (single filer, $70,000 salary):`,
+    `Withholding on a $5,000, $25,000, and $100,000 bonus in ${state.name} for a single filer earning $70,000:`,
+    `For a single filer on a $70,000 salary, here's the ${state.name} withholding at three bonus amounts:`,
+    `Here's the ${state.name} bite on a $5,000, $25,000, and $100,000 bonus (single filer, $70,000 salary):`,
+    `Three bonuses — $5,000, $25,000, $100,000 — and what ${state.name} withholds from each on a $70,000 salary:`
+  ]);
+  const foot = pickFrame(state.slug, 'btsizeF', [
+    `The % shifts as Social Security stops at the wage base; the income-tax portion still trues up when you file.`,
+    `That percentage moves once Social Security caps out at the wage base, and the income-tax slice still settles at filing.`,
+    `The share changes because Social Security ends at the wage base; the income tax reconciles on your return either way.`,
+    `The rate drifts as Social Security hits its annual cap, but the income-tax part still reconciles at filing.`,
+    `Watch the percentage fall once Social Security maxes out; the income-tax slice trues up when you file regardless.`
+  ]);
+  return `<section class="prose"><h2>${heading}</h2>` +
+    `<p>${intro}</p>` +
     `<table class="data-table"><thead><tr><th>Bonus</th><th>Federal</th><th>${state.name}</th><th>FICA</th><th>Total</th><th>% of bonus</th></tr></thead><tbody>${rows}</tbody></table>` +
-    `<p class="muted-small">The % shifts as Social Security stops at the wage base; the income-tax portion still trues up when you file.</p></section>`;
+    `<p class="muted-small">${foot}</p></section>`;
 }
 
 function bonusSections(sections, slug) {
@@ -1541,30 +1673,90 @@ function bonusSections(sections, slug) {
   return { a: ordered.slice(0, half).join('\n'), b: ordered.slice(half).join('\n') };
 }
 
+// Pick worked-example inputs that (a) vary per state and (b) ALWAYS land on a
+// genuine refund or amount-owed (never a zero-delta wash), so the example
+// illustrates the tool's whole point. Deterministic per slug: the candidate
+// (bonus, salary) grid is shuffled by a slug hash and the first pair clearing a
+// real delta threshold wins, so same-bucket states get different figures.
+function bonusExampleInputs(slug, taxData, suppData) {
+  const bonuses = [4500, 6500, 9000, 11000, 14000, 18000, 24000];
+  const salaries = [28000, 36000, 47000, 61000, 115000, 158000, 215000];
+  const combos = [];
+  for (const b of bonuses) for (const s of salaries) combos.push([b, s]);
+  combos.sort((x, y) => slugHash(slug + x.join('_')) - slugHash(slug + y.join('_')));
+  let best = null;
+  for (const [bonus, salary] of combos) {
+    const r = computeBonus({ bonus, regIncome: salary, filingStatus: 'single', stateSlug: slug }, taxData, suppData);
+    const d = Math.abs(r.delta);
+    if (d >= 300) return { bonus, salary, r };            // clear, non-trivial delta
+    if (!best || d > best.d) best = { bonus, salary, r, d };
+  }
+  return best;                                            // fallback: largest delta found
+}
+
+// Multiple phrasings per delta branch so same-bucket pages don't share a verdict
+// sentence (the old single-string verdict was a top shingle-overlap contributor).
+function bonusVerdict(slug, r, deltaAbs) {
+  if (Math.abs(r.delta) < 1) return pickFrame(slug, 'btverdZ', [
+    `your withholding lands almost exactly on your real income tax — little to refund or owe`,
+    `the amount held back and the tax actually due come out nearly even, so there's barely a refund or a balance`,
+    `withholding and real tax roughly cancel out — not much to get back, not much to make up`
+  ]);
+  if (r.refund) return pickFrame(slug, 'btverdR', [
+    `about <strong>${deltaAbs}</strong> of income-tax over-withholding comes back as a <strong>refund</strong> when you file`,
+    `you over-paid income tax by roughly <strong>${deltaAbs}</strong>, and that returns as a <strong>refund</strong> at filing`,
+    `the flat 22% over-shoots your real rate by about <strong>${deltaAbs}</strong>, so that much is a <strong>refund</strong> later`
+  ]);
+  return pickFrame(slug, 'btverdO', [
+    `you'll <strong>owe</strong> about <strong>${deltaAbs}</strong> more at filing, because your real rate beats the 22% withheld`,
+    `expect to <strong>owe</strong> roughly <strong>${deltaAbs}</strong> more when you file — your marginal rate runs above the 22% held back`,
+    `the 22% withheld falls short of your real rate, leaving about <strong>${deltaAbs}</strong> to <strong>owe</strong> at filing`
+  ]);
+}
+
 function bonusWorkedExample(state, supp, r, salary) {
   const bonus = r.bonus;
   const w = r.withheld, t = r.trueLiability;
   const deltaAbs = usd0(Math.abs(r.delta));
-  const verdict = Math.abs(r.delta) < 1
-    ? `your withholding lands almost exactly on your real income tax — little to refund or owe`
-    : (r.refund
-      ? `about <strong>${deltaAbs}</strong> of income-tax over-withholding comes back as a <strong>refund</strong> when you file`
-      : `you'll <strong>owe</strong> about <strong>${deltaAbs}</strong> more at filing, because your real rate beats the 22% withheld`);
+  const bite = (w.pctOfBonus * 100).toFixed(1);
+  const verdict = bonusVerdict(state.slug, r, deltaAbs);
   const stateWLine = supp.method === 'none' ? `$0 state` : `${usd0(w.state)} ${state.name}`;
   const trueStatePart = supp.method === 'none' ? '' : ` + ${state.name} ${usd0(t.state)}`;
   const heading = pickFrame(state.slug, 'btexH', [
     `A ${usd0(bonus)} bonus on a ${usd0(salary)} ${state.name} salary: withheld vs. actually owed`,
     `Worked example: a ${usd0(bonus)} ${state.name} bonus at a ${usd0(salary)} salary`,
-    `What a ${usd0(bonus)} bonus really costs on a ${usd0(salary)} ${state.name} income`
+    `What a ${usd0(bonus)} bonus really costs on a ${usd0(salary)} ${state.name} income`,
+    `${usd0(salary)} salary, ${usd0(bonus)} bonus: the ${state.name} withholding-vs.-tax breakdown`,
+    `Run the numbers on a ${usd0(bonus)} bonus for a ${usd0(salary)} earner in ${state.name}`
   ]);
-  return `<section class="prose"><h2>${heading}</h2>` +
-    `<p>Take a single filer in ${state.name} earning ${usd0(salary)} who gets a ${usd0(bonus)} bonus on its own check:</p>` +
-    `<ul>` +
-      `<li><strong>Withheld now:</strong> ${usd0(w.federal)} federal (22%) + ${stateWLine} + ${usd0(w.fica)} FICA = <strong>${usd0(w.total)}</strong> held back, leaving about ${usd0(w.keep)} in hand — a ${(w.pctOfBonus * 100).toFixed(1)}% bite.</li>` +
-      `<li><strong>What it actually costs:</strong> the true income tax on the bonus is about ${usd0(t.incomeTax)} (federal ${usd0(t.federal)}${trueStatePart}), plus the same ${usd0(t.fica)} FICA.</li>` +
-      `<li><strong>The gap:</strong> ${verdict}. FICA (${usd0(w.fica)}) stays either way — it's a real tax.</li>` +
-    `</ul>` +
-    `<p class="muted-small">Illustrative single-filer figures from this page's engine; your result depends on your total income and filing status.</p></section>`;
+  const intro = pickFrame(state.slug, 'btexI', [
+    `Take a single filer in ${state.name} earning ${usd0(salary)} who gets a ${usd0(bonus)} bonus on its own check:`,
+    `Say you earn ${usd0(salary)} in ${state.name} and your employer cuts a separate ${usd0(bonus)} bonus check:`,
+    `Picture a ${state.name} worker on a ${usd0(salary)} salary handed a ${usd0(bonus)} bonus, paid on its own:`,
+    `Here's how a ${usd0(bonus)} bonus plays out for a single filer making ${usd0(salary)} in ${state.name}:`
+  ]);
+  const b1 = pickFrame(state.slug, 'btexB1', [
+    `<li><strong>Withheld now:</strong> ${usd0(w.federal)} federal (22%) + ${stateWLine} + ${usd0(w.fica)} FICA = <strong>${usd0(w.total)}</strong> held back, leaving about ${usd0(w.keep)} in hand — a ${bite}% bite.</li>`,
+    `<li><strong>Off the top:</strong> ${usd0(w.total)} disappears at payday — ${usd0(w.federal)} federal, ${stateWLine}, and ${usd0(w.fica)} FICA — so roughly ${usd0(w.keep)} actually reaches you, a ${bite}% cut.</li>`,
+    `<li><strong>On the check:</strong> the employer holds back ${usd0(w.federal)} for federal, ${stateWLine}, and ${usd0(w.fica)} for FICA — ${usd0(w.total)} in all (${bite}% of the bonus), leaving about ${usd0(w.keep)}.</li>`
+  ]);
+  const b2 = pickFrame(state.slug, 'btexB2', [
+    `<li><strong>What it actually costs:</strong> the true income tax on the bonus is about ${usd0(t.incomeTax)} (federal ${usd0(t.federal)}${trueStatePart}), plus the same ${usd0(t.fica)} FICA.</li>`,
+    `<li><strong>The real bill:</strong> at filing the bonus is taxed roughly ${usd0(t.incomeTax)} in income tax (federal ${usd0(t.federal)}${trueStatePart}), with the identical ${usd0(t.fica)} FICA on top.</li>`,
+    `<li><strong>At tax time:</strong> the bonus's actual income tax works out near ${usd0(t.incomeTax)} (federal ${usd0(t.federal)}${trueStatePart}) — and FICA is the same ${usd0(t.fica)} as before.</li>`
+  ]);
+  const ficaNote = pickFrame(state.slug, 'btexFica', [
+    `FICA (${usd0(w.fica)}) stays either way — it's a real tax.`,
+    `The ${usd0(w.fica)} FICA doesn't move — that part is owed no matter what.`,
+    `Either way, the ${usd0(w.fica)} FICA is final and won't come back.`
+  ]);
+  const b3 = `<li><strong>The gap:</strong> ${verdict}. ${ficaNote}</li>`;
+  const close = pickFrame(state.slug, 'btexC', [
+    `<p class="muted-small">Illustrative single-filer figures from this page's engine; your result depends on your total income and filing status.</p>`,
+    `<p class="muted-small">Example single-filer numbers from the calculator above; your own refund or bill shifts with your total income and filing status.</p>`,
+    `<p class="muted-small">A single-filer illustration only — drop your real salary, bonus, and filing status into the tool above for your figure.</p>`
+  ]);
+  return `<section class="prose"><h2>${heading}</h2><p>${intro}</p><ul>${b1}${b2}${b3}</ul>${close}</section>`;
 }
 
 function bonusFaqEntries(state, supp, year) {
@@ -1576,17 +1768,29 @@ function bonusFaqEntries(state, supp, year) {
     : supp.incomeRate ? `about ${pctStr(supp.incomeRate)} (aggregate method)` : 'the aggregate method';
   const e = [];
   if (supp.method === 'none') {
-    e.push({
-      q: `How much is withheld from a bonus in ${state.name}?`,
-      a: `${state.name} has no state income tax, so $0 is withheld for state tax. Federally, a separately paid bonus is withheld at a flat 22% (37% above $1,000,000/yr), plus 7.65% FICA — a prepayment, not your final tax.`,
-      html: `${state.name} has no state income tax, so <strong>$0</strong> is withheld for state tax. Federally, a separately paid bonus is <a href="/tax-glossary/#withholding">withheld</a> at a flat <strong>22%</strong> (37% above $1,000,000/yr), plus 7.65% <a href="/tax-glossary/#fica">FICA</a> — a prepayment, not your final tax.`
-    });
+    e.push(pickFrame(state.slug, 'btfaq1n', [
+      { q: `How much is withheld from a bonus in ${state.name}?`,
+        a: `${state.name} has no state income tax, so $0 is withheld for state tax. Federally, a separately paid bonus is withheld at a flat 22% (37% above $1,000,000/yr), plus 7.65% FICA — a prepayment, not your final tax.`,
+        html: `${state.name} has no state income tax, so <strong>$0</strong> is withheld for state tax. Federally, a separately paid bonus is <a href="/tax-glossary/#withholding">withheld</a> at a flat <strong>22%</strong> (37% above $1,000,000/yr), plus 7.65% <a href="/tax-glossary/#fica">FICA</a> — a prepayment, not your final tax.` },
+      { q: `How much tax comes out of a bonus in ${state.name}?`,
+        a: `Nothing goes to ${state.name}, which has no income tax. Federal withholding is a flat 22% on a separately paid bonus (37% past $1,000,000 a year) and FICA is 7.65% — the 22% is a prepayment that trues up at filing.`,
+        html: `Nothing goes to ${state.name}, which has no income tax. Federal <a href="/tax-glossary/#withholding">withholding</a> is a flat <strong>22%</strong> on a separately paid bonus (37% past $1,000,000 a year) and <a href="/tax-glossary/#fica">FICA</a> is 7.65% — the 22% is a prepayment that trues up at filing.` },
+      { q: `What's the bonus withholding in ${state.name}?`,
+        a: `State withholding is zero because ${state.name} taxes no wage income. The only deductions are the flat 22% federal (37% on bonus dollars above $1,000,000/yr) and 7.65% FICA, and the 22% is refundable if your real rate is lower.`,
+        html: `State <a href="/tax-glossary/#withholding">withholding</a> is zero because ${state.name} taxes no wage income. The only deductions are the flat <strong>22%</strong> federal (37% on bonus dollars above $1,000,000/yr) and 7.65% <a href="/tax-glossary/#fica">FICA</a>, and the 22% is refundable if your real rate is lower.` }
+    ]));
   } else {
-    e.push({
-      q: `What is the ${state.name} bonus tax rate in ${year}?`,
-      a: `${state.name} withholds ${rateStrPlain} on a separately paid bonus, on top of the flat 22% federal rate (37% above $1,000,000/yr) and 7.65% FICA. That is withholding, not your final tax.`,
-      html: `${state.name} withholds <strong>${rateStrPlain}</strong> on a separately paid bonus, on top of the flat <strong>22%</strong> federal rate (37% above $1,000,000/yr) and 7.65% <a href="/tax-glossary/#fica">FICA</a>. That's <a href="/tax-glossary/#withholding">withholding</a>, not your final tax.`
-    });
+    e.push(pickFrame(state.slug, 'btfaq1s', [
+      { q: `What is the ${state.name} bonus tax rate in ${year}?`,
+        a: `${state.name} withholds ${rateStrPlain} on a separately paid bonus, on top of the flat 22% federal rate (37% above $1,000,000/yr) and 7.65% FICA. That is withholding, not your final tax.`,
+        html: `${state.name} withholds <strong>${rateStrPlain}</strong> on a separately paid bonus, on top of the flat <strong>22%</strong> federal rate (37% above $1,000,000/yr) and 7.65% <a href="/tax-glossary/#fica">FICA</a>. That's <a href="/tax-glossary/#withholding">withholding</a>, not your final tax.` },
+      { q: `How much is withheld from a bonus in ${state.name} for ${year}?`,
+        a: `On a separately paid bonus, ${state.name} takes ${rateStrPlain}, the federal side takes a flat 22% (37% beyond $1,000,000/yr), and FICA takes 7.65%. Those are withholding rates that settle up when you file — not a final tax.`,
+        html: `On a separately paid bonus, ${state.name} takes <strong>${rateStrPlain}</strong>, the federal side takes a flat <strong>22%</strong> (37% beyond $1,000,000/yr), and <a href="/tax-glossary/#fica">FICA</a> takes 7.65%. Those are <a href="/tax-glossary/#withholding">withholding</a> rates that settle up when you file — not a final tax.` },
+      { q: `What rate does ${state.name} withhold on a bonus in ${year}?`,
+        a: `${state.name}'s supplemental withholding is ${rateStrPlain}, added to the flat 22% federal prepayment (37% on bonus pay over $1,000,000/yr) and 7.65% FICA. Only the income-tax portion is a prepayment; it trues up at your real rate.`,
+        html: `${state.name}'s supplemental <a href="/tax-glossary/#withholding">withholding</a> is <strong>${rateStrPlain}</strong>, added to the flat <strong>22%</strong> federal prepayment (37% on bonus pay over $1,000,000/yr) and 7.65% <a href="/tax-glossary/#fica">FICA</a>. Only the income-tax portion is a prepayment; it trues up at your real rate.` }
+    ]));
   }
   e.push(pickFrame(state.slug, 'btfaq2', [
     { q: `Are bonuses taxed at a higher rate in ${state.name}?`, a: `No. A bonus is ordinary income taxed at your normal marginal rate when you file; the flat 22% withheld is a prepayment, not a tax rate.`,
@@ -1594,7 +1798,9 @@ function bonusFaqEntries(state, supp, year) {
     { q: `Does ${state.name} tax bonuses more than regular pay?`, a: `No. There's no separate, higher tax on bonuses — a bonus is just withheld at a flat rate up front, then taxed like any income at your marginal rate.`,
       html: `No. There's no separate, higher tax on bonuses — a bonus is just <a href="/tax-glossary/#withholding">withheld</a> at a flat rate up front, then taxed like any income at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>.` },
     { q: `Is there a special bonus tax rate in ${state.name}?`, a: `No. The 22% federal and the state supplemental rate are withholding defaults, not rates that apply only to bonuses. Your real tax is your ordinary marginal rate.`,
-      html: `No. The 22% federal and the state supplemental rate are <a href="/tax-glossary/#withholding">withholding</a> defaults, not rates that apply only to bonuses. Your real tax is your ordinary <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>.` }
+      html: `No. The 22% federal and the state supplemental rate are <a href="/tax-glossary/#withholding">withholding</a> defaults, not rates that apply only to bonuses. Your real tax is your ordinary <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>.` },
+    { q: `Is a ${state.name} bonus taxed differently from my salary?`, a: `Not in the end. It may be withheld differently (a flat rate up front), but at filing a bonus is taxed exactly like the rest of your income, at your marginal rate.`,
+      html: `Not in the end. It may be <a href="/tax-glossary/#withholding">withheld</a> differently (a flat rate up front), but at filing a bonus is taxed exactly like the rest of your income, at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>.` }
   ]));
   e.push(pickFrame(state.slug, 'btfaq3', [
     { q: `Will I get some of my ${state.name} bonus withholding back?`, a: `Often, yes — if your true marginal rate is below the 22% withheld, the difference refunds at filing; above 22%, you owe it. FICA is a true tax and never refunds.`,
@@ -1602,7 +1808,9 @@ function bonusFaqEntries(state, supp, year) {
     { q: `Do I get a refund on my ${state.name} bonus?`, a: `If 22% was more than your real rate, yes — the over-withheld income tax returns at filing. If your marginal rate tops 22%, you owe the shortfall. FICA doesn't come back either way.`,
       html: `If 22% was more than your real rate, yes — the over-withheld income tax returns at filing. If your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> tops 22%, you owe the shortfall. <a href="/tax-glossary/#fica">FICA</a> doesn't come back either way.` },
     { q: `Why might I owe tax on my ${state.name} bonus at filing?`, a: `Because 22% is only a prepayment. If your true marginal rate is above 22% (high earners), the flat withholding falls short and you owe the rest; below 22%, you're over-withheld and get money back.`,
-      html: `Because 22% is only a prepayment. If your true <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> is above 22% (high earners), the flat <a href="/tax-glossary/#withholding">withholding</a> falls short and you owe the rest; below 22%, you're over-withheld and get money back.` }
+      html: `Because 22% is only a prepayment. If your true <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> is above 22% (high earners), the flat <a href="/tax-glossary/#withholding">withholding</a> falls short and you owe the rest; below 22%, you're over-withheld and get money back.` },
+    { q: `Does my ${state.name} bonus ever come back at tax time?`, a: `The income-tax part can. If the flat 22% over-withheld relative to your real marginal rate, the excess is refunded; if you're a high earner above 22%, you pay more. FICA is never refunded.`,
+      html: `The income-tax part can. If the flat 22% over-<a href="/tax-glossary/#withholding">withheld</a> relative to your real <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>, the excess is refunded; if you're a high earner above 22%, you pay more. <a href="/tax-glossary/#fica">FICA</a> is never refunded.` }
   ]));
   if (supp.special === 'pct_of_federal') e.push({ q: `Why is Vermont's bonus withholding based on the federal amount?`, a: `Vermont sets it at 30% of the federal income tax withheld on the bonus, rather than a percent of the bonus. On the flat 22% federal, that's about 6.6% of the bonus.` });
   else if (supp.special === 'wi_banded') e.push({ q: `How does Wisconsin's graduated bonus rate work?`, a: `Wisconsin picks the rate from your annual gross wages: 3.54% under $12,760, 4.65% to $25,520, 5.30% to $280,950, and 7.65% above that.` });
@@ -2052,11 +2260,13 @@ async function main() {
       supp: { federal: suppFederalLean, states: { [slug]: leanSupp(suppEntry) } }
     };
     const faqEntries = bonusFaqEntries(state, suppEntry, year);
-    // Worked-example inputs vary by slug (5×5 combos) — computed once, shared by
-    // the example section and the data-keyed myth-bust.
-    const exBonus = pickFrame(slug, 'btbonus', [5000, 8000, 10000, 12000, 15000]);
-    const exSalary = pickFrame(slug, 'btsal', [45000, 55000, 65000, 75000, 90000]);
-    const ex = computeBonus({ bonus: exBonus, regIncome: exSalary, filingStatus: 'single', stateSlug: slug }, taxData, suppData);
+    // Worked-example inputs vary by slug AND are chosen so the example always
+    // lands on a genuine refund/owe delta (never a zero-delta wash) — the whole
+    // point of the tool. Distinct (bonus, salary) per state means same-bucket
+    // pages don't share one canonical set of computed figures.
+    const exPick = bonusExampleInputs(slug, taxData, suppData);
+    const exSalary = exPick.salary;
+    const ex = exPick.r;
     const secs = bonusSections([
       bonusMythBust(state, suppEntry, ex),
       bonusHowItWorks(state, suppEntry, year),

@@ -3,14 +3,17 @@
 // name (+ abbreviation) is stripped from each page before shingling — so the
 // number measures TEMPLATE overlap, not shared facts about different states.
 // Usage: node scripts/shingle-overlap.js texas nevada [california colorado ...]
+// Cluster suffix defaults to paycheck-calculator; override for another cluster:
+//   SHINGLE_SUFFIX=bonus-tax-calculator node scripts/shingle-overlap.js texas nevada
 import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+const SUFFIX = process.env.SHINGLE_SUFFIX || 'paycheck-calculator';
 
 async function visibleText(slug) {
-  const html = await readFile(join(ROOT, 'dist', `${slug}-paycheck-calculator`, 'index.html'), 'utf8');
+  const html = await readFile(join(ROOT, 'dist', `${slug}-${SUFFIX}`, 'index.html'), 'utf8');
   const roster = JSON.parse(await readFile(join(ROOT, 'src', 'data', 'states.json'), 'utf8'));
   const me = roster.find((s) => s.slug === slug);
   let t = html
