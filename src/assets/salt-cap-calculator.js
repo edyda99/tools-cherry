@@ -78,7 +78,8 @@ function render() {
     `<div class="line big"><span>Allowed SALT deduction</span><span class="num">${usd(r.allowedSalt)}</span></div>` +
     capBindingNote +
     verdict +
-    savings;
+    savings +
+    `<div class="takeaway">In plain terms: this only helps if itemizing beats your standard deduction — when it does, it lowers the federal tax you settle at filing, not your paycheck or your property-tax bill.</div>`;
 
   // SALT torpedo warning: income inside the phase-down band AND the cap is
   // actually binding (each extra $1 of income then adds ~$1.30 of taxable income).

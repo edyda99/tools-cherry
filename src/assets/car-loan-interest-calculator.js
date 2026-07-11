@@ -84,7 +84,9 @@ function render() {
       savingNote;
   }
 
-  $('out').innerHTML = interestBlock + deductionBlock;
+  const takeaway = `<div class="takeaway">In plain terms: when it applies, this is a deduction you claim at tax time — a bigger refund or a smaller IRS bill — not a cut to your monthly car payment.</div>`;
+
+  $('out').innerHTML = interestBlock + deductionBlock + takeaway;
 }
 
 function init() {
