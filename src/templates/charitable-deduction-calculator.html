@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Charitable Deduction Calculator 2026 (OBBBA) — the $1,000 / $2,000 Non-Itemizer Deduction</title>
+<meta name="description" content="Free charitable deduction calculator for the 2026 One Big Beautiful Bill Act changes: the new permanent $1,000 (single) / $2,000 (married) deduction for non-itemizers, the 0.5%-of-AGI floor for itemizers, and the 35-cent-on-the-dollar §68 cap in the top bracket. See what's deductible and what it saves. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/charitable-deduction-calculator/">
+<meta property="og:title" content="Charitable Deduction Calculator (2026, OBBBA)">
+<meta property="og:description" content="See your charitable deduction under the 2026 law: the $1,000/$2,000 non-itemizer deduction, the 0.5%-of-AGI floor for itemizers, the itemize-vs-standard verdict, and your federal tax saving. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; }
+  .obbba-note { font-size:.9rem; opacity:.85; margin-top:8px; }
+  .phaseout-flag { color:#b26b00; font-weight:600; }
+  .ineligible-flag { color:#b23a00; font-weight:600; }
+  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
+  .mythbust h2 { margin-top:0; }
+  .gift-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:520px){ .gift-row { grid-template-columns:1fr; } }
+  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Charitable Deduction Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Estimate the three 2026 One Big Beautiful Bill Act charitable-giving changes: the new permanent §170(p) non-itemizer deduction of up to $1,000 (single) or $2,000 (married filing jointly) for cash gifts to public charities, the 0.5%-of-AGI floor that limits itemizers under §170(b)(1)(I), and the §68 '2/37 rule' that caps every itemized deduction at 35 cents on the dollar in the 37% bracket — with the itemize-vs-standard verdict and your estimated federal tax saving."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Can I deduct charitable donations without itemizing in 2026?","acceptedAnswer":{"@type":"Answer","text":"Yes. Starting in tax year 2026, the One Big Beautiful Bill Act created a permanent deduction of up to $1,000 (single, head of household, or married filing separately) or $2,000 (married filing jointly) for cash gifts to public charities that you can take on top of the standard deduction, without itemizing. It is claimed after your adjusted gross income (AGI) is computed, so it lowers your federal income tax but does not lower your AGI."}},{"@type":"Question","name":"Does the non-itemizer charitable deduction reduce my AGI?","acceptedAnswer":{"@type":"Answer","text":"No. Although you do not have to itemize to claim it, the $1,000 / $2,000 non-itemizer charitable deduction is subtracted after AGI (under Internal Revenue Code §63(b)(4)), not as an above-the-line adjustment. It reduces your federal income tax but not your AGI, so it does not lower your Medicare IRMAA, your ACA premium subsidy, or how much of your Social Security is taxed. 'No itemizing required' is not the same as 'reduces AGI.'"}},{"@type":"Question","name":"What is the 0.5% charitable floor for 2026?","acceptedAnswer":{"@type":"Answer","text":"If you itemize, a new 2026 floor means only the charitable contributions that exceed 0.5% of your AGI are deductible on Schedule A — the first 0.5% of your AGI in giving is not deductible. For example, on a $175,000 AGI the floor is $875, so a $2,500 cash gift is deductible only to the extent of $1,625. This floor is permanent and applies to cash and non-cash gifts together."}},{"@type":"Question","name":"Is the charitable non-itemizer deduction cash only?","acceptedAnswer":{"@type":"Answer","text":"Yes. The $1,000 / $2,000 non-itemizer deduction is for cash gifts (cash, check, or card) to public charities only. Non-cash gifts such as clothing, household goods, or appreciated stock do not qualify, and neither do cash gifts to donor-advised funds, §509(a)(3) supporting organizations, or private non-operating foundations. Those may still be deductible on Schedule A if you itemize."}},{"@type":"Question","name":"What is the 35% cap on charitable deductions?","acceptedAnswer":{"@type":"Answer","text":"It is not a charitable-specific cap. For filers in the top 37% bracket, IRC §68 (the '2/37 rule') reduces total itemized deductions — charitable, state and local taxes, mortgage interest, all of them — by 2/37 of the lesser of your total itemized deductions or your taxable income above the 37% threshold ($640,600 single / $768,700 married for 2026). The net effect is that a deducted dollar is worth about 35 cents instead of 37 cents."}},{"@type":"Question","name":"Are these charitable changes permanent or temporary?","acceptedAnswer":{"@type":"Answer","text":"Permanent. Unlike the One Big Beautiful Bill Act's no-tax-on-tips, no-tax-on-overtime, senior, and car-loan-interest deductions — which sunset after 2028 — all three charitable changes (the non-itemizer deduction, the 0.5%-of-AGI floor, and the §68 cap) have no expiration date. They take effect for tax years beginning after December 31, 2025."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Charitable Deduction Calculator</h1>
+    <p class="lede">Starting in <strong>2026</strong>, the One Big Beautiful Bill Act changes charitable deductions three ways at once: a new <strong>$1,000 (single) / $2,000 (married)</strong> deduction for people who take the <a href="/tax-glossary/#standard-deduction">standard deduction</a>, a new <strong>0.5%-of-<a href="/tax-glossary/#agi">AGI</a> floor</strong> for <a href="/tax-glossary/#itemizing">itemizers</a>, and a <strong>35-cent-on-the-dollar cap</strong> at the top bracket. These changes are <strong>permanent</strong>. Enter your numbers to see what's deductible and what it saves you. Everything runs in your browser — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Charitable deduction calculator">
+      <form id="charForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="filing">Filing status</label>
+          <select id="filing">
+            <option value="single">Single</option>
+            <option value="married">Married filing jointly</option>
+            <option value="head_of_household">Head of household</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">The non-itemizer deduction is $2,000 for married filing jointly and $1,000 for everyone else (single, head of household, or married filing separately).</p>
+        </div>
+
+        <div class="field">
+          <label for="agi">Your adjusted gross income (AGI)</label>
+          <input type="number" id="agi" inputmode="numeric" min="0" step="1000" value="175000">
+          <p class="muted-small" style="margin-top:6px">Roughly Form 1040 line 11. It sets the 0.5% floor, the top-bracket cap, and your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> — so there's no need to enter a rate. Filing jointly? Use your combined income.</p>
+        </div>
+
+        <div class="field">
+          <label for="cashGift">Cash donations to charities ($)</label>
+          <input type="number" id="cashGift" inputmode="numeric" min="0" step="100" value="2500">
+          <p class="muted-small" style="margin-top:6px">Cash, check, or card gifts to <strong>public charities</strong> — the only kind that counts toward the $1,000 / $2,000 non-itemizer deduction. Gifts to donor-advised funds or private foundations don't qualify for that bonus.</p>
+        </div>
+
+        <div class="field gift-row">
+          <div class="field" style="margin:0">
+            <label for="nonCash">Non-cash gifts ($) <span class="muted-small">(optional)</span></label>
+            <input type="number" id="nonCash" inputmode="numeric" min="0" step="100" value="0">
+          </div>
+          <div class="field" style="margin:0">
+            <label for="other">Other itemized deductions ($) <span class="muted-small">(optional)</span></label>
+            <input type="number" id="other" inputmode="numeric" min="0" step="100" value="20000">
+          </div>
+        </div>
+        <p class="muted-small" style="margin-top:-6px">Non-cash gifts (goods, appreciated stock) count if you itemize but never toward the non-itemizer bonus. "Other itemized" is your non-charitable Schedule A total — state and local taxes (after the <a href="/salt-cap-calculator/">SALT cap</a>), mortgage interest — used to decide whether itemizing beats your standard deduction.</p>
+      </form>
+
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+    </section>
+
+    <p class="note">Estimate for general guidance only — not tax advice. Figures use the 2026 federal brackets and standard deductions (single $16,100 / married filing jointly $32,200 / head of household $24,150). The tax-saving figure compares your best deduction with the gift against your best deduction without it. It does not model the 60%/30%/20%-of-AGI ceilings on very large gifts, carryforwards, the AMT, or state tax. Verify with the IRS or a tax professional.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose mythbust">
+      <h2>Five things people get wrong about the 2026 charitable changes</h2>
+      <p><strong>1. You don't have to itemize anymore to get a break for donating — but it's cash only.</strong> Standard-deduction takers get up to <strong>$1,000 ($2,000 married filing jointly)</strong> for <strong>cash</strong> gifts to public charities. Dropping off clothes, giving appreciated stock, or funding a <strong>donor-advised fund</strong> or private foundation does <em>not</em> qualify for this bonus.</p>
+      <p><strong>2. "You don't have to itemize" does NOT mean "it lowers your AGI."</strong> Most articles get this wrong. The non-itemizer deduction is subtracted <em>after</em> your <a href="/tax-glossary/#agi">AGI</a> (Internal Revenue Code §63(b)(4)), so it cuts your <strong>federal income tax</strong> but <strong>not your AGI</strong> — it will not lower your Medicare IRMAA, your ACA premium subsidy, or how much of your Social Security is taxed.</p>
+      <p><strong>3. If you itemize, your first 0.5% of AGI in giving is now worth nothing.</strong> A new 2026 floor: on a $200,000 AGI, the first <strong>$1,000</strong> of charitable giving isn't deductible — only the excess counts on Schedule A. Small itemized gifts can now yield <strong>$0</strong>.</p>
+      <p><strong>4. The "35% cap" isn't a cap on your donation — it's a haircut on every itemized deduction at the top.</strong> In the 37% bracket, IRC §68's "2/37 rule" makes a deducted dollar worth about <strong>35¢, not 37¢</strong>. It applies to your <a href="/salt-cap-calculator/">SALT</a> and mortgage interest too, not just charity.</p>
+      <p><strong>5. These changes are permanent.</strong> Unlike <a href="/overtime-tax-calculator/">no tax on overtime</a> and <a href="/tips-tax-calculator/">no tax on tips</a> (which end after 2028), the charitable changes have <strong>no sunset</strong> — plan for the long term.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How the 2026 charitable deduction changes work</h2>
+      <p>The One Big Beautiful Bill Act (signed July 2025) changed charitable giving in three ways, all effective for tax years beginning after December 31, 2025, and all <strong>permanent</strong>.</p>
+      <p><strong>1. A deduction for non-itemizers (IRC §170(p)).</strong> If you take the <a href="/tax-glossary/#standard-deduction">standard deduction</a>, you can deduct up to <strong>$1,000</strong> (single, head of household, or married filing separately) or <strong>$2,000</strong> (married filing jointly) of <strong>cash</strong> gifts to public charities, on top of the standard deduction. It's not indexed for inflation, there's no carryforward of unused amounts, and it's claimed via §63(b)(4) — subtracted <em>after</em> your AGI to reach taxable income. So it lowers your federal income tax but does <strong>not</strong> reduce your AGI. The one true sense in which it's "above the line" is simply that you don't have to itemize to get it.</p>
+      <p><strong>2. A 0.5%-of-AGI floor for itemizers (IRC §170(b)(1)(I)).</strong> If you itemize, only the charitable contributions that exceed <strong>0.5% of your AGI</strong> are deductible on Schedule A — the first 0.5% is lost. On a $175,000 AGI the floor is $875; on a $500,000 AGI it's $2,500. It applies to your cash and non-cash gifts together. Amounts disallowed only by this floor generally don't carry forward, and carryovers from pre-2026 gifts aren't subject to it.</p>
+      <p><strong>3. A 35-cent-on-the-dollar cap at the top bracket (IRC §68).</strong> This is <em>not</em> a charitable-specific rule. For filers in the 37% bracket, §68's "2/37 rule" reduces <strong>total</strong> itemized deductions — charitable, state and local taxes, mortgage interest, all of them — by <strong>2/37 (about 5.4%)</strong> of the lesser of your total itemized deductions or your taxable income above the 37% threshold (<strong>$640,600</strong> single / <strong>$768,700</strong> married for 2026). The upshot: a dollar that used to save 37¢ now saves about <strong>35¢</strong>.</p>
+      <p><strong>What else stayed the same.</strong> The pre-existing 60%-of-AGI ceiling on cash gifts to public charities was made permanent; the 30%/20% ceilings for certain non-cash and appreciated property still apply to very large gifts. The floor cuts the bottom; those ceilings cap the top.</p>
+      <p>The same 2025 law also added temporary breaks that end after 2028: see the <a href="/overtime-tax-calculator/">no tax on overtime calculator</a>, the <a href="/tips-tax-calculator/">no tax on tips calculator</a>, the <a href="/senior-deduction-calculator/">$6,000 senior bonus deduction</a>, and the <a href="/car-loan-interest-calculator/">car loan interest deduction</a>. Itemizing in a high-tax state? It also raised the <a href="/salt-cap-calculator/">SALT deduction cap to $40,000</a> — the deduction that most often decides, with charity, whether you itemize.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>A worked example: the 0.5% floor in action</h2>
+      <p>Maria is single with a MAGI of $175,000. She gives <strong>$2,500</strong> in cash to public charities and has <strong>$20,000</strong> of other itemized deductions (state and local taxes plus mortgage interest). Here's how 2026 treats her gift:</p>
+      <ul>
+        <li><strong>The 0.5% floor:</strong> 0.5% of her $175,000 AGI is <strong>$875</strong>. Only the giving above that counts, so her $2,500 gift is deductible to the extent of <strong>$1,625</strong> on Schedule A ($2,500 − $875).</li>
+        <li><strong>Itemize or not?</strong> Her itemized total is $1,625 + $20,000 = <strong>$21,625</strong>, which beats her $16,100 standard deduction (plus the $1,000 non-itemizer bonus she'd otherwise get). So she <strong>itemizes</strong>, and the gift is claimed on Schedule A.</li>
+        <li><strong>Federal tax saved by the gift:</strong> the deductible $1,625 comes off income in her 24% bracket, lowering her federal tax by about <strong>$390</strong> ($1,625 × 24%) — not $2,500, because the first $875 was lost to the floor and a deduction only saves your marginal rate.</li>
+      </ul>
+      <p>If Maria took the standard deduction instead (say she had little else to itemize), her $2,500 cash gift would give her the <strong>$1,000</strong> non-itemizer deduction — no floor, but capped at $1,000 — worth about $240 at 24%. Either way, it lowers her federal income tax, not her AGI.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>Can I deduct donations without itemizing in 2026?</strong> Yes — up to $1,000 (single) or $2,000 (married filing jointly) of cash gifts to public charities, on top of the standard deduction. It's permanent and claimed after your AGI, so it lowers your federal income tax but not your AGI.</p>
+      <p><strong>Does it reduce my AGI?</strong> No. You don't have to itemize to get it, but it's subtracted after AGI (§63(b)(4)) — it cuts your federal income tax, not your AGI, so it doesn't affect IRMAA, ACA subsidies, or Social Security taxability. "No itemizing required" is not the same as "reduces AGI."</p>
+      <p><strong>What is the 0.5% floor?</strong> If you itemize, only charitable gifts above 0.5% of your AGI are deductible — the first 0.5% is lost. On $175,000 of AGI that's an $875 floor.</p>
+      <p><strong>Is the non-itemizer deduction cash only?</strong> Yes — cash to public charities. Non-cash gifts (goods, stock) and cash to donor-advised funds or private foundations don't qualify for the bonus (though they may still be deductible if you itemize).</p>
+      <p><strong>What is the 35% cap?</strong> Not a charitable cap — a general §68 "2/37 rule" that trims every itemized deduction in the 37% bracket so a deducted dollar is worth about 35¢ instead of 37¢. It hits SALT and mortgage interest too.</p>
+      <p><strong>Are these changes permanent?</strong> Yes. Unlike the tips, overtime, senior, and car-loan deductions (which end after 2028), the charitable changes have no sunset.</p>
+      <p><strong>What does itemizing mean?</strong> Listing specific deductible expenses — charitable gifts, state and local taxes, mortgage interest — on <a href="/tax-glossary/#itemizing">Schedule A</a> and deducting the total, instead of taking the flat <a href="/tax-glossary/#standard-deduction">standard deduction</a>. You take whichever is larger.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your numbers never leave your browser.</p>
+      <p class="muted-small">Sources: Public Law 119-21 §§70424, 70425, 70111, <a href="https://www.congress.gov/119/plaws/publ21/PLAW-119publ21.pdf" rel="nofollow">statute text (congress.gov)</a>; <a href="https://www.law.cornell.edu/uscode/text/26/170" rel="nofollow">26 USC §170 (Cornell LII)</a>, <a href="https://www.law.cornell.edu/uscode/text/26/63" rel="nofollow">§63</a>, <a href="https://www.law.cornell.edu/uscode/text/26/62" rel="nofollow">§62</a>, and <a href="https://www.law.cornell.edu/uscode/text/26/68" rel="nofollow">§68</a>; Bipartisan Policy Center, <a href="https://bipartisanpolicy.org/issue-brief/how-the-new-charitable-deduction-floors-work/" rel="nofollow">how the new charitable deduction floors work</a>; Holland &amp; Knight, <a href="https://www.hklaw.com/en/insights/publications/2025/11/year-end-charitable-planning-big-changes-coming-for-2026" rel="nofollow">year-end charitable planning</a>; Gunster, <a href="https://www.gunster.com/newsroom/publications/the-new-2-37-rule-and-how-it-will-affect-your-taxes" rel="nofollow">the new 2/37 rule</a>; Taft, <a href="https://www.taftlaw.com/news-events/law-bulletins/charitable-giving-after-the-obbba-the-2026-outlook/" rel="nofollow">charitable giving after the OBBBA</a>.</p>
+    </section>
+
+    <div class="note"><strong>Embed this calculator.</strong> Put this calculator on your site — free, one copy-paste snippet, no scripts from third parties. <a href="/embed/">Get the snippet</a>.</div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__OBBBA__ = {{OBBBA_JSON}};
+  window.__FED__ = {{FED_JSON}};
+</script>
+<script type="module" src="/assets/charitable-deduction-calculator.js"></script>
+</body>
+</html>

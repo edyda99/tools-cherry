@@ -128,6 +128,7 @@ const TOOLS = [
   { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/', cat: 'money' },
   { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/', cat: 'money' },
   { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/', cat: 'money' },
+  { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/', cat: 'money' },
   { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/', cat: 'money' },
   { name: 'Mandatory Roth Catch-Up Calculator', path: '/roth-catchup-calculator/', cat: 'money' },
   { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/', cat: 'money' },
@@ -226,6 +227,7 @@ const TOOL_DESCRIPTIONS = {
   '/senior-deduction-calculator/': 'Calculate the 2025 law\'s $6,000 senior bonus deduction for people 65+ — the "no tax on Social Security" break — and what it saves you.',
   '/salt-cap-calculator/': 'See your allowed SALT deduction under the 2025 law\'s $40,000 cap — with the high-income phase-down, the itemize-vs-standard check, and your saving vs the old $10,000 cap.',
   '/car-loan-interest-calculator/': 'See how much of your new-car loan interest is deductible under the 2025 law (up to $10,000/yr, 2025–2028) — with the income phase-out and what it really saves you.',
+  '/charitable-deduction-calculator/': 'See your charitable deduction under the 2026 law: the permanent $1,000/$2,000 non-itemizer deduction, the 0.5%-of-AGI floor for itemizers, the 35%-cap in the top bracket, and what it saves — without claiming it lowers your AGI (it does not).',
   '/w4-overtime-tips-withholding-calculator/': 'Turn the no-tax-on-tips / no-tax-on-overtime deduction into bigger paychecks now: see what to enter on your 2026 Form W-4 Step 4(b) (lines 1a/1b) and the extra take-home per paycheck, instead of waiting for a refund.',
   '/roth-catchup-calculator/': 'Earn over $150,000? See if the 2026 SECURE 2.0 rule forces your 401(k) catch-up into Roth (after-tax), what that costs this year, and the Roth-vs-pre-tax break-even.',
   '/bonus-tax-calculator/': 'See what\'s withheld from your bonus now (flat 22% federal + your state\'s supplemental rate + FICA) versus what it will really cost at tax time — with the refund or amount owed, for all 50 states + DC.',
@@ -271,6 +273,7 @@ const RELATED_OVERRIDES = {
     { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
     { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
+    { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
     { name: 'Hours Calculator (Time Card)', path: '/hours-calculator/' },
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' }
   ],
@@ -281,6 +284,7 @@ const RELATED_OVERRIDES = {
     { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
     { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
+    { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
     { name: 'Tip & Bill Split', path: '/tip-calculator/' }
   ],
@@ -291,6 +295,7 @@ const RELATED_OVERRIDES = {
     { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
     { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
+    { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
     { name: 'Hours Calculator (Time Card)', path: '/hours-calculator/' },
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' }
   ],
@@ -299,11 +304,22 @@ const RELATED_OVERRIDES = {
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
     { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
+    { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
     { name: 'Auto Loan Calculator', path: '/auto-loan-calculator/' },
     { name: 'Sales Tax Calculator', path: '/sales-tax-calculator/' },
     { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' }
   ],
+  '/charitable-deduction-calculator/': [
+    { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
+    { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
+    { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
+    { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
+    { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
+    { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
+    { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' }
+  ],
   '/salt-cap-calculator/': [
+    { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
     { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
@@ -318,6 +334,7 @@ const RELATED_OVERRIDES = {
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
     { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
+    { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
     { name: '401(k) Retirement Calculator', path: '/401k-calculator/' },
     { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' },
     { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/' }
@@ -329,6 +346,7 @@ const RELATED_OVERRIDES = {
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
     { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
+    { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
     { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' },
     { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/' }
   ],
@@ -358,6 +376,7 @@ const RELATED_OVERRIDES = {
     { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
     { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
+    { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
     { name: 'Mandatory Roth Catch-Up Calculator', path: '/roth-catchup-calculator/' },
     { name: 'Overtime Tax by State (Data Study)', path: '/data/overtime-tax-by-state/' },
     { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' }
@@ -1962,6 +1981,8 @@ async function main() {
   const embedSaltTpl = await read(join(SRC, 'templates', 'embed', 'salt-cap-calculator.html'));
   const carLoanTpl = await read(join(SRC, 'templates', 'car-loan-interest-calculator.html'));
   const embedCarLoanTpl = await read(join(SRC, 'templates', 'embed', 'car-loan-interest-calculator.html'));
+  const charitableTpl = await read(join(SRC, 'templates', 'charitable-deduction-calculator.html'));
+  const embedCharitableTpl = await read(join(SRC, 'templates', 'embed', 'charitable-deduction-calculator.html'));
   const w4OtTipsTpl = await read(join(SRC, 'templates', 'w4-overtime-tips-withholding-calculator.html'));
   const embedW4OtTipsTpl = await read(join(SRC, 'templates', 'embed', 'w4-overtime-tips-withholding-calculator.html'));
   const rothCatchupTpl = await read(join(SRC, 'templates', 'roth-catchup-calculator.html'));
@@ -2173,6 +2194,7 @@ async function main() {
   await cp(join(SRC, 'assets', 'senior-deduction-calculator.js'), join(DIST, 'assets', 'senior-deduction-calculator.js'));
   await cp(join(SRC, 'assets', 'salt-cap-calculator.js'), join(DIST, 'assets', 'salt-cap-calculator.js'));
   await cp(join(SRC, 'assets', 'car-loan-interest-calculator.js'), join(DIST, 'assets', 'car-loan-interest-calculator.js'));
+  await cp(join(SRC, 'assets', 'charitable-deduction-calculator.js'), join(DIST, 'assets', 'charitable-deduction-calculator.js'));
   await cp(join(SRC, 'assets', 'w4-overtime-tips-withholding-calculator.js'), join(DIST, 'assets', 'w4-overtime-tips-withholding-calculator.js'));
   await cp(join(SRC, 'assets', 'roth-catchup-calculator.js'), join(DIST, 'assets', 'roth-catchup-calculator.js'));
   await cp(join(SRC, 'engine', 'bonus-tax.js'), join(DIST, 'assets', 'bonus-tax.js'));
@@ -3019,6 +3041,18 @@ async function main() {
   );
   urls.push(`${SITE.url}/car-loan-interest-calculator/`);
 
+  // OBBBA charitable-deduction calculator (IRC §170(p) non-itemizer deduction
+  // §70424; §170(b)(1)(I) 0.5%-of-AGI floor §70425; §68 "2/37 rule" §70111) —
+  // the three 2026 charitable changes, all PERMANENT (no 2028 sunset). Reuses the
+  // SALT tool's itemize-vs-standard machinery. Correctly encodes reducesAgi=false
+  // (the §170(p) deduction is taken via §63(b)(4) AFTER AGI — it does NOT reduce AGI).
+  await mkdir(join(DIST, 'charitable-deduction-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'charitable-deduction-calculator', 'index.html'),
+    fillTool(charitableTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON }, '/charitable-deduction-calculator/')
+  );
+  urls.push(`${SITE.url}/charitable-deduction-calculator/`);
+
   // 2026 Form W-4 Step 4(b) overtime & tips WITHHOLDING helper — the paycheck-now
   // companion to the filing-time tips/overtime tools. Reuses the same OBBBA engine
   // (allowedDeduction + a single combined federalTaxSaved on tips+overtime) to
@@ -3283,6 +3317,8 @@ async function main() {
   await writeFile(join(DIST, 'embed', 'salt-cap-calculator', 'index.html'), fillEmbed(embedSaltTpl));
   await mkdir(join(DIST, 'embed', 'car-loan-interest-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'car-loan-interest-calculator', 'index.html'), fillEmbed(embedCarLoanTpl));
+  await mkdir(join(DIST, 'embed', 'charitable-deduction-calculator'), { recursive: true });
+  await writeFile(join(DIST, 'embed', 'charitable-deduction-calculator', 'index.html'), fillEmbed(embedCharitableTpl));
   await mkdir(join(DIST, 'embed', 'w4-overtime-tips-withholding-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'w4-overtime-tips-withholding-calculator', 'index.html'), fillEmbed(embedW4OtTipsTpl));
   await mkdir(join(DIST, 'embed', 'roth-catchup-calculator'), { recursive: true });

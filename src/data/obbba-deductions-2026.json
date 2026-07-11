@@ -287,6 +287,90 @@
           "url": "https://www.nbcwashington.com/news/business/money-report/senate-gop-tax-bill-gives-break-on-car-loan-interest-but-not-all-vehicles-qualify/3939560/"
         }
       ]
+    },
+    "charitable": {
+      "statute": "IRC §170(p) non-itemizer deduction (OBBBA §70424); IRC §170(b)(1)(I) 0.5%-of-contribution-base floor for itemizers (OBBBA §70425); IRC §68 itemized-deduction limitation, the '2/37 rule' (OBBBA §70111)",
+      "firstYear": 2026,
+      "permanent": true,
+      "notIndexed": true,
+      "nonItemizer": {
+        "cap": {
+          "single": 1000,
+          "married": 2000,
+          "head_of_household": 1000,
+          "married_separate": 1000,
+          "qss": 1000
+        },
+        "cashOnly": true,
+        "reducesAgi": false,
+        "belowTheLine": true,
+        "availableToNonItemizersOnly": true,
+        "noCarryforward": true,
+        "eligibleOrgs": "section 170(b)(1)(A) public charities (50%-limit orgs)",
+        "excludedOrgs": ["donor_advised_funds", "private_non_operating_foundations", "section_509(a)(3)_supporting_orgs"]
+      },
+      "itemizerFloor": {
+        "rate": 0.005,
+        "base": "contribution_base_AGI",
+        "appliesToCashAndNonCash": true,
+        "preFloorCarryoversExempt": true,
+        "floorDisallowedGenerallyNotCarriedForward": true
+      },
+      "topBracketCap": {
+        "fractionNumerator": 2,
+        "fractionDenominator": 37,
+        "reductionRate": 0.0540540540540541,
+        "effectiveBenefitRate": 0.35,
+        "topMarginalRate": 0.37,
+        "lesserOf": ["total_itemized_deductions", "taxable_income_over_37pct_threshold"],
+        "topBracketThreshold2026": {
+          "single": 640600,
+          "married": 768700,
+          "head_of_household": 640600
+        },
+        "noCarryforward": true,
+        "appliesToAllItemizedNotJustCharitable": true
+      },
+      "cashCeilingAgiPct": 0.60,
+      "qualifies": "Three OBBBA charitable changes, all effective for tax years beginning after 2025-12-31 and all PERMANENT (no 2028 sunset). (1) Non-itemizers: a §170(p) deduction of up to $1,000 (single/HoH/MFS/QSS) or $2,000 (MFJ) for CASH gifts to §170(b)(1)(A) public charities — NOT donor-advised funds, §509(a)(3) supporting orgs, or private non-operating foundations; non-cash gifts do NOT qualify; no carryforward. Claimed via §63(b)(4), i.e. subtracted AFTER AGI to reach taxable income — it lowers federal income tax but does NOT reduce AGI (so no IRMAA/ACA/SS-taxability effect), same structure as tips/overtime/car-loan. (2) Itemizers: only charitable contributions exceeding 0.5% of the contribution base (AGI) are deductible on Schedule A (§170(b)(1)(I)); the first 0.5% of AGI is lost. (3) 37%-bracket itemizers: §68 reduces TOTAL itemized deductions (all of them, not just charitable) by 2/37 of the lesser of (total itemized) or (taxable income over the 37% threshold), capping the benefit at 35 cents per dollar. The pre-existing 60%-of-AGI ceiling on cash gifts to public charities was made permanent.",
+      "sources": [
+        {
+          "claim": "IRC §170(p) as amended: $1,000/$2,000 non-itemizer deduction, cash only, §170(b)(1)(A) donees, excludes DAFs/509(a)(3)/private foundations, no carryforward; §170(b)(1)(I): only contributions exceeding 0.5% of contribution base are deductible.",
+          "url": "https://www.law.cornell.edu/uscode/text/26/170"
+        },
+        {
+          "claim": "IRC §63(b): taxable income of a non-itemizer = AGI minus the standard deduction, §199A, and the deductions provided in §170(p), §224, §225, and §163(h)(4)(A) — i.e. §170(p) is subtracted AFTER AGI and does NOT reduce AGI.",
+          "url": "https://www.law.cornell.edu/uscode/text/26/63"
+        },
+        {
+          "claim": "IRC §62(a) above-the-line list contains NO reference to §170 or §170(p) — confirming the non-itemizer charitable deduction is not an AGI-reducing adjustment.",
+          "url": "https://www.law.cornell.edu/uscode/text/26/62"
+        },
+        {
+          "claim": "IRC §68: itemized deductions reduced by 2/37 of the lesser of (itemized deductions) or (taxable income, determined without §68 and increased by itemized deductions, exceeding the 37% bracket start); effective for tax years beginning after 2025-12-31.",
+          "url": "https://www.law.cornell.edu/uscode/text/26/68"
+        },
+        {
+          "claim": "Enrolled statute of record: OBBBA §70424 (non-itemizer §170(p)), §70425 (0.5% floor §170(b)(1)(I)), §70111 (§68 limitation). Permanence and 2026 effective dates.",
+          "url": "https://www.congress.gov/119/plaws/publ21/PLAW-119publ21.pdf"
+        },
+        {
+          "claim": "0.5% floor mechanic + worked examples ($500k AGI/$20k gift → first $2,500 disallowed); floor-disallowed amounts generally not carried forward; 35% (2/37) cap not carried forward; 60% cash ceiling made permanent.",
+          "url": "https://www.hklaw.com/en/insights/publications/2025/11/year-end-charitable-planning-big-changes-coming-for-2026"
+        },
+        {
+          "claim": "Non-itemizer deduction is CASH ONLY to public charities, excludes DAFs and private foundations, no carryforward; above-the-line 'in addition to the standard deduction' (i.e. no itemizing required).",
+          "url": "https://www.taftlaw.com/news-events/law-bulletins/charitable-giving-after-the-obbba-the-2026-outlook/"
+        },
+        {
+          "claim": "0.5% floor worked example ($175k AGI/$2,500 gift → deduct $1,625) and how the two floors work; both provisions effective 2026.",
+          "url": "https://bipartisanpolicy.org/issue-brief/how-the-new-charitable-deduction-floors-work/"
+        },
+        {
+          "claim": "2/37 = 5.4054% reduction; effective 35 cents/dollar for 37%-bracket filers; worked numeric example.",
+          "url": "https://www.gunster.com/newsroom/publications/the-new-2-37-rule-and-how-it-will-affect-your-taxes"
+        }
+      ]
     }
   },
   "states": {

@@ -439,6 +439,179 @@ export function estimateCarLoan({ year, filingStatus, magi, interest, eligible =
 }
 
 // ---------------------------------------------------------------------------
+// OBBBA charitable-deduction changes (three provisions, all PERMANENT and
+// effective for tax years beginning after 2025-12-31 — NO 2028 sunset):
+//   1. IRC §170(p) (OBBBA §70424): a non-itemizer deduction of up to $1,000
+//      (single/HoH/MFS/QSS) or $2,000 (MFJ) for CASH gifts to §170(b)(1)(A)
+//      public charities. Claimed via §63(b)(4) — subtracted AFTER AGI to reach
+//      taxable income, exactly like tips/overtime/car-loan — so it lowers
+//      federal income tax but does NOT reduce AGI (§170(p) is not in §62(a)).
+//   2. IRC §170(b)(1)(I) (OBBBA §70425): a 0.5%-of-AGI floor for ITEMIZERS —
+//      only charitable contributions exceeding 0.5% of the contribution base
+//      (AGI) are deductible on Schedule A; the first 0.5% of AGI is lost.
+//   3. IRC §68 (OBBBA §70111): the "2/37 rule" — a GENERAL limitation on ALL
+//      itemized deductions (not charitable-specific) for 37%-bracket filers,
+//      reducing total itemized deductions by 2/37 of the lesser of (a) total
+//      itemized deductions or (b) taxable income over the 37% threshold, which
+//      nets a 35¢-on-the-dollar benefit instead of 37¢.
+// Parameters live in obbba-deductions-2026.json federal.charitable. This tool
+// reuses the SALT tool's itemize-vs-standard machinery (federalIncomeTax exact
+// bracket-diff) — charitable and SALT are the two big Schedule A items and both
+// hinge on the same standard-vs-itemize decision.
+
+/**
+ * The §170(p) non-itemizer charitable deduction: min(eligible CASH gift, cap).
+ * Only cash gifts to §170(b)(1)(A) public charities qualify — non-cash gifts and
+ * cash to donor-advised funds / private non-operating foundations / §509(a)(3)
+ * supporting organizations do NOT (they may still be deductible on Schedule A if
+ * you itemize, but they do not earn this standard-deduction bonus). Not indexed;
+ * no carryforward.
+ *
+ * @param {number} eligibleCashGift  cash to public charities (USD)
+ * @param {string} filingStatus      'single' | 'married' (MFJ) | 'head_of_household'
+ * @param {object} params            obbba.federal.charitable
+ * @returns {number} the non-itemizer deduction (never above the cap)
+ */
+export function charitableNonItemizer(eligibleCashGift, filingStatus, params) {
+  const cap = pick(params.nonItemizer.cap, filingStatus);
+  return Math.max(0, Math.min(Math.max(0, eligibleCashGift || 0), cap));
+}
+
+/**
+ * The §170(b)(1)(I) floor: 0.5% of the contribution base (= AGI for essentially
+ * every individual filer). Only charitable contributions ABOVE this amount are
+ * deductible on Schedule A; the first 0.5% of AGI is non-deductible.
+ */
+export function charitableFloor(agi, params) {
+  return params.itemizerFloor.rate * Math.max(0, agi || 0);
+}
+
+// Bracket table for the charitable tax-saved estimate. Mirrors the SALT tool:
+// MFS maps to single (closest published table); QSS uses MFJ.
+const CHARITABLE_BRACKET_STATUS = {
+  single: 'single',
+  married: 'married',
+  head_of_household: 'head_of_household',
+  married_separate: 'single',
+  qss: 'married'
+};
+
+/**
+ * The IRC §68 "2/37 rule" reduction of TOTAL itemized deductions. Applies only
+ * to 37%-bracket filers: reduce itemized deductions by 2/37 of the LESSER of
+ * (a) total itemized deductions, or (b) taxable income (determined without §68
+ * and increased by the itemized deductions — i.e. AGI) in excess of the 37%
+ * bracket threshold. This is a general itemized-deduction limit — it hits SALT,
+ * mortgage interest, and charitable alike — capping the benefit of a deducted
+ * dollar at 37% × (1 − 2/37) = 35¢. No carryforward of the disallowed amount.
+ *
+ * @param {object} a
+ * @param {number} a.agi           adjusted gross income (USD)
+ * @param {number} a.itemizedTotal total itemized deductions before §68 (USD)
+ * @param {string} a.filingStatus  'single' | 'married' | 'head_of_household'
+ * @param {object} a.params        obbba.federal.charitable
+ * @returns {{applies:boolean, threshold:number, excess:number, cut:number}}
+ */
+export function section68Reduction({ agi, itemizedTotal, filingStatus, params }) {
+  const tb = params.topBracketCap;
+  const threshold = pick(tb.topBracketThreshold2026, filingStatus);
+  const m = Math.max(0, agi || 0);
+  const itemized = Math.max(0, itemizedTotal || 0);
+  const excess = Math.max(0, m - threshold);
+  const fraction = tb.fractionNumerator / tb.fractionDenominator; // 2/37
+  const cut = excess > 0 ? fraction * Math.min(itemized, excess) : 0;
+  return { applies: cut > 0, threshold, excess, cut };
+}
+
+/**
+ * Full comparison for the charitable tool: the non-itemizer §170(p) branch, the
+ * 0.5%-of-AGI floor on the itemizer branch, the §68 top-bracket haircut, the
+ * itemize-vs-standard verdict, and the exact bracket-diff federal tax saved BY
+ * THE CHARITABLE GIFT (counterfactual: best deduction with the gift vs the best
+ * deduction with the gift removed — the same standard-vs-itemized machinery the
+ * SALT tool uses). Standard deduction + brackets come from `fed` (tax-data-2026,
+ * the permanent provision's first year); this tool is 2026+.
+ *
+ * @param {object} a
+ * @param {string} a.filingStatus   'single' | 'married' (MFJ) | 'head_of_household'
+ * @param {number} a.agi            adjusted gross income (USD)
+ * @param {number} a.cashGift       cash to public charities — counts for §170(p) AND the itemized total
+ * @param {number} [a.otherCharitable] non-cash gifts + cash to DAFs/private foundations — counts toward the itemized total (subject to the floor) but NEVER §170(p)
+ * @param {number} [a.otherItemized]  non-charitable Schedule A items (SALT after its own cap, mortgage interest, …)
+ * @param {object} a.params         obbba.federal.charitable
+ * @param {object} a.fed            taxData.federal (brackets + standardDeduction)
+ * @returns {object} the full breakdown (see fields assembled below)
+ */
+export function charitableComparison({ filingStatus, agi, cashGift, otherCharitable, otherItemized, params, fed }) {
+  const m = Math.max(0, agi || 0);
+  const cash = Math.max(0, cashGift || 0);
+  const otherChar = Math.max(0, otherCharitable || 0);
+  const otherItem = Math.max(0, otherItemized || 0);
+
+  // --- Non-itemizer branch (standard-deduction world) ---
+  const nonItemizerCap = pick(params.nonItemizer.cap, filingStatus);
+  const nonItemizerDed = charitableNonItemizer(cash, filingStatus, params);
+
+  const bracketStatus = CHARITABLE_BRACKET_STATUS[filingStatus] || 'single';
+  const standardDeduction = fed.standardDeduction[bracketStatus] ?? fed.standardDeduction.single;
+  const stdWorldDeduction = standardDeduction + nonItemizerDed;
+
+  // --- Itemizer branch (Schedule A world) ---
+  const floor = charitableFloor(m, params);
+  const totalCharitableGift = cash + otherChar;
+  const floorLost = Math.min(totalCharitableGift, floor);
+  const charDeductible = Math.max(0, totalCharitableGift - floor);
+  const itemizedTotal = charDeductible + otherItem;
+
+  // §68 top-bracket 2/37 haircut on the WITH-charity itemized total.
+  const s68 = section68Reduction({ agi: m, itemizedTotal, filingStatus, params });
+  const itemizedAllowed = Math.max(0, itemizedTotal - s68.cut);
+
+  // With-charity best deduction: itemize (post-§68) vs standard + §170(p).
+  const bestDeduction = Math.max(itemizedAllowed, stdWorldDeduction);
+  const itemize = itemizedAllowed > stdWorldDeduction;
+
+  // Baseline (gift removed): best deduction with NO charitable contribution.
+  const baseItemizedTotal = otherItem;
+  const baseS68 = section68Reduction({ agi: m, itemizedTotal: baseItemizedTotal, filingStatus, params });
+  const baseItemizedAllowed = Math.max(0, baseItemizedTotal - baseS68.cut);
+  const baseDeduction = Math.max(standardDeduction, baseItemizedAllowed);
+
+  // Exact bracket-diff: federal tax saved BY THE GIFT = tax(agi − baseDed) −
+  // tax(agi − bestDed). federalIncomeTax subtracts its own standard deduction,
+  // so pass (deduction − fedSd) as preTax (may be negative — handled exactly).
+  const fedSd = fed.standardDeduction[bracketStatus] ?? fed.standardDeduction.single;
+  const taxBase = federalIncomeTax(m, bracketStatus, fed, baseDeduction - fedSd);
+  const taxWith = federalIncomeTax(m, bracketStatus, fed, bestDeduction - fedSd);
+  const taxSaved = Math.max(0, taxBase - taxWith);
+
+  // The charitable-specific deductible shown in the winning world.
+  const charitableDeductible = itemize ? charDeductible : nonItemizerDed;
+  const effectiveRate = charitableDeductible > 0 ? taxSaved / charitableDeductible : 0;
+  // §68 only bites a charitable dollar when itemizing in the 37% bracket.
+  const topBracketCap = itemize && s68.applies;
+
+  const notes = [];
+  if (itemize) notes.push('itemize');
+  else notes.push('standard');
+  if (floorLost > 0 && charDeductible === 0) notes.push('floor_fully_binds');
+  else if (floorLost > 0) notes.push('floor_partially_binds');
+  if (topBracketCap) notes.push('top_bracket_cap');
+  if (cash > nonItemizerCap) notes.push('nonitemizer_cap_binds');
+
+  return {
+    filingStatus, agi: m,
+    nonItemizerCap, nonItemizerDed,
+    floor, floorLost, totalCharitableGift, charDeductible,
+    otherItemized: otherItem, itemizedTotal,
+    s68Applies: s68.applies, s68Cut: s68.cut, s68Threshold: s68.threshold,
+    itemizedAllowed, standardDeduction, stdWorldDeduction,
+    baseDeduction, bestDeduction, itemize,
+    charitableDeductible, taxSaved, effectiveRate, topBracketCap, notes
+  };
+}
+
+// ---------------------------------------------------------------------------
 // 2026 Form W-4 Step 4(b) Deductions Worksheet helper for the OBBBA tips
 // (line 1a) and overtime-premium (line 1b) deductions. This turns the SAME
 // filing-time deduction the tips/overtime tools already compute into a
