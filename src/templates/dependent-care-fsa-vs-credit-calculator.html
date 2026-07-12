@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Dependent Care FSA vs. Child Care Credit Calculator (2026) — Which Wins?</title>
+<meta name="description" content="Free 2026 calculator: should you max your $7,500 Dependent Care FSA or claim the Child &amp; Dependent Care Credit? The One Big Beautiful Bill Act made it an all-or-nothing choice — maxing the FSA zeroes the credit. See both scenarios side by side, the dollar difference, and which wins for your income. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/dependent-care-fsa-vs-credit-calculator/">
+<meta property="og:title" content="Dependent Care FSA vs. Child Care Credit Calculator (2026)">
+<meta property="og:description" content="Max the $7,500 Dependent Care FSA or take the Child &amp; Dependent Care Credit? It's one or the other in 2026 — maxing the FSA zeroes the credit. See both scenarios and which wins. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.1rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; }
+  .obbba-note { font-size:.9rem; opacity:.85; margin-top:8px; }
+  .phaseout-flag { color:#b26b00; font-weight:600; }
+  .ineligible-flag { color:#b23a00; font-weight:600; }
+  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
+  .mythbust h2 { margin-top:0; }
+  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
+  .dc-rec { margin:4px 0 14px; padding:14px 16px; border-radius:10px; border:1px solid rgba(128,128,128,.28); }
+  .dc-rec.rec-fsa { border-left:5px solid #2f6f4f; background:rgba(47,111,79,.09); }
+  .dc-rec.rec-credit { border-left:5px solid #2a5d8f; background:rgba(42,93,143,.09); }
+  .dc-rec-tag { font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; font-weight:700; opacity:.7; }
+  .dc-rec-head { font-size:1.2rem; font-weight:800; margin:2px 0 4px; }
+  .dc-rec-sub { font-size:.92rem; opacity:.9; }
+  .dc-cols { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:560px){ .dc-cols { grid-template-columns:1fr; } }
+  .dc-col { padding:12px 14px; border:1px solid rgba(128,128,128,.22); border-radius:10px; }
+  .dc-col.dc-win { border-color:#2f6f4f; box-shadow:0 0 0 1px #2f6f4f inset; }
+  .dc-col-head { font-weight:700; margin-bottom:6px; }
+  .dc-badge { font-size:.72rem; background:#2f6f4f; color:#fff; padding:1px 7px; border-radius:20px; vertical-align:middle; }
+  .dc-delta { margin-top:12px; }
+  .dc-breakeven { margin-top:12px; padding:11px 14px; border-left:4px solid #6b6b6b; border-radius:8px; background:rgba(128,128,128,.08); font-size:.92rem; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Dependent Care FSA vs. Child & Dependent Care Credit Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Compare the 2026 Dependent Care FSA (IRC §129, up to $7,500 / $3,750 married filing separately, pre-tax so it saves income tax and FICA) against the Child & Dependent Care Credit (IRC §21, a nonrefundable credit of 50% down to 20% by income on up to $3,000 of expenses for one dependent or $6,000 for two or more). Because the One Big Beautiful Bill Act reduces the credit's expense cap dollar-for-dollar by every FSA dollar, maxing the $7,500 FSA zeroes the credit for any family size — so the tool shows both all-or-nothing scenarios side by side and recommends whichever nets more."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Can I use both a Dependent Care FSA and the Child and Dependent Care Credit in 2026?","acceptedAnswer":{"@type":"Answer","text":"Not on the same dollars, and in 2026 usually not at all. Internal Revenue Code §21(c) reduces the credit's expense cap ($3,000 for one dependent, $6,000 for two or more) dollar-for-dollar by every dollar you exclude through a Dependent Care FSA. Because the new FSA limit is $7,500 — more than even the $6,000 two-child cap — maxing the FSA drives the creditable expenses to zero and wipes out the credit entirely, for any family size. It is an all-or-nothing choice: max the FSA, or skip it and take the credit."}},{"@type":"Question","name":"Is there an optimal split between the FSA and the credit?","acceptedAnswer":{"@type":"Answer","text":"No. Because each FSA dollar erodes the credit's cap one-for-one, the total benefit is a straight line in the amount you route through the FSA, so the best answer is always a corner: put in as much as you can, or nothing. There is no smooth middle to solve for. The calculator computes both corners exactly and tells you which one nets more."}},{"@type":"Question","name":"Why is a 50% child care credit sometimes worth less than the FSA?","acceptedAnswer":{"@type":"Answer","text":"The Child & Dependent Care Credit is nonrefundable, meaning it can only offset federal income tax you actually owe. At low income — where the standard deduction wipes out most or all of your taxable income — a headline 50% rate can be worth little or nothing because there is barely any tax to cancel. The FSA's payroll savings include Social Security and Medicare (about 7.65%), which come off regardless of your income-tax bill, so the FSA can beat even a 50% credit rate at low income."}},{"@type":"Question","name":"How much can I put in a Dependent Care FSA in 2026?","acceptedAnswer":{"@type":"Answer","text":"Up to $7,500 per tax return ($3,750 if married filing separately — exactly half) for tax year 2026, up from $5,000, under the One Big Beautiful Bill Act. It is a per-return limit, not per person: two working spouses filing jointly share one $7,500, and someone with two employers still gets one $7,500. The change is permanent. Your employer must offer a dependent care assistance plan, and you can only exclude up to the lower-earning spouse's income."}},{"@type":"Question","name":"Can married filing separately claim the Child and Dependent Care Credit?","acceptedAnswer":{"@type":"Answer","text":"Generally no. IRC §21(e)(2) requires married taxpayers to file a joint return to claim the Child & Dependent Care Credit (a narrow exception applies to spouses who lived apart for the last six months of the year and maintained the household). A married-filing-separately filer can still use a Dependent Care FSA, capped at $3,750, so for them the FSA is usually the only lever."}},{"@type":"Question","name":"Are the 2026 dependent care changes permanent?","acceptedAnswer":{"@type":"Answer","text":"Yes. Unlike the One Big Beautiful Bill Act's no-tax-on-tips and no-tax-on-overtime deductions, which sunset after 2028, the dependent care changes — the $7,500 FSA limit and the 50%-to-20% credit schedule — have no expiration date. They take effect for tax years beginning after December 31, 2025."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Dependent Care FSA vs. Child Care Credit Calculator</h1>
+    <p class="lede">In <strong>2026</strong> the One Big Beautiful Bill Act raised the <strong>Dependent Care FSA</strong> limit to <strong>$7,500</strong> and reworked the <strong>Child &amp; Dependent Care Credit</strong> — and the two collide. Every dollar you put in the FSA cuts the credit's expense cap by a dollar, and since $7,500 is more than even the $6,000 two-child cap, <strong>maxing the FSA zeroes the credit</strong>. So there's <strong>no optimal split</strong> — it's one or the other. Enter your numbers to see both corners and which wins. Everything runs in your browser — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Dependent Care FSA vs. Child and Dependent Care Credit calculator">
+      <form id="dcForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="filing">Filing status</label>
+          <select id="filing">
+            <option value="married">Married filing jointly</option>
+            <option value="single">Single</option>
+            <option value="head_of_household">Head of household</option>
+            <option value="married_separate">Married filing separately</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">Married filing separately <strong>can't claim the credit</strong> (§21(e)(2) needs a joint return) and its FSA cap is <strong>$3,750</strong>, not $7,500 — the tool handles both.</p>
+        </div>
+
+        <div class="field">
+          <label for="agi">Household income (roughly your AGI)</label>
+          <input type="number" id="agi" inputmode="numeric" min="0" step="1000" value="85000">
+          <p class="muted-small" style="margin-top:6px">Roughly Form 1040 line 11 — combined if filing jointly. It sets your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> and the credit's rate, so there's no need to enter a rate. Enter it <strong>before</strong> any FSA; the tool works out the after-FSA figure itself.</p>
+        </div>
+
+        <div class="field">
+          <label for="kids">Number of qualifying dependents</label>
+          <select id="kids">
+            <option value="1">1 (expense cap $3,000)</option>
+            <option value="2" selected>2 or more (expense cap $6,000)</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">Children under 13, or a disabled spouse or <a href="/tax-glossary/#dependent">dependent</a>. The count sets the credit's expense cap — it does not change the $7,500 FSA limit.</p>
+        </div>
+
+        <div class="field">
+          <label for="expenses">Annual dependent-care expenses ($)</label>
+          <input type="number" id="expenses" inputmode="numeric" min="0" step="500" value="6000">
+          <p class="muted-small" style="margin-top:6px">Daycare, after-school care, day camp, a nanny — the care that lets you (and your spouse) work.</p>
+        </div>
+
+        <div class="field">
+          <label for="employerFsa">Max your employer's FSA allows ($)</label>
+          <input type="number" id="employerFsa" inputmode="numeric" min="0" step="250" value="7500">
+          <p class="muted-small" style="margin-top:6px">Capped at $7,500 ($3,750 married filing separately). If your employer offers <strong>no</strong> dependent care FSA, set this to <strong>0</strong> and the tool recommends the credit.</p>
+        </div>
+      </form>
+
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+    </section>
+
+    <p class="note">Estimate for general guidance only — not tax advice. Figures use the 2026 federal brackets, standard deductions (single $16,100 / married filing jointly $32,200 / head of household $24,150), and FICA (Social Security 6.2% up to the $184,500 wage base, Medicare 1.45%). It assumes both parents have earned income above the amounts shown, treats your income as the FICA wage base, and assumes the credit isn't crowded out by your other credits. It does not model the $250/$500-per-month deemed income for a student or disabled spouse, or state tax. Verify with the IRS or a tax professional.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose mythbust">
+      <h2>Four things people get wrong about the 2026 choice</h2>
+      <p><strong>1. There's no "optimal split" anymore — it's all or nothing.</strong> The old advice was to fill the FSA and take the credit on whatever was left. In 2026 the FSA reduces the credit's expense cap dollar-for-dollar, so the total benefit is a straight line in the FSA amount and the best answer is always a <strong>corner</strong>: max the FSA, <em>or</em> skip it and take the credit. Don't hunt for a middle — there isn't one.</p>
+      <p><strong>2. Maxing the $7,500 FSA wipes out the credit — for any family size.</strong> Since $7,500 is more than even the <strong>$6,000</strong> two-child credit cap, once you route that much through the FSA there are <strong>zero</strong> credit-eligible dollars left. Under the old $5,000 limit a two-child family could do both; not anymore.</p>
+      <p><strong>3. A 50% credit can be worth less than the FSA at low income.</strong> The credit is <strong>nonrefundable</strong> — it only cancels tax you actually owe. At low income the <a href="/tax-glossary/#standard-deduction">standard deduction</a> can wipe out your taxable income, so a headline 50% rate is worth <strong>little or nothing</strong>. The FSA's Social Security + Medicare (<a href="/tax-glossary/#fica">FICA</a>) savings land <strong>regardless</strong> of your tax bill, so the FSA often wins at the bottom.</p>
+      <p><strong>4. Married filing separately can't take the credit at all.</strong> You'd have to file jointly (§21(e)(2)). A married-filing-separately filer can still use an FSA — but only up to <strong>$3,750</strong> — so for them the FSA is the only lever.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How the 2026 dependent care rules work</h2>
+      <p>The One Big Beautiful Bill Act (signed July 2025) changed <strong>two</strong> child-care benefits at once, effective for tax years beginning after December 31, 2025, and both are <strong>permanent</strong>.</p>
+      <p><strong>1. The Dependent Care FSA (IRC §129).</strong> The pre-tax payroll set-aside rose from $5,000 to <strong>$7,500</strong> ($2,500 to <strong>$3,750</strong> for married filing separately — exactly half, the historic ratio preserved). It's the first increase since 1986. Because it's a <strong>Section 125</strong> cafeteria benefit (the same pre-tax mechanism as a health FSA), the money comes out <strong>before</strong> both income tax and <a href="/tax-glossary/#fica">FICA</a>, so it saves your marginal income-tax rate <strong>plus</strong> about 7.65% in Social Security and Medicare (only 1.45% Medicare above the $184,500 Social Security wage base). It's a per-return limit — two spouses share one $7,500 — and you can't exclude more than the lower-earning spouse's income. Your employer has to offer the plan.</p>
+      <p><strong>2. The Child &amp; Dependent Care Credit (IRC §21).</strong> The top rate rose from 35% to <strong>50%</strong>, then phases down by income to a <strong>20%</strong> floor, applied to up to <strong>$3,000</strong> of care expenses for one dependent or <strong>$6,000</strong> for two or more. The rate drops 1 point per $2,000 of <a href="/tax-glossary/#agi">AGI</a> over $15,000 (down to 35%), sits flat at 35% up to $75,000 (single) / $150,000 (joint), then drops 1 point per $2,000 ($4,000 joint) to the 20% floor. Crucially, it's <strong>nonrefundable</strong> — it can't exceed the federal income tax you owe. See the difference between a <a href="/tax-glossary/#deduction-vs-credit">deduction and a credit</a>.</p>
+      <p><strong>3. The collision (no double-dip).</strong> IRC §21(c) reduces the $3,000 / $6,000 expense cap <strong>dollar-for-dollar</strong> by everything you exclude through the FSA. Since the new $7,500 FSA exceeds the $6,000 two-child cap, maxing it leaves <strong>nothing</strong> for the credit. That's why this is a corner decision. One nice second-order effect: the FSA is excluded from gross income, so maxing it <strong>lowers your AGI</strong>, which can bump your credit rate up — but only on whatever credit-eligible dollars remain, which is usually none.</p>
+      <p>The same 2025 law added temporary breaks that end after 2028 — see the <a href="/overtime-tax-calculator/">no tax on overtime calculator</a> and the <a href="/tips-tax-calculator/">no tax on tips calculator</a> — and permanently changed <a href="/charitable-deduction-calculator/">charitable deductions</a>. To turn any of these into bigger paychecks now instead of a refund, use the <a href="/w4-overtime-tips-withholding-calculator/">W-4 withholding calculator</a>.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>A worked example: the corner decision</h2>
+      <p>Priya and Sam file jointly, earn <strong>$85,000</strong>, and pay <strong>$6,000</strong> a year for daycare for their two kids. Their employer allows the full $7,500 FSA. Which lever wins?</p>
+      <ul>
+        <li><strong>Skip the FSA, take the credit:</strong> at $85,000 their credit rate is <strong>35%</strong>, applied to the full $6,000 (their two-child cap). That's a <strong>$2,100</strong> credit, and they owe more than enough tax to use all of it.</li>
+        <li><strong>Max the FSA instead:</strong> routing $6,000 through the FSA saves about <strong>$720</strong> in income tax (their 12% bracket) plus <strong>$459</strong> in FICA — about <strong>$1,179</strong> total. But that $6,000 FSA equals their credit cap, so the credit drops to <strong>$0</strong>.</li>
+        <li><strong>Verdict:</strong> the credit wins by about <strong>$921</strong>. At their income the 35% credit beats the FSA's roughly 20% (bracket + FICA) rate, and there's plenty of tax to absorb the nonrefundable credit.</li>
+      </ul>
+      <p>Now push their income to <strong>$250,000</strong>. The credit rate falls to its 20% floor ($1,200 on $6,000), while an FSA now saves at their 24% bracket, and with $7,500 available the FSA absorbs more than the credit's $6,000 cap. The FSA wins — the same family, opposite answer. That's why you run your own numbers: the corner flips with income.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>Can I use both the FSA and the credit?</strong> Not on the same dollars, and in 2026 usually not at all — every FSA dollar cuts the credit's cap, and maxing the $7,500 FSA (more than the $6,000 two-child cap) zeroes the credit. It's max the FSA <em>or</em> take the credit.</p>
+      <p><strong>Is there an optimal split?</strong> No. The benefit is linear in the FSA amount, so the best answer is always a corner — all or nothing. The tool computes both and tells you which wins.</p>
+      <p><strong>Why can a 50% credit lose to the FSA?</strong> The credit is nonrefundable — worth $0 if you owe no federal income tax. The FSA's Social Security + Medicare savings show up regardless, so at low income the FSA can beat even a 50% rate.</p>
+      <p><strong>How much can I put in the FSA?</strong> Up to $7,500 per tax return ($3,750 married filing separately), permanently, from 2026. It's per return, not per spouse, and your employer must offer the plan.</p>
+      <p><strong>Married filing separately?</strong> You generally can't claim the credit (§21(e)(2)), but you can still use an FSA up to $3,750. See <a href="/tax-glossary/#filing-status">filing status</a>.</p>
+      <p><strong>Do both parents have to work?</strong> Yes — both the FSA and the credit are capped by the lower-earning spouse's income. A stay-at-home spouse who isn't a student or disabled means neither benefit.</p>
+      <p><strong>Are these changes permanent?</strong> Yes — unlike the tips and overtime deductions (which end after 2028), the dependent care changes have no sunset.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your numbers never leave your browser.</p>
+      <p class="muted-small">Sources: Public Law 119-21 §70404, <a href="https://www.congress.gov/119/plaws/publ21/PLAW-119publ21.pdf" rel="nofollow">statute text (congress.gov)</a>; <a href="https://www.law.cornell.edu/uscode/text/26/129" rel="nofollow">26 USC §129 (Cornell LII)</a> and <a href="https://www.law.cornell.edu/uscode/text/26/21" rel="nofollow">§21</a>; <a href="https://www.irs.gov/publications/p503" rel="nofollow">IRS Publication 503</a> and <a href="https://www.irs.gov/taxtopics/tc602" rel="nofollow">Topic no. 602</a>; Mercer, <a href="https://www.mercer.com/en-us/insights/us-health-news/big-beautiful-bill-permanently-enhances-dependent-care-benefits/" rel="nofollow">permanent dependent-care enhancements</a>; Tax Policy Center, <a href="https://taxpolicycenter.org/taxvox/2025-reconciliation-law-makes-some-modest-changes-child-care-tax-benefits-provides-little" rel="nofollow">modest child-care changes</a>; Newfront, <a href="https://www.newfront.com/blog/the-obbb-dependent-care-fsa-increase-could-backfire" rel="nofollow">how the FSA increase can backfire</a>.</p>
+    </section>
+
+    <div class="note"><strong>Embed this calculator.</strong> Put this calculator on your site — free, one copy-paste snippet, no scripts from third parties. <a href="/embed/">Get the snippet</a>.</div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__DC__ = {{DC_JSON}};
+  window.__FED__ = {{FED_JSON}};
+</script>
+<script type="module" src="/assets/dependent-care-fsa-vs-credit-calculator.js"></script>
+</body>
+</html>
