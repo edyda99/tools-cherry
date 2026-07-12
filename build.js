@@ -3721,18 +3721,26 @@ async function main() {
   }
 
   // _headers (Cloudflare Pages) — security headers + real content-hash caching.
-  // Ordering matters: Cloudflare applies matching blocks top-to-bottom and the
-  // LAST block to set a given header for a request wins. `/*` sets a safe
-  // short-lived default (HTML pages, sitemap.xml, data/*.json, etc. — nothing
-  // here is content-hashed, so it must revalidate instead of going stale
-  // silently). `/assets/*` covers the one remaining un-hashed asset
-  // (styles.css) with the same short-lived default. `/assets/*.js` comes LAST
-  // and is the most specific match: every /assets/*.js file is now
-  // content-hashed (see hashAssets() above), so a fresh URL is minted on every
-  // byte change — safe to cache for a full year, immutable.
+  // Ordering matters: Cloudflare applies EVERY matching block for a request,
+  // not just the last one — and when more than one matching block sets the
+  // same header (e.g. Cache-Control), Cloudflare does NOT do last-match-wins;
+  // it JOINS the values with a comma, producing a garbled, self-contradictory
+  // header. So each more-specific block that needs its OWN Cache-Control value
+  // must first `! Cache-Control` (Cloudflare's header-unset syntax) to detach
+  // whatever a broader, earlier block already set, before setting its real
+  // value. `/*` sets a safe short-lived default (HTML pages, sitemap.xml,
+  // data/*.json, etc. — nothing here is content-hashed, so it must revalidate
+  // instead of going stale silently). `/assets/*` covers the one remaining
+  // un-hashed asset (styles.css) with its own short-lived default — unset
+  // first since it also matches `/*`. `/assets/*.js` is the most specific
+  // match: every /assets/*.js file is now content-hashed (see hashAssets()
+  // above), so a fresh URL is minted on every byte change — safe to cache for
+  // a full year, immutable. It matches both `/*` and `/assets/*`, so it also
+  // unsets before setting. Only Cache-Control is unset/reset per block — the
+  // security headers set on `/*` are left alone and simply carry through.
   await writeFile(
     join(DIST, '_headers'),
-    `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: DENY\n  Cache-Control: public, max-age=0, must-revalidate\n\n/assets/*\n  Cache-Control: public, max-age=300, must-revalidate\n\n/assets/*.js\n  Cache-Control: public, max-age=31536000, immutable\n`
+    `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: DENY\n  Cache-Control: public, max-age=0, must-revalidate\n\n/assets/*\n  ! Cache-Control\n  Cache-Control: public, max-age=300, must-revalidate\n\n/assets/*.js\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n`
   );
 
   // robots + sitemap
