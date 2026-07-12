@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Social Security Wage Base Max-Out Date Calculator (2026) — When Does SS Tax Stop?</title>
+<meta name="description" content="Free calculator: on what exact paycheck does your 6.2% Social Security tax stop for the year, and how much bigger does your take-home pay get? Enter your YTD Social Security wages, pay frequency, and per-paycheck pay to find your 2026 max-out date against the $184,500 wage base — plus a Medicare contrast note and an excess-FICA (multiple employers) check. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/ss-wage-base-calculator/">
+<meta property="og:title" content="Social Security Wage Base Max-Out Date Calculator (2026)">
+<meta property="og:description" content="Find the exact paycheck your 6.2% Social Security tax stops for the year — and how much bigger your take-home pay gets. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; text-align:right; }
+  .obbba-note { font-size:.9rem; opacity:.9; margin-top:8px; }
+  .warn-flag { color:#b26b00; font-weight:700; }
+  .ok-flag { color:#2f6f4f; font-weight:700; }
+  .info-flag { color:#2a5d8f; font-weight:600; }
+  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
+  .mythbust h2 { margin-top:0; }
+  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
+  .medicare-note { margin-top:12px; padding:11px 14px; border-left:4px solid #2a5d8f; border-radius:8px; background:rgba(42,93,143,.09); font-size:.9rem; }
+  .fica-panel { margin-top:18px; padding-top:14px; border-top:1px dashed rgba(128,128,128,.35); }
+  .fica-panel h2 { font-size:1.05rem; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Social Security Wage Base Max-Out Date Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Projects the exact 2026 paycheck date a W-2 employee's Social Security (OASDI) withholding stops for the year once year-to-date Social Security wages cross the $184,500 wage base, and the resulting per-paycheck take-home increase (6.2% of gross). Supports weekly/biweekly/semimonthly/monthly pay, a mid-year raise, year-end rollover (no visible bump when the cap is reached on the last check of the year), and a secondary excess-FICA check for people with more than one employer in the same year."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Why does my Social Security tax stop coming out of my paycheck?","acceptedAnswer":{"@type":"Answer","text":"Social Security (OASDI) tax is 6.2% of wages up to an annual cap called the wage base — $184,500 for 2026. Once your year-to-date Social Security wages at a job cross that amount, your employer is required to stop withholding the 6.2% for the rest of the calendar year. Your take-home pay goes up by that 6.2% starting the very next paycheck. On January 1 the cap resets to $0 and withholding starts again."}},{"@type":"Question","name":"Does 401(k) or HSA/FSA affect my Social Security wages?","acceptedAnswer":{"@type":"Answer","text":"Differently. Traditional 401(k)/403(b) contributions do NOT reduce Social Security wages — they are still fully taxed for Social Security even though they're excluded from federal income tax. Section 125 cafeteria-plan amounts (HSA, FSA, pre-tax health premiums) DO reduce Social Security wages. That's why this calculator asks for Social Security wages (your W-2 Box 3 figure), not gross pay or your Box 1 taxable wages."}},{"@type":"Question","name":"I switched jobs this year — does my new employer know I already hit the cap?","acceptedAnswer":{"@type":"Answer","text":"No. The Social Security wage base applies per employer, not per person. Each employer withholds Social Security tax starting from $0, independent of what any other employer withheld this same year — even if you already crossed $184,500 somewhere else. That means your Social Security wages reset at a new job, and it also means you can have more than the annual maximum withheld in total across two or more employers (see the excess Social Security section below)."}},{"@type":"Question","name":"What if I hit the cap in the last pay period of the year?","acceptedAnswer":{"@type":"Answer","text":"Then there's no visible \"bigger paycheck\" moment. If your last Social Security withholding happens on your final paycheck of the year, the very next paycheck is already in January — when the cap resets to $0 and 6.2% withholding starts again from scratch. You maxed out, but you'll never see a zero-Social-Security paycheck for that employer in the same year."}},{"@type":"Question","name":"I had two employers withhold Social Security this year — can I get money back?","acceptedAnswer":{"@type":"Answer","text":"If you had TWO OR MORE employers and your combined Social Security withholding for the year exceeded the annual maximum ($11,439.00 for 2026), you can claim the excess as a credit on Schedule 3 (Form 1040), Part II — it increases your refund. But if you had only ONE employer and that single employer over-withheld Social Security tax, the excess is NOT a credit on your tax return. The employer is required to adjust and refund the overcollection; if they don't, you file IRS Form 843 to request a refund directly from the IRS."}},{"@type":"Question","name":"Does Medicare tax stop too?","acceptedAnswer":{"@type":"Answer","text":"No — this is the most common mix-up. Only Social Security has a wage cap. Medicare tax (1.45%) is withheld on every dollar of wages all year, with no ceiling, and an Additional Medicare Tax of 0.9% kicks in on wages above $200,000 (single or head of household), $250,000 (married filing jointly), or $125,000 (married filing separately). So the paycheck bump when Social Security stops is the 6.2% Social Security piece only — your Medicare withholding doesn't change."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Social Security Wage Base Max-Out Date Calculator</h1>
+    <p class="lede">Social Security (OASDI) tax is <strong>6.2% of wages</strong>, but only up to an annual cap — for <strong>2026 that cap is $184,500</strong>. The moment your year-to-date Social Security wages at a job cross that line, your employer <strong>stops withholding the 6.2%</strong> for the rest of the calendar year, and your <strong>take-home pay visibly jumps</strong> by that same 6.2% of gross — starting the very next paycheck. On January 1 the cap resets to $0 and withholding starts again. Enter your numbers below to find the exact paycheck it happens on. Everything runs in your browser — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Social Security wage base max-out date calculator">
+      <form id="ssMaxoutForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="ytdWages">YTD Social Security wages at this job (W-2 Box 3)</label>
+          <input type="number" id="ytdWages" inputmode="numeric" min="0" step="500" value="150000">
+          <p class="muted-small" style="margin-top:6px">Not your gross pay. For most people this is gross pay minus any pre-tax health/HSA/FSA deductions — your 401(k) does NOT reduce it, so it's still fully counted here. Check a recent pay stub's "Social Security wages" year-to-date figure. If unsure, your gross pay is a close approximation.</p>
+        </div>
+
+        <div class="field">
+          <label for="asOfDate">As of this pay date</label>
+          <input type="date" id="asOfDate" value="2026-07-10">
+          <p class="muted-small" style="margin-top:6px">The most recent paycheck your YTD figure above is current through.</p>
+        </div>
+
+        <div class="field">
+          <label for="payFrequency">How often are you paid?</label>
+          <select id="payFrequency">
+            <option value="weekly">Weekly (52 paychecks a year)</option>
+            <option value="biweekly" selected>Every two weeks (26)</option>
+            <option value="semimonthly">Twice a month (24)</option>
+            <option value="monthly">Monthly (12)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="nextPayDate">Date of your next paycheck</label>
+          <input type="date" id="nextPayDate" value="2026-07-24">
+          <p class="muted-small" style="margin-top:6px">Later pay dates are estimated from this one (every 14 days for biweekly, the 15th/last-day for semimonthly, same day-of-month for monthly) — adjust it if your actual schedule differs.</p>
+        </div>
+
+        <div class="field">
+          <label for="perPeriodWages">Typical Social Security wages per future paycheck</label>
+          <input type="number" id="perPeriodWages" inputmode="numeric" min="0" step="100" value="6000">
+          <p class="muted-small" style="margin-top:6px">Roughly the same Social Security wages you expect each remaining paycheck this year (before any raise below).</p>
+        </div>
+
+        <div class="field">
+          <label for="hasRaise"><input type="checkbox" id="hasRaise"> I'm getting a raise partway through the year</label>
+        </div>
+        <div id="raiseFields" style="display:none">
+          <div class="field">
+            <label for="raisePeriod">Which future paycheck does the raise start on?</label>
+            <input type="number" id="raisePeriod" inputmode="numeric" min="1" step="1" value="3">
+            <p class="muted-small" style="margin-top:6px">Count your NEXT paycheck as #1. A raise starting on paycheck 3 means paychecks 1 and 2 are still at the old amount.</p>
+          </div>
+          <div class="field">
+            <label for="raiseAmount">New Social Security wages per paycheck after the raise</label>
+            <input type="number" id="raiseAmount" inputmode="numeric" min="0" step="100" value="9000">
+          </div>
+        </div>
+      </form>
+
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+
+      <div class="medicare-note"><strong>Medicare doesn't stop.</strong> Social Security tax stops at the $184,500 cap, but Medicare (1.45%) is withheld on every dollar all year with no ceiling — plus an extra 0.9% on wages above $200,000 (single/HoH), $250,000 (married filing jointly), or $125,000 (married filing separately). So the paycheck bump above is the 6.2% Social Security piece only, not your whole FICA withholding.</div>
+
+      <div class="fica-panel">
+        <h2>Had more than one employer this year? Check for excess Social Security</h2>
+        <p class="muted-small">The wage base applies per employer, not per person — so if you switched or held two jobs, each employer withholds independently from $0. That can mean MORE than the annual maximum ($11,439.00 for 2026) withheld in total, even though neither employer ever "stopped."</p>
+        <form id="ficaForm" autocomplete="off" onsubmit="return false">
+          <div class="field">
+            <label for="numEmployers">Employers who withheld Social Security tax this year</label>
+            <select id="numEmployers">
+              <option value="1" selected>1</option>
+              <option value="2">2</option>
+              <option value="3">3 or more</option>
+            </select>
+          </div>
+          <div class="field" id="employer1Field">
+            <label for="employer1">Social Security tax withheld so far — Employer 1 ($)</label>
+            <input type="number" id="employer1" inputmode="numeric" min="0" step="10" value="7440">
+          </div>
+          <div class="field" id="employer2Field" style="display:none">
+            <label for="employer2">Social Security tax withheld so far — Employer 2 ($)</label>
+            <input type="number" id="employer2" inputmode="numeric" min="0" step="10" value="6820">
+          </div>
+          <div class="field" id="employer3Field" style="display:none">
+            <label for="employer3">Social Security tax withheld so far — Employer 3+ (combined) ($)</label>
+            <input type="number" id="employer3" inputmode="numeric" min="0" step="10" value="0">
+          </div>
+        </form>
+        <div class="obbba-out" id="ficaOut" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <p class="note">For general guidance only — not tax advice. Pay dates for periods after your next paycheck are estimated, not a guarantee of your employer's actual schedule; adjust the inputs if your dates differ. Verify your own numbers on a recent pay stub, and confirm anything material with your payroll department, the IRS, or a tax professional.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose mythbust">
+      <h2>The myth-bust: it's a statutory cap, not "the rich dodging tax"</h2>
+      <p><strong>What people assume:</strong> that only high earners benefit, or that hitting the cap is some kind of loophole.</p>
+      <p><strong>What's actually true:</strong> the 6.2% Social Security rate applies to every W-2 employee, on every dollar, up to the same $184,500 cap in 2026 — there's no special treatment. Anyone who happens to earn past that amount at one job stops paying Social Security tax on the rest, at the same 6.2% rate everyone already pays below the cap. $11,439.00 is simply the most any single employee pays into Social Security in 2026 — the flat rate, capped. And it isn't only "rich people": a worker with two jobs, a big bonus, or a raise partway through the year can cross it too.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How the 2026 Social Security wage base works</h2>
+      <p>The Social Security Administration sets a "contribution and benefit base" each year — the maximum wages subject to the 6.2% OASDI tax. For 2026 that base is <strong>$184,500</strong>, up from $176,100 in 2025. The SSA states the resulting maximum verbatim: an employee earning $184,500 or more in 2026 contributes exactly <strong>$11,439.00</strong> to Social Security ($184,500 × 6.2%). There is no rate change or phased withholding in the crossing year — it's a flat 6.2% on every dollar up to the cap, then 0% above it.</p>
+      <p>The cap applies <strong>per employer, not per person</strong>. If you start a new job mid-year, that employer withholds Social Security tax starting from $0 again, even if a previous employer already withheld the maximum this same year. That's exactly why someone who changes jobs mid-year often never sees the cap at their new employer — there simply aren't enough remaining paychecks left in the year to reach $184,500 from a fresh $0, even at a healthy salary.</p>
+      <p><strong>Landing on the very last paycheck of the year is a special case.</strong> If your Social Security withholding happens to stop on your final paycheck of the calendar year, there's no visible "bigger paycheck" before December 31 — the next paycheck is already in January, when the cap resets to $0 and 6.2% withholding resumes from scratch. You still maxed out; you just won't see a zero-Social-Security check until the following year's cap approaches again.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>A worked example: two jobs, and the wrinkle that changes the remedy</h2>
+      <p>Dana works two jobs in 2026. Employer A withholds Social Security on $120,000 of wages ($7,440.00 withheld); Employer B withholds on $110,000 ($6,820.00 withheld). Neither employer ever crossed its own $184,500 cap, so neither one "stopped." But added together, Dana's employers withheld <strong>$14,260.00</strong> — <strong>$2,821.00</strong> more than the 2026 maximum of $11,439.00. Because Dana had <strong>two</strong> employers, that $2,821.00 excess is a credit on <strong>Schedule 3 (Form 1040), Part II</strong> — it increases Dana's refund.</p>
+      <p>Compare that to Sam, who has only <strong>one</strong> employer, but a payroll error caused that employer to withhold Social Security tax on $190,000 of wages — $11,780.00, or $341.00 more than the 2026 maximum. Even though Sam is over-withheld by the same kind of dollar amount, the remedy is completely different: per IRS Topic 608, a single employer's own over-withholding <strong>is not a credit you claim on your tax return</strong>. The employer is required to adjust and refund the overcollection directly; if they don't, Sam files <strong>IRS Form 843</strong> to request the refund from the IRS. Mixing these two cases up — telling a single-employer over-withholding to "claim it on your return" — is the single most consequential mistake this kind of calculator can make, which is why the panel above asks how many employers withheld Social Security before showing a verdict.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>Why does my Social Security tax stop coming out?</strong> It's a statutory annual cap (the wage base), not a special exemption. Cross $184,500 in Social Security wages at a job in 2026 and that employer withholds 0% Social Security for the rest of the year.</p>
+      <p><strong>Does my 401(k) reduce my Social Security wages?</strong> No. Traditional 401(k)/403(b) contributions are excluded from federal income tax but are still fully subject to Social Security tax. Section 125 cafeteria amounts (HSA, FSA, pre-tax health premiums) do reduce Social Security wages — that's why this calculator asks for your W-2 Box 3 figure, not gross pay.</p>
+      <p><strong>My new employer doesn't know I already hit the cap elsewhere — is that a problem?</strong> It's expected, not a bug. The cap resets to $0 at every employer, independently. That's also exactly why aggregate over-withholding across two or more employers can happen (see the excess Social Security section above).</p>
+      <p><strong>What if I max out on my very last paycheck of the year?</strong> You won't see a bigger paycheck before year-end — the next check is already in January, when the 6.2% resumes from a reset $0 base.</p>
+      <p><strong>Does Medicare tax stop too?</strong> No — only Social Security has a wage cap. Medicare (1.45%) applies to every dollar all year with no ceiling, plus 0.9% more above $200,000/$250,000/$125,000 depending on filing status.</p>
+      <p><strong>What about self-employment tax?</strong> This calculator is for W-2 paycheck withholding only. If you're self-employed, Social Security tax (12.4% total, same $184,500 base, $22,878.00 maximum for 2026) is paid through estimated taxes and Schedule SE — there's no paycheck for it to "stop," so the max-out date isn't a meaningful moment for SECA the way it is for payroll withholding.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The calculator is fully client-side — your numbers never leave your browser.</p>
+      <p class="muted-small">Sources: SSA, <a href="https://www.ssa.gov/oact/cola/cbb.html" rel="nofollow">Contribution and Benefit Base</a> (2026 wage base $184,500, maximum employee tax $11,439.00, verbatim; self-employment 12.4%/$22,878.00; Medicare 1.45% with no HI wage limit); SSA, <a href="https://www.ssa.gov/news/en/cola/factsheets/2026.html" rel="nofollow">2026 COLA Fact Sheet</a>; IRS <a href="https://www.irs.gov/taxtopics/tc608" rel="nofollow">Topic 608</a> (excess Social Security — multi-employer credit vs. the single-employer Form 843 wrinkle, verbatim); IRS <a href="https://www.irs.gov/taxtopics/tc560" rel="nofollow">Topic 560</a> (Additional Medicare Tax thresholds); IRS <a href="https://www.irs.gov/taxtopics/tc751" rel="nofollow">Topic 751</a> (Social Security/Medicare withholding rates); IRS <a href="https://www.irs.gov/pub/irs-pdf/f1040s3.pdf" rel="nofollow">Schedule 3 (Form 1040)</a>, Part II.</p>
+    </section>
+
+    <div class="note"><strong>Embed this calculator.</strong> Put this calculator on your site — free, one copy-paste snippet, no scripts from third parties. <a href="/embed/">Get the snippet</a>.</div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__SSMAXOUT_PARAMS__ = {{SSMAXOUT_PARAMS_JSON}};
+</script>
+<script type="module" src="/assets/ss-wage-base-calculator.js"></script>
+</body>
+</html>
