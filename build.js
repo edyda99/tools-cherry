@@ -134,6 +134,7 @@ const TOOLS = [
   { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/', cat: 'money' },
   { name: 'Mandatory Roth Catch-Up Calculator', path: '/roth-catchup-calculator/', cat: 'money' },
   { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/', cat: 'money' },
+  { name: 'Social Security Wage Base Max-Out Date Calculator', path: '/ss-wage-base-calculator/', cat: 'money' },
   { name: '401(k) Retirement Calculator', path: '/401k-calculator/', cat: 'money' },
   { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/', cat: 'money' },
   { name: 'Inflation Calculator', path: '/inflation-calculator/', cat: 'money' },
@@ -235,6 +236,7 @@ const TOOL_DESCRIPTIONS = {
   '/w4-overtime-tips-withholding-calculator/': 'Turn the no-tax-on-tips / no-tax-on-overtime deduction into bigger paychecks now: see what to enter on your 2026 Form W-4 Step 4(b) (lines 1a/1b) and the extra take-home per paycheck, instead of waiting for a refund.',
   '/roth-catchup-calculator/': 'Earn over $150,000? See if the 2026 SECURE 2.0 rule forces your 401(k) catch-up into Roth (after-tax), what that costs this year, and the Roth-vs-pre-tax break-even.',
   '/bonus-tax-calculator/': 'See what\'s withheld from your bonus now (flat 22% federal + your state\'s supplemental rate + FICA) versus what it will really cost at tax time — with the refund or amount owed, for all 50 states + DC.',
+  '/ss-wage-base-calculator/': 'Find the exact 2026 paycheck your 6.2% Social Security tax stops for the year once you cross the $184,500 wage base, and how much your take-home pay jumps — plus a multi-employer excess-FICA check and a Medicare contrast note.',
   '/401k-calculator/': 'Project 401(k) retirement balance from contributions, match, and growth.',
   '/savings-goal-calculator/': 'Find how much to save each month to reach a savings goal.',
   '/inflation-calculator/': 'See how the buying power of a US dollar changes over time.',
@@ -375,6 +377,16 @@ const RELATED_OVERRIDES = {
     { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/' },
     { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' }
   ],
+  '/ss-wage-base-calculator/': [
+    { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
+    { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
+    { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
+    { name: '1099-K / 1099-NEC Threshold Checker', path: '/1099-threshold-checker/' },
+    { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
+    { name: 'Hours Calculator (Time Card)', path: '/hours-calculator/' },
+    { name: 'Biweekly vs Semimonthly Paycheck Calculator', path: '/biweekly-vs-semimonthly/' },
+    { name: '401(k) Retirement Calculator', path: '/401k-calculator/' }
+  ],
   '/data/overtime-tax-by-state/': [
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
@@ -406,7 +418,8 @@ const RELATED_OVERRIDES = {
     { name: 'Mandatory Roth Catch-Up Calculator', path: '/roth-catchup-calculator/' },
     { name: 'Overtime Tax by State (Data Study)', path: '/data/overtime-tax-by-state/' },
     { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
-    { name: '1099-K / 1099-NEC Threshold Checker', path: '/1099-threshold-checker/' }
+    { name: '1099-K / 1099-NEC Threshold Checker', path: '/1099-threshold-checker/' },
+    { name: 'Social Security Wage Base Max-Out Date Calculator', path: '/ss-wage-base-calculator/' }
   ]
 };
 
@@ -2021,6 +2034,8 @@ async function main() {
   const embedBonusTaxTpl = await read(join(SRC, 'templates', 'embed', 'bonus-tax-calculator.html'));
   const form1099Tpl = await read(join(SRC, 'templates', '1099-threshold-checker.html'));
   const embedForm1099Tpl = await read(join(SRC, 'templates', 'embed', '1099-threshold-checker.html'));
+  const ssMaxoutTpl = await read(join(SRC, 'templates', 'ss-wage-base-calculator.html'));
+  const embedSsMaxoutTpl = await read(join(SRC, 'templates', 'embed', 'ss-wage-base-calculator.html'));
   const embedGalleryTpl = await read(join(SRC, 'templates', 'embed-gallery.html'));
   const overtimeStudyTpl = await read(join(SRC, 'templates', 'data-overtime-tax-by-state.html'));
   const tipsStudyTpl = await read(join(SRC, 'templates', 'data-tips-tax-by-state.html'));
@@ -2048,6 +2063,17 @@ async function main() {
   const form1099 = await readJSON(join(SRC, 'data', 'form-1099-thresholds.json'));
   const FORM1099_JSON = JSON.stringify(stripInternal(form1099));
   const FORM1099_STATES_JSON = JSON.stringify(roster.map((s) => ({ name: s.name, abbr: s.abbr })));
+  // Social Security wage-base max-out date calculator — a STANDALONE calendar
+  // forward-walk (new ss-maxout-engine.js; paycheck-engine.js has annual FICA
+  // math but no pay-date scheduling at all). Reuses ONLY the existing
+  // federal.fica.socialSecurity {rate, wageBase} straight out of
+  // tax-data-2026.json — no duplicate data file. Keyed by taxYear per the
+  // engine's params[taxYear] contract; fixed to 2026 (2027's wage base isn't
+  // published until ~Oct 2026, and a forward pay-date projection has no
+  // meaningful use for a closed past year like 2025).
+  const SSMAXOUT_PARAMS_JSON = JSON.stringify({
+    2026: { wageBase: taxData.federal.fica.socialSecurity.wageBase, ssRate: taxData.federal.fica.socialSecurity.rate }
+  });
   // State supplemental (bonus) withholding rates — its own dataset (§ bonus-tax).
   const suppData = await readJSON(join(SRC, 'data', 'state-supplemental-2026.json'));
   // Lean client payload for a supp entry: ONLY the fields the browser engine
@@ -2248,6 +2274,8 @@ async function main() {
   await cp(join(SRC, 'assets', 'roth-catchup-calculator.js'), join(DIST, 'assets', 'roth-catchup-calculator.js'));
   await cp(join(SRC, 'engine', 'form-1099-checker.js'), join(DIST, 'assets', 'form-1099-checker.js'));
   await cp(join(SRC, 'assets', '1099-threshold-checker.js'), join(DIST, 'assets', '1099-threshold-checker.js'));
+  await cp(join(SRC, 'engine', 'ss-maxout-engine.js'), join(DIST, 'assets', 'ss-maxout-engine.js'));
+  await cp(join(SRC, 'assets', 'ss-wage-base-calculator.js'), join(DIST, 'assets', 'ss-wage-base-calculator.js'));
   await cp(join(SRC, 'engine', 'bonus-tax.js'), join(DIST, 'assets', 'bonus-tax.js'));
   await cp(join(SRC, 'assets', 'bonus-tax-calculator.js'), join(DIST, 'assets', 'bonus-tax-calculator.js'));
   await cp(join(SRC, 'assets', 'embed-gallery.js'), join(DIST, 'assets', 'embed-gallery.js'));
@@ -3156,6 +3184,17 @@ async function main() {
   );
   urls.push(`${SITE.url}/1099-threshold-checker/`);
 
+  // Social Security wage-base max-out date calculator (SSA cbb.html $184,500 /
+  // 6.2% for 2026) — projects the exact paycheck date SS withholding stops for
+  // the year and the resulting take-home bump, plus a secondary excess-FICA
+  // (multiple employers) check.
+  await mkdir(join(DIST, 'ss-wage-base-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'ss-wage-base-calculator', 'index.html'),
+    fillTool(ssMaxoutTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, SSMAXOUT_PARAMS_JSON }, '/ss-wage-base-calculator/')
+  );
+  urls.push(`${SITE.url}/ss-wage-base-calculator/`);
+
   // OBBBA "which states still tax overtime in 2026" DATA STUDY (/data/overtime-tax-by-state/).
   // A citable, author-bylined data asset for the journalist link sprint. The table is
   // rendered server-side from the SAME sourced obbba dataset the calculators use, so the
@@ -3383,7 +3422,7 @@ async function main() {
   // violate AdSense policy) and NO site schema. They are noindex + canonical to the
   // real tool (set in-template) and are NOT added to the sitemap. Function-form
   // replace keeps '$' in the injected JSON literal (same reason fill() uses one).
-  const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON, ROTHCATCHUP_JSON, BONUS_TAX_JSON: BONUS_TAX_ALL_JSON, FORM1099_JSON, FORM1099_STATES_JSON };
+  const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON, ROTHCATCHUP_JSON, BONUS_TAX_JSON: BONUS_TAX_ALL_JSON, FORM1099_JSON, FORM1099_STATES_JSON, SSMAXOUT_PARAMS_JSON };
   const fillEmbed = (tpl) => tpl.replace(/{{(\w+)}}/g, (m, k) => (k in embedMap ? embedMap[k] : m));
   await mkdir(join(DIST, 'embed', 'overtime-tax-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'overtime-tax-calculator', 'index.html'), fillEmbed(embedOvertimeTpl));
@@ -3412,6 +3451,8 @@ async function main() {
   await writeFile(join(DIST, 'embed', 'roth-catchup-calculator', 'index.html'), fillEmbed(embedRothCatchupTpl));
   await mkdir(join(DIST, 'embed', '1099-threshold-checker'), { recursive: true });
   await writeFile(join(DIST, 'embed', '1099-threshold-checker', 'index.html'), fillEmbed(embedForm1099Tpl));
+  await mkdir(join(DIST, 'embed', 'ss-wage-base-calculator'), { recursive: true });
+  await writeFile(join(DIST, 'embed', 'ss-wage-base-calculator', 'index.html'), fillEmbed(embedSsMaxoutTpl));
   await mkdir(join(DIST, 'embed', 'bonus-tax-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'bonus-tax-calculator', 'index.html'), fillEmbed(embedBonusTaxTpl));
   // Indexable embed gallery (fillTool is fine here — real page, benefits from schema
