@@ -2,6 +2,7 @@
 // Pure logic via the shared date-add module. No deps, nothing uploaded.
 import { parseISODate, toISODate, addToDate, daysBetween, formatLong } from '/assets/date-add.js';
 
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
 
 // Set the start date input to today on first load.
@@ -87,5 +88,12 @@ function init() {
   update();
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);

@@ -1,3 +1,4 @@
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 // qr.js — client-side QR generator (URL / WiFi / vCard / email / SMS / WhatsApp / phone / geo / event / text)
 // with PNG + SVG export, copy-PNG-to-clipboard, an adjustable quiet-zone margin, a contrast/scannability
 // warning, and an optional center logo overlay (forces High ECC; embedded in both
@@ -473,5 +474,12 @@ function init() {
   render();
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);

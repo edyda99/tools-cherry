@@ -1,3 +1,4 @@
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 // invoice.js — client-side invoice builder + PDF export (jsPDF, loaded globally).
 // No network: inputs stay in the browser, PDF is generated locally.
 
@@ -612,5 +613,12 @@ function init() {
   render();
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);

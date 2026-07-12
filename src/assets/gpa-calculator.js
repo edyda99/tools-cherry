@@ -2,6 +2,7 @@
 // scale. Pure math (no network): everything runs in the browser.
 import { gpaWeighted, GRADES, GRADE_POINTS } from '/assets/gpa.js';
 
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const COURSE_TYPES = [
   { value: 'regular', label: 'Regular' },
   { value: 'honors', label: 'Honors (+0.5)' },
@@ -87,5 +88,12 @@ function init() {
   render();
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);

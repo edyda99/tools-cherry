@@ -11,6 +11,7 @@ import {
   entropyBits
 } from '/assets/password.js';
 
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
 
 // --- Passphrase wordlist -----------------------------------------------------
@@ -248,5 +249,12 @@ function init() {
   syncMode(); // sets visible group + label and generates one ready to use
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);

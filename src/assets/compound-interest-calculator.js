@@ -2,6 +2,7 @@
 // Pure math via the shared compound-interest engine. No deps, nothing uploaded.
 import { project } from '/assets/compound-interest.js';
 
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
 
 function money(n, max = 2) {
@@ -129,5 +130,12 @@ function init() {
   calc();
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);

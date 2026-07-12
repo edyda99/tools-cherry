@@ -7,6 +7,7 @@ import {
   discount
 } from '/assets/percentage-math.js';
 
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
 
 // Format a number for display: thousands separators, up to 2 decimals, no
@@ -107,5 +108,12 @@ function init() {
   showMode($('mode').value);
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);

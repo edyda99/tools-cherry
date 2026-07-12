@@ -409,6 +409,15 @@ ul.breakdown { list-style: none; padding: 0; }
   .year-fallback { background: #3a2f10; border-color: #6b5410; }
   .year-fallback strong { color: #ffd55e; }
 }
+.calc-load-error {
+  font-size: 15px; font-weight: 600; color: #611a15;
+  background: #fdecea; border: 1px solid #f5c2c0;
+  border-left: 4px solid #d93025; border-radius: var(--radius-sm);
+  padding: 14px 16px; margin: 0 0 20px;
+}
+@media (prefers-color-scheme: dark) {
+  .calc-load-error { background: #3a1613; border-color: #6b2b26; color: #ffb4ab; }
+}
 
 /* ---- Invoice generator ---------------------------------------------- */
 .inv { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }

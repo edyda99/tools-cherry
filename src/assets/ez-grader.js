@@ -2,6 +2,7 @@
 // Pure math via the shared grading engine. No deps, nothing uploaded.
 import { grade, chart } from '/assets/grading.js';
 
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
 
 function pct(n, dp = 1) {
@@ -160,5 +161,12 @@ function init() {
   calc();
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);

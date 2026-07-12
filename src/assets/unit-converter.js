@@ -2,6 +2,7 @@
 // Pure math via the shared units module. No deps, nothing uploaded.
 import { UNITS, LABELS, convert } from '/assets/units.js';
 
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
 
 // Format a number for display: thousands separators, sensible decimals, no
@@ -79,5 +80,12 @@ function init() {
   $('swapBtn').addEventListener('click', swapUnits);
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);

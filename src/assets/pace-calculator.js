@@ -14,6 +14,7 @@ import {
   raceFinishTimes
 } from '/assets/pace.js';
 
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
 const isBlank = (id) => !$(id) || $(id).value.trim() === '';
 
@@ -138,5 +139,12 @@ function init() {
   showMode('pace');
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);

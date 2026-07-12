@@ -12,6 +12,7 @@
 // liability-limited. MFS filers get $0 credit (§21(e)(2)) — FSA only.
 import { dependentCareComparison } from '/assets/dependent-care.js';
 
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
 const DC = window.__DC__;
 const FED = window.__FED__;
@@ -117,5 +118,12 @@ function init() {
   render();
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);
