@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>QCD vs. Charitable Deduction Calculator (2026) — Which Wins?</title>
+<meta name="description" content="Free 2026 calculator: if you're 70½+, should you send IRA money straight to charity as a Qualified Charitable Distribution (QCD, up to $111,000), or take the distribution and claim a charitable deduction instead? See your AGI and federal tax on both paths, side by side — including the case where they tie. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/qcd-vs-charitable-deduction-calculator/">
+<meta property="og:title" content="QCD vs. Charitable Deduction Calculator (2026)">
+<meta property="og:description" content="70½+? See the real difference between a Qualified Charitable Distribution (excluded from income entirely, up to $111,000 in 2026) and taking the IRA distribution and deducting the gift instead — AGI, federal tax, and the case where they tie. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; }
+  .obbba-note { font-size:.9rem; opacity:.85; margin-top:8px; }
+  .phaseout-flag { color:#b26b00; font-weight:600; }
+  .ineligible-flag { color:#b23a00; font-weight:600; }
+  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
+  .mythbust h2 { margin-top:0; }
+  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
+  .qcd-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:520px){ .qcd-row { grid-template-columns:1fr; } }
+  .dc-rec { margin:4px 0 14px; padding:14px 16px; border-radius:10px; border:1px solid rgba(128,128,128,.28); }
+  .dc-rec.rec-qcd { border-left:5px solid #2f6f4f; background:rgba(47,111,79,.09); }
+  .dc-rec.rec-info { border-left:5px solid #b26b00; background:rgba(178,107,0,.09); }
+  .dc-rec-tag { font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; font-weight:700; opacity:.7; }
+  .dc-rec-head { font-size:1.2rem; font-weight:800; margin:2px 0 4px; }
+  .dc-rec-sub { font-size:.92rem; opacity:.9; }
+  .dc-cols { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:560px){ .dc-cols { grid-template-columns:1fr; } }
+  .dc-col { padding:12px 14px; border:1px solid rgba(128,128,128,.22); border-radius:10px; }
+  .dc-col.dc-win { border-color:#2f6f4f; box-shadow:0 0 0 1px #2f6f4f inset; }
+  .dc-col-head { font-weight:700; margin-bottom:6px; }
+  .dc-badge { font-size:.72rem; background:#2f6f4f; color:#fff; padding:1px 7px; border-radius:20px; vertical-align:middle; }
+  .dc-badge.dc-badge-tie { background:#6b6b6b; }
+  .dc-delta { margin-top:12px; }
+  .dc-breakeven { margin-top:12px; padding:11px 14px; border-left:4px solid #6b6b6b; border-radius:8px; background:rgba(128,128,128,.08); font-size:.92rem; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"QCD vs. Charitable Deduction Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Compare a Qualified Charitable Distribution (QCD, IRC §408(d)(8)) — up to $111,000 in 2026, sent directly from a traditional IRA trustee to a public charity and excluded entirely from gross income — against taking the same IRA distribution as taxable income and claiming a charitable deduction under the 2026 charitable-giving rules (the §170(p) non-itemizer cap, the 0.5%-of-AGI floor, and the §68 top-bracket haircut). Shows AGI and federal income tax on both paths side by side, flags the age-70½ eligibility gate (distinct from the RMD age of 73), and correctly notes the case — gifts at or below the §170(p) $1,000/$2,000 cap — where the two paths tie on federal income tax."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How old do I have to be to do a QCD?","acceptedAnswer":{"@type":"Answer","text":"You must have attained age 70½ on the date of the distribution (IRC §408(d)(8)(B)). That is roughly 2.5 years before Required Minimum Distributions (RMDs) begin at age 73 under SECURE 2.0 — the two ages are unrelated, and mixing them up is the single most common QCD misconception."}},{"@type":"Question","name":"Does a Qualified Charitable Distribution lower my AGI?","acceptedAnswer":{"@type":"Answer","text":"Yes, entirely. Under IRC §408(d)(8)(A), a QCD 'shall not be includible in gross income' — it never enters your adjusted gross income at all. That is different from a charitable deduction, which is subtracted from income you already recognized. A lower AGI can also help with Medicare IRMAA surcharges, how much of your Social Security benefit is taxed, and the 3.8% Net Investment Income Tax threshold."}},{"@type":"Question","name":"Do I also get a charitable deduction for a QCD?","acceptedAnswer":{"@type":"Answer","text":"No. Since the QCD amount was never included in your income in the first place, you can't also deduct it on Schedule A — that would be a double benefit. Pub 590-B is explicit: 'You can't claim a charitable contribution deduction for any QCD not included in your income.'"}},{"@type":"Question","name":"Is a QCD always better than taking the distribution and deducting it?","acceptedAnswer":{"@type":"Answer","text":"Almost always, but not unconditionally. For a gift at or below the IRC §170(p) non-itemizer cap ($1,000 single / $2,000 married filing jointly), taking the distribution and claiming that small deduction removes the exact same dollars from taxable income as the QCD excludes — so the two paths tie on federal income tax. A QCD still wins in that band, but only through a lower AGI, not a bigger refund."}},{"@type":"Question","name":"What is the 2026 QCD limit?","acceptedAnswer":{"@type":"Answer","text":"$111,000 per individual for 2026, per IRS Notice 2025-67 — up from $108,000 in 2025 and $105,000 in 2024. It is indexed for inflation each year and is a per-person limit: on a joint return, each spouse can exclude up to $111,000 from their own IRA."}},{"@type":"Question","name":"Which charities can receive a QCD?","acceptedAnswer":{"@type":"Answer","text":"Only a section 170(b)(1)(A) public charity, and the gift must go directly from the IRA trustee to the charity. Donor-advised funds, private non-operating foundations, and section 509(a)(3) supporting organizations are explicitly excluded by statute (§408(d)(8)(B)(i)) — even though gifts to some of those may still be deductible if you itemize."}},{"@type":"Question","name":"Does a QCD count toward my Required Minimum Distribution?","acceptedAnswer":{"@type":"Answer","text":"Yes, if you're already RMD age (73+). Pub 590-B: 'A QCD will count towards your required minimum distribution.' But ordering matters — the first distributions you take in a year are what count toward the RMD, so make the QCD before any other withdrawal that year, or an earlier taxable withdrawal will eat the RMD first and the QCD becomes 'extra' rather than RMD-satisfying."}},{"@type":"Question","name":"Is a QCD subject to tax withholding?","acceptedAnswer":{"@type":"Answer","text":"No. A QCD is deemed to have elected out of withholding under IRC §3405(a)(2), so the full amount reaches the charity. A normal IRA distribution defaults to 10% federal withholding unless you elect otherwise on Form W-4R."}},{"@type":"Question","name":"Can I do a QCD from a 401(k) or a Roth IRA?","acceptedAnswer":{"@type":"Answer","text":"Not from a 401(k), 403(b), or 457 plan, or an ongoing SEP/SIMPLE IRA — you'd need to roll the funds into a traditional IRA first. A Roth IRA technically qualifies, but it's rarely worth using: qualified Roth withdrawals are already tax-free, so a Roth QCD wastes the exclusion on income that wasn't going to be taxed anyway."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>QCD vs. Charitable Deduction Calculator</h1>
+    <p class="lede">If you're <strong>70½ or older</strong> with a traditional IRA, there are two very different ways to give to charity from it. A <strong>Qualified Charitable Distribution (QCD)</strong> sends the money straight from your IRA trustee to the charity — it's <strong>excluded from your income entirely</strong>, up to <strong>$111,000</strong> in 2026. Or you can <strong>take the distribution as taxable income and deduct the gift</strong> — which only helps if you itemize, and is capped by the same 2026 charitable-deduction rules as everyone else's giving. Enter your numbers to see the real AGI and federal-tax difference between the two, side by side. Everything runs in your browser — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="QCD vs. charitable deduction calculator">
+      <form id="qcdForm" autocomplete="off" onsubmit="return false">
+        <div class="field qcd-row">
+          <div class="field" style="margin:0">
+            <label for="filing">Filing status</label>
+            <select id="filing">
+              <option value="single">Single</option>
+              <option value="married">Married filing jointly</option>
+              <option value="head_of_household">Head of household</option>
+            </select>
+          </div>
+          <div class="field" style="margin:0">
+            <label for="age">Your age</label>
+            <input type="number" id="age" inputmode="decimal" min="0" max="120" step="0.5" value="75">
+          </div>
+        </div>
+        <p class="muted-small" style="margin-top:-6px">A QCD requires you to have <strong>attained age 70½</strong> on the distribution date — not merely turned 70 that year. That's roughly 2.5 years before Required Minimum Distributions (RMDs) begin at 73.</p>
+
+        <div class="field" id="spouseWrap">
+          <label style="display:flex; align-items:center; gap:8px; font-weight:400">
+            <input type="checkbox" id="spouseAge65" style="width:auto">
+            My spouse is also 65 or older
+          </label>
+          <p class="muted-small" style="margin-top:6px">Only affects the age-65+ addition to the <a href="/tax-glossary/#standard-deduction">standard deduction</a> on the take-and-deduct side, for married filing jointly.</p>
+        </div>
+
+        <div class="field">
+          <label for="donation">Amount you want to give to charity ($)</label>
+          <input type="number" id="donation" inputmode="numeric" min="0" step="500" value="10000">
+        </div>
+
+        <div class="field">
+          <label for="agi">Your AGI, excluding this IRA distribution ($)</label>
+          <input type="number" id="agi" inputmode="numeric" min="0" step="1000" value="60000">
+          <p class="muted-small" style="margin-top:6px">Everything else on your return — Social Security, pensions, other IRA withdrawals, investment income. The tool adds the distribution on top for the take-and-deduct path.</p>
+        </div>
+
+        <div class="field qcd-row">
+          <div class="field" style="margin:0">
+            <label for="other">Other itemized deductions ($) <span class="muted-small">(optional)</span></label>
+            <input type="number" id="other" inputmode="numeric" min="0" step="100" value="0">
+          </div>
+          <div class="field" style="margin:0">
+            <label for="accountType">Account type</label>
+            <select id="accountType">
+              <option value="traditional_ira">Traditional IRA</option>
+              <option value="inactive_sep_ira">Inactive SEP IRA</option>
+              <option value="inactive_simple_ira">Inactive SIMPLE IRA</option>
+              <option value="roth_ira">Roth IRA</option>
+              <option value="401k">401(k) / 403(b) / 457</option>
+            </select>
+          </div>
+        </div>
+        <p class="muted-small" style="margin-top:-6px">"Other itemized" is your non-charitable Schedule A total (state/local taxes after the <a href="/salt-cap-calculator/">SALT cap</a>, mortgage interest). A QCD only works from an IRA — an <strong>ongoing</strong> SEP/SIMPLE or a 401(k)/403(b)/457 doesn't qualify.</p>
+
+        <div class="field qcd-row">
+          <div class="field" style="margin:0">
+            <label for="rmd">This year's RMD amount ($) <span class="muted-small">(optional)</span></label>
+            <input type="number" id="rmd" inputmode="numeric" min="0" step="500" value="0">
+          </div>
+          <div class="field" style="margin:0">
+            <label for="offset">Post-70½ deducted IRA contributions ($) <span class="muted-small">(optional, rare)</span></label>
+            <input type="number" id="offset" inputmode="numeric" min="0" step="500" value="0">
+          </div>
+        </div>
+        <p class="muted-small" style="margin-top:-6px">Leave the RMD field at 0 if you're not RMD age (73+) yet or don't know it. The offset only applies if you're still working and deducting new IRA contributions after 70½ — a rare anti-abuse rule that shrinks your excludable QCD dollar-for-dollar.</p>
+      </form>
+
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+    </section>
+
+    <p class="note">Estimate for general guidance only — not tax advice. Figures use the 2026 federal brackets, the 2026 standard deduction plus the age-65+ addition ($2,050 single/head of household, $1,650 per qualifying spouse married filing jointly), and the 2026 charitable-deduction rules (the §170(p) $1,000/$2,000 non-itemizer cap, the 0.5%-of-AGI floor, and the §68 top-bracket haircut) via the same engine as the <a href="/charitable-deduction-calculator/">Charitable Deduction Calculator</a>. It assumes no basis in the IRA (all pre-tax), doesn't model the one-time $55,000 split-interest QCD, IRMAA tiers, Social Security taxability, the 3.8% NIIT, the 60%/30%/20%-of-AGI ceilings on very large gifts, or state tax (a few states don't conform to the QCD exclusion). Verify with the IRS or a tax professional.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose mythbust">
+      <h2>Five things people get wrong about QCDs</h2>
+      <p><strong>1. "I have to wait until 73 (RMD age) to do a QCD."</strong> No — you can QCD starting at <strong>70½</strong>, about <strong>2.5 years before</strong> RMDs begin at 73. These are two different ages set by two different rules, and conflating them is the single most common QCD mistake.</p>
+      <p><strong>2. "Donating my RMD and writing it off" is the same as a QCD.</strong> It isn't. A QCD is <strong>never taxed</strong> — it's excluded from income before it ever hits your return. Taking the distribution and deducting the gift makes it <strong>taxable first</strong>, and the deduction only helps if you <strong>itemize</strong> — which the 2026 rules make harder, not easier.</p>
+      <p><strong>3. "I take the standard deduction, so giving from my IRA doesn't help me."</strong> With a QCD it does. A QCD isn't a deduction at all — it's an <strong>income exclusion</strong>, so it works exactly the same whether you itemize or not. Take-and-deduct, by contrast, gives a non-itemizer only the small <a href="/charitable-deduction-calculator/">§170(p) $1,000/$2,000 crumb</a>.</p>
+      <p><strong>4. "A QCD always beats take-and-deduct on my taxes."</strong> Almost always — but for a gift <strong>at or below $1,000 (single) / $2,000 (married filing jointly)</strong>, the two paths <strong>tie on federal income tax</strong>, because take-and-deduct removes the exact same dollars via §170(p). A QCD still wins in that band, but through a <strong>lower AGI</strong>, not a bigger refund.</p>
+      <p><strong>5. "Any charity works, and it can come from any retirement account."</strong> No. A QCD must go <strong>directly</strong> from your IRA trustee to a <strong>public charity</strong> — donor-advised funds, private foundations, and supporting organizations are excluded by statute. And it has to come from an <strong>IRA</strong>, not a <strong>401(k)</strong> — you'd need to roll it over first.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How a QCD compares to taking the distribution and deducting it</h2>
+      <p>A Qualified Charitable Distribution (IRC §408(d)(8)) lets an IRA owner age 70½+ send up to <strong>$111,000</strong> in 2026 (indexed annually — up from $108,000 in 2025 and $105,000 in 2024, per IRS Notice 2025-67) directly from the IRA trustee to a section 170(b)(1)(A) public charity, per person. The statute is explicit: the amount "<strong>shall not be includible in gross income</strong>." It never touches your <a href="/tax-glossary/#agi">AGI</a>, and because it was never income, you can't also claim a charitable deduction for it — no double-dip, and none is needed.</p>
+      <p><strong>The alternative — take it as income, then deduct it — raises your AGI first.</strong> The distribution is fully taxable, and the gift is only deductible if you <strong>itemize</strong>, subject to the same three 2026 rules modeled by the <a href="/charitable-deduction-calculator/">Charitable Deduction Calculator</a>: the permanent <strong>§170(p)</strong> non-itemizer deduction (capped at $1,000 single / $2,000 married filing jointly), a new <strong>0.5%-of-AGI floor</strong> for itemizers, and the <strong>§68 "2/37 rule"</strong> that trims every itemized deduction to about 35 cents on the dollar in the 37% bracket. This tool reuses that exact engine for the take-and-deduct side — it doesn't re-derive the deduction math, it calls the same function twice.</p>
+      <p><strong>Why the AGI exclusion is worth more than an equal-sized deduction.</strong> A deduction only reduces taxable income <em>after</em> AGI is computed — it can't touch anything keyed to AGI itself. A QCD keeps the dollars out of AGI from the start, which can matter for <strong>Medicare Part B/D premium surcharges (IRMAA)</strong>, how much of your <strong>Social Security</strong> benefit gets taxed, and the <strong>3.8% Net Investment Income Tax</strong> threshold — none of which an itemized deduction can move. This tool flags that AGI effect but doesn't compute IRMAA or Social-Security-taxability dollars in v1; those need their own sourced tables.</p>
+      <p><strong>A QCD counts toward your RMD.</strong> If you're already RMD age (73+ under SECURE 2.0), a QCD satisfies that year's required minimum distribution dollar-for-dollar, up to the amount you give. Ordering matters: the <strong>first</strong> distributions you take in a year count toward the RMD, so do the QCD before any other withdrawal, or an earlier taxable withdrawal eats the RMD first.</p>
+      <p><strong>No withholding.</strong> A QCD is deemed to have elected out of withholding (IRC §3405(a)(2)), so the <strong>full amount</strong> reaches the charity. A normal IRA distribution defaults to 10% federal withholding unless you file Form W-4R to change it.</p>
+      <p><strong>Eligibility restrictions.</strong> The gift must go <strong>directly from the trustee</strong> to a public charity — not a donor-advised fund, private non-operating foundation, or supporting organization — and the entire gift must otherwise be 100% deductible under §170 (no dinner, no raffle ticket, no member perks). It must come from an <strong>IRA</strong> (not an ongoing SEP/SIMPLE, and not a 401(k)/403(b)/457). A Roth IRA technically qualifies but almost never makes sense, since qualified Roth withdrawals are already tax-free. And if you're still working and deducting new IRA contributions after 70½, your excludable QCD is reduced dollar-for-dollar by those contributions (a narrow anti-abuse rule).</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>A worked example</h2>
+      <p>Diane is single, age 75, with $60,000 of AGI from Social Security and a pension. She wants to give <strong>$10,000</strong> to her church this year and takes the standard deduction otherwise.</p>
+      <ul>
+        <li><strong>QCD:</strong> her IRA trustee sends $10,000 straight to the church. Her AGI stays exactly <strong>$60,000</strong> — the gift never shows up as income, so there's nothing to deduct and nothing to withhold.</li>
+        <li><strong>Take-and-deduct:</strong> she withdraws $10,000 (AGI rises to $70,000), and since she doesn't itemize, she can claim only the <strong>$1,000</strong> §170(p) non-itemizer deduction on the gift — the rest of the distribution is fully taxed.</li>
+        <li><strong>Result:</strong> the QCD saves Diane a little over <strong>$1,100</strong> in federal income tax this year, and keeps her AGI $10,000 lower — every dollar of the gift, not just the $1,000 a non-itemizer can deduct.</li>
+      </ul>
+      <p>Now shrink the gift to <strong>$900</strong> — under the $1,000 §170(p) cap. Take-and-deduct would remove that same $900 from taxable income, so the two paths land on the <strong>exact same federal income tax</strong>. The QCD still "wins," but only because Diane's AGI is $900 lower — not because it saves her any more tax this year. That's the one case where "QCD always wins" overstates it, and the calculator will tell you plainly when you're in that band.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>How old do I have to be?</strong> 70½ on the distribution date — not just the calendar year you turn 70. That's about 2.5 years before RMDs start at 73.</p>
+      <p><strong>Does a QCD lower my AGI?</strong> Yes, entirely — it's excluded from gross income under §408(d)(8)(A), never added and then subtracted.</p>
+      <p><strong>Do I get a deduction too?</strong> No. Since it was never income, there's nothing to deduct — claiming one would be a double benefit.</p>
+      <p><strong>Is a QCD always better?</strong> Almost always, but it <strong>ties</strong> on federal income tax at or below the $1,000 (single) / $2,000 (married filing jointly) §170(p) cap — see the worked example above.</p>
+      <p><strong>What's the 2026 limit?</strong> $111,000 per person, up from $108,000 in 2025 — indexed annually, per IRS Notice 2025-67.</p>
+      <p><strong>Which charities qualify?</strong> Public charities only, direct trustee-to-charity — not donor-advised funds, private foundations, or supporting organizations.</p>
+      <p><strong>Does it count toward my RMD?</strong> Yes, if you're 73+, as long as you make the QCD before any other withdrawal that year.</p>
+      <p><strong>Is it withheld like a normal distribution?</strong> No — a QCD isn't subject to withholding, so the full amount reaches the charity.</p>
+      <p><strong>Can I use a 401(k) or Roth IRA?</strong> Not a 401(k)/403(b)/457 (roll to an IRA first). A Roth technically qualifies but usually isn't worth it — that money's already tax-free.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your numbers never leave your browser.</p>
+      <p class="muted-small">Sources: IRS Notice 2025-67, <a href="https://www.irs.gov/pub/irs-drop/n-25-67.pdf" rel="nofollow">2026 qualified charitable distribution amounts</a>; IRS Publication 590-B, <a href="https://www.irs.gov/pub/irs-pdf/p590b.pdf" rel="nofollow">Distributions from Individual Retirement Arrangements</a>; <a href="https://www.law.cornell.edu/uscode/text/26/408" rel="nofollow">26 USC §408(d)(8) (Cornell LII)</a>; Northern Trust, <a href="https://www.northerntrust.com/united-states/institute/articles/withholding-from-ira-qualified-plan-distributions" rel="nofollow">withholding from IRA distributions</a>; Kiplinger, <a href="https://www.kiplinger.com/taxes/extra-standard-deduction-age-65-and-older" rel="nofollow">the extra standard deduction for 65 and older</a>. Take-and-deduct math shares the sources of the <a href="/charitable-deduction-calculator/">Charitable Deduction Calculator</a> (Public Law 119-21 §§70424, 70425, 70111).</p>
+    </section>
+
+    <div class="note"><strong>Embed this calculator.</strong> Put this calculator on your site — free, one copy-paste snippet, no scripts from third parties. <a href="/embed/">Get the snippet</a>.</div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__OBBBA__ = {{OBBBA_JSON}};
+  window.__FED__ = {{FED_JSON}};
+</script>
+<script type="module" src="/assets/qcd-vs-charitable-deduction-calculator.js"></script>
+</body>
+</html>
