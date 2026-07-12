@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>ABLE Account Contribution Limit Calculator 2026 — $20,000 Base + ABLE-to-Work</title>
+<meta name="description" content="Free 2026 ABLE account contribution limit calculator: the new $20,000 base limit (no longer the gift-tax exclusion), the permanent ABLE-to-Work bonus — the lesser of the beneficiary's pay or the one-person poverty line, with the separate Alaska and Hawaii figures — the onset-before-46 eligibility expansion, 529→ABLE rollovers, and the 6% excise on excess. Statute-cited, runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/able-account-calculator/">
+<meta property="og:title" content="ABLE Account Contribution Limit Calculator (2026)">
+<meta property="og:description" content="2026 changed everything for ABLE accounts: $20,000 base limit, disability-onset age up to 46, ABLE-to-Work permanent. See exactly how much can go into an ABLE account this year — free, statute-cited, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; text-align:right; }
+  .obbba-note { font-size:.9rem; opacity:.9; margin-top:8px; }
+  .warn-flag { color:#b26b00; font-weight:700; }
+  .ok-flag { color:#2f6f4f; font-weight:700; }
+  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
+  .mythbust h2 { margin-top:0; }
+  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
+  .info-note { margin-top:12px; padding:11px 14px; border-left:4px solid #2a5d8f; border-radius:8px; background:rgba(42,93,143,.09); font-size:.9rem; }
+  .method-note { margin-top:12px; padding:11px 14px; border-left:4px solid #6b4fa1; border-radius:8px; background:rgba(107,79,161,.09); font-size:.9rem; }
+  .pools { margin-top:12px; }
+  .pool-row { margin-top:10px; }
+  .pool-label { display:flex; justify-content:space-between; gap:12px; font-size:.88rem; margin-bottom:4px; }
+  .pool-bar { height:10px; border-radius:6px; background:rgba(128,128,128,.18); overflow:hidden; }
+  .pool-fill { height:100%; border-radius:6px; background:#2f6f4f; }
+  .pool-fill.pool-over { background:#b26b00; }
+  .cmp-table { width:100%; border-collapse:collapse; margin-top:12px; font-size:.92rem; }
+  .cmp-table th, .cmp-table td { padding:6px 8px; text-align:left; border-bottom:1px solid rgba(128,128,128,.18); }
+  .cmp-table td.num, .cmp-table th.num { text-align:right; font-variant-numeric: tabular-nums; }
+  .cmp-scroll { overflow-x:auto; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"ABLE Account Contribution Limit Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Computes the 2026 ABLE account (26 U.S.C. §529A) annual contribution limit for one beneficiary: the $20,000 base limit (Rev. Proc. 2025-32 §3.34 — decoupled from the $19,000 gift-tax exclusion by the 2025 law), plus the permanent ABLE-to-Work addition for an employed beneficiary with no workplace-retirement-plan contributions — the lesser of their compensation or the one-person federal poverty line for their state of residence, with the separate Alaska ($19,550) and Hawaii ($17,990) figures. Tracks the per-beneficiary all-contributors pool, 529→ABLE rollovers against the base limit, remaining room, and any excess subject to the 6% excise tax. Informational arithmetic only — the only eligibility input is the statutory disability-onset-before-46 age; it performs no medical or benefits determination."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How much can be contributed to an ABLE account in 2026?","acceptedAnswer":{"@type":"Answer","text":"The base limit for 2026 is $20,000 per beneficiary — all contributors combined (family, friends, trusts, the beneficiary, and 529→ABLE rollovers all draw from the same pool). An employed beneficiary with no workplace retirement plan contributions that year can add their own money on top, up to the lesser of their compensation or the one-person federal poverty line for their state: $15,650 in the 48 contiguous states and D.C., $19,550 in Alaska, $17,990 in Hawaii. That makes the combined 2026 maximum $35,650 ($39,550 Alaska, $37,990 Hawaii)."}},{"@type":"Question","name":"Is the ABLE contribution limit the same as the gift-tax exclusion?","acceptedAnswer":{"@type":"Answer","text":"Not anymore — 2026 is the first year they differ. The 2025 tax law changed how the ABLE limit is inflation-indexed (using a 1996 base year instead of 1997), so for 2026 the ABLE limit is $20,000 while the gift-tax annual exclusion is $19,000. Most older articles still say the two are equal; as of 2026 that is wrong."}},{"@type":"Question","name":"Who is eligible for an ABLE account in 2026?","acceptedAnswer":{"@type":"Answer","text":"Starting with tax year 2026, someone whose blindness or disability began before age 46 (up from 26 under the SECURE 2.0 Act). What matters is the age when the disability began — onset — not the person's current age. A 58-year-old whose disability began at 30 is eligible; someone whose disability began at 47 is not, at any current age. Eligibility also requires SSA blindness/disability benefits (title II or XVI) or a disability certification — see ssa.gov and your state ABLE program."}},{"@type":"Question","name":"What is ABLE-to-Work and how much is it in 2026?","acceptedAnswer":{"@type":"Answer","text":"A working beneficiary who has no contributions going into a workplace retirement plan that year — 401(k)-type, 403(b), or 457(b), including employer-only matches — may contribute their own money above the $20,000 base, up to the lesser of their compensation or the one-person federal poverty line for their state of residence: $15,650 (48 states + D.C.), $19,550 (Alaska), or $17,990 (Hawaii) for tax year 2026. The 2025 law made ABLE-to-Work permanent — it had been scheduled to expire January 1, 2026."}},{"@type":"Question","name":"Does an employer 401(k) match block the ABLE-to-Work bonus?","acceptedAnswer":{"@type":"Answer","text":"Yes. The statute blocks the bonus if ANY contribution is made on the employee's behalf to a defined contribution plan, 403(b), or 457(b) that year — including an employer-only match or automatic contribution the employee never elected. This is stricter than most summaries, which only mention the employee contributing. A defined-benefit pension accrual does not block it."}},{"@type":"Question","name":"Can family contributions use the ABLE-to-Work space?","acceptedAnswer":{"@type":"Answer","text":"No. Only the designated beneficiary's own contributions can occupy the ABLE-to-Work space — the statute limits it to contributions by the beneficiary. Family, friends, and trusts share the $20,000 base pool with everyone else (including 529 rollovers) and can never use the bonus."}},{"@type":"Question","name":"What happens if you contribute too much to an ABLE account?","acceptedAnswer":{"@type":"Answer","text":"Excess contributions (and their earnings) that the ABLE program doesn't return to the contributors by the due date of the beneficiary's tax return — including extensions — incur a 6% excise tax, figured on Form 5329 Part VIII. Returned on time, the excess is treated as never contributed. Note that ABLE programs don't police the ABLE-to-Work portion at all — the beneficiary is solely responsible for staying within it."}},{"@type":"Question","name":"Do 529 plan rollovers count against the ABLE limit?","acceptedAnswer":{"@type":"Answer","text":"Yes — a 529→ABLE rollover counts against the $20,000 base limit, sharing the same pool as everyone's cash contributions, and it can never use the ABLE-to-Work space. The 2025 law made 529→ABLE rollovers permanent. ABLE-to-ABLE rollovers, program-to-program transfers, and the new Trump-account→ABLE rollover do NOT count against the annual limit."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>ABLE Account Contribution Limit Calculator (2026)</h1>
+    <p class="lede">Three things changed for ABLE accounts in 2026: eligibility expanded to disabilities that began <strong>before age 46</strong> (up from 26), the base contribution limit became <strong>$20,000</strong> — and, for the first time, it is <strong>not</strong> the gift-tax exclusion ($19,000) — and the <strong>ABLE-to-Work</strong> addition became permanent: an employed beneficiary with no workplace-retirement-plan money that year can add, on top of the base, the lesser of their pay or the one-person federal poverty line for their state — a figure that's <strong>higher in Alaska and Hawaii</strong>. Enter this year's contributions to see the exact limit, the remaining room, and any excess (with the 6% excise rule). Everything runs in your browser — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="ABLE account contribution limit calculator">
+      <form id="ableForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="onsetGate">How old was the beneficiary when the disability or blindness began?</label>
+          <select id="onsetGate">
+            <option value="before46" selected>Younger than 46</option>
+            <option value="age46plus">46 or older</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">This is the only eligibility question, and it's about when the disability <em>began</em> (onset) — not the beneficiary's age today. Onset at 30, now 58? Eligible. This tool never makes a medical or benefits determination — see <a href="https://www.ssa.gov/ssi/spotlights/spot-able.html" rel="nofollow">ssa.gov</a> and your state ABLE program for the full eligibility paths.</p>
+        </div>
+
+        <div id="calcFields">
+          <div class="field">
+            <label for="state">Beneficiary's state of residence</label>
+            <select id="state"></select>
+            <p class="muted-small" style="margin-top:6px">Used only for the ABLE-to-Work poverty-line figure (Alaska and Hawaii have higher ones). Lived in more than one state this year? Pick the one the beneficiary lived in longest.</p>
+          </div>
+          <div class="field">
+            <label for="employed">Does the beneficiary have W-2 or self-employment income in 2026?</label>
+            <select id="employed">
+              <option value="no" selected>No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+          <div id="employedFields" style="display:none">
+            <div class="field">
+              <label for="compensation">Beneficiary's compensation for 2026 ($)</label>
+              <input type="number" id="compensation" inputmode="numeric" min="0" step="500" value="0">
+              <p class="muted-small" style="margin-top:6px">Wages, salary, tips, or net self-employment earnings included in the beneficiary's gross income.</p>
+            </div>
+            <div class="field">
+              <label for="planContribution">Will any money go into a workplace retirement plan for the beneficiary in 2026 — including employer matching or automatic contributions — such as a 401(k), 403(b), or 457(b)?</label>
+              <select id="planContribution">
+                <option value="no" selected>No</option>
+                <option value="yes">Yes</option>
+              </select>
+              <p class="muted-small" style="margin-top:6px"><em>Any</em> contribution counts — even an employer-only match the beneficiary never elected blocks the ABLE-to-Work bonus for the whole year. (A pension/defined-benefit accrual does not.)</p>
+            </div>
+          </div>
+          <div class="field">
+            <label for="others">Contributions this year from family, friends, trusts &amp; others ($)</label>
+            <input type="number" id="others" inputmode="numeric" min="0" step="500" value="10000">
+          </div>
+          <div class="field">
+            <label for="own">Contributions this year from the beneficiary themself ($)</label>
+            <input type="number" id="own" inputmode="numeric" min="0" step="500" value="0">
+            <p class="muted-small" style="margin-top:6px">Only this money can use the ABLE-to-Work space above the $20,000 base.</p>
+          </div>
+          <details style="margin-top:8px">
+            <summary class="muted-small">Rolling money over from a 529 college savings plan this year?</summary>
+            <div class="field" style="margin-top:8px">
+              <label for="rollover529">529→ABLE rollover amount ($)</label>
+              <input type="number" id="rollover529" inputmode="numeric" min="0" step="500" value="0">
+              <p class="muted-small" style="margin-top:6px">Counts against the $20,000 base limit (never the ABLE-to-Work space). ABLE-to-ABLE transfers do NOT count — leave them out.</p>
+            </div>
+          </details>
+        </div>
+      </form>
+
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+    </section>
+
+    <p class="note">For general information only — not tax, legal, financial, or benefits advice, and never an eligibility determination: the only eligibility input here is the statutory onset-age test, and the SSA/state-program rules have more parts than one question. Figures are for tax year 2026. Confirm your numbers with your ABLE program and a tax professional; IRS Publication 907 covers the rules in plain language.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose mythbust">
+      <h2>The myth-bust: it's onset age, not current age — and $20,000 is not the gift-tax exclusion</h2>
+      <p><strong>What people assume:</strong> "ABLE accounts are only for people under 46," and "the ABLE limit equals the gift-tax annual exclusion."</p>
+      <p><strong>What's actually true:</strong> the age-46 test (up from 26 as of tax year 2026, under SECURE 2.0 §124) is about when the disability <em>began</em> — the statute requires that the blindness or disability "occurred before the date on which the individual attained age 46." A 58-year-old whose disability began at 30 is eligible; someone whose disability began at 47 isn't, at any age. One edge case worth knowing: onset <em>on</em> the 46th birthday fails; the day before passes. And on the dollar side, 2026 is the first year the ABLE limit is <strong>not</strong> the gift-tax exclusion: the 2025 law (P.L. 119-21 §70115) changed §529A's inflation indexing to a 1996 base year, so the ABLE limit is <strong>$20,000</strong> while the gift exclusion is <strong>$19,000</strong> (Rev. Proc. 2025-32). Most articles still equate the two — as of 2026, that's a $1,000 mistake in the beneficiary's favor.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How the 2026 ABLE contribution limit works</h2>
+      <p>ABLE accounts (26 U.S.C. §529A) are tax-advantaged savings accounts for disability expenses. The annual contribution cap has two layers, and they work differently:</p>
+      <ul>
+        <li><strong>The $20,000 base pool — everyone shares it.</strong> Family, friends, trusts, the beneficiary's own money, and 529→ABLE rollovers all draw from one per-beneficiary pool (§529A(b)(2)(B): "aggregate contributions from all contributors"). All contributions must be cash, and each beneficiary can have only one ABLE account.</li>
+        <li><strong>The ABLE-to-Work space — beneficiary only.</strong> An employed beneficiary with <em>no</em> contributions going into a 401(k)-type, 403(b), or 457(b) plan that year can contribute their own money above the base, up to the <em>lesser of</em> their compensation or the one-person federal poverty line for their state of residence: <strong>$15,650</strong> in the 48 contiguous states and D.C., <strong>$19,550</strong> in Alaska, <strong>$17,990</strong> in Hawaii (see the methodology note below). Two traps hide in that sentence: an <em>employer-only</em> 401(k) match blocks the bonus for the whole year, and family money can never use the space — it's for "contribution by a designated beneficiary" only.</li>
+      </ul>
+      <div class="cmp-scroll"><table class="cmp-table">
+        <thead><tr><th>Residence</th><th class="num">Base</th><th class="num">ABLE-to-Work max</th><th class="num">Combined 2026 max</th></tr></thead>
+        <tbody>
+          <tr><td>48 contiguous states + D.C.</td><td class="num">$20,000</td><td class="num">$15,650</td><td class="num"><strong>$35,650</strong></td></tr>
+          <tr><td>Alaska</td><td class="num">$20,000</td><td class="num">$19,550</td><td class="num"><strong>$39,550</strong></td></tr>
+          <tr><td>Hawaii</td><td class="num">$20,000</td><td class="num">$17,990</td><td class="num"><strong>$37,990</strong></td></tr>
+        </tbody>
+      </table></div>
+      <p><strong>Why a calculator is genuinely useful here:</strong> ABLE programs do not police the ABLE-to-Work portion. The regulation puts it bluntly — "The employed designated beneficiary, or the person acting on his or her behalf, is <em>solely responsible</em> for ensuring that the requirements in section 529A(b)(2)(B)(ii) … are met" (Treas. Reg. §1.529A-2(g)(2)). Your program will happily accept an over-contribution; the excise tax is your problem.</p>
+      <p><strong>If you go over:</strong> excess contributions and their earnings that aren't returned by the ABLE program to the contributors by the due date of the beneficiary's return (including extensions) are hit with a <strong>6% excise tax</strong>, figured on Form 5329, Part VIII (§4973(a)(6)). Ask the program to return the excess in time and it's treated as never contributed.</p>
+    </section>
+
+    <section class="prose">
+      <h2>What changed for 2026</h2>
+      <div class="cmp-scroll"><table class="cmp-table">
+        <thead><tr><th></th><th>2025</th><th>2026</th></tr></thead>
+        <tbody>
+          <tr><td>Onset-age eligibility</td><td>disability began before 26</td><td><strong>before 46</strong> (SECURE 2.0 §124)</td></tr>
+          <tr><td>Base limit</td><td>$19,000 (= gift exclusion)</td><td><strong>$20,000</strong> (decoupled; gift exclusion is $19,000)</td></tr>
+          <tr><td>ABLE-to-Work (48+DC / AK / HI)</td><td>$15,060 / $18,810 / $17,310</td><td><strong>$15,650 / $19,550 / $17,990</strong> (see methodology note)</td></tr>
+          <tr><td>ABLE-to-Work &amp; 529→ABLE status</td><td>scheduled to expire 1/1/2026</td><td><strong>permanent</strong> (P.L. 119-21 §§70115, 70117)</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose method-note">
+      <h2>Methodology note: which poverty-line year applies to 2026</h2>
+      <p>The statute ties ABLE-to-Work to the poverty line "as determined for the calendar year <em>preceding</em> the calendar year in which the taxable year begins" — for tax year 2026, that reads most naturally as the HHS guidelines published in January 2025 (<strong>$15,650 / $19,550 Alaska / $17,990 Hawaii</strong>, 90 FR 5917), and that's what this calculator uses. We flag, honestly, that IRS publications have not been perfectly consistent about this timing in the past, and the IRS's draft 2026 instructions stopped printing dollar figures entirely. Under the alternative reading, the January 2026 guidelines would apply ($15,960 / $19,950 / $18,360). We deliberately use the <strong>lower, statute-natural set</strong> — the same figures ABLE programs and the ABLE National Resource Center publish for 2026 — so this tool can never suggest an over-contribution. If the IRS's final 2026 instructions print the higher set, we'll update.</p>
+    </section>
+
+    <section class="prose">
+      <h2>What this tool deliberately doesn't do</h2>
+      <ul>
+        <li><strong>No eligibility determination.</strong> The onset-age question is the statutory arithmetic gate, nothing more. Actual eligibility runs through SSA disability/blindness benefits (title II/XVI) or a disability certification — start at <a href="https://www.ssa.gov/ssi/spotlights/spot-able.html" rel="nofollow">ssa.gov</a> or the <a href="https://www.ablenrc.org/" rel="nofollow">ABLE National Resource Center</a>.</li>
+        <li><strong>Trump-account→ABLE rollovers don't eat the cap.</strong> New for 2026: a "qualified ABLE rollover contribution" from a beneficiary's Trump account (full balance, trustee-to-trustee, in the calendar year they turn 17) is excluded from the annual limit by statute — so it isn't an input here, and it won't reduce your room.</li>
+        <li><strong>Lifetime balance cap not modeled.</strong> Contributions stop once the account reaches your state's 529-plan limit (roughly $235,000–$600,000 by state).</li>
+        <li><strong>Benefits interactions not computed.</strong> The SSI $100,000 resource threshold and Medicaid payback rules matter — but they're benefits territory, not contribution arithmetic. Talk to a benefits counselor; the ABLE NRC has plain-language guides.</li>
+        <li><strong>Saver's credit:</strong> ABLE contributions by the beneficiary may qualify for the retirement savings contributions credit (Form 8880) — worth checking with a tax professional.</li>
+      </ul>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>My disability started at 32 and I'm 51 — am I really eligible now?</strong> Yes, starting with tax year 2026. The test is when the disability began, not how old you are today. This is the single most misunderstood part of the 2026 expansion.</p>
+      <p><strong>Can my parents put in $20,000 AND I add my work money on top?</strong> Yes — if you're employed, no workplace retirement plan money is going in for you this year, and you contribute the extra yourself. Your parents' money can only ever use the base pool.</p>
+      <p><strong>My employer auto-contributes 3% to my 401(k). Do I still get ABLE-to-Work?</strong> No — any contribution to a 401(k)-type, 403(b), or 457(b) plan on your behalf blocks it, even employer-only money you never elected. (A defined-benefit pension doesn't block it.)</p>
+      <p><strong>Is the limit per contributor?</strong> No — per beneficiary. Everyone's contributions to that beneficiary's account share one annual pool.</p>
+      <p><strong>Will my ABLE program stop me from contributing too much ABLE-to-Work money?</strong> Almost certainly not — programs aren't required to verify it, and the regulation makes the beneficiary "solely responsible." That's exactly what this calculator is for.</p>
+      <p><strong>I live in Alaska or Hawaii — does my limit really differ?</strong> Yes. The poverty line HHS publishes for Alaska ($19,550) and Hawaii ($17,990) is higher than the 48-state figure ($15,650), so your ABLE-to-Work ceiling is too. Most articles quote only the 48-state number.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The calculator is fully client-side — your numbers never leave your browser.</p>
+      <p class="muted-small">Sources: 26 U.S.C. <a href="https://www.law.cornell.edu/uscode/text/26/529A" rel="nofollow">§529A</a> — the base limit at (b)(2)(B)(i) as amended by <a href="https://www.congress.gov/119/plaws/publ21/PLAW-119publ21.pdf" rel="nofollow">P.L. 119-21 §70115</a> (indexing decoupled; ABLE-to-Work sunset struck), ABLE-to-Work at (b)(2)(B)(ii) and (b)(7), the onset-age test at (e)(1) as amended by SECURE 2.0 (P.L. 117-328, Div. T) §124; <a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf" rel="nofollow">Rev. Proc. 2025-32</a> §3.34 ($20,000) and §3.42(1) ($19,000 gift exclusion); Treas. Reg. <a href="https://www.ecfr.gov/current/title-26/chapter-I/subchapter-A/part-1/subject-group-ECFR74d9d54a99ee85c/section-1.529A-2" rel="nofollow">§1.529A-2(g)</a> (state-of-residence poverty line, longest-residence tie-break, sole responsibility, excess-return mechanics); HHS poverty guidelines <a href="https://www.federalregister.gov/documents/2025/01/17/2025-01377/annual-update-of-the-hhs-poverty-guidelines" rel="nofollow">90 FR 5917</a> (2025 set) and <a href="https://www.federalregister.gov/documents/2026/01/15/2026-00755/annual-update-of-the-hhs-poverty-guidelines" rel="nofollow">91 FR 1797</a> (2026 set, alternate reading); 26 U.S.C. §4973(a)(6), (h) (6% excise) and §529(c)(3)(C)(i) (529→ABLE rollovers count against the base limit; made permanent by P.L. 119-21 §70117); IRS <a href="https://www.irs.gov/pub/irs-pdf/p907.pdf" rel="nofollow">Publication 907</a>.</p>
+    </section>
+
+    <div class="note"><strong>Embed this calculator.</strong> Put this calculator on your site — free, one copy-paste snippet, no scripts from third parties. <a href="/embed/">Get the snippet</a>.</div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__ABLE_LIMITS__ = {{ABLE_LIMITS_JSON}};
+  window.__ABLE_STATES__ = {{ABLE_STATES_JSON}};
+</script>
+<script type="module" src="/assets/able-account-calculator.js"></script>
+</body>
+</html>
