@@ -4,6 +4,7 @@
 // stay on the device and the PDF is generated locally.
 import { pdfPagePlacement } from '/assets/canvas-math.js';
 
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
 
 // Page sizes in PostScript points (1/72 inch), portrait orientation.
@@ -223,5 +224,12 @@ function init() {
   renderList();
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);

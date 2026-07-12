@@ -2,6 +2,7 @@
 // Pure math via the shared retirement-401k engine. No deps, nothing uploaded.
 import { project } from '/assets/retirement-401k.js';
 
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
 
 function money(n, max = 0) {
@@ -134,5 +135,12 @@ function init() {
   calc();
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);

@@ -7,6 +7,7 @@ import {
   annualizedRate
 } from '/assets/inflation.js';
 
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
 
 const CPI = (typeof window !== 'undefined' && window.__CPI_US__) || { data: {} };
@@ -119,5 +120,12 @@ function init() {
   calc();
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);

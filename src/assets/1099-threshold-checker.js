@@ -4,6 +4,7 @@
 // 1099-K overlay note. All logic runs client-side; nothing is uploaded.
 import { check1099 } from '/assets/form-1099-checker.js';
 
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
 const DATA = window.__FORM1099__;
 const STATES = window.__FORM1099_STATES__ || [];
@@ -145,5 +146,12 @@ function init() {
   render();
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);

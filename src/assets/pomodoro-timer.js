@@ -1,3 +1,4 @@
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 // pomodoro-timer.js — a Pomodoro / focus timer phase machine.
 // Phases cycle: work -> short break -> work -> ... and every Nth work block is
 // followed by a long break instead. The countdown is anchored to an absolute
@@ -238,5 +239,12 @@ function init() {
   loadPhase('work', false);
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);

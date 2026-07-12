@@ -1,3 +1,4 @@
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 // stopwatch.js — a drift-free stopwatch with unlimited lap timing.
 // Accuracy comes from performance.now() deltas, never from counting frames, so
 // the elapsed time stays correct even when the tab is blurred / throttled:
@@ -172,5 +173,12 @@ function init() {
   renderLaps();
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);

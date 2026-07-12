@@ -1,3 +1,4 @@
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 // markdown-to-html.js — live Markdown -> HTML converter. Two panes: a markdown
 // input and a rendered preview, plus a copyable HTML source view and a download.
 // Uses the locally-vendored `marked` library (global `marked`, loaded before us).
@@ -98,5 +99,12 @@ function init() {
   render();
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);

@@ -5,6 +5,7 @@
 // ancient browsers). No deps, nothing uploaded.
 import { normalizeRange, rangeSize, randomInts } from '/assets/random-number.js';
 
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
 
 // A randomFn returning a float in [0, 1), backed by the Web Crypto CSPRNG.
@@ -119,5 +120,12 @@ function init() {
   reset();
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);

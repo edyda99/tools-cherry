@@ -3,6 +3,7 @@
 
 import { validateJson, formatJson, minifyJson } from '/assets/json-format.js';
 
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
 
 function setStatus(kind, text) {
@@ -73,5 +74,12 @@ function init() {
   $('input').addEventListener('input', () => setStatus('', ''));
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);

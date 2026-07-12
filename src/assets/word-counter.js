@@ -7,6 +7,7 @@
 
 import { analyze } from '/assets/text-stats.js';
 
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
 const nf = new Intl.NumberFormat('en-US');
 
@@ -100,8 +101,15 @@ function init() {
   update();
 }
 
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', __bootInit);
 } else {
-  init();
+  __bootInit();
 }

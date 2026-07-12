@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 // build.js — pSEO static generator. Reads templates + tax data, emits ./dist.
 // Cloudflare Pages: build command `npm run build`, output dir `dist`.
-import { readFile, writeFile, mkdir, cp, rm } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, cp, rm, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { STATIC_PAGES } from './src/content/static-pages.js';
@@ -37,6 +38,42 @@ const TURNSTILE_SITEKEY = process.env.TURNSTILE_SITEKEY || '0x4AAAAAADn6GHCyPxsW
 const ADSENSE_HEAD = SITE.adsensePublisherId
   ? `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-${SITE.adsensePublisherId}" crossorigin="anonymous"></script>\n`
   : '';
+
+// Page-level defense-in-depth for the P0 fixed by the content-hash pipeline
+// above: each calculator's own init() is now try/catch-wrapped (see
+// calc-error-banner.js + the src/assets/*.js bootstrap files), which covers
+// "module loaded fine but a call inside it threw." This listener covers the
+// other half: a module that fails to even START executing — a 404, a CSP
+// block, or (the historically-realistic version of THIS exact bug) a stale
+// browser-cached shared engine that no longer has an export the newer
+// bootstrap file expects. That last case is a *static* ES-module link error,
+// thrown before any of that module's own code (including its try/catch) ever
+// runs — verified empirically by breaking an export in a built dist/ copy and
+// loading it: Chrome fires a plain `window.error` event whose `e.target` is
+// `window` (NOT the failing <script> element — a first assumption here that
+// turned out to be wrong) but whose `e.filename` points at the failing
+// /assets/ file. So this listener checks BOTH: `e.filename` naming one of our
+// own /assets/*.js files (covers the link-error case above), OR `e.target`
+// being a failed `<script type="module" src="/assets/...">` element (covers a
+// plain 404/network failure, whose `error` event target usually IS the
+// script tag). Either check requires an /assets/ path, so it can never
+// false-positive on an ad-blocked AdSense script (different origin) or a
+// blocked vendor UMD bundle (classic script, no type="module", different
+// filename pattern in the stack). Injected on every full page via fill();
+// harmless no-op on pages with no matching module script (content pages).
+const MODULE_ERROR_LISTENER =
+  `<script>window.addEventListener('error',function(e){` +
+  `if(document.getElementById('calc-load-error'))return;` +
+  `var t=e&&e.target;` +
+  `var fromOurAssets=(e&&e.filename&&e.filename.indexOf('/assets/')!==-1)||` +
+  `(t&&t.tagName==='SCRIPT'&&t.type==='module'&&t.src&&t.src.indexOf('/assets/')!==-1);` +
+  `if(!fromOurAssets)return;` +
+  `var m=document.querySelector('main');` +
+  `if(!m)return;` +
+  `var b=document.createElement('div');b.id='calc-load-error';b.className='calc-load-error';b.setAttribute('role','alert');` +
+  `b.textContent='Something went wrong loading this calculator — please refresh the page.';` +
+  `m.insertBefore(b,m.firstChild);` +
+  `},true);</script>\n`;
 
 // Build date (YYYY-MM-DD) — used for the sitemap's per-URL lastmod default.
 const BUILD_DATE = new Date().toISOString().slice(0, 10);
@@ -619,6 +656,8 @@ function fill(tpl, map) {
   // Inject the AdSense loader into every full page (anything with a </head>).
   // Fragment fills (page bodies/descriptions) have no </head>, so they're untouched.
   if (ADSENSE_HEAD && out.includes('</head>')) out = out.replace('</head>', `${ADSENSE_HEAD}</head>`);
+  // Page-level module-load-failure listener — same full-page-only guard as above.
+  if (out.includes('</head>')) out = out.replace('</head>', `${MODULE_ERROR_LISTENER}</head>`);
   // Normalize/complete per-page SEO social tags (no-op on fragments).
   out = injectSeo(out);
   // Inject the site-wide entity @graph (Organization/WebSite/WebPage/Breadcrumb).
@@ -1943,6 +1982,138 @@ function bonusHubLinks(roster, builtSlugs) {
     .join('\n');
 }
 
+// --- Content-hashed /assets/*.js pipeline -----------------------------------
+// FIXES A LIVE P0: every asset file used to ship as a flat, unhashed name on a
+// blind `Cache-Control: max-age=86400` (see the old _headers block). A shared
+// engine like obbba-deduction.js is imported by 8+ tool bootstrap files
+// (car-loan-interest-calculator.js, charitable-deduction-calculator.js,
+// overtime-tax-calculator.js, tips-tax-calculator.js, salt-cap-calculator.js,
+// senior-deduction-calculator.js, w4-overtime-tips-withholding-calculator.js,
+// qcd-comparison.js) — when it gains a new export, any visitor whose browser
+// already cached yesterday's copy keeps using it for up to 24h: the new page's
+// `import { X } from '/assets/obbba-deduction.js'` resolves to the STALE file,
+// X is undefined, and the calculator silently does nothing. Reproduced live on
+// the QCD and Charitable Deduction pages (2026-07-11 audit).
+//
+// Fix: every /assets/*.js file (leaf engines, engines-that-import-engines, and
+// the per-tool bootstrap files themselves — see the site-wide-vs-scoped-down
+// note below) gets its dist filename suffixed with a content hash, e.g.
+// `obbba-deduction.a3f9c1e2b7.js`. A deploy that changes a shared file's bytes
+// produces a brand-new URL no browser has ever cached — the staleness class is
+// gone by construction, not by tuning cache headers.
+//
+// Dependency order: some engines import other engines (qcd-comparison.js ->
+// obbba-deduction.js -> paycheck-engine.js is the deepest chain found, depth 2).
+// A file's own hash depends on its FINAL (reference-rewritten) bytes, so leaves
+// must be hashed first, then rewritten into their importers, whose own hash is
+// then computed from the rewritten content. registerAsset() queues every file
+// build.js used to plain-`cp()` into dist/assets/; hashAssets() below resolves
+// the dependency graph by regex rather than assuming a fixed depth.
+//
+// Scope: ALL first-party /assets/*.js files are hashed (not just the 7 engines
+// imported by 2+ tools) — once the hash-rewrite machinery exists, a single-
+// consumer file (e.g. bonus-tax.js) costs no extra code to also hash, and it
+// closes the same staleness risk for its one tool. The vendor UMD bundles
+// (jsPDF, pdf.js + its worker, docx, qrcode, marked) are ALSO hashed: they have
+// no internal `import` statements (self-contained bundles), so they are
+// trivial leaves under the exact same "quoted-path-in/-quotes" rewrite rule —
+// including the one non-import reference (pdf-to-word.js's runtime
+// `workerSrc = '/assets/pdf.worker.min.js'` string assignment), which the
+// generalized quote-anchored regex catches identically to an `import`
+// specifier. Only styles.css is left unhashed (CSS, out of this fix's declared
+// `/assets/*.js` scope) — it moves to a short-lived revalidate-friendly cache
+// instead of the old blind 24h (see the _headers rewrite below).
+const ASSET_QUEUE = []; // { dir: 'assets' | 'engine', name: 'x.js' }, in registration order
+function registerAsset(dir, name) {
+  ASSET_QUEUE.push({ dir, name });
+}
+
+// Matches a fully quote-delimited reference to `basename` — `import ... from
+// '/assets/x.js'`, `from './x.js'` (engine-to-engine relative imports), or a
+// plain runtime string like `workerSrc = '/assets/pdf.worker.min.js'`. Anchored
+// on a matching quote immediately before AND after the path, so it can never
+// touch an unquoted, unrelated substring (e.g. a `//# sourceMappingURL=x.js.map`
+// comment in a vendor bundle is not quote-delimited and never matches).
+function assetRefRegex(basename) {
+  const esc = basename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(["'\`])(\\./|/assets/)${esc}\\1`, 'g');
+}
+
+// Resolves ASSET_QUEUE in dependency order (leaves first), rewrites each
+// file's internal references to already-hashed dependency names, hashes the
+// resulting bytes, and writes `<base>.<hash>.<ext>` into dist/assets/. Returns
+// a Map of original basename -> hashed basename for the HTML rewrite pass.
+async function hashAssets(queue) {
+  const raw = new Map();
+  for (const { dir, name } of queue) raw.set(name, await read(join(SRC, dir, name)));
+
+  const deps = new Map();
+  for (const { name } of queue) {
+    const refs = new Set();
+    for (const other of queue) {
+      if (other.name === name) continue;
+      if (assetRefRegex(other.name).test(raw.get(name))) refs.add(other.name);
+    }
+    deps.set(name, refs);
+  }
+
+  const hashMap = new Map();
+  const pending = new Map(queue.map((q) => [q.name, q]));
+  const maxIterations = pending.size + 5;
+  for (let iteration = 0; pending.size; iteration++) {
+    if (iteration > maxIterations) {
+      throw new Error(`Asset dependency cycle detected among: ${[...pending.keys()].join(', ')}`);
+    }
+    let advanced = false;
+    for (const [name] of [...pending]) {
+      const unresolved = [...deps.get(name)].filter((d) => !hashMap.has(d));
+      if (unresolved.length) continue; // wait for its dependencies to be hashed first
+      let content = raw.get(name);
+      for (const dep of deps.get(name)) {
+        content = content.replace(assetRefRegex(dep), (_m, quote, prefix) => `${quote}${prefix}${hashMap.get(dep)}${quote}`);
+      }
+      const hash = createHash('sha256').update(content).digest('hex').slice(0, 10);
+      const dot = name.lastIndexOf('.');
+      const hashedName = `${name.slice(0, dot)}.${hash}${name.slice(dot)}`;
+      hashMap.set(name, hashedName);
+      await writeFile(join(DIST, 'assets', hashedName), content);
+      pending.delete(name);
+      advanced = true;
+    }
+    if (!advanced) throw new Error(`Asset dependency cycle detected among: ${[...pending.keys()].join(', ')}`);
+  }
+  return hashMap;
+}
+
+// Final pass: walk the whole dist/ tree and rewrite every `src="/assets/X.js"`
+// (or similarly-quoted) reference to its hashed name. Run once at the very end
+// of the build instead of touching each of the ~110 template writeFile() call
+// sites individually — every HTML file (main tool pages, /embed/ pages, state
+// pages, home, static content pages) goes through this single choke point, so
+// nothing can slip through by having been written via a path this pass doesn't
+// know about.
+async function rewriteHtmlAssetRefs(dir, hashMap) {
+  const entries = await readdir(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      await rewriteHtmlAssetRefs(full, hashMap);
+      continue;
+    }
+    if (!entry.name.endsWith('.html')) continue;
+    let html = await read(full);
+    let changed = false;
+    for (const [orig, hashed] of hashMap) {
+      const re = new RegExp(`(["'])/assets/${orig.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\1`, 'g');
+      if (re.test(html)) {
+        html = html.replace(re, (_m, quote) => `${quote}/assets/${hashed}${quote}`);
+        changed = true;
+      }
+    }
+    if (changed) await writeFile(full, html);
+  }
+}
+
 async function main() {
   const taxData = await readJSON(join(SRC, 'data', 'tax-data-2026.json'));
   const roster = await readJSON(join(SRC, 'data', 'states.json'));
@@ -2138,168 +2309,178 @@ async function main() {
   // assets (engine + app + styles served from /assets)
   await mkdir(join(DIST, 'assets'), { recursive: true });
   await cp(join(SRC, 'assets', 'styles.css'), join(DIST, 'assets', 'styles.css'));
-  await cp(join(SRC, 'assets', 'app.js'), join(DIST, 'assets', 'app.js'));
-  await cp(join(SRC, 'assets', 'invoice.js'), join(DIST, 'assets', 'invoice.js'));
-  await cp(join(SRC, 'assets', 'images-to-pdf.js'), join(DIST, 'assets', 'images-to-pdf.js'));
-  await cp(join(SRC, 'assets', 'pdf-to-word.js'), join(DIST, 'assets', 'pdf-to-word.js'));
-  await cp(join(SRC, 'assets', 'jspdf.umd.min.js'), join(DIST, 'assets', 'jspdf.umd.min.js'));
-  await cp(join(SRC, 'assets', 'pdf.min.js'), join(DIST, 'assets', 'pdf.min.js'));
-  await cp(join(SRC, 'assets', 'pdf.worker.min.js'), join(DIST, 'assets', 'pdf.worker.min.js'));
-  await cp(join(SRC, 'assets', 'docx.umd.js'), join(DIST, 'assets', 'docx.umd.js'));
-  await cp(join(SRC, 'assets', 'qr.js'), join(DIST, 'assets', 'qr.js'));
-  await cp(join(SRC, 'assets', 'qrcode.min.js'), join(DIST, 'assets', 'qrcode.min.js'));
-  await cp(join(SRC, 'assets', 'circle-crop.js'), join(DIST, 'assets', 'circle-crop.js'));
-  await cp(join(SRC, 'assets', 'photo-maker.js'), join(DIST, 'assets', 'photo-maker.js'));
-  await cp(join(SRC, 'assets', 'image-resizer.js'), join(DIST, 'assets', 'image-resizer.js'));
-  await cp(join(SRC, 'assets', 'image-converter.js'), join(DIST, 'assets', 'image-converter.js'));
-  await cp(join(SRC, 'assets', 'image-compressor.js'), join(DIST, 'assets', 'image-compressor.js'));
-  await cp(join(SRC, 'assets', 'percentage-calculator.js'), join(DIST, 'assets', 'percentage-calculator.js'));
-  await cp(join(SRC, 'assets', 'tip-calculator.js'), join(DIST, 'assets', 'tip-calculator.js'));
-  await cp(join(SRC, 'assets', 'mortgage-calculator.js'), join(DIST, 'assets', 'mortgage-calculator.js'));
-  await cp(join(SRC, 'assets', 'auto-loan-calculator.js'), join(DIST, 'assets', 'auto-loan-calculator.js'));
-  await cp(join(SRC, 'assets', 'debt-payoff-calculator.js'), join(DIST, 'assets', 'debt-payoff-calculator.js'));
-  await cp(join(SRC, 'assets', 'holiday-countdown.js'), join(DIST, 'assets', 'holiday-countdown.js'));
-  await cp(join(SRC, 'assets', 'countdown-timer.js'), join(DIST, 'assets', 'countdown-timer.js'));
-  await cp(join(SRC, 'assets', 'stopwatch.js'), join(DIST, 'assets', 'stopwatch.js'));
-  await cp(join(SRC, 'assets', 'pomodoro-timer.js'), join(DIST, 'assets', 'pomodoro-timer.js'));
-  await cp(join(SRC, 'engine', 'duration.js'), join(DIST, 'assets', 'duration.js'));
-  await cp(join(SRC, 'assets', 'age-calculator.js'), join(DIST, 'assets', 'age-calculator.js'));
-  await cp(join(SRC, 'assets', 'days-between-dates.js'), join(DIST, 'assets', 'days-between-dates.js'));
-  await cp(join(SRC, 'assets', 'time-zone-converter.js'), join(DIST, 'assets', 'time-zone-converter.js'));
-  await cp(join(SRC, 'engine', 'timezone.js'), join(DIST, 'assets', 'timezone.js'));
-  await cp(join(SRC, 'assets', 'date-calculator.js'), join(DIST, 'assets', 'date-calculator.js'));
-  await cp(join(SRC, 'engine', 'date-add.js'), join(DIST, 'assets', 'date-add.js'));
-  await cp(join(SRC, 'assets', 'cooking-converter.js'), join(DIST, 'assets', 'cooking-converter.js'));
-  await cp(join(SRC, 'engine', 'percentage-math.js'), join(DIST, 'assets', 'percentage-math.js'));
-  await cp(join(SRC, 'engine', 'tip-math.js'), join(DIST, 'assets', 'tip-math.js'));
-  await cp(join(SRC, 'engine', 'date-math.js'), join(DIST, 'assets', 'date-math.js'));
-  await cp(join(SRC, 'engine', 'cooking-units.js'), join(DIST, 'assets', 'cooking-units.js'));
-  await cp(join(SRC, 'assets', 'recipe-scaler.js'), join(DIST, 'assets', 'recipe-scaler.js'));
-  await cp(join(SRC, 'engine', 'recipe-scale.js'), join(DIST, 'assets', 'recipe-scale.js'));
-  await cp(join(SRC, 'assets', 'unit-converter.js'), join(DIST, 'assets', 'unit-converter.js'));
-  await cp(join(SRC, 'engine', 'units.js'), join(DIST, 'assets', 'units.js'));
-  await cp(join(SRC, 'assets', 'bmi-calculator.js'), join(DIST, 'assets', 'bmi-calculator.js'));
-  await cp(join(SRC, 'engine', 'bmi.js'), join(DIST, 'assets', 'bmi.js'));
-  await cp(join(SRC, 'assets', 'due-date-calculator.js'), join(DIST, 'assets', 'due-date-calculator.js'));
-  await cp(join(SRC, 'engine', 'due-date.js'), join(DIST, 'assets', 'due-date.js'));
-  await cp(join(SRC, 'assets', 'ovulation-calculator.js'), join(DIST, 'assets', 'ovulation-calculator.js'));
-  await cp(join(SRC, 'engine', 'ovulation.js'), join(DIST, 'assets', 'ovulation.js'));
-  await cp(join(SRC, 'assets', 'calorie-calculator.js'), join(DIST, 'assets', 'calorie-calculator.js'));
-  await cp(join(SRC, 'engine', 'calories.js'), join(DIST, 'assets', 'calories.js'));
-  await cp(join(SRC, 'assets', 'ideal-weight-calculator.js'), join(DIST, 'assets', 'ideal-weight-calculator.js'));
-  await cp(join(SRC, 'engine', 'ideal-weight.js'), join(DIST, 'assets', 'ideal-weight.js'));
-  await cp(join(SRC, 'assets', 'gpa-calculator.js'), join(DIST, 'assets', 'gpa-calculator.js'));
-  await cp(join(SRC, 'engine', 'gpa.js'), join(DIST, 'assets', 'gpa.js'));
-  await cp(join(SRC, 'assets', 'inflation-calculator.js'), join(DIST, 'assets', 'inflation-calculator.js'));
-  await cp(join(SRC, 'engine', 'inflation.js'), join(DIST, 'assets', 'inflation.js'));
-  await cp(join(SRC, 'engine', 'amortization.js'), join(DIST, 'assets', 'amortization.js'));
-  await cp(join(SRC, 'assets', 'compound-interest-calculator.js'), join(DIST, 'assets', 'compound-interest-calculator.js'));
-  await cp(join(SRC, 'engine', 'compound-interest.js'), join(DIST, 'assets', 'compound-interest.js'));
-  await cp(join(SRC, 'assets', '401k-calculator.js'), join(DIST, 'assets', '401k-calculator.js'));
-  await cp(join(SRC, 'engine', 'retirement-401k.js'), join(DIST, 'assets', 'retirement-401k.js'));
-  await cp(join(SRC, 'assets', 'savings-goal-calculator.js'), join(DIST, 'assets', 'savings-goal-calculator.js'));
-  await cp(join(SRC, 'engine', 'savings-goal.js'), join(DIST, 'assets', 'savings-goal.js'));
-  await cp(join(SRC, 'engine', 'paycheck-engine.js'), join(DIST, 'assets', 'paycheck-engine.js'));
-  await cp(join(SRC, 'engine', 'canvas-math.js'), join(DIST, 'assets', 'canvas-math.js'));
-  await cp(join(SRC, 'engine', 'canvas-editor.js'), join(DIST, 'assets', 'canvas-editor.js'));
-  await cp(join(SRC, 'assets', 'signature-maker.js'), join(DIST, 'assets', 'signature-maker.js'));
-  await cp(join(SRC, 'assets', 'salary-to-hourly.js'), join(DIST, 'assets', 'salary-to-hourly.js'));
-  await cp(join(SRC, 'engine', 'wage.js'), join(DIST, 'assets', 'wage.js'));
-  await cp(join(SRC, 'assets', 'sales-tax-calculator.js'), join(DIST, 'assets', 'sales-tax-calculator.js'));
-  await cp(join(SRC, 'engine', 'sales-tax.js'), join(DIST, 'assets', 'sales-tax.js'));
-  await cp(join(SRC, 'assets', 'gas-cost-calculator.js'), join(DIST, 'assets', 'gas-cost-calculator.js'));
-  await cp(join(SRC, 'engine', 'fuel-cost.js'), join(DIST, 'assets', 'fuel-cost.js'));
-  await cp(join(SRC, 'assets', 'password-generator.js'), join(DIST, 'assets', 'password-generator.js'));
-  await cp(join(SRC, 'engine', 'password.js'), join(DIST, 'assets', 'password.js'));
-  await cp(join(SRC, 'assets', 'word-counter.js'), join(DIST, 'assets', 'word-counter.js'));
-  await cp(join(SRC, 'engine', 'text-stats.js'), join(DIST, 'assets', 'text-stats.js'));
-  await cp(join(SRC, 'assets', 'hours-calculator.js'), join(DIST, 'assets', 'hours-calculator.js'));
-  await cp(join(SRC, 'engine', 'timecard.js'), join(DIST, 'assets', 'timecard.js'));
-  await cp(join(SRC, 'assets', 'text-case-converter.js'), join(DIST, 'assets', 'text-case-converter.js'));
-  await cp(join(SRC, 'assets', 'bionic-reading-converter.js'), join(DIST, 'assets', 'bionic-reading-converter.js'));
-  await cp(join(SRC, 'assets', 'roman-numeral-converter.js'), join(DIST, 'assets', 'roman-numeral-converter.js'));
-  await cp(join(SRC, 'engine', 'roman.js'), join(DIST, 'assets', 'roman.js'));
-  await cp(join(SRC, 'assets', 'base-converter.js'), join(DIST, 'assets', 'base-converter.js'));
-  await cp(join(SRC, 'engine', 'number-base.js'), join(DIST, 'assets', 'number-base.js'));
-  await cp(join(SRC, 'assets', 'color-converter.js'), join(DIST, 'assets', 'color-converter.js'));
-  await cp(join(SRC, 'engine', 'color.js'), join(DIST, 'assets', 'color.js'));
-  await cp(join(SRC, 'assets', 'json-formatter.js'), join(DIST, 'assets', 'json-formatter.js'));
-  await cp(join(SRC, 'engine', 'json-format.js'), join(DIST, 'assets', 'json-format.js'));
-  await cp(join(SRC, 'assets', 'uuid-generator.js'), join(DIST, 'assets', 'uuid-generator.js'));
-  await cp(join(SRC, 'engine', 'uuid.js'), join(DIST, 'assets', 'uuid.js'));
-  await cp(join(SRC, 'assets', 'diff-checker.js'), join(DIST, 'assets', 'diff-checker.js'));
-  await cp(join(SRC, 'engine', 'text-diff.js'), join(DIST, 'assets', 'text-diff.js'));
-  await cp(join(SRC, 'assets', 'base64-converter.js'), join(DIST, 'assets', 'base64-converter.js'));
-  await cp(join(SRC, 'engine', 'base64.js'), join(DIST, 'assets', 'base64.js'));
-  await cp(join(SRC, 'assets', 'aspect-ratio-calculator.js'), join(DIST, 'assets', 'aspect-ratio-calculator.js'));
-  await cp(join(SRC, 'engine', 'aspect-ratio.js'), join(DIST, 'assets', 'aspect-ratio.js'));
-  await cp(join(SRC, 'assets', 'discount-calculator.js'), join(DIST, 'assets', 'discount-calculator.js'));
-  await cp(join(SRC, 'engine', 'discount.js'), join(DIST, 'assets', 'discount.js'));
-  await cp(join(SRC, 'assets', 'fuel-economy-calculator.js'), join(DIST, 'assets', 'fuel-economy-calculator.js'));
-  await cp(join(SRC, 'engine', 'fuel-economy.js'), join(DIST, 'assets', 'fuel-economy.js'));
-  await cp(join(SRC, 'assets', 'random-number-generator.js'), join(DIST, 'assets', 'random-number-generator.js'));
-  await cp(join(SRC, 'engine', 'random-number.js'), join(DIST, 'assets', 'random-number.js'));
-  await cp(join(SRC, 'assets', 'paint-calculator.js'), join(DIST, 'assets', 'paint-calculator.js'));
-  await cp(join(SRC, 'engine', 'paint.js'), join(DIST, 'assets', 'paint.js'));
-  await cp(join(SRC, 'assets', 'tile-calculator.js'), join(DIST, 'assets', 'tile-calculator.js'));
-  await cp(join(SRC, 'engine', 'tile.js'), join(DIST, 'assets', 'tile.js'));
-  await cp(join(SRC, 'assets', 'sleep-calculator.js'), join(DIST, 'assets', 'sleep-calculator.js'));
-  await cp(join(SRC, 'engine', 'sleep.js'), join(DIST, 'assets', 'sleep.js'));
-  await cp(join(SRC, 'assets', 'pace-calculator.js'), join(DIST, 'assets', 'pace-calculator.js'));
-  await cp(join(SRC, 'engine', 'pace.js'), join(DIST, 'assets', 'pace.js'));
-  await cp(join(SRC, 'assets', 'fraction-calculator.js'), join(DIST, 'assets', 'fraction-calculator.js'));
-  await cp(join(SRC, 'engine', 'fraction.js'), join(DIST, 'assets', 'fraction.js'));
-  await cp(join(SRC, 'assets', 'lorem-ipsum-generator.js'), join(DIST, 'assets', 'lorem-ipsum-generator.js'));
-  await cp(join(SRC, 'engine', 'lorem.js'), join(DIST, 'assets', 'lorem.js'));
-  await cp(join(SRC, 'assets', 'average-calculator.js'), join(DIST, 'assets', 'average-calculator.js'));
-  await cp(join(SRC, 'engine', 'average.js'), join(DIST, 'assets', 'average.js'));
-  await cp(join(SRC, 'assets', 'morse-code-translator.js'), join(DIST, 'assets', 'morse-code-translator.js'));
-  await cp(join(SRC, 'engine', 'morse.js'), join(DIST, 'assets', 'morse.js'));
-  await cp(join(SRC, 'assets', 'cagr-calculator.js'), join(DIST, 'assets', 'cagr-calculator.js'));
-  await cp(join(SRC, 'engine', 'cagr.js'), join(DIST, 'assets', 'cagr.js'));
-  await cp(join(SRC, 'assets', 'half-birthday-calculator.js'), join(DIST, 'assets', 'half-birthday-calculator.js'));
-  await cp(join(SRC, 'engine', 'half-birthday.js'), join(DIST, 'assets', 'half-birthday.js'));
-  await cp(join(SRC, 'assets', 'rule-of-72-calculator.js'), join(DIST, 'assets', 'rule-of-72-calculator.js'));
-  await cp(join(SRC, 'engine', 'rule-of-72.js'), join(DIST, 'assets', 'rule-of-72.js'));
-  await cp(join(SRC, 'assets', 'words-to-minutes.js'), join(DIST, 'assets', 'words-to-minutes.js'));
-  await cp(join(SRC, 'engine', 'words-to-time.js'), join(DIST, 'assets', 'words-to-time.js'));
-  await cp(join(SRC, 'assets', 'double-time-pay-calculator.js'), join(DIST, 'assets', 'double-time-pay-calculator.js'));
-  await cp(join(SRC, 'engine', 'double-time-pay.js'), join(DIST, 'assets', 'double-time-pay.js'));
-  await cp(join(SRC, 'assets', 'biweekly-vs-semimonthly.js'), join(DIST, 'assets', 'biweekly-vs-semimonthly.js'));
-  await cp(join(SRC, 'engine', 'pay-frequency.js'), join(DIST, 'assets', 'pay-frequency.js'));
-  await cp(join(SRC, 'assets', 'ez-grader.js'), join(DIST, 'assets', 'ez-grader.js'));
-  await cp(join(SRC, 'engine', 'grading.js'), join(DIST, 'assets', 'grading.js'));
-  await cp(join(SRC, 'assets', 'chronological-age-calculator.js'), join(DIST, 'assets', 'chronological-age-calculator.js'));
-  await cp(join(SRC, 'engine', 'chronological-age.js'), join(DIST, 'assets', 'chronological-age.js'));
-  await cp(join(SRC, 'assets', 'debt-avalanche-calculator.js'), join(DIST, 'assets', 'debt-avalanche-calculator.js'));
-  await cp(join(SRC, 'engine', 'debt-avalanche.js'), join(DIST, 'assets', 'debt-avalanche.js'));
-  await cp(join(SRC, 'assets', 'markdown-to-html.js'), join(DIST, 'assets', 'markdown-to-html.js'));
-  await cp(join(SRC, 'assets', 'marked.min.js'), join(DIST, 'assets', 'marked.min.js'));
-  await cp(join(SRC, 'assets', '1099-vs-w2-calculator.js'), join(DIST, 'assets', '1099-vs-w2-calculator.js'));
-  await cp(join(SRC, 'engine', 'obbba-deduction.js'), join(DIST, 'assets', 'obbba-deduction.js'));
-  await cp(join(SRC, 'engine', 'roth-catchup.js'), join(DIST, 'assets', 'roth-catchup.js'));
-  await cp(join(SRC, 'assets', 'overtime-tax-calculator.js'), join(DIST, 'assets', 'overtime-tax-calculator.js'));
-  await cp(join(SRC, 'assets', 'tips-tax-calculator.js'), join(DIST, 'assets', 'tips-tax-calculator.js'));
-  await cp(join(SRC, 'assets', 'senior-deduction-calculator.js'), join(DIST, 'assets', 'senior-deduction-calculator.js'));
-  await cp(join(SRC, 'assets', 'salt-cap-calculator.js'), join(DIST, 'assets', 'salt-cap-calculator.js'));
-  await cp(join(SRC, 'assets', 'car-loan-interest-calculator.js'), join(DIST, 'assets', 'car-loan-interest-calculator.js'));
-  await cp(join(SRC, 'assets', 'charitable-deduction-calculator.js'), join(DIST, 'assets', 'charitable-deduction-calculator.js'));
-  await cp(join(SRC, 'engine', 'qcd-comparison.js'), join(DIST, 'assets', 'qcd-comparison.js'));
-  await cp(join(SRC, 'assets', 'qcd-vs-charitable-deduction-calculator.js'), join(DIST, 'assets', 'qcd-vs-charitable-deduction-calculator.js'));
-  await cp(join(SRC, 'engine', 'dependent-care.js'), join(DIST, 'assets', 'dependent-care.js'));
-  await cp(join(SRC, 'assets', 'dependent-care-fsa-vs-credit-calculator.js'), join(DIST, 'assets', 'dependent-care-fsa-vs-credit-calculator.js'));
-  await cp(join(SRC, 'assets', 'w4-overtime-tips-withholding-calculator.js'), join(DIST, 'assets', 'w4-overtime-tips-withholding-calculator.js'));
-  await cp(join(SRC, 'assets', 'roth-catchup-calculator.js'), join(DIST, 'assets', 'roth-catchup-calculator.js'));
-  await cp(join(SRC, 'engine', 'form-1099-checker.js'), join(DIST, 'assets', 'form-1099-checker.js'));
-  await cp(join(SRC, 'assets', '1099-threshold-checker.js'), join(DIST, 'assets', '1099-threshold-checker.js'));
-  await cp(join(SRC, 'engine', 'ss-maxout-engine.js'), join(DIST, 'assets', 'ss-maxout-engine.js'));
-  await cp(join(SRC, 'assets', 'ss-wage-base-calculator.js'), join(DIST, 'assets', 'ss-wage-base-calculator.js'));
-  await cp(join(SRC, 'engine', 'bonus-tax.js'), join(DIST, 'assets', 'bonus-tax.js'));
-  await cp(join(SRC, 'assets', 'bonus-tax-calculator.js'), join(DIST, 'assets', 'bonus-tax-calculator.js'));
-  await cp(join(SRC, 'assets', 'embed-gallery.js'), join(DIST, 'assets', 'embed-gallery.js'));
-  await cp(join(SRC, 'engine', 'employment-tax.js'), join(DIST, 'assets', 'employment-tax.js'));
-  await cp(join(SRC, 'assets', 'biweekly-mortgage-calculator.js'), join(DIST, 'assets', 'biweekly-mortgage-calculator.js'));
+  registerAsset('assets', 'app.js');
+  registerAsset('assets', 'invoice.js');
+  registerAsset('assets', 'images-to-pdf.js');
+  registerAsset('assets', 'pdf-to-word.js');
+  registerAsset('assets', 'jspdf.umd.min.js');
+  registerAsset('assets', 'pdf.min.js');
+  registerAsset('assets', 'pdf.worker.min.js');
+  registerAsset('assets', 'docx.umd.js');
+  registerAsset('assets', 'qr.js');
+  registerAsset('assets', 'qrcode.min.js');
+  registerAsset('assets', 'circle-crop.js');
+  registerAsset('assets', 'photo-maker.js');
+  registerAsset('assets', 'image-resizer.js');
+  registerAsset('assets', 'image-converter.js');
+  registerAsset('assets', 'image-compressor.js');
+  registerAsset('assets', 'percentage-calculator.js');
+  registerAsset('assets', 'tip-calculator.js');
+  registerAsset('assets', 'mortgage-calculator.js');
+  registerAsset('assets', 'auto-loan-calculator.js');
+  registerAsset('assets', 'debt-payoff-calculator.js');
+  registerAsset('assets', 'holiday-countdown.js');
+  registerAsset('assets', 'countdown-timer.js');
+  registerAsset('assets', 'stopwatch.js');
+  registerAsset('assets', 'pomodoro-timer.js');
+  registerAsset('engine', 'duration.js');
+  registerAsset('assets', 'age-calculator.js');
+  registerAsset('assets', 'days-between-dates.js');
+  registerAsset('assets', 'time-zone-converter.js');
+  registerAsset('engine', 'timezone.js');
+  registerAsset('assets', 'date-calculator.js');
+  registerAsset('engine', 'date-add.js');
+  registerAsset('assets', 'cooking-converter.js');
+  registerAsset('engine', 'percentage-math.js');
+  registerAsset('engine', 'tip-math.js');
+  registerAsset('engine', 'date-math.js');
+  registerAsset('engine', 'cooking-units.js');
+  registerAsset('assets', 'recipe-scaler.js');
+  registerAsset('engine', 'recipe-scale.js');
+  registerAsset('assets', 'unit-converter.js');
+  registerAsset('engine', 'units.js');
+  registerAsset('assets', 'bmi-calculator.js');
+  registerAsset('engine', 'bmi.js');
+  registerAsset('assets', 'due-date-calculator.js');
+  registerAsset('engine', 'due-date.js');
+  registerAsset('assets', 'ovulation-calculator.js');
+  registerAsset('engine', 'ovulation.js');
+  registerAsset('assets', 'calorie-calculator.js');
+  registerAsset('engine', 'calories.js');
+  registerAsset('assets', 'ideal-weight-calculator.js');
+  registerAsset('engine', 'ideal-weight.js');
+  registerAsset('assets', 'gpa-calculator.js');
+  registerAsset('engine', 'gpa.js');
+  registerAsset('assets', 'inflation-calculator.js');
+  registerAsset('engine', 'inflation.js');
+  registerAsset('engine', 'amortization.js');
+  registerAsset('assets', 'compound-interest-calculator.js');
+  registerAsset('engine', 'compound-interest.js');
+  registerAsset('assets', '401k-calculator.js');
+  registerAsset('engine', 'retirement-401k.js');
+  registerAsset('assets', 'savings-goal-calculator.js');
+  registerAsset('engine', 'savings-goal.js');
+  registerAsset('engine', 'paycheck-engine.js');
+  registerAsset('engine', 'canvas-math.js');
+  registerAsset('engine', 'canvas-editor.js');
+  registerAsset('assets', 'signature-maker.js');
+  registerAsset('assets', 'salary-to-hourly.js');
+  registerAsset('engine', 'wage.js');
+  registerAsset('assets', 'sales-tax-calculator.js');
+  registerAsset('engine', 'sales-tax.js');
+  registerAsset('assets', 'gas-cost-calculator.js');
+  registerAsset('engine', 'fuel-cost.js');
+  registerAsset('assets', 'password-generator.js');
+  registerAsset('engine', 'password.js');
+  registerAsset('assets', 'word-counter.js');
+  registerAsset('engine', 'text-stats.js');
+  registerAsset('assets', 'hours-calculator.js');
+  registerAsset('engine', 'timecard.js');
+  registerAsset('assets', 'text-case-converter.js');
+  registerAsset('assets', 'bionic-reading-converter.js');
+  registerAsset('assets', 'roman-numeral-converter.js');
+  registerAsset('engine', 'roman.js');
+  registerAsset('assets', 'base-converter.js');
+  registerAsset('engine', 'number-base.js');
+  registerAsset('assets', 'color-converter.js');
+  registerAsset('engine', 'color.js');
+  registerAsset('assets', 'json-formatter.js');
+  registerAsset('engine', 'json-format.js');
+  registerAsset('assets', 'uuid-generator.js');
+  registerAsset('engine', 'uuid.js');
+  registerAsset('assets', 'diff-checker.js');
+  registerAsset('engine', 'text-diff.js');
+  registerAsset('assets', 'base64-converter.js');
+  registerAsset('engine', 'base64.js');
+  registerAsset('assets', 'aspect-ratio-calculator.js');
+  registerAsset('engine', 'aspect-ratio.js');
+  registerAsset('assets', 'discount-calculator.js');
+  registerAsset('engine', 'discount.js');
+  registerAsset('assets', 'fuel-economy-calculator.js');
+  registerAsset('engine', 'fuel-economy.js');
+  registerAsset('assets', 'random-number-generator.js');
+  registerAsset('engine', 'random-number.js');
+  registerAsset('assets', 'paint-calculator.js');
+  registerAsset('engine', 'paint.js');
+  registerAsset('assets', 'tile-calculator.js');
+  registerAsset('engine', 'tile.js');
+  registerAsset('assets', 'sleep-calculator.js');
+  registerAsset('engine', 'sleep.js');
+  registerAsset('assets', 'pace-calculator.js');
+  registerAsset('engine', 'pace.js');
+  registerAsset('assets', 'fraction-calculator.js');
+  registerAsset('engine', 'fraction.js');
+  registerAsset('assets', 'lorem-ipsum-generator.js');
+  registerAsset('engine', 'lorem.js');
+  registerAsset('assets', 'average-calculator.js');
+  registerAsset('engine', 'average.js');
+  registerAsset('assets', 'morse-code-translator.js');
+  registerAsset('engine', 'morse.js');
+  registerAsset('assets', 'cagr-calculator.js');
+  registerAsset('engine', 'cagr.js');
+  registerAsset('assets', 'half-birthday-calculator.js');
+  registerAsset('engine', 'half-birthday.js');
+  registerAsset('assets', 'rule-of-72-calculator.js');
+  registerAsset('engine', 'rule-of-72.js');
+  registerAsset('assets', 'words-to-minutes.js');
+  registerAsset('engine', 'words-to-time.js');
+  registerAsset('assets', 'double-time-pay-calculator.js');
+  registerAsset('engine', 'double-time-pay.js');
+  registerAsset('assets', 'biweekly-vs-semimonthly.js');
+  registerAsset('engine', 'pay-frequency.js');
+  registerAsset('assets', 'ez-grader.js');
+  registerAsset('engine', 'grading.js');
+  registerAsset('assets', 'chronological-age-calculator.js');
+  registerAsset('engine', 'chronological-age.js');
+  registerAsset('assets', 'debt-avalanche-calculator.js');
+  registerAsset('engine', 'debt-avalanche.js');
+  registerAsset('assets', 'markdown-to-html.js');
+  registerAsset('assets', 'marked.min.js');
+  registerAsset('assets', '1099-vs-w2-calculator.js');
+  registerAsset('engine', 'obbba-deduction.js');
+  registerAsset('engine', 'roth-catchup.js');
+  registerAsset('assets', 'overtime-tax-calculator.js');
+  registerAsset('assets', 'tips-tax-calculator.js');
+  registerAsset('assets', 'senior-deduction-calculator.js');
+  registerAsset('assets', 'salt-cap-calculator.js');
+  registerAsset('assets', 'car-loan-interest-calculator.js');
+  registerAsset('assets', 'charitable-deduction-calculator.js');
+  registerAsset('engine', 'qcd-comparison.js');
+  registerAsset('assets', 'qcd-vs-charitable-deduction-calculator.js');
+  registerAsset('engine', 'dependent-care.js');
+  registerAsset('assets', 'dependent-care-fsa-vs-credit-calculator.js');
+  registerAsset('assets', 'w4-overtime-tips-withholding-calculator.js');
+  registerAsset('assets', 'roth-catchup-calculator.js');
+  registerAsset('engine', 'form-1099-checker.js');
+  registerAsset('assets', '1099-threshold-checker.js');
+  registerAsset('engine', 'ss-maxout-engine.js');
+  registerAsset('assets', 'ss-wage-base-calculator.js');
+  registerAsset('engine', 'bonus-tax.js');
+  registerAsset('assets', 'bonus-tax-calculator.js');
+  registerAsset('assets', 'embed-gallery.js');
+  registerAsset('engine', 'employment-tax.js');
+  registerAsset('assets', 'biweekly-mortgage-calculator.js');
   // (biweekly reuses amortization.js, already copied above)
+  // Shared "visible failure" banner — imported by all 88 tool bootstrap files'
+  // try/catch-wrapped init() (see the calc-error-banner.js file for details).
+  registerAsset('engine', 'calc-error-banner.js');
+
+  // Content-hash every queued /assets/*.js file (dependency-ordered rewrite of
+  // internal import paths + runtime string references), writing the hashed
+  // files straight into dist/assets/. assetHashMap feeds the end-of-build HTML
+  // rewrite pass (rewriteHtmlAssetRefs) so every <script src="/assets/X.js">
+  // ends up pointing at X's real, hashed dist filename.
+  const assetHashMap = await hashAssets(ASSET_QUEUE);
 
   const urls = [`${SITE.url}/`];
 
@@ -3539,10 +3720,19 @@ async function main() {
     );
   }
 
-  // _headers (Cloudflare Pages) — security + long cache on hashed-ish assets
+  // _headers (Cloudflare Pages) — security headers + real content-hash caching.
+  // Ordering matters: Cloudflare applies matching blocks top-to-bottom and the
+  // LAST block to set a given header for a request wins. `/*` sets a safe
+  // short-lived default (HTML pages, sitemap.xml, data/*.json, etc. — nothing
+  // here is content-hashed, so it must revalidate instead of going stale
+  // silently). `/assets/*` covers the one remaining un-hashed asset
+  // (styles.css) with the same short-lived default. `/assets/*.js` comes LAST
+  // and is the most specific match: every /assets/*.js file is now
+  // content-hashed (see hashAssets() above), so a fresh URL is minted on every
+  // byte change — safe to cache for a full year, immutable.
   await writeFile(
     join(DIST, '_headers'),
-    `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: DENY\n\n/assets/*\n  Cache-Control: public, max-age=86400\n`
+    `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: DENY\n  Cache-Control: public, max-age=0, must-revalidate\n\n/assets/*\n  Cache-Control: public, max-age=300, must-revalidate\n\n/assets/*.js\n  Cache-Control: public, max-age=31536000, immutable\n`
   );
 
   // robots + sitemap
@@ -3591,6 +3781,11 @@ async function main() {
     `Start at the [paycheck calculator hub](${SITE.url}/#paycheck).\n\n` +
     `${builtStateLines}\n`;
   await writeFile(join(DIST, 'llms.txt'), llmsTxt);
+
+  // Final pass: rewrite every dist HTML file's /assets/X.js references to the
+  // hashed filenames computed by hashAssets() above. Must run last — after
+  // every page has been written — so it can't miss a page written earlier.
+  await rewriteHtmlAssetRefs(DIST, assetHashMap);
 
   console.log(`Built ${builtSlugs.size} state page(s) + home + ${STATIC_PAGES.length} content pages → dist/`);
   console.log(`States: ${[...builtSlugs].join(', ')}`);

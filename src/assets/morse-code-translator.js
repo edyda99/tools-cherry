@@ -2,6 +2,7 @@
 // Pure logic via the shared morse engine. No deps, nothing uploaded.
 import { textToMorse, morseToText } from '/assets/morse.js';
 
+import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
 
 function placeholderFor(mode) {
@@ -62,5 +63,12 @@ function init() {
   calc();
 }
 
-if (document.readyState !== 'loading') init();
-else document.addEventListener('DOMContentLoaded', init);
+function __bootInit() {
+  try {
+    init();
+  } catch (err) {
+    showCalculatorLoadError(err);
+  }
+}
+if (document.readyState !== 'loading') __bootInit();
+else document.addEventListener('DOMContentLoaded', __bootInit);
