@@ -612,6 +612,214 @@ export function charitableComparison({ filingStatus, agi, cashGift, otherCharita
 }
 
 // ---------------------------------------------------------------------------
+// OBBBA mortgage insurance premium (MIP/PMI) deduction revival — IRC
+// §163(h)(3)(E) treats premiums paid or accrued for QUALIFIED MORTGAGE
+// INSURANCE (VA, FHA, Rural Housing Service, or private MI under the
+// Homeowners Protection Act — §163(h)(4)(E)) on acquisition indebtedness as
+// deductible home-mortgage interest on Schedule A. The deduction had lapsed
+// after 2021; OBBBA §70108 does NOT re-enact it — it inserts new
+// §163(h)(3)(F)(i)(III), which permanently disables the old termination
+// clause (E)(iv), for taxable years beginning after 2025-12-31. Never
+// repealed, so (E)(ii)'s phaseout and (E)(iii)'s pre-2007-contract gate are
+// re-live VERBATIM, unchanged since 2006 (not indexed).
+//
+// STRUCTURALLY UNLIKE every other phaseout in this file: it is a PERCENTAGE
+// haircut of the premium itself (10% per $1,000 — or fraction thereof — of
+// AGI over $100,000; $500/$50,000 MFS), not a dollar reduction of a cap
+// (tips/overtime/car-loan) or a continuous rate (senior). Fully eliminated
+// above $109,000 AGI ($54,500 MFS) via the "or fraction thereof" tenth step —
+// NOT $110,000/$55,000, a common press error. MFJ shares the SAME $100,000
+// threshold as single/HoH (no joint threshold) — a marriage-penalty quirk
+// worth surfacing. Keys off AGI (not MAGI) per the statute's plain text.
+//
+// Prepaid/upfront premiums (FHA UFMIP, single-premium PMI) must be amortized
+// ratably over the shorter of the loan's stated term or 84 months (Treas.
+// Reg. §1.163-11) — the unamortized balance is lost if the loan is paid off
+// or refinanced early. VA funding fees and USDA (Rural Housing Service)
+// guarantee fees are the one carve-out: exempt from amortization, fully
+// deductible in the year paid even as a lump sum. Itemizers only — no
+// non-itemizer alternative (unlike the OBBBA charitable §170(p) deduction),
+// so the tool must clearly gate/inform non-itemizers rather than imply a
+// benefit that isn't there. Parameters live in
+// obbba-deductions-2026.json federal.mip.
+
+const MIP_VA_USDA_TYPES = new Set(['va', 'usda']);
+
+/**
+ * Ratable allocation of a prepaid/upfront mortgage-insurance premium (FHA
+ * UFMIP or single-premium PMI) over the shorter of the loan's stated term or
+ * 84 months (Treas. Reg. §1.163-11), starting the month the insurance was
+ * obtained, and the resulting slice allocable to the 2026 tax year.
+ *
+ * @param {object} a
+ * @param {number} a.upfrontPremium         the lump-sum premium paid at closing (USD)
+ * @param {number} a.closingMonth           month insurance was obtained, 1 (Jan) - 12 (Dec)
+ * @param {number} a.termMonths             the mortgage's stated term, in months
+ * @param {number} [a.amortizationMonthsMax] statutory cap on the allocation period (84)
+ * @returns {{monthlySlice:number, amortMonths:number, monthsIn2026:number, slice:number}}
+ */
+export function prepaidMipSlice({ upfrontPremium, closingMonth, termMonths, amortizationMonthsMax = 84 }) {
+  const upfront = Math.max(0, upfrontPremium || 0);
+  if (upfront <= 0) return { monthlySlice: 0, amortMonths: 0, monthsIn2026: 0, slice: 0 };
+  const amortMonths = Math.max(1, Math.min(amortizationMonthsMax, Math.round(termMonths || amortizationMonthsMax)));
+  const month = Math.min(12, Math.max(1, Math.round(closingMonth || 1)));
+  const monthsIn2026 = Math.max(0, 13 - month); // e.g. closed June (6) -> 7 months (Jun-Dec)
+  const monthlySlice = upfront / amortMonths;
+  const slice = monthlySlice * Math.min(monthsIn2026, amortMonths);
+  return { monthlySlice, amortMonths, monthsIn2026, slice };
+}
+
+/**
+ * Combine the three sources of 2026 qualifying mortgage insurance premium:
+ * (1) recurring premiums paid during the year (monthly PMI, FHA annual MIP,
+ * USDA annual fee), (2) a VA/USDA upfront fee (exempt from amortization —
+ * deductible in full), and (3) the 2026-allocable slice of an amortized
+ * FHA-UFMIP / single-premium-PMI upfront payment.
+ *
+ * @param {object} a
+ * @param {'monthly_pmi'|'fha'|'va'|'usda'} a.mortgageInsuranceType  drives the amortization branch
+ * @param {number} a.recurringPremiums   premiums paid as-you-go during 2026 (USD)
+ * @param {number} [a.upfrontPremium]    lump-sum premium paid at closing, if any (USD)
+ * @param {number} [a.closingMonth]      month the insurance was obtained (1-12) — amortized types only
+ * @param {number} [a.termMonths]        loan term in months — amortized types only
+ * @param {object} a.params              obbba.federal.mip
+ * @returns {{recurring:number, upfront:number, vaUsdaUpfront:number, prepaidSlice:number,
+ *   exemptFromAmortization:boolean, amortization:object|null, qualifyingPremium:number}}
+ */
+export function mipQualifyingPremium({ mortgageInsuranceType, recurringPremiums, upfrontPremium, closingMonth, termMonths, params }) {
+  const recurring = Math.max(0, recurringPremiums || 0);
+  const upfront = Math.max(0, upfrontPremium || 0);
+  const exemptFromAmortization = MIP_VA_USDA_TYPES.has(mortgageInsuranceType);
+  let vaUsdaUpfront = 0;
+  let prepaidSlice = 0;
+  let amortization = null;
+  if (upfront > 0) {
+    if (exemptFromAmortization) {
+      vaUsdaUpfront = upfront; // §163(h)(4)(F) last sentence: VA/RHS fully deductible in year paid
+    } else {
+      amortization = prepaidMipSlice({
+        upfrontPremium: upfront, closingMonth, termMonths,
+        amortizationMonthsMax: params.prepaid.amortizationMonthsMax
+      });
+      prepaidSlice = amortization.slice;
+    }
+  }
+  const qualifyingPremium = recurring + vaUsdaUpfront + prepaidSlice;
+  return { recurring, upfront, vaUsdaUpfront, prepaidSlice, exemptFromAmortization, amortization, qualifyingPremium };
+}
+
+/**
+ * The IRC §163(h)(3)(E)(ii) AGI phaseout: the qualifying premium is reduced
+ * (never below zero) by 10% for each $1,000 ($500 MFS) — or fraction thereof
+ * — that AGI exceeds $100,000 ($50,000 MFS). This is a PERCENTAGE-of-the-
+ * premium haircut, not a dollar-cap reduction — a new small function, not a
+ * reuse of allowedDeduction. Gated on the (E)(iii) pre-2007-contract rule.
+ *
+ * @param {object} a
+ * @param {string}  a.filingStatus         'single' | 'married' (MFJ) | 'head_of_household' | 'married_separate'
+ * @param {number}  a.agi                  adjusted gross income (USD) — NOT MAGI
+ * @param {number}  a.qualifyingPremium    combined qualifying premium for the year (USD)
+ * @param {boolean} [a.contractIssuedAfter2006] true unless the mortgage insurance contract predates 2007-01-01
+ * @param {object}  a.params               obbba.federal.mip
+ * @returns {{qualifyingPremium:number, threshold:number, stepSize:number, excess:number,
+ *   steps:number, allowedFraction:number, deduction:number, phasedOut:boolean,
+ *   fullyPhasedOut:boolean, notes:string[]}}
+ */
+export function mipDeduction({ filingStatus, agi, qualifyingPremium, contractIssuedAfter2006 = true, params }) {
+  const threshold = pick(params.phaseout.threshold, filingStatus);
+  const stepSize = pick(params.phaseout.stepSize, filingStatus);
+  const P = Math.max(0, qualifyingPremium || 0);
+
+  if (!contractIssuedAfter2006) {
+    return {
+      qualifyingPremium: 0, threshold, stepSize, excess: 0, steps: 0, allowedFraction: 0,
+      deduction: 0, phasedOut: false, fullyPhasedOut: false, notes: ['ineligible_pre2007']
+    };
+  }
+
+  const m = Math.max(0, agi || 0);
+  const excess = Math.max(0, m - threshold);
+  const steps = excess > 0 ? Math.ceil(excess / stepSize) : 0; // "or fraction thereof"
+  const allowedFraction = Math.max(0, 1 - params.phaseout.reductionPerStep * steps);
+  const deduction = P * allowedFraction;
+  const phasedOut = steps > 0;
+  const fullyPhasedOut = allowedFraction <= 0;
+
+  const notes = [];
+  if (fullyPhasedOut) notes.push('fully_phased_out');
+  else if (phasedOut) notes.push('phased_out');
+
+  return { qualifyingPremium: P, threshold, stepSize, excess, steps, allowedFraction, deduction, phasedOut, fullyPhasedOut, notes };
+}
+
+// Bracket table for the MIP tax-saved estimate. MFS maps to single — the
+// closest published bracket table (MFS IS eligible here, with its own halved
+// phaseout thresholds — unlike tips/overtime/senior).
+const MIP_BRACKET_STATUS = {
+  single: 'single',
+  married: 'married',
+  head_of_household: 'head_of_household',
+  married_separate: 'single'
+};
+
+/**
+ * Full comparison for the MIP/PMI tool: the qualifying-premium build-up
+ * (recurring + VA/USDA-upfront + amortized-prepaid-slice), the AGI phaseout,
+ * the itemize-vs-standard verdict (itemizers only — no non-itemizer
+ * alternative), and the federal tax saved via the exact bracket-diff
+ * machinery (same pattern as saltComparison/charitableComparison).
+ *
+ * @param {object} a
+ * @param {string} a.filingStatus   'single' | 'married' (MFJ) | 'head_of_household' | 'married_separate'
+ * @param {number} a.agi            adjusted gross income (USD)
+ * @param {'monthly_pmi'|'fha'|'va'|'usda'} a.mortgageInsuranceType
+ * @param {number} a.recurringPremiums   premiums paid as-you-go during 2026
+ * @param {number} [a.upfrontPremium]    lump-sum premium paid at closing, if any
+ * @param {number} [a.closingMonth]      month obtained (1-12) — amortized types only
+ * @param {number} [a.termMonths]        loan term in months — amortized types only
+ * @param {boolean} [a.contractIssuedAfter2006] (E)(iii) gate, default true
+ * @param {number} a.otherItemized  non-MIP Schedule A items (mortgage interest, SALT after its cap, charitable, …)
+ * @param {object} a.params         obbba.federal.mip
+ * @param {object} a.fed            taxData.federal (brackets + standardDeduction)
+ */
+export function mipComparison({
+  filingStatus, agi, mortgageInsuranceType, recurringPremiums, upfrontPremium, closingMonth, termMonths,
+  contractIssuedAfter2006 = true, otherItemized, params, fed
+}) {
+  const m = Math.max(0, agi || 0);
+  const other = Math.max(0, otherItemized || 0);
+
+  const qp = mipQualifyingPremium({ mortgageInsuranceType, recurringPremiums, upfrontPremium, closingMonth, termMonths, params });
+  const d = mipDeduction({ filingStatus, agi: m, qualifyingPremium: qp.qualifyingPremium, contractIssuedAfter2006, params });
+
+  const bracketStatus = MIP_BRACKET_STATUS[filingStatus] || 'single';
+  const standardDeduction = fed.standardDeduction[bracketStatus] ?? fed.standardDeduction.single;
+
+  const itemizedTotal = d.deduction + other;
+  const itemize = itemizedTotal > standardDeduction;
+  const bestWith = Math.max(itemizedTotal, standardDeduction);
+  const bestWithout = Math.max(other, standardDeduction);
+  const deductionBenefit = bestWith - bestWithout;
+
+  const taxWithout = federalIncomeTax(m, bracketStatus, fed, bestWithout - standardDeduction);
+  const taxWith = federalIncomeTax(m, bracketStatus, fed, bestWith - standardDeduction);
+  const taxSaved = Math.max(0, taxWithout - taxWith);
+  const marginalRate = deductionBenefit > 0 ? taxSaved / deductionBenefit : 0;
+
+  // How much MORE itemized deduction (beyond this one) it would take to beat
+  // the standard deduction — the "inform, don't block" UX for non-itemizers.
+  const needMoreToItemize = itemize ? 0 : Math.max(0, standardDeduction - itemizedTotal);
+
+  const notes = [...d.notes, itemize ? 'itemize' : 'standard'];
+
+  return {
+    ...qp, ...d,
+    otherItemized: other, standardDeduction, itemizedTotal, itemize, bestWith, bestWithout,
+    deductionBenefit, taxSaved, marginalRate, needMoreToItemize, notes
+  };
+}
+
+// ---------------------------------------------------------------------------
 // 2026 Form W-4 Step 4(b) Deductions Worksheet helper for the OBBBA tips
 // (line 1a) and overtime-premium (line 1b) deductions. This turns the SAME
 // filing-time deduction the tips/overtime tools already compute into a

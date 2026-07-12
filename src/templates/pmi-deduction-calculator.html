@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>PMI / Mortgage Insurance Deduction Calculator 2026 (OBBBA) — the $109,000 AGI Cliff</title>
+<meta name="description" content="Free PMI and mortgage insurance premium deduction calculator for the 2026 One Big Beautiful Bill Act revival: the permanent Schedule A deduction for conventional PMI, FHA MIP/UFMIP, VA funding fees, and USDA guarantee fees. See the exact $109,000 ($54,500 MFS) AGI phaseout, the FHA-amortized-vs-VA/USDA-immediate split, and what it saves. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/pmi-deduction-calculator/">
+<meta property="og:title" content="PMI / Mortgage Insurance Deduction Calculator (2026, OBBBA)">
+<meta property="og:description" content="See your mortgage insurance premium deduction under the revived 2026 law: the exact $109,000 AGI cliff ($54,500 MFS), the FHA-amortized vs VA/USDA-immediate treatment, the itemize-vs-standard verdict, and your federal tax saving. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; }
+  .obbba-note { font-size:.9rem; opacity:.85; margin-top:8px; }
+  .phaseout-flag { color:#b26b00; font-weight:600; }
+  .ineligible-flag { color:#b23a00; font-weight:600; }
+  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
+  .mythbust h2 { margin-top:0; }
+  .mip-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:520px){ .mip-row { grid-template-columns:1fr; } }
+  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"PMI / Mortgage Insurance Deduction Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Estimate the 2026 One Big Beautiful Bill Act revival of the mortgage insurance premium deduction (IRC section 163(h)(3)(E)): the AGI phaseout that eliminates the deduction above $109,000 ($54,500 married filing separately), the FHA UFMIP 84-month amortization rule versus the VA/USDA full year-paid deduction, the pre-2007-contract gate, the itemize-vs-standard verdict, and the estimated federal tax saving."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is PMI tax deductible in 2026?","acceptedAnswer":{"@type":"Answer","text":"Yes. The One Big Beautiful Bill Act permanently revived the mortgage insurance premium deduction starting with tax year 2026. Conventional PMI, FHA mortgage insurance (annual MIP and upfront UFMIP), VA funding fees, and USDA guarantee fees can all be deducted as home mortgage interest on Schedule A, if you itemize. The deduction had lapsed after 2021; OBBBA permanently switched it back on rather than rewriting it."}},{"@type":"Question","name":"What is the AGI limit for the PMI deduction in 2026?","acceptedAnswer":{"@type":"Answer","text":"The deduction shrinks by 10% for every $1,000 (or fraction of $1,000) that your adjusted gross income exceeds $100,000, and is completely eliminated once AGI exceeds $109,000. For married filing separately, the steps are $500 and the deduction is gone above $54,500. Many articles say the cutoff is $110,000 ($55,000 MFS) — that is wrong. Because the statute reduces the deduction for each $1,000 'or fraction thereof,' the tenth and final step is triggered by any amount over $109,000, not at $110,000. There is no separate threshold for married filing jointly; joint filers share the same $100,000 starting point as single filers."}},{"@type":"Question","name":"Is FHA UFMIP deducted the same way as a VA funding fee?","acceptedAnswer":{"@type":"Answer","text":"No. FHA's upfront mortgage insurance premium (UFMIP) and any single-premium or split-premium PMI must be spread out (amortized) ratably over the shorter of the loan's term or 84 months, starting the month the insurance was obtained. A VA funding fee or a USDA (Rural Housing Service) guarantee fee is treated better: it is fully deductible in the year you pay it, with no amortization at all, even if paid as a lump sum at closing."}},{"@type":"Question","name":"Can I deduct mortgage insurance premiums without itemizing?","acceptedAnswer":{"@type":"Answer","text":"No. Unlike some other 2026 tax changes, the mortgage insurance premium deduction is an itemized deduction only — it is claimed on Schedule A alongside your other mortgage interest. If your total itemized deductions do not exceed your standard deduction ($16,100 single/MFS, $32,200 married filing jointly, $24,150 head of household for 2026), the deduction is worth $0 in extra tax savings, even though the premiums technically qualify."}},{"@type":"Question","name":"Does mortgage insurance on an old loan still qualify?","acceptedAnswer":{"@type":"Answer","text":"Only if the mortgage insurance contract was issued after December 31, 2006. This restriction was never repealed and remains part of the law. In practice this excludes almost no active 2026 mortgages, but a very old policy predating 2007 would not qualify."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>PMI / Mortgage Insurance Deduction Calculator</h1>
+    <p class="lede">Starting in <strong>2026</strong>, the One Big Beautiful Bill Act <strong>permanently revived</strong> the mortgage insurance premium deduction — dead since 2021. Conventional PMI, FHA mortgage insurance, VA funding fees, and USDA guarantee fees are deductible again as home mortgage interest on <a href="/tax-glossary/#itemizing">Schedule A</a>, if you <a href="/tax-glossary/#itemizing">itemize</a>. It phases out fast: gone completely once <a href="/tax-glossary/#agi">AGI</a> exceeds <strong>$109,000</strong> (<strong>$54,500</strong> married filing separately) — not $110,000 like most articles say. Enter your numbers to see what's deductible and what it saves. Everything runs in your browser — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="PMI / mortgage insurance deduction calculator">
+      <form id="mipForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="filing">Filing status</label>
+          <select id="filing">
+            <option value="single">Single</option>
+            <option value="married">Married filing jointly</option>
+            <option value="married_separate">Married filing separately</option>
+            <option value="head_of_household">Head of household</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">Married filing jointly shares the same $100,000 starting point as single/head of household — there's no separate, higher joint threshold. Married filing separately gets its own $50,000 threshold in $500 steps.</p>
+        </div>
+
+        <div class="field">
+          <label for="agi">Your adjusted gross income (AGI)</label>
+          <input type="number" id="agi" inputmode="numeric" min="0" step="1000" value="95000">
+          <p class="muted-small" style="margin-top:6px">Roughly Form 1040 line 11 — the statute says AGI, not modified AGI. Filing jointly? Use your combined income.</p>
+        </div>
+
+        <div class="field">
+          <label for="miType">Mortgage insurance type</label>
+          <select id="miType">
+            <option value="monthly_pmi">Monthly PMI (conventional loan)</option>
+            <option value="fha">FHA mortgage insurance (annual MIP, optional upfront UFMIP)</option>
+            <option value="va">VA funding fee</option>
+            <option value="usda">USDA / Rural Housing Service guarantee fee</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">FHA upfront premiums (UFMIP) and single-premium PMI must be spread over 84 months. VA and USDA lump-sum fees are fully deductible the year you pay them — no spreading.</p>
+        </div>
+
+        <div class="field">
+          <label for="recurring">Premiums paid during 2026 (recurring)</label>
+          <input type="number" id="recurring" inputmode="numeric" min="0" step="50" value="1800">
+          <p class="muted-small" style="margin-top:6px">Monthly PMI, FHA annual MIP, or a USDA annual fee actually paid in 2026 — see Box 5 of your Form 1098.</p>
+        </div>
+
+        <div class="field mip-row" id="upfrontFields">
+          <div class="field" style="margin:0">
+            <label for="upfront">Upfront premium paid at closing ($) <span class="muted-small">(optional)</span></label>
+            <input type="number" id="upfront" inputmode="numeric" min="0" step="50" value="0">
+          </div>
+          <div class="field" style="margin:0">
+            <label for="closingMonth">Closing month</label>
+            <select id="closingMonth">
+              <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+              <option value="4">April</option><option value="5">May</option><option value="6" selected>June</option>
+              <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+              <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" id="termField">
+          <label for="termMonths">Loan term (only matters if under 84 months)</label>
+          <select id="termMonths">
+            <option value="360" selected>30 years (360 months)</option>
+            <option value="180">15 years (180 months)</option>
+            <option value="240">20 years (240 months)</option>
+            <option value="84">84 months or less</option>
+          </select>
+        </div>
+        <p class="muted-small" id="upfrontHint" style="margin-top:-6px">FHA UFMIP or single-premium PMI: enter the lump sum and closing month — it's amortized over the shorter of your loan term or 84 months. A VA or USDA fee entered here is deducted in full, no spreading.</p>
+
+        <div class="field">
+          <label for="contract2007"><input type="checkbox" id="contract2007" checked style="width:auto;margin-right:8px"> Mortgage insurance contract issued in 2007 or later</label>
+          <p class="muted-small" style="margin-top:6px">Only contracts issued after December 31, 2006 qualify — this restriction was never repealed. Uncheck only if your policy genuinely predates 2007 (rare).</p>
+        </div>
+
+        <div class="field">
+          <label for="other">Other itemized deductions ($)</label>
+          <input type="number" id="other" inputmode="numeric" min="0" step="100" value="20000">
+          <p class="muted-small" style="margin-top:6px">Mortgage interest, <a href="/salt-cap-calculator/">SALT (after its cap)</a>, <a href="/charitable-deduction-calculator/">charitable gifts</a>, and anything else on Schedule A — used to decide whether itemizing beats your standard deduction.</p>
+        </div>
+      </form>
+
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+    </section>
+
+    <p class="note">Estimate for general guidance only — not tax advice. Figures use the 2026 federal brackets and standard deductions (single/MFS $16,100 / married filing jointly $32,200 / head of household $24,150). Does not model loans above the $750,000 acquisition-debt cap, rental-property mortgage insurance (Schedule E, out of scope), or the general itemized-deduction §68 "2/37 rule" (it never touches this deduction — see below). Verify with the IRS or a tax professional.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose mythbust">
+      <h2>Five things people get wrong about the 2026 PMI deduction</h2>
+      <p><strong>1. The cutoff is $109,000, not $110,000.</strong> Most articles round the phaseout to "$100k to $110k." The statute reduces the deduction by 10% for every $1,000 <em>or fraction thereof</em> that AGI exceeds $100,000 — so the tenth and final step is triggered by any AGI <strong>above $109,000</strong>, not at $110,000. Married filing separately: gone above <strong>$54,500</strong>, not $55,000.</p>
+      <p><strong>2. There's no separate, higher threshold for married couples.</strong> Married filing jointly shares the exact same $100,000 starting point as a single filer or head of household — only married filing separately differs ($50,000, $500 steps). A married couple hits the same phaseout as a single person at the same income.</p>
+      <p><strong>3. This wasn't a new law — it's an old one switched back on.</strong> The One Big Beautiful Bill Act didn't rewrite the mortgage insurance rules; it disabled the termination clause that had let the deduction expire after 2021. The phaseout and the pre-2007-contract rule are unchanged, word for word, since 2006 — and still aren't adjusted for inflation.</p>
+      <p><strong>4. VA and USDA fees are deducted <em>better</em> than FHA's upfront premium, not worse.</strong> FHA's upfront mortgage insurance premium (UFMIP) and any single-premium PMI must be spread ratably over the shorter of your loan term or <strong>84 months</strong>. A VA funding fee or USDA guarantee fee is exempt from that rule — <strong>fully deductible the year you pay it</strong>, even as a lump sum at closing.</p>
+      <p><strong>5. You still have to itemize.</strong> Unlike the 2026 charitable-giving change, there is no non-itemizer version of this deduction. If your Schedule A total (mortgage insurance plus mortgage interest, <a href="/salt-cap-calculator/">SALT</a>, <a href="/charitable-deduction-calculator/">charitable gifts</a>) doesn't beat your standard deduction, the premiums qualify on paper but save you $0.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How the 2026 mortgage insurance premium deduction works</h2>
+      <p>The mortgage insurance premium deduction (IRC §163(h)(3)(E)) let homeowners treat PMI and similar premiums as deductible mortgage interest. It expired after 2021. The One Big Beautiful Bill Act (§70108, signed 2025) brought it back <strong>permanently</strong>, effective for tax years beginning after December 31, 2025 — so tax year <strong>2026</strong> is the first year it applies again. Rather than writing new rules, Congress simply disabled the old law's expiration clause, leaving everything else — including the phaseout below — exactly as it was.</p>
+      <p><strong>1. Who and what qualifies.</strong> Premiums for conventional PMI, FHA mortgage insurance (MIP and UFMIP), VA funding fees, and USDA (Rural Housing Service) guarantee fees all count, as long as they relate to acquisition debt on your main or second home and the insurance contract was issued after December 31, 2006.</p>
+      <p><strong>2. The AGI phaseout.</strong> The deductible amount is reduced by 10% for every $1,000 (or fraction of $1,000) that your <a href="/tax-glossary/#agi">AGI</a> — not modified AGI — exceeds $100,000. That means it's completely gone once AGI passes <strong>$109,000</strong>. Married filing separately uses $50,000 and $500 steps, eliminated above <strong>$54,500</strong>. Married filing jointly gets no special treatment here — same $100,000 start as everyone else except MFS.</p>
+      <p><strong>3. Prepaid premiums are spread out — except VA and USDA.</strong> If you pay a lump sum upfront (FHA's UFMIP, or a single-premium PMI policy), you can't deduct it all in one year. It's amortized ratably over the shorter of your loan's term or <strong>84 months</strong>, starting the month you got the insurance. Refinance or pay off the loan early, and the remaining unamortized balance is simply lost — not deductible at payoff. A VA funding fee or USDA guarantee fee skips all of this: fully deductible in the year paid, lump sum or not.</p>
+      <p><strong>4. You must itemize.</strong> The premiums are added to the "Interest You Paid" section of Schedule A (line 8d on the last form the deduction was in effect, 2021 — the 2026 form isn't final yet). If your total itemized deductions don't exceed your standard deduction, the deduction produces $0 in real tax savings.</p>
+      <p><strong>What doesn't touch this deduction.</strong> The new §68 "2/37 rule" that trims itemized deductions for top-bracket filers only kicks in well above the income where this deduction has already hit $0 — so it's irrelevant here, unlike for <a href="/salt-cap-calculator/">SALT</a> or <a href="/charitable-deduction-calculator/">charitable giving</a>. Loans above the $750,000 acquisition-debt cap and rental-property mortgage insurance (which is a Schedule E business expense, not this deduction) are both out of scope for this tool.</p>
+      <p>Refinancing or buying a home this year? See the same law's other Schedule A changes: the <a href="/salt-cap-calculator/">SALT deduction cap calculator</a> and the <a href="/charitable-deduction-calculator/">charitable deduction calculator</a>. Bought a car instead? Check the <a href="/car-loan-interest-calculator/">car loan interest deduction calculator</a>.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>A worked example: the FHA UFMIP amortization</h2>
+      <p>David is single with a $90,000 AGI. He closed on an FHA loan in June 2026 with a $6,125 upfront mortgage insurance premium (UFMIP) and a 30-year (360-month) term, plus $1,600 of annual MIP paid through the rest of the year. Here's how 2026 treats it:</p>
+      <ul>
+        <li><strong>Amortize the UFMIP:</strong> the $6,125 is spread over the shorter of 360 months or the statutory 84-month cap — so 84 months, at $72.92/month. From June through December is 7 months, so $72.92 × 7 = <strong>$510.42</strong> is deductible in 2026. The rest carries into future years.</li>
+        <li><strong>Add the recurring MIP:</strong> $1,600 (paid as-you-go) + $510.42 (the 2026 UFMIP slice) = <strong>$2,110.42</strong> qualifying premium.</li>
+        <li><strong>The AGI phaseout:</strong> David's $90,000 AGI is under the $100,000 threshold, so none of it phases out — the full $2,110.42 is deductible on Schedule A, assuming he itemizes.</li>
+      </ul>
+      <p>If David had instead paid a $8,000 VA funding fee with no monthly premium, the entire $8,000 would be deductible in 2026 — no 84-month spreading, because VA fees are exempt from the amortization rule.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>Is PMI tax deductible in 2026?</strong> Yes — the One Big Beautiful Bill Act permanently revived the deduction for tax years beginning after 2025, after it had lapsed since 2021.</p>
+      <p><strong>What's the actual AGI cutoff?</strong> $109,000 ($54,500 married filing separately) — not $110,000/$55,000 as most articles say, because of a "$1,000 or fraction thereof" rounding rule.</p>
+      <p><strong>Do married couples get a higher threshold?</strong> No. Married filing jointly shares the same $100,000 starting point as single and head of household filers.</p>
+      <p><strong>Is FHA's upfront premium deducted differently than a VA funding fee?</strong> Yes. FHA UFMIP and single-premium PMI amortize over the shorter of the loan term or 84 months. VA funding fees and USDA guarantee fees are fully deductible the year paid — no amortization.</p>
+      <p><strong>Do I need to itemize?</strong> Yes — this is a Schedule A itemized deduction only, with no non-itemizer alternative.</p>
+      <p><strong>Does a pre-2007 mortgage insurance contract qualify?</strong> No. Only contracts issued after December 31, 2006 qualify — a restriction that's still on the books.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your numbers never leave your browser.</p>
+      <p class="muted-small">Sources: Public Law 119-21 §70108, <a href="https://www.govinfo.gov/content/pkg/PLAW-119publ21/html/PLAW-119publ21.htm" rel="nofollow">enrolled statute text (govinfo)</a>; <a href="https://www.law.cornell.edu/uscode/text/26/163" rel="nofollow">26 USC §163(h) (Cornell LII)</a>; <a href="https://www.law.cornell.edu/cfr/text/26/1.163-11" rel="nofollow">Treas. Reg. §1.163-11</a>; IRS, <a href="https://www.irs.gov/pub/irs-pdf/p936.pdf" rel="nofollow">Publication 936</a>; IRS, <a href="https://www.irs.gov/instructions/i1098" rel="nofollow">Instructions for Form 1098</a>; <a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf" rel="nofollow">Rev. Proc. 2025-32</a> (2026 standard deduction).</p>
+    </section>
+
+    <div class="note"><strong>Embed this calculator.</strong> Put this calculator on your site — free, one copy-paste snippet, no scripts from third parties. <a href="/embed/">Get the snippet</a>.</div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__OBBBA__ = {{OBBBA_JSON}};
+  window.__FED__ = {{FED_JSON}};
+</script>
+<script type="module" src="/assets/pmi-deduction-calculator.js"></script>
+</body>
+</html>
