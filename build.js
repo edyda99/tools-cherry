@@ -181,6 +181,7 @@ const TOOLS = [
   { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/', cat: 'money' },
   { name: 'Social Security Wage Base Max-Out Date Calculator', path: '/ss-wage-base-calculator/', cat: 'money' },
   { name: 'Federal Student Loan Cap Calculator', path: '/student-loan-cap-calculator/', cat: 'money' },
+  { name: 'ABLE Account Contribution Limit Calculator', path: '/able-account-calculator/', cat: 'money' },
   { name: '401(k) Retirement Calculator', path: '/401k-calculator/', cat: 'money' },
   { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/', cat: 'money' },
   { name: 'Inflation Calculator', path: '/inflation-calculator/', cat: 'money' },
@@ -286,6 +287,7 @@ const TOOL_DESCRIPTIONS = {
   '/bonus-tax-calculator/': 'See what\'s withheld from your bonus now (flat 22% federal + your state\'s supplemental rate + FICA) versus what it will really cost at tax time — with the refund or amount owed, for all 50 states + DC.',
   '/ss-wage-base-calculator/': 'Find the exact 2026 paycheck your 6.2% Social Security tax stops for the year once you cross the $184,500 wage base, and how much your take-home pay jumps — plus a multi-employer excess-FICA check and a Medicare contrast note.',
   '/student-loan-cap-calculator/': 'The federal borrowing caps in effect since July 1, 2026: graduate $20,500/yr ($100,000 aggregate), professional $50,000/yr ($200,000 shared pool), Parent PLUS $20,000/yr ($65,000 per student), the $257,500 lifetime cap, and the legacy grandfather exception. See your year-by-year federal capacity, which cap binds, and your program\'s funding gap — statute-cited, no borrowing advice.',
+  '/able-account-calculator/': 'How much can go into an ABLE account in 2026: the $20,000 base limit (no longer the gift-tax exclusion), the permanent ABLE-to-Work bonus — lesser of the beneficiary\'s pay or the one-person poverty line, with the higher Alaska/Hawaii figures — the onset-before-46 eligibility expansion, 529→ABLE rollovers, remaining room, and the 6% excise on excess. Statute-cited; no eligibility determination.',
   '/401k-calculator/': 'Project 401(k) retirement balance from contributions, match, and growth.',
   '/savings-goal-calculator/': 'Find how much to save each month to reach a savings goal.',
   '/inflation-calculator/': 'See how the buying power of a US dollar changes over time.',
@@ -400,6 +402,7 @@ const RELATED_OVERRIDES = {
     { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
     { name: 'Mandatory Roth Catch-Up Calculator', path: '/roth-catchup-calculator/' },
     { name: '401(k) Retirement Calculator', path: '/401k-calculator/' },
+    { name: 'ABLE Account Contribution Limit Calculator', path: '/able-account-calculator/' },
     { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
     { name: 'Hours Calculator (Time Card)', path: '/hours-calculator/' },
@@ -432,6 +435,7 @@ const RELATED_OVERRIDES = {
   '/roth-catchup-calculator/': [
     { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
     { name: '401(k) Retirement Calculator', path: '/401k-calculator/' },
+    { name: 'ABLE Account Contribution Limit Calculator', path: '/able-account-calculator/' },
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
@@ -471,6 +475,17 @@ const RELATED_OVERRIDES = {
     { name: 'GPA Calculator', path: '/gpa-calculator/' },
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' }
   ],
+  // §529A savings-account domain — nearest genuine siblings are the
+  // contribution-limit / tax-advantaged-savings tools (401k/HSA-style), not
+  // the OBBBA deduction cluster (docs/able-account-calculator-spec.md).
+  '/able-account-calculator/': [
+    { name: '401(k) Retirement Calculator', path: '/401k-calculator/' },
+    { name: 'Mandatory Roth Catch-Up Calculator', path: '/roth-catchup-calculator/' },
+    { name: 'Dependent Care FSA vs. Child Care Credit Calculator', path: '/dependent-care-fsa-vs-credit-calculator/' },
+    { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/' },
+    { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' },
+    { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' }
+  ],
   '/data/overtime-tax-by-state/': [
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
@@ -505,7 +520,8 @@ const RELATED_OVERRIDES = {
     { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
     { name: '1099-K / 1099-NEC Threshold Checker', path: '/1099-threshold-checker/' },
     { name: 'Social Security Wage Base Max-Out Date Calculator', path: '/ss-wage-base-calculator/' },
-    { name: 'Federal Student Loan Cap Calculator', path: '/student-loan-cap-calculator/' }
+    { name: 'Federal Student Loan Cap Calculator', path: '/student-loan-cap-calculator/' },
+    { name: 'ABLE Account Contribution Limit Calculator', path: '/able-account-calculator/' }
   ]
 };
 
@@ -2262,6 +2278,8 @@ async function main() {
   const embedSsMaxoutTpl = await read(join(SRC, 'templates', 'embed', 'ss-wage-base-calculator.html'));
   const studentLoanCapTpl = await read(join(SRC, 'templates', 'student-loan-cap-calculator.html'));
   const embedStudentLoanCapTpl = await read(join(SRC, 'templates', 'embed', 'student-loan-cap-calculator.html'));
+  const ableTpl = await read(join(SRC, 'templates', 'able-account-calculator.html'));
+  const embedAbleTpl = await read(join(SRC, 'templates', 'embed', 'able-account-calculator.html'));
   const embedGalleryTpl = await read(join(SRC, 'templates', 'embed-gallery.html'));
   const overtimeStudyTpl = await read(join(SRC, 'templates', 'data-overtime-tax-by-state.html'));
   const tipsStudyTpl = await read(join(SRC, 'templates', 'data-tips-tax-by-state.html'));
@@ -2311,6 +2329,23 @@ async function main() {
   // data — RE-CHECK THE FSA EA BEFORE EVERY DEPLOY of this tool (spec §7.1).
   const studentLoanLimits = await readJSON(join(SRC, 'data', 'student-loan-limits-2026.json'));
   const STUDENT_LOAN_LIMITS_JSON = JSON.stringify(stripInternal(studentLoanLimits));
+  // ABLE account (26 U.S.C. §529A) TY2026 contribution limits — a STANDALONE
+  // savings-account dataset + engine (able-contribution.js). §529A cap
+  // arithmetic, NOT tax/payroll: deliberately no reuse of paycheck-engine.js
+  // or obbba-deduction.js, and not co-located in obbba-deductions-2026.json.
+  // $20,000 base (Rev. Proc. 2025-32 §3.34, decoupled from the gift exclusion
+  // by OBBBA §70115) + the permanent ABLE-to-Work bonus (lesser of the
+  // beneficiary's compensation or the one-person FPL for their state — the
+  // 3-bucket 48+DC/AK/HI lookup). The FPL set shipped is the Jan-2025 HHS
+  // guidelines per the spec's §7.1 decision (statute-natural, conservative);
+  // the alternate Jan-2026 reading lives in the dataset's stripped
+  // `_alternateFpl2026Reading` key — REVISIT when the final Rev. Dec 2026
+  // 1099-QA/5498-QA instructions or Pub 907 (2026) publish. Reuses the plain
+  // state name/abbr roster (states.json, `roster`) only to populate the
+  // state-of-residence dropdown — the engine maps abbr → FPL bucket itself.
+  const ableLimits = await readJSON(join(SRC, 'data', 'able-limits-2026.json'));
+  const ABLE_LIMITS_JSON = JSON.stringify(stripInternal(ableLimits));
+  const ABLE_STATES_JSON = JSON.stringify(roster.map((s) => ({ name: s.name, abbr: s.abbr })));
   // State supplemental (bonus) withholding rates — its own dataset (§ bonus-tax).
   const suppData = await readJSON(join(SRC, 'data', 'state-supplemental-2026.json'));
   // Lean client payload for a supp entry: ONLY the fields the browser engine
@@ -2518,6 +2553,8 @@ async function main() {
   registerAsset('assets', 'ss-wage-base-calculator.js');
   registerAsset('engine', 'student-loan-cap.js');
   registerAsset('assets', 'student-loan-cap-calculator.js');
+  registerAsset('engine', 'able-contribution.js');
+  registerAsset('assets', 'able-account-calculator.js');
   registerAsset('engine', 'bonus-tax.js');
   registerAsset('assets', 'bonus-tax-calculator.js');
   registerAsset('assets', 'embed-gallery.js');
@@ -3477,6 +3514,20 @@ async function main() {
   );
   urls.push(`${SITE.url}/student-loan-cap-calculator/`);
 
+  // ABLE Account Contribution Limit Calculator (26 U.S.C. §529A, TY 2026) —
+  // arithmetic-first: the $20,000 base limit + the permanent ABLE-to-Work
+  // bonus (lesser of compensation or the state-of-residence one-person FPL,
+  // 48+DC/AK/HI buckets), per-beneficiary all-contributors pool, 529→ABLE
+  // rollovers against the base, remaining room, and the 6% excise on excess.
+  // The only eligibility input is the statutory onset-before-46 age (SECURE
+  // 2.0 §124) — never a medical or benefits determination.
+  await mkdir(join(DIST, 'able-account-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'able-account-calculator', 'index.html'),
+    fillTool(ableTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, ABLE_LIMITS_JSON, ABLE_STATES_JSON }, '/able-account-calculator/')
+  );
+  urls.push(`${SITE.url}/able-account-calculator/`);
+
   // QCD (Qualified Charitable Distribution, IRC §408(d)(8)) vs. take-the-
   // distribution-and-deduct-it calculator. NOT an OBBBA provision (predates the
   // 2025 law; permanent) but shares the tax-parameter store (federal.qcd, sibling
@@ -3723,7 +3774,7 @@ async function main() {
   // Still gets MODULE_ERROR_LISTENER injected below (same page-level module-load-
   // failure banner every full page gets via fill()) — bypassing fill() shouldn't
   // mean losing that defense-in-depth too.
-  const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON, ROTHCATCHUP_JSON, BONUS_TAX_JSON: BONUS_TAX_ALL_JSON, FORM1099_JSON, FORM1099_STATES_JSON, SSMAXOUT_PARAMS_JSON, STUDENT_LOAN_LIMITS_JSON };
+  const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON, ROTHCATCHUP_JSON, BONUS_TAX_JSON: BONUS_TAX_ALL_JSON, FORM1099_JSON, FORM1099_STATES_JSON, SSMAXOUT_PARAMS_JSON, STUDENT_LOAN_LIMITS_JSON, ABLE_LIMITS_JSON, ABLE_STATES_JSON };
   const fillEmbed = (tpl) => {
     let out = tpl.replace(/{{(\w+)}}/g, (m, k) => (k in embedMap ? embedMap[k] : m));
     if (out.includes('</head>')) out = out.replace('</head>', `${MODULE_ERROR_LISTENER}</head>`);
@@ -3768,6 +3819,8 @@ async function main() {
   await writeFile(join(DIST, 'embed', 'ss-wage-base-calculator', 'index.html'), fillEmbed(embedSsMaxoutTpl));
   await mkdir(join(DIST, 'embed', 'student-loan-cap-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'student-loan-cap-calculator', 'index.html'), fillEmbed(embedStudentLoanCapTpl));
+  await mkdir(join(DIST, 'embed', 'able-account-calculator'), { recursive: true });
+  await writeFile(join(DIST, 'embed', 'able-account-calculator', 'index.html'), fillEmbed(embedAbleTpl));
   await mkdir(join(DIST, 'embed', 'bonus-tax-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'bonus-tax-calculator', 'index.html'), fillEmbed(embedBonusTaxTpl));
   // Indexable embed gallery (fillTool is fine here — real page, benefits from schema

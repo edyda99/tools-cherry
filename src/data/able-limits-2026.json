@@ -1,0 +1,73 @@
+{
+  "_meta": {
+    "description": "ABLE account (26 U.S.C. §529A) annual contribution limits for tax year 2026, per docs/able-account-calculator-spec.md. Drives /able-account-calculator/. Base limit $20,000 (Rev. Proc. 2025-32 §3.34 — decoupled from the $19,000 gift-tax exclusion by P.L. 119-21 (OBBBA) §70115's '1996'-for-'1997' indexing change, effective TY beginning after Dec 31, 2025). ABLE-to-Work bonus (§529A(b)(2)(B)(ii), made PERMANENT by OBBBA §70115) = lesser of the beneficiary's §219(f)(1) compensation or the one-person federal poverty line for their state of residence (Treas. Reg. §1.529A-2(g)(2)) — hence the 3-bucket 48+DC / AK / HI split. Eligibility onset age 46 (SECURE 2.0 §124, first effective for TY 2026). STANDALONE dataset — §529A savings-account policy, not the tax/payroll cluster: no reuse of tax-data-2026.json or obbba-deductions-2026.json.",
+    "lastSourced": "2026-07-12",
+    "fplYearAmbiguity": "SPEC §7.1 — which HHS guideline year applies to TY 2026 is genuinely ambiguous. Statute/reg say the poverty line 'as determined for the calendar year preceding the calendar year in which the taxable year begins' → the Jan-2025 set ($15,650 / $19,550 AK / $17,990 HI, 90 FR 5917), which is what ships here: statute-natural, matches 2 of 3 year-consistent IRS data points (final Rev. Apr 2025 1099-QA instructions pattern; Pub 907 (2024)), matches ABLE NRC / industry, and is the LOWER set so the tool can never advise an over-contribution. The alternative reading (Pub 907 (2025) outlier pattern: TY N → Jan-N guidelines) would give the 2026 set in _alternateFpl2026Reading below. REVISIT when the final Rev. Dec 2026 1099-QA/5498-QA instructions and/or Pub 907 (2026) publish — if IRS prints the $15,960 set, flip ableToWork.fplOnePerson to _alternateFpl2026Reading.fplOnePerson and the commented alternate expectations in scripts/test-able-account.js.",
+    "confidence": "HIGH on the $20,000 base, the age-46 onset rule, ABLE-to-Work mechanics, per-beneficiary aggregation, and the AK/HI split. MEDIUM-HIGH on the exact 2026 ABLE-to-Work dollar set (the fplYearAmbiguity above — bounded to two known candidate sets, default chosen conservatively)."
+  },
+  "taxYear": 2026,
+  "baseLimit": 20000,
+  "baseLimitCitation": "Rev. Proc. 2025-32 §3.34 (aggregate limitation on contributions to ABLE accounts, TY beginning in 2026); 26 U.S.C. §529A(b)(2)(B)(i) as amended by P.L. 119-21 §70115",
+  "giftTaxExclusion": 19000,
+  "giftTaxExclusionNote": "Rev. Proc. 2025-32 §3.42(1). As of 2026 the ABLE limit is NO LONGER equal to the gift-tax annual exclusion — OBBBA §70115 changed §529A's indexing base year ('1996' instead of '1997'), so $20,000 ABLE ≠ $19,000 gift exclusion. Site copy must never equate them.",
+  "eligibility": {
+    "onsetAgeLimit": 46,
+    "citation": "26 U.S.C. §529A(e)(1) as amended by SECURE 2.0 (P.L. 117-328, Div. T) §124, effective for taxable years beginning after Dec 31, 2025 (previously 26)",
+    "note": "Onset-based, NOT current-age-based: the blindness or disability must have occurred before the date the individual attained age 46. Onset at 30 + currently 58 → eligible; onset at 47 → not eligible at any current age. Onset ON the 46th birthday fails ('before the date on which the individual attained age 46'); the day before passes."
+  },
+  "ableToWork": {
+    "permanent": true,
+    "citation": "26 U.S.C. §529A(b)(2)(B)(ii), (b)(7); sunset ('before January 1, 2026') struck by P.L. 119-21 §70115(a)(2) — permanent",
+    "fplGuidelineYear": 2025,
+    "fplCitation": "2025 HHS poverty guidelines, one-person household — 90 FR 5917 (Jan 17, 2025); corroborated verbatim by IRS Pub 907 (2025) and ABLE NRC",
+    "fplOnePerson": { "contiguousDC": 15650, "AK": 19550, "HI": 17990 },
+    "_alternateFpl2026Reading": {
+      "note": "NOT LIVE — spec §7.1 alternate reading only (TY N → Jan-N guidelines, the Pub 907 (2025) outlier pattern). 2026 HHS guidelines, 91 FR 1797 (Jan 15, 2026). Under the shipped default reading this set applies to TY 2027.",
+      "fplOnePerson": { "contiguousDC": 15960, "AK": 19950, "HI": 18360 }
+    },
+    "stateBuckets": {
+      "AK": "AK",
+      "HI": "HI",
+      "default": "contiguousDC"
+    },
+    "residenceRule": "Poverty line for the State of residence of the employed designated beneficiary (Treas. Reg. §1.529A-2(g)(2)); a beneficiary who lives in more than one state during the year uses the state they resided in longer than any other.",
+    "blockerPlans": ["defined contribution plan (§414(i)) meeting §401(a)/§403(a)", "§403(b) annuity contract", "§457(b) eligible deferred compensation plan"],
+    "blockerNote": "The blocker is 'no contribution is made' on behalf of the employee — an EMPLOYER-ONLY contribution (e.g., a 401(k) match or nonelective) blocks the bonus even if the employee defers nothing (draft 2026 Instr. 1099-QA/5498-QA, verbatim). Only the three listed categories block; a defined-benefit accrual does not.",
+    "beneficiaryOnly": "Only the designated beneficiary's OWN contributions may occupy the bonus space (§529A(b)(2)(B)(ii): 'contribution by a designated beneficiary described in paragraph (7)') — family money can never use it.",
+    "soleResponsibility": "The employed designated beneficiary, or the person acting on his or her behalf, is solely responsible for ensuring that the requirements in section 529A(b)(2)(B)(ii) are met (Treas. Reg. §1.529A-2(g)(2)) — ABLE programs do not police the bonus."
+  },
+  "pool": {
+    "note": "One pool per beneficiary per year, 'aggregate contributions from all contributors' (§529A(b)(2)(B)) — family, friends, trusts, and the beneficiary all draw from it. 529→ABLE rollovers count against the BASE (i) limit specifically (§529(c)(3)(C)(i) flush text) and can never ride in the ABLE-to-Work bonus space; they are permanent as of 2026 (OBBBA §70117). Excluded: ABLE→ABLE rollovers, program-to-program transfers (§529A(c)(1)(C)), and Trump-account→ABLE qualified ABLE rollover contributions (§530A(d)(4)(B), Form 5498-QA box 8). All contributions must be in cash; one ABLE account per beneficiary."
+  },
+  "excess": {
+    "exciseRate": 0.06,
+    "citation": "26 U.S.C. §4973(a)(6), (h); figured on Form 5329 Part VIII",
+    "note": "Excess contributions (and attributable earnings) not returned by the ABLE program by the return due date, including extensions, incur a 6% excise tax (capped at 6% of the account value at year-end). Excess returned on or before the due date is treated as an amount not contributed."
+  },
+  "comparison2025": {
+    "baseLimit": 19000,
+    "baseEqualedGiftExclusion": true,
+    "onsetAgeLimit": 26,
+    "fplOnePerson": { "contiguousDC": 15060, "AK": 18810, "HI": 17310 },
+    "note": "TY 2025 figures for the static what-changed table only (not a computable mode): $19,000 base (= gift exclusion), onset before 26, ABLE-to-Work per the final Rev. Apr 2025 1099-QA/5498-QA instructions ($15,060 / $18,810 AK / $17,310 HI), and both ABLE-to-Work and 529→ABLE rollovers were scheduled to expire Jan 1, 2026 before OBBBA made them permanent."
+  },
+  "outOfScope": {
+    "trumpAccountRollover": "Trump-account→ABLE qualified ABLE rollover contributions (§530A(d)(4)(B), new for 2026; Form 5498-QA box 8) are EXCLUDED from the annual cap by statute — only permitted when the full balance is transferred trustee-to-trustee in the calendar year the beneficiary turns 17. Stated on-page so we don't imply it eats the cap; no input field (spec §6).",
+    "cumulativeCap": "Contributions stop once the account balance hits the state's §529 QTP limit (§529A(b)(6), roughly $235k–$600k by state) — one-line on-page note only.",
+    "benefitsInteractions": "SSI $100,000 resource threshold / Medicaid payback — benefits territory, link out (SSA, ABLE NRC), never computed.",
+    "saversCredit": "ABLE contributions may qualify for the saver's credit (Form 8880); OBBBA reportedly made the ABLE treatment permanent but that section was NOT verified (spec §7.4) — permanence is deliberately not claimed on-page."
+  },
+  "sources": [
+    { "claim": "$20,000 aggregate limitation on contributions to ABLE accounts, TY 2026 (§3.34); $19,000 gift-tax exclusion CY 2026 (§3.42(1))", "url": "https://www.irs.gov/pub/irs-drop/rp-25-32.pdf" },
+    { "claim": "26 U.S.C. §529A current text: (b)(2)(B) lead-in + (i) + (ii), (b)(7)(A), (e)(1); amendment notes for P.L. 117-328 §124 and P.L. 119-21 §70115", "url": "https://www.law.cornell.edu/uscode/text/26/529A" },
+    { "claim": "SECURE 2.0 §124: onset age 26→46, effective TY beginning after Dec 31, 2025", "url": "https://www.congress.gov/117/plaws/publ328/PLAW-117publ328.pdf" },
+    { "claim": "OBBBA §70115 ('1996'-for-'1997' indexing; ABLE-to-Work sunset struck) and §70117 (529→ABLE rollover sunset struck)", "url": "https://www.congress.gov/119/plaws/publ21/PLAW-119publ21.pdf" },
+    { "claim": "State-of-residence FPL, longest-residence tie-break, sole responsibility, rollover/transfer exclusions, return of excess (Treas. Reg. §1.529A-2(g), T.D. 9923)", "url": "https://www.ecfr.gov/current/title-26/chapter-I/subchapter-A/part-1/subject-group-ECFR74d9d54a99ee85c/section-1.529A-2" },
+    { "claim": "2025 HHS poverty guidelines, one-person household: $15,650 / $19,550 AK / $17,990 HI", "url": "https://www.federalregister.gov/documents/2025/01/17/2025-01377/annual-update-of-the-hhs-poverty-guidelines" },
+    { "claim": "2026 HHS poverty guidelines (alternate-reading set, not live): $15,960 / $19,950 AK / $18,360 HI", "url": "https://www.federalregister.gov/documents/2026/01/15/2026-00755/annual-update-of-the-hhs-poverty-guidelines" },
+    { "claim": "6% excise on excess ABLE contributions, Form 5329 Part VIII; 529-rollover-counts language; one account per beneficiary; cumulative state limit", "url": "https://www.irs.gov/pub/irs-pdf/p907.pdf" },
+    { "claim": "Age-46 What's New for 2026 information; 'any contribution … on behalf of the employee' blocker; all-contributors aggregate; Trump-account rollover (box 8) mechanics; removal of printed FPL amounts (DRAFT Instr. 1099-QA/5498-QA, Rev. Dec 2026)", "url": "https://www.irs.gov/pub/irs-dft/i99qa--dft.pdf" },
+    { "claim": "529→ABLE rollover counts against the §529A(b)(2)(B)(i) base limit (flush text); permanence", "url": "https://www.law.cornell.edu/uscode/text/26/529" },
+    { "claim": "Industry corroboration only: 2026 = $20,000 + $15,650/$19,550/$17,990 per-beneficiary all-sources framing", "url": "https://www.ablenrc.org/what-is-able/what-are-able-acounts/" }
+  ]
+}
