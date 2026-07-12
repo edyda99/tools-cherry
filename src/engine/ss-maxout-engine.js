@@ -46,6 +46,14 @@ function formatISODate(date) {
   return `${y}-${m}-${d}`;
 }
 
+// Human-readable date (e.g. "Oct 16, 2026") — matches the format the UI's own
+// fmtDateLong() uses for the "line" rows (capReachedDate/firstZeroSSDate), so
+// dates embedded in these prose `notes` don't show as a raw ISO string while
+// everything else on the page reads in plain English.
+function formatHumanDate(date) {
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+}
+
 function addDaysUTC(date, days) {
   return new Date(date.getTime() + days * 86400000);
 }
@@ -223,11 +231,11 @@ export function projectMaxOut(a) {
   const notes = [];
   if (rolledIntoNextYear) {
     notes.push(
-      `You reach the cap on your last paycheck of ${taxYear} (${capReachedDateStr}) — withholding simply ends with the year and resets on January 1. There is no separate "bigger paycheck" moment before year-end; the very next paycheck already falls in the new year, back at 6.2% from $0.`
+      `You reach the cap on your last paycheck of ${taxYear} (${formatHumanDate(capReachedDate)}) — withholding simply ends with the year and resets on January 1. There is no separate "bigger paycheck" moment before year-end; the very next paycheck already falls in the new year, back at 6.2% from $0.`
     );
   } else {
     notes.push(
-      `Take-home pay goes up by about $${bumpAmount.toFixed(2)} starting the ${firstZeroSSDateStr} paycheck, when Social Security withholding at this employer drops to $0 for the rest of ${taxYear}.`
+      `Take-home pay goes up by about $${bumpAmount.toFixed(2)} starting the ${formatHumanDate(firstZeroSSDate)} paycheck, when Social Security withholding at this employer drops to $0 for the rest of ${taxYear}.`
     );
   }
 

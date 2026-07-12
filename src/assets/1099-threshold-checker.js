@@ -88,7 +88,14 @@ function stateNoteLine(r) {
   if (!r.stateOverlay) return '';
   const name = STATE_NAME[r.stateOverlay.state] || r.stateOverlay.state;
   const cond = r.stateOverlay.condition ? ` (${r.stateOverlay.condition})` : '';
-  return `<div class="obbba-note info-flag">Even without a federal 1099-K, ${name} requires reporting at ${usd(r.stateOverlay.threshold)}${cond} — you may still get a state 1099-K.</div>`;
+  // Phrasing must stay accurate whether or not a federal 1099-K is ALSO
+  // expected (e.g. the card-processor branch, or a state whose threshold sits
+  // below the federal $20k/200 line) — "even without a federal 1099-K" is
+  // only true when r.willIssue is false.
+  const phrase = r.willIssue
+    ? `${name} also requires reporting at ${usd(r.stateOverlay.threshold)}${cond} — you may get a state 1099-K in addition to the federal one.`
+    : `Even without a federal 1099-K, ${name} requires reporting at ${usd(r.stateOverlay.threshold)}${cond} — you may still get a state 1099-K.`;
+  return `<div class="obbba-note info-flag">${phrase}</div>`;
 }
 
 function render() {
