@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>1099-K / 1099-NEC Threshold Checker (2026) — Will You Get a 1099?</title>
+<meta name="description" content="Free calculator: will you get a 1099-K, 1099-NEC, or 1099-MISC? Enter how you were paid and see which form applies, under the 2025/2026 rules — payment apps ($20,000 and 200 transactions), card processors like Stripe/Square (no minimum at all), or a business paying you directly ($2,000 for 2026, was $600 for 2025). Plus the one thing everyone gets wrong: a 1099 is paperwork, not a tax. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/1099-threshold-checker/">
+<meta property="og:title" content="1099-K / 1099-NEC Threshold Checker (2026)">
+<meta property="og:description" content="Will you get a 1099-K, 1099-NEC, or 1099-MISC? See which form applies to how you were paid, and why a 1099 isn't a tax bill. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; text-align:right; }
+  .obbba-note { font-size:.9rem; opacity:.9; margin-top:8px; }
+  .warn-flag { color:#b26b00; font-weight:700; }
+  .ok-flag { color:#2f6f4f; font-weight:700; }
+  .info-flag { color:#2a5d8f; font-weight:600; }
+  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
+  .mythbust h2 { margin-top:0; }
+  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
+  .card-vs-network { margin-top:12px; padding:11px 14px; border-left:4px solid #2a5d8f; border-radius:8px; background:rgba(42,93,143,.09); font-size:.9rem; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"1099-K / 1099-NEC Threshold Checker","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Check which 1099 form applies to a payment: 1099-K from a payment app or marketplace (IRC 6050W, only if gross payments exceed $20,000 AND transactions exceed 200), 1099-K from a card processor like Stripe or Square (no minimum at all), or 1099-NEC/1099-MISC from a business paying directly (IRC 6041/6041A, $2,000 or more for tax year 2026, $600 or more for 2025). Shows the exact test that decided it, the headroom to the next threshold, an optional state 1099-K overlay note, and the core myth-bust: a 1099 is a reporting trigger, not a tax trigger."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Does not getting a 1099 mean the income is tax-free?","acceptedAnswer":{"@type":"Answer","text":"No. This is the single biggest misunderstanding. A 1099 is an information return: a copy of a payment record sent to you and to the IRS. It changes only paperwork and IRS visibility, not what you owe. Freelance pay, resale profit, and rental income are taxable at $1 whether or not any form ever arrives, and you're required to report them on your return regardless."}},{"@type":"Question","name":"Why does Stripe or Square not have a $20,000 threshold like Venmo?","acceptedAnswer":{"@type":"Answer","text":"Internal Revenue Code section 6050W covers two different transaction types with two different rules. Payment CARD transactions (credit, debit, or gift card processed by a company like Stripe, Square, or Toast) have no de minimis at all — every payment is reportable, no matter the amount or count. The $20,000-and-200-transaction threshold applies only to third-party NETWORK transactions: payment apps and marketplaces such as PayPal, Venmo, Cash App for Business, Etsy, eBay, and Airbnb. Lumping card processors in with the $20,000 rule is the most common mix-up."}},{"@type":"Question","name":"Do I need both $20,000 AND 200 transactions for a 1099-K from a payment app?","acceptedAnswer":{"@type":"Answer","text":"Yes — both, and both strictly exceeded. IRS Notice 2025-62 restored the pre-2021 rule: a third-party settlement organization reports only if a payee's gross goods-and-services payments exceed $20,000 and the number of transactions exceeds 200. 250 transactions totaling $18,000 does not trigger a 1099-K (the dollar test fails); 150 transactions totaling $30,000 does not trigger one either (the count test fails). Exactly $20,000 and exactly 200 transactions also does not trigger one — the law says 'exceeds,' not 'reaches.'"}},{"@type":"Question","name":"Is the 1099-K $20,000 threshold only for 2026, or does it go back further?","acceptedAnswer":{"@type":"Answer","text":"It applies to 2025 AND 2026, and it is written into law as retroactive to 2022. The One Big Beautiful Bill Act's section 70432 restored the $20,000/200-transaction rule 'as if included in' the 2021 American Rescue Plan Act provision it replaces. In between, IRS transition relief had stair-stepped the old $600 rule down to $5,000 for 2024 and $2,500 for 2025 — but that phase-in never reached $600 in practice, and the new law erased it entirely in favor of the $20,000/200 test for every year, 2025 and 2026 included."}},{"@type":"Question","name":"When did the 1099-NEC / 1099-MISC threshold change from $600 to $2,000?","acceptedAnswer":{"@type":"Answer","text":"For payments made after December 31, 2025 — meaning tax year 2026 and later. Payments made during tax year 2025 still use the old $600-or-more floor. Starting with tax year 2027, the $2,000 figure is adjusted for inflation each year (base year 2025), though the IRS has not yet published the exact 2027 dollar amount."}},{"@type":"Question","name":"Can I get both a 1099-NEC and a 1099-K for the same payment?","acceptedAnswer":{"@type":"Answer","text":"No. How you were paid decides who issues the form, and it's one or the other. If a business pays you directly by check, ACH, or cash, the business itself may issue a 1099-NEC (for services) or 1099-MISC (for rent or other income) once payments reach the year's threshold. But if that same business pays you through a card processor or a payment app instead, the law shifts the filing duty to the processor or app, which issues a 1099-K — and the business is relieved of its 1099-NEC/1099-MISC duty for those dollars. You don't get two forms for one payment."}},{"@type":"Question","name":"Do state 1099-K thresholds matter if I'm under the federal $20,000 limit?","acceptedAnswer":{"@type":"Answer","text":"They can. A handful of states — including Massachusetts, Maryland, Virginia, Vermont, D.C., Montana, and North Carolina — have historically set their own, lower 1099-K reporting thresholds (commonly around $600), separate from the federal rule. A resident of one of those states can stay under the federal $20,000/200-transaction bar and still receive a 1099-K because the state required it. These state rules change frequently, so treat this as an informational heads-up, not a certainty — verify with your state's tax agency."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>1099-K / 1099-NEC Threshold Checker</h1>
+    <p class="lede"><strong>A 1099 is a reporting trigger, not a tax trigger.</strong> Getting one just means a copy of a payment record went to the IRS — it doesn't create tax you didn't already owe, and not getting one doesn't make income tax-free. What actually changed in 2025/2026: payment <strong>apps</strong> like PayPal and Venmo now issue a 1099-K only above <strong>$20,000 AND 200 transactions</strong> (both, strictly); <strong>card</strong> processors like Stripe and Square have <strong>no minimum at all</strong> — that's a completely different rule, not a smaller version of the app rule; and a business paying you <strong>directly</strong> issues a 1099-NEC or 1099-MISC at <strong>$2,000</strong> for 2026 (it was $600 through 2025). Enter how you were paid below to see exactly which form applies. Everything runs in your browser — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="1099-K / 1099-NEC threshold checker">
+      <form id="f1099Form" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="taxYear">Tax year</label>
+          <select id="taxYear">
+            <option value="2025">2025</option>
+            <option value="2026" selected>2026</option>
+            <option value="2027">2027</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">The 1099-K app/marketplace rule ($20,000/200 transactions) is the same for 2025 and 2026. The direct-payment floor is $600 for 2025 and $2,000 for 2026+; 2027 is inflation-adjusted and shown as an estimate.</p>
+        </div>
+
+        <div class="field">
+          <label for="payerType">How were you paid?</label>
+          <select id="payerType">
+            <option value="network" selected>Payment app or marketplace (PayPal, Venmo, Etsy, Cash App…)</option>
+            <option value="card">Card payment (Stripe, Square, Toast, in-person card/gift card)</option>
+            <option value="direct">A business paying me directly (check, ACH, cash, bank transfer)</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">This decides which rule and which form apply — apps, card processors, and direct payers each follow a different threshold.</p>
+        </div>
+
+        <div class="field">
+          <label for="amount">Gross amount this year ($)</label>
+          <input type="number" id="amount" inputmode="numeric" min="0" step="100" value="8000">
+          <p class="muted-small" style="margin-top:6px">Total from this one platform, processor, or payer this calendar year — gross, before fees or refunds.</p>
+        </div>
+
+        <div class="field" id="txnField">
+          <label for="transactions">Number of transactions</label>
+          <input type="number" id="transactions" inputmode="numeric" min="0" step="1" value="60">
+          <p class="muted-small" style="margin-top:6px">Only payment apps/marketplaces count transactions — count matters here in a way it doesn't for cards or direct pay.</p>
+        </div>
+
+        <div class="field" id="natureField">
+          <label for="paymentNature">What was it for?</label>
+          <select id="paymentNature">
+            <option value="business" selected>Goods & services / business income</option>
+            <option value="personal">Personal (splitting a bill, a gift, a reimbursement)</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">Personal transfers aren't income and don't trigger a form — though a platform can mistakenly tag one as goods & services.</p>
+        </div>
+
+        <div class="field" id="purposeField">
+          <label for="paymentPurpose">What was the direct payment for?</label>
+          <select id="paymentPurpose">
+            <option value="services" selected>Services / freelance or contract work (1099-NEC)</option>
+            <option value="rent_other">Rent or other income (1099-MISC)</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">Both forms share the identical dollar threshold — this only decides which form name applies.</p>
+        </div>
+
+        <div class="field">
+          <label for="state">Your state (optional)</label>
+          <select id="state"><option value="">Not sure / skip</option></select>
+          <p class="muted-small" style="margin-top:6px">A few states set their own, lower 1099-K threshold. Informational only — verify with your state.</p>
+        </div>
+      </form>
+
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+    </section>
+
+    <p class="note">For general guidance only — not tax advice. This tool checks whether a 1099 form is likely to be issued; it does not determine whether income is taxable (nearly all business, freelance, and rental income is taxable regardless of any form). State 1099-K thresholds are informational and change yearly — verify with your state's tax agency. Verify your own situation with the IRS or a tax professional.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose mythbust">
+      <h2>The myth-bust: a 1099 is paperwork, not a tax</h2>
+      <p><strong>What people fear:</strong> "I didn't get a 1099, so I guess I don't owe tax on that" — or the opposite, "I got a 1099-K, so now I owe tax I didn't before."</p>
+      <p><strong>What's actually true:</strong> A 1099 is an <strong>information return</strong> — a copy of a payment record sent to you and to the IRS. Crossing or not crossing a reporting threshold changes only whether that piece of paper gets mailed. It never changes what you owe. Freelance income, resale profit, and rental income are taxable the moment you receive them, whether or not any form ever arrives, and the IRS is explicit: "you must still report any income on your tax return." Getting a 1099-K for reselling a used couch at a loss doesn't create tax (personal-item losses aren't deductible, but they aren't taxable either); getting one for splitting a dinner bill on Venmo doesn't either (personal reimbursements aren't income) — those just need reconciling on your return, not paying.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Card vs. network: the distinction that actually matters</h2>
+      <p>Internal Revenue Code §6050W covers <strong>two</strong> kinds of transactions, and they follow completely different rules — this is the part most explainers get wrong.</p>
+      <div class="card-vs-network">
+        <p><strong>Payment CARD transactions</strong> (credit, debit, or gift card, run through a processor like Stripe, Square, Toast, or Clover) have <strong>no minimum at all</strong>. A single $0.01 charge is technically reportable. This is not a smaller version of the app rule — it's a separate rule with no de minimis.</p>
+        <p><strong>Third-party NETWORK transactions</strong> (payment apps and marketplaces: PayPal, Venmo, Cash App for Business, Etsy, eBay, Airbnb payouts) report only if a payee's gross goods-and-services payments <strong>exceed $20,000 AND</strong> the transaction count <strong>exceeds 200</strong> — both conditions, both strictly exceeded, for 2025 and 2026 alike.</p>
+      </div>
+      <p>So "Stripe will 1099 me at $20,000 like Venmo" is backwards: Stripe has no threshold, and Venmo's $20,000/200 rule doesn't apply to card processing at all.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How the 2025/2026 rules work</h2>
+      <p>The One Big Beautiful Bill Act (P.L. 119-21, signed July 2025) changed two separate reporting rules, verified against IRS Notice 2025-62.</p>
+      <p><strong>1. Form 1099-K, third-party network transactions (§6050W(e), OBBBA §70432).</strong> The $600, no-transaction-minimum rule from the 2021 American Rescue Plan Act is gone. The law restored the pre-2021 threshold: a TPSO reports only if gross goods-and-services payments to a payee <strong>exceed $20,000</strong> and the transaction count <strong>exceeds 200</strong> — full stop, both conditions. This applies to <strong>2025 and 2026 alike</strong>, and is written into the statute as retroactive to 2022. In between, IRS transition relief (Notice 2024-85) had stair-stepped the old rule down to $5,000 (2024) and $2,500 (2025) — that phase-in is now void; OBBBA erased it in favor of $20,000/200 for every year. Each platform tests its own total independently: $15,000 on PayPal plus $15,000 on Venmo triggers no 1099-K from either.</p>
+      <p><strong>2. Form 1099-K, payment card transactions (§6050W, unchanged).</strong> Card processors were never on the $600/$20,000 de minimis at all — every card payment has always been reportable, with no floor. This didn't change; it's just widely confused with the network rule above.</p>
+      <p><strong>3. Forms 1099-NEC and 1099-MISC, direct payments (§6041/§6041A, OBBBA §70433).</strong> When a business pays you directly — check, ACH, cash, bank transfer — the reporting floor rose from $600 to <strong>$2,000</strong> for payments made after December 31, 2025 (tax year 2026). Tax year 2025 payments still use the old $600 floor. From tax year 2027, the $2,000 figure is inflation-adjusted (base year 2025); the exact 2027 number isn't published yet. The inequality is "<strong>$2,000 or more</strong>" — a contractor paid exactly $2,000 in 2026 does get a form, unlike the 1099-K's strict "exceeds."</p>
+      <p><strong>4. Who issues what.</strong> If a business pays you <strong>through</strong> a card processor or a payment app instead of directly, the law shifts the filing duty to that processor or app — it issues the 1099-K, and the business is relieved of its 1099-NEC/1099-MISC duty for those dollars. You never get both forms for the same payment; how you were paid decides who's on the hook.</p>
+      <p>Thinking about the contractor side of this? See the <a href="/1099-vs-w2-calculator/">1099 vs. W-2 calculator</a> for take-home pay, or the <a href="/bonus-tax-calculator/">bonus tax calculator</a> and <a href="/w4-overtime-tips-withholding-calculator/">W-4 withholding calculator</a> if you also have a W-2 job.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>A worked example: the transaction-count trap</h2>
+      <p>Maya resells vintage clothing through an online marketplace. This year the platform paid her <strong>$30,000</strong> across <strong>150</strong> transactions.</p>
+      <ul>
+        <li><strong>Dollar test:</strong> $30,000 exceeds the $20,000 threshold. ✔</li>
+        <li><strong>Transaction test:</strong> 150 does <strong>not</strong> exceed 200. ✘</li>
+        <li><strong>Verdict:</strong> because the rule needs <strong>both</strong> conditions exceeded, Maya gets <strong>no 1099-K</strong> from the marketplace this year — even though she cleared the dollar bar by a wide margin.</li>
+        <li><strong>The catch:</strong> none of that changes her taxes. If this reselling is a business (not occasional personal-item sales), the $30,000 minus her costs is taxable self-employment income whether or not a form shows up. No 1099-K just means she has to track her own numbers instead of checking a form the IRS also received.</li>
+      </ul>
+      <p>Flip it: 250 transactions totaling $18,000 fails the <em>other</em> way — plenty of transactions, not enough dollars — and also produces no 1099-K. The count-and-dollar interaction cuts both directions, which is exactly why platforms with heavy transaction volume but modest averages (or high averages but few transactions) can surprise a seller either way.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>Does no 1099 mean no tax?</strong> No — the single biggest misread. A 1099 is paperwork the IRS also receives; it doesn't create the tax and its absence doesn't erase it. Report taxable income either way.</p>
+      <p><strong>Why doesn't Stripe follow the $20,000 rule like Venmo?</strong> Card processing and payment-app (network) transactions are two different categories under §6050W. Cards have no minimum at all; the $20,000/200 rule is exclusively for apps and marketplaces.</p>
+      <p><strong>Is $20,000/200 transactions only for 2026?</strong> No — it applies to 2025 and 2026 alike, and the statute treats it as retroactive to 2022. The $600 ARPA rule never actually reached taxpayers; OBBBA erased the phase-in that would have gotten there.</p>
+      <p><strong>When did the direct-payment threshold become $2,000?</strong> For payments made after December 31, 2025 (tax year 2026). Tax year 2025 payments still use the $600 floor.</p>
+      <p><strong>Can I get both a 1099-K and a 1099-NEC for the same money?</strong> No. How you were paid decides the issuer — a card or app payment routes to a 1099-K from the processor; a direct payment routes to a 1099-NEC/MISC from the payer. Never both.</p>
+      <p><strong>Do state thresholds matter?</strong> In a handful of states (Massachusetts, Maryland, Virginia, Vermont, D.C., Montana, North Carolina, and a few others), yes — some set a lower 1099-K bar than the federal $20,000/200. Treat this as an informational heads-up; state rules shift yearly.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your numbers never leave your browser.</p>
+      <p class="muted-small">Sources: IRS <a href="https://www.irs.gov/pub/irs-drop/n-25-62.pdf" rel="nofollow">Notice 2025-62</a> (verbatim §6050W/§6041/§6041A thresholds, OBBBA §70432/§70433, effective dates); IRS, <a href="https://www.irs.gov/businesses/understanding-your-form-1099-k" rel="nofollow">Understanding your Form 1099-K</a> (card vs. network, "still report any income"); IRS newsroom, <a href="https://www.irs.gov/newsroom/irs-issues-faqs-on-form-1099-k-threshold-under-the-one-big-beautiful-bill-dollar-limit-reverts-to-20000" rel="nofollow">1099-K threshold FAQs</a>; IRS <a href="https://www.irs.gov/pub/irs-drop/n-24-85.pdf" rel="nofollow">Notice 2024-85</a> (the now-void ARPA phase-in); Anchin, <a href="https://www.anchin.com/articles/faqs-new-1099-nec-and-1099-misc-rules-beginning-in-2026/" rel="nofollow">1099-NEC/MISC FAQ</a>; Thomson Reuters, <a href="https://tax.thomsonreuters.com/blog/state-tax-information-reporting-what-changed-in-2025-and-what-to-expect-for-2026/" rel="nofollow">state 1099-K thresholds</a>; RSM, <a href="https://rsmus.com/insights/services/business-tax/irs-updates-obbba-new-reporting-thresholds.html" rel="nofollow">OBBBA reporting-threshold summary</a>.</p>
+    </section>
+
+    <div class="note"><strong>Embed this calculator.</strong> Put this calculator on your site — free, one copy-paste snippet, no scripts from third parties. <a href="/embed/">Get the snippet</a>.</div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__FORM1099__ = {{FORM1099_JSON}};
+  window.__FORM1099_STATES__ = {{FORM1099_STATES_JSON}};
+</script>
+<script type="module" src="/assets/1099-threshold-checker.js"></script>
+</body>
+</html>
