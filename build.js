@@ -130,6 +130,7 @@ const TOOLS = [
   { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/', cat: 'money' },
   { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/', cat: 'money' },
   { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/', cat: 'money' },
+  { name: 'QCD vs. Charitable Deduction Calculator', path: '/qcd-vs-charitable-deduction-calculator/', cat: 'money' },
   { name: 'Dependent Care FSA vs. Child Care Credit Calculator', path: '/dependent-care-fsa-vs-credit-calculator/', cat: 'money' },
   { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/', cat: 'money' },
   { name: 'Mandatory Roth Catch-Up Calculator', path: '/roth-catchup-calculator/', cat: 'money' },
@@ -232,6 +233,7 @@ const TOOL_DESCRIPTIONS = {
   '/salt-cap-calculator/': 'See your allowed SALT deduction under the 2025 law\'s $40,000 cap — with the high-income phase-down, the itemize-vs-standard check, and your saving vs the old $10,000 cap.',
   '/car-loan-interest-calculator/': 'See how much of your new-car loan interest is deductible under the 2025 law (up to $10,000/yr, 2025–2028) — with the income phase-out and what it really saves you.',
   '/charitable-deduction-calculator/': 'See your charitable deduction under the 2026 law: the permanent $1,000/$2,000 non-itemizer deduction, the 0.5%-of-AGI floor for itemizers, the 35%-cap in the top bracket, and what it saves — without claiming it lowers your AGI (it does not).',
+  '/qcd-vs-charitable-deduction-calculator/': "70½+? Compare a Qualified Charitable Distribution (excluded from income entirely, up to $111,000 in 2026) against taking the IRA distribution and claiming a charitable deduction instead. See the real AGI and federal-tax difference — including the case where they tie.",
   '/dependent-care-fsa-vs-credit-calculator/': 'Max the 2026 $7,500 Dependent Care FSA or take the Child & Dependent Care Credit? It\'s one or the other — maxing the FSA zeroes the credit. See both scenarios side by side, the dollar difference, and which wins for your income (MFS-aware; the credit is nonrefundable).',
   '/w4-overtime-tips-withholding-calculator/': 'Turn the no-tax-on-tips / no-tax-on-overtime deduction into bigger paychecks now: see what to enter on your 2026 Form W-4 Step 4(b) (lines 1a/1b) and the extra take-home per paycheck, instead of waiting for a refund.',
   '/roth-catchup-calculator/': 'Earn over $150,000? See if the 2026 SECURE 2.0 rule forces your 401(k) catch-up into Roth (after-tax), what that costs this year, and the Roth-vs-pre-tax break-even.',
@@ -316,6 +318,7 @@ const RELATED_OVERRIDES = {
     { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' }
   ],
   '/charitable-deduction-calculator/': [
+    { name: 'QCD vs. Charitable Deduction Calculator', path: '/qcd-vs-charitable-deduction-calculator/' },
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
     { name: 'Dependent Care FSA vs. Child Care Credit Calculator', path: '/dependent-care-fsa-vs-credit-calculator/' },
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
@@ -323,6 +326,16 @@ const RELATED_OVERRIDES = {
     { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
     { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
     { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
+    { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' }
+  ],
+  '/qcd-vs-charitable-deduction-calculator/': [
+    { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
+    { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
+    { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
+    { name: '401(k) Retirement Calculator', path: '/401k-calculator/' },
+    { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/' },
+    { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' },
+    { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' }
   ],
   '/dependent-care-fsa-vs-credit-calculator/': [
@@ -346,6 +359,7 @@ const RELATED_OVERRIDES = {
     { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' }
   ],
   '/senior-deduction-calculator/': [
+    { name: 'QCD vs. Charitable Deduction Calculator', path: '/qcd-vs-charitable-deduction-calculator/' },
     { name: 'Mandatory Roth Catch-Up Calculator', path: '/roth-catchup-calculator/' },
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
@@ -2023,6 +2037,8 @@ async function main() {
   const embedCarLoanTpl = await read(join(SRC, 'templates', 'embed', 'car-loan-interest-calculator.html'));
   const charitableTpl = await read(join(SRC, 'templates', 'charitable-deduction-calculator.html'));
   const embedCharitableTpl = await read(join(SRC, 'templates', 'embed', 'charitable-deduction-calculator.html'));
+  const qcdTpl = await read(join(SRC, 'templates', 'qcd-vs-charitable-deduction-calculator.html'));
+  const embedQcdTpl = await read(join(SRC, 'templates', 'embed', 'qcd-vs-charitable-deduction-calculator.html'));
   const depCareTpl = await read(join(SRC, 'templates', 'dependent-care-fsa-vs-credit-calculator.html'));
   const embedDepCareTpl = await read(join(SRC, 'templates', 'embed', 'dependent-care-fsa-vs-credit-calculator.html'));
   const w4OtTipsTpl = await read(join(SRC, 'templates', 'w4-overtime-tips-withholding-calculator.html'));
@@ -2268,6 +2284,8 @@ async function main() {
   await cp(join(SRC, 'assets', 'salt-cap-calculator.js'), join(DIST, 'assets', 'salt-cap-calculator.js'));
   await cp(join(SRC, 'assets', 'car-loan-interest-calculator.js'), join(DIST, 'assets', 'car-loan-interest-calculator.js'));
   await cp(join(SRC, 'assets', 'charitable-deduction-calculator.js'), join(DIST, 'assets', 'charitable-deduction-calculator.js'));
+  await cp(join(SRC, 'engine', 'qcd-comparison.js'), join(DIST, 'assets', 'qcd-comparison.js'));
+  await cp(join(SRC, 'assets', 'qcd-vs-charitable-deduction-calculator.js'), join(DIST, 'assets', 'qcd-vs-charitable-deduction-calculator.js'));
   await cp(join(SRC, 'engine', 'dependent-care.js'), join(DIST, 'assets', 'dependent-care.js'));
   await cp(join(SRC, 'assets', 'dependent-care-fsa-vs-credit-calculator.js'), join(DIST, 'assets', 'dependent-care-fsa-vs-credit-calculator.js'));
   await cp(join(SRC, 'assets', 'w4-overtime-tips-withholding-calculator.js'), join(DIST, 'assets', 'w4-overtime-tips-withholding-calculator.js'));
@@ -3195,6 +3213,22 @@ async function main() {
   );
   urls.push(`${SITE.url}/ss-wage-base-calculator/`);
 
+  // QCD (Qualified Charitable Distribution, IRC §408(d)(8)) vs. take-the-
+  // distribution-and-deduct-it calculator. NOT an OBBBA provision (predates the
+  // 2025 law; permanent) but shares the tax-parameter store (federal.qcd, sibling
+  // of federal.charitable) and REUSES charitableComparison for the entire
+  // take-and-deduct side via the new qcd-comparison.js orchestrator — it does not
+  // reimplement the §170(p)/floor/§68 math. Genuinely new: the QCD annual-limit
+  // lookup + partial-QCD split, the age-70½ gate (distinct from RMD age 73), the
+  // account-type guard, and the age-65+ standard-deduction addition (the shipped
+  // charitable engine only ever reads the BASE standard deduction).
+  await mkdir(join(DIST, 'qcd-vs-charitable-deduction-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'qcd-vs-charitable-deduction-calculator', 'index.html'),
+    fillTool(qcdTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON }, '/qcd-vs-charitable-deduction-calculator/')
+  );
+  urls.push(`${SITE.url}/qcd-vs-charitable-deduction-calculator/`);
+
   // OBBBA "which states still tax overtime in 2026" DATA STUDY (/data/overtime-tax-by-state/).
   // A citable, author-bylined data asset for the journalist link sprint. The table is
   // rendered server-side from the SAME sourced obbba dataset the calculators use, so the
@@ -3436,6 +3470,8 @@ async function main() {
   await writeFile(join(DIST, 'embed', 'car-loan-interest-calculator', 'index.html'), fillEmbed(embedCarLoanTpl));
   await mkdir(join(DIST, 'embed', 'charitable-deduction-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'charitable-deduction-calculator', 'index.html'), fillEmbed(embedCharitableTpl));
+  await mkdir(join(DIST, 'embed', 'qcd-vs-charitable-deduction-calculator'), { recursive: true });
+  await writeFile(join(DIST, 'embed', 'qcd-vs-charitable-deduction-calculator', 'index.html'), fillEmbed(embedQcdTpl));
   // Dependent-care embed needs the fica-inclusive fed JSON (DC_FED_JSON) + DC_JSON,
   // which the shared embedMap doesn't carry — use a dedicated map. Function-form
   // replace keeps '$'/'§' in the injected JSON literal intact.

@@ -371,6 +371,45 @@
           "url": "https://www.gunster.com/newsroom/publications/the-new-2-37-rule-and-how-it-will-affect-your-taxes"
         }
       ]
+    },
+    "qcd": {
+      "statute": "IRC §408(d)(8) 'Distributions for charitable purposes' (qualified charitable distributions). Annual limit inflation-indexed under §408(d)(8)(A) flush language + §1(f)(3) since 2024. NOT an OBBBA provision; permanent.",
+      "permanent": true,
+      "indexed": true,
+      "annualLimitBaseYear2023": 100000,
+      "annualLimitByYear": { "2024": 105000, "2025": 108000, "2026": 111000 },
+      "splitInterestOneTimeByYear": { "2024": 53000, "2025": 54000, "2026": 55000 },
+      "ageEligible": 70.5,
+      "rmdAge2023plus": 73,
+      "perPersonNotPerReturn": true,
+      "excludedFromGrossIncome": true,
+      "reducesAgi": true,
+      "noSeparateDeduction": true,
+      "notSubjectToWithholding": true,
+      "withholdingCite": "deemed elected out under §3405(a)(2)",
+      "eligibleAccounts": ["traditional_ira", "roth_ira_rarely_useful", "inactive_sep_ira", "inactive_simple_ira"],
+      "ineligibleAccounts": ["401k", "403b", "457", "ongoing_sep_ira", "ongoing_simple_ira"],
+      "eligibleOrgs": "section 170(b)(1)(A) public charities",
+      "excludedOrgs": ["donor_advised_funds", "private_non_operating_foundations", "section_509(a)(3)_supporting_orgs"],
+      "directTrusteeToCharityRequired": true,
+      "entireGiftMustBe100pctDeductible": true,
+      "taxablePortionFirst": true,
+      "post70HalfDeductibleContributionOffset": true,
+      "ageStandardDeductionAddition": {
+        "_source": "IRC §63(f) pre-existing additional standard deduction for age 65+ (distinct from the OBBBA §151(d)(5)(C) $6,000 senior bonus modeled separately in federal.senior — the two are NOT the same and must not be double-counted). 2026 figures per Rev. Proc. 2025-32, cross-verified against Kiplinger 'The Extra Standard Deduction for 65 and Older', nationaltaxtools.com, and ourtaxpartner.com (all converge on $2,050 / $1,650): increased from $2,000 (2025) to $2,050 (2026) single/HoH/MFS/QSS, and from $1,600 (2025) to $1,650 (2026) per qualifying spouse for a joint return.",
+        "byYear": {
+          "2025": { "single": 2000, "head_of_household": 2000, "married_separate": 2000, "qss": 2000, "marriedPerSpouse": 1600 },
+          "2026": { "single": 2050, "head_of_household": 2050, "married_separate": 2050, "qss": 2050, "marriedPerSpouse": 1650 }
+        }
+      },
+      "qualifies": "A QCD lets an IRA owner age 70½+ send up to $111,000 (2026; indexed, per person) directly from the IRA trustee to a §170(b)(1)(A) public charity. The amount is EXCLUDED from gross income (§408(d)(8)(A) 'shall not be includible in gross income') — it never enters AGI, and no separate charitable deduction is allowed (no double-dip). It counts toward that year's RMD (RMD age is 73 under SECURE 2.0, so QCDs are available ~2.5 years before RMDs begin). Must go DIRECTLY from the trustee to the charity — NOT a donor-advised fund, private foundation, or §509(a)(3) supporting organization — and the entire gift must otherwise be 100% deductible under §170 (no return benefit). From an IRA only (not a 401(k); not an ongoing SEP/SIMPLE). Not subject to federal withholding (deemed elected out under §3405(a)(2)). The excludable amount is reduced by post-70½ deducted IRA contributions.",
+      "sources": [
+        { "claim": "2026 annual QCD limit $108,000 → $111,000; one-time split-interest $54,000 → $55,000.", "url": "https://www.irs.gov/pub/irs-drop/n-25-67.pdf" },
+        { "claim": "§408(d)(8): 'shall not be includible in gross income'; age 70½ 'attained'; direct-by-trustee to §170(b)(1)(A) org OTHER THAN a §509(a)(3) supporting org or §4966(d)(2) DAF; entire distribution must be allowable as a §170 deduction; $100,000/$50,000 base amounts indexed after 2023.", "url": "https://www.law.cornell.edu/uscode/text/26/408" },
+        { "claim": "Pub 590-B QCD mechanics: 'at least age 70½ when the distribution is made'; 'made directly by the trustee of your IRA (other than an ongoing SEP or SIMPLE IRA)'; 'A QCD will count towards your required minimum distribution'; maximum annual exclusion $108,000 (2025) / $111,000 (subsequent-year worksheet); taxable-portion-first; post-70½ deductible-contribution offset; RMD 'Age 73 for tax years 2023 and later'.", "url": "https://www.irs.gov/pub/irs-pdf/p590b.pdf" },
+        { "claim": "A QCD is not subject to federal withholding — deemed to have elected out under §3405(a)(2); normal IRA distributions default to 10% (waivable via Form W-4R).", "url": "https://www.northerntrust.com/united-states/institute/articles/withholding-from-ira-qualified-plan-distributions" },
+        { "claim": "2026 additional standard deduction for age 65+: $2,050 single/HoH (up from $2,000); $1,650 per qualifying spouse MFJ (up from $1,600), per Rev. Proc. 2025-32.", "url": "https://www.kiplinger.com/taxes/extra-standard-deduction-age-65-and-older" }
+      ]
     }
   },
   "states": {
