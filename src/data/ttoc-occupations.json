@@ -1,0 +1,157 @@
+{
+  "_meta": {
+    "preparedFrom": "docs/w2-decoder-spec.md (sourced spec, 2026-07-12)",
+    "sourceOfRecord": "26 CFR 1.224-1, Table 1 to paragraph (h), fetched from eCFR (codified text governs; FR preamble used for rulemaking history only)",
+    "notes": "Spec 8 open uncertainty 2: a pre-launch re-check should diff the eCFR table row-by-row against the govinfo.gov FR PDF before major reuse. Category counts verified: 10+11+4+9+10+11+6+10 = 71."
+  },
+  "source": "26 CFR 1.224-1, Table 1 to paragraph (h)",
+  "sourceUrl": "https://www.ecfr.gov/current/title-26/section-1.224-1",
+  "finalRule": {
+    "doc": "Federal Register Doc. 2026-07104 (TD 10044, RIN 1545-BR63), 91 FR 19026",
+    "publishedDate": "2026-04-13",
+    "effectiveDate": "2026-06-12",
+    "applicability": "taxable years beginning after December 31, 2024 (deduction runs 2025-2028 per IRC 224(h))"
+  },
+  "finalRuleAdditions": ["509", "510", "810"],
+  "rejectedOccupations": [
+    {
+      "label": "Retail cashiers",
+      "tokens": ["retail", "cashier", "store", "shop", "clerk", "checkout"],
+      "explanation": "Retail cashiers are not a listed occupation. In the final rule the Treasury Department and IRS found that self-identified cashiers who received tips were actually working in roles already covered by Fast Food and Counter Workers (code 107) or Hotel, Motel, and Resort Desk Clerks (code 303), so no separate cashier category was added.",
+      "didYouMean": ["107", "303"]
+    },
+    {
+      "label": "Accountants",
+      "tokens": ["accountant", "accounting", "cpa", "bookkeeper"],
+      "explanation": "Accountants were considered and not included in the final list — the Treasury Department and IRS found no supporting tip-income data for the occupation. Tips received in a non-listed occupation are still taxable as usual, but they do not qualify for the federal tips deduction."
+    },
+    {
+      "label": "Tax preparers",
+      "tokens": ["tax", "preparer"],
+      "explanation": "Tax preparers were considered and not included in the final list for lack of supporting tip-income data. Tips received in a non-listed occupation do not qualify for the federal tips deduction."
+    },
+    {
+      "label": "Chiropractors",
+      "tokens": ["chiropractor", "chiropractic"],
+      "explanation": "Chiropractors were considered and not included in the final list for lack of supporting tip-income data. Tips received in a non-listed occupation do not qualify for the federal tips deduction."
+    },
+    {
+      "label": "Concert merchandise sellers",
+      "tokens": ["concert", "merchandise", "merch", "seller"],
+      "explanation": "Concert merchandise sellers were considered and not included in the final list for lack of supporting tip-income data. Tips received in a non-listed occupation do not qualify for the federal tips deduction."
+    }
+  ],
+  "categories": [
+    {
+      "name": "Beverage and Food Service",
+      "occupations": [
+        {"code": "101", "title": "Bartenders", "description": "Mix and serve drinks or other refreshments to patrons, directly or through waitstaff", "examples": "Barkeep, mixologist, taproom attendant, sommelier", "soc": "35-3011"},
+        {"code": "102", "title": "Wait Staff", "description": "Take orders and serve food and beverages to patrons at tables in dining establishments or at catered events", "examples": "Cocktail waitress, dining car server, banquet staff", "soc": "35-3031"},
+        {"code": "103", "title": "Food or Beverage Servers, Non-restaurant", "description": "Serve food or beverages to individuals outside of a restaurant environment, such as in hotel rooms, residential care facilities, or cars", "examples": "Room service food server, boat hop, beer cart server", "soc": "35-3041"},
+        {"code": "104", "title": "Dining Room and Cafeteria Attendants and Bartender Helpers", "description": "Facilitate food service. Clean tables; remove dirty dishes; replace soiled table linens; set tables; replenish supply of clean linens, silverware, glassware, and dishes; supply service bar with food; and serve items such as water, condiments, and coffee to patrons", "examples": "Bar back, bar helper, busser", "soc": "35-9011"},
+        {"code": "105", "title": "Chefs and Cooks", "description": "Direct and may participate in the preparation, seasoning, and cooking of salads, soups, fish, meats, vegetables, desserts, or other foods", "examples": "Executive chef, pastry chef, sous chef, fast food cook, private chef, restaurant cook, saucier, food truck cook, banquet cook, caterer, chocolatier, confectioner", "soc": "35-1011, 35-2011, 35-2013, 35-2014, 35-2019"},
+        {"code": "106", "title": "Food Preparation Workers", "description": "Perform a variety of food preparation duties other than cooking, such as preparing cold foods and shellfish, slicing meat, and brewing coffee or tea", "examples": "Salad maker, sandwich maker, fruit and vegetable parer, kitchen steward", "soc": "35-1012, 35-2021, 35-9099"},
+        {"code": "107", "title": "Fast Food and Counter Workers", "description": "Serve customers at counter or from a steam table. Perform duties such as taking orders and serving food and beverages. May take payment. May prepare food and beverages", "examples": "Barista, ice cream server, cafeteria server", "soc": "35-3023"},
+        {"code": "108", "title": "Dishwashers", "description": "Clean dishes, kitchen, food preparation equipment, or utensils", "examples": "Dish room worker, silverware cleaner", "soc": "35-9021"},
+        {"code": "109", "title": "Host Staff, Restaurant, Lounge, and Coffee Shop", "description": "Welcome patrons, seat them at tables or in lounge, and help ensure quality of facilities and service", "examples": "Maître d'hôtel, dining room host", "soc": "35-9031"},
+        {"code": "110", "title": "Bakers", "description": "Mix and bake ingredients to produce breads, rolls, cookies, cakes, pies, pastries, or other baked goods", "examples": "Bread baker, cake baker, bagel baker, pastry finisher", "soc": "51-3011"}
+      ]
+    },
+    {
+      "name": "Entertainment and Events",
+      "occupations": [
+        {"code": "201", "title": "Gambling Dealers", "description": "Operate gambling games. Stand or sit behind table and operate games of chance by dispensing the appropriate number of cards or blocks to players or operating other gambling equipment. Distribute winnings or collect players' money or chips. May compare the house's hand against players' hands", "examples": "Blackjack dealer, craps dealer, poker dealer, roulette dealer, pit clerk", "soc": "39-3011, 39-1013"},
+        {"code": "202", "title": "Gambling Change Persons and Booth Cashiers", "description": "Exchange coins, tokens, and chips for patrons' money. May issue payoffs and obtain customer's signature on receipt. May operate a booth in the slot machine area and furnish change persons with money bank at the start of the shift, or count and audit money in drawers", "examples": "Slot attendant, mutuel teller", "soc": "41-2012"},
+        {"code": "203", "title": "Gambling Cage Workers", "description": "In a gambling establishment, conduct financial transactions for patrons. Accept patron's credit application and verify credit references to provide check-cashing authorization or to establish house credit accounts. May reconcile daily summaries of transactions to balance books. May sell gambling chips, tokens, or tickets to patrons, or to other workers for resale to patrons. May convert gambling chips, tokens, or tickets to currency upon patron's request. May use a cash register or computer to record transaction", "examples": "Casino cashier, cage cashier", "soc": "43-3041"},
+        {"code": "204", "title": "Gambling and Sports Book Writers and Runners", "description": "Post information enabling patrons to wager on various races and sporting events. Assist in the operation of games such as keno and bingo. May operate random number-generating equipment and announce the numbers for patrons. Receive, verify, and record patrons' wagers. Scan and process winning tickets presented by patrons and pay out winnings for those wagers", "examples": "Betting runner, bingo worker, keno runner, race book writer", "soc": "39-3012"},
+        {"code": "205", "title": "Dancers", "description": "Perform dances", "examples": "Club dancer, dance artist", "soc": "27-2031"},
+        {"code": "206", "title": "Musicians and Singers", "description": "Play one or more musical instruments or sing", "examples": "Instrumentalist, accompanist, lounge singer", "soc": "27-2042"},
+        {"code": "207", "title": "Disc Jockeys, Except Radio", "description": "Play prerecorded music for live audiences at venues or events such as clubs, parties, or wedding receptions. May use techniques such as mixing, cutting, or sampling to manipulate recordings. May also perform as emcee (master of ceremonies)", "examples": "Deejay, club DJ", "soc": "27-2091"},
+        {"code": "208", "title": "Entertainers and Performers", "description": "Entertain audiences with artistic expression", "examples": "Comedian, clown, magician, street performer", "soc": "27-2099"},
+        {"code": "209", "title": "Digital Content Creators", "description": "Produce and publish on digital platforms original entertainment and personality-driven content, such as live streams, short-form videos, or podcasts", "examples": "Streamer, online video creator, social media influencer, podcaster", "soc": "27-2099"},
+        {"code": "210", "title": "Ushers, Lobby Attendants, and Ticket Takers", "description": "Assist patrons at entertainment events by performing duties, such as collecting admission tickets and passes from patrons, assisting in finding seats, searching for lost articles, and helping patrons locate such facilities as restrooms and telephones", "examples": "Ticket collector, theater usher", "soc": "39-3031"},
+        {"code": "211", "title": "Locker Room, Coatroom, and Dressing Room Attendants", "description": "Provide personal items to patrons or customers in locker rooms, dressing rooms, or coatrooms", "examples": "Coat checker, washroom attendant, bathhouse attendant", "soc": "39-3093"}
+      ]
+    },
+    {
+      "name": "Hospitality and Guest Services",
+      "occupations": [
+        {"code": "301", "title": "Baggage Porters and Bellhops", "description": "Handle baggage for travelers at transportation terminals or for guests at hotels or similar establishments", "examples": "Hotel baggage handler, curbside airport check-in assistant, doorman", "soc": "39-6011"},
+        {"code": "302", "title": "Concierges", "description": "Assist patrons at hotels or apartment buildings with personal services. May take messages; arrange or give advice on transportation, business services, or entertainment; or monitor guest requests for housekeeping and maintenance", "examples": "Hotel guest service agent, activities concierge", "soc": "39-6012"},
+        {"code": "303", "title": "Hotel, Motel, and Resort Desk Clerks", "description": "Accommodate hotel, motel, and resort patrons by registering and assigning rooms to guests, issuing room keys or cards, transmitting and receiving messages, keeping records of occupied rooms and guests' accounts, making and confirming reservations, and presenting statements to and collecting payments from departing guests", "examples": "Front desk clerk, registration clerk", "soc": "43-4081"},
+        {"code": "304", "title": "Maids and Housekeeping Cleaners", "description": "Perform any combination of light cleaning duties to maintain commercial establishments, such as hotels, in a clean and orderly manner. Duties may include making beds, replenishing linens, cleaning rooms and halls, and vacuuming", "examples": "Hotel maid, housekeeping staff", "soc": "37-2012"}
+      ]
+    },
+    {
+      "name": "Home Services",
+      "occupations": [
+        {"code": "401", "title": "Home Maintenance and Repair Workers", "description": "Perform work to keep machines, mechanical equipment, or the structure of a building in repair. May maintain and repair musical instruments, furniture, antiques, and non-fixtures", "examples": "Handyman, roofer, window repairer, house painter (interior or exterior), flooring installer, piano tuner, furniture restorer, antique repairer", "soc": "49-9071, 49-9098, 49-9099, 49-9063, 49-2097, 51-7021"},
+        {"code": "402", "title": "Home Landscaping and Groundskeeping Workers", "description": "Landscape or maintain grounds of property using hand or power tools or equipment. Workers typically perform a variety of tasks, which may include any combination of the following: sod laying, mowing, trimming, planting, watering, fertilizing, digging, raking, sprinkler installation, and installation of mortarless segmental concrete masonry wall units", "examples": "Lawn mower, gardener, tree trimmer, weed sprayer", "soc": "37-3011"},
+        {"code": "403", "title": "Home Electricians", "description": "Install, maintain, and repair electrical wiring, equipment, and fixtures. Ensure that work is in accordance with relevant codes. May install or service exterior lights, intercom systems, or electrical control systems", "examples": "Electrician", "soc": "47-2111"},
+        {"code": "404", "title": "Home Plumbers", "description": "Assemble, install, alter, and repair pipelines or pipe systems that carry water, steam, air, or other liquids or gases. May install heating and cooling equipment and mechanical control systems", "examples": "Plumber, pipefitter, steamfitter, sprinkler installer", "soc": "47-2152"},
+        {"code": "405", "title": "Home Heating and Air Conditioning Mechanics and Installers", "description": "Install or repair heating, central air conditioning, HVAC, or refrigeration systems, including oil burners, hot-air furnaces, and heating stoves", "examples": "Air conditioning repairer, heating system installer, chimney sweep", "soc": "49-9021"},
+        {"code": "406", "title": "Home Appliance Installers and Repairers", "description": "Repair, adjust, or install all types of electric or gas household appliances, such as refrigerators, washers, dryers, and ovens", "examples": "Washing machine installer, dishwasher repairer", "soc": "49-9031"},
+        {"code": "407", "title": "Home Cleaning Service Workers", "description": "Perform any combination of light cleaning duties to maintain private households in a clean and orderly manner. Duties may include making beds, replenishing linens, cleaning rooms and halls, and vacuuming", "examples": "House cleaner, pool cleaner, carpet cleaner, window washer", "soc": "37-2012"},
+        {"code": "408", "title": "Locksmiths", "description": "Repair and open locks, make keys, change locks and safe combinations, and install and repair safes", "examples": "Safe installer, key maker", "soc": "49-9094"},
+        {"code": "409", "title": "Roadside Assistance Workers", "description": "Provide on-road assistance to drivers whose vehicles have broken down", "examples": "Tow truck driver, car battery technician, tire repairer, tire changer, car fuel deliverer", "soc": "49-3023, 53-3032"}
+      ]
+    },
+    {
+      "name": "Personal Services",
+      "occupations": [
+        {"code": "501", "title": "Personal Care and Service Workers", "description": "Provide personalized assistance to individuals with disabilities or illness who require help with personal care and activities of daily living support (for example, feeding, bathing, dressing, grooming, toileting, and ambulation). May also provide help with tasks such as preparing meals, doing light housekeeping, and doing laundry. Work is performed in various settings depending on the needs of the care recipient and may include locations such as their home, place of work, out in the community, at a daytime nonresidential facility, or a residential facility", "examples": "Elderly companion, personal care aide, butler, house sitter, personal valet", "soc": "31-1122, 39-9099"},
+        {"code": "502", "title": "Private Event Planners", "description": "Coordinate activities of staff or clients to make arrangements for private events. May provide creative design for décor and invitations", "examples": "Wedding planner, party planner", "soc": "13-1121"},
+        {"code": "503", "title": "Private Event and Portrait Photographers", "description": "Photograph people, landscapes, or other subjects. May use lighting equipment to enhance a subject's appearance. May use editing software to produce finished images and prints", "examples": "Wedding photographer, headshot photographer", "soc": "27-4021"},
+        {"code": "504", "title": "Private Event Videographers", "description": "Operate video or film camera to record images or scenes of private events", "examples": "Wedding videographer", "soc": "27-4031"},
+        {"code": "505", "title": "Event Officiants", "description": "Lead and facilitate the ceremony for life events such as weddings or funerals. Ceremonies may be religious or civil services", "examples": "Wedding officiant, funeral celebrant, clergy, vow renewal officiant", "soc": "21-2011"},
+        {"code": "506", "title": "Pet and Show Animal Caretakers", "description": "Feed, water, groom, bathe, exercise, or otherwise provide care to promote and maintain the well-being of pets or show animals", "examples": "Pet groomer, pet sitter, pet walker, kennel worker, pet trainer, horse groomer", "soc": "39-2021"},
+        {"code": "507", "title": "Tutors", "description": "Instruct individual students or small groups of students in academic subjects to supplement formal class instruction or to prepare students for standardized or admissions tests. May provide instruction in person or remotely", "examples": "Reading tutor, math tutor, language tutor", "soc": "25-3041"},
+        {"code": "508", "title": "Nannies and Babysitters", "description": "Attend to children at businesses and private households. Perform a variety of tasks, such as dressing, feeding, bathing, and overseeing play", "examples": "Au pair, child sitter at hotels and gyms", "soc": "39-9011"},
+        {"code": "509", "title": "Visual Artists", "description": "Create original visual artwork using any of a wide variety of media and techniques", "examples": "Ice sculptor, caricature sketch artist", "soc": "27-1013", "addedInFinalRule": true},
+        {"code": "510", "title": "Floral Designers", "description": "Design, cut, and arrange live, dried, or artificial flowers and foliage", "examples": "Corsage maker, florist, flower arranger, event florist", "soc": "27-1023", "addedInFinalRule": true}
+      ]
+    },
+    {
+      "name": "Personal Appearance and Wellness",
+      "occupations": [
+        {"code": "601", "title": "Skincare Specialists", "description": "Provide skincare treatments to face and body to enhance an individual's appearance", "examples": "Facialist, electrologist, spa esthetician", "soc": "39-5094"},
+        {"code": "602", "title": "Massage Therapists", "description": "Perform therapeutic massages of soft tissues and joints. May assist in the assessment of range of motion and muscle strength or propose client therapy plans", "examples": "Masseuse, deep tissue massage therapist, sports massage therapist", "soc": "31-9011"},
+        {"code": "603", "title": "Barbers, Hairdressers, Hairstylists, and Cosmetologists", "description": "Provide beauty or barbering services, such as cutting, coloring, and styling hair, massaging and treating scalps, trimming beards or giving shaves", "examples": "Wig stylist, beautician, hair colorist, hair cutter", "soc": "39-5012, 39-5011"},
+        {"code": "604", "title": "Shampooers", "description": "Shampoo and rinse customers' hair", "examples": "Scalp treatment specialist, shampoo assistant", "soc": "39-5093"},
+        {"code": "605", "title": "Manicurists and Pedicurists", "description": "Clean and shape customers' fingernails and toenails. May polish or decorate nails", "examples": "Nail technician, fingernail sculptor, nail painter", "soc": "39-5092"},
+        {"code": "606", "title": "Eyebrow and Eyelash Technicians", "description": "Enhance and maintain clients' eyebrows using techniques such as threading, waxing, or tweezing. Enhance clients' eyelashes using techniques such as tinting or applying extensions", "examples": "Eyebrow waxer", "soc": "39-5012"},
+        {"code": "607", "title": "Makeup Artists", "description": "Design and apply makeup looks", "examples": "Wedding makeup artist, party makeup artist", "soc": "39-5091"},
+        {"code": "608", "title": "Exercise Trainers and Group Fitness Instructors", "description": "Instruct or coach groups or individuals in exercise activities for the primary purpose of personal fitness. Demonstrate techniques and form, observe participants, and explain to them corrective measures necessary to improve their skills. Develop and implement individualized approaches to exercise", "examples": "Aerobics trainer, yoga instructor, personal trainer", "soc": "39-9031"},
+        {"code": "609", "title": "Tattoo Artists and Piercers", "description": "Design and execute tattoos on a client's skin, often using a needle and ink. Create openings in the human body for the insertion of jewelry. May consult clients on aftercare to promote healing and prevent infection", "examples": "Tattoo artist, ear piercer, nose piercer", "soc": "27-1019"},
+        {"code": "610", "title": "Tailors", "description": "Design, make, alter, repair, or fit garments", "examples": "Tailor, seamstress, clothing alterations worker", "soc": "51-6052"},
+        {"code": "611", "title": "Shoe and Leather Workers and Repairers", "description": "Construct, decorate, or repair leather and leather-like products, such as luggage, shoes, and saddles. May use hand tools", "examples": "Cobbler, shoe shiner", "soc": "51-6041"}
+      ]
+    },
+    {
+      "name": "Recreation and Instruction",
+      "occupations": [
+        {"code": "701", "title": "Golf Caddies", "description": "Assist a golfer during a round of golf by providing practical support and strategic advice. May carry the golfer's bag, manage their clubs, offer guidance on club selection or course strategy", "examples": "Golf caddie, golf cart attendant", "soc": "39-3091"},
+        {"code": "702", "title": "Self-Enrichment Teachers", "description": "Teach or instruct individuals or groups for the primary purpose of self-enrichment, rather than for an occupational objective, educational attainment, competition, or fitness", "examples": "Knitting instructor, piano teacher, art instructor, dance teacher", "soc": "25-3021"},
+        {"code": "703", "title": "Recreational and Tour Pilots", "description": "Pilot and navigate the flight of fixed-wing aircraft, helicopters, or other airborne vehicle for recreational or touring purposes. Excludes regional, national, and international airline pilots, and emergency services pilots", "examples": "Helicopter tour pilot, hot air balloon aeronaut, skydiving pilot", "soc": "53-2012"},
+        {"code": "704", "title": "Tour Guides", "description": "Guide individuals or groups on sightseeing tours or through places of interest, such as industrial establishments, public buildings, and art galleries", "examples": "Museum guide, sightseeing guide", "soc": "39-7011"},
+        {"code": "705", "title": "Travel Guides", "description": "Plan, organize, and conduct long-distance travel, tours, and expeditions for individuals and groups (covering both indoor and outdoor locations)", "examples": "Cruise director, river expedition guide", "soc": "39-7012"},
+        {"code": "706", "title": "Sports and Recreation Instructors", "description": "Teach or instruct individuals or groups for the primary purpose of recreation, rather than for an occupational objective, educational attainment, competition, or fitness", "examples": "Diving instructor, ski instructor, tennis teacher, surfing instructor", "soc": "25-3021"}
+      ]
+    },
+    {
+      "name": "Transportation and Delivery",
+      "occupations": [
+        {"code": "801", "title": "Parking and Valet Attendants", "description": "Park vehicles or issue tickets for customers in a parking lot or garage. May park or tend vehicles in environments such as a hotel or restaurant. May collect fee", "examples": "Parking garage attendant, valet parker", "soc": "53-6021"},
+        {"code": "802", "title": "Taxi and Rideshare Drivers and Chauffeurs", "description": "Drive a motor vehicle to transport passengers on a planned or unplanned basis", "examples": "Cab driver, personal driver, platform/app-based rideshare driver", "soc": "53-3054"},
+        {"code": "803", "title": "Shuttle Drivers", "description": "Drive a motor vehicle to transport passengers on a planned route and scheduled basis. May collect a fare. Excludes taxi and rideshare drivers, chauffeurs, municipal bus drivers, and school bus drivers", "examples": "Airport shuttle driver, hotel shuttle driver, rental car shuttle driver", "soc": "53-3053"},
+        {"code": "804", "title": "Goods Delivery People", "description": "Drive truck or other vehicle to deliver goods, such as food products, appliances, or furniture, or pick up or deliver packages. May also take orders or collect payment at point of delivery", "examples": "Pizza delivery driver, grocery delivery driver, floral delivery, bicycle courier, package delivery person, appliance delivery driver, furniture delivery person, app/platform-based delivery person", "soc": "53-3031"},
+        {"code": "805", "title": "Personal Vehicle and Equipment Cleaners", "description": "Wash or otherwise clean personal vehicles, machinery, and other equipment. Use such materials as water, cleaning agents, brushes, cloths, and hoses", "examples": "Car wash attendant, auto detailer, boat waxer", "soc": "53-7061"},
+        {"code": "806", "title": "Private and Charter Bus Drivers", "description": "Drive bus or motor coach for charters or private carriage. May assist passengers with baggage", "examples": "Motor coach bus driver, tour bus driver", "soc": "53-3052"},
+        {"code": "807", "title": "Water Taxi Operators and Charter Boat Workers", "description": "Operate water taxi boats or provide services to passengers on private charter boats. May assist in navigational activities", "examples": "Water taxi captain, air boat operator, charter boat deckhand, charter boat steward", "soc": "53-5022"},
+        {"code": "808", "title": "Rickshaw, Pedicab, and Carriage Drivers", "description": "Operate rickshaw, pedicab, or carriage to transport passengers", "examples": "Horse drawn carriage driver, bike taxi driver", "soc": "53-6099"},
+        {"code": "809", "title": "Home Movers", "description": "Manually move furniture, music instruments, art, antiques, boxes, luggage, or other materials to or from a home or dwelling", "examples": "Furniture mover, packer, piano mover, art mover", "soc": "53-7062"},
+        {"code": "810", "title": "Gas Pump Attendant", "description": "Pump gas for customers at a gas station. May also clean the windshield, check the oil level, or check the tire pressure of the customer's car in conjunction with the car being refueled", "examples": "Gas pumper", "soc": "53-6031", "addedInFinalRule": true}
+      ]
+    }
+  ]
+}

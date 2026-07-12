@@ -159,7 +159,7 @@ the source you're comparing against — it helps us verify and fix quickly.</p>
 <p>FICA is the payroll tax for Social Security (6.2%) and Medicare (1.45%) that your employer withholds from every paycheck, with the employer paying a matching share. It is separate from federal income tax. The 2025 "no tax on tips" and "no tax on overtime" deductions lower income tax only — FICA is still owed on that pay.</p>
 
 <h2 id="w-2">W-2</h2>
-<p>A W-2 is the year-end form your employer sends showing how much you were paid and how much tax was withheld. You use it to file your federal and state returns. From tax year 2026, qualified tips and overtime appear in their own boxes on the W-2.</p>
+<p>A W-2 is the year-end form your employer sends showing how much you were paid and how much tax was withheld. You use it to file your federal and state returns. From tax year 2026, qualified tips and overtime appear in their own boxes on the W-2 — Box 12 codes TP and TT, plus a new Box 14b occupation code. The <a href="/w2-box-decoder/">W-2 box decoder</a> explains each one.</p>
 
 <h2 id="withholding">Withholding</h2>
 <p>Withholding is the income tax your employer takes out of each paycheck and sends to the IRS for you, based on the W-4 form you filled out. It's a prepayment: when you file, you settle up — a refund if too much was withheld, a bill if too little. The new tips, overtime, senior and car-loan deductions do not change your withholding; you claim them when you file.</p>
