@@ -1,0 +1,73 @@
+{
+  "_meta": {
+    "description": "Federal student loan borrowing caps effective for periods of enrollment beginning on or after July 1, 2026, enacted by P.L. 119-21 §81001 (July 4, 2025; ED now styles the law the 'Working Families Tax Cuts Act', previously the 'One Big Beautiful Bill Act'), amending HEA §455(a) / 20 U.S.C. §1087e(a), implemented by ED's RISE final rule (91 FR 23768, May 1, 2026; FR Doc 2026-08556) amending 34 CFR 685.102/685.200/685.203. Drives /student-loan-cap-calculator/. STANDALONE dataset — student-aid (Title IV) policy, NOT tax; deliberately not co-located with obbba-deductions-2026.json and shares no engine with the tax/payroll cluster.",
+    "lastSourced": "2026-07-12",
+    "litigationFlag": "The professional-degree definition (34 CFR 685.102) was preliminarily stayed by Judge Beryl Howell (D.D.C.) on June 24, 2026 (consolidated AANP v. McMahon / nursing-coalition + 25-state suits). During the stay, ED's interim guidance (FSA Electronic Announcement, June 29 2026, updated July 10 2026) recognizes 29 professional-degree programs — broader than the stayed rule's 11 fields. RE-CHECK THE FSA EA BEFORE EVERY DEPLOY of this tool.",
+    "confidence": "HIGH on every dollar cap ($20,500 / $50,000 / $100,000 / $200,000 / $257,500 / $20,000 / $65,000 — statute + verbatim final-rule text); MEDIUM on the $224,000 health-professions legacy aggregate (from ED's NSLDS EA summary and CRS, not verbatim-quoted regulatory text — used only in a non-binding legacy note); the professional-vs-graduate classification itself is mid-litigation and can change."
+  },
+  "effective": "Periods of enrollment/instruction beginning on or after July 1, 2026 (20 U.S.C. §1087e(a)(3)-(6); 34 CFR 685.203)",
+  "graduate": {
+    "annual": 20500,
+    "aggregate": 100000,
+    "aggregateRestorable": true,
+    "aggregateExcludes": ["undergraduate loans", "old Grad PLUS balances (those count only against the $257,500 lifetime cap)"],
+    "note": "Direct Unsubsidized only — subsidized loans for graduate students ended in 2012 and were not revived. The $100,000 applies to a graduate student who is not (and has not been) a professional student; otherwise the shared $200,000 pool applies (20 U.S.C. §1087e(a)(4)(B))."
+  },
+  "professional": {
+    "annual": 50000,
+    "aggregate": 200000,
+    "sharedPoolWithGraduate": true,
+    "aggregateRestorable": true,
+    "note": "Graduate and professional borrowing share one $200,000 pool — borrowing in one status shrinks the other (20 U.S.C. §1087e(a)(4)(B))."
+  },
+  "lifetime": {
+    "cap": 257500,
+    "odometer": true,
+    "includes": ["Direct + FFEL subsidized/unsubsidized (undergraduate + graduate + professional)", "Grad PLUS (Direct + FFEL)"],
+    "excludes": ["Parent PLUS borrowed on behalf of a dependent student", "consolidation loan shell (the underlying loans are included)", "HEAL / health-professions program loans"],
+    "note": "True odometer: 'without regard to any amounts repaid, forgiven, canceled, or otherwise discharged' (20 U.S.C. §1087e(a)(6); 34 CFR 685.203(j)(2)). Returned loan funds do not count."
+  },
+  "parentPlus": {
+    "annual": 20000,
+    "aggregate": 65000,
+    "odometer": true,
+    "perDependentStudentAllParentsCombined": true,
+    "note": "NEW caps per dependent student, combined across ALL parents: $20,000/academic year, $65,000 aggregate 'without regard to any amounts repaid, forgiven, canceled, or otherwise discharged' (20 U.S.C. §1087e(a)(5); 34 CFR 685.203(f)(2), (g)(2)). Excluded from the $257,500 lifetime cap. Returned funds do not count."
+  },
+  "undergraduate": {
+    "unchanged": true,
+    "dependent": { "annualByYear": [5500, 6500, 7500], "aggregate": 31000, "maxSubsidizedByYear": [3500, 4500, 5500], "maxSubsidizedAggregate": 23000 },
+    "independent": { "annualByYear": [9500, 10500, 12500], "aggregate": 57500 },
+    "note": "P.L. 119-21 does not amend annual or aggregate limits for loans to undergraduate students (CRS R48727; 34 CFR 685.203(a)-(d) untouched). Only the parent (Parent PLUS) side changed."
+  },
+  "legacyException": {
+    "conditions": "Enrolled in the program of study as of June 30, 2026 AND a Direct Loan was made for that program before July 1, 2026 (for the Parent PLUS exception: a Direct Loan to the parent borrower OR to the dependent student qualifies). Voided if the student withdraws / ceases enrollment; changing majors within the same degree preserves it (34 CFR 685.203(b)(2)(iv)(B)-(C), (f)(2)(ii)/(iv), (g)(3)/(5); 20 U.S.C. §1087e(a)(8)).",
+    "durationRule": "Expected time to credential = the lesser of 3 academic years (clock runs from July 1, 2026) or the remaining program length (34 CFR 685.102(b)); it can never run past ~June 30, 2029.",
+    "outerBound": "2029-06-30",
+    "effect": "While it lasts, the new annual, aggregate, Parent PLUS, and $257,500 limits do NOT apply; Grad PLUS and Parent PLUS remain available up to cost of attendance minus other financial assistance; the pre-OBBBA unsubsidized aggregate applies instead.",
+    "oldAnnualUnsub": 20500,
+    "preObbbaGradAggregate": 138500,
+    "preObbbaHealthAggregate": 224000
+  },
+  "litigation": {
+    "status": "Professional-degree definition preliminarily stayed in federal court; ED interim 29-program list in effect",
+    "asOf": "2026-07-12",
+    "stayDate": "2026-06-24",
+    "stayCourt": "U.S. District Court for the District of Columbia (Judge Beryl Howell)",
+    "stayedDefinitionFields": 11,
+    "interimListCount": 29,
+    "interimListUpdated": "2026-07-10",
+    "interimListExamples": ["Medicine (M.D.)", "Law (J.D.)", "Dentistry (D.D.S./D.M.D.)", "Pharmacy (Pharm.D.)", "Registered Nursing (MSN)", "Nursing Practice (DNP)", "Physical Therapy (DPT)", "Occupational Therapy (MSOT/OTD)", "Physician Assistant (MSPA/PA)", "Audiology (AuD)", "Speech-Language Pathology", "Clinical Psychology (Psy.D./Ph.D.)"],
+    "edListUrl": "https://fsapartners.ed.gov/knowledge-center/library/electronic-announcements/2026-06-29/update-list-professional-degree-programs-due-court-order",
+    "note": "Whether a program counts as professional ($50,000/yr, $200,000 pool) or graduate ($20,500/yr, $100,000 pool) is in active litigation and can change while the case proceeds. This tool does not classify your program — select the status your school's financial aid office confirms, and re-check ED's current list."
+  },
+  "coaRule": "No Direct Loan may exceed the cost of attendance minus other financial assistance (34 CFR 685.203(j)(1)); schools may also set lower, consistently-applied program-wide limits (34 CFR 685.203(m)(2)); less-than-full-time annual amounts are prorated by enrollment intensity, rounded to the nearest whole percentage point (20 U.S.C. §1087e(a)(7); 34 CFR 685.203(m)(1)).",
+  "sources": [
+    { "claim": "All caps + interim exception, statutory text (20 U.S.C. §1087e(a), as amended by P.L. 119-21 §81001)", "url": "https://www.law.cornell.edu/uscode/text/20/1087e" },
+    { "claim": "P.L. 119-21 §81001 (enacted July 4, 2025)", "url": "https://www.congress.gov/119/plaws/publ21/PLAW-119publ21.pdf" },
+    { "claim": "RISE final rule regulatory text + counting-method preamble (91 FR 23768, May 1, 2026)", "url": "https://www.govinfo.gov/content/pkg/FR-2026-05-01/pdf/2026-08556.pdf" },
+    { "claim": "NSLDS aggregate processing: lifetime-cap composition, per-student Parent PLUS, legacy aggregates (FSA EA Apr 24, 2026, updated May 7, 2026)", "url": "https://fsapartners.ed.gov/knowledge-center/library/electronic-announcements/2026-04-24/one-big-beautiful-bill-act-nslds-eligibility-processing-updates-updated-may-7-2026" },
+    { "claim": "29-program professional-degree list during the court stay (FSA EA Jun 29, 2026, updated Jul 10, 2026)", "url": "https://fsapartners.ed.gov/knowledge-center/library/electronic-announcements/2026-06-29/update-list-professional-degree-programs-due-court-order" },
+    { "claim": "Undergraduate limits unchanged (CRS R48727 corroboration)", "url": "https://www.everycrsreport.com/reports/R48727.html" }
+  ]
+}

@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Federal Student Loan Cap Calculator (2026) — New Borrowing Limits &amp; Funding Gap</title>
+<meta name="description" content="Free calculator for the federal student loan caps in effect since July 1, 2026: graduate $20,500/yr ($100,000 aggregate), professional $50,000/yr ($200,000 shared pool), Parent PLUS $20,000/yr ($65,000 per student), and the $257,500 lifetime cap. See year-by-year federal borrowing capacity, which cap binds, the legacy grandfather exception, and your program's funding gap — computed straight from 20 U.S.C. §1087e(a) and ED's final rule, with citations. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/student-loan-cap-calculator/">
+<meta property="og:title" content="Federal Student Loan Cap Calculator (2026)">
+<meta property="og:description" content="New federal borrowing caps took effect July 1, 2026 — Grad PLUS is gone. See your year-by-year federal loan capacity, which cap binds, and your program's funding gap. Statute-cited, free, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; text-align:right; }
+  .obbba-note { font-size:.9rem; opacity:.9; margin-top:8px; }
+  .warn-flag { color:#b26b00; font-weight:700; }
+  .ok-flag { color:#2f6f4f; font-weight:700; }
+  .info-flag { color:#2a5d8f; font-weight:600; }
+  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
+  .mythbust h2 { margin-top:0; }
+  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
+  .litigation-note { margin-top:12px; padding:11px 14px; border-left:4px solid #2a5d8f; border-radius:8px; background:rgba(42,93,143,.09); font-size:.9rem; }
+  .legacy-banner { margin-top:12px; padding:11px 14px; border-left:4px solid #6b4fa1; border-radius:8px; background:rgba(107,79,161,.09); font-size:.9rem; }
+  .yr-table { width:100%; border-collapse:collapse; margin-top:12px; font-size:.92rem; }
+  .yr-table th, .yr-table td { padding:6px 8px; text-align:right; border-bottom:1px solid rgba(128,128,128,.18); }
+  .yr-table th:first-child, .yr-table td:first-child { text-align:left; }
+  .yr-table td.num { font-variant-numeric: tabular-nums; }
+  .yr-scroll { overflow-x:auto; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Federal Student Loan Cap Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Computes year-by-year federal student loan borrowing capacity and the resulting funding gap under the caps in effect for enrollment periods beginning on or after July 1, 2026 (P.L. 119-21 §81001; 20 U.S.C. §1087e(a); 34 CFR 685.203): graduate $20,500/year with a $100,000 restorable aggregate, professional $50,000/year with a shared $200,000 pool, the $257,500 non-restorable lifetime cap, Parent PLUS's own $20,000/year and $65,000-per-student caps, and the legacy (grandfather) exception for students enrolled before July 1, 2026. Informational arithmetic only — it names which cap binds each year and does not recommend any borrowing."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What are the new federal student loan caps that took effect July 1, 2026?","acceptedAnswer":{"@type":"Answer","text":"For periods of enrollment beginning on or after July 1, 2026 (P.L. 119-21, amending 20 U.S.C. §1087e(a)): graduate students can borrow up to $20,500 per year in Direct Unsubsidized loans with a $100,000 graduate aggregate; professional students (M.D., J.D., D.D.S., and others) up to $50,000 per year with a $200,000 aggregate that graduate and professional borrowing share; Parent PLUS is capped at $20,000 per year and $65,000 total per dependent student across all parents; and there is a $257,500 lifetime cap on all federal loans borrowed for your own education. The Grad PLUS program ended for new borrowers. Amounts that used to be available up to the full cost of attendance via PLUS loans are now capped."}},{"@type":"Question","name":"Is the $100,000 graduate cap a lifetime limit?","acceptedAnswer":{"@type":"Answer","text":"No. It is a graduate-level aggregate: undergraduate loans do not count against it, old Grad PLUS balances do not count against it, and ED's final rule confirms that repaying it — in full or in part — frees up room to borrow again. The only true lifetime number is $257,500, and that one never resets, even after repayment or forgiveness."}},{"@type":"Question","name":"Did Parent PLUS escape the new caps?","acceptedAnswer":{"@type":"Answer","text":"No — this is a common misreading. Parent PLUS is excluded from the $257,500 lifetime cap, but it received its own brand-new caps: $20,000 per year and $65,000 total per dependent student, combined across all parents. The $65,000 is counted without regard to any amounts repaid, forgiven, canceled, or otherwise discharged."}},{"@type":"Question","name":"I was already in grad school before July 1, 2026 — do the new caps apply to me?","acceptedAnswer":{"@type":"Answer","text":"Possibly not, for a while. If you were enrolled in your program as of June 30, 2026 AND a Direct Loan was made for that program before July 1, 2026, the old rules — including Grad PLUS up to the cost of attendance — keep applying for the lesser of 3 academic years or your remaining program length (so never past roughly June 30, 2029). Withdrawing or ceasing enrollment cancels the exception."}},{"@type":"Question","name":"Is my master's or doctoral program 'graduate' or 'professional'?","acceptedAnswer":{"@type":"Answer","text":"That exact question is in federal court. The Department of Education's regulatory definition of a professional degree was preliminarily stayed by a federal judge on June 24, 2026, and ED's interim guidance (updated July 10, 2026) recognizes 29 programs as professional-degree programs — including MSN and DNP nursing, physical therapy, occupational therapy, physician assistant, audiology, and speech-language pathology — which is broader than the stayed rule's 11 fields. The classification can change while the litigation proceeds, and it determines whether you get $50,000/$200,000 or $20,500/$100,000. Confirm your program's status with your financial aid office and ED's current list."}},{"@type":"Question","name":"Do graduate and professional students each get their own aggregate pool?","acceptedAnswer":{"@type":"Answer","text":"No — they share one $200,000 pool. A professional student who previously borrowed as a graduate student has that graduate borrowing subtracted from the $200,000, and vice versa. Only a graduate student who has never been a professional student is limited to the $100,000 figure."}},{"@type":"Question","name":"Did undergraduate loan limits change?","acceptedAnswer":{"@type":"Answer","text":"No. The 2025 law does not amend annual or aggregate borrowing limits for undergraduate students' own loans — dependent undergraduates still get $5,500/$6,500/$7,500 per year with a $31,000 aggregate. What changed on the undergraduate side is the parent piece: Parent PLUS now has its own $20,000/year and $65,000-per-student caps."}},{"@type":"Question","name":"What is a funding gap?","acceptedAnswer":{"@type":"Answer","text":"The slice of a program's cost that federal loans can no longer cover once a cap binds. For example, a four-year program costing $85,000 per year gives a professional student $200,000 of federal capacity against $340,000 of cost — a $140,000 gap. Students typically look at institutional aid, scholarships and assistantships, employer benefits, savings, or private loans for the remainder; this calculator only computes the federal arithmetic and does not recommend any of those options."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Federal Student Loan Cap Calculator (2026)</h1>
+    <p class="lede">Since <strong>July 1, 2026</strong>, federal law caps how much graduate students, professional students, and parents can borrow from the federal government for school — amounts that used to be available up to the <em>full cost of attendance</em> through PLUS loans. <strong>Grad PLUS is gone</strong> for new borrowers. Graduate students now get <strong>$20,500/year</strong> ($100,000 aggregate), professional students <strong>$50,000/year</strong> ($200,000 shared pool), Parent PLUS <strong>$20,000/year</strong> ($65,000 per student), and everyone faces a <strong>$257,500 lifetime cap</strong>. Enter your program's numbers to see your year-by-year federal borrowing capacity, exactly which cap binds each year, and the resulting <strong>funding gap</strong> — computed straight from the statute (20 U.S.C. §1087e(a)) and ED's final rule, with citations. Everything runs in your browser — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Federal student loan cap calculator">
+      <form id="slcForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="mode">Who is borrowing?</label>
+          <select id="mode">
+            <option value="graduate" selected>Graduate student ($20,500/yr, $100,000 pool)</option>
+            <option value="professional">Professional student ($50,000/yr, $200,000 pool)</option>
+            <option value="parentPlus">Parent (Parent PLUS, $20,000/yr, $65,000 per student)</option>
+            <option value="undergradInfo">Undergraduate (own loans — limits unchanged)</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px" id="modeHelp">Whether a program counts as "professional" is currently in federal-court litigation — ED's interim list (updated July 10, 2026) recognizes 29 programs, including MSN/DNP nursing, PT, OT, and PA. This tool doesn't classify your program; pick the status your financial aid office confirms. See the note below the results.</p>
+        </div>
+
+        <div id="studentFields">
+          <div class="field">
+            <label for="yearsRemaining">Years remaining in the program</label>
+            <select id="yearsRemaining">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4" selected>4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="annualCoa">Cost of attendance per year ($)</label>
+            <input type="number" id="annualCoa" inputmode="numeric" min="0" step="1000" value="60000">
+            <p class="muted-small" style="margin-top:6px">Your school's published cost of attendance (tuition, fees, living costs) for one academic year.</p>
+          </div>
+          <div class="field">
+            <label for="annualOtherAid">Grants, scholarships &amp; other aid per year ($)</label>
+            <input type="number" id="annualOtherAid" inputmode="numeric" min="0" step="500" value="0">
+            <p class="muted-small" style="margin-top:6px">Aid that doesn't have to be repaid (grants, scholarships, assistantships, employer benefits). Federal loans can never exceed cost of attendance minus this.</p>
+          </div>
+          <div class="field" id="poolField">
+            <label for="priorPoolOutstanding">Outstanding Direct Unsubsidized principal from prior graduate/professional study ($)</label>
+            <input type="number" id="priorPoolOutstanding" inputmode="numeric" min="0" step="1000" value="0">
+            <p class="muted-small" style="margin-top:6px">Outstanding principal, not the amount you originally borrowed — repaying restores room in the $100,000/$200,000 pool (unlike the lifetime cap). Don't include undergraduate loans or old Grad PLUS here; they don't count against this pool.</p>
+          </div>
+          <div class="field" id="everProfField">
+            <label for="everProfessional"><input type="checkbox" id="everProfessional"> I am (or have been) enrolled as a professional student too</label>
+            <p class="muted-small" style="margin-top:6px">Graduate and professional borrowing share one $200,000 pool — a graduate student who has ever been a professional student uses the shared pool instead of the $100,000 figure.</p>
+          </div>
+          <div class="field" id="lifetimeField">
+            <label for="lifetimeEverBorrowed">All federal student loans EVER borrowed for your own education ($)</label>
+            <input type="number" id="lifetimeEverBorrowed" inputmode="numeric" min="0" step="1000" value="0">
+            <p class="muted-small" style="margin-top:6px">Everything, ever: undergraduate + graduate + professional, Direct and FFEL, including old Grad PLUS — and including amounts you've already repaid or had forgiven. The $257,500 lifetime cap ignores repayment entirely.</p>
+          </div>
+        </div>
+
+        <div id="parentFields" style="display:none">
+          <div class="field">
+            <label for="parentPlusEverBorrowed">Parent PLUS ever borrowed for THIS student, all parents combined ($)</label>
+            <input type="number" id="parentPlusEverBorrowed" inputmode="numeric" min="0" step="1000" value="0">
+            <p class="muted-small" style="margin-top:6px">The $65,000 aggregate applies per dependent student across ALL parents combined, and counts everything ever borrowed — repaying doesn't restore it.</p>
+          </div>
+        </div>
+
+        <div id="undergradFields" style="display:none">
+          <div class="field">
+            <label for="ugDependency">Dependency status</label>
+            <select id="ugDependency">
+              <option value="dependent" selected>Dependent undergraduate</option>
+              <option value="independent">Independent undergraduate</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="ugYear">Year of study</label>
+            <select id="ugYear">
+              <option value="1">First year</option>
+              <option value="2" selected>Second year</option>
+              <option value="3">Third year and beyond</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field" id="legacyField">
+          <label for="legacyEligible"><input type="checkbox" id="legacyEligible"> <span id="legacyLabel">I was enrolled in this program on June 30, 2026 AND a Direct Loan was made for it before July 1, 2026</span></label>
+          <p class="muted-small" style="margin-top:6px">The legacy ("grandfather") exception: if both conditions hold, the old rules — including Grad PLUS up to cost of attendance — keep applying for the lesser of 3 academic years or your remaining program length. Withdrawing cancels it. For the parent exception, a Direct Loan to the parent OR to the student qualifies.</p>
+        </div>
+      </form>
+
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+    </section>
+
+    <p class="note">For general information only — not financial aid, legal, or borrowing advice. This calculator presents the federal caps and the arithmetic gap between program cost and available federal borrowing; it does not recommend borrowing any amount or any funding source. Figures are statutory (not inflation-indexed). Your school may set lower program-wide limits (34 CFR 685.203(m)(2)), less-than-full-time enrollment prorates the annual amounts, and no federal loan can ever exceed cost of attendance minus other aid. Confirm your own numbers with your financial aid office and your servicer (StudentAid.gov shows your loan history).</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose mythbust">
+      <h2>The myth-bust: two different kinds of "cap"</h2>
+      <p><strong>What people assume:</strong> "the $100,000 graduate cap is a lifetime limit," and "Parent PLUS escaped the new caps."</p>
+      <p><strong>What's actually true:</strong> the $100,000/$200,000 graduate and professional aggregates are <em>restorable pools</em> — undergraduate loans don't count against them, old Grad PLUS balances don't count against them, and ED's final rule says a borrower at the limit can borrow again once loans "are repaid, whether in full or in part." The <strong>$257,500 lifetime cap is the opposite kind of number</strong>: a true odometer that counts every federal loan you ever borrowed for your own education, "without regard to any amounts repaid, forgiven, canceled, or otherwise discharged." And Parent PLUS didn't escape anything — it's excluded from the $257,500 but got its <em>own</em> caps: <strong>$20,000/year and $65,000 total per dependent student, combined across all parents</strong>, also counted without regard to repayment. Mixing up which caps restore and which don't is the most consequential mistake you can make when planning around these rules — it's why this calculator asks for <em>outstanding</em> principal for the pool but <em>ever-borrowed</em> totals for the lifetime and Parent PLUS caps.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How the July 1, 2026 borrowing caps work</h2>
+      <p>P.L. 119-21 §81001 (enacted July 4, 2025 — the same law this site's 2025-tax-law calculators cover, widely known as OBBBA; the Department of Education now styles it the "Working Families Tax Cuts Act") rewrote 20 U.S.C. §1087e(a) for periods of enrollment beginning on or after <strong>July 1, 2026</strong>, implemented by ED's RISE final rule (91 FR 23768). Four separate limits now stack, and every federal loan is additionally capped at cost of attendance minus other financial assistance:</p>
+      <ul>
+        <li><strong>Annual caps:</strong> $20,500 per academic year for graduate students, $50,000 for professional students (Direct Unsubsidized only — Grad PLUS ended; graduate subsidized loans ended back in 2012). Parent PLUS: $20,000 per academic year per dependent student, all parents combined.</li>
+        <li><strong>The $100,000 / $200,000 pool:</strong> a graduate student who has never been a professional student gets a $100,000 aggregate; everyone else draws on one shared $200,000 graduate + professional pool. Undergraduate loans and old Grad PLUS balances are excluded, and repayment — full or partial — restores room.</li>
+        <li><strong>The $257,500 lifetime cap:</strong> all federal loans ever borrowed for your own education (Direct + FFEL, subsidized + unsubsidized, undergraduate + graduate + professional, including old Grad PLUS), never restored by repayment or forgiveness. Parent PLUS loans borrowed on your behalf, the consolidation-loan shell, and HEAL/health-professions loans are excluded.</li>
+        <li><strong>The $65,000 Parent PLUS aggregate:</strong> per dependent student, across all parents, never restored by repayment.</li>
+      </ul>
+      <p><strong>The legacy ("grandfather") exception:</strong> a borrower enrolled in a program as of June 30, 2026, for which any Direct Loan was made before July 1, 2026, keeps the old rules — including Grad PLUS and Parent PLUS up to cost of attendance — for the <em>lesser of 3 academic years or the remaining program length</em> (the clock runs from July 1, 2026, so never past roughly June 30, 2029). While it lasts it switches off <em>all</em> the new limits, including the $257,500; withdrawing or ceasing enrollment cancels it. Exception-era unsubsidized borrowing still counts against the new pool afterwards, and everything counts against the lifetime cap.</p>
+      <p><strong>Undergraduates' own limits didn't change:</strong> dependent undergraduates still get $5,500/$6,500/$7,500 per year ($31,000 aggregate); independent undergraduates $9,500/$10,500/$12,500 ($57,500). Only the parent side changed.</p>
+    </section>
+
+    <section class="prose litigation-note">
+      <h2>"Graduate" vs. "professional" is in federal court right now</h2>
+      <p>Which set of caps you get turns on whether your program awards a "professional degree" — and that definition is <strong>mid-litigation</strong>. ED's RISE rule defined it narrowly (doctoral level, ~6+ academic years, licensure, 11 listed fields). On <strong>June 24, 2026</strong>, Judge Beryl Howell (D.D.C.) preliminarily stayed that definition in consolidated challenges brought by a nursing coalition and 25 states + D.C. During the stay, ED's interim guidance (FSA Electronic Announcement, updated <strong>July 10, 2026</strong>) recognizes <strong>29 programs</strong> as professional-degree programs — the stayed rule's 11 fields plus MSN and DNP nursing, physical therapy, occupational therapy, physician assistant, audiology, speech-language pathology, athletic training, anesthesiologist assistant, and additional psychology specializations. This can change while the case proceeds — an appeal, final judgment, or revised rule could move programs between the $50,000/$200,000 and $20,500/$100,000 tiers. This calculator therefore <em>never classifies your program</em>: you select your status, and professional-mode results carry a date-stamped caveat. Check <a href="https://fsapartners.ed.gov/knowledge-center/library/electronic-announcements/2026-06-29/update-list-professional-degree-programs-due-court-order" rel="nofollow">ED's current list</a> and confirm with your financial aid office. (Page last reviewed: July 12, 2026.)</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>A worked example: the four-year M.D. funding gap</h2>
+      <p>A medical student starting in fall 2026 at a school with an $85,000 annual cost of attendance and no grant aid has $340,000 of program cost. As a professional student she can borrow $50,000 per year — the annual cap binds in each of the four years — and her cumulative borrowing reaches the shared $200,000 pool exactly at the end of year four. Federal loans cover <strong>$200,000</strong> of the <strong>$340,000</strong>: a <strong>$140,000 funding gap</strong> that, before July 1, 2026, Grad PLUS would have covered up to the full cost of attendance. Under the old rules that remain available to grandfathered students, the same four years would have carried no gap at all.</p>
+      <p>Compare a two-year master's student at $45,000 per year with $5,000 in scholarships: the $20,500 annual cap binds both years, so federal loans cover $41,000 of the $80,000 net cost — a $39,000 gap. And a part-way case: a student three years into a five-year doctoral program who qualifies for the legacy exception keeps full-cost borrowing for the first three remaining years, then drops to $20,500 in year four — the exception's three years of unsubsidized borrowing ($61,500) having already consumed most of the $100,000 pool.</p>
+      <p><strong>Where the gap gets covered is outside this tool's scope.</strong> Students in this position typically look at institutional aid, outside scholarships, assistantships, employer education benefits, savings, or private/institutional loans. Those options differ enormously in cost and protections, and this calculator doesn't evaluate or recommend any of them — it only computes the federal arithmetic.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>Is the $100,000 graduate cap a lifetime limit?</strong> No — it's a graduate-level aggregate. Undergraduate loans don't count against it, old Grad PLUS balances don't count against it, and paying it down frees up room. The only true lifetime number is $257,500 — and that one never resets, even after repayment or forgiveness.</p>
+      <p><strong>Did Parent PLUS escape the new caps?</strong> It escaped the $257,500, but got its own: $20,000/year and $65,000 total per child — combined across both parents — and repaying doesn't restore it.</p>
+      <p><strong>I'm already in grad school, so nothing changes for me, right?</strong> Only if you were enrolled in your program on June 30, 2026 <em>and</em> a Direct Loan was already made for that program. Then the old rules follow you for up to 3 more academic years (or until your program ends, if sooner) — but withdrawing cancels the protection.</p>
+      <p><strong>Can med/law students still borrow whatever school costs?</strong> Not anymore (unless grandfathered): $50,000/year and $200,000 total — while many four-year professional programs cost well above that. The difference is the funding gap this tool computes.</p>
+      <p><strong>My master's program counts as "professional," right?</strong> That exact question is in federal court. ED's interim list (July 10, 2026) recognizes 29 programs — including MSN/DNP nursing, PT, OT, and PA — but the list can change while the litigation runs. Check with your aid office.</p>
+      <p><strong>Do graduate and professional students each get their own pool?</strong> No — they share one $200,000 pool; borrowing in one status shrinks the other.</p>
+      <p><strong>Does my school have to lend me the full capped amount?</strong> No. Schools may set lower, consistently-applied program-wide limits, no loan can exceed cost of attendance minus other aid, and less-than-full-time enrollment prorates the annual amounts.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The calculator is fully client-side — your numbers never leave your browser.</p>
+      <p class="muted-small">Sources: 20 U.S.C. <a href="https://www.law.cornell.edu/uscode/text/20/1087e" rel="nofollow">§1087e(a)</a> (HEA §455(a), as amended by <a href="https://www.congress.gov/119/plaws/publ21/PLAW-119publ21.pdf" rel="nofollow">P.L. 119-21 §81001</a>) — all caps, the shared pool, the "without regard to any amounts repaid" odometer language, and the interim exception, verbatim; ED RISE final rule, <a href="https://www.govinfo.gov/content/pkg/FR-2026-05-01/pdf/2026-08556.pdf" rel="nofollow">91 FR 23768</a> (May 1, 2026) — 34 CFR 685.102/685.203 regulatory text plus the preamble's restorable-pool counting method; FSA Electronic Announcements: <a href="https://fsapartners.ed.gov/knowledge-center/library/electronic-announcements/2026-04-24/one-big-beautiful-bill-act-nslds-eligibility-processing-updates-updated-may-7-2026" rel="nofollow">NSLDS eligibility processing</a> (Apr 24, 2026, updated May 7, 2026 — lifetime-cap composition, per-student Parent PLUS) and the <a href="https://fsapartners.ed.gov/knowledge-center/library/electronic-announcements/2026-06-29/update-list-professional-degree-programs-due-court-order" rel="nofollow">professional-degree program list under the court stay</a> (Jun 29, 2026, updated Jul 10, 2026); CRS <a href="https://www.everycrsreport.com/reports/R48727.html" rel="nofollow">R48727</a> (undergraduate limits unchanged).</p>
+    </section>
+
+    <div class="note"><strong>Embed this calculator.</strong> Put this calculator on your site — free, one copy-paste snippet, no scripts from third parties. <a href="/embed/">Get the snippet</a>.</div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__STUDENT_LOAN_LIMITS__ = {{STUDENT_LOAN_LIMITS_JSON}};
+</script>
+<script type="module" src="/assets/student-loan-cap-calculator.js"></script>
+</body>
+</html>
