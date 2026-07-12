@@ -59,8 +59,14 @@ const ADSENSE_HEAD = SITE.adsensePublisherId
 // script tag). Either check requires an /assets/ path, so it can never
 // false-positive on an ad-blocked AdSense script (different origin) or a
 // blocked vendor UMD bundle (classic script, no type="module", different
-// filename pattern in the stack). Injected on every full page via fill();
-// harmless no-op on pages with no matching module script (content pages).
+// filename pattern in the stack). Injected on every full page via fill(), and
+// on /embed/* pages via fillEmbed()/fillDcEmbed() (embed templates bypass
+// fill() entirely to skip ads/site-schema, but still need this same
+// page-level defense-in-depth); harmless no-op on pages with no matching
+// module script (content pages). Falls back to document.body when there's no
+// <main> (every /embed/* template wraps its content in a plain
+// `<div class="embed-wrap">`, not `<main>`) — same fallback calc-error-banner.js
+// already uses for the tool-level try/catch banner.
 const MODULE_ERROR_LISTENER =
   `<script>window.addEventListener('error',function(e){` +
   `if(document.getElementById('calc-load-error'))return;` +
@@ -68,7 +74,7 @@ const MODULE_ERROR_LISTENER =
   `var fromOurAssets=(e&&e.filename&&e.filename.indexOf('/assets/')!==-1)||` +
   `(t&&t.tagName==='SCRIPT'&&t.type==='module'&&t.src&&t.src.indexOf('/assets/')!==-1);` +
   `if(!fromOurAssets)return;` +
-  `var m=document.querySelector('main');` +
+  `var m=document.querySelector('main')||document.body;` +
   `if(!m)return;` +
   `var b=document.createElement('div');b.id='calc-load-error';b.className='calc-load-error';b.setAttribute('role','alert');` +
   `b.textContent='Something went wrong loading this calculator — please refresh the page.';` +
@@ -3637,8 +3643,15 @@ async function main() {
   // violate AdSense policy) and NO site schema. They are noindex + canonical to the
   // real tool (set in-template) and are NOT added to the sitemap. Function-form
   // replace keeps '$' in the injected JSON literal (same reason fill() uses one).
+  // Still gets MODULE_ERROR_LISTENER injected below (same page-level module-load-
+  // failure banner every full page gets via fill()) — bypassing fill() shouldn't
+  // mean losing that defense-in-depth too.
   const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON, ROTHCATCHUP_JSON, BONUS_TAX_JSON: BONUS_TAX_ALL_JSON, FORM1099_JSON, FORM1099_STATES_JSON, SSMAXOUT_PARAMS_JSON };
-  const fillEmbed = (tpl) => tpl.replace(/{{(\w+)}}/g, (m, k) => (k in embedMap ? embedMap[k] : m));
+  const fillEmbed = (tpl) => {
+    let out = tpl.replace(/{{(\w+)}}/g, (m, k) => (k in embedMap ? embedMap[k] : m));
+    if (out.includes('</head>')) out = out.replace('</head>', `${MODULE_ERROR_LISTENER}</head>`);
+    return out;
+  };
   await mkdir(join(DIST, 'embed', 'overtime-tax-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'overtime-tax-calculator', 'index.html'), fillEmbed(embedOvertimeTpl));
   await mkdir(join(DIST, 'embed', 'tips-tax-calculator'), { recursive: true });
@@ -3658,7 +3671,11 @@ async function main() {
   // replace keeps '$'/'§' in the injected JSON literal intact.
   {
     const dcEmbedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, DC_JSON, FED_JSON: DC_FED_JSON };
-    const fillDcEmbed = (tpl) => tpl.replace(/{{(\w+)}}/g, (m, k) => (k in dcEmbedMap ? dcEmbedMap[k] : m));
+    const fillDcEmbed = (tpl) => {
+      let out = tpl.replace(/{{(\w+)}}/g, (m, k) => (k in dcEmbedMap ? dcEmbedMap[k] : m));
+      if (out.includes('</head>')) out = out.replace('</head>', `${MODULE_ERROR_LISTENER}</head>`);
+      return out;
+    };
     await mkdir(join(DIST, 'embed', 'dependent-care-fsa-vs-credit-calculator'), { recursive: true });
     await writeFile(join(DIST, 'embed', 'dependent-care-fsa-vs-credit-calculator', 'index.html'), fillDcEmbed(embedDepCareTpl));
   }
