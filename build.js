@@ -173,6 +173,7 @@ const TOOLS = [
   { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/', cat: 'money' },
   { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/', cat: 'money' },
   { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/', cat: 'money' },
+  { name: 'PMI / Mortgage Insurance Deduction Calculator', path: '/pmi-deduction-calculator/', cat: 'money' },
   { name: 'QCD vs. Charitable Deduction Calculator', path: '/qcd-vs-charitable-deduction-calculator/', cat: 'money' },
   { name: 'Dependent Care FSA vs. Child Care Credit Calculator', path: '/dependent-care-fsa-vs-credit-calculator/', cat: 'money' },
   { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/', cat: 'money' },
@@ -276,6 +277,7 @@ const TOOL_DESCRIPTIONS = {
   '/salt-cap-calculator/': 'See your allowed SALT deduction under the 2025 law\'s $40,000 cap — with the high-income phase-down, the itemize-vs-standard check, and your saving vs the old $10,000 cap.',
   '/car-loan-interest-calculator/': 'See how much of your new-car loan interest is deductible under the 2025 law (up to $10,000/yr, 2025–2028) — with the income phase-out and what it really saves you.',
   '/charitable-deduction-calculator/': 'See your charitable deduction under the 2026 law: the permanent $1,000/$2,000 non-itemizer deduction, the 0.5%-of-AGI floor for itemizers, the 35%-cap in the top bracket, and what it saves — without claiming it lowers your AGI (it does not).',
+  '/pmi-deduction-calculator/': 'The 2026 law permanently revived the PMI / mortgage insurance premium deduction. See the exact $109,000 ($54,500 MFS) AGI cliff, the FHA-amortized-over-84-months vs VA/USDA-deductible-in-full split, and what it saves — itemizers only.',
   '/qcd-vs-charitable-deduction-calculator/': "70½+? Compare a Qualified Charitable Distribution (excluded from income entirely, up to $111,000 in 2026) against taking the IRA distribution and claiming a charitable deduction instead. See the real AGI and federal-tax difference — including the case where they tie.",
   '/dependent-care-fsa-vs-credit-calculator/': 'Max the 2026 $7,500 Dependent Care FSA or take the Child & Dependent Care Credit? It\'s one or the other — maxing the FSA zeroes the credit. See both scenarios side by side, the dollar difference, and which wins for your income (MFS-aware; the credit is nonrefundable).',
   '/w4-overtime-tips-withholding-calculator/': 'Turn the no-tax-on-tips / no-tax-on-overtime deduction into bigger paychecks now: see what to enter on your 2026 Form W-4 Step 4(b) (lines 1a/1b) and the extra take-home per paycheck, instead of waiting for a refund.',
@@ -361,6 +363,7 @@ const RELATED_OVERRIDES = {
     { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' }
   ],
   '/charitable-deduction-calculator/': [
+    { name: 'PMI / Mortgage Insurance Deduction Calculator', path: '/pmi-deduction-calculator/' },
     { name: 'QCD vs. Charitable Deduction Calculator', path: '/qcd-vs-charitable-deduction-calculator/' },
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
     { name: 'Dependent Care FSA vs. Child Care Credit Calculator', path: '/dependent-care-fsa-vs-credit-calculator/' },
@@ -370,6 +373,16 @@ const RELATED_OVERRIDES = {
     { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
     { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' }
+  ],
+  '/pmi-deduction-calculator/': [
+    { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
+    { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
+    { name: 'Mortgage Calculator', path: '/mortgage-calculator/' },
+    { name: 'Biweekly Mortgage Calculator', path: '/biweekly-mortgage-calculator/' },
+    { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
+    { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
+    { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
+    { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' }
   ],
   '/qcd-vs-charitable-deduction-calculator/': [
     { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
@@ -392,6 +405,7 @@ const RELATED_OVERRIDES = {
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' }
   ],
   '/salt-cap-calculator/': [
+    { name: 'PMI / Mortgage Insurance Deduction Calculator', path: '/pmi-deduction-calculator/' },
     { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
@@ -471,6 +485,7 @@ const RELATED_OVERRIDES = {
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
     { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
     { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
+    { name: 'PMI / Mortgage Insurance Deduction Calculator', path: '/pmi-deduction-calculator/' },
     { name: 'Dependent Care FSA vs. Child Care Credit Calculator', path: '/dependent-care-fsa-vs-credit-calculator/' },
     { name: 'Mandatory Roth Catch-Up Calculator', path: '/roth-catchup-calculator/' },
     { name: 'Overtime Tax by State (Data Study)', path: '/data/overtime-tax-by-state/' },
@@ -2214,6 +2229,8 @@ async function main() {
   const embedCarLoanTpl = await read(join(SRC, 'templates', 'embed', 'car-loan-interest-calculator.html'));
   const charitableTpl = await read(join(SRC, 'templates', 'charitable-deduction-calculator.html'));
   const embedCharitableTpl = await read(join(SRC, 'templates', 'embed', 'charitable-deduction-calculator.html'));
+  const pmiTpl = await read(join(SRC, 'templates', 'pmi-deduction-calculator.html'));
+  const embedPmiTpl = await read(join(SRC, 'templates', 'embed', 'pmi-deduction-calculator.html'));
   const qcdTpl = await read(join(SRC, 'templates', 'qcd-vs-charitable-deduction-calculator.html'));
   const embedQcdTpl = await read(join(SRC, 'templates', 'embed', 'qcd-vs-charitable-deduction-calculator.html'));
   const depCareTpl = await read(join(SRC, 'templates', 'dependent-care-fsa-vs-credit-calculator.html'));
@@ -2461,6 +2478,7 @@ async function main() {
   registerAsset('assets', 'salt-cap-calculator.js');
   registerAsset('assets', 'car-loan-interest-calculator.js');
   registerAsset('assets', 'charitable-deduction-calculator.js');
+  registerAsset('assets', 'pmi-deduction-calculator.js');
   registerAsset('engine', 'qcd-comparison.js');
   registerAsset('assets', 'qcd-vs-charitable-deduction-calculator.js');
   registerAsset('engine', 'dependent-care.js');
@@ -3337,6 +3355,22 @@ async function main() {
   );
   urls.push(`${SITE.url}/charitable-deduction-calculator/`);
 
+  // OBBBA mortgage insurance premium (MIP/PMI) deduction revival (IRC
+  // §163(h)(3)(E), permanently un-terminated by §70108) calculator — the
+  // permanent 2026 comeback of the PMI/mortgage-insurance Schedule A deduction,
+  // dead since 2021. Genuinely NEW phaseout shape (percentage-of-premium
+  // haircut, not a dollar-cap reduction), FHA-84-month-amortization vs
+  // VA/USDA-year-paid split, and the pre-2007-contract gate. Reuses the SALT/
+  // charitable itemize-vs-standard machinery via mipComparison. No state
+  // selector: this is a federal itemized deduction; MFS IS eligible with its
+  // own halved thresholds (unlike tips/overtime/senior/charitable).
+  await mkdir(join(DIST, 'pmi-deduction-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'pmi-deduction-calculator', 'index.html'),
+    fillTool(pmiTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON }, '/pmi-deduction-calculator/')
+  );
+  urls.push(`${SITE.url}/pmi-deduction-calculator/`);
+
   // OBBBA §70404 Dependent Care FSA (§129, $7,500 / $3,750 MFS) vs. Child &
   // Dependent Care Credit (§21, nonrefundable, 50%→20% AGI-tiered, $3,000/$6,000
   // caps) — a NEW sibling system (not the deduction cluster). The §21(c) cap
@@ -3664,6 +3698,8 @@ async function main() {
   await writeFile(join(DIST, 'embed', 'car-loan-interest-calculator', 'index.html'), fillEmbed(embedCarLoanTpl));
   await mkdir(join(DIST, 'embed', 'charitable-deduction-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'charitable-deduction-calculator', 'index.html'), fillEmbed(embedCharitableTpl));
+  await mkdir(join(DIST, 'embed', 'pmi-deduction-calculator'), { recursive: true });
+  await writeFile(join(DIST, 'embed', 'pmi-deduction-calculator', 'index.html'), fillEmbed(embedPmiTpl));
   await mkdir(join(DIST, 'embed', 'qcd-vs-charitable-deduction-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'qcd-vs-charitable-deduction-calculator', 'index.html'), fillEmbed(embedQcdTpl));
   // Dependent-care embed needs the fica-inclusive fed JSON (DC_FED_JSON) + DC_JSON,

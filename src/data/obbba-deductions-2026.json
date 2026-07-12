@@ -372,6 +372,63 @@
         }
       ]
     },
+    "mip": {
+      "statute": "IRC §163(h)(3)(E) 'Mortgage insurance premiums treated as interest' — the termination clause (E)(iv) is permanently disabled by new §163(h)(3)(F)(i)(III), added by OBBBA §70108(a)(1)(D) ('Clause (iv) of subparagraph (E) shall not apply'). The deduction (E)(i)), the 10%-per-$1,000-or-fraction-thereof AGI phaseout (E)(ii), and the pre-2007-contract limitation (E)(iii) were never repealed and remain operative verbatim. 'Qualified mortgage insurance' is defined at §163(h)(4)(E) (VA, FHA, Rural Housing Service, and private MI). Prepaid/upfront premiums are governed by §163(h)(4)(F) + Treas. Reg. §1.163-11.",
+      "firstYear": 2026,
+      "permanent": true,
+      "notIndexed": true,
+      "itemizedOnly": true,
+      "agiBasis": "AGI",
+      "mfsEligible": true,
+      "phaseout": {
+        "threshold": { "single": 100000, "married": 100000, "head_of_household": 100000, "married_separate": 50000 },
+        "stepSize": { "single": 1000, "married": 1000, "head_of_household": 1000, "married_separate": 500 },
+        "reductionPerStep": 0.10,
+        "eliminatedAboveAgi": { "single": 109000, "married": 109000, "head_of_household": 109000, "married_separate": 54500 }
+      },
+      "contractIssuedAfter": "2006-12-31",
+      "prepaid": {
+        "amortizationMonthsMax": 84,
+        "exemptProviders": ["VA", "RHS"],
+        "unamortizedLostOnPayoff": true
+      },
+      "reporting": {
+        "form1098Box": 5,
+        "form1098PerMortgageThreshold": 600,
+        "scheduleALine": "8d (2021-vintage — the last year the deduction was in effect; the 2026 Schedule A is not yet final, re-verify at form release)"
+      },
+      "qualifies": "Effective for taxable years beginning after December 31, 2025 (OBBBA §70108(b)), permanent, not indexed for inflation. Premiums for monthly PMI (conventional loans), FHA annual MIP, FHA upfront UFMIP, VA funding fees, and USDA (Rural Housing Service) guarantee fees paid or accrued in connection with acquisition indebtedness on a qualified residence are treated as deductible home-mortgage interest on Schedule A — itemizers only, no non-itemizer alternative. The deductible amount is reduced (never below zero) by 10% for each $1,000 ($500 MFS) or fraction thereof that AGI exceeds $100,000 ($50,000 MFS) — fully eliminated once AGI exceeds $109,000 ($54,500 MFS); MFJ shares the single/HoH $100,000 threshold (no separate joint threshold, a marriage-penalty structure). Only mortgage insurance contracts issued after December 31, 2006 qualify. Lump-sum prepaid premiums (FHA UFMIP, single-premium/split-premium PMI) must be amortized ratably over the shorter of the loan's stated term or 84 months starting the month the insurance was obtained; the unamortized balance is lost (not deductible) if the mortgage is paid off or refinanced early. VA funding fees and USDA guarantee fees are exempt from amortization — fully deductible in the year paid, even as a lump sum. Reported via Form 1098 Box 5 (prepaid premiums included, $600-per-mortgage reporting threshold) flowing to Schedule A line 8d (2021-vintage line; the 2026 form is not yet final).",
+      "sources": [
+        {
+          "claim": "OBBBA §70108: amends §163(h)(3)(F) to strike the pre-2026 sunset and insert new subclause (III), 'Mortgage insurance premiums treated as interest.—Clause (iv) of subparagraph (E) shall not apply,' making the MIP deduction permanent and effective for taxable years beginning after December 31, 2025; (E)(ii)/(iii) untouched.",
+          "url": "https://www.govinfo.gov/content/pkg/PLAW-119publ21/html/PLAW-119publ21.htm"
+        },
+        {
+          "claim": "IRC §163(h)(3)(E): the deduction (clause (i)), the phaseout — reduced by 10% of the amount for each $1,000 ($500 MFS) or fraction thereof that AGI exceeds $100,000 ($50,000 MFS) (clause (ii)) — and the pre-2007-contract limitation (clause (iii)).",
+          "url": "https://www.law.cornell.edu/uscode/text/26/163"
+        },
+        {
+          "claim": "IRC §163(h)(4)(E): 'qualified mortgage insurance' = VA, FHA, or Rural Housing Service mortgage insurance, plus private mortgage insurance under the Homeowners Protection Act of 1998; contract must be issued after December 31, 2006.",
+          "url": "https://www.law.cornell.edu/uscode/text/26/163"
+        },
+        {
+          "claim": "IRC §163(h)(4)(F) + Treas. Reg. §1.163-11: prepaid mortgage insurance premiums are allocated ratably over the shorter of the mortgage's stated term or 84 months beginning with the month the insurance was obtained; no deduction for the unamortized balance if the mortgage is satisfied early; the rule does not apply to amounts paid for VA or Rural Housing Service mortgage insurance (fully deductible in the year paid).",
+          "url": "https://www.law.cornell.edu/cfr/text/26/1.163-11"
+        },
+        {
+          "claim": "IRS Pub 936 Mortgage Insurance Premiums Deduction Worksheet: no deduction if AGI is more than $109,000 ($54,500 if married filing separately).",
+          "url": "https://www.irs.gov/pub/irs-pdf/p936.pdf"
+        },
+        {
+          "claim": "IRS Instructions for Form 1098 (Rev. December 2026): Box 5 'Mortgage Insurance Premiums' — enter total premiums of $600 or more paid for the tax year, including prepaid premiums, for qualified mortgage insurance.",
+          "url": "https://www.irs.gov/instructions/i1098"
+        },
+        {
+          "claim": "2026 standard deduction (Rev. Proc. 2025-32): $16,100 single/MFS, $32,200 MFJ, $24,150 HoH — the itemize-vs-standard gate this deduction depends on (no benefit to non-itemizers).",
+          "url": "https://www.irs.gov/pub/irs-drop/rp-25-32.pdf"
+        }
+      ]
+    },
     "qcd": {
       "statute": "IRC §408(d)(8) 'Distributions for charitable purposes' (qualified charitable distributions). Annual limit inflation-indexed under §408(d)(8)(A) flush language + §1(f)(3) since 2024. NOT an OBBBA provision; permanent.",
       "permanent": true,

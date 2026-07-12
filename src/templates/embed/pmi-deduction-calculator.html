@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>PMI / Mortgage Insurance Deduction Calculator — Tools Berry (embed)</title>
+<meta name="robots" content="noindex, follow">
+<link rel="canonical" href="{{SITE_URL}}/pmi-deduction-calculator/">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  body { margin: 0; padding: 14px; background: transparent; }
+  .embed-wrap { max-width: 560px; margin: 0 auto; }
+  .embed-wrap h1 { font-size: 1.25rem; margin: 0 0 10px; }
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.1rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; }
+  .obbba-note { font-size:.85rem; opacity:.85; margin-top:8px; }
+  .phaseout-flag { color:#b26b00; font-weight:600; }
+  .ineligible-flag { color:#b23a00; font-weight:600; }
+  .mip-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .takeaway { margin-top:12px; padding:10px 12px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.85rem; }
+  .embed-credit { margin-top:14px; text-align:center; font-size:.85rem; opacity:.9; }
+</style>
+</head>
+<body>
+<div class="embed-wrap">
+  <h1>PMI / Mortgage Insurance Deduction Calculator (2026)</h1>
+  <section class="calc" aria-label="PMI / mortgage insurance deduction calculator">
+    <form id="mipForm" autocomplete="off" onsubmit="return false">
+      <div class="field">
+        <label for="filing">Filing status</label>
+        <select id="filing">
+          <option value="single">Single</option>
+          <option value="married">Married filing jointly</option>
+          <option value="married_separate">Married filing separately</option>
+          <option value="head_of_household">Head of household</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="agi">Adjusted gross income (AGI)</label>
+        <input type="number" id="agi" inputmode="numeric" min="0" step="1000" value="95000">
+      </div>
+      <div class="field">
+        <label for="miType">Mortgage insurance type</label>
+        <select id="miType">
+          <option value="monthly_pmi">Monthly PMI (conventional)</option>
+          <option value="fha">FHA (annual MIP, optional UFMIP)</option>
+          <option value="va">VA funding fee</option>
+          <option value="usda">USDA guarantee fee</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="recurring">Premiums paid during 2026 ($)</label>
+        <input type="number" id="recurring" inputmode="numeric" min="0" step="50" value="1800">
+      </div>
+      <div class="field mip-row" id="upfrontFields">
+        <div class="field" style="margin:0">
+          <label for="upfront">Upfront premium ($) <span class="muted-small">(optional)</span></label>
+          <input type="number" id="upfront" inputmode="numeric" min="0" step="50" value="0">
+        </div>
+        <div class="field" style="margin:0">
+          <label for="closingMonth">Closing month</label>
+          <select id="closingMonth">
+            <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
+            <option value="4">Apr</option><option value="5">May</option><option value="6" selected>Jun</option>
+            <option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option>
+            <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" id="termField">
+        <label for="termMonths">Loan term</label>
+        <select id="termMonths">
+          <option value="360" selected>30 years</option>
+          <option value="180">15 years</option>
+          <option value="240">20 years</option>
+          <option value="84">84 months or less</option>
+        </select>
+      </div>
+      <p class="muted-small" id="upfrontHint" style="margin-top:-6px"></p>
+      <div class="field">
+        <label for="contract2007"><input type="checkbox" id="contract2007" checked style="width:auto;margin-right:8px"> Contract issued 2007 or later</label>
+      </div>
+      <div class="field">
+        <label for="other">Other itemized deductions ($)</label>
+        <input type="number" id="other" inputmode="numeric" min="0" step="100" value="20000">
+      </div>
+    </form>
+    <div class="obbba-out" id="out" aria-live="polite"></div>
+  </section>
+  <p class="embed-credit">Free <a href="{{SITE_URL}}/pmi-deduction-calculator/" target="_blank" rel="noopener">PMI / Mortgage Insurance Deduction Calculator</a> by {{SITE_NAME}}</p>
+</div>
+
+<script>
+  window.__OBBBA__ = {{OBBBA_JSON}};
+  window.__FED__ = {{FED_JSON}};
+</script>
+<script type="module" src="/assets/pmi-deduction-calculator.js"></script>
+</body>
+</html>
