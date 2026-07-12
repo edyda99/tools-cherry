@@ -123,6 +123,7 @@ const TOOLS = [
   { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/', cat: 'money' },
   { name: 'CAGR Calculator', path: '/cagr-calculator/', cat: 'money' },
   { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/', cat: 'money' },
+  { name: '1099-K / 1099-NEC Threshold Checker', path: '/1099-threshold-checker/', cat: 'money' },
   { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/', cat: 'money' },
   { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/', cat: 'money' },
   { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/', cat: 'money' },
@@ -223,6 +224,7 @@ const TOOL_DESCRIPTIONS = {
   '/chronological-age-calculator/': 'Find an exact chronological age in years, months, and days between any two dates.',
   '/debt-avalanche-calculator/': 'Plan a debt avalanche payoff that targets the highest-interest balance first to minimize total interest.',
   '/1099-vs-w2-calculator/': 'Compare 1099 contractor versus W-2 employee take-home pay.',
+  '/1099-threshold-checker/': 'See whether you\'ll get a 1099-K, 1099-NEC, or 1099-MISC under the 2025/2026 rules: payment apps at $20,000 and 200 transactions, card processors like Stripe/Square with no minimum at all, or a business paying you directly at $2,000 (2026) / $600 (2025) — plus the myth-bust that a 1099 is paperwork, not a tax.',
   '/overtime-tax-calculator/': 'See how much of your overtime is deductible under the 2025 "no tax on overtime" law and what it saves you.',
   '/tips-tax-calculator/': 'See how much of your tips are deductible under the 2025 "no tax on tips" law (up to $25,000) and what it saves you.',
   '/senior-deduction-calculator/': 'Calculate the 2025 law\'s $6,000 senior bonus deduction for people 65+ — the "no tax on Social Security" break — and what it saves you.',
@@ -363,6 +365,16 @@ const RELATED_OVERRIDES = {
     { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' },
     { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/' }
   ],
+  '/1099-threshold-checker/': [
+    { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
+    { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
+    { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
+    { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
+    { name: 'Hours Calculator (Time Card)', path: '/hours-calculator/' },
+    { name: 'Sales Tax Calculator', path: '/sales-tax-calculator/' },
+    { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/' },
+    { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' }
+  ],
   '/data/overtime-tax-by-state/': [
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
@@ -393,7 +405,8 @@ const RELATED_OVERRIDES = {
     { name: 'Dependent Care FSA vs. Child Care Credit Calculator', path: '/dependent-care-fsa-vs-credit-calculator/' },
     { name: 'Mandatory Roth Catch-Up Calculator', path: '/roth-catchup-calculator/' },
     { name: 'Overtime Tax by State (Data Study)', path: '/data/overtime-tax-by-state/' },
-    { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' }
+    { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
+    { name: '1099-K / 1099-NEC Threshold Checker', path: '/1099-threshold-checker/' }
   ]
 };
 
@@ -2006,6 +2019,8 @@ async function main() {
   const bonusTaxTpl = await read(join(SRC, 'templates', 'bonus-tax-calculator.html'));
   const bonusTaxStateTpl = await read(join(SRC, 'templates', 'bonus-tax-calculator-state.html'));
   const embedBonusTaxTpl = await read(join(SRC, 'templates', 'embed', 'bonus-tax-calculator.html'));
+  const form1099Tpl = await read(join(SRC, 'templates', '1099-threshold-checker.html'));
+  const embedForm1099Tpl = await read(join(SRC, 'templates', 'embed', '1099-threshold-checker.html'));
   const embedGalleryTpl = await read(join(SRC, 'templates', 'embed-gallery.html'));
   const overtimeStudyTpl = await read(join(SRC, 'templates', 'data-overtime-tax-by-state.html'));
   const tipsStudyTpl = await read(join(SRC, 'templates', 'data-tips-tax-by-state.html'));
@@ -2024,6 +2039,15 @@ async function main() {
   // SECURE 2.0 §603 mandatory Roth catch-up params (separate rule, its own dataset).
   const secure2 = await readJSON(join(SRC, 'data', 'secure2-catchup-2026.json'));
   const ROTHCATCHUP_JSON = JSON.stringify(stripInternal(secure2.rothCatchUp));
+  // 1099-K (IRC §6050W, OBBBA §70432) / 1099-NEC-MISC (IRC §6041/§6041A, OBBBA
+  // §70433) threshold checker — a STANDALONE reporting-trigger lookup, not a
+  // deduction, so it deliberately does NOT read obbba-deductions-2026.json or
+  // taxData.federal (no bracket/FICA reuse). Reuses the plain state name/abbr
+  // roster (states.json, already loaded above as `roster`) just to populate the
+  // optional state-overlay dropdown — not the OBBBA conformity dataset.
+  const form1099 = await readJSON(join(SRC, 'data', 'form-1099-thresholds.json'));
+  const FORM1099_JSON = JSON.stringify(stripInternal(form1099));
+  const FORM1099_STATES_JSON = JSON.stringify(roster.map((s) => ({ name: s.name, abbr: s.abbr })));
   // State supplemental (bonus) withholding rates — its own dataset (§ bonus-tax).
   const suppData = await readJSON(join(SRC, 'data', 'state-supplemental-2026.json'));
   // Lean client payload for a supp entry: ONLY the fields the browser engine
@@ -2222,6 +2246,8 @@ async function main() {
   await cp(join(SRC, 'assets', 'dependent-care-fsa-vs-credit-calculator.js'), join(DIST, 'assets', 'dependent-care-fsa-vs-credit-calculator.js'));
   await cp(join(SRC, 'assets', 'w4-overtime-tips-withholding-calculator.js'), join(DIST, 'assets', 'w4-overtime-tips-withholding-calculator.js'));
   await cp(join(SRC, 'assets', 'roth-catchup-calculator.js'), join(DIST, 'assets', 'roth-catchup-calculator.js'));
+  await cp(join(SRC, 'engine', 'form-1099-checker.js'), join(DIST, 'assets', 'form-1099-checker.js'));
+  await cp(join(SRC, 'assets', '1099-threshold-checker.js'), join(DIST, 'assets', '1099-threshold-checker.js'));
   await cp(join(SRC, 'engine', 'bonus-tax.js'), join(DIST, 'assets', 'bonus-tax.js'));
   await cp(join(SRC, 'assets', 'bonus-tax-calculator.js'), join(DIST, 'assets', 'bonus-tax-calculator.js'));
   await cp(join(SRC, 'assets', 'embed-gallery.js'), join(DIST, 'assets', 'embed-gallery.js'));
@@ -3116,6 +3142,20 @@ async function main() {
   );
   urls.push(`${SITE.url}/roth-catchup-calculator/`);
 
+  // 1099-K (IRC §6050W, restored by OBBBA §70432) / 1099-NEC-MISC (IRC
+  // §6041/§6041A, amended by OBBBA §70433) threshold checker — a STANDALONE
+  // reporting-trigger lookup (NOT the deductions cluster, NOT the bracket/FICA
+  // engine). Disambiguates which form applies from payment method + amount +
+  // count + year: network apps ($20,000/200 txns, both strict >), card
+  // processors (no minimum at all), or a direct payer ($2,000 TY2026 / $600
+  // TY2025, "or more"). Plus an optional, informational state 1099-K overlay.
+  await mkdir(join(DIST, '1099-threshold-checker'), { recursive: true });
+  await writeFile(
+    join(DIST, '1099-threshold-checker', 'index.html'),
+    fillTool(form1099Tpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, FORM1099_JSON, FORM1099_STATES_JSON }, '/1099-threshold-checker/')
+  );
+  urls.push(`${SITE.url}/1099-threshold-checker/`);
+
   // OBBBA "which states still tax overtime in 2026" DATA STUDY (/data/overtime-tax-by-state/).
   // A citable, author-bylined data asset for the journalist link sprint. The table is
   // rendered server-side from the SAME sourced obbba dataset the calculators use, so the
@@ -3343,7 +3383,7 @@ async function main() {
   // violate AdSense policy) and NO site schema. They are noindex + canonical to the
   // real tool (set in-template) and are NOT added to the sitemap. Function-form
   // replace keeps '$' in the injected JSON literal (same reason fill() uses one).
-  const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON, ROTHCATCHUP_JSON, BONUS_TAX_JSON: BONUS_TAX_ALL_JSON };
+  const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON, ROTHCATCHUP_JSON, BONUS_TAX_JSON: BONUS_TAX_ALL_JSON, FORM1099_JSON, FORM1099_STATES_JSON };
   const fillEmbed = (tpl) => tpl.replace(/{{(\w+)}}/g, (m, k) => (k in embedMap ? embedMap[k] : m));
   await mkdir(join(DIST, 'embed', 'overtime-tax-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'overtime-tax-calculator', 'index.html'), fillEmbed(embedOvertimeTpl));
@@ -3370,6 +3410,8 @@ async function main() {
   await writeFile(join(DIST, 'embed', 'w4-overtime-tips-withholding-calculator', 'index.html'), fillEmbed(embedW4OtTipsTpl));
   await mkdir(join(DIST, 'embed', 'roth-catchup-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'roth-catchup-calculator', 'index.html'), fillEmbed(embedRothCatchupTpl));
+  await mkdir(join(DIST, 'embed', '1099-threshold-checker'), { recursive: true });
+  await writeFile(join(DIST, 'embed', '1099-threshold-checker', 'index.html'), fillEmbed(embedForm1099Tpl));
   await mkdir(join(DIST, 'embed', 'bonus-tax-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'bonus-tax-calculator', 'index.html'), fillEmbed(embedBonusTaxTpl));
   // Indexable embed gallery (fillTool is fine here — real page, benefits from schema

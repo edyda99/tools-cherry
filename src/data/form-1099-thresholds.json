@@ -1,0 +1,83 @@
+{
+  "_meta": {
+    "description": "Form 1099-K (IRC §6050W, restored by OBBBA §70432) and Form 1099-NEC/1099-MISC (IRC §6041/§6041A, amended by OBBBA §70433) reporting thresholds. Drives /1099-threshold-checker/. Federal figures verbatim from IRS Notice 2025-62 (read pp.2-6). STANDALONE dataset — NOT part of the OBBBA deductions cluster (obbba-deductions-2026.json): a 1099 threshold is a reporting-trigger lookup, not a deduction, so this tool needs no bracket/FICA engine reuse. State 1099-K thresholds are informational and volatile — re-verify each filing season.",
+    "lastSourced": "2026-07-12",
+    "confidence": "high on all four federal headline numbers ($20,000 / 200 transactions / $2,000 / TY2026 effective date — Notice 2025-62 read verbatim); medium on the state 1099-K table (states revise yearly and secondary sources conflict on a few, e.g. NC/CA); the exact 2027 NEC/MISC inflation figure is not yet published by the IRS."
+  },
+  "form1099K": {
+    "network": {
+      "label": "Third-party NETWORK transactions (payment apps / online marketplaces)",
+      "grossThreshold": 20000,
+      "grossInequality": "exceeds",
+      "txnThreshold": 200,
+      "txnInequality": "exceeds",
+      "logic": "AND",
+      "appliesToYears": [2025, 2026],
+      "retroactive": "Statutorily retroactive: OBBBA §70432(a) restored IRC §6050W(e) 'as if included in section 9674 of the American Rescue Plan Act' — i.e. back to 2022. The intervening ARPA phase-in (IRS Notice 2024-85: $5,000 for 2024, $2,500 for 2025, $600 for 2026) never actually reached taxpayers and is now void; OBBBA erased it and locked in $20,000/200 for 2025 AND 2026.",
+      "issuer": "third-party settlement organization (TPSO)",
+      "examples": ["PayPal (goods & services)", "Venmo (business/G&S)", "Cash App for Business", "Etsy", "eBay", "Airbnb", "Uber/Lyft payouts"],
+      "statute": "IRC §6050W(e), restored by OBBBA §70432(a)",
+      "perPlatform": "Each TPSO tests its own total independently — $15,000 on PayPal + $15,000 on Venmo triggers no 1099-K from either."
+    },
+    "card": {
+      "label": "Payment CARD transactions (credit/debit/gift card via a processor)",
+      "grossThreshold": 0,
+      "txnThreshold": 0,
+      "logic": "NONE",
+      "issuer": "payment card processor / merchant acquirer",
+      "examples": ["Stripe (card)", "Square", "Toast", "Clover", "direct merchant card acquiring"],
+      "statute": "IRC §6050W — payment card transactions carry no de minimis; all such payments must be reported",
+      "note": "Card processors are NOT on the $20,000/200 rule — that de minimis applies only to third-party NETWORK transactions. A single $0.01 card payment can trigger a 1099-K."
+    }
+  },
+  "form1099NEC_MISC": {
+    "section6041A_NEC": "Nonemployee compensation for services performed (Form 1099-NEC)",
+    "section6041_MISC": "Rent, prizes, and other fixed/determinable income (Form 1099-MISC)",
+    "inequality": "atOrAbove",
+    "byYear": {
+      "2025": 600,
+      "2026": 2000,
+      "2027": {
+        "approx": 2000,
+        "indexed": true,
+        "baseYear": 2025,
+        "note": "IRC §6041(h) requires an annual inflation adjustment for payments made after Dec 31, 2026, base year 2025, rounded to the nearest $100 per corroborating secondary sources (the Notice itself states only 'annual inflation adjustment'). The exact 2027 dollar figure has not yet been published by the IRS — do not fabricate one."
+      }
+    },
+    "pegged": "IRC §6041A is pegged to §6041(a): 'an amount that equals or exceeds the dollar amount in effect for such taxable year under section 6041(a).' The 1099-NEC and 1099-MISC thresholds never diverge.",
+    "carveOut": "Payments made through a payment card or a TPSO are excluded from the payer's §6041/§6041A duty (reportable under §6050W instead) — the processor issues a 1099-K and the payer is relieved of 1099-NEC/1099-MISC filing for those dollars. You do not get both forms for the same dollars.",
+    "yearBoundary": "The $2,000 floor applies to payments made after December 31, 2025 (tax year 2026 and later, before the 2027 inflation adjustment). Payments made in tax year 2025 still use the old $600 floor.",
+    "statute": "IRC §6041(a) / §6041A, amended by OBBBA §70433"
+  },
+  "stateOverrides1099K": {
+    "_caveat": "State 1099-K thresholds change annually and secondary sources conflict on a few (notably NC/CA). Treat as informational — 'your state may also require reporting at a lower threshold' — not as an authoritative 51-state ruling. Re-verify each filing season.",
+    "MA": 600,
+    "MD": 600,
+    "VA": 600,
+    "VT": 600,
+    "DC": 600,
+    "MT": 600,
+    "NC": 600,
+    "NJ": 1000,
+    "IL": { "amount": 1000, "txns": 4, "logic": "AND" },
+    "MO": 1200,
+    "AR": { "amount": 2500, "condition": "when no state tax was withheld" }
+  },
+  "mythBusts": [
+    "“Venmo/PayPal will 1099 you at $600.” Gone. Payment apps now report only if you clear BOTH $20,000 and 200 goods-and-services transactions in a year — for 2025 and 2026 alike. The $600 rule was law on paper but never actually reached your forms; the IRS kept delaying it, and OBBBA repealed it outright.",
+    "“A business will 1099 me for any $600 gig.” The direct-payment (1099-NEC/1099-MISC) floor rose to $2,000 for 2026 (it was $600 through 2025), and it rises with inflation after that.",
+    "“No 1099 means it's tax-free.” The single biggest error. A 1099 is paperwork the IRS gets a copy of — not a tax and not the definition of income. Freelance pay, resale profits, and rental income are taxable whether or not any form ever shows up.",
+    "“I got a 1099-K, so now I owe tax I didn't before.” The form itself creates no new liability. If the dollars were already taxable, they were taxable before the form arrived; if they weren't (a personal item resold at a loss, or a friend repaying you on Venmo), a 1099-K doesn't make them taxable — you reconcile it to zero on your return.",
+    "“Stripe/Square won't send anything under $20k.” Card processors have NO minimum — they report every dollar, any amount, any count. The $20,000/200-transaction rule applies only to app/marketplace (network) payments, never to card processing."
+  ],
+  "sources": [
+    { "claim": "$20,000 / 200-transaction network threshold restored verbatim; the two-transaction-type split (payment card vs. third-party network); retroactive effective date language.", "url": "https://www.irs.gov/pub/irs-drop/n-25-62.pdf" },
+    { "claim": "$600 → $2,000 NEC/MISC threshold, effective for payments made after Dec 31, 2025; §6041(h) inflation indexing starting TY2027; §6041A pegged to §6041(a).", "url": "https://www.irs.gov/pub/irs-drop/n-25-62.pdf" },
+    { "claim": "Card processors report 'no matter how many payments you got or how much they were for'; network apps report only over $20,000 and 200 transactions; 'you must still report any income on your tax return.'", "url": "https://www.irs.gov/businesses/understanding-your-form-1099-k" },
+    { "claim": "IRS FAQ confirming the 1099-K dollar limit reverts to $20,000 under OBBBA.", "url": "https://www.irs.gov/newsroom/irs-issues-faqs-on-form-1099-k-threshold-under-the-one-big-beautiful-bill-dollar-limit-reverts-to-20000" },
+    { "claim": "The now-void ARPA transition-relief phase-in ($5,000 for 2024, $2,500 for 2025, $600 for 2026) that OBBBA erased.", "url": "https://www.irs.gov/pub/irs-drop/n-24-85.pdf" },
+    { "claim": "1099-NEC/1099-MISC $2,000 threshold FAQ corroboration.", "url": "https://www.anchin.com/articles/faqs-new-1099-nec-and-1099-misc-rules-beginning-in-2026/" },
+    { "claim": "State 1099-K threshold corroboration (MA/MD/VA/VT/DC/MT/NC $600; NJ/IL $1,000; MO $1,200; AR $2,500).", "url": "https://tax.thomsonreuters.com/blog/state-tax-information-reporting-what-changed-in-2025-and-what-to-expect-for-2026/" },
+    { "claim": "OBBBA §70432/§70433 section-number and effective-date summary corroboration.", "url": "https://rsmus.com/insights/services/business-tax/irs-updates-obbba-new-reporting-thresholds.html" }
+  ]
+}
