@@ -167,6 +167,7 @@ const TOOLS = [
   { name: 'CAGR Calculator', path: '/cagr-calculator/', cat: 'money' },
   { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/', cat: 'money' },
   { name: '1099-K / 1099-NEC Threshold Checker', path: '/1099-threshold-checker/', cat: 'money' },
+  { name: 'W-2 Box 12 Decoder & Tipped Occupation Lookup', path: '/w2-box-decoder/', cat: 'money' },
   { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/', cat: 'money' },
   { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/', cat: 'money' },
   { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/', cat: 'money' },
@@ -273,6 +274,7 @@ const TOOL_DESCRIPTIONS = {
   '/debt-avalanche-calculator/': 'Plan a debt avalanche payoff that targets the highest-interest balance first to minimize total interest.',
   '/1099-vs-w2-calculator/': 'Compare 1099 contractor versus W-2 employee take-home pay.',
   '/1099-threshold-checker/': 'See whether you\'ll get a 1099-K, 1099-NEC, or 1099-MISC under the 2025/2026 rules: payment apps at $20,000 and 200 transactions, card processors like Stripe/Square with no minimum at all, or a business paying you directly at $2,000 (2026) / $600 (2025) — plus the myth-bust that a 1099 is paperwork, not a tax.',
+  '/w2-box-decoder/': 'Decode the three new 2026 W-2 Box 12 codes — TA (Trump account, excluded from Box 1), TP (reported tips) and TT (overtime premium, both still fully taxed inside Box 1, flagging the Schedule 1-A deduction) — plus a searchable lookup of all 71 Treasury Tipped Occupation Codes for Box 14b, including what code 000 means.',
   '/overtime-tax-calculator/': 'See how much of your overtime is deductible under the 2025 "no tax on overtime" law and what it saves you.',
   '/tips-tax-calculator/': 'See how much of your tips are deductible under the 2025 "no tax on tips" law (up to $25,000) and what it saves you.',
   '/senior-deduction-calculator/': 'Calculate the 2025 law\'s $6,000 senior bonus deduction for people 65+ — the "no tax on Social Security" break — and what it saves you.',
@@ -324,6 +326,7 @@ const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, 
 // embed gallery). Keyed by currentPath.
 const RELATED_OVERRIDES = {
   '/overtime-tax-calculator/': [
+    { name: 'W-2 Box 12 Decoder & Tipped Occupation Lookup', path: '/w2-box-decoder/' },
     { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
@@ -335,6 +338,7 @@ const RELATED_OVERRIDES = {
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' }
   ],
   '/tips-tax-calculator/': [
+    { name: 'W-2 Box 12 Decoder & Tipped Occupation Lookup', path: '/w2-box-decoder/' },
     { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
@@ -348,6 +352,7 @@ const RELATED_OVERRIDES = {
   '/w4-overtime-tips-withholding-calculator/': [
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
+    { name: 'W-2 Box 12 Decoder & Tipped Occupation Lookup', path: '/w2-box-decoder/' },
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
     { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
@@ -444,7 +449,21 @@ const RELATED_OVERRIDES = {
     { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' },
     { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/' }
   ],
+  // W-2 Box 12 TA/TP/TT decoder + TTOC lookup: the tips/overtime information
+  // cluster (spec §8 — tips + W-4 pages link forward here), plus the form-
+  // reading sibling (1099 threshold checker) and paycheck utilities.
+  '/w2-box-decoder/': [
+    { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
+    { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
+    { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
+    { name: '1099-K / 1099-NEC Threshold Checker', path: '/1099-threshold-checker/' },
+    { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
+    { name: 'Tip Income Tax by State (Data Study)', path: '/data/tips-tax-by-state/' },
+    { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
+    { name: 'Hours Calculator (Time Card)', path: '/hours-calculator/' }
+  ],
   '/1099-threshold-checker/': [
+    { name: 'W-2 Box 12 Decoder & Tipped Occupation Lookup', path: '/w2-box-decoder/' },
     { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
     { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
@@ -497,6 +516,7 @@ const RELATED_OVERRIDES = {
   ],
   '/data/tips-tax-by-state/': [
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
+    { name: 'W-2 Box 12 Decoder & Tipped Occupation Lookup', path: '/w2-box-decoder/' },
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'Overtime Tax by State (Data Study)', path: '/data/overtime-tax-by-state/' },
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
@@ -519,6 +539,7 @@ const RELATED_OVERRIDES = {
     { name: 'Overtime Tax by State (Data Study)', path: '/data/overtime-tax-by-state/' },
     { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
     { name: '1099-K / 1099-NEC Threshold Checker', path: '/1099-threshold-checker/' },
+    { name: 'W-2 Box 12 Decoder & Tipped Occupation Lookup', path: '/w2-box-decoder/' },
     { name: 'Social Security Wage Base Max-Out Date Calculator', path: '/ss-wage-base-calculator/' },
     { name: 'Federal Student Loan Cap Calculator', path: '/student-loan-cap-calculator/' },
     { name: 'ABLE Account Contribution Limit Calculator', path: '/able-account-calculator/' }
@@ -2274,6 +2295,8 @@ async function main() {
   const embedBonusTaxTpl = await read(join(SRC, 'templates', 'embed', 'bonus-tax-calculator.html'));
   const form1099Tpl = await read(join(SRC, 'templates', '1099-threshold-checker.html'));
   const embedForm1099Tpl = await read(join(SRC, 'templates', 'embed', '1099-threshold-checker.html'));
+  const w2BoxTpl = await read(join(SRC, 'templates', 'w2-box-decoder.html'));
+  const embedW2BoxTpl = await read(join(SRC, 'templates', 'embed', 'w2-box-decoder.html'));
   const ssMaxoutTpl = await read(join(SRC, 'templates', 'ss-wage-base-calculator.html'));
   const embedSsMaxoutTpl = await read(join(SRC, 'templates', 'embed', 'ss-wage-base-calculator.html'));
   const studentLoanCapTpl = await read(join(SRC, 'templates', 'student-loan-cap-calculator.html'));
@@ -2307,6 +2330,26 @@ async function main() {
   const form1099 = await readJSON(join(SRC, 'data', 'form-1099-thresholds.json'));
   const FORM1099_JSON = JSON.stringify(stripInternal(form1099));
   const FORM1099_STATES_JSON = JSON.stringify(roster.map((s) => ({ name: s.name, abbr: s.abbr })));
+  // 2026 W-2 Box 12 TA/TP/TT decoder + TTOC lookup — a STANDALONE explainer
+  // (no deduction math; the tips/overtime calculators own that). Data is the
+  // codified 71-occupation table from 26 CFR 1.224-1 Table 1 (final rule
+  // 2026-07104: PUBLISHED Apr 13 2026, EFFECTIVE Jun 12 2026 — two different
+  // dates, per the spec's flagged discrepancy; applies to tax years after
+  // Dec 31 2024). The full table is ALSO rendered server-side into the page
+  // (TTOC_TABLE_HTML) so every occupation/code is indexable text, not just
+  // client-injected JSON.
+  const ttoc = await readJSON(join(SRC, 'data', 'ttoc-occupations.json'));
+  const TTOC_JSON = JSON.stringify(stripInternal(ttoc));
+  const TTOC_TABLE_HTML = ttoc.categories.map((cat) => {
+    const rows = cat.occupations.map((o) => {
+      const flag = o.addedInFinalRule ? ' <span class="new-flag">added in final rule</span>' : '';
+      return `<tr><td><strong>${o.code}</strong></td>` +
+        `<td><strong>${esc(o.title)}</strong>${flag}<br><span class="muted-small">${esc(o.description)}.</span></td>` +
+        `<td>${esc(o.examples)}</td></tr>`;
+    }).join('\n');
+    return `<details><summary>${esc(cat.name)} (codes ${cat.occupations[0].code}–${cat.occupations[cat.occupations.length - 1].code})</summary>\n` +
+      `<table><thead><tr><th>Code</th><th>Occupation</th><th>Examples</th></tr></thead><tbody>\n${rows}\n</tbody></table></details>`;
+  }).join('\n');
   // Social Security wage-base max-out date calculator — a STANDALONE calendar
   // forward-walk (new ss-maxout-engine.js; paycheck-engine.js has annual FICA
   // math but no pay-date scheduling at all). Reuses ONLY the existing
@@ -2549,6 +2592,8 @@ async function main() {
   registerAsset('assets', 'roth-catchup-calculator.js');
   registerAsset('engine', 'form-1099-checker.js');
   registerAsset('assets', '1099-threshold-checker.js');
+  registerAsset('engine', 'w2-box-engine.js');
+  registerAsset('assets', 'w2-box-decoder.js');
   registerAsset('engine', 'ss-maxout-engine.js');
   registerAsset('assets', 'ss-wage-base-calculator.js');
   registerAsset('engine', 'student-loan-cap.js');
@@ -3489,6 +3534,21 @@ async function main() {
   );
   urls.push(`${SITE.url}/1099-threshold-checker/`);
 
+  // 2026 W-2 Box 12 TA/TP/TT decoder + Treasury Tipped Occupation Code (TTOC)
+  // lookup — an EXPLAINER, not a calculator (the tips/overtime calculators own
+  // the deduction math; this page links to them). Load-bearing asymmetry the
+  // engine + copy both enforce: TA is EXCLUDED from Box 1; TP/TT are fully
+  // included (flags for the Schedule 1-A deduction) — never a subtraction.
+  // The 71-occupation table (26 CFR 1.224-1 Table 1 to paragraph (h)) is
+  // rendered server-side into the page for indexability AND injected as JSON
+  // for the client-side search.
+  await mkdir(join(DIST, 'w2-box-decoder'), { recursive: true });
+  await writeFile(
+    join(DIST, 'w2-box-decoder', 'index.html'),
+    fillTool(w2BoxTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, TTOC_JSON, TTOC_TABLE_HTML }, '/w2-box-decoder/')
+  );
+  urls.push(`${SITE.url}/w2-box-decoder/`);
+
   // Social Security wage-base max-out date calculator (SSA cbb.html $184,500 /
   // 6.2% for 2026) — projects the exact paycheck date SS withholding stops for
   // the year and the resulting take-home bump, plus a secondary excess-FICA
@@ -3774,7 +3834,7 @@ async function main() {
   // Still gets MODULE_ERROR_LISTENER injected below (same page-level module-load-
   // failure banner every full page gets via fill()) — bypassing fill() shouldn't
   // mean losing that defense-in-depth too.
-  const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON, ROTHCATCHUP_JSON, BONUS_TAX_JSON: BONUS_TAX_ALL_JSON, FORM1099_JSON, FORM1099_STATES_JSON, SSMAXOUT_PARAMS_JSON, STUDENT_LOAN_LIMITS_JSON, ABLE_LIMITS_JSON, ABLE_STATES_JSON };
+  const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON, ROTHCATCHUP_JSON, BONUS_TAX_JSON: BONUS_TAX_ALL_JSON, FORM1099_JSON, FORM1099_STATES_JSON, TTOC_JSON, SSMAXOUT_PARAMS_JSON, STUDENT_LOAN_LIMITS_JSON, ABLE_LIMITS_JSON, ABLE_STATES_JSON };
   const fillEmbed = (tpl) => {
     let out = tpl.replace(/{{(\w+)}}/g, (m, k) => (k in embedMap ? embedMap[k] : m));
     if (out.includes('</head>')) out = out.replace('</head>', `${MODULE_ERROR_LISTENER}</head>`);
@@ -3815,6 +3875,8 @@ async function main() {
   await writeFile(join(DIST, 'embed', 'roth-catchup-calculator', 'index.html'), fillEmbed(embedRothCatchupTpl));
   await mkdir(join(DIST, 'embed', '1099-threshold-checker'), { recursive: true });
   await writeFile(join(DIST, 'embed', '1099-threshold-checker', 'index.html'), fillEmbed(embedForm1099Tpl));
+  await mkdir(join(DIST, 'embed', 'w2-box-decoder'), { recursive: true });
+  await writeFile(join(DIST, 'embed', 'w2-box-decoder', 'index.html'), fillEmbed(embedW2BoxTpl));
   await mkdir(join(DIST, 'embed', 'ss-wage-base-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'ss-wage-base-calculator', 'index.html'), fillEmbed(embedSsMaxoutTpl));
   await mkdir(join(DIST, 'embed', 'student-loan-cap-calculator'), { recursive: true });

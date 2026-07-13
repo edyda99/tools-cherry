@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>W-2 Box 12 Code TA, TP &amp; TT Decoder (2026) — Plus the Tipped Occupation Code Lookup</title>
+<meta name="description" content="Free decoder for the three new 2026 W-2 Box 12 codes: TA (Trump account contributions — excluded from Box 1), TP (reported tips) and TT (overtime premium) — both still fully taxed in Box 1, flagging what you can deduct on Schedule 1-A. Plus a searchable lookup of all 71 Treasury Tipped Occupation Codes for Box 14b, including what code 000 means. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/w2-box-decoder/">
+<meta property="og:title" content="W-2 Box 12 TA / TP / TT Decoder (2026) + Tipped Occupation Code Lookup">
+<meta property="og:description" content="What do the new W-2 codes TA, TP and TT actually mean — and is your job on the no-tax-on-tips list? Decode your 2026 W-2 and look up your Box 14b occupation code. Free, private, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; text-align:right; }
+  .obbba-note { font-size:.9rem; opacity:.9; margin-top:8px; }
+  .warn-flag { color:#b26b00; font-weight:700; }
+  .ok-flag { color:#2f6f4f; font-weight:700; }
+  .info-flag { color:#2a5d8f; font-weight:600; }
+  .code-card { margin-top:12px; padding:12px 14px; border-left:4px solid #2a5d8f; border-radius:8px; background:rgba(42,93,143,.07); }
+  .code-card.excluded { border-left-color:#2f6f4f; background:rgba(47,111,79,.08); }
+  .code-card.included { border-left-color:#b26b00; background:rgba(178,107,0,.07); }
+  .code-card h3 { margin:0 0 6px; font-size:1.02rem; }
+  .code-card p { margin:6px 0; font-size:.93rem; }
+  .code-badge { display:inline-block; padding:2px 8px; border-radius:6px; font-size:.8rem; font-weight:700; margin-left:8px; }
+  .code-badge.b-excluded { background:rgba(47,111,79,.18); color:#2f6f4f; }
+  .code-badge.b-included { background:rgba(178,107,0,.16); color:#b26b00; }
+  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
+  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
+  .mythbust h2 { margin-top:0; }
+  .ttoc-result { margin-top:10px; }
+  .ttoc-hit { padding:10px 12px; border:1px solid rgba(128,128,128,.25); border-radius:8px; margin-top:8px; }
+  .ttoc-hit .t-code { font-weight:700; font-variant-numeric: tabular-nums; }
+  .ttoc-hit .t-cat { font-size:.82rem; opacity:.8; }
+  .ttoc-hit .t-desc { font-size:.88rem; margin-top:4px; }
+  .ttoc-hit .t-ex { font-size:.85rem; opacity:.9; margin-top:3px; }
+  .ttoc-notfound { padding:12px 14px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); margin-top:8px; font-size:.92rem; }
+  .asym-table { width:100%; border-collapse:collapse; font-size:.92rem; }
+  .asym-table th, .asym-table td { text-align:left; padding:8px 10px; border-bottom:1px solid rgba(128,128,128,.22); vertical-align:top; }
+  .asym-wrap { overflow-x:auto; }
+  .ttoc-browse details { border:1px solid rgba(128,128,128,.22); border-radius:8px; margin-top:8px; padding:6px 12px; }
+  .ttoc-browse summary { cursor:pointer; font-weight:600; padding:6px 0; }
+  .ttoc-browse table { width:100%; border-collapse:collapse; font-size:.88rem; }
+  .ttoc-browse th, .ttoc-browse td { text-align:left; padding:6px 8px; border-bottom:1px solid rgba(128,128,128,.16); vertical-align:top; }
+  .ttoc-browse .new-flag { font-size:.75rem; font-weight:700; color:#2f6f4f; white-space:nowrap; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"W-2 Box 12 TA / TP / TT Decoder + Tipped Occupation Code Lookup","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Decode the three Box 12 codes new on 2026 W-2 forms: TA (employer Trump account contributions, excluded from Box 1 wages), TP (total reported cash tips) and TT (qualified overtime premium) — TP and TT are fully included in Box 1 and flag the amounts deductible on Schedule 1-A under the no-tax-on-tips and no-tax-on-overtime rules. Explains the Box 14a/14b split and decodes Box 14b Treasury Tipped Occupation Codes, including code 000 (nonqualifying occupation). Includes a searchable lookup of all 71 qualifying occupations from 26 CFR 1.224-1 (final rule published April 13, 2026, effective June 12, 2026)."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What does code TP in Box 12 of my W-2 mean?","acceptedAnswer":{"@type":"Answer","text":"Code TP is the total amount of cash tips you reported to your employer during the year. It appears for the first time on 2026 W-2s. Important: those tips are still fully taxed as wages — the amount is already inside your Box 1 wages and federal income tax was withheld on it as usual. TP does not lower your W-2 wages; it tells you how much of your wages you can deduct separately on Schedule 1-A under the no-tax-on-tips rule when you file."}},{"@type":"Question","name":"What does code TT in Box 12 of my W-2 mean?","acceptedAnswer":{"@type":"Answer","text":"Code TT is your qualified overtime compensation — only the overtime premium, the extra 'half' of time-and-a-half, not your whole overtime paycheck. Like TP, it is still fully included in Box 1 and taxed as ordinary wages; TT just flags the amount you can deduct on Schedule 1-A under the no-tax-on-overtime rule. Social Security and Medicare still apply to it either way."}},{"@type":"Question","name":"What does code TA in Box 12 of my W-2 mean?","acceptedAnswer":{"@type":"Answer","text":"Code TA is an employer contribution to a Trump account — a new tax-advantaged account for a child under 18 — made for you or your dependent. Beginning July 4, 2026, employers may contribute up to $2,500 a year toward the $5,000 annual contribution limit. Unlike TP and TT, the TA amount is excluded from your Box 1 wages: it was never taxed as wages. There is nothing to deduct; it is informational."}},{"@type":"Question","name":"Do TP and TT lower my Box 1 wages?","acceptedAnswer":{"@type":"Answer","text":"No — this is the single most common misreading. Your Box 1 wages already include the full tip and overtime amounts, withheld and taxed as usual. TP and TT are informational flags: they identify the slice of your Box 1 wages you may deduct later, on Schedule 1-A, under the no-tax-on-tips and no-tax-on-overtime rules. Only code TA is actually excluded from Box 1."}},{"@type":"Question","name":"What is Box 14b on the 2026 W-2?","acceptedAnswer":{"@type":"Answer","text":"Box 14 was split in two for 2026: Box 14a is the old 'Box 14 — Other' catch-all (union dues, state disability insurance, and so on), and Box 14b is new — it holds up to two Treasury Tipped Occupation Codes identifying the occupation(s) your reported tips came from, for example 101 for bartenders. Box 14b is only filled in when Box 12 has code TP. If you earned tips in three or more occupations, only two codes appear."}},{"@type":"Question","name":"What does code 000 in Box 14b mean?","acceptedAnswer":{"@type":"Answer","text":"Code 000 means at least some of your reported tips came from a job that is not on the Treasury's list of qualifying occupations — so not all of your Box 12 TP amount is eligible for the tips deduction. It is a partial-ineligibility flag from the W-2 instructions, not an error and not a real occupation code."}},{"@type":"Question","name":"How do I find my Treasury Tipped Occupation Code?","acceptedAnswer":{"@type":"Answer","text":"Search your job title in the lookup on this page. The Treasury's final list — 71 occupations in 8 categories, codified at 26 CFR 1.224-1 — includes everyday titles under 'examples': barista (107), Uber or rideshare driver (802), nail technician (605), and so on. If your job is not on the list, tips from it do not qualify for the federal tips deduction, though nothing else about your taxes changes."}},{"@type":"Question","name":"When did the tipped-occupation list take effect?","acceptedAnswer":{"@type":"Answer","text":"The final rule (Treasury Decision 10044) was published in the Federal Register on April 13, 2026 and became effective June 12, 2026. The list itself applies to taxable years beginning after December 31, 2024 — so it governs the deduction for the whole 2025–2028 window. Three occupations were added between the September 2025 proposed rule and the final rule: Visual Artists (509), Floral Designers (510), and Gas Pump Attendants (810)."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>W-2 Box 12 Decoder (TA, TP, TT) &amp; Tipped Occupation Code Lookup</h1>
+    <p class="lede">Starting with <strong>2026 W-2s</strong> (the ones that arrive in January 2027), Box 12 has three brand-new codes and Box 14 is split in two. The one thing to get right: <strong>TA</strong> (Trump account contributions) is <strong>excluded</strong> from your Box 1 wages — never taxed as wages — while <strong>TP</strong> (your reported tips) and <strong>TT</strong> (your overtime premium) are <strong>still fully taxed inside Box 1</strong>. TP and TT don't lower your wages; they flag how much of your wages you can deduct later, on Schedule 1-A, under the "no tax on tips" and "no tax on overtime" rules. Enter your codes below to decode them, and use the <a href="#ttoc-lookup">occupation lookup</a> to find (or verify) the Box 14b code for your job. Everything runs in your browser — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="W-2 Box 12 and Box 14b decoder">
+      <h2 style="margin-top:0">Decode your Box 12 &amp; Box 14b</h2>
+      <form id="w2Form" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="amtTP">Box 12 code TP amount ($) <span class="muted-small">(your reported tips)</span></label>
+          <input type="number" id="amtTP" inputmode="numeric" min="0" step="100" value="9800">
+          <p class="muted-small" style="margin-top:6px">The total cash tips you reported to your employer. Leave blank or 0 if TP isn't on your W-2.</p>
+        </div>
+        <div class="field">
+          <label for="amtTT">Box 12 code TT amount ($) <span class="muted-small">(your overtime premium)</span></label>
+          <input type="number" id="amtTT" inputmode="numeric" min="0" step="100" value="1150">
+          <p class="muted-small" style="margin-top:6px">Only the extra "half" of time-and-a-half — your employer reports just the premium here. Leave blank or 0 if TT isn't on your W-2.</p>
+        </div>
+        <div class="field">
+          <label for="amtTA">Box 12 code TA amount ($) <span class="muted-small">(Trump account contribution)</span></label>
+          <input type="number" id="amtTA" inputmode="numeric" min="0" step="100" value="2500">
+          <p class="muted-small" style="margin-top:6px">What your employer contributed to a Trump account for you or your dependent. Leave blank or 0 if TA isn't on your W-2.</p>
+        </div>
+        <div class="field">
+          <label for="codes14b">Box 14b code(s) <span class="muted-small">(up to two 3-digit codes)</span></label>
+          <input type="text" id="codes14b" inputmode="numeric" placeholder="e.g. 101 — or 101, 000" value="101">
+          <p class="muted-small" style="margin-top:6px">The Treasury Tipped Occupation Code(s) printed in Box 14b. Separate two codes with a comma or space. Leave blank if Box 14b is empty.</p>
+        </div>
+      </form>
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+    </section>
+
+    <p class="note">For general guidance only — not tax advice. This tool explains what the new W-2 codes mean; it does not compute your deduction. For the dollar figures, see the <a href="/tips-tax-calculator/">no tax on tips calculator</a> and the <a href="/overtime-tax-calculator/">no tax on overtime calculator</a>. Verify your own situation with the IRS or a tax professional.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="calc" id="ttoc-lookup" aria-label="Tipped occupation code lookup">
+      <h2 style="margin-top:0">Is your job on the list? Tipped Occupation Code lookup</h2>
+      <p class="muted-small">The "no tax on tips" deduction only applies if your job is on the Treasury's list of <strong>71 occupations</strong> (8 categories). Box 14b is literally this list's numeric code. Search your job title — everyday names like "barista", "valet" or "Uber driver" work.</p>
+      <div class="field">
+        <label for="occQuery">Your job title</label>
+        <input type="text" id="occQuery" placeholder="e.g. bartender, nail tech, uber driver" value="">
+      </div>
+      <div class="ttoc-result" id="occOut" aria-live="polite"></div>
+    </section>
+
+    <section class="prose ttoc-browse" id="ttoc-browse">
+      <h2>Browse the full list: all 71 occupations by category</h2>
+      <p>From <strong>26 CFR § 1.224-1, Table 1 to paragraph (h)</strong> — the codified regulation text. The three-digit code is what goes in W-2 Box 14b. Occupations marked <span class="new-flag">added in final rule</span> were not in the September 2025 proposed list — any older article missing them is citing the stale proposal.</p>
+      {{TTOC_TABLE_HTML}}
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose mythbust">
+      <h2>The misread to avoid: "TP/TT means my W-2 wages are lower"</h2>
+      <p><strong>What people assume:</strong> "There's a no-tax-on-tips law now, and my W-2 has a tips code — so my Box 1 wages must already exclude my tips."</p>
+      <p><strong>What's actually true:</strong> Your Box 1 wages <strong>already include every tip and overtime dollar</strong>, withheld and taxed as ordinary wages all year. The IRS instructions are explicit that tips and overtime are "still generally subject to federal income tax withholding" — the word <em>still</em> is the tell. TP and TT are flags, not subtractions: they tell you (and the IRS) exactly how much of your Box 1 you can deduct on <strong>Schedule 1-A</strong> when you file. Only <strong>TA</strong> is genuinely excluded from Box 1 — the instructions use the phrase "excluded from the gross income of the employee" for TA and for TA alone.</p>
+      <p>And in both cases, <strong>Social Security and Medicare (FICA) still apply</strong> to every tip and overtime dollar — the deduction is federal income tax only.</p>
+    </section>
+
+    <section class="prose">
+      <h2>The three new Box 12 codes, side by side</h2>
+      <div class="asym-wrap">
+      <table class="asym-table">
+        <thead><tr><th>Code</th><th>Reports</th><th>Excluded from Box 1?</th><th>What it's for</th></tr></thead>
+        <tbody>
+          <tr><td><strong>TA</strong></td><td>Employer Trump-account contribution (up to $2,500/yr from July 4, 2026, toward the $5,000 limit)</td><td><strong>Yes — excluded.</strong> Never taxed as wages.</td><td>Tax-advantaged savings for a child under 18. Informational — confirm the account exists; nothing to deduct.</td></tr>
+          <tr><td><strong>TP</strong></td><td>Total cash tips reported to your employer</td><td><strong>No — fully included.</strong> Withheld and taxed as ordinary wages, same as before.</td><td>Flags the amount eligible for the "no tax on tips" deduction (up to $25,000, IRC §224) — claimed on Schedule 1-A when you file. Triggers Box 14b.</td></tr>
+          <tr><td><strong>TT</strong></td><td>Qualified overtime premium — only the "half" of time-and-a-half, not the whole overtime paycheck</td><td><strong>No — fully included.</strong></td><td>Flags the amount eligible for the "no tax on overtime" deduction (IRC §225) — claimed on Schedule 1-A when you file.</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>Want the actual dollar savings? That's the job of the <a href="/tips-tax-calculator/">no tax on tips calculator</a> and the <a href="/overtime-tax-calculator/">no tax on overtime calculator</a> — and the <a href="/w4-overtime-tips-withholding-calculator/">W-4 withholding calculator</a> if you'd rather see the money in your paychecks now instead of a refund.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Box 14a and Box 14b: what changed</h2>
+      <p>On the 2026 form, the old "Box 14 — Other" became <strong>Box 14a — Other</strong>, the same catch-all as before (vehicle lease value, state disability insurance, union dues, health insurance premiums, and so on — whatever your employer chooses to note there). <strong>Box 14b is brand new</strong>: it holds the <strong>Treasury Tipped Occupation Code(s)</strong> — up to two 3-digit codes identifying the occupation(s) your reported tips came from.</p>
+      <p>Three rules from the W-2 instructions worth knowing:</p>
+      <ul>
+        <li><strong>Box 14b only appears with code TP.</strong> No TP in Box 12 means an empty Box 14b is correct — overtime-only and Trump-account-only W-2s have nothing there.</li>
+        <li><strong>Two codes maximum.</strong> If you earned tips in three or more occupations, your employer picks any two — the instructions state no priority rule, so don't read meaning into which two appear.</li>
+        <li><strong>"000" is a flag, not a typo.</strong> If any tips came from a job <em>not</em> on the qualifying list, "000" must appear as one of the codes — meaning not all of your TP amount is deduction-eligible.</li>
+      </ul>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Where the occupation list comes from (and the dates that matter)</h2>
+      <p>The "no tax on tips" deduction (IRC §224, created by the One Big Beautiful Bill Act, P.L. 119-21) only applies to occupations that "customarily and regularly" received tips — and the Treasury Department was required to publish exactly which ones. The final rule (<strong>TD 10044</strong>, Federal Register Doc. 2026-07104, 91 FR 19026) was <strong>published April 13, 2026</strong> and became <strong>effective June 12, 2026</strong> — two different dates. The list itself applies to <strong>taxable years beginning after December 31, 2024</strong>, covering the deduction's whole 2025–2028 window.</p>
+      <p>Between the September 2025 <em>proposed</em> list and the April 2026 <em>final</em> one, three occupations were added: <strong>Visual Artists (509)</strong>, <strong>Floral Designers (510)</strong>, and <strong>Gas Pump Attendants (810)</strong>. Some jobs were considered and explicitly left out for lack of tip-income data — chiropractors, accountants, tax preparers, and concert merchandise sellers among them. "Retail cashier" was rejected as a category because tipped cashiers turned out to already be covered as <strong>Fast Food and Counter Workers (107)</strong> or <strong>Hotel, Motel, and Resort Desk Clerks (303)</strong>. Clergy are covered only through <strong>Event Officiants (505)</strong> — for tips received in event settings like weddings or funerals.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>My W-2 has TP but my paycheck never got bigger — was my employer supposed to stop withholding on tips?</strong> No. Withholding on tips and overtime continued as normal all year; the deduction arrives when you file (or you can adjust your W-4 — see the <a href="/w4-overtime-tips-withholding-calculator/">W-4 withholding calculator</a>).</p>
+      <p><strong>Is the TT amount my whole overtime pay?</strong> No — only the premium. If you earn $20/hour normally and $30/hour on overtime, TT reports the $10/hour extra, not the $30.</p>
+      <p><strong>Box 14b shows a code and "000" — is that an error?</strong> No. The real code is the qualifying job; "000" says some of your tips came from a non-qualifying one, so not all of your TP amount is deductible.</p>
+      <p><strong>My Box 14b code isn't in the list above.</strong> Then it's likely a typo or a placeholder — check with your employer. That's different from "000", which is a deliberate flag.</p>
+      <p><strong>My job isn't on the list — do I owe more tax now?</strong> No. Nothing changed for non-listed jobs: tips were taxable before and still are. You just don't get the new deduction.</p>
+      <p><strong>Does any of this change my Social Security or Medicare?</strong> No. FICA applies to every tip and overtime dollar regardless — the deduction is federal income tax only.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — what you type never leaves your browser.</p>
+      <p class="muted-small">Sources: IRS, <a href="https://www.irs.gov/instructions/iw2w3" rel="nofollow">2026 General Instructions for Forms W-2 and W-3</a> (verbatim TA/TP/TT definitions, Box 1 inclusion rules, the Box 14a/14b split); Treasury/IRS final rule <a href="https://www.federalregister.gov/documents/2026/04/13/2026-07104/occupations-that-customarily-and-regularly-received-tips-definition-of-qualified-tips" rel="nofollow">"Occupations That Customarily and Regularly Received Tips"</a> (TD 10044, 91 FR 19026, published April 13, 2026, effective June 12, 2026; also at <a href="https://www.govinfo.gov/content/pkg/FR-2026-04-13/pdf/2026-07104.pdf" rel="nofollow">govinfo.gov</a>); <a href="https://www.ecfr.gov/current/title-26/section-1.224-1" rel="nofollow">26 CFR § 1.224-1</a> (eCFR — the codified occupation table, Table 1 to paragraph (h)).</p>
+    </section>
+
+    <div class="note"><strong>Embed this tool.</strong> Put the decoder + occupation lookup on your site — free, one copy-paste snippet, no scripts from third parties. <a href="/embed/">Get the snippet</a>.</div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__TTOC__ = {{TTOC_JSON}};
+</script>
+<script type="module" src="/assets/w2-box-decoder.js"></script>
+</body>
+</html>
