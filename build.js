@@ -181,6 +181,7 @@ const TOOLS = [
   { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/', cat: 'money' },
   { name: 'Social Security Wage Base Max-Out Date Calculator', path: '/ss-wage-base-calculator/', cat: 'money' },
   { name: 'Federal Student Loan Cap Calculator', path: '/student-loan-cap-calculator/', cat: 'money' },
+  { name: 'Adoption Tax Credit Calculator', path: '/adoption-credit-calculator/', cat: 'money' },
   { name: '401(k) Retirement Calculator', path: '/401k-calculator/', cat: 'money' },
   { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/', cat: 'money' },
   { name: 'Inflation Calculator', path: '/inflation-calculator/', cat: 'money' },
@@ -286,6 +287,7 @@ const TOOL_DESCRIPTIONS = {
   '/bonus-tax-calculator/': 'See what\'s withheld from your bonus now (flat 22% federal + your state\'s supplemental rate + FICA) versus what it will really cost at tax time — with the refund or amount owed, for all 50 states + DC.',
   '/ss-wage-base-calculator/': 'Find the exact 2026 paycheck your 6.2% Social Security tax stops for the year once you cross the $184,500 wage base, and how much your take-home pay jumps — plus a multi-employer excess-FICA check and a Medicare contrast note.',
   '/student-loan-cap-calculator/': 'The federal borrowing caps in effect since July 1, 2026: graduate $20,500/yr ($100,000 aggregate), professional $50,000/yr ($200,000 shared pool), Parent PLUS $20,000/yr ($65,000 per student), the $257,500 lifetime cap, and the legacy grandfather exception. See your year-by-year federal capacity, which cap binds, and your program\'s funding gap — statute-cited, no borrowing advice.',
+  '/adoption-credit-calculator/': 'See your 2026 federal adoption tax credit (IRC §23): the $17,670 per-child cap, the $265,080–$305,080 MAGI phase-out, and — new under the 2025 law — up to $5,120 refundable PER CHILD (not per return), paid even if you owe no tax. Refundable for the first time since 2011 and permanently for the first time. Handles special-needs adoptions (full cap with no expenses), multiple children, employer §137 assistance, and the 5-year carryforward. Statute-cited, no advice.',
   '/401k-calculator/': 'Project 401(k) retirement balance from contributions, match, and growth.',
   '/savings-goal-calculator/': 'Find how much to save each month to reach a savings goal.',
   '/inflation-calculator/': 'See how the buying power of a US dollar changes over time.',
@@ -397,6 +399,7 @@ const RELATED_OVERRIDES = {
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' }
   ],
   '/dependent-care-fsa-vs-credit-calculator/': [
+    { name: 'Adoption Tax Credit Calculator', path: '/adoption-credit-calculator/' },
     { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
     { name: 'Mandatory Roth Catch-Up Calculator', path: '/roth-catchup-calculator/' },
     { name: '401(k) Retirement Calculator', path: '/401k-calculator/' },
@@ -470,6 +473,19 @@ const RELATED_OVERRIDES = {
     { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' },
     { name: 'GPA Calculator', path: '/gpa-calculator/' },
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' }
+  ],
+  // Adoption credit (IRC §23) — a child/family OBBBA tax provision. Nearest
+  // siblings are the dependent-care (child/family) tool and the OBBBA deduction
+  // cluster, plus the tax glossary (docs/adoption-credit-calculator-spec.md §5).
+  '/adoption-credit-calculator/': [
+    { name: 'Dependent Care FSA vs. Child Care Credit Calculator', path: '/dependent-care-fsa-vs-credit-calculator/' },
+    { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
+    { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
+    { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
+    { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
+    { name: 'PMI / Mortgage Insurance Deduction Calculator', path: '/pmi-deduction-calculator/' },
+    { name: 'QCD vs. Charitable Deduction Calculator', path: '/qcd-vs-charitable-deduction-calculator/' },
+    { name: 'Tax Glossary', path: '/tax-glossary/' }
   ],
   '/data/overtime-tax-by-state/': [
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
@@ -2262,6 +2278,8 @@ async function main() {
   const embedSsMaxoutTpl = await read(join(SRC, 'templates', 'embed', 'ss-wage-base-calculator.html'));
   const studentLoanCapTpl = await read(join(SRC, 'templates', 'student-loan-cap-calculator.html'));
   const embedStudentLoanCapTpl = await read(join(SRC, 'templates', 'embed', 'student-loan-cap-calculator.html'));
+  const adoptionTpl = await read(join(SRC, 'templates', 'adoption-credit-calculator.html'));
+  const embedAdoptionTpl = await read(join(SRC, 'templates', 'embed', 'adoption-credit-calculator.html'));
   const embedGalleryTpl = await read(join(SRC, 'templates', 'embed-gallery.html'));
   const overtimeStudyTpl = await read(join(SRC, 'templates', 'data-overtime-tax-by-state.html'));
   const tipsStudyTpl = await read(join(SRC, 'templates', 'data-tips-tax-by-state.html'));
@@ -2311,6 +2329,18 @@ async function main() {
   // data — RE-CHECK THE FSA EA BEFORE EVERY DEPLOY of this tool (spec §7.1).
   const studentLoanLimits = await readJSON(join(SRC, 'data', 'student-loan-limits-2026.json'));
   const STUDENT_LOAN_LIMITS_JSON = JSON.stringify(stripInternal(studentLoanLimits));
+  // Adoption Tax Credit (26 U.S.C. §23) + §137 employer exclusion parameters,
+  // TY2025/2026 — a STANDALONE §23 credit dataset + engine (adoption-credit.js).
+  // NOT the OBBBA deduction cluster: no reuse of tax-data-2026.json or
+  // obbba-deductions-2026.json. Load-bearing correction (spec §7.3): the $5,120
+  // (2026) refundable cap is PER CHILD (Form 8839 line 11b per column), not per
+  // return — the engine's per-child min() is what beats competitors' fixed
+  // "$5,120 refundable / $12,550 nonrefundable" framing. Carries both years so
+  // extension/amended 2025 returns compute; the FIFO 5-year carryforward clock
+  // lives on the dataset root, so projection years past 2026 draw down without
+  // needing (as-yet-unpublished) annual figures.
+  const adoptionData = await readJSON(join(SRC, 'data', 'adoption-credit-2026.json'));
+  const ADOPTION_DATA_JSON = JSON.stringify(stripInternal(adoptionData));
   // State supplemental (bonus) withholding rates — its own dataset (§ bonus-tax).
   const suppData = await readJSON(join(SRC, 'data', 'state-supplemental-2026.json'));
   // Lean client payload for a supp entry: ONLY the fields the browser engine
@@ -2518,6 +2548,8 @@ async function main() {
   registerAsset('assets', 'ss-wage-base-calculator.js');
   registerAsset('engine', 'student-loan-cap.js');
   registerAsset('assets', 'student-loan-cap-calculator.js');
+  registerAsset('engine', 'adoption-credit.js');
+  registerAsset('assets', 'adoption-credit-calculator.js');
   registerAsset('engine', 'bonus-tax.js');
   registerAsset('assets', 'bonus-tax-calculator.js');
   registerAsset('assets', 'embed-gallery.js');
@@ -3477,6 +3509,21 @@ async function main() {
   );
   urls.push(`${SITE.url}/student-loan-cap-calculator/`);
 
+  // Adoption Tax Credit Calculator (26 U.S.C. §23, TY 2025/2026) — qualified
+  // expenses → $17,670 per-child cap → MAGI phase-out ($265,080–$305,080) →
+  // PER-CHILD refundable split (up to $5,120 EACH under OBBBA §70402, not per
+  // return) → nonrefundable liability limit → 5-year FIFO carryforward. Handles
+  // special-needs deeming (full cap, $0 expenses), multi-child households, and
+  // the §137 employer-assistance coordination. Refundable for the first time
+  // since 2011 and permanently for the first time (NOT "ever"). Informational
+  // arithmetic only.
+  await mkdir(join(DIST, 'adoption-credit-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'adoption-credit-calculator', 'index.html'),
+    fillTool(adoptionTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, ADOPTION_DATA_JSON }, '/adoption-credit-calculator/')
+  );
+  urls.push(`${SITE.url}/adoption-credit-calculator/`);
+
   // QCD (Qualified Charitable Distribution, IRC §408(d)(8)) vs. take-the-
   // distribution-and-deduct-it calculator. NOT an OBBBA provision (predates the
   // 2025 law; permanent) but shares the tax-parameter store (federal.qcd, sibling
@@ -3723,7 +3770,7 @@ async function main() {
   // Still gets MODULE_ERROR_LISTENER injected below (same page-level module-load-
   // failure banner every full page gets via fill()) — bypassing fill() shouldn't
   // mean losing that defense-in-depth too.
-  const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON, ROTHCATCHUP_JSON, BONUS_TAX_JSON: BONUS_TAX_ALL_JSON, FORM1099_JSON, FORM1099_STATES_JSON, SSMAXOUT_PARAMS_JSON, STUDENT_LOAN_LIMITS_JSON };
+  const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON, ROTHCATCHUP_JSON, BONUS_TAX_JSON: BONUS_TAX_ALL_JSON, FORM1099_JSON, FORM1099_STATES_JSON, SSMAXOUT_PARAMS_JSON, STUDENT_LOAN_LIMITS_JSON, ADOPTION_DATA_JSON };
   const fillEmbed = (tpl) => {
     let out = tpl.replace(/{{(\w+)}}/g, (m, k) => (k in embedMap ? embedMap[k] : m));
     if (out.includes('</head>')) out = out.replace('</head>', `${MODULE_ERROR_LISTENER}</head>`);
@@ -3768,6 +3815,8 @@ async function main() {
   await writeFile(join(DIST, 'embed', 'ss-wage-base-calculator', 'index.html'), fillEmbed(embedSsMaxoutTpl));
   await mkdir(join(DIST, 'embed', 'student-loan-cap-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'student-loan-cap-calculator', 'index.html'), fillEmbed(embedStudentLoanCapTpl));
+  await mkdir(join(DIST, 'embed', 'adoption-credit-calculator'), { recursive: true });
+  await writeFile(join(DIST, 'embed', 'adoption-credit-calculator', 'index.html'), fillEmbed(embedAdoptionTpl));
   await mkdir(join(DIST, 'embed', 'bonus-tax-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'bonus-tax-calculator', 'index.html'), fillEmbed(embedBonusTaxTpl));
   // Indexable embed gallery (fillTool is fine here — real page, benefits from schema
