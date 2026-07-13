@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Adoption Tax Credit Calculator 2026 — $17,670 Cap, $5,120 Refundable Per Child</title>
+<meta name="description" content="Free 2026 adoption tax credit calculator (IRC §23): the $17,670 per-child cap, the $265,080–$305,080 MAGI phase-out, and — new under the 2025 law — up to $5,120 refundable PER CHILD (not per return), paid even if you owe no tax. Handles special-needs adoptions (full cap with no expenses), multiple children, employer §137 assistance, and the 5-year carryforward. Statute-cited, runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/adoption-credit-calculator/">
+<meta property="og:title" content="Adoption Tax Credit Calculator (2026)">
+<meta property="og:description" content="See your 2026 adoption credit: the $17,670 per-child cap, the MAGI phase-out, and how much is refundable — up to $5,120 PER CHILD under the 2025 law, refundable for the first time since 2011 and permanently for the first time. Special-needs, multi-child, and employer-assistance aware. Free, statute-cited, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; text-align:right; }
+  .obbba-note { font-size:.9rem; opacity:.9; margin-top:8px; }
+  .warn-flag { color:#b26b00; font-weight:700; }
+  .ok-flag { color:#2f6f4f; font-weight:700; }
+  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
+  .mythbust h2 { margin-top:0; }
+  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
+  .info-note { margin-top:12px; padding:11px 14px; border-left:4px solid #2a5d8f; border-radius:8px; background:rgba(42,93,143,.09); font-size:.9rem; }
+  .method-note { margin-top:12px; padding:11px 14px; border-left:4px solid #6b4fa1; border-radius:8px; background:rgba(107,79,161,.09); font-size:.9rem; }
+  .childcard { margin-top:12px; padding:12px 14px; border:1px solid rgba(128,128,128,.28); border-radius:10px; }
+  .childcard h3 { margin:0 0 8px; font-size:1rem; }
+  .cmp-table { width:100%; border-collapse:collapse; margin-top:12px; font-size:.92rem; }
+  .cmp-table th, .cmp-table td { padding:6px 8px; text-align:left; border-bottom:1px solid rgba(128,128,128,.18); }
+  .cmp-table td.num, .cmp-table th.num { text-align:right; font-variant-numeric: tabular-nums; }
+  .cmp-scroll { overflow-x:auto; }
+  .childbreak { margin-top:10px; font-size:.9rem; }
+  .childbreak table { width:100%; border-collapse:collapse; }
+  .childbreak th, .childbreak td { padding:5px 8px; border-bottom:1px solid rgba(128,128,128,.18); text-align:right; }
+  .childbreak th:first-child, .childbreak td:first-child { text-align:left; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Adoption Tax Credit Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Computes the 2026 federal adoption tax credit (26 U.S.C. §23): qualified adoption expenses up to the $17,670 per-child cap, the MAGI phase-out from $265,080 to $305,080, and — under the 2025 law (OBBBA §70402) — the refundable portion of up to $5,120 PER CHILD (not per return), paid even with zero tax liability. Handles special-needs adoptions (full cap deemed with no expenses), multiple children (each child's refundable portion figured independently), the employer §137 assistance exclusion coordination, and the 5-year FIFO carryforward of the nonrefundable remainder. Refundable for the first time since 2011 and permanently for the first time. Informational arithmetic only; runs entirely in the browser."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How much is the adoption tax credit for 2026?","acceptedAnswer":{"@type":"Answer","text":"For 2026 the maximum adoption credit is $17,670 per child (IRC §23, Rev. Proc. 2025-32). It equals your qualified adoption expenses up to that cap, reduced by a phase-out once your modified AGI exceeds $265,080 (fully gone at $305,080). Under the 2025 law, up to $5,120 of the credit per child is refundable — paid to you even if you owe no tax."}},{"@type":"Question","name":"Is the adoption tax credit refundable in 2026?","acceptedAnswer":{"@type":"Answer","text":"Partly. The 2025 law (OBBBA §70402) made the first dollars of each year's allowed credit refundable — up to $5,120 per child in 2026 — via new §23(a)(4). This is the first time the adoption credit has been refundable since 2011, and the first time the refundability is permanent. It was fully refundable only for 2010 and 2011 under the Affordable Care Act, then reverted to nonrefundable. Saying it is refundable 'for the first time ever' is incorrect."}},{"@type":"Question","name":"Is the $5,120 refundable amount per child or per return?","acceptedAnswer":{"@type":"Answer","text":"Per child. On Form 8839 the refundable amount is figured separately for each eligible child (line 11b is a per-column figure), so a family adopting two children can receive up to $10,240 refundable on one return. Treating $5,120 as a per-return limit is a common error and understates the refund for multi-child families."}},{"@type":"Question","name":"What is the adoption credit for a special-needs child?","acceptedAnswer":{"@type":"Answer","text":"In the year a special-needs adoption becomes final, you are treated as having paid qualified adoption expenses equal to the full cap ($17,670 in 2026) even if your actual expenses were less — so you can claim the full credit with zero out-of-pocket expenses (§23(a)(3)). A child is special-needs only if a State or, new under the 2025 law (§70403), an Indian tribal government determines the child can't return home and needs assistance to be adopted."}},{"@type":"Question","name":"Does employer adoption assistance reduce the credit?","acceptedAnswer":{"@type":"Answer","text":"You can't claim both the credit and the employer exclusion for the SAME expenses. Employer-reimbursed expenses under a written §137 adoption-assistance program are excluded from your wages (up to $17,670 in 2026) and are not qualified adoption expenses for the credit. But the two $17,670 caps are separate, so a family with enough expenses can use both — the exclusion on the reimbursed part and the credit on the rest."}},{"@type":"Question","name":"What happens to adoption credit I can't use this year?","acceptedAnswer":{"@type":"Answer","text":"Only the nonrefundable part of the credit can carry forward — up to 5 years, oldest amounts used first (§23(c)). The refundable part is paid to you regardless of tax liability, so it never carries. Any expenses above the $17,670 per-child cap can never be claimed."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Adoption Tax Credit Calculator (2026)</h1>
+    <p class="lede">The 2025 tax law changed the adoption credit in a way most pages get wrong: part of it is now <strong>refundable</strong> — paid to you even if you owe no tax. For 2026 the credit is your qualified adoption expenses up to <strong>$17,670 per child</strong>, phased out between <strong>$265,080 and $305,080</strong> of income, and up to <strong>$5,120 of it per child</strong> is refundable. That refundable slice is <strong>per child, not per return</strong>, so two children can bring more than $5,120 back as a refund. Enter your expenses to see the refundable amount, the nonrefundable amount, and any 5-year carryforward. Everything runs in your browser — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Adoption tax credit calculator">
+      <form id="adoptForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="taxYear">Tax year</label>
+          <select id="taxYear">
+            <option value="2026" selected>2026</option>
+            <option value="2025">2025</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">2026 is the default. 2025 is here for extension and amended returns (the refundable cap was $5,000 and the per-child cap $17,280 in 2025).</p>
+        </div>
+
+        <div class="field">
+          <label for="filingStatus">Filing status</label>
+          <select id="filingStatus">
+            <option value="single" selected>Single</option>
+            <option value="mfj">Married filing jointly</option>
+            <option value="hoh">Head of household</option>
+            <option value="qw">Qualifying surviving spouse</option>
+            <option value="mfs">Married filing separately</option>
+          </select>
+        </div>
+        <div class="field" id="mfsField" style="display:none">
+          <label for="livedApart">If married filing separately: did you live apart from your spouse for the last 6 months of the year (and the child lived in your home more than half the year, and you paid more than half the home's cost)?</label>
+          <select id="livedApart">
+            <option value="no" selected>No</option>
+            <option value="yes">Yes</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">Married taxpayers generally must file jointly to claim the adoption credit (§23(f)); this is the only exception.</p>
+        </div>
+
+        <div class="field">
+          <label for="childCount">How many children are you adopting (claiming this year)?</label>
+          <select id="childCount">
+            <option value="1" selected>1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">Adopting more than three? Add the extra children's figures to the IRS Form 8839 worksheet; this tool mirrors the form's three columns.</p>
+        </div>
+
+        <div id="children"></div>
+
+        <div class="field">
+          <label for="magi">Modified adjusted gross income (MAGI) for the year ($)</label>
+          <input type="number" id="magi" inputmode="numeric" min="0" step="1000" value="120000">
+          <p class="muted-small" style="margin-top:6px">Usually your AGI. Add back any foreign earned income / possessions exclusions (Form 2555 or 4563). The credit phases out from $265,080 to $305,080 for 2026.</p>
+        </div>
+
+        <div class="field">
+          <label for="taxLiability">Federal income tax before this credit, after your other credits ($)</label>
+          <input type="number" id="taxLiability" inputmode="numeric" min="0" step="500" value="8000">
+          <p class="muted-small" style="margin-top:6px">This limits the <em>nonrefundable</em> part only — the refundable part is paid regardless. A rough stand-in for the IRS "Credit Limit Worksheet." The refundable part is paid even if this is $0.</p>
+        </div>
+
+        <details style="margin-top:8px">
+          <summary class="muted-small">Employer adoption assistance (§137)?</summary>
+          <div class="field" style="margin-top:8px">
+            <label for="hasProgram">Does your employer have a written adoption-assistance program?</label>
+            <select id="hasProgram">
+              <option value="no" selected>No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+          <div id="employerFields" style="display:none">
+            <div class="field">
+              <label for="employerBenefits">Employer benefits paid/excluded for these expenses this year ($)</label>
+              <input type="number" id="employerBenefits" inputmode="numeric" min="0" step="500" value="0">
+              <p class="muted-small" style="margin-top:6px">These are excluded from your wages (separate $17,670 cap) and are <em>not</em> qualified expenses for the credit — no double-dip. This tool nets them off your first child's credit expenses.</p>
+            </div>
+          </div>
+        </details>
+
+        <details style="margin-top:8px">
+          <summary class="muted-small">Carryforward from a prior year?</summary>
+          <div class="field" style="margin-top:8px">
+            <label for="cfAmount">Nonrefundable adoption credit carried into this year ($)</label>
+            <input type="number" id="cfAmount" inputmode="numeric" min="0" step="500" value="0">
+          </div>
+          <div class="field">
+            <label for="cfYear">Year that carryforward first arose</label>
+            <input type="number" id="cfYear" inputmode="numeric" min="2018" max="2030" step="1" value="2025">
+            <p class="muted-small" style="margin-top:6px">Carryforward expires after the 5th year following the year it arose. Pre-2025 carryforwards stay nonrefundable forever.</p>
+          </div>
+        </details>
+      </form>
+
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+    </section>
+
+    <p class="note">For general information only — not tax, legal, or financial advice. Figures are for the tax year you select (2026 default). The 2026 Form 8839 isn't published yet, so line references are from the 2025 form and may move. Confirm your numbers with IRS Form 8839 and its instructions and a tax professional before filing.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose mythbust">
+      <h2>The myth-bust: the refundable part is per child, and it isn't a fixed number</h2>
+      <p><strong>What many pages say:</strong> "$5,120 is refundable and $12,550 is nonrefundable."</p>
+      <p><strong>What's actually true:</strong> that split only holds when the full $17,670 is allowed. The refundable amount is <strong>the smaller of your allowed credit or $5,120, figured per child</strong> (Form 8839 line 11b, one column per child). If your expenses are $4,000, the whole $4,000 is refundable — and you get it even with $0 tax liability. If you adopt two children, the cap is $5,120 <em>each</em>, so up to <strong>$10,240</strong> can come back on one return. And this is <strong>refundable for the first time since 2011, and permanently for the first time</strong>: the credit was fully refundable only for 2010–2011 under the Affordable Care Act, then reverted to nonrefundable through 2024. It is <em>not</em> "refundable for the first time ever." The 2025 law (OBBBA §70402) added new §23(a)(4), which recharacterizes the first dollars of each year's allowed credit as refundable.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How the 2026 adoption credit works, step by step</h2>
+      <ol>
+        <li><strong>Qualified expenses, capped per child.</strong> Reasonable and necessary adoption fees, court costs, attorney fees, and travel — up to <strong>$17,670 per child</strong> in 2026. This cap is cumulative across all years for the same child, so prior-year claims reduce what's left. Expenses above the cap can never be claimed.</li>
+        <li><strong>MAGI phase-out.</strong> The credit is reduced once your modified AGI is <em>above</em> $265,080, and disappears at $305,080 (a fixed $40,000 range). MAGI exactly at $265,080 is not "in excess of" it, so there's no reduction yet.</li>
+        <li><strong>Refundable split — per child.</strong> The first dollars of each child's allowed credit, up to <strong>$5,120</strong>, are refundable (paid regardless of tax owed). The rest is nonrefundable.</li>
+        <li><strong>Nonrefundable part meets your tax.</strong> The nonrefundable remainder can only offset your income tax this year.</li>
+        <li><strong>Carryforward.</strong> Whatever nonrefundable credit your tax can't absorb carries forward up to 5 years, oldest first. The refundable part never carries — it's already paid.</li>
+      </ol>
+      <div class="cmp-scroll"><table class="cmp-table">
+        <thead><tr><th>Parameter (per child)</th><th class="num">2025</th><th class="num">2026</th></tr></thead>
+        <tbody>
+          <tr><td>Maximum credit / expense cap</td><td class="num">$17,280</td><td class="num"><strong>$17,670</strong></td></tr>
+          <tr><td>Refundable portion cap (per child)</td><td class="num">$5,000</td><td class="num"><strong>$5,120</strong></td></tr>
+          <tr><td>MAGI phase-out starts above</td><td class="num">$259,190</td><td class="num"><strong>$265,080</strong></td></tr>
+          <tr><td>Fully phased out at</td><td class="num">$299,190</td><td class="num"><strong>$305,080</strong></td></tr>
+          <tr><td>§137 employer exclusion cap</td><td class="num">$17,280</td><td class="num"><strong>$17,670</strong></td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section class="prose method-note">
+      <h2>Special-needs adoptions: the full credit with no expenses</h2>
+      <p>If your adopted child is determined to have <strong>special needs</strong>, the year the adoption becomes final you are treated as having paid qualified adoption expenses equal to the <strong>full $17,670 cap</strong> — even if your actual out-of-pocket expenses were less, or zero (§23(a)(3)). Check the special-needs box in the calculator and it will use the full cap regardless of what you enter. A child is "special needs" only if a <strong>State or an Indian tribal government</strong> determines the child cannot or should not return to the birth parents' home and can't be placed without assistance. The Indian-tribal-government path is <strong>new under the 2025 law</strong> (OBBBA §70403). Special needs here is a tax-law term and is not the same as a disability.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Employer adoption assistance (§137): the two caps are separate — but no double-dip</h2>
+      <p>Many employers offer a written <strong>adoption-assistance program</strong> under IRC §137. Money your employer pays toward qualified adoption expenses is <strong>excluded from your wages</strong>, up to the same <strong>$17,670 per-child cap</strong> in 2026, with the same income phase-out. The key coordination rule: <strong>you can't claim both the credit and the exclusion for the same dollar of expenses</strong> — employer-reimbursed expenses aren't qualified expenses for the credit. But the two $17,670 caps are <strong>separate</strong>, so a family whose total expenses exceed one cap can use both: the exclusion on the reimbursed part and the credit on the rest. (Example: $20,000 of expenses with $17,670 reimbursed by the employer leaves $2,330 of credit-eligible expenses, and the whole $2,330 credit can still be refundable.) One wrinkle: §137's income test adds the excluded benefits back, so its MAGI can differ from the credit's.</p>
+    </section>
+
+    <section class="prose">
+      <h2>What this tool deliberately doesn't do</h2>
+      <ul>
+        <li><strong>Timing of when expenses are claimable.</strong> Expenses paid <em>before</em> a domestic adoption is final are claimed the <em>following</em> year; foreign-adoption expenses wait until the adoption is final. Enter only the expenses claimable in the tax year you selected.</li>
+        <li><strong>It doesn't recompute your other credits.</strong> The "tax before this credit" input is a simplification of the IRS Credit Limit Worksheet — enter your income tax after your other nonrefundable credits.</li>
+        <li><strong>Excluded expenses.</strong> Surrogacy costs, adopting your spouse's child, and any expense reimbursed by a government program don't qualify — leave them out.</li>
+        <li><strong>Not an eligibility determination.</strong> Eligible-child, finality, and residency rules have more parts than this arithmetic covers.</li>
+      </ul>
+      <p class="muted-small">Sources: 26 U.S.C. <a href="https://www.law.cornell.edu/uscode/text/26/23" rel="nofollow">§23</a> (adoption credit) and <a href="https://www.law.cornell.edu/uscode/text/26/137" rel="nofollow">§137</a> (employer exclusion), as amended by <a href="https://www.govinfo.gov/content/pkg/PLAW-119publ21/html/PLAW-119publ21.htm" rel="nofollow">P.L. 119-21 (OBBBA)</a> §§70402–70403 — new §23(a)(4) refundable recharacterization, §23(c)(1) carryforward on the nonrefundable portion only, and "or Indian tribal government" added to §23(d)(3); <a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf" rel="nofollow">Rev. Proc. 2025-32</a> §§4.04, 4.18 (2026 figures: $17,670 cap, $5,120 refundable, $265,080–$305,080 phase-out); <a href="https://www.irs.gov/pub/irs-pdf/f8839.pdf" rel="nofollow">2025 Form 8839</a> and its <a href="https://www.irs.gov/pub/irs-pdf/i8839.pdf" rel="nofollow">instructions</a> (per-child line 11b refundable amount; special-needs deeming; 5-year carryforward). 2010–2011 full-refundability history: ACA (P.L. 111-148) §10909. See also the <a href="/tax-glossary/">tax glossary</a>.</p>
+    </section>
+
+    <div class="note"><strong>Embed this calculator.</strong> Put this calculator on your site — free, one copy-paste snippet, no scripts from third parties. <a href="/embed/">Get the snippet</a>.</div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__ADOPTION_DATA__ = {{ADOPTION_DATA_JSON}};
+</script>
+<script type="module" src="/assets/adoption-credit-calculator.js"></script>
+</body>
+</html>
