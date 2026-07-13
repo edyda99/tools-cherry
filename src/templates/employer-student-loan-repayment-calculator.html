@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Employer Student Loan Repayment Tax Benefit Calculator (2026, IRC §127) — $5,250 Tax-Free</title>
+<meta name="description" content="Free calculator for the IRC §127 employer student loan repayment benefit — made permanent by the 2025 law (OBBBA §70412). Employers can pay up to $5,250/year toward an employee's student loans completely tax-free: no federal income tax, no 7.65% FICA for the employee, and the employer skips its 7.65% FICA match too. See the exact employee and employer savings, the shared $5,250 cap with tuition assistance, the wage-base straddle for high earners, and the California non-conformity caveat. Runs in your browser, nothing uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/employer-student-loan-repayment-calculator/">
+<meta property="og:title" content="Employer Student Loan Repayment Tax Benefit Calculator (2026, §127)">
+<meta property="og:description" content="Employers can pay $5,250/year toward student loans tax-free — permanent since 2025. See the exact employee income-tax + FICA saving and the employer's FICA saving, with the shared cap and high-earner wage-base rules. Free, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
+  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
+  .obbba-out .num { font-variant-numeric: tabular-nums; text-align:right; white-space:nowrap; }
+  .obbba-note { font-size:.9rem; opacity:.9; margin-top:8px; }
+  .section-label { margin-top:16px; margin-bottom:2px; font-size:.8rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; opacity:.7; }
+  .warn-flag { color:#b26b00; font-weight:700; }
+  .ok-flag { color:#2f6f4f; font-weight:700; }
+  .info-flag { color:#2a5d8f; font-weight:600; }
+  .cap-meter { height:12px; border-radius:7px; background:rgba(128,128,128,.2); overflow:hidden; margin-top:14px; }
+  .cap-fill { height:100%; background:linear-gradient(90deg,#2f6f4f,#3f8f66); border-radius:7px; transition:width .15s ease; }
+  .mythbust { margin-top:12px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
+  .mythbust h2 { margin-top:0; }
+  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
+  .plan-panel { margin-top:12px; padding:14px 16px; border-left:4px solid #2a5d8f; border-radius:8px; background:rgba(42,93,143,.09); }
+  .plan-panel h2 { margin-top:0; }
+  .plan-panel ul { margin-bottom:0; }
+  .ca-caveat { margin-top:12px; padding:11px 14px; border-left:4px solid #a1394f; border-radius:8px; background:rgba(161,57,79,.09); font-size:.95rem; }
+  details.adv { margin-top:6px; border:1px solid rgba(128,128,128,.25); border-radius:8px; padding:6px 12px; }
+  details.adv summary { cursor:pointer; font-weight:600; padding:6px 0; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Employer Student Loan Repayment Tax Benefit Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Computes the employee and employer tax savings from an employer's IRC §127 educational-assistance / student-loan-repayment benefit, made permanent and inflation-indexed by OBBBA / P.L. 119-21 §70412. Models the $5,250 per-individual-per-year cap shared between tuition-type assistance and loan repayment, the employee's dual exclusion from federal income tax (§3401(a)(18)) and FICA (§3121(a)(18)), the employer's matching-FICA saving versus paying taxable wages, the Social Security wage-base straddle ($184,500 in 2026) that drops the FICA saving from 7.65% toward 1.45% for high earners, over-cap taxable-wage treatment, and California non-conformity. Informational arithmetic only — not tax advice."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How much can an employer pay toward my student loans tax-free?","acceptedAnswer":{"@type":"Answer","text":"Up to $5,250 per calendar year. Under IRC §127, an employer can pay principal or interest on your qualified education loan — directly to the lender or as a reimbursement to you — and you pay no federal income tax and no 7.65% FICA on it, while the employer skips its matching 7.65% FICA. This was a temporary pandemic-era benefit set to expire on December 31, 2025; the 2025 law (OBBBA / P.L. 119-21 §70412) made it permanent for payments made after that date, with inflation indexing starting in 2027."}},{"@type":"Question","name":"Is the $5,250 shared with tuition assistance?","acceptedAnswer":{"@type":"Answer","text":"Yes. Section 127 has one $5,250 cap covering both tuition-type educational assistance and student-loan repayment combined. The IRS states the total you can exclude for loan payments and other educational assistance combined is $5,250 per calendar year. You cannot get $5,250 of tuition assistance AND another $5,250 of loan repayment in the same year — if your employer already used $3,000 on tuition, only $2,250 of loan repayment can be tax-free."}},{"@type":"Question","name":"What does the employer save?","acceptedAnswer":{"@type":"Answer","text":"The employer avoids its matching FICA — 6.2% Social Security plus 1.45% Medicare — on the excluded amount, because it isn't 'wages.' At the full $5,250 cap that's $5,250 × 7.65% = $401.63, versus paying the same $5,250 as taxable wages or a bonus. The income-tax deduction is a wash (the payment is deductible compensation either way), so the avoided payroll tax is the entire employer-side benefit. For an employee already over the $184,500 Social Security wage base, the employer saves only the 1.45% Medicare ($76.13), not the full amount. FUTA is also avoided but adds about $0 because its $7,000 wage base is already used up."}},{"@type":"Question","name":"Does the employee save FICA too, or just income tax?","acceptedAnswer":{"@type":"Answer","text":"Both. Section 127 amounts are excluded from wages for federal income-tax withholding (§3401(a)(18)) AND for FICA (§3121(a)(18)) AND for FUTA (§3306(b)(13)) — it is not one of the income-tax-only fringe benefits. A typical employee under the Social Security wage base saves their marginal income-tax rate plus 7.65% FICA. Above the $184,500 wage base the FICA portion is Medicare-only (1.45%, or 2.35% once the 0.9% Additional Medicare surtax applies)."}},{"@type":"Question","name":"Can my employer pay off my Parent PLUS loan for my child tax-free?","acceptedAnswer":{"@type":"Answer","text":"No. The §127 loan clause covers a qualified education loan 'incurred by the employee for education of the employee' — your own education only. That is narrower than the student-loan-interest deduction, which also covers a spouse or dependent. A Parent PLUS loan you took out for a child, or a loan for your spouse's education, does not qualify for the tax-free employer benefit."}},{"@type":"Question","name":"If my employer pays my student loan interest, can I still deduct it?","acceptedAnswer":{"@type":"Answer","text":"No — no double benefit. Interest paid by your employer and excluded from your income under §127 cannot also be counted toward your up-to-$2,500 student-loan-interest deduction under §221 (§127(c)(7) and §221(e)(1) both deny it). Only the interest portion would ever have been deductible anyway; principal never was."}},{"@type":"Question","name":"Is the employer student loan benefit taxable in any state?","acceptedAnswer":{"@type":"Answer","text":"In most states the federal exclusion flows through automatically, so there's no state income tax on it. California is the notable exception: its static federal-conformity date predates the clause that added student-loan repayment to §127, so employer student-loan repayment is taxable wages for California personal income tax. A conformity bill, AB 386, failed on February 2, 2026. Check your own state; this tool has a 'does your state conform?' toggle."}},{"@type":"Question","name":"Will the $5,250 cap go up?","acceptedAnswer":{"@type":"Answer","text":"Starting in 2027 the cap is inflation-indexed under §127(d): the increase over $5,250 is rounded to the nearest $50 (it can round up — unusual for a tax provision). 2025 and 2026 stay at $5,250. The exact 2027 figure doesn't exist yet — the IRS publishes it in its annual inflation-adjustment Revenue Procedure, expected in fall 2026 — so this calculator uses $5,250 until then rather than guessing."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Employer Student Loan Repayment Tax Benefit Calculator (2026)</h1>
+    <p class="lede">An employer can pay up to <strong>$5,250 per year</strong> toward an employee's <strong>student loans</strong> (principal <em>and</em> interest, paid to the lender or reimbursed to the employee) completely <strong>tax-free</strong> under <strong>IRC §127</strong>. The employee pays <strong>no federal income tax and no 7.65% FICA</strong> on it, and the employer skips its <strong>matching 7.65% FICA</strong> too. This was a temporary pandemic-era perk set to expire 12/31/2025 — the <strong>2025 law (OBBBA / P.L. 119-21 §70412) made it permanent</strong>, with inflation indexing starting in 2027. Enter the benefit to see exactly what the employee and the employer save, how the shared $5,250 cap works with tuition assistance, and the high-earner and California wrinkles. Everything runs in your browser — nothing is uploaded.</p>
+
+    <section class="calc" aria-label="Employer student loan repayment tax benefit calculator">
+      <form id="s127Form" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="loanRepaymentBenefit">Annual employer student loan repayment ($)</label>
+          <input type="number" id="loanRepaymentBenefit" inputmode="numeric" min="0" step="250" value="5250">
+          <p class="muted-small" style="margin-top:6px">Principal and/or interest your employer pays on your qualified education loan this year — to the lender or reimbursed to you. Must be for your <em>own</em> education (a Parent PLUS loan you took out for a child does not qualify).</p>
+        </div>
+        <div class="field">
+          <label for="tuitionAssistanceUsed">Tuition-type §127 assistance already used this year ($)</label>
+          <input type="number" id="tuitionAssistanceUsed" inputmode="numeric" min="0" step="250" value="0">
+          <p class="muted-small" style="margin-top:6px">Tuition, fees, books, or supplies your employer already paid under the same §127 program this year. It <strong>shares the one $5,250 cap</strong> — it reduces the room available for tax-free loan repayment.</p>
+        </div>
+        <div class="field">
+          <label for="marginalFedRate">Your marginal federal income tax rate</label>
+          <select id="marginalFedRate">
+            <option value="0.10">10%</option>
+            <option value="0.12">12%</option>
+            <option value="0.22" selected>22%</option>
+            <option value="0.24">24%</option>
+            <option value="0.32">32%</option>
+            <option value="0.35">35%</option>
+            <option value="0.37">37%</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">The rate on your next dollar of income. Because §127 is an exclusion (not an itemized deduction), you get the full rate — a 37%-bracket employee saves 37¢ per dollar.</p>
+        </div>
+
+        <details class="adv">
+          <summary>Advanced: wages, filing status &amp; state (for high earners and non-conforming states)</summary>
+          <div class="field" style="margin-top:10px">
+            <label for="wages">Your other wages this year, excluding the benefit ($)</label>
+            <input type="number" id="wages" inputmode="numeric" min="0" step="1000" value="60000">
+            <p class="muted-small" style="margin-top:6px">Used only for the FICA math. If this plus the benefit stays under the $184,500 Social Security wage base, FICA is the simple 7.65%. Above it, the 6.2% Social Security part drops off and only 1.45% Medicare is saved.</p>
+          </div>
+          <div class="field">
+            <label for="filingStatus">Filing status (Additional Medicare threshold)</label>
+            <select id="filingStatus">
+              <option value="single" selected>Single / Head of household ($200,000)</option>
+              <option value="marriedJoint">Married filing jointly ($250,000)</option>
+              <option value="marriedSeparate">Married filing separately ($125,000)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="stateConforms">Does your state conform to the §127 loan-repayment exclusion?</label>
+            <select id="stateConforms">
+              <option value="yes" selected>Yes — most states conform (flows through, no state tax)</option>
+              <option value="no">No — California (employer loan repayment is taxable state wages)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="stateMarginalRate">Your state marginal income tax rate (%)</label>
+            <input type="number" id="stateMarginalRate" inputmode="decimal" min="0" max="15" step="0.1" value="0">
+            <p class="muted-small" style="margin-top:6px">Optional. In a conforming state this is an extra saving; in a non-conforming state (California) it's a cost, because the benefit is still taxable there. California's top rate is 9.3%–13.3%.</p>
+          </div>
+        </details>
+      </form>
+
+      <div class="obbba-out" id="out" aria-live="polite"></div>
+    </section>
+
+    <p class="note">For general information only — not tax, legal, or financial advice. This calculator shows the federal income-tax and FICA effects of an employer §127 educational-assistance benefit and the employer's matching-FICA saving, using 2026 figures ($5,250 cap; $184,500 Social Security wage base). It assumes a qualifying written plan is in place and the payments are for the employee's own qualified education loan. Confirm your own situation with your employer's benefits team and a tax professional.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose mythbust">
+      <h2>The headline, and the two things people get wrong about it</h2>
+      <p><strong>What's true:</strong> $5,250 of employer student-loan repayment a year is genuinely tax-free — federal income tax <em>and</em> the 7.65% employee FICA, with the employer avoiding its 7.65% match. On the full cap that's about <strong>$1,155 saved by a 22%-bracket employee</strong> ($1,155 income tax + $401.63 FICA = $1,556.63) and <strong>$401.63 saved by the employer</strong>, versus paying the same $5,250 as a taxable bonus.</p>
+      <p><strong>Mistake #1 — "it's a separate $5,250 on top of tuition assistance."</strong> No: tuition-type assistance and loan repayment <em>share one $5,250 cap</em>. If your employer already put $3,000 toward tuition, only $2,250 of loan repayment is tax-free this year; the rest is taxable wages.</p>
+      <p><strong>Mistake #2 — "the employer always saves ~$402 per employee."</strong> Only for employees under the $184,500 Social Security wage base. For a highly paid employee already over it, the 6.2% Social Security portion is gone and the employer saves just <strong>1.45% Medicare = $76.13</strong>. This calculator handles that straddle: enter the employee's other wages under <em>Advanced</em>.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose plan-panel">
+      <h2>Plan requirements — IRC §127(b)</h2>
+      <p>The benefit is tax-free only if the employer maintains a qualifying <strong>educational assistance program</strong>. The statute requires all of the following:</p>
+      <ul>
+        <li><strong>(b)(1) Written plan.</strong> A separate written plan of the employer for the exclusive benefit of its employees to provide educational assistance.</li>
+        <li><strong>(b)(2) Nondiscrimination.</strong> Benefits must not discriminate in favor of highly compensated employees (within the meaning of §414(q)) or their dependents.</li>
+        <li><strong>(b)(3) 5%-owner limit.</strong> No more than 5% of the amounts paid during the year may go to more-than-5% owners (or their spouses or dependents).</li>
+        <li><strong>(b)(4) No cash-out choice.</strong> The program must not give employees a choice between educational assistance and other taxable pay — it can't be an opt-in alternative to salary.</li>
+        <li><strong>(b)(5) No funding requirement.</strong> The program is not required to be funded.</li>
+        <li><strong>(b)(6) Notification.</strong> Reasonable notification of the program's availability and terms must be given to eligible employees.</li>
+      </ul>
+      <p class="muted-small" style="margin-top:8px">The IRS provides a free <a href="https://www.irs.gov/newsroom/updates-to-frequently-asked-questions-about-educational-assistance-programs" rel="nofollow">sample written plan document</a> in its educational-assistance FAQ. This calculator does not check plan qualification — it assumes a qualifying plan is in place.</p>
+    </section>
+
+    <section class="prose mythbust">
+      <h2>No double-dipping on the interest — §127(c)(7) &amp; §221(e)(1)</h2>
+      <p>If your employer pays your student-loan <em>interest</em> tax-free under §127, you <strong>cannot also count that interest toward the up-to-$2,500 student-loan-interest deduction</strong> under §221. Section 127(c)(7) denies any other deduction or credit for an amount excluded under §127, and §221(e)(1) specifically bars the interest deduction "for which an exclusion is allowable under section 127 … by reason of the payment by the taxpayer's employer." Only the interest portion of a loan payment was ever §221-eligible; principal never was. So the excluded employer-paid interest is simply out of the §221 calculation.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose ca-caveat">
+      <h2>California does not conform — the benefit is taxable there</h2>
+      <p>Most states start from federal income and update their conformity regularly, so the §127 exclusion flows through and there's no state income tax on the benefit. <strong>California is the exception.</strong> Its static federal-conformity date predates the CARES Act clause that added student-loan repayment to §127, so while California conforms to the traditional <em>tuition-type</em> §127 exclusion, <strong>employer student-loan repayment is taxable wages for California personal income tax</strong>. Conformity bills have repeatedly failed — most recently <strong>AB 386</strong>, which failed on <strong>February 2, 2026</strong>. If you're a California employee, switch the state toggle to "California" under <em>Advanced</em> and enter your California rate to see the state tax that offsets part of the federal saving. Other static-conformity states may also tax it — check your own state.</p>
+    </section>
+
+    <section class="prose">
+      <h2>How the numbers work</h2>
+      <p>The 2025 law widely known as OBBBA (P.L. 119-21) — the same law behind this site's other 2025-tax-law calculators — made the student-loan-repayment piece of §127 <strong>permanent</strong> (§70412, effective for payments made after December 31, 2025) after it had been temporary since the CARES Act. Here's the two-sided math at the full 2026 cap, for a typical employee under the Social Security wage base:</p>
+      <ul>
+        <li><strong>Employee income tax saved:</strong> $5,250 × your marginal rate (22% → $1,155.00; 24% → $1,260.00; 37% → $1,942.50).</li>
+        <li><strong>Employee FICA saved:</strong> $5,250 × 7.65% = <strong>$401.63</strong> (6.2% Social Security + 1.45% Medicare) — Medicare-only above the $184,500 wage base.</li>
+        <li><strong>Employer FICA saved:</strong> $5,250 × 7.65% = <strong>$401.63</strong>, versus paying the same amount as taxable wages. No 0.9% Additional Medicare match (that's employee-only), and FUTA adds ~$0 because its $7,000 base is already used up.</li>
+      </ul>
+      <p>Unlike the below-the-line deductions in this site's other 2025-law calculators, the §127 exclusion reduces your <strong>wages at the source</strong> — the amount never appears in Box 1, 3, or 5 of your W-2. So it also lowers AGI-driven figures (IRMAA, ACA subsidies, the §221 phase-out), not just your tax.</p>
+      <p><strong>Indexing after 2026:</strong> starting in 2027 the $5,250 is inflation-adjusted (§127(d)); the increase over $5,250 rounds to the <em>nearest</em> $50 (it can round up). The official 2027 figure comes from the IRS annual inflation-adjustment Revenue Procedure (expected fall 2026), so this tool uses $5,250 until then rather than guessing.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>A worked example: split between tuition and a loan</h2>
+      <p>Say your employer's §127 program put <strong>$3,000</strong> toward a class you took and you also want it to pay <strong>$3,000</strong> toward your student loan, and you're in the 22% bracket earning $80,000. Because the two share one $5,250 cap, only <strong>$2,250</strong> of the loan payment fits under the cap tax-free; the other <strong>$750</strong> is taxable wages. On the $2,250 you save $495.00 income tax + $172.13 FICA = <strong>$667.13</strong>; on the $750 excess you owe $165.00 income tax + $57.38 FICA. Your employer saves $401.63 FICA on the full $5,250 it excluded and pays $57.38 FICA on the $750 excess. Move any tuition assistance down and more of the loan payment becomes tax-free — one cap, not two.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <p><strong>Principal or just interest?</strong> Both. §127(c)(1)(B) covers "principal or interest on any qualified education loan," paid to the lender or reimbursed to you.</p>
+      <p><strong>My own loans only?</strong> Yes — "for education of the employee." A Parent PLUS loan you took for a child, or a spouse's loan, doesn't qualify (that's narrower than the §221 interest deduction).</p>
+      <p><strong>Does it lower my AGI?</strong> Yes — it's excluded from wages at the source, so it never enters your AGI, which helps AGI-driven items too.</p>
+      <p><strong>Two employers, $5,250 each?</strong> No. The $5,250 is per individual per year across all employers; excess is reconciled at filing.</p>
+      <p><strong>Is anything saved or uploaded?</strong> No — the calculator is fully client-side; your numbers never leave your browser.</p>
+      <p class="muted-small">Sources: 26 U.S.C. <a href="https://www.law.cornell.edu/uscode/text/26/127" rel="nofollow">§127</a> — (a)(2) $5,250 cap, (b)(1)–(6) plan requirements, (c)(1)(B) loan-payment clause (made permanent by P.L. 119-21 §70412, effective for payments after 12/31/2025), (c)(7) double-benefit denial, (d) inflation adjustment; <a href="https://www.law.cornell.edu/uscode/text/26/3121" rel="nofollow">§3121(a)(18)</a> FICA exclusion; <a href="https://www.law.cornell.edu/uscode/text/26/3401" rel="nofollow">§3401(a)(18)</a> withholding exclusion; <a href="https://www.law.cornell.edu/uscode/text/26/221" rel="nofollow">§221(e)(1)</a> student-loan-interest double-benefit denial; IRS <a href="https://www.irs.gov/newsroom/updates-to-frequently-asked-questions-about-educational-assistance-programs" rel="nofollow">FS-2026-10</a> (combined-cap language, sample plan) and <a href="https://www.irs.gov/publications/p15b" rel="nofollow">Pub 15-B (2026)</a>; SSA <a href="https://www.ssa.gov/news/en/press/releases/2025-10-24.html" rel="nofollow">2026 wage base $184,500</a>; California non-conformity, <a href="https://arev.assembly.ca.gov/system/files/2025-03/ab-386.pdf" rel="nofollow">Assembly Rev &amp; Tax analysis of AB 386</a>. (Page last reviewed: July 13, 2026.)</p>
+    </section>
+
+    <div class="note"><strong>Embed this calculator.</strong> Put this calculator on your site — free, one copy-paste snippet, no scripts from third parties. <a href="/embed/">Get the snippet</a>.</div>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__SECTION127__ = {{SECTION127_JSON}};
+</script>
+<script type="module" src="/assets/employer-student-loan-repayment-calculator.js"></script>
+</body>
+</html>

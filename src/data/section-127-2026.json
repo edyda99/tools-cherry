@@ -1,0 +1,43 @@
+{
+  "_meta": {
+    "description": "IRC §127 employer educational-assistance / student-loan-repayment tax-benefit parameters for tax year 2026. Drives /employer-student-loan-repayment-calculator/. The $5,250 exclusion was made PERMANENT and inflation-indexed (2027+) by OBBBA / P.L. 119-21 §70412, effective for payments made after 12/31/2025 (26 U.S.C. §127(a)(2), (c)(1)(B), (d)). Dual employee exclusion from income-tax withholding (§3401(a)(18)), FICA (§3121(a)(18)) and FUTA (§3306(b)(13)). STANDALONE dataset: this is an EXCLUSION, not an OBBBA below-the-line deduction, so it deliberately shares no engine or data file with obbba-deductions-2026.json / obbba-deduction.js.",
+    "lastSourced": "2026-07-13",
+    "confidence": "HIGH on all statutory mechanics (verbatim Cornell text): $5,250 cap, shared cap, dual exclusion, 7.65% two-sided FICA, nearest-$50 indexing on the INCREASE, first indexed year 2027, base year 2025. HIGH on the 2026 Social Security wage base $184,500 (SSA press release 2025-10-24). The 2027 indexed cap does NOT exist yet (official2027Cap: null) — the engine fails closed to $5,250 until the IRS annual inflation-adjustment Rev. Proc. (expected fall 2026) is published. OBBBA section number §70412 is HIGH-minus (corroborated by BDO/Mercer/Crowell/EBEC + the Cornell P.L. 119-21 amendment note; enrolled-statute PDF not itself fetched).",
+    "notImplementedByDesign": "FUTA (§3306(b)(13)) is excluded too but adds ~$0: the $7,000 FUTA base is already exhausted for essentially every benefit-receiving employee, so the marginal FUTA saving is zero — it is intentionally NOT in the headline (spec §1.6). State unemployment (SUTA) wage bases vary and are out of scope."
+  },
+  "taxYear": 2026,
+  "cap": 5250,
+  "ficaWageBase": 184500,
+  "oasdiRate": 0.062,
+  "medicareRate": 0.0145,
+  "additionalMedicareRate": 0.009,
+  "ficaRate": 0.0765,
+  "employerFicaRate": 0.0765,
+  "additionalMedicareThreshold": {
+    "single": 200000,
+    "marriedJoint": 250000,
+    "marriedSeparate": 125000,
+    "headOfHousehold": 200000
+  },
+  "additionalMedicareWithholdingTrigger": 200000,
+  "futaWageBase": 7000,
+  "studentLoanInterestDeductionCap": 2500,
+  "indexing": {
+    "firstIndexedYear": 2027,
+    "baseYear": 2025,
+    "roundToNearestIncrement": 50,
+    "roundingRule": "The INCREASE (not the total) rounds to the NEAREST multiple of $50 and can round UP — IRC §127(d)(2), which diverges from the usual round-down COLA pattern.",
+    "official2027Cap": null
+  },
+  "sources": [
+    { "claim": "$5,250 exclusion + shared cap + inflation indexing (nearest $50, 2027+) + loan-payment clause made permanent", "url": "https://www.law.cornell.edu/uscode/text/26/127" },
+    { "claim": "FICA wage exclusion for §127 amounts", "url": "https://www.law.cornell.edu/uscode/text/26/3121" },
+    { "claim": "Income-tax withholding wage exclusion for §127 amounts", "url": "https://www.law.cornell.edu/uscode/text/26/3401" },
+    { "claim": "FUTA wage exclusion + $7,000 FUTA base", "url": "https://www.law.cornell.edu/uscode/text/26/3306" },
+    { "claim": "Student-loan-interest deduction ($2,500 cap) + §221(e)(1) no-double-benefit denial", "url": "https://www.law.cornell.edu/uscode/text/26/221" },
+    { "claim": "IRS FAQ (FS-2026-10, April 2026): combined-cap language + 'adjusted for increases in the cost of living for taxable years beginning after 2026' + sample plan document", "url": "https://www.irs.gov/newsroom/updates-to-frequently-asked-questions-about-educational-assistance-programs" },
+    { "claim": "Pub 15-B (2026): over-$5,250 amounts are wages; fringe-benefit exclusion", "url": "https://www.irs.gov/publications/p15b" },
+    { "claim": "2026 Social Security wage base $184,500 (2025: $176,100), 2.8% COLA", "url": "https://www.ssa.gov/news/en/press/releases/2025-10-24.html" },
+    { "claim": "California non-conformity: employer loan repayment is taxable CA wages; AB 386 failed 2026-02-02", "url": "https://arev.assembly.ca.gov/system/files/2025-03/ab-386.pdf" }
+  ]
+}

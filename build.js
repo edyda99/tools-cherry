@@ -181,6 +181,7 @@ const TOOLS = [
   { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/', cat: 'money' },
   { name: 'Social Security Wage Base Max-Out Date Calculator', path: '/ss-wage-base-calculator/', cat: 'money' },
   { name: 'Federal Student Loan Cap Calculator', path: '/student-loan-cap-calculator/', cat: 'money' },
+  { name: 'Employer Student Loan Repayment Tax Benefit Calculator', path: '/employer-student-loan-repayment-calculator/', cat: 'money' },
   { name: '401(k) Retirement Calculator', path: '/401k-calculator/', cat: 'money' },
   { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/', cat: 'money' },
   { name: 'Inflation Calculator', path: '/inflation-calculator/', cat: 'money' },
@@ -286,6 +287,7 @@ const TOOL_DESCRIPTIONS = {
   '/bonus-tax-calculator/': 'See what\'s withheld from your bonus now (flat 22% federal + your state\'s supplemental rate + FICA) versus what it will really cost at tax time — with the refund or amount owed, for all 50 states + DC.',
   '/ss-wage-base-calculator/': 'Find the exact 2026 paycheck your 6.2% Social Security tax stops for the year once you cross the $184,500 wage base, and how much your take-home pay jumps — plus a multi-employer excess-FICA check and a Medicare contrast note.',
   '/student-loan-cap-calculator/': 'The federal borrowing caps in effect since July 1, 2026: graduate $20,500/yr ($100,000 aggregate), professional $50,000/yr ($200,000 shared pool), Parent PLUS $20,000/yr ($65,000 per student), the $257,500 lifetime cap, and the legacy grandfather exception. See your year-by-year federal capacity, which cap binds, and your program\'s funding gap — statute-cited, no borrowing advice.',
+  '/employer-student-loan-repayment-calculator/': 'An employer can pay up to $5,250/year toward your student loans tax-free under IRC §127 — made permanent by the 2025 law (OBBBA §70412). See the exact employee saving (no federal income tax + no 7.65% FICA) and employer saving (its 7.65% FICA match, $401.63 at the full cap), the shared $5,250 cap with tuition assistance, the wage-base straddle that drops the FICA saving to 1.45% for high earners, and the California non-conformity caveat.',
   '/401k-calculator/': 'Project 401(k) retirement balance from contributions, match, and growth.',
   '/savings-goal-calculator/': 'Find how much to save each month to reach a savings goal.',
   '/inflation-calculator/': 'See how the buying power of a US dollar changes over time.',
@@ -397,12 +399,12 @@ const RELATED_OVERRIDES = {
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' }
   ],
   '/dependent-care-fsa-vs-credit-calculator/': [
+    { name: 'Employer Student Loan Repayment Tax Benefit Calculator', path: '/employer-student-loan-repayment-calculator/' },
     { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
     { name: 'Mandatory Roth Catch-Up Calculator', path: '/roth-catchup-calculator/' },
     { name: '401(k) Retirement Calculator', path: '/401k-calculator/' },
     { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
-    { name: 'Hours Calculator (Time Card)', path: '/hours-calculator/' },
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
     { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' }
   ],
@@ -464,12 +466,26 @@ const RELATED_OVERRIDES = {
   // cluster's related-tools mesh (docs/student-loan-cap-calculator-spec.md §5).
   // Nearest genuine siblings are the loan/debt-repayment and student tools.
   '/student-loan-cap-calculator/': [
+    { name: 'Employer Student Loan Repayment Tax Benefit Calculator', path: '/employer-student-loan-repayment-calculator/' },
     { name: 'Debt Payoff Calculator', path: '/debt-payoff-calculator/' },
     { name: 'Debt Avalanche Calculator', path: '/debt-avalanche-calculator/' },
     { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/' },
     { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' },
     { name: 'GPA Calculator', path: '/gpa-calculator/' },
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' }
+  ],
+  // Employer §127 student-loan-repayment / educational-assistance tax benefit —
+  // bridges the student-loan tools and the OBBBA/employer-benefit tax cluster
+  // (docs/section-127-student-loan-repayment-spec.md §5).
+  '/employer-student-loan-repayment-calculator/': [
+    { name: 'Federal Student Loan Cap Calculator', path: '/student-loan-cap-calculator/' },
+    { name: 'Dependent Care FSA vs. Child Care Credit Calculator', path: '/dependent-care-fsa-vs-credit-calculator/' },
+    { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
+    { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
+    { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
+    { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
+    { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
+    { name: 'Debt Payoff Calculator', path: '/debt-payoff-calculator/' }
   ],
   '/data/overtime-tax-by-state/': [
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
@@ -505,7 +521,8 @@ const RELATED_OVERRIDES = {
     { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
     { name: '1099-K / 1099-NEC Threshold Checker', path: '/1099-threshold-checker/' },
     { name: 'Social Security Wage Base Max-Out Date Calculator', path: '/ss-wage-base-calculator/' },
-    { name: 'Federal Student Loan Cap Calculator', path: '/student-loan-cap-calculator/' }
+    { name: 'Federal Student Loan Cap Calculator', path: '/student-loan-cap-calculator/' },
+    { name: 'Employer Student Loan Repayment Tax Benefit Calculator', path: '/employer-student-loan-repayment-calculator/' }
   ]
 };
 
@@ -2262,6 +2279,8 @@ async function main() {
   const embedSsMaxoutTpl = await read(join(SRC, 'templates', 'embed', 'ss-wage-base-calculator.html'));
   const studentLoanCapTpl = await read(join(SRC, 'templates', 'student-loan-cap-calculator.html'));
   const embedStudentLoanCapTpl = await read(join(SRC, 'templates', 'embed', 'student-loan-cap-calculator.html'));
+  const section127Tpl = await read(join(SRC, 'templates', 'employer-student-loan-repayment-calculator.html'));
+  const embedSection127Tpl = await read(join(SRC, 'templates', 'embed', 'employer-student-loan-repayment-calculator.html'));
   const embedGalleryTpl = await read(join(SRC, 'templates', 'embed-gallery.html'));
   const overtimeStudyTpl = await read(join(SRC, 'templates', 'data-overtime-tax-by-state.html'));
   const tipsStudyTpl = await read(join(SRC, 'templates', 'data-tips-tax-by-state.html'));
@@ -2311,6 +2330,16 @@ async function main() {
   // data — RE-CHECK THE FSA EA BEFORE EVERY DEPLOY of this tool (spec §7.1).
   const studentLoanLimits = await readJSON(join(SRC, 'data', 'student-loan-limits-2026.json'));
   const STUDENT_LOAN_LIMITS_JSON = JSON.stringify(stripInternal(studentLoanLimits));
+  // IRC §127 employer educational-assistance / student-loan-repayment tax
+  // benefit (permanent + indexed 2027+ via OBBBA / P.L. 119-21 §70412). A
+  // STANDALONE dataset + engine (section-127.js): this is an EXCLUSION, not an
+  // OBBBA below-the-line deduction, so it deliberately shares no engine/data
+  // with obbba-deduction.js / obbba-deductions-2026.json. Ships the $5,250 cap,
+  // the $184,500 SS wage base, the FICA rates, the Additional-Medicare
+  // thresholds, and the nearest-$50 2027+ indexing params so the wage-base
+  // straddle + shared-cap logic run client-side.
+  const section127 = await readJSON(join(SRC, 'data', 'section-127-2026.json'));
+  const SECTION127_JSON = JSON.stringify(stripInternal(section127));
   // State supplemental (bonus) withholding rates — its own dataset (§ bonus-tax).
   const suppData = await readJSON(join(SRC, 'data', 'state-supplemental-2026.json'));
   // Lean client payload for a supp entry: ONLY the fields the browser engine
@@ -2518,6 +2547,8 @@ async function main() {
   registerAsset('assets', 'ss-wage-base-calculator.js');
   registerAsset('engine', 'student-loan-cap.js');
   registerAsset('assets', 'student-loan-cap-calculator.js');
+  registerAsset('engine', 'section-127.js');
+  registerAsset('assets', 'employer-student-loan-repayment-calculator.js');
   registerAsset('engine', 'bonus-tax.js');
   registerAsset('assets', 'bonus-tax-calculator.js');
   registerAsset('assets', 'embed-gallery.js');
@@ -3477,6 +3508,18 @@ async function main() {
   );
   urls.push(`${SITE.url}/student-loan-cap-calculator/`);
 
+  // Employer Student Loan Repayment Tax Benefit Calculator (IRC §127; made
+  // permanent + indexed 2027+ by OBBBA / P.L. 119-21 §70412). Employee income-
+  // tax + FICA saving and employer matching-FICA saving on the $5,250 shared
+  // cap, with the Social Security wage-base straddle for high earners, over-cap
+  // taxable-wage treatment, and the California non-conformity caveat.
+  await mkdir(join(DIST, 'employer-student-loan-repayment-calculator'), { recursive: true });
+  await writeFile(
+    join(DIST, 'employer-student-loan-repayment-calculator', 'index.html'),
+    fillTool(section127Tpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, SECTION127_JSON }, '/employer-student-loan-repayment-calculator/')
+  );
+  urls.push(`${SITE.url}/employer-student-loan-repayment-calculator/`);
+
   // QCD (Qualified Charitable Distribution, IRC §408(d)(8)) vs. take-the-
   // distribution-and-deduct-it calculator. NOT an OBBBA provision (predates the
   // 2025 law; permanent) but shares the tax-parameter store (federal.qcd, sibling
@@ -3723,7 +3766,7 @@ async function main() {
   // Still gets MODULE_ERROR_LISTENER injected below (same page-level module-load-
   // failure banner every full page gets via fill()) — bypassing fill() shouldn't
   // mean losing that defense-in-depth too.
-  const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON, ROTHCATCHUP_JSON, BONUS_TAX_JSON: BONUS_TAX_ALL_JSON, FORM1099_JSON, FORM1099_STATES_JSON, SSMAXOUT_PARAMS_JSON, STUDENT_LOAN_LIMITS_JSON };
+  const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON, ROTHCATCHUP_JSON, BONUS_TAX_JSON: BONUS_TAX_ALL_JSON, FORM1099_JSON, FORM1099_STATES_JSON, SSMAXOUT_PARAMS_JSON, STUDENT_LOAN_LIMITS_JSON, SECTION127_JSON };
   const fillEmbed = (tpl) => {
     let out = tpl.replace(/{{(\w+)}}/g, (m, k) => (k in embedMap ? embedMap[k] : m));
     if (out.includes('</head>')) out = out.replace('</head>', `${MODULE_ERROR_LISTENER}</head>`);
@@ -3768,6 +3811,8 @@ async function main() {
   await writeFile(join(DIST, 'embed', 'ss-wage-base-calculator', 'index.html'), fillEmbed(embedSsMaxoutTpl));
   await mkdir(join(DIST, 'embed', 'student-loan-cap-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'student-loan-cap-calculator', 'index.html'), fillEmbed(embedStudentLoanCapTpl));
+  await mkdir(join(DIST, 'embed', 'employer-student-loan-repayment-calculator'), { recursive: true });
+  await writeFile(join(DIST, 'embed', 'employer-student-loan-repayment-calculator', 'index.html'), fillEmbed(embedSection127Tpl));
   await mkdir(join(DIST, 'embed', 'bonus-tax-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'bonus-tax-calculator', 'index.html'), fillEmbed(embedBonusTaxTpl));
   // Indexable embed gallery (fillTool is fine here — real page, benefits from schema
