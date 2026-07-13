@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Treasury Tipped Occupation Codes (TTOC) — Tools Berry (embed)</title>
+<meta name="robots" content="noindex, follow">
+<link rel="canonical" href="{{SITE_URL}}/data/treasury-tipped-occupation-codes/">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  body { margin:0; padding:14px; background:transparent; }
+  .embed-wrap { max-width:720px; margin:0 auto; }
+  .embed-wrap h1 { font-size:1.2rem; margin:0 0 10px; }
+  .table-tools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 8px; }
+  .table-tools input[type=search] { flex:1 1 220px; min-width:180px; padding:8px 11px; border:1px solid var(--border-strong); border-radius:8px; font-size:.92rem; background:var(--surface); color:var(--text); }
+  .table-tools .count { font-size:.82rem; opacity:.8; white-space:nowrap; }
+  .table-scroll { overflow:auto; max-height:520px; border:1px solid rgba(128,128,128,.2); border-radius:10px; }
+  table.study { border-collapse:collapse; width:100%; font-size:.85rem; min-width:560px; }
+  table.study th, table.study td { text-align:left; padding:7px 9px; border-bottom:1px solid rgba(128,128,128,.18); vertical-align:top; }
+  table.study thead th { position:sticky; top:0; background:var(--surface); cursor:pointer; white-space:nowrap; }
+  table.study thead th[data-sort]::after { content:" \2195"; opacity:.35; font-size:.8em; }
+  table.study td.code { font-weight:700; font-variant-numeric:tabular-nums; }
+  .muted-small { opacity:.8; font-size:.82rem; }
+  .new-flag { display:inline-block; margin-left:5px; font-size:.66rem; font-weight:700; color:var(--accent); text-transform:uppercase; }
+  .embed-credit { margin-top:12px; text-align:center; font-size:.85rem; opacity:.9; }
+</style>
+</head>
+<body>
+<div class="embed-wrap">
+  <h1>Treasury Tipped Occupation Codes (TTOC) &mdash; all {{ROW_COUNT}}</h1>
+  <div class="table-tools">
+    <input type="search" data-filter-for="ttocTable" placeholder="Search occupations, codes, SOC" aria-label="Search occupations">
+    <span class="count"><strong data-filter-count="ttocTable">{{ROW_COUNT}}</strong>/{{ROW_COUNT}}</span>
+  </div>
+  <div class="table-scroll">
+    <table class="study" id="ttocTable" data-datatable>
+      <thead><tr>
+        <th data-sort="num">Code</th>
+        <th data-sort="text">Occupation</th>
+        <th data-sort="text">Category</th>
+        <th data-sort="text">Examples</th>
+        <th data-sort="text">SOC</th>
+      </tr></thead>
+      <tbody>{{TABLE_ROWS}}</tbody>
+    </table>
+  </div>
+  <p class="muted-small">Source: 26 CFR &sect; 1.224-1, Table 1 (Treasury final rule 2026-07104). For W-2 Box 14b / the no-tax-on-tips deduction.</p>
+  <p class="embed-credit">Source: <a href="{{SITE_URL}}/data/treasury-tipped-occupation-codes/" target="_blank" rel="noopener">Treasury Tipped Occupation Codes</a> by {{SITE_NAME}}</p>
+</div>
+<script type="module" src="/assets/data-table.js"></script>
+</body>
+</html>

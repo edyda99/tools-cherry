@@ -458,6 +458,7 @@ const RELATED_OVERRIDES = {
     { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
     { name: '1099-K / 1099-NEC Threshold Checker', path: '/1099-threshold-checker/' },
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
+    { name: 'Treasury Tipped Occupation Codes (TTOC) Table', path: '/data/treasury-tipped-occupation-codes/' },
     { name: 'Tip Income Tax by State (Data Study)', path: '/data/tips-tax-by-state/' },
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
     { name: 'Hours Calculator (Time Card)', path: '/hours-calculator/' }
@@ -487,6 +488,7 @@ const RELATED_OVERRIDES = {
   // cluster's related-tools mesh (docs/student-loan-cap-calculator-spec.md §5).
   // Nearest genuine siblings are the loan/debt-repayment and student tools.
   '/student-loan-cap-calculator/': [
+    { name: '2026 Federal Student Loan Limits Table', path: '/data/2026-student-loan-limits/' },
     { name: 'Debt Payoff Calculator', path: '/debt-payoff-calculator/' },
     { name: 'Debt Avalanche Calculator', path: '/debt-avalanche-calculator/' },
     { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/' },
@@ -523,6 +525,32 @@ const RELATED_OVERRIDES = {
     { name: 'Tip & Bill Split', path: '/tip-calculator/' },
     { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
     { name: 'Biweekly vs Semimonthly Paycheck Calculator', path: '/biweekly-vs-semimonthly/' }
+  ],
+  '/data/treasury-tipped-occupation-codes/': [
+    { name: 'W-2 Box 12 Decoder & Tipped Occupation Lookup', path: '/w2-box-decoder/' },
+    { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
+    { name: 'Tip Income Tax by State (Data Study)', path: '/data/tips-tax-by-state/' },
+    { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
+    { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
+    { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
+    { name: '1099-K / 1099-NEC Threshold Checker', path: '/1099-threshold-checker/' }
+  ],
+  '/data/2026-student-loan-limits/': [
+    { name: 'Federal Student Loan Cap Calculator', path: '/student-loan-cap-calculator/' },
+    { name: 'Debt Payoff Calculator', path: '/debt-payoff-calculator/' },
+    { name: 'Debt Avalanche Calculator', path: '/debt-avalanche-calculator/' },
+    { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/' },
+    { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' },
+    { name: 'GPA Calculator', path: '/gpa-calculator/' }
+  ],
+  '/data/state-supplemental-withholding-rates-2026/': [
+    { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
+    { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
+    { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
+    { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
+    { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
+    { name: 'Hours Calculator (Time Card)', path: '/hours-calculator/' },
+    { name: 'Overtime Tax by State (Data Study)', path: '/data/overtime-tax-by-state/' }
   ],
   '/embed/': [
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
@@ -2308,6 +2336,15 @@ async function main() {
   const embedGalleryTpl = await read(join(SRC, 'templates', 'embed-gallery.html'));
   const overtimeStudyTpl = await read(join(SRC, 'templates', 'data-overtime-tax-by-state.html'));
   const tipsStudyTpl = await read(join(SRC, 'templates', 'data-tips-tax-by-state.html'));
+  // Standalone /data/ reference tables (citable link-bait): each re-packages an
+  // already-sourced dataset that lives inside an existing tool page, plus an
+  // iframe-able /embed/data/* twin.
+  const dataTtocTpl = await read(join(SRC, 'templates', 'data-treasury-tipped-occupation-codes.html'));
+  const embedDataTtocTpl = await read(join(SRC, 'templates', 'embed', 'data-treasury-tipped-occupation-codes.html'));
+  const dataStudentLoanTpl = await read(join(SRC, 'templates', 'data-2026-student-loan-limits.html'));
+  const embedDataStudentLoanTpl = await read(join(SRC, 'templates', 'embed', 'data-2026-student-loan-limits.html'));
+  const dataSuppTpl = await read(join(SRC, 'templates', 'data-state-supplemental-withholding-rates-2026.html'));
+  const embedDataSuppTpl = await read(join(SRC, 'templates', 'embed', 'data-state-supplemental-withholding-rates-2026.html'));
   const obbba = await readJSON(join(SRC, 'data', 'obbba-deductions-2026.json'));
   // Client-injected JSON for the OBBBA tools (internal _keys stripped).
   const OBBBA_FED_JSON = JSON.stringify(stripInternal(obbba.federal));
@@ -2611,6 +2648,7 @@ async function main() {
   registerAsset('engine', 'bonus-tax.js');
   registerAsset('assets', 'bonus-tax-calculator.js');
   registerAsset('assets', 'embed-gallery.js');
+  registerAsset('assets', 'data-table.js');
   registerAsset('engine', 'employment-tax.js');
   registerAsset('assets', 'biweekly-mortgage-calculator.js');
   // (biweekly reuses amortization.js, already copied above)
@@ -3832,6 +3870,243 @@ async function main() {
     }
     await writeFile(join(DIST, 'data', 'tips-tax-by-state-2026.csv'),
       csvLines.map(r => r.map(csvEsc).join(',')).join('\n') + '\n');
+  }
+
+  // Standalone /data/ REFERENCE TABLES. Each re-packages an already-sourced
+  // dataset that otherwise only lives buried inside a tool page, as its own
+  // citable, embeddable resource (the kind of page that earns external links,
+  // which the AdSense re-approval gate needs). Rows are rendered server-side
+  // from the SAME source JSON the tools use, so a table can never drift from
+  // its tool. Each ships a main page + a noindex /embed/data/* iframe twin +
+  // a downloadable JSON/CSV. Data is NOT re-derived here — figures come
+  // straight out of ttoc-occupations.json / student-loan-limits-2026.json /
+  // state-supplemental-2026.json.
+  {
+    const esc = (s) => String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const usd = (n) => '$' + Number(n).toLocaleString('en-US');
+    const pct = (r) => (r * 100).toFixed(2).replace(/\.?0+$/, '') + '%';
+    const DATA_PUB_HUMAN = 'July 13, 2026';
+    const DATA_PUB_ISO = '2026-07-13';
+    // Embed fill: like fillEmbed above but scoped to a per-page map (no ad loader,
+    // no site schema; still gets the module-load-failure banner).
+    const fillDataEmbed = (tpl, map) => {
+      let out = tpl.replace(/{{(\w+)}}/g, (m, k) => (k in map ? map[k] : m));
+      if (out.includes('</head>')) out = out.replace('</head>', `${MODULE_ERROR_LISTENER}</head>`);
+      return out;
+    };
+
+    // ---- 1. Treasury Tipped Occupation Codes (TTOC) — from ttoc-occupations.json
+    {
+      let ttocRows = '';
+      let occCount = 0;
+      for (const cat of ttoc.categories) {
+        for (const o of cat.occupations) {
+          occCount++;
+          const flag = o.addedInFinalRule ? ' <span class="new-flag">new in final rule</span>' : '';
+          ttocRows += `<tr>` +
+            `<td class="code">${esc(o.code)}</td>` +
+            `<td><strong>${esc(o.title)}</strong>${flag}<br><span class="muted-small">${esc(o.description)}.</span></td>` +
+            `<td>${esc(cat.name)}</td>` +
+            `<td>${esc(o.examples)}</td>` +
+            `<td>${esc(o.soc || '')}</td></tr>\n`;
+        }
+      }
+      const catCount = ttoc.categories.length;
+      const addedCount = (ttoc.finalRuleAdditions || []).length;
+      const articleLd = JSON.stringify({
+        '@context': 'https://schema.org', '@type': 'Article',
+        headline: 'Treasury Tipped Occupation Codes (TTOC): All 71 Occupations',
+        description: `The complete list of ${occCount} Treasury Tipped Occupation Codes across ${catCount} categories, from 26 CFR 1.224-1, Table 1, used for W-2 Box 14b and the 2025 no-tax-on-tips deduction.`,
+        datePublished: '2026-07-12', dateModified: DATA_PUB_ISO,
+        author: { '@type': 'Person', '@id': `${SITE.url}/#edmond-daher`, name: 'Edmond Daher', url: `${SITE.url}/about/` },
+        publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+        mainEntityOfPage: `${SITE.url}/data/treasury-tipped-occupation-codes/`,
+        isAccessibleForFree: true,
+      });
+      const datasetLd = JSON.stringify({
+        '@context': 'https://schema.org', '@type': 'Dataset',
+        name: 'Treasury Tipped Occupation Codes (TTOC), 26 CFR 1.224-1 Table 1',
+        description: `All ${occCount} occupations (in ${catCount} categories) that customarily and regularly received tips and qualify for the IRC 224 tips deduction, each with its Treasury occupation code, description, illustrative examples, and SOC code.`,
+        creator: { '@type': 'Person', name: 'Edmond Daher' },
+        publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+        license: 'https://creativecommons.org/licenses/by/4.0/',
+        temporalCoverage: '2025/2028',
+        distribution: { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/treasury-tipped-occupation-codes-2026.json` },
+        isAccessibleForFree: true,
+      });
+      const ttocMap = {
+        SITE_NAME: SITE.name, SITE_URL: SITE.url, TABLE_ROWS: ttocRows,
+        ROW_COUNT: String(occCount), CAT_COUNT: String(catCount), ADDED_COUNT: String(addedCount),
+        PUB_DATE: DATA_PUB_HUMAN, ARTICLE_LD: articleLd, DATASET_LD: datasetLd,
+      };
+      await mkdir(join(DIST, 'data', 'treasury-tipped-occupation-codes'), { recursive: true });
+      await writeFile(join(DIST, 'data', 'treasury-tipped-occupation-codes', 'index.html'),
+        fillTool(dataTtocTpl, ttocMap, '/data/treasury-tipped-occupation-codes/'));
+      urls.push(`${SITE.url}/data/treasury-tipped-occupation-codes/`);
+      await mkdir(join(DIST, 'embed', 'data', 'treasury-tipped-occupation-codes'), { recursive: true });
+      await writeFile(join(DIST, 'embed', 'data', 'treasury-tipped-occupation-codes', 'index.html'),
+        fillDataEmbed(embedDataTtocTpl, ttocMap));
+      await writeFile(join(DIST, 'data', 'treasury-tipped-occupation-codes-2026.json'),
+        JSON.stringify(stripInternal(ttoc), null, 2) + '\n');
+    }
+
+    // ---- 2. 2026 Federal Student Loan Limits — from student-loan-limits-2026.json
+    {
+      const sl = studentLoanLimits;
+      const dep = sl.undergraduate.dependent, ind = sl.undergraduate.independent;
+      const depMin = Math.min(...dep.annualByYear), depMax = Math.max(...dep.annualByYear);
+      const indMin = Math.min(...ind.annualByYear), indMax = Math.max(...ind.annualByYear);
+      const numCell = (display, val) => `<td class="num" data-val="${val == null ? '' : val}">${display}</td>`;
+      const rowsArr = [
+        { type: 'Graduate (Direct Unsubsidized)', annualD: usd(sl.graduate.annual), annualV: sl.graduate.annual,
+          aggD: usd(sl.graduate.aggregate), aggV: sl.graduate.aggregate,
+          note: 'Grad PLUS ended for new borrowers. Applies to a student who is not (and has not been) a professional student.' },
+        { type: 'Professional (Direct Unsubsidized)', annualD: usd(sl.professional.annual), annualV: sl.professional.annual,
+          aggD: usd(sl.professional.aggregate), aggV: sl.professional.aggregate,
+          note: 'Shares one $200,000 aggregate pool with graduate borrowing. "Professional degree" classification is in active litigation.' },
+        { type: 'Parent PLUS (per dependent student)', annualD: usd(sl.parentPlus.annual), annualV: sl.parentPlus.annual,
+          aggD: usd(sl.parentPlus.aggregate), aggV: sl.parentPlus.aggregate,
+          note: 'New caps, combined across all parents per dependent student. Excluded from the $257,500 lifetime cap; its own odometer.' },
+        { type: 'Undergraduate — dependent', annualD: `${usd(depMin)}–${usd(depMax)}`, annualV: depMax,
+          aggD: usd(dep.aggregate), aggV: dep.aggregate,
+          note: 'Unchanged by the 2025 law. Annual limit rises by year in school; max subsidized $23,000 of the aggregate.' },
+        { type: 'Undergraduate — independent', annualD: `${usd(indMin)}–${usd(indMax)}`, annualV: indMax,
+          aggD: usd(ind.aggregate), aggV: ind.aggregate,
+          note: 'Unchanged by the 2025 law. Higher limits than dependent undergraduates; annual limit rises by year in school.' },
+        { type: 'Federal lifetime cap (all student borrowing)', annualD: '—', annualV: null,
+          aggD: usd(sl.lifetime.cap), aggV: sl.lifetime.cap,
+          note: 'New. Counts every federal loan ever made to the borrower, without regard to amounts repaid, forgiven, or discharged. Excludes Parent PLUS.' },
+      ];
+      const slRows = rowsArr.map((r) =>
+        `<tr><td><strong>${esc(r.type)}</strong></td>` +
+        numCell(esc(r.annualD), r.annualV) + numCell(esc(r.aggD), r.aggV) +
+        `<td class="note">${esc(r.note)}</td></tr>`).join('\n');
+      const rowCount = rowsArr.length;
+      const articleLd = JSON.stringify({
+        '@context': 'https://schema.org', '@type': 'Article',
+        headline: '2026 Federal Student Loan Borrowing Limits',
+        description: 'Every federal student loan annual and aggregate borrowing cap effective July 1, 2026 under P.L. 119-21: graduate, professional, Parent PLUS, the new $257,500 lifetime cap, and unchanged undergraduate limits.',
+        datePublished: '2026-07-12', dateModified: DATA_PUB_ISO,
+        author: { '@type': 'Person', '@id': `${SITE.url}/#edmond-daher`, name: 'Edmond Daher', url: `${SITE.url}/about/` },
+        publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+        mainEntityOfPage: `${SITE.url}/data/2026-student-loan-limits/`,
+        isAccessibleForFree: true,
+      });
+      const datasetLd = JSON.stringify({
+        '@context': 'https://schema.org', '@type': 'Dataset',
+        name: '2026 federal student loan borrowing limits (P.L. 119-21)',
+        description: 'Annual and aggregate federal student loan borrowing caps effective for enrollment periods beginning on or after July 1, 2026, per 20 U.S.C. 1087e(a) and 34 CFR 685.203.',
+        creator: { '@type': 'Person', name: 'Edmond Daher' },
+        publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+        license: 'https://creativecommons.org/licenses/by/4.0/',
+        temporalCoverage: '2026',
+        distribution: { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/2026-student-loan-limits.json` },
+        isAccessibleForFree: true,
+      });
+      const slMap = {
+        SITE_NAME: SITE.name, SITE_URL: SITE.url, TABLE_ROWS: slRows,
+        ROW_COUNT: String(rowCount), PUB_DATE: DATA_PUB_HUMAN, ARTICLE_LD: articleLd, DATASET_LD: datasetLd,
+      };
+      await mkdir(join(DIST, 'data', '2026-student-loan-limits'), { recursive: true });
+      await writeFile(join(DIST, 'data', '2026-student-loan-limits', 'index.html'),
+        fillTool(dataStudentLoanTpl, slMap, '/data/2026-student-loan-limits/'));
+      urls.push(`${SITE.url}/data/2026-student-loan-limits/`);
+      await mkdir(join(DIST, 'embed', 'data', '2026-student-loan-limits'), { recursive: true });
+      await writeFile(join(DIST, 'embed', 'data', '2026-student-loan-limits', 'index.html'),
+        fillDataEmbed(embedDataStudentLoanTpl, slMap));
+      await writeFile(join(DIST, 'data', '2026-student-loan-limits.json'),
+        JSON.stringify(stripInternal(studentLoanLimits), null, 2) + '\n');
+    }
+
+    // ---- 3. State Supplemental (Bonus) Withholding Rates — from state-supplemental-2026.json
+    {
+      const METHOD_LABEL = { flat: 'Flat', regular: 'Regular', none: 'None', special: 'Special' };
+      const rateText = (s) => {
+        if (s.method === 'none') return '0%';
+        if (s.method === 'flat') return pct(s.rate);
+        if (s.method === 'regular') return s.incomeRate ? `Aggregate (≈${pct(s.incomeRate)})` : 'Aggregate method';
+        if (s.method === 'special') {
+          if (s.special === 'ca_dual') return `${pct(s.rate)} / ${pct(s.rateOther)} other`;
+          if (s.special === 'pct_of_federal') return `${pct(s.rate)} of federal tax`;
+          if (s.special === 'wi_banded' && s.bands) return `${pct(s.bands[0].rate)}–${pct(s.bands[s.bands.length - 1].rate)}`;
+        }
+        return '';
+      };
+      // numeric sort key for the rate column
+      const rateVal = (s) => {
+        if (s.method === 'none') return 0;
+        if (s.method === 'flat') return s.rate * 100;
+        if (s.method === 'regular') return s.incomeRate ? s.incomeRate * 100 : '';
+        if (s.method === 'special') {
+          if (s.special === 'ca_dual') return s.rate * 100;
+          if (s.special === 'pct_of_federal') return s.rate * 100;
+          if (s.special === 'wi_banded' && s.bands) return s.bands[s.bands.length - 1].rate * 100;
+        }
+        return '';
+      };
+      const entries = Object.values(suppData.states).sort((a, b) => a.name.localeCompare(b.name));
+      const cnt = { flat: 0, regular: 0, none: 0, special: 0 };
+      const suppRows = entries.map((s) => {
+        cnt[s.method] = (cnt[s.method] || 0) + 1;
+        const rv = rateVal(s);
+        const noteBits = [];
+        if (s.note) noteBits.push(esc(s.note));
+        if (s._sourceUrl) noteBits.push(`<a href="${esc(s._sourceUrl)}" rel="nofollow noopener" target="_blank">source</a>`);
+        return `<tr><td><strong>${esc(s.name)}</strong> (${esc(s.abbr)})</td>` +
+          `<td><span class="chip m-${s.method}">${METHOD_LABEL[s.method] || esc(s.method)}</span></td>` +
+          `<td class="rate" data-val="${rv === '' ? '' : rv}">${esc(rateText(s))}</td>` +
+          `<td class="note">${noteBits.join(' ')}</td></tr>`;
+      }).join('\n');
+      const rowCount = entries.length;
+      const articleLd = JSON.stringify({
+        '@context': 'https://schema.org', '@type': 'Article',
+        headline: '2026 State Supplemental (Bonus) Tax Withholding Rates',
+        description: `The 2026 supplemental-wage withholding method and rate for all ${rowCount} US jurisdictions, plus the federal flat 22% / 37% rule. ${cnt.flat} states use their own flat bonus rate; ${cnt.regular} use the aggregate method; ${cnt.none} have no wage income tax; ${cnt.special} use a special formula.`,
+        datePublished: '2026-07-11', dateModified: DATA_PUB_ISO,
+        author: { '@type': 'Person', '@id': `${SITE.url}/#edmond-daher`, name: 'Edmond Daher', url: `${SITE.url}/about/` },
+        publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+        mainEntityOfPage: `${SITE.url}/data/state-supplemental-withholding-rates-2026/`,
+        isAccessibleForFree: true,
+      });
+      const datasetLd = JSON.stringify({
+        '@context': 'https://schema.org', '@type': 'Dataset',
+        name: '2026 US state supplemental (bonus) wage withholding rates',
+        description: 'Supplemental-wage (bonus/commission) withholding method and rate for all 50 US states and DC for 2026, plus the federal flat 22%/37% rule.',
+        creator: { '@type': 'Person', name: 'Edmond Daher' },
+        publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+        license: 'https://creativecommons.org/licenses/by/4.0/',
+        temporalCoverage: '2026',
+        distribution: { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/state-supplemental-withholding-rates-2026.json` },
+        isAccessibleForFree: true,
+      });
+      const suppMap = {
+        SITE_NAME: SITE.name, SITE_URL: SITE.url, TABLE_ROWS: suppRows, ROW_COUNT: String(rowCount),
+        CNT_FLAT: String(cnt.flat), CNT_REGULAR: String(cnt.regular), CNT_NONE: String(cnt.none), CNT_SPECIAL: String(cnt.special),
+        PUB_DATE: DATA_PUB_HUMAN, ARTICLE_LD: articleLd, DATASET_LD: datasetLd,
+      };
+      await mkdir(join(DIST, 'data', 'state-supplemental-withholding-rates-2026'), { recursive: true });
+      await writeFile(join(DIST, 'data', 'state-supplemental-withholding-rates-2026', 'index.html'),
+        fillTool(dataSuppTpl, suppMap, '/data/state-supplemental-withholding-rates-2026/'));
+      urls.push(`${SITE.url}/data/state-supplemental-withholding-rates-2026/`);
+      await mkdir(join(DIST, 'embed', 'data', 'state-supplemental-withholding-rates-2026'), { recursive: true });
+      await writeFile(join(DIST, 'embed', 'data', 'state-supplemental-withholding-rates-2026', 'index.html'),
+        fillDataEmbed(embedDataSuppTpl, suppMap));
+      await writeFile(join(DIST, 'data', 'state-supplemental-withholding-rates-2026.json'),
+        JSON.stringify(stripInternal(suppData), null, 2) + '\n');
+      // Flat CSV — journalist-liftable citation kit (same source JSON).
+      const csvEsc2 = (v) => {
+        const t = String(v == null ? '' : v);
+        return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+      };
+      const csvLines2 = [['State', 'Abbr', 'Method', 'Supplemental rate 2026', 'Verified', 'Source']];
+      for (const s of entries) {
+        csvLines2.push([s.name, s.abbr, s.method, rateText(s).replace(/≈/g, '~').replace(/–/g, '-'),
+          s.verified ? 'yes' : 'no', s.source || '']);
+      }
+      await writeFile(join(DIST, 'data', 'state-supplemental-withholding-rates-2026.csv'),
+        csvLines2.map(r => r.map(csvEsc2).join(',')).join('\n') + '\n');
+    }
   }
 
   // Embeddable calculator pages (iframe targets for the /embed/ link engine).

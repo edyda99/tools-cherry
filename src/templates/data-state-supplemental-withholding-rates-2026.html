@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>2026 State Supplemental (Bonus) Tax Withholding Rates: All 50 States + DC — Tools Berry</title>
+<meta name="description" content="The 2026 supplemental-wage (bonus and commission) withholding rate for every US state and DC, plus the federal flat 22% / 37% rule. Sortable, searchable table showing each state's method — flat rate, aggregate/regular, or special formula — with the source agency for each rate.">
+<link rel="canonical" href="{{SITE_URL}}/data/state-supplemental-withholding-rates-2026/">
+<meta property="og:title" content="2026 State Supplemental (Bonus) Withholding Rates — All 51 Jurisdictions">
+<meta property="og:description" content="Every state's 2026 bonus/supplemental-wage withholding rate and method, plus the federal flat 22%/37% rule — one sourced, searchable table.">
+<meta property="og:type" content="article">
+<meta name="author" content="Edmond Daher">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .study-byline { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; font-size:.92rem; color:var(--muted); margin:2px 0 18px; }
+  .study-byline .who { font-weight:600; color:var(--text); }
+  .stat-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:18px 0 6px; }
+  .stat-card { border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; background:var(--surface); }
+  .stat-card .n { font-size:2rem; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums; }
+  .stat-card .k { font-size:.85rem; color:var(--muted); margin-top:4px; }
+  .stat-card.a .n { color:var(--accent); }
+  .stat-card.b .n { color:#1d4ed8; }
+  .stat-card.c .n { color:#b26b00; }
+  .table-tools { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:14px 0 6px; }
+  .table-tools input[type=search] { flex:1 1 260px; min-width:200px; padding:9px 12px; border:1px solid var(--border-strong); border-radius:var(--radius); font-size:.95rem; background:var(--surface); color:var(--text); }
+  .table-tools .count { font-size:.85rem; color:var(--muted); white-space:nowrap; }
+  .table-scroll { overflow-x:auto; margin:6px 0; -webkit-overflow-scrolling:touch; }
+  table.study { border-collapse:collapse; width:100%; font-size:.92rem; min-width:620px; }
+  table.study th, table.study td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  table.study thead th { position:sticky; top:0; background:var(--surface); cursor:pointer; white-space:nowrap; border-bottom:2px solid var(--border-strong); }
+  table.study thead th[data-sort]::after { content:" \2195"; opacity:.35; font-size:.8em; }
+  table.study tbody tr:hover { background:rgba(128,128,128,.06); }
+  table.study td.rate { font-variant-numeric:tabular-nums; white-space:nowrap; font-weight:600; }
+  .chip { display:inline-block; padding:2px 9px; border-radius:var(--radius-pill); font-size:.8rem; font-weight:600; white-space:nowrap; }
+  .chip.m-flat { background:var(--accent-soft); color:var(--accent); }
+  .chip.m-regular { background:rgba(128,128,128,.14); color:var(--muted); }
+  .chip.m-none { background:#eaf1ff; color:#1d4ed8; }
+  .chip.m-special { background:#fff3e0; color:#b26b00; }
+  .muted-small { color:var(--muted); font-size:.86rem; }
+  td.note { color:var(--muted); font-size:.85rem; }
+  td.note a { color:inherit; }
+  .embed-box { border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin:20px 0; background:var(--surface); }
+  .embed-box h2 { margin-top:0; }
+  .embed-snippet { width:100%; min-height:92px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.82rem; padding:10px; border-radius:8px; border:1px solid var(--border-strong); background:rgba(128,128,128,.06); color:var(--text); resize:vertical; }
+  .copy-row { margin-top:8px; }
+  .author-box { display:flex; gap:14px; align-items:flex-start; border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin:22px 0; background:var(--surface); }
+  .author-box .av { flex:0 0 44px; width:44px; height:44px; border-radius:50%; background:var(--brand); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.1rem; }
+  .author-box .bio { font-size:.9rem; color:var(--muted); }
+  .author-box .bio strong { color:var(--text); }
+  .method dt { font-weight:600; margin-top:10px; }
+  .method dd { margin:2px 0 0; color:var(--muted); font-size:.92rem; }
+  .cta-tools { display:flex; flex-wrap:wrap; gap:10px; margin:14px 0; }
+  .cta-tools a { display:inline-block; padding:10px 16px; border-radius:var(--radius); border:1px solid var(--border-strong); font-weight:600; text-decoration:none; }
+  .cta-tools a.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  blockquote.cite { background:rgba(128,128,128,.08); border-left:3px solid var(--brand); padding:8px 12px; font-size:.92rem; margin:8px 0; }
+</style>
+<script type="application/ld+json">{{ARTICLE_LD}}</script>
+<script type="application/ld+json">{{DATASET_LD}}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <article>
+    <h1>2026 state supplemental (bonus) tax withholding rates</h1>
+    <div class="study-byline">
+      <span>By <span class="who">Edmond Daher</span></span>
+      <span>·</span>
+      <span>Updated {{PUB_DATE}}</span>
+      <span>·</span>
+      <span>All 50 states + DC · primary sources</span>
+    </div>
+    <p class="lede">When a <a href="/bonus-tax-calculator/">bonus or commission</a> is paid separately from your regular wages, it is withheld as a "supplemental wage." Federally that is a flat <strong>22%</strong> (and a mandatory <strong>37%</strong> on supplemental pay over $1,000,000/year). Each state does its own thing — some publish a flat supplemental rate, most use the regular aggregate method, nine have no wage income tax, and three use a special formula. This table lists the 2026 method and rate for all {{ROW_COUNT}} jurisdictions, from each state's Department of Revenue.</p>
+
+    <div class="stat-cards">
+      <div class="stat-card a"><div class="n">{{CNT_FLAT}}</div><div class="k">states with their own flat bonus rate</div></div>
+      <div class="stat-card b"><div class="n">{{CNT_REGULAR}}</div><div class="k">use the regular / aggregate method</div></div>
+      <div class="stat-card"><div class="n">{{CNT_NONE}}</div><div class="k">have no state wage income tax</div></div>
+      <div class="stat-card c"><div class="n">{{CNT_SPECIAL}}</div><div class="k">special formula (CA, VT, WI)</div></div>
+    </div>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <h2>State-by-state supplemental withholding, 2026</h2>
+    <p class="muted-small">Tap a column header to sort; search to filter. "Flat" = the state applies its own flat percentage when the bonus is paid separately. "Regular" = no separate rate, withheld with your ordinary wages (aggregate method). Federal flat 22% and 7.65% FICA apply on top everywhere.</p>
+    <div class="table-tools">
+      <input type="search" data-filter-for="suppTable" placeholder="Search — e.g. California, flat, Texas" aria-label="Search states">
+      <span class="count"><strong data-filter-count="suppTable">{{ROW_COUNT}}</strong> of {{ROW_COUNT}} shown</span>
+    </div>
+    <div class="table-scroll">
+      <table class="study" id="suppTable" data-datatable>
+        <thead><tr>
+          <th data-sort="text">State</th>
+          <th data-sort="text">Method</th>
+          <th data-sort="num">Supplemental rate (2026)</th>
+          <th data-sort="text">Notes &amp; source</th>
+        </tr></thead>
+        <tbody>{{TABLE_ROWS}}</tbody>
+      </table>
+    </div>
+    <p class="muted-small">Download the full dataset: <a href="/data/state-supplemental-withholding-rates-2026.csv">CSV</a> · <a href="/data/state-supplemental-withholding-rates-2026.json">JSON</a>. Free to reuse with attribution to Tools Berry (CC BY 4.0).</p>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <div class="embed-box">
+      <h2>Embed this table</h2>
+      <p class="muted-small">Put the 2026 state bonus-rate table on your own site — free, one copy-paste snippet, no third-party scripts. Please keep the small credit link.</p>
+      <textarea id="snip-supp" class="embed-snippet" readonly>&lt;iframe src="{{SITE_URL}}/embed/data/state-supplemental-withholding-rates-2026/" width="100%" height="620" style="border:1px solid #e2e2e2;border-radius:12px" title="2026 State Supplemental Withholding Rates by Tools Berry" loading="lazy"&gt;&lt;/iframe&gt;
+&lt;p&gt;Source: &lt;a href="{{SITE_URL}}/data/state-supplemental-withholding-rates-2026/"&gt;2026 State Supplemental Withholding Rates&lt;/a&gt; by Tools Berry&lt;/p&gt;</textarea>
+      <div class="copy-row"><button type="button" class="btn-primary" data-copy="snip-supp">Copy embed code</button></div>
+    </div>
+
+    <div class="cta-tools">
+      <a class="primary" href="/bonus-tax-calculator/">Bonus Tax Calculator by State &rarr;</a>
+      <a href="/salary-to-hourly/">Salary to hourly calculator &rarr;</a>
+      <a href="/hours-calculator/">Hours calculator &rarr;</a>
+    </div>
+
+    <section class="prose method">
+      <h2>How to read this table</h2>
+      <dl>
+        <dt>Federal baseline</dt>
+        <dd>The IRS flat rate on separately paid supplemental wages is <strong>22%</strong> for 2026 (unchanged; the TCJA rates were made permanent by P.L. 119-21), with a mandatory <strong>37%</strong> on any supplemental wages over $1,000,000 in the year. This is withholding, not your final tax — it trues up on your return (IRS Pub 15, 2026).</dd>
+        <dt>The four state methods</dt>
+        <dd><strong>Flat</strong> — the state publishes its own flat supplemental rate, applied to the bonus when it is paid separately. <strong>Regular</strong> — no separate rate; the bonus is withheld with your ordinary wages using the state tables (aggregate method). <strong>None</strong> — the state has no wage income tax, so 0% is withheld at the state level. <strong>Special</strong> — a non-simple formula: California (two rates by pay type), Vermont (30% of the federal withholding), and Wisconsin (a four-band graduated rate).</dd>
+        <dt>Only the income-tax portion is a prepayment</dt>
+        <dd>The federal 22% and any state supplemental rate are withholding defaults, not a special "bonus tax." Your real tax on the bonus is your ordinary marginal rate; the withholding trues up when you file. FICA (7.65%) is not a prepayment — it is owed regardless.</dd>
+        <dt>Sources</dt>
+        <dd>Each state's rate is sourced to its Department of Revenue withholding guide and corroborated against an independent payroll provider (every flat/special rate passed a per-state confirmation gate). Federal figures are from IRS Publication 15 (2026). This is general information, not tax advice.</dd>
+      </dl>
+    </section>
+
+    <section class="prose">
+      <h2 id="cite">Cite this data</h2>
+      <p>Free to use and republish with attribution. Suggested citation:</p>
+      <blockquote class="cite">Tools Berry, "2026 State Supplemental (Bonus) Tax Withholding Rates", tools-berry.com/data/state-supplemental-withholding-rates-2026/ (updated {{PUB_DATE}}).</blockquote>
+      <p class="muted-small">Download: <a href="/data/state-supplemental-withholding-rates-2026.csv">CSV</a> · <a href="/data/state-supplemental-withholding-rates-2026.json">JSON</a> · licensed CC BY 4.0.</p>
+    </section>
+
+    <div class="author-box" id="author">
+      <div class="av" aria-hidden="true">ED</div>
+      <div class="bio"><strong>Edmond Daher</strong> is a software engineer and the creator of Tools Berry, a suite of free, privacy-first calculators that run entirely in your browser. He built the state-by-state Bonus Tax Calculator that uses this rate table. This page reports figures from each state's Department of Revenue and the IRS; it is general information, not tax advice, and Edmond is not a CPA — verify your state's current rate with its Department of Revenue.</div>
+    </div>
+
+    <p class="muted-small">Press &amp; reuse: this dataset is free to cite with attribution. Questions or a correction? <a href="/contact/">Contact us</a>.</p>
+    </article>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/data-table.js"></script>
+</body>
+</html>
