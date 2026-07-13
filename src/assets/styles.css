@@ -324,6 +324,10 @@ ul.breakdown { list-style: none; padding: 0; }
   display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 16px; margin-top: 4px;
 }
+/* Subsection labels inside a section (e.g. the Money & Finance groups): separate
+   each labeled group from the grid above it. */
+.money-subhead { margin-top: 34px; }
+.money-subhead:first-of-type { margin-top: 18px; }
 .tool-card {
   position: relative;
   display: flex; flex-direction: column; gap: 6px;

@@ -2092,9 +2092,11 @@ function bonusHubLinks(roster, builtSlugs) {
 // including the one non-import reference (pdf-to-word.js's runtime
 // `workerSrc = '/assets/pdf.worker.min.js'` string assignment), which the
 // generalized quote-anchored regex catches identically to an `import`
-// specifier. Only styles.css is left unhashed (CSS, out of this fix's declared
-// `/assets/*.js` scope) — it moves to a short-lived revalidate-friendly cache
-// instead of the old blind 24h (see the _headers rewrite below).
+// specifier. styles.css is ALSO hashed now (a pure CSS leaf: no @import, its
+// only url() is an inline data URI), on the same quoted-path rewrite rule that
+// turns every `<link rel="stylesheet" href="/assets/styles.css">` into the
+// hashed name via rewriteHtmlAssetRefs — closing the CSS-staleness gap the JS
+// fix closed, and letting it take the immutable year cache (see _headers below).
 const ASSET_QUEUE = []; // { dir: 'assets' | 'engine', name: 'x.js' }, in registration order
 function registerAsset(dir, name) {
   ASSET_QUEUE.push({ dir, name });
@@ -2436,7 +2438,13 @@ async function main() {
 
   // assets (engine + app + styles served from /assets)
   await mkdir(join(DIST, 'assets'), { recursive: true });
-  await cp(join(SRC, 'assets', 'styles.css'), join(DIST, 'assets', 'styles.css'));
+  // styles.css is content-hashed through the same hashAssets() pipeline as the JS
+  // assets (it is a pure leaf — no @import, its only url() is an inline data URI —
+  // so it hashes trivially and rewriteHtmlAssetRefs rewrites every
+  // <link rel="stylesheet" href="/assets/styles.css"> to the hashed name). Its
+  // hashed filename gets the immutable year cache via the /assets/*.css _headers
+  // block below, closing the same CSS-staleness gap the JS fix closed.
+  registerAsset('assets', 'styles.css');
   registerAsset('assets', 'app.js');
   registerAsset('assets', 'invoice.js');
   registerAsset('assets', 'images-to-pdf.js');
@@ -3943,17 +3951,18 @@ async function main() {
   // whatever a broader, earlier block already set, before setting its real
   // value. `/*` sets a safe short-lived default (HTML pages, sitemap.xml,
   // data/*.json, etc. — nothing here is content-hashed, so it must revalidate
-  // instead of going stale silently). `/assets/*` covers the one remaining
-  // un-hashed asset (styles.css) with its own short-lived default — unset
-  // first since it also matches `/*`. `/assets/*.js` is the most specific
-  // match: every /assets/*.js file is now content-hashed (see hashAssets()
-  // above), so a fresh URL is minted on every byte change — safe to cache for
-  // a full year, immutable. It matches both `/*` and `/assets/*`, so it also
-  // unsets before setting. Only Cache-Control is unset/reset per block — the
-  // security headers set on `/*` are left alone and simply carry through.
+  // instead of going stale silently). `/assets/*` is now a safe short-lived
+  // fallback for any future un-hashed asset — unset first since it also matches
+  // `/*`. `/assets/*.js` AND `/assets/*.css` are the most specific matches:
+  // every /assets/*.js and /assets/*.css file is now content-hashed (see
+  // hashAssets() above — styles.css joined the pipeline), so a fresh URL is
+  // minted on every byte change — safe to cache for a full year, immutable.
+  // They match `/*` and `/assets/*` too, so they also unset before setting.
+  // Only Cache-Control is unset/reset per block — the security headers set on
+  // `/*` are left alone and simply carry through.
   await writeFile(
     join(DIST, '_headers'),
-    `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: DENY\n  Cache-Control: public, max-age=0, must-revalidate\n\n/assets/*\n  ! Cache-Control\n  Cache-Control: public, max-age=300, must-revalidate\n\n/assets/*.js\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n`
+    `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: DENY\n  Cache-Control: public, max-age=0, must-revalidate\n\n/assets/*\n  ! Cache-Control\n  Cache-Control: public, max-age=300, must-revalidate\n\n/assets/*.js\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n\n/assets/*.css\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n`
   );
 
   // robots + sitemap
@@ -4002,6 +4011,12 @@ async function main() {
     `Start at the [paycheck calculator hub](${SITE.url}/#paycheck).\n\n` +
     `${builtStateLines}\n`;
   await writeFile(join(DIST, 'llms.txt'), llmsTxt);
+  // Also emit the singular /llm.txt path. AI crawlers request BOTH the plural
+  // (llms.txt convention) and the singular spelling; the singular one was 404ing
+  // while drawing recurring crawler hits. Serve the identical content at both
+  // so neither 404s — a plain 200 copy is more robust than a redirect for these
+  // discovery files (some crawlers don't follow redirects). Not added to sitemap.
+  await writeFile(join(DIST, 'llm.txt'), llmsTxt);
 
   // Final pass: rewrite every dist HTML file's /assets/X.js references to the
   // hashed filenames computed by hashAssets() above. Must run last — after
