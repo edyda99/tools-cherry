@@ -4063,6 +4063,11 @@ async function main() {
   // a downloadable JSON/CSV. Data is NOT re-derived here — figures come
   // straight out of ttoc-occupations.json / student-loan-limits-2026.json /
   // state-supplemental-2026.json.
+  // dataPageStats collects a one-line "key figures" summary per /data/ page,
+  // computed from the SAME already-counted values used to render each page
+  // (occCount/catCount, rowsArr, cnt) — never hand-typed — for llms-full.txt
+  // to consume later in this function, after this block's inner scopes close.
+  const dataPageStats = {};
   {
     const esc = (s) => String(s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -4096,6 +4101,7 @@ async function main() {
       }
       const catCount = ttoc.categories.length;
       const addedCount = (ttoc.finalRuleAdditions || []).length;
+      dataPageStats.ttoc = `${occCount} Treasury Tipped Occupation Codes across ${catCount} categories (${addedCount} added in the final rule), 26 CFR 1.224-1 Table 1.`;
       const articleLd = JSON.stringify({
         '@context': 'https://schema.org', '@type': 'Article',
         headline: 'Treasury Tipped Occupation Codes (TTOC): All 71 Occupations',
@@ -4110,11 +4116,14 @@ async function main() {
         '@context': 'https://schema.org', '@type': 'Dataset',
         name: 'Treasury Tipped Occupation Codes (TTOC), 26 CFR 1.224-1 Table 1',
         description: `All ${occCount} occupations (in ${catCount} categories) that customarily and regularly received tips and qualify for the IRC 224 tips deduction, each with its Treasury occupation code, description, illustrative examples, and SOC code.`,
+        url: `${SITE.url}/data/treasury-tipped-occupation-codes/`,
         creator: { '@type': 'Person', name: 'Edmond Daher' },
         publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
         license: 'https://creativecommons.org/licenses/by/4.0/',
         temporalCoverage: '2025/2028',
-        distribution: { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/treasury-tipped-occupation-codes-2026.json` },
+        distribution: [
+          { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/treasury-tipped-occupation-codes-2026.json` },
+        ],
         isAccessibleForFree: true,
       });
       const ttocMap = {
@@ -4165,6 +4174,7 @@ async function main() {
         numCell(esc(r.annualD), r.annualV) + numCell(esc(r.aggD), r.aggV) +
         `<td class="note">${esc(r.note)}</td></tr>`).join('\n');
       const rowCount = rowsArr.length;
+      dataPageStats.studentLoan = rowsArr.map((r) => `${r.type}: ${r.annualD} annual, ${r.aggD} aggregate`).join('; ') + '.';
       const articleLd = JSON.stringify({
         '@context': 'https://schema.org', '@type': 'Article',
         headline: '2026 Federal Student Loan Borrowing Limits',
@@ -4179,11 +4189,14 @@ async function main() {
         '@context': 'https://schema.org', '@type': 'Dataset',
         name: '2026 federal student loan borrowing limits (P.L. 119-21)',
         description: 'Annual and aggregate federal student loan borrowing caps effective for enrollment periods beginning on or after July 1, 2026, per 20 U.S.C. 1087e(a) and 34 CFR 685.203.',
+        url: `${SITE.url}/data/2026-student-loan-limits/`,
         creator: { '@type': 'Person', name: 'Edmond Daher' },
         publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
         license: 'https://creativecommons.org/licenses/by/4.0/',
         temporalCoverage: '2026',
-        distribution: { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/2026-student-loan-limits.json` },
+        distribution: [
+          { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/2026-student-loan-limits.json` },
+        ],
         isAccessibleForFree: true,
       });
       const slMap = {
@@ -4241,6 +4254,7 @@ async function main() {
           `<td class="note">${noteBits.join(' ')}</td></tr>`;
       }).join('\n');
       const rowCount = entries.length;
+      dataPageStats.supp = `${rowCount} jurisdictions — ${cnt.flat} flat rate, ${cnt.regular} aggregate method, ${cnt.none} no wage income tax, ${cnt.special} special formula; federal flat 22% (37% over $1,000,000/year).`;
       const articleLd = JSON.stringify({
         '@context': 'https://schema.org', '@type': 'Article',
         headline: '2026 State Supplemental (Bonus) Tax Withholding Rates',
@@ -4255,11 +4269,15 @@ async function main() {
         '@context': 'https://schema.org', '@type': 'Dataset',
         name: '2026 US state supplemental (bonus) wage withholding rates',
         description: 'Supplemental-wage (bonus/commission) withholding method and rate for all 50 US states and DC for 2026, plus the federal flat 22%/37% rule.',
+        url: `${SITE.url}/data/state-supplemental-withholding-rates-2026/`,
         creator: { '@type': 'Person', name: 'Edmond Daher' },
         publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
         license: 'https://creativecommons.org/licenses/by/4.0/',
         temporalCoverage: '2026',
-        distribution: { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/state-supplemental-withholding-rates-2026.json` },
+        distribution: [
+          { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/state-supplemental-withholding-rates-2026.json` },
+          { '@type': 'DataDownload', encodingFormat: 'text/csv', contentUrl: `${SITE.url}/data/state-supplemental-withholding-rates-2026.csv` },
+        ],
         isAccessibleForFree: true,
       });
       const suppMap = {
@@ -4438,9 +4456,21 @@ async function main() {
   );
 
   // robots + sitemap
+  // Explicit allow stanzas for named AI/search crawlers, in addition to the
+  // catch-all `User-agent: *` above (which already allows everyone, including
+  // these). Some crawler operators are reported to treat an explicit stanza
+  // with their own name as a stronger/clearer signal than relying solely on
+  // the wildcard, and it also makes the policy legible to a human (or LLM)
+  // skimming the file — nobody has to infer "not blocked" from an absence.
+  const AI_CRAWLERS = [
+    'GPTBot', 'OAI-SearchBot', 'ClaudeBot', 'Claude-Web', 'PerplexityBot',
+    'Google-Extended', 'CCBot', 'Bingbot', 'Applebot-Extended',
+  ];
   await writeFile(
     join(DIST, 'robots.txt'),
-    `User-agent: *\nAllow: /\nSitemap: ${SITE.url}/sitemap.xml\n`
+    `User-agent: *\nAllow: /\n\n` +
+      AI_CRAWLERS.map((ua) => `User-agent: ${ua}\nAllow: /\n`).join('\n') +
+      `\nSitemap: ${SITE.url}/sitemap.xml\n`
   );
   // Per-URL lastmod = each page's real git change-date (see sitemapLastmod) so the
   // sitemap carries honest, varied freshness signals instead of today-for-all.
@@ -4489,6 +4519,58 @@ async function main() {
   // so neither 404s — a plain 200 copy is more robust than a redirect for these
   // discovery files (some crawlers don't follow redirects). Not added to sitemap.
   await writeFile(join(DIST, 'llm.txt'), llmsTxt);
+
+  // llms-full.txt — the expanded companion to llms.txt: one block per tool
+  // (name, URL, what it computes) plus a Datasets section carrying each
+  // /data/ page's live-computed "key figures" line (dataPageStats, built
+  // above from the same counted/derived values the pages themselves render
+  // from — never hand-typed here) and the same state-paycheck list as
+  // llms.txt. Deterministic order (TOOLS declaration order, then roster
+  // filter order) so the file is stable build-to-build. Not added to the
+  // sitemap, same as llms.txt/llm.txt.
+  const llmsFullTools = TOOLS
+    .filter((t) => t.path.startsWith('/'))
+    .map((t) => {
+      const d = TOOL_DESCRIPTIONS[t.path] || t.name;
+      return `### ${t.name}\nURL: ${SITE.url}${t.path}\nWhat it computes: ${d}`;
+    })
+    .join('\n\n');
+  const llmsFullDatasets = [
+    {
+      name: 'Treasury Tipped Occupation Codes (TTOC)',
+      path: '/data/treasury-tipped-occupation-codes/',
+      what: 'Looks up the Treasury-assigned occupation code and category for any job that customarily received tips, for W-2 Box 14b and the no-tax-on-tips deduction.',
+      figures: dataPageStats.ttoc,
+    },
+    {
+      name: '2026 Federal Student Loan Borrowing Limits',
+      path: '/data/2026-student-loan-limits/',
+      what: 'Lists every federal student loan annual and aggregate borrowing cap effective July 1, 2026 under P.L. 119-21.',
+      figures: dataPageStats.studentLoan,
+    },
+    {
+      name: '2026 State Supplemental (Bonus) Tax Withholding Rates',
+      path: '/data/state-supplemental-withholding-rates-2026/',
+      what: 'Lists the 2026 supplemental-wage (bonus/commission) withholding method and rate for all 50 US states and DC.',
+      figures: dataPageStats.supp,
+    },
+  ]
+    .map((d) => `### ${d.name}\nURL: ${SITE.url}${d.path}\nWhat it computes: ${d.what}\nKey figures: ${d.figures}`)
+    .join('\n\n');
+  const llmsFullTxt =
+    `# ${SITE.name} — full tool reference\n\n` +
+    `Machine-readable reference for every tool and dataset on ${SITE.name}. Generated at build ` +
+    `time from the same descriptions and data files the site itself uses — see /llms.txt for a ` +
+    `shorter index. Every tool runs entirely in the browser; nothing you enter or upload is sent ` +
+    `to a server. Order is stable across builds.\n\n` +
+    `## Tools\n\n${llmsFullTools}\n\n` +
+    `## Datasets\n\n${llmsFullDatasets}\n\n` +
+    `## State paycheck calculators\n\n` +
+    `Take-home pay (paycheck) calculators for all ${builtSlugs.size} US states and Washington, D.C. ` +
+    `Each estimates ${year} take-home pay after federal income tax, Social Security, Medicare, and (where applicable) state income tax. ` +
+    `Start at the [paycheck calculator hub](${SITE.url}/#paycheck).\n\n` +
+    `${builtStateLines}\n`;
+  await writeFile(join(DIST, 'llms-full.txt'), llmsFullTxt);
 
   // Final pass: rewrite every dist HTML file's /assets/X.js references to the
   // hashed filenames computed by hashAssets() above. Must run last — after
