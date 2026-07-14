@@ -121,6 +121,12 @@ function sitemapLastmod(u) {
 const ORG_DESCRIPTION =
   'Free, fast, privacy-friendly online calculators and converters that run entirely in your browser — nothing is uploaded.';
 
+// Site-wide social share image (1200×630). Emitted as an on-brand SVG at build
+// time (dist/og-cover.svg) — no binary asset needed, same approach as favicon.svg.
+// Referenced by injectSeo so every full page ships a complete Open Graph card.
+const OG_IMAGE = `${SITE.url}/og-cover.svg`;
+const OG_IMAGE_ALT = 'Tools Berry — free online calculators, converters and 2026 tax tools';
+
 // --- Canonical tool list (single source of truth) ----------------------------
 // Drives the "Related tools" cross-link block injected on every tool page.
 // `cat` mirrors the homepage grid sections (image / calc / money / make /
@@ -687,9 +693,12 @@ function injectSeo(html) {
     [/<meta\s+property=["']og:type["']/i, `<meta property="og:type" content="website">`],
     [/<meta\s+property=["']og:url["']/i, `<meta property="og:url" content="${url}">`],
     [/<meta\s+property=["']og:site_name["']/i, `<meta property="og:site_name" content="${esc(SITE.name)}">`],
-    [/<meta\s+name=["']twitter:card["']/i, `<meta name="twitter:card" content="summary">`],
+    [/<meta\s+property=["']og:image["']/i, `<meta property="og:image" content="${OG_IMAGE}">`],
+    [/<meta\s+property=["']og:image:alt["']/i, `<meta property="og:image:alt" content="${esc(OG_IMAGE_ALT)}">`],
+    [/<meta\s+name=["']twitter:card["']/i, `<meta name="twitter:card" content="summary_large_image">`],
     [/<meta\s+name=["']twitter:title["']/i, `<meta name="twitter:title" content="${socialTitle}">`],
-    [/<meta\s+name=["']twitter:description["']/i, `<meta name="twitter:description" content="${socialDesc}">`]
+    [/<meta\s+name=["']twitter:description["']/i, `<meta name="twitter:description" content="${socialDesc}">`],
+    [/<meta\s+name=["']twitter:image["']/i, `<meta name="twitter:image" content="${OG_IMAGE}">`]
   ];
 
   const toInsert = tags.filter(([re]) => !re.test(html)).map(([, tag]) => tag);
@@ -784,6 +793,84 @@ function injectEntitySchema(html) {
   return html.replace('</head>', `${block}</head>`);
 }
 
+// --- Build-time SEO length normalization -------------------------------------
+// Templates author rich, keyword-lead + marketing-tail <title>s and long prose
+// <meta name="description">s. Google only displays ~60 title chars / ~155-160
+// description chars, and Ahrefs flags the overflow. These two compactors trim the
+// *output* to compliant lengths at a single choke point (fill), so the source
+// stays rich while the shipped tags are SERP-clean. Both measure DECODED length
+// (so "&amp;" counts as 1 char, matching how crawlers see it) and both are no-ops
+// on already-compliant tags, so re-running the build never over-trims.
+const decodeEntities = (s) => s
+  .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+  .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'");
+const decodedLen = (s) => decodeEntities(s).length;
+const reencodeText = (s) => s
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+// Title → ≤60 decoded chars. Peels the trailing clause after the rightmost
+// separator (em/en dash, hyphen or colon) while the surviving lead stays a
+// meaningful ≥24 chars — this keeps the front-loaded primary keyword and only
+// sheds the marketing hook that SERPs truncate away anyway. Word-boundary
+// fallback for the rare title with no droppable clause.
+const TITLE_SEPS = [' — ', ' – ', ' - ', ': '];
+function compactTitleStr(raw) {
+  let t = raw.trim();
+  if (decodedLen(t) <= 60) return t;
+  let changed = true;
+  while (decodedLen(t) > 60 && changed) {
+    changed = false;
+    let bestIdx = -1;
+    for (const sep of TITLE_SEPS) { const i = t.lastIndexOf(sep); if (i > bestIdx) bestIdx = i; }
+    if (bestIdx > 0) {
+      const lead = t.slice(0, bestIdx).trim();
+      if (decodedLen(lead) >= 24) { t = lead; changed = true; }
+    }
+  }
+  if (decodedLen(t) > 60) {
+    const d = decodeEntities(t).slice(0, 60).replace(/\s+\S*$/, '').trim().replace(/[–—:,;-]+$/, '').trim();
+    t = reencodeText(d);
+  }
+  return t;
+}
+function compactTitle(html) {
+  if (!html.includes('</head>')) return html;
+  return html.replace(/<title>([\s\S]*?)<\/title>/i, (m, inner) => `<title>${compactTitleStr(inner)}</title>`);
+}
+
+// Meta description → ≤~155 decoded chars. Prefers a natural stop: a sentence end
+// in the 80-157 window, else a clause boundary (comma / dash / semicolon) in the
+// 100-157 window, else a plain word-boundary cut. The meta description is not a
+// ranking factor and its tail is never shown, so trimming it is SERP-safe.
+function compactDescStr(raw) {
+  const d = decodeEntities(raw.trim());
+  if (d.length <= 157) return raw.trim();
+  let best = -1, m;
+  const re = /[.!?](\s|$)/g;
+  while ((m = re.exec(d))) { const end = m.index + 1; if (end >= 80 && end <= 157) best = end; }
+  let cut;
+  if (best > 0) {
+    cut = d.slice(0, best).trim();
+  } else {
+    let cb = -1;
+    for (const sep of [', ', ' — ', ' – ', '; ', ' - ']) {
+      let p = 0, i = -1;
+      while ((p = d.indexOf(sep, p)) !== -1) { if (p >= 100 && p <= 157) i = p; p += sep.length; }
+      if (i > cb) cb = i;
+    }
+    cut = cb > 0 ? d.slice(0, cb).trim() : d.slice(0, 155).replace(/\s+\S*$/, '').trim();
+  }
+  cut = cut.replace(/[,;:—–-]+$/, '').trim();
+  return reencodeText(cut);
+}
+function compactDesc(html) {
+  if (!html.includes('</head>')) return html;
+  return html.replace(
+    /(<meta\s+name=["']description["']\s+content=)(["'])([\s\S]*?)\2(\s*\/?>)/i,
+    (m, pre, q, inner, post) => `${pre}${q}${compactDescStr(inner)}${q}${post}`
+  );
+}
+
 function fill(tpl, map) {
   let out = tpl.replace(/{{(\w+)}}/g, (m, k) => (k in map ? map[k] : m));
   // Inject the AdSense loader into every full page (anything with a </head>).
@@ -791,6 +878,11 @@ function fill(tpl, map) {
   if (ADSENSE_HEAD && out.includes('</head>')) out = out.replace('</head>', `${ADSENSE_HEAD}</head>`);
   // Page-level module-load-failure listener — same full-page-only guard as above.
   if (out.includes('</head>')) out = out.replace('</head>', `${MODULE_ERROR_LISTENER}</head>`);
+  // Trim over-long <title>/<meta description> to SERP-compliant lengths BEFORE
+  // injectSeo, so the derived og:/twitter: title+description inherit the compact
+  // values (no-op on fragments and on already-compliant tags).
+  out = compactTitle(out);
+  out = compactDesc(out);
   // Normalize/complete per-page SEO social tags (no-op on fragments).
   out = injectSeo(out);
   // Inject the site-wide entity @graph (Organization/WebSite/WebPage/Breadcrumb).
@@ -4300,6 +4392,17 @@ async function main() {
   await writeFile(
     join(DIST, 'favicon.svg'),
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#0f1419"/><text x="32" y="44" font-family="Arial,sans-serif" font-size="38" font-weight="700" text-anchor="middle" fill="#2ea043">$</text></svg>\n`
+  );
+
+  // Open Graph / social share card (1200×630 SVG — on-brand, no binary asset).
+  // Referenced site-wide by injectSeo as og:image / twitter:image so every full
+  // page ships a complete Open Graph card. NOTE: SVG og:images render in Google
+  // and most crawlers; some raster-only social platforms (Facebook, X/Twitter)
+  // will not render an SVG preview — swap in a 1200×630 PNG here if full raster
+  // social previews are ever needed.
+  await writeFile(
+    join(DIST, 'og-cover.svg'),
+    `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="#0f1419"/><rect width="1200" height="10" fill="#2ea043"/><rect x="130" y="215" width="170" height="170" rx="34" fill="#16a34a"/><text x="215" y="338" font-family="Arial,Helvetica,sans-serif" font-size="112" font-weight="700" text-anchor="middle" fill="#ffffff">$</text><text x="345" y="305" font-family="Arial,Helvetica,sans-serif" font-size="90" font-weight="800" fill="#ffffff">Tools Berry</text><text x="349" y="372" font-family="Arial,Helvetica,sans-serif" font-size="34" font-weight="400" fill="#9fb0bd">Free online calculators, converters &amp; 2026 tax tools</text><text x="349" y="424" font-family="Arial,Helvetica,sans-serif" font-size="26" font-weight="400" fill="#5a6b78">100% in your browser · nothing uploaded · tools-berry.com</text></svg>\n`
   );
 
   // ads.txt — only meaningful once a publisher ID is set; written either way
