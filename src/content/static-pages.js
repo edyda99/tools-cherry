@@ -193,5 +193,142 @@ the source you're comparing against — it helps us verify and fix quickly.</p>
 
 <p class="note">This glossary covers US federal income tax terms in general and is not tax, legal or financial advice. Rules change; verify specifics with the <a href="https://www.irs.gov/" rel="nofollow">IRS</a> or a licensed professional.</p>
 `
+  },
+  {
+    slug: 'corrections',
+    title: 'Corrections Log',
+    desc: 'Every figure on {{SITE_NAME}} is checked against a primary source before it ships. This log records the errors we caught before publishing.',
+    robots: 'index, follow',
+    body: `
+<p><em>Last updated: July 13, 2026.</em></p>
+
+<p>Every figure on {{SITE_NAME}} is checked against the primary source &mdash; statute, IRS notice, or form instructions &mdash; before it ships. This page logs what we caught: cases where a draft figure, assumption, or framing didn't match what the primary source actually says, found and fixed during development.</p>
+
+<p>Nothing below is a live bug. The corrected figure is what's on the page today; the table shows the draft version it replaced and the source that corrected it.</p>
+
+<div class="table-scroll">
+<table>
+<thead>
+<tr><th>Date</th><th>Tool</th><th>What the draft said</th><th>What the primary source says</th><th>Source</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td>2026-07-13</td>
+  <td><a href="/adoption-credit-calculator/">Adoption Credit Calculator</a></td>
+  <td>The $5,120 refundable cap read as a per-return limit.</td>
+  <td>The cap is per child. Form 8839 line 11b is a per-column figure &mdash; two adopted children can yield $10,240 refundable on one return, not $5,120.</td>
+  <td><a href="https://www.irs.gov/pub/irs-pdf/i8839.pdf" rel="nofollow">2025 Instructions for Form 8839</a></td>
+</tr>
+<tr>
+  <td>2026-07-13</td>
+  <td><a href="/adoption-credit-calculator/">Adoption Credit Calculator</a></td>
+  <td>Copy draft described the credit as "refundable for the first time ever."</td>
+  <td>It was fully refundable once before, for 2010&ndash;2011 under the ACA, then reverted to nonrefundable through 2024. OBBBA is the first time it's <em>permanently</em> refundable &mdash; not the first time ever.</td>
+  <td><a href="https://www.congress.gov/crs-product/R44745" rel="nofollow">CRS Report R44745</a></td>
+</tr>
+<tr>
+  <td>2026-07-13</td>
+  <td><a href="/employer-student-loan-repayment-calculator/">Employer Student Loan Repayment Calculator</a></td>
+  <td>Mythbust headline credited the employee's full $1,557 total saving to income tax alone: "$1,155 saved."</td>
+  <td>$1,155.00 is only the income-tax leg. Add the $401.63 employee FICA saving (7.65% of the $5,250 cap) and the true total is $1,556.63.</td>
+  <td><a href="https://www.law.cornell.edu/uscode/text/26/3121" rel="nofollow">26 U.S.C. &sect;3121</a></td>
+</tr>
+<tr>
+  <td>2026-07-12</td>
+  <td><a href="/pmi-deduction-calculator/">PMI Deduction Calculator</a></td>
+  <td>Phaseout framed as a round "$100k to $110k" AGI band ($110,000 / $55,000 MFS).</td>
+  <td>The deduction is eliminated above $109,000 ($54,500 MFS) &mdash; the statute reduces it 10% per $1,000-or-fraction over $100,000, and the 10th step lands at $109,001, not $110,000.</td>
+  <td><a href="https://www.law.cornell.edu/uscode/text/26/163" rel="nofollow">IRC &sect;163(h)(3)(E)(ii)</a></td>
+</tr>
+<tr>
+  <td>2026-07-12</td>
+  <td><a href="/qcd-vs-charitable-deduction-calculator/">QCD vs. Charitable Deduction Calculator</a></td>
+  <td>First search pass returned $108,000 as the 2026 qualified charitable distribution limit.</td>
+  <td>$108,000 is the 2025 figure. The 2026 annual QCD exclusion is $111,000.</td>
+  <td><a href="https://www.irs.gov/pub/irs-drop/n-25-67.pdf" rel="nofollow">IRS Notice 2025-67</a></td>
+</tr>
+<tr>
+  <td>2026-07-12</td>
+  <td><a href="/roth-catchup-calculator/">Roth Catch-Up Calculator</a></td>
+  <td>Wage threshold cited as $145,000, the commonly-repeated figure.</td>
+  <td>$145,000 is only the un-indexed statutory base. The actual 2026 threshold, after cost-of-living indexing, is $150,000.</td>
+  <td><a href="https://www.irs.gov/pub/irs-drop/n-25-67.pdf" rel="nofollow">IRS Notice 2025-67</a></td>
+</tr>
+<tr>
+  <td>2026-07-12</td>
+  <td><a href="/1099-threshold-checker/">1099 Threshold Checker</a></td>
+  <td>Card processors (Stripe, Square) grouped with the $20,000-and-200-transaction payment-app rule.</td>
+  <td>Payment-card transactions have no minimum at all &mdash; any amount, any count. The $20,000-and-200 test applies only to third-party network apps (PayPal, Venmo, marketplaces).</td>
+  <td><a href="https://www.irs.gov/pub/irs-drop/n-25-62.pdf" rel="nofollow">IRS Notice 2025-62</a></td>
+</tr>
+<tr>
+  <td>2026-07-12</td>
+  <td><a href="/1099-threshold-checker/">1099 Threshold Checker</a></td>
+  <td>1099-NEC/MISC assumed to use the same year and inequality as the 1099-K rule.</td>
+  <td>1099-K requires strictly exceeding both $20,000 and 200 transactions. 1099-NEC/MISC use "$2,000 or more," and that floor only starts in tax year 2026 &mdash; 2025 payments still use the old $600 floor.</td>
+  <td><a href="https://www.irs.gov/pub/irs-drop/n-25-62.pdf" rel="nofollow">IRS Notice 2025-62</a></td>
+</tr>
+<tr>
+  <td>2026-07-12</td>
+  <td><a href="/ss-wage-base-calculator/">Social Security Wage Base Max-Out Calculator</a></td>
+  <td>Any Social Security over-withholding assumed claimable as a credit on the return.</td>
+  <td>Only overpayment from two or more employers is a Schedule 3, Part II credit. A single employer's over-withholding isn't a 1040 credit at all &mdash; the employer must adjust it, or the employee files Form 843.</td>
+  <td><a href="https://www.irs.gov/taxtopics/tc608" rel="nofollow">IRS Topic 608</a></td>
+</tr>
+<tr>
+  <td>2026-07-12</td>
+  <td><a href="/w4-overtime-tips-withholding-calculator/">W-4 Overtime &amp; Tips Withholding Helper</a></td>
+  <td>Draft guidance pointed workers to Form W-4 Step 4(c) to reduce withholding on tips and overtime.</td>
+  <td>It's Step 4(b), Deductions, which lowers withholding. Step 4(c) is <em>extra</em> withholding &mdash; it does the opposite of what the tool is for.</td>
+  <td><a href="https://www.irs.gov/pub/irs-pdf/fw4.pdf" rel="nofollow">Final 2026 Form W-4</a></td>
+</tr>
+<tr>
+  <td>2026-07-12</td>
+  <td><a href="/w2-box-decoder/">W-2 Box Decoder</a></td>
+  <td>Treated the Federal Register publish date (April 13, 2026) as the Treasury Tipped Occupation Code final rule's effective date.</td>
+  <td>TD 10044 (91 FR 19026) was published April 13, 2026 but, per its own DATES section, took effect June 12, 2026.</td>
+  <td><a href="https://www.ecfr.gov/current/title-26/section-1.224-1" rel="nofollow">26 CFR 1.224-1</a></td>
+</tr>
+<tr>
+  <td>2026-07-12</td>
+  <td><a href="/dependent-care-fsa-vs-credit-calculator/">Dependent Care FSA vs. Credit Calculator</a></td>
+  <td>Framed as finding an "optimal split" between the Dependent Care FSA and the Child &amp; Dependent Care Credit.</td>
+  <td>The credit's expense cap is reduced dollar-for-dollar by the FSA exclusion, so the benefit is linear in the FSA amount. The answer is almost always a corner &mdash; max the FSA, or skip it &mdash; not a smooth split.</td>
+  <td><a href="https://www.law.cornell.edu/uscode/text/26/21" rel="nofollow">IRC &sect;21(c)</a></td>
+</tr>
+<tr>
+  <td>2026-07-12</td>
+  <td><a href="/dependent-care-fsa-vs-credit-calculator/">Dependent Care FSA vs. Credit Calculator</a></td>
+  <td>Assumed the same married-filing-separately treatment applies to both the FSA and the credit.</td>
+  <td>MFS filers generally cannot claim the Child &amp; Dependent Care Credit at all &mdash; it requires a joint return. MFS can still use the $3,750 DCFSA, just not the credit.</td>
+  <td><a href="https://www.law.cornell.edu/uscode/text/26/21" rel="nofollow">IRC &sect;21(e)(2)</a></td>
+</tr>
+<tr>
+  <td>2026-07-12</td>
+  <td><a href="/able-account-calculator/">ABLE Account Contribution Calculator</a></td>
+  <td>Eligibility framed around the beneficiary's current age being under 46.</td>
+  <td>Eligibility turns on when the disability or blindness began, not the beneficiary's age now. Someone currently 58 whose disability began at 30 qualifies; someone currently 40 whose disability began at 47 does not.</td>
+  <td><a href="https://www.law.cornell.edu/uscode/text/26/529A" rel="nofollow">26 U.S.C. &sect;529A(e)(1)</a></td>
+</tr>
+<tr>
+  <td>2026-07-11</td>
+  <td><a href="/ohio-bonus-tax-calculator/">Ohio Bonus Tax Calculator</a></td>
+  <td>Ohio's 2025 supplemental withholding rate, 3.5%, carried forward unchanged into 2026.</td>
+  <td>Ohio's supplemental rate dropped to 2.75% effective January 1, 2026, to align with the state's new flat income-tax rate.</td>
+  <td><a href="https://codes.ohio.gov/ohio-administrative-code/rule-5703-7-10" rel="nofollow">Ohio Admin. Rule 5703-7-10</a></td>
+</tr>
+<tr>
+  <td>2026-07-11</td>
+  <td><a href="/north-carolina-bonus-tax-calculator/">North Carolina Bonus Tax Calculator</a></td>
+  <td>Assumed North Carolina's supplemental rate equals its 3.99% flat income-tax rate, as it does in most flat-tax states.</td>
+  <td>North Carolina's supplemental withholding rate is 4.09%, deliberately distinct from its 3.99% income-tax rate.</td>
+  <td><a href="https://www.ncdor.gov/income-tax-withholding-tables-and-instructions-employers/open" rel="nofollow">North Carolina NC-30 (2026)</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<p class="note">Found a figure that looks wrong? Email <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a> with the tool, the number, and what you're comparing it against &mdash; corrections ship within days.</p>
+`
   }
 ];

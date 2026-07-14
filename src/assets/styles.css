@@ -395,6 +395,7 @@ ul.breakdown { list-style: none; padding: 0; }
 .prose a { font-weight: 600; }
 .prose table { width: 100%; border-collapse: collapse; margin: 8px 0 18px; font-size: 14.5px; }
 .prose th, .prose td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+.table-scroll { overflow-x: auto; margin: 10px 0; -webkit-overflow-scrolling: touch; }
 .prose thead th { color: var(--muted); font-weight: 700; border-bottom: 2px solid var(--border-strong); }
 .note {
   font-size: 14px; color: var(--muted);
