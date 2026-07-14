@@ -118,7 +118,7 @@ error? Email us — corrections ship within days.</p>
 <h2 id="author">Who builds this</h2>
 <p>{{SITE_NAME}} is built and maintained by <strong>Edmond Daher</strong>, a software engineer. He is
 not a CPA or tax advisor, and nothing on this site is tax, legal or financial advice. Every figure is
-checked against the primary source — statute, IRS notice, or form instructions — before it ships, and
+checked against the primary source (statute, IRS notice, or form instructions) before it ships, and
 errors caught along the way are published in the <a href="/corrections/">corrections log</a>.</p>
 
 <h2>Contact</h2>
@@ -201,7 +201,7 @@ the source you're comparing against — it helps us verify and fix quickly.</p>
     body: `
 <p><em>Last updated: July 13, 2026.</em></p>
 
-<p>Every figure on {{SITE_NAME}} is checked against the primary source &mdash; statute, IRS notice, or form instructions &mdash; before it ships. This page logs what we caught: cases where a draft figure, assumption, or framing didn't match what the primary source actually says, found and fixed during development.</p>
+<p>Every figure on {{SITE_NAME}} is checked against the primary source (statute, IRS notice, or form instructions) before it ships. This page logs what we caught: cases where a draft figure, assumption, or framing didn't match what the primary source actually says, found and fixed during development.</p>
 
 <p>Nothing below is a live bug. The corrected figure is what's on the page today; the table shows the draft version it replaced and the source that corrected it.</p>
 
