@@ -115,12 +115,11 @@ publication. When a state issues new guidance, the affected pages are updated an
 refreshed. If we can't source a claim, we say the position is unclear rather than guess. Found an
 error? Email us — corrections ship within days.</p>
 
-<h2 id="author">Who runs this site</h2>
-<p><strong>Edmond Daher</strong> is a software engineer and the creator of {{SITE_NAME}}. He builds
-and maintains every tool on the site, compiled the 51-jurisdiction OBBBA conformity dataset behind
-the overtime and tips studies, and personally reviews the tax data each cycle. Edmond is not a CPA,
-and nothing on this site is tax, legal or financial advice — for decisions about your own money,
-verify with the IRS, your state tax authority, or a licensed professional.</p>
+<h2 id="author">Who builds this</h2>
+<p>{{SITE_NAME}} is built and maintained by <strong>Edmond Daher</strong>, a software engineer. He is
+not a CPA or tax advisor, and nothing on this site is tax, legal or financial advice. Every figure is
+checked against the primary source — statute, IRS notice, or form instructions — before it ships, and
+errors caught along the way are published in the <a href="/corrections/">corrections log</a>.</p>
 
 <h2>Contact</h2>
 <p>Feedback or a correction? Email <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a>.</p>

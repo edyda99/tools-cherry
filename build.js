@@ -769,7 +769,7 @@ function injectEntitySchema(html) {
         '@type': 'Person',
         '@id': `${SITE.url}/#edmond-daher`,
         name: 'Edmond Daher',
-        url: `${SITE.url}/data/overtime-tax-by-state/#author`,
+        url: `${SITE.url}/about/`,
         jobTitle: 'Software Engineer'
       },
       dateModified: CONTENT_DATE
