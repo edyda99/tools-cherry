@@ -290,7 +290,7 @@ export function saltComparison({ year, filingStatus, magi, saltPaid, otherItemiz
   const saltDeductionDelta = cap.allowedSalt - allowedSaltOld;
 
   let itemize = null, bestNew = null, bestOld = null, deductionBenefit = null;
-  let taxSaved = null, marginalRate = null;
+  let taxSaved = null, marginalRate = null, straddledBracketRates = null;
   if (standardDeduction != null) {
     bestNew = Math.max(itemizedTotal, standardDeduction);
     bestOld = Math.max(itemizedTotalOld, standardDeduction);
@@ -308,14 +308,43 @@ export function saltComparison({ year, filingStatus, magi, saltPaid, otherItemiz
       const taxNew = federalIncomeTax(income, bracketStatus, fed, bestNew - fedSd);
       taxSaved = Math.max(0, taxOld - taxNew);
       marginalRate = deductionBenefit > 0 ? taxSaved / deductionBenefit : 0;
+
+      // The dollar of deduction sits across a taxable-income interval; if that
+      // interval crosses a bracket line, taxSaved/deductionBenefit is a blend
+      // of the two statutory rates, not a single marginal rate. Identify the
+      // rate(s) the interval touches so the UI can explain a blended result.
+      if (deductionBenefit > 0) {
+        const taxableOld = Math.max(0, income - bestOld);
+        const taxableNew = Math.max(0, income - bestNew);
+        const brackets = fed.brackets[bracketStatus] ?? fed.brackets.single;
+        straddledBracketRates = bracketRatesInRange(taxableNew, taxableOld, brackets);
+      }
     }
   }
 
   return {
     ...cap, oldCap, allowedSaltOld, standardDeduction,
     itemizedTotal, itemizedTotalOld, saltDeductionDelta,
-    itemize, bestNew, bestOld, deductionBenefit, taxSaved, marginalRate
+    itemize, bestNew, bestOld, deductionBenefit, taxSaved, marginalRate,
+    straddledBracketRates
   };
+}
+
+// The statutory bracket rate(s) whose band overlaps the taxable-income
+// interval (loTaxable, hiTaxable] that a deduction removes. Returns the
+// distinct rates in ascending order — length 1 means the deduction sits
+// entirely inside one bracket; length > 1 means it straddles a bracket line.
+function bracketRatesInRange(loTaxable, hiTaxable, brackets) {
+  if (hiTaxable <= loTaxable) return [];
+  const rates = [];
+  let lower = 0;
+  for (const b of brackets) {
+    const upper = b.upTo == null ? Infinity : b.upTo;
+    if (upper > loTaxable && lower < hiTaxable) rates.push(b.rate);
+    if (hiTaxable <= upper) break;
+    lower = upper;
+  }
+  return rates;
 }
 
 // ---------------------------------------------------------------------------

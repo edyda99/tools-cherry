@@ -239,6 +239,15 @@ const f3b = sc({ year: 2025, filingStatus: 'married', magi: 550000, saltPaid: 45
 eq('SALT F3 bracket-diff spanning 35->32', f3b.taxSaved, 2901.5);
 // Benefit 0 -> taxSaved 0 through the bracket machinery too (F4 inputs)
 eq('SALT F4 taxSaved 0', sc({ year: 2025, filingStatus: 'married', magi: 600000, saltPaid: 55000, otherItemized: 25000 }).taxSaved, 0);
+// Default calculator inputs (2025 single, magi 300,000, incomeTax 28,000, propTax
+// 20,000, other 10,000): the 30,000 deduction benefit straddles the single-filer
+// 32%/35% bracket line at 256,225, so the blended rate (34.4%) should be flagged
+// with both straddled bracket rates, not reported as a single marginal rate.
+const defaultSalt = sc({ year: 2025, filingStatus: 'single', magi: 300000, saltPaid: 48000, otherItemized: 10000 });
+eq('SALT default marginalRate blend', defaultSalt.marginalRate, 0.343775, 0.0001);
+is('SALT default straddles two brackets', defaultSalt.straddledBracketRates.length, 2);
+eq('SALT default straddle low rate', defaultSalt.straddledBracketRates[0], 0.32, 0.0001);
+eq('SALT default straddle high rate', defaultSalt.straddledBracketRates[1], 0.35, 0.0001);
 
 // --- car-loan interest deduction (IRC §163(h)(4), OBBBA §70203) -------------
 // All 14 fixtures from the sourced spec (obbba-car-loan-spec.md, §6).
