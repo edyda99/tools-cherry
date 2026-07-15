@@ -66,9 +66,14 @@ function render() {
     : `<div class="line"><span>Itemized total vs standard deduction</span><span class="num">${usd(r.itemizedTotal)} vs ${usd(r.standardDeduction)}</span></div>` +
       `<div class="obbba-note ineligible-flag">Your standard deduction wins — you wouldn't itemize, so the SALT cap doesn't affect your return.</div>`;
 
+  const bracketBlendNote = (r.straddledBracketRates && r.straddledBracketRates.length > 1)
+    ? `<div class="obbba-note">This rate blends two brackets (here ${pct(r.straddledBracketRates[0])} and ${pct(r.straddledBracketRates[r.straddledBracketRates.length - 1])}) because the deduction crosses a bracket line, so it can legitimately sit between them.</div>`
+    : '';
+
   const savings = r.deductionBenefit > 0
     ? `<div class="line big"><span>Federal tax saved vs the old $10,000 cap</span><span class="num">${usd(r.taxSaved)}</span></div>` +
-      `<div class="obbba-note">Best deduction ${usd(r.bestNew)} under the new cap vs ${usd(r.bestOld)} under the old ${usd(r.oldCap)} cap — ${usd(r.deductionBenefit)} more deducted, worth ${usd(r.taxSaved)} at your marginal federal rate (${pct(r.marginalRate)}).</div>`
+      `<div class="obbba-note">Best deduction ${usd(r.bestNew)} under the new cap vs ${usd(r.bestOld)} under the old ${usd(r.oldCap)} cap — ${usd(r.deductionBenefit)} more deducted, worth ${usd(r.taxSaved)} at the effective federal rate on this deduction (${pct(r.marginalRate)}).</div>` +
+      bracketBlendNote
     : `<div class="line big"><span>Federal tax saved vs the old $10,000 cap</span><span class="num">$0</span></div>` +
       `<div class="obbba-note ineligible-flag">${zeroBenefitNote(r, paid)}</div>`;
 
