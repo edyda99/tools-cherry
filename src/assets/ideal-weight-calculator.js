@@ -65,7 +65,6 @@ function showUnit(unit) {
   document.querySelectorAll('.unit-toggle button').forEach((b) =>
     b.setAttribute('aria-pressed', String(b.dataset.unit === unit))
   );
-  $('unitLabel').textContent = unit === 'imperial' ? 'lb' : 'kg';
   calc();
 }
 

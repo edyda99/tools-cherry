@@ -73,7 +73,7 @@ function render() {
     phaseNote +
     `<div class="line"><span>Deductible amount</span><span class="num">${usd(r.deduction)}</span></div>` +
     `<div class="line big"><span>Estimated federal tax saved</span><span class="num">${usd(r.taxSaved)}</span></div>` +
-    `<div class="line"><span>Your marginal federal rate</span><span class="num">${pct(r.marginalRate)}</span></div>` +
+    `<div class="line"><span>Effective federal rate on this deduction</span><span class="num">${pct(r.marginalRate)}</span></div>` +
     `<div class="obbba-note">Social Security and Medicare (FICA) still apply to your tips — the deduction lowers federal income tax only, claimed when you file. You must work in a customarily-tipped occupation.</div>` +
     `<div class="takeaway">In plain terms: this lands as a bigger refund (or a smaller bill) when you file next year — your paychecks and their withholding don't change now.</div>`;
 

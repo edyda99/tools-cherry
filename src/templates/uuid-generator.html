@@ -75,7 +75,7 @@
     <section class="prose">
       <h2>Common questions</h2>
       <p><strong>UUID or GUID — what's the difference?</strong> None, in practice. GUID is Microsoft's name for the same 128-bit identifier. This tool produces standard RFC 4122 values that are valid as either.</p>
-      <p><strong>Could two generated UUIDs ever collide?</strong> A version-4 UUID has 122 random bits. The odds of a collision are so small that they are ignored in practice — you would need to generate billions of UUIDs before a clash became remotely likely.</p>
+      <p><strong>Could two generated UUIDs ever collide?</strong> A version-4 UUID has 122 random bits. The odds of a collision are so small that they are ignored in practice: you would need to generate roughly 2.71 quintillion UUIDs (equivalent to 1 billion every second for about 85 years) before a collision became even 50% likely.</p>
       <p><strong>Can I generate version-1 (time-based) UUIDs?</strong> This tool generates version 4 (random), which is the right choice for almost every use case and avoids leaking a MAC address or timestamp. Version 1 is intentionally not offered.</p>
       <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your UUIDs never leave your browser and nothing is stored.</p>
     </section>

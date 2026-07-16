@@ -94,7 +94,7 @@ function render() {
 
   // --- Withholding reduction + extra take-home ---
   const savingNote =
-    `<div class="obbba-note">Step 4(b) is subtracted from your annualized wages before the tax brackets apply, so this is about ${usd(r.dTotal)} &times; your ${pct(r.marginalRate)} marginal federal rate. Withholding is an estimate, not a guarantee.</div>`;
+    `<div class="obbba-note">Step 4(b) is subtracted from your annualized wages before the tax brackets apply, so this is about ${usd(r.dTotal)} &times; your ${pct(r.marginalRate)} effective federal rate on this deduction. Withholding is an estimate, not a guarantee.</div>`;
 
   const perCheckLine =
     `<div class="line big"><span>Extra take-home per ${FREQ_CHECK[freq] || 'paycheck'}</span><span class="num">${usd2(r.perPaycheck)}</span></div>`;

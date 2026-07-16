@@ -72,7 +72,7 @@
     <section class="prose">
       <h2>Common questions</h2>
       <p><strong>Does it accept JSON5, comments or trailing commas?</strong> No. This validates strict, standard JSON — the same rules browsers and most servers use. Comments and trailing commas are reported as errors so your output stays portable.</p>
-      <p><strong>Will it reorder or change my data?</strong> No. Formatting and minifying only change whitespace and indentation. Keys, values and array order are preserved exactly.</p>
+      <p><strong>Will it reorder or change my data?</strong> Formatting and minifying only change whitespace and indentation, and values are never changed. Key order is kept as you typed it, with one exception: JavaScript's JSON engine always moves object keys that look like array indices (e.g. "0", "1", "10") to the front, in ascending numeric order, per the JSON/JS specification, regardless of where they appeared in your input. This only affects all-digit keys; ordinary string keys are untouched.</p>
       <p><strong>Why did my numbers lose trailing zeros?</strong> JSON has no concept of trailing zeros, so <code>1.50</code> is the same number as <code>1.5</code>. The formatter prints the canonical numeric form.</p>
       <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your JSON never leaves your browser and nothing is stored.</p>
     </section>

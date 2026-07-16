@@ -80,7 +80,7 @@ function calcRate() {
   show('r72Line', 'Rule of 72 (72 ÷ rate)', years(r.years72));
   show('r70Line', 'Rule of 70 (70 ÷ rate)', years(r.years70));
   show('r693Line', 'Rule of 69.3 (69.3 ÷ rate)', years(r.years693));
-  show('exactLine', 'Exact (continuous compounding math)', years(r.exactYears, 2));
+  show('exactLine', 'Exact (annual compounding)', years(r.exactYears, 2));
   $('exactLine').classList.add('total');
 
   $('summaryText').textContent =

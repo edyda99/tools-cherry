@@ -100,7 +100,7 @@ function render() {
   const milestones = [
     ['End of first trimester (13 weeks)', addDays(summary.lmp, 13 * 7)],
     ['End of second trimester (27 weeks)', addDays(summary.lmp, 27 * 7)],
-    ['Full term begins (37 weeks)', addDays(summary.lmp, 37 * 7)],
+    ['Early term begins (37 weeks)', addDays(summary.lmp, 37 * 7)],
     ['Estimated due date (40 weeks)', summary.edd]
   ];
   $('ddMilestones').innerHTML = milestones

@@ -37,7 +37,7 @@ function optVal(id) {
 function reset() {
   $('fvBig').textContent = '—';
   $('fvSub').textContent = '';
-  ['employeeLine', 'employerLine', 'growthLine', 'summaryBox', 'scheduleWrap'].forEach((id) => {
+  ['startingLine', 'employeeLine', 'employerLine', 'growthLine', 'summaryBox', 'scheduleWrap'].forEach((id) => {
     const el = $(id);
     if (el) el.hidden = true;
   });
@@ -108,6 +108,7 @@ function calc() {
   $('fvBig').textContent = money(r.projectedBalance);
   $('fvSub').textContent = `Projected balance at age ${fmt(retirementAge)}`;
 
+  show('startingLine', 'Starting balance', money(currentBalance));
   show('employeeLine', 'Your contributions', money(r.totalEmployeeContributions));
   show('employerLine', 'Employer match', money(r.totalEmployerMatch));
   show('growthLine', 'Investment growth', money(r.totalGrowth));

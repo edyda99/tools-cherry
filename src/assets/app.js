@@ -179,7 +179,7 @@ function renderBrackets(bb) {
   }).join('');
   $('bracketNote').textContent =
     `Taxable income ${usd(bb.taxable)} after the ${usd(bb.stdDed)} standard deduction. ` +
-    `Your marginal rate is ${ratePct(bb.marginalRate)} — the tax on your next dollar earned.`;
+    `Your federal marginal rate is ${ratePct(bb.marginalRate)}, the federal tax on your next dollar earned.`;
 }
 
 function applyMode() {

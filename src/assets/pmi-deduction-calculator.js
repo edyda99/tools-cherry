@@ -120,7 +120,7 @@ function render() {
   // --- Federal tax saved -------------------------------------------------------
   const savings = r.taxSaved > 0
     ? `<div class="line big"><span>Federal income tax this saves you</span><span class="num">${usd(r.taxSaved)}</span></div>` +
-      `<div class="obbba-note">That's ${usd(r.deductionBenefit)} of incremental deduction at your marginal federal rate (about ${pct(r.marginalRate)}). A deduction lowers taxable income, not your tax bill dollar-for-dollar.</div>`
+      `<div class="obbba-note">That's ${usd(r.deductionBenefit)} of incremental deduction at the effective federal rate on this deduction (about ${pct(r.marginalRate)}). A deduction lowers taxable income, not your tax bill dollar-for-dollar.</div>`
     : `<div class="line big"><span>Federal income tax this saves you</span><span class="num">$0</span></div>` +
       `<div class="obbba-note ineligible-flag">${zeroReason(r)}</div>`;
 

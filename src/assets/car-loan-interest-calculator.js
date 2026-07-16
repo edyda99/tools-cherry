@@ -75,7 +75,7 @@ function render() {
       ? `<div class="obbba-note">You paid ${usd2(interest)} in interest, but the deduction is capped at ${usd(r.statutoryCap)} &mdash; the rest isn’t deductible.</div>`
       : '';
     const savingNote = r.deduction > 0
-      ? `<div class="obbba-note">A deduction lowers taxable income, not your tax bill dollar-for-dollar: ${usd(r.deduction)} &times; your ${pct(r.marginalRate)} marginal federal rate ≈ ${usd(r.taxSaved)}.</div>`
+      ? `<div class="obbba-note">A deduction lowers taxable income, not your tax bill dollar-for-dollar: ${usd(r.deduction)} &times; your ${pct(r.marginalRate)} effective federal rate on this deduction ≈ ${usd(r.taxSaved)}.</div>`
       : `<div class="obbba-note ineligible-flag">After the income phase-out, nothing is left to deduct this year.</div>`;
     deductionBlock =
       `<div class="line big"><span>Allowed deduction</span><span class="num">${usd(r.deduction)}</span></div>` +

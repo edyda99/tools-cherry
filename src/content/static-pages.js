@@ -167,13 +167,13 @@ the source you're comparing against — it helps us verify and fix quickly.</p>
 <p>Your filing status is the category you file under — single, married filing jointly, married filing separately, head of household, or qualifying surviving spouse. It sets your standard deduction, your <a href="#tax-bracket">tax brackets</a>, and the income thresholds used throughout these calculators. Married couples usually must file jointly to claim the 2025 deductions.</p>
 
 <h2 id="above-the-line-deduction">Above-the-line deduction</h2>
-<p>An above-the-line deduction is subtracted before your <a href="#agi">AGI</a> is figured, so you can take it whether or not you itemize ("the line" is the AGI line on Form 1040). The tips and overtime deductions work this way, which is why non-itemizers still benefit from them.</p>
+<p>An above-the-line deduction is subtracted before your <a href="#agi">AGI</a> is figured, so you can take it whether or not you itemize ("the line" is the AGI line on Form 1040). Educator expenses, health-savings-account (HSA) contributions, and deductible retirement-plan contributions work this way, which is why non-itemizers still benefit from them. (The OBBBA tips and overtime deductions are different: non-itemizers can take them too, but they are subtracted after AGI, so they do not reduce your AGI.)</p>
 
 <h2 id="marginal-tax-rate">Marginal tax rate</h2>
 <p>Your marginal tax rate is the rate applied to your last (highest) dollar of income — the <a href="#tax-bracket">bracket</a> you are "in." It is what a deduction actually saves you: a $1,000 deduction for someone in the 22% bracket cuts their tax by about $220, not $1,000. It is usually higher than your average (effective) rate.</p>
 
 <h2 id="agi">Adjusted gross income (AGI)</h2>
-<p>AGI is your total income minus above-the-line adjustments (such as retirement-plan contributions and the tips/overtime deductions). It's a key figure on Form 1040 — line 11 — and many tax breaks phase out based on it. Your <a href="#magi">MAGI</a> is your AGI with a few items added back.</p>
+<p>AGI is your total income minus above-the-line adjustments (such as retirement-plan contributions, health-savings-account contributions, and educator expenses). It's a key figure on Form 1040 (line 11), and many tax breaks phase out based on it. Your <a href="#magi">MAGI</a> is your AGI with a few items added back.</p>
 
 <h2 id="tax-bracket">Tax bracket</h2>
 <p>A tax bracket is an income range taxed at a set rate. The US uses a progressive system with brackets from 10% to 37%: only the income inside each range is taxed at that range's rate, so moving into a higher bracket never lowers your take-home on the income below it.</p>
