@@ -81,6 +81,67 @@ const MODULE_ERROR_LISTENER =
   `m.insertBefore(b,m.firstChild);` +
   `},true);</script>\n`;
 
+// ---- Global tool search / command palette (Cmd+K) --------------------------
+// The search index is built from the TOOLS array (single source of truth) and
+// emitted ONCE as a content-hashed /assets/search-index.<hash>.js in main();
+// SEARCH_INDEX_PATH holds that hashed URL so injectSearch() can point every page
+// at the same immutable-cached file (loaded once per visitor, reused from cache
+// across tool pages). The trigger button + modal markup below are static; the
+// UI/fuzzy logic lives in src/assets/search.js (registered → hashed like app.js).
+const SEARCH_CAT_LABELS = { image: 'Image', calc: 'Calculators', money: 'Money', make: 'Generators', devtext: 'Text & Dev' };
+let SEARCH_INDEX_PATH = '';
+
+// Header trigger — inserted just before the primary nav on every full page that
+// carries the shared site header (embeds, which have no <header class="site">,
+// are skipped). Has a visible "Search" label (so no aria-label needed); the ⌘K/
+// Ctrl K hint is set to the real platform key by search.js at runtime.
+const SEARCH_TRIGGER_HTML =
+  '<button type="button" class="tb-search-trigger" aria-haspopup="dialog" aria-controls="tb-search-overlay" aria-expanded="false" aria-keyshortcuts="Meta+K Control+K" title="Search tools (Ctrl+K / ⌘K)">' +
+  '<svg class="tb-search-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+  '<circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>' +
+  '<line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' +
+  '<span class="tb-search-trigger-txt">Search</span>' +
+  '<kbd class="tb-search-trigger-kbd" aria-hidden="true">⌘K</kbd></button>';
+
+// Modal overlay — appended before </body>. role="dialog"/aria-modal panel with a
+// combobox input driving a listbox via aria-activedescendant (see search.js).
+const SEARCH_MODAL_HTML =
+  '<div class="tb-search-overlay" id="tb-search-overlay" hidden>' +
+  '<div class="tb-search-panel" role="dialog" aria-modal="true" aria-labelledby="tb-search-title">' +
+  '<h2 id="tb-search-title" class="tb-search-sr">Search tools</h2>' +
+  '<div class="tb-search-field">' +
+  '<svg class="tb-search-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+  '<circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>' +
+  '<line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' +
+  '<input id="tb-search-input" class="tb-search-input" type="text" role="combobox" aria-expanded="false" ' +
+  'aria-controls="tb-search-list" aria-activedescendant="" aria-autocomplete="list" aria-label="Search tools" ' +
+  'autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Search tools…">' +
+  '<kbd class="tb-search-esckbd" aria-hidden="true">Esc</kbd></div>' +
+  '<ul id="tb-search-list" class="tb-search-list" role="listbox" aria-label="Search results"></ul>' +
+  '<p id="tb-search-empty" class="tb-search-empty" role="status" hidden>No tools match your search.</p>' +
+  '<div class="tb-search-foot" aria-hidden="true">' +
+  '<span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>' +
+  '<span><kbd>↵</kbd> open</span>' +
+  '<span><kbd>Esc</kbd> close</span></div></div></div>';
+
+// Injects the search trigger, modal, and the two script tags into a full page.
+// Guarded on the shared site header so header-less pages (embeds) are untouched,
+// and idempotent so a double build never doubles the markup. The index script
+// carries its already-hashed name (injected verbatim); /assets/search.js is
+// rewritten to its hashed name by the final rewriteHtmlAssetRefs pass.
+function injectSearch(html) {
+  if (!html.includes('<header class="site">')) return html;
+  if (html.includes('tb-search-trigger') || !SEARCH_INDEX_PATH) return html;
+  let out = html;
+  if (out.includes('</head>')) {
+    out = out.replace('</head>',
+      `<script defer src="${SEARCH_INDEX_PATH}"></script>\n<script defer src="/assets/search.js"></script>\n</head>`);
+  }
+  out = out.replace('<nav aria-label="Primary">', `${SEARCH_TRIGGER_HTML}\n    <nav aria-label="Primary">`);
+  if (out.includes('</body>')) out = out.replace('</body>', `${SEARCH_MODAL_HTML}\n</body>`);
+  return out;
+}
+
 // Build date (YYYY-MM-DD) — used for the sitemap's per-URL lastmod default.
 const BUILD_DATE = new Date().toISOString().slice(0, 10);
 
@@ -887,6 +948,9 @@ function fill(tpl, map) {
   out = injectSeo(out);
   // Inject the site-wide entity @graph (Organization/WebSite/WebPage/Breadcrumb).
   out = injectEntitySchema(out);
+  // Inject the site-wide search trigger + Cmd/Ctrl+K command palette (no-op on
+  // header-less pages like embeds).
+  out = injectSearch(out);
   return out;
 }
 
@@ -2626,6 +2690,26 @@ async function main() {
 
   // assets (engine + app + styles served from /assets)
   await mkdir(join(DIST, 'assets'), { recursive: true });
+
+  // Global search index — built from TOOLS (the single source of truth, so it can
+  // never drift from a hand-maintained list) and emitted as ONE content-hashed
+  // /assets/search-index.<hash>.js that assigns window.__TB_SEARCH_INDEX. Self-
+  // hashed here (rather than via registerAsset/hashAssets) because its bytes are
+  // generated, not read from src/; the hashed name is injected verbatim by
+  // injectSearch(), so it never needs the rewriteHtmlAssetRefs pass. Lands in
+  // /assets/*.js → immutable year cache, shared across every page. MUST run before
+  // any page is generated (fill() → injectSearch() reads SEARCH_INDEX_PATH).
+  {
+    const searchIndex = TOOLS.map((t) => ({
+      n: t.name, p: t.path, c: SEARCH_CAT_LABELS[t.cat] || '', d: TOOL_DESCRIPTIONS[t.path] || ''
+    }));
+    const searchBody = `window.__TB_SEARCH_INDEX=${JSON.stringify(searchIndex)};\n`;
+    const searchHash = createHash('sha256').update(searchBody).digest('hex').slice(0, 10);
+    const searchName = `search-index.${searchHash}.js`;
+    await writeFile(join(DIST, 'assets', searchName), searchBody);
+    SEARCH_INDEX_PATH = `/assets/${searchName}`;
+  }
+
   // styles.css is content-hashed through the same hashAssets() pipeline as the JS
   // assets (it is a pure leaf — no @import, its only url() is an inline data URI —
   // so it hashes trivially and rewriteHtmlAssetRefs rewrites every
@@ -2634,6 +2718,7 @@ async function main() {
   // block below, closing the same CSS-staleness gap the JS fix closed.
   registerAsset('assets', 'styles.css');
   registerAsset('assets', 'app.js');
+  registerAsset('assets', 'search.js'); // global Cmd/Ctrl+K command palette (site-wide)
   registerAsset('assets', 'invoice.js');
   registerAsset('assets', 'images-to-pdf.js');
   registerAsset('assets', 'pdf-to-word.js');

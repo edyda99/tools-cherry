@@ -676,3 +676,112 @@ footer.site a:hover { color: var(--text); }
 .sources ul { margin: 6px 0 0; padding-left: 18px; column-gap: 24px; }
 .sources li { margin: 3px 0; font-size: 0.9rem; word-break: break-word; }
 .sources a { color: var(--muted, #6b7280); }
+
+/* ---- Global tool search / command palette (Cmd+K) -------------------- */
+/* Header trigger: sits between the brand and the primary nav, pushed to the
+   right by margin-left:auto so brand hugs the left edge and the trigger + nav
+   group on the right. */
+.tb-search-trigger {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 8px;
+  font: inherit; font-size: 14px; font-weight: 600; line-height: 1;
+  color: var(--muted); background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: var(--radius-pill);
+  padding: 8px 12px; cursor: pointer;
+  transition: color .12s ease, border-color .12s ease, background .12s ease;
+}
+.tb-search-trigger:hover { color: var(--text); border-color: var(--border-strong); }
+.tb-search-trigger:focus-visible { outline: none; box-shadow: var(--ring); }
+.tb-search-trigger .tb-search-ic { color: var(--muted); flex: 0 0 auto; }
+.tb-search-trigger:hover .tb-search-ic { color: var(--text); }
+.tb-search-trigger-kbd {
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--muted); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 5px;
+  padding: 3px 5px; white-space: nowrap;
+}
+
+.tb-search-sr {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* Overlay + dialog */
+.tb-search-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 10vh 16px 16px;
+  background: rgba(10, 16, 24, .5);
+  backdrop-filter: blur(2px);
+}
+.tb-search-overlay[hidden] { display: none; }
+.tb-search-panel {
+  width: 100%; max-width: 560px; max-height: 70vh;
+  display: flex; flex-direction: column;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg); overflow: hidden;
+  animation: tb-search-in .12s ease;
+}
+@keyframes tb-search-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+.tb-search-field {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+}
+.tb-search-field .tb-search-ic { color: var(--muted); flex: 0 0 auto; }
+.tb-search-input {
+  flex: 1 1 auto; min-width: 0;
+  font: 400 18px/1.4 inherit; color: var(--text);
+  background: transparent; border: 0; outline: none; padding: 4px 0;
+}
+.tb-search-input::placeholder { color: var(--muted); }
+.tb-search-esckbd {
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--muted); background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 5px; padding: 4px 6px; flex: 0 0 auto;
+}
+
+.tb-search-list {
+  list-style: none; margin: 0; padding: 6px; overflow-y: auto; flex: 1 1 auto;
+}
+.tb-search-opt {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 10px 12px; border-radius: var(--radius-sm); cursor: pointer;
+}
+.tb-search-opt[aria-selected="true"] { background: var(--accent-soft); }
+.tb-search-opt-main { display: flex; align-items: baseline; gap: 10px; }
+.tb-search-opt-name { font-weight: 700; font-size: 15px; color: var(--text); }
+.tb-search-opt[aria-selected="true"] .tb-search-opt-name { color: var(--accent-hover); }
+.tb-search-opt-cat {
+  font-size: 11px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase;
+  color: var(--muted); background: var(--surface-2);
+  border-radius: var(--radius-pill); padding: 2px 8px; flex: 0 0 auto; margin-left: auto;
+}
+.tb-search-opt-desc {
+  font-size: 13px; color: var(--muted); line-height: 1.4;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tb-search-empty { margin: 0; padding: 20px 16px; color: var(--muted); font-size: 14px; text-align: center; }
+
+.tb-search-foot {
+  display: flex; flex-wrap: wrap; gap: 6px 16px;
+  padding: 10px 16px; border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--muted);
+}
+.tb-search-foot span { display: inline-flex; align-items: center; gap: 5px; }
+.tb-search-foot kbd {
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--muted); background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 4px; padding: 2px 5px;
+}
+
+/* Compact the header trigger to an icon-only control on narrow screens. */
+@media (max-width: 560px) {
+  .tb-search-trigger-txt, .tb-search-trigger-kbd { display: none; }
+  .tb-search-trigger { padding: 8px; }
+  .tb-search-overlay { padding: 6vh 10px 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tb-search-panel { animation: none; }
+}
