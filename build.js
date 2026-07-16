@@ -81,6 +81,47 @@ const MODULE_ERROR_LISTENER =
   `m.insertBefore(b,m.firstChild);` +
   `},true);</script>\n`;
 
+// Site-wide dark-mode support (injected on full pages via fill(); embed pages
+// bypass fill(), so they keep pure prefers-color-scheme behaviour).
+//
+// THEME_HEAD is an inline, render-blocking script injected high in <head> (right
+// after <meta charset>, before the stylesheet and body — so it runs pre-paint).
+// Anti-flash: it reads a stored *explicit* choice from localStorage and sets
+// <html data-theme="light|dark"> synchronously, before first paint. When there
+// is no stored choice it sets nothing, so the CSS @media(prefers-color-scheme)
+// rules drive the default (system-respecting) — which the browser also resolves
+// pre-paint, so neither path flashes. It then binds the header toggle on
+// DOMContentLoaded: click flips + persists the choice and syncs the button's
+// aria state; a matchMedia listener keeps the a11y label correct while the user
+// is still following the system (no stored choice). The sun/moon ICON is chosen
+// purely in CSS (same conditions as the palette), so it is right at first paint
+// even before this handler binds. Storage key: 'tb-theme'.
+const THEME_HEAD =
+  `<script>(function(){` +
+  `var d=document.documentElement,K='tb-theme';` +
+  `try{var s=localStorage.getItem(K);if(s==='light'||s==='dark')d.setAttribute('data-theme',s);}catch(e){}` +
+  `function mq(){return window.matchMedia&&matchMedia('(prefers-color-scheme: dark)');}` +
+  `function eff(){var a=d.getAttribute('data-theme');if(a==='dark'||a==='light')return a;var m=mq();return m&&m.matches?'dark':'light';}` +
+  `function sync(b){var lbl=eff()==='dark'?'Switch to light theme':'Switch to dark theme';` +
+  `b.setAttribute('aria-pressed',eff()==='dark'?'true':'false');b.setAttribute('aria-label',lbl);b.setAttribute('title',lbl);}` +
+  `function init(){var b=document.getElementById('themeToggle');if(!b)return;sync(b);` +
+  `b.addEventListener('click',function(){var n=eff()==='dark'?'light':'dark';d.setAttribute('data-theme',n);` +
+  `try{localStorage.setItem(K,n);}catch(e){}sync(b);});` +
+  `try{var m=mq();if(m&&m.addEventListener)m.addEventListener('change',function(){` +
+  `var v;try{v=localStorage.getItem(K);}catch(e){}if(v!=='light'&&v!=='dark')sync(b);});}catch(e){}}` +
+  `if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();` +
+  `})();</script>\n`;
+
+// The visible sun/moon toggle button, injected into the site header's primary
+// nav. Both icons ship; CSS shows exactly one based on the active palette. The
+// default aria-label assumes light and is corrected by sync() the moment the
+// handler binds (icon is already CSS-correct at first paint).
+const THEME_TOGGLE_BTN =
+  `<button type="button" id="themeToggle" class="theme-toggle" aria-label="Switch to dark theme" title="Switch to dark theme" aria-pressed="false">` +
+  `<svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>` +
+  `<svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>` +
+  `</button>`;
+
 // Build date (YYYY-MM-DD) — used for the sitemap's per-URL lastmod default.
 const BUILD_DATE = new Date().toISOString().slice(0, 10);
 
@@ -878,6 +919,16 @@ function fill(tpl, map) {
   if (ADSENSE_HEAD && out.includes('</head>')) out = out.replace('</head>', `${ADSENSE_HEAD}</head>`);
   // Page-level module-load-failure listener — same full-page-only guard as above.
   if (out.includes('</head>')) out = out.replace('</head>', `${MODULE_ERROR_LISTENER}</head>`);
+  // Site-wide dark-mode: anti-flash <head> init script + the header sun/moon
+  // toggle. Guarded on the site header, so only full site pages get it (embed
+  // pages bypass fill() and have no header — they keep pure system-preference).
+  if (out.includes('<header class="site">')) {
+    // Inject right AFTER <meta charset> (not before it) so the charset stays
+    // within the first 1024 bytes the HTML spec requires — the script still runs
+    // in <head> before the stylesheet and body, so there is no flash.
+    out = out.replace('<meta charset="utf-8">', `<meta charset="utf-8">\n${THEME_HEAD}`);
+    out = out.replace(/(<nav aria-label="Primary">[\s\S]*?<\/nav>)/, `$1\n    ${THEME_TOGGLE_BTN}`);
+  }
   // Trim over-long <title>/<meta description> to SERP-compliant lengths BEFORE
   // injectSeo, so the derived og:/twitter: title+description inherit the compact
   // values (no-op on fragments and on already-compliant tags).

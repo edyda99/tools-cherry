@@ -39,8 +39,15 @@
   --space: 16px;
 }
 
+/* Dark palette. Two entry points, identical values:
+   1. The OS prefers dark AND the visitor has not forced light with the header
+      toggle — `:root:not([data-theme="light"])` inside the media query. Preserves
+      the pre-existing no-JS, system-following behaviour.
+   2. The visitor explicitly chose dark via the toggle — `:root[data-theme="dark"]`
+      below, which wins even on a light OS.
+   Keep the two token lists in sync when editing colours. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #0e131a;
     --surface: #161d27;
     --surface-2: #1d2632;
@@ -64,6 +71,33 @@
     --ring: 0 0 0 3px rgba(111, 176, 255, .4);
   }
 }
+:root[data-theme="dark"] {
+  --bg: #0e131a;
+  --surface: #161d27;
+  --surface-2: #1d2632;
+  --border: #2a3543;
+  --border-strong: #3a4655;
+  --text: #e8edf3;
+  --muted: #9eabba;
+
+  --accent: #3fb863;
+  --accent-hover: #54c878;
+  --accent-ink: #08130c;    /* dark text on bright-green button — AA in dark */
+  --accent-soft: #16321f;
+  --brand: #f06bb0;
+  --brand-soft: #2c1322;
+  --link: #6fb0ff;
+  --danger: #f08a72;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, .45);
+  --shadow-lg: 0 14px 32px rgba(0, 0, 0, .55);
+  --ring: 0 0 0 3px rgba(111, 176, 255, .4);
+}
+/* Match native UI (form controls, scrollbars, date pickers) to a forced theme,
+   so choosing light on a dark OS doesn't leave dark scrollbars behind. */
+:root[data-theme="dark"] { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
@@ -108,12 +142,13 @@ header.site {
   backdrop-filter: saturate(1.2);
 }
 header.site .wrap {
-  display: flex; justify-content: space-between; align-items: center;
+  display: flex; align-items: center;
   gap: 16px; padding: 14px 20px; min-height: 60px;
 }
 header.site .brand {
   font-weight: 800; font-size: 19px; letter-spacing: -.02em;
   color: var(--text); text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+  margin-right: auto; /* push the nav + theme toggle to the right edge */
 }
 header.site .brand::before {
   content: ""; width: 12px; height: 12px; border-radius: 50%;
@@ -125,6 +160,30 @@ header.site nav a {
   padding: 8px 12px; border-radius: var(--radius-pill);
 }
 header.site nav a:hover { color: var(--text); background: var(--surface-2); text-decoration: none; }
+
+/* ---- Theme (dark mode) toggle --------------------------------------- */
+.theme-toggle {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; padding: 0; margin-left: 2px;
+  color: var(--muted); background: transparent;
+  border: 1px solid var(--border); border-radius: var(--radius-pill);
+  cursor: pointer; transition: color .15s, background .15s, border-color .15s;
+}
+.theme-toggle:hover { color: var(--text); background: var(--surface-2); border-color: var(--border-strong); }
+.theme-toggle:focus-visible { box-shadow: var(--ring); }
+.theme-toggle svg { width: 20px; height: 20px; display: block; }
+/* Icon shown mirrors the palette that is ACTIVE: a moon in light mode (click to go
+   dark) and a sun in dark mode (click to go light). Driven purely by CSS — using the
+   same conditions as the palette above — so the icon is correct at first paint,
+   before the toggle's click handler binds. */
+.theme-toggle .icon-sun { display: none; }
+.theme-toggle .icon-moon { display: block; }
+:root[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+:root[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-toggle .icon-sun { display: block; }
+  :root:not([data-theme="light"]) .theme-toggle .icon-moon { display: none; }
+}
 
 /* ---- Typography ------------------------------------------------------ */
 main { padding: 36px 0 56px; }
@@ -205,8 +264,9 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 .qr-warn { margin: 10px 0 0; padding: 9px 12px; font-size: 13px; border-radius: var(--radius-sm);
   color: #8a4b00; background: #fff4e5; border: 1px solid #f0c98a; }
 @media (prefers-color-scheme: dark) {
-  .qr-warn { color: #ffcf99; background: #3a2a14; border-color: #6b4f24; }
+  :root:not([data-theme="light"]) .qr-warn { color: #ffcf99; background: #3a2a14; border-color: #6b4f24; }
 }
+:root[data-theme="dark"] .qr-warn { color: #ffcf99; background: #3a2a14; border-color: #6b4f24; }
 
 /* ---- Simple / Advanced toggle --------------------------------------- */
 .mode-row { grid-column: 1 / -1; display: flex; gap: 8px; }
@@ -411,9 +471,11 @@ ul.breakdown { list-style: none; padding: 0; }
 }
 .year-fallback strong { color: #9a6a00; }
 @media (prefers-color-scheme: dark) {
-  .year-fallback { background: #3a2f10; border-color: #6b5410; }
-  .year-fallback strong { color: #ffd55e; }
+  :root:not([data-theme="light"]) .year-fallback { background: #3a2f10; border-color: #6b5410; }
+  :root:not([data-theme="light"]) .year-fallback strong { color: #ffd55e; }
 }
+:root[data-theme="dark"] .year-fallback { background: #3a2f10; border-color: #6b5410; }
+:root[data-theme="dark"] .year-fallback strong { color: #ffd55e; }
 .calc-load-error {
   font-size: 15px; font-weight: 600; color: #611a15;
   background: #fdecea; border: 1px solid #f5c2c0;
@@ -421,8 +483,9 @@ ul.breakdown { list-style: none; padding: 0; }
   padding: 14px 16px; margin: 0 0 20px;
 }
 @media (prefers-color-scheme: dark) {
-  .calc-load-error { background: #3a1613; border-color: #6b2b26; color: #ffb4ab; }
+  :root:not([data-theme="light"]) .calc-load-error { background: #3a1613; border-color: #6b2b26; color: #ffb4ab; }
 }
+:root[data-theme="dark"] .calc-load-error { background: #3a1613; border-color: #6b2b26; color: #ffb4ab; }
 
 /* ---- Invoice generator ---------------------------------------------- */
 .inv { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
