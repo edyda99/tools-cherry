@@ -4,6 +4,7 @@
 // for married filing separately), plus the itemize-vs-standard verdict and
 // the federal tax saved vs the old $10,000 cap. All logic client-side.
 import { saltComparison } from '/assets/obbba-deduction.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
@@ -13,9 +14,11 @@ const FED = window.__FED__;
 const usd = (n) => '$' + Math.round(Math.max(0, n || 0)).toLocaleString('en-US');
 const pct = (n) => (Math.max(0, n || 0) * 100).toFixed(1) + '%';
 
+// Comma-safe: money fields carry live thousands separators, so read them
+// through moneyValue (strips separators) rather than a raw parseFloat, which
+// would silently truncate "28,000" to 28.
 function num(id) {
-  const v = parseFloat($(id).value);
-  return Number.isFinite(v) ? v : 0;
+  return moneyValue($(id));
 }
 
 // The phase-down arithmetic, in words, for the cap line.
@@ -77,15 +80,64 @@ function render() {
     : `<div class="line big"><span>Federal tax saved vs the old $10,000 cap</span><span class="num">$0</span></div>` +
       `<div class="obbba-note ineligible-flag">${zeroBenefitNote(r, paid)}</div>`;
 
-  $('out').innerHTML =
-    `<div class="line"><span>State &amp; local tax you paid (SALT)</span><span class="num">${usd(paid)}</span></div>` +
-    `<div class="line"><span>Your SALT cap for ${year}</span><span class="num">${usd(r.effectiveCap)}</span></div>` +
-    capNote(r) +
-    `<div class="line big"><span>Allowed SALT deduction</span><span class="num">${usd(r.allowedSalt)}</span></div>` +
-    capBindingNote +
-    verdict +
-    savings +
+  // ---- Answer-first summary (stat card) --------------------------------
+  // The headline number the user came for, surfaced above the derivation.
+  // Display rounds to whole dollars; the exact figure stays in the row below.
+  const benefits = r.deductionBenefit > 0;
+  const statValue = benefits ? usd(r.taxSaved) : '$0';
+  const statSub = benefits
+    ? `Your allowed SALT deduction is ${usd(r.allowedSalt)} of the ${usd(paid)} you paid.`
+    : zeroBenefitNote(r, paid); // the "why" stays visible, never hidden in details
+  const statCard =
+    `<div class="stat-card">` +
+      `<p class="stat-kicker">Federal tax saved vs the old $10,000 cap</p>` +
+      `<p class="stat-value${benefits ? '' : ' is-zero'}">${statValue}</p>` +
+      `<p class="stat-sub">${statSub}</p>` +
+    `</div>`;
+
+  // ---- Paid vs deductible comparison bars (decorative, so aria-hidden) --
+  const barMax = Math.max(paid, r.allowedSalt, 1);
+  const paidPct = Math.min(100, (paid / barMax) * 100).toFixed(1);
+  const dedPct = Math.min(100, (r.allowedSalt / barMax) * 100).toFixed(1);
+  const compareBars =
+    `<div class="compare-bars" aria-hidden="true">` +
+      `<div class="cb-row"><span>Paid ${usd(paid)}</span><span class="cb-track"><span class="cb-fill cb-over" style="width:${paidPct}%"></span></span></div>` +
+      `<div class="cb-row"><span>Deductible ${usd(r.allowedSalt)}</span><span class="cb-track"><span class="cb-fill" style="width:${dedPct}%"></span></span></div>` +
+    `</div>`;
+
+  // ---- One headline caveat (phase-down) shown OUTSIDE the details -------
+  // Zero/ineligible reasons already ride in stat-sub; the remaining gotcha
+  // worth surfacing up top is an active high-income phase-down.
+  const headlineCaveat = (benefits && r.phasedDown)
+    ? `<div class="obbba-note phaseout-flag">Heads up: your income is over the ${usd(r.threshold)} threshold, so the phase-down trims your cap to ${usd(r.effectiveCap)} (see the breakdown for the math).</div>`
+    : '';
+
+  // ---- Full derivation, moved VERBATIM into a collapsed panel -----------
+  const derivation =
+    `<details class="derivation"><summary>See how this was calculated</summary>` +
+      `<div class="line"><span>State &amp; local tax you paid (SALT)</span><span class="num">${usd(paid)}</span></div>` +
+      `<div class="line"><span>Your SALT cap for ${year}</span><span class="num">${usd(r.effectiveCap)}</span></div>` +
+      capNote(r) +
+      `<div class="line big"><span>Allowed SALT deduction</span><span class="num">${usd(r.allowedSalt)}</span></div>` +
+      capBindingNote +
+      verdict +
+      savings +
+    `</details>`;
+
+  // Preserve the user's open/closed choice across re-renders (default closed).
+  const out = $('out');
+  const prevDetails = out.querySelector('details.derivation');
+  const wasOpen = prevDetails ? prevDetails.open : false;
+
+  out.innerHTML =
+    statCard +
+    compareBars +
+    headlineCaveat +
+    derivation +
     `<div class="takeaway">In plain terms: this only helps if itemizing beats your standard deduction — when it does, it lowers the federal tax you settle at filing, not your paycheck or your property-tax bill.</div>`;
+
+  const newDetails = out.querySelector('details.derivation');
+  if (newDetails) newDetails.open = wasOpen;
 
   // SALT torpedo warning: income inside the phase-down band AND the cap is
   // actually binding (each extra $1 of income then adds ~$1.30 of taxable income).
@@ -100,6 +152,7 @@ function render() {
 }
 
 function init() {
+  initMoneyInputs();
   ['year', 'filing', 'magi', 'incomeTax', 'propTax', 'other'].forEach((id) => {
     $(id).addEventListener('input', render);
     $(id).addEventListener('change', render);

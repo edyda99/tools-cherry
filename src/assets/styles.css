@@ -259,6 +259,63 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 .line.total { font-weight: 800; color: var(--text); font-size: 17px; border-top: 2px solid var(--border-strong); margin-top: 4px; padding-top: 12px; }
 .rate-row { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 16px; font-size: 13.5px; color: var(--muted); }
 
+/* ---- OBBBA / tax tool results (shared) ------------------------------- */
+/* The output container (#out) inherits the code-tool monospace font used by
+   the text utilities; the answer-first card + bars are prose, so pin them to
+   the body sans stack. These classes are SALT-pilot-only, so no other tool's
+   look changes. The derivation number rows deliberately stay monospace for
+   column alignment. */
+.stat-card, .compare-bars, .derivation > summary {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+.stat-card { border-radius: var(--radius); background: var(--surface-2);
+  border: 1px solid var(--border); padding: 16px 18px; margin-bottom: 14px; }
+.stat-kicker { margin: 0 0 2px; font-size: 13.5px; font-weight: 600; color: var(--muted); }
+.stat-value  { margin: 0; font-size: clamp(30px, 8vw, 40px); font-weight: 800;
+  letter-spacing: -.02em; color: var(--accent); font-variant-numeric: tabular-nums; }
+.stat-value.is-zero { color: var(--text); }
+.stat-sub    { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+
+.obbba-out .line { display: flex; justify-content: space-between; gap: 12px;
+  padding: 6px 0; border-bottom: 1px solid rgba(128,128,128,.18); }
+.obbba-out .line.big { font-size: 1.15rem; font-weight: 700;
+  border-bottom: 2px solid rgba(128,128,128,.35); }
+.obbba-out .num { font-variant-numeric: tabular-nums; }
+.obbba-note { font-size: .9rem; opacity: .85; margin-top: 8px; }
+.phaseout-flag { color: #b26b00; font-weight: 600; }
+.ineligible-flag { color: #b23a00; font-weight: 600; }
+.torpedo-warn { margin-top: 10px; padding: 12px 14px; border-left: 4px solid #b23a00;
+  border-radius: 8px; background: rgba(178,58,0,.08); font-size: .95rem; }
+.takeaway { margin-top: 12px; padding: 11px 14px; border-left: 4px solid #2f6f4f;
+  border-radius: 8px; background: rgba(47,111,79,.09); font-size: .95rem; }
+.mythbust { margin-top: 10px; padding: 14px 16px; border-left: 4px solid #b26b00;
+  border-radius: 8px; background: rgba(178,107,0,.08); }
+.mythbust h2 { margin-top: 0; }
+
+.derivation { margin-top: 4px; }
+.derivation > summary { cursor: pointer; font-size: 14px; font-weight: 600;
+  color: var(--link); padding: 8px 0; }
+
+.compare-bars { margin: 10px 0 4px; display: grid; gap: 6px; font-size: 13px; }
+.compare-bars .cb-row { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; color: var(--muted); }
+.compare-bars .cb-track { height: 10px; border-radius: 5px; background: var(--border); overflow: hidden; }
+.compare-bars .cb-fill { height: 100%; border-radius: 5px; background: var(--accent); display: block; }
+.compare-bars .cb-fill.cb-over { background: #b23a00; }
+
+/* Two-up money fields (SALT income tax / property tax, overtime hrs/rate) */
+.est-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* Dark mode: the flag text colours above are too dark on a dark surface
+   (about 2.5:1), so lift them to lighter, AA-passing variants. Box tints
+   read fine because their body text uses --text. Follows the site's dual
+   dark-mode pattern: OS-dark unless the visitor forced light, plus the
+   explicit data-theme="dark" toggle. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .phaseout-flag { color: #f0b86e; }
+  :root:not([data-theme="light"]) .ineligible-flag { color: #f08a72; }
+}
+:root[data-theme="dark"] .phaseout-flag { color: #f0b86e; }
+:root[data-theme="dark"] .ineligible-flag { color: #f08a72; }
+
 /* ---- QR colour pickers + scannability warning ----------------------- */
 .field input[type="color"] { height: 44px; padding: 4px; cursor: pointer; }
 .qr-warn { margin: 10px 0 0; padding: 9px 12px; font-size: 13px; border-radius: var(--radius-sm);
