@@ -12,19 +12,6 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
-<style>
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; }
-  .obbba-note { font-size:.9rem; opacity:.85; margin-top:8px; }
-  .phaseout-flag { color:#b26b00; font-weight:600; }
-  .ineligible-flag { color:#b23a00; font-weight:600; }
-  .torpedo-warn { margin-top:10px; padding:12px 14px; border-left:4px solid #b23a00; border-radius:8px; background:rgba(178,58,0,.08); font-size:.95rem; }
-  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
-  .mythbust h2 { margin-top:0; }
-  .est-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
-</style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"SALT Cap Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Estimate your allowed state-and-local-tax (SALT) deduction under the One Big Beautiful Bill Act's raised cap (IRC §164(b)(6)): $40,000 for 2025 and $40,400 for 2026, reduced by 30% of income over $500,000 / $505,000 but never below $10,000, with the itemize-vs-standard comparison and your federal tax saving vs the old $10,000 cap."}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is the SALT deduction cap for 2025 and 2026?","acceptedAnswer":{"@type":"Answer","text":"$40,000 for tax year 2025 and $40,400 for 2026 ($20,000 and $20,200 if married filing separately). The cap shrinks by 30 cents for every dollar of modified adjusted gross income over $500,000 in 2025 or $505,000 in 2026 ($250,000 / $252,500 for married filing separately), but never below $10,000 ($5,000 married filing separately). It only matters if you itemize — the standard deduction is unaffected."}},{"@type":"Question","name":"What is the SALT torpedo?","acceptedAnswer":{"@type":"Answer","text":"Inside the phase-down band (about $500,000 to $600,000 of income in 2025), each extra dollar you earn also takes away 30 cents of SALT deduction — so taxable income rises by $1.30 per $1 earned. That makes the effective marginal tax rate about 45.5% in the 35% bracket (1.3 × 35%) and 48.1% in the 37% bracket, which tax professionals have dubbed the 'SALT torpedo'."}},{"@type":"Question","name":"Did the pass-through entity tax (PTET) workaround survive the 2025 law?","acceptedAnswer":{"@type":"Answer","text":"Yes. The final One Big Beautiful Bill Act includes no restrictions on state-level pass-through entity taxes. The House version of the bill would have curtailed PTETs, but those rules were dropped from the Senate version that became law, so business owners in PTET states can still deduct state taxes at the entity level, outside the SALT cap."}},{"@type":"Question","name":"Does the higher SALT cap help if I owe the alternative minimum tax (AMT)?","acceptedAnswer":{"@type":"Answer","text":"Less or not at all. State and local taxes are not deductible under the AMT — the SALT you deduct on Schedule A is added back on Form 6251 (line 2a) when computing AMT income. A taxpayer pulled into the AMT loses some or all of the benefit of the bigger cap."}},{"@type":"Question","name":"When does the $40,000 SALT cap end?","acceptedAnswer":{"@type":"Answer","text":"After 2029. The cap is $40,000 (2025), $40,400 (2026), $40,804 (2027), then rises 1% a year through 2029. For tax years beginning in 2030 it reverts to a flat $10,000 ($5,000 married filing separately) with no income phase-down — the old TCJA cap, permanently."}},{"@type":"Question","name":"What does itemizing mean?","acceptedAnswer":{"@type":"Answer","text":"Itemizing means listing specific deductible expenses — state and local taxes, mortgage interest, charitable gifts — on Schedule A and deducting the total, instead of taking the flat standard deduction. You take whichever is larger, and the SALT cap only matters if you itemize."}},{"@type":"Question","name":"What is the standard deduction?","acceptedAnswer":{"@type":"Answer","text":"The standard deduction is a flat amount you can subtract from income without listing any expenses — $15,750 for single filers and $31,500 for married couples filing jointly in 2025. If it beats your itemized total, you take it and the SALT cap does not affect your return."}},{"@type":"Question","name":"What is filing status?","acceptedAnswer":{"@type":"Answer","text":"Your filing status is the category you file under — single, married filing jointly, married filing separately, or head of household. It sets your SALT cap, income threshold, and floor; married filing separately gets exactly half of each amount."}}]}</script>
 </head>
@@ -65,26 +52,26 @@
         </div>
 
         <div class="field">
-          <label for="magi">Your adjusted gross income (AGI / MAGI)</label>
-          <input type="number" id="magi" inputmode="numeric" min="0" step="1000" value="300000">
-          <p class="muted-small" style="margin-top:6px">Form 1040 line 11. The law technically uses MAGI — AGI plus foreign-income exclusions — which equals AGI for nearly everyone. Filing jointly? Use your combined income.</p>
+          <label for="magi">Your yearly income <span class="muted-small">(Form 1040 line 11)</span></label>
+          <input type="text" id="magi" inputmode="decimal" data-money autocomplete="off" value="300000">
+          <p class="muted-small" style="margin-top:6px">The law technically uses MAGI — AGI plus foreign-income exclusions — which equals AGI for nearly everyone. Filing jointly? Use your combined income.</p>
         </div>
 
         <div class="field est-row">
           <div class="field" style="margin:0">
             <label for="incomeTax">State &amp; local income tax paid ($)</label>
-            <input type="number" id="incomeTax" inputmode="numeric" min="0" step="100" value="28000">
+            <input type="text" id="incomeTax" inputmode="decimal" data-money autocomplete="off" value="28000">
           </div>
           <div class="field" style="margin:0">
             <label for="propTax">Property tax paid ($)</label>
-            <input type="number" id="propTax" inputmode="numeric" min="0" step="100" value="20000">
+            <input type="text" id="propTax" inputmode="decimal" data-money autocomplete="off" value="20000">
           </div>
         </div>
         <p class="muted-small" style="margin-top:-6px">Income tax (or general sales tax, if you deduct that instead) plus real-estate and personal-property tax — together these are your SALT.</p>
 
         <div class="field">
           <label for="other">Other itemized deductions <span class="muted-small">(optional — mortgage interest, charity, …)</span></label>
-          <input type="number" id="other" inputmode="numeric" min="0" step="100" value="10000">
+          <input type="text" id="other" inputmode="decimal" data-money autocomplete="off" value="10000">
           <p class="muted-small" style="margin-top:6px">Used to check whether itemizing beats your standard deduction — the cap only matters if you itemize.</p>
         </div>
       </form>

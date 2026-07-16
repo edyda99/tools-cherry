@@ -2776,6 +2776,9 @@ async function main() {
   registerAsset('assets', 'overtime-tax-calculator.js');
   registerAsset('assets', 'tips-tax-calculator.js');
   registerAsset('assets', 'senior-deduction-calculator.js');
+  // Shared live-thousands-separator helper for money inputs (imported by the
+  // answer-first SALT pilot; reusable by other tax tools).
+  registerAsset('assets', 'money-input.js');
   registerAsset('assets', 'salt-cap-calculator.js');
   registerAsset('assets', 'car-loan-interest-calculator.js');
   registerAsset('assets', 'charitable-deduction-calculator.js');
