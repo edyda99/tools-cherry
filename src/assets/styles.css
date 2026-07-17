@@ -1094,3 +1094,55 @@ footer.site a:hover { color: var(--text); }
   .fbw-toast { animation: none; }
   .fbw-star { transition: none; }
 }
+
+/* ---------------------------------------------------------------------------
+   Report widget — "Report a wrong result" inline reporter (report-widget.js).
+   Unlike the rating toast this is a plain in-flow block placed as a sibling
+   immediately after a tool's result element: an always-present text-button that
+   expands into a small comment form. No fixed positioning, no card, no media
+   query — it flows with the page. Fully theme-token driven (no hex, no separate
+   dark-mode block), same convention as the .fbw-* block above.
+ * ------------------------------------------------------------------------- */
+.rpt-link {
+  display: inline-block; margin-top: 10px; padding: 2px 0;
+  font: 500 13px/1.4 inherit; color: var(--muted);
+  background: transparent; border: 0; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.rpt-link:hover { color: var(--text); }
+.rpt-link:focus-visible { outline: none; box-shadow: var(--ring); border-radius: 4px; }
+
+.rpt-form {
+  margin-top: 10px; padding: 12px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+.rpt-recap {
+  margin: 0 0 8px; font-size: 12px; line-height: 1.4; color: var(--muted);
+}
+.rpt-comment {
+  width: 100%; box-sizing: border-box; resize: vertical; min-height: 60px;
+  font: 400 14px/1.4 inherit; color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+.rpt-comment::placeholder { color: var(--muted); }
+.rpt-comment:focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
+
+.rpt-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.rpt-send {
+  font: 600 14px/1 inherit; color: var(--accent-ink); background: var(--accent);
+  border: 0; border-radius: var(--radius-pill); padding: 9px 18px; cursor: pointer;
+}
+.rpt-send:hover:not([disabled]) { background: var(--accent-hover); }
+.rpt-send:focus-visible { outline: none; box-shadow: var(--ring); }
+.rpt-send[disabled] { opacity: .5; cursor: default; }
+.rpt-cancel {
+  font: 500 14px/1 inherit; color: var(--muted);
+  background: transparent; border: 0; padding: 6px 4px; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.rpt-cancel:hover { color: var(--text); }
+.rpt-cancel:focus-visible { outline: none; box-shadow: var(--ring); border-radius: 4px; }
+
+.rpt-thanks { margin: 10px 0 0; font-size: 14px; font-weight: 600; color: var(--accent); }
+.rpt-error { margin: 8px 0 0; font-size: 13px; color: var(--danger); }

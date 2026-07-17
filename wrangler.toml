@@ -26,6 +26,9 @@ IP_DAILY_LIMIT = "6"
 # D1 database holding 1-5 ratings + optional comments from the on-page widget.
 # Read it with: npx wrangler d1 execute tools-berry-feedback --remote --json \
 #   --command "SELECT tool, ROUND(AVG(rating),2), COUNT(*) FROM feedback GROUP BY tool"
+# This same DB also holds the `report` table (functions/api/report.js) — the
+# "Report a wrong result" link's rows (ts, tool, comment, result, inputs_json,
+# country). Same binding, second table; no separate database.
 [[d1_databases]]
 binding = "FEEDBACK_DB"
 database_name = "tools-berry-feedback"
