@@ -738,16 +738,19 @@ footer.site a:hover { color: var(--text); }
    (shared with countdown-timer). */
 .cd-clock--totals .seg { min-width: 0; flex: 1 1 0; }
 .cd-clock--totals .seg b { font-size: 19px; overflow-wrap: anywhere; }
-/* age-calculator's 5-tile totals strip carries a ~10-digit "minutes lived" value. On a
-   narrow phone (~262px content box) five tiles share one flex row at ~42px each, so big
-   numbers wrap per-character and MONTHS/MINUTES labels spill into neighbours. This add-on
-   (applied only on age-calculator) caps the strip at 2 tiles per row on ≤480px: the five
-   tiles fall into a 2 + 2 + 1 stack and the lone minutes tile grows to the full row width,
-   so every number stays on one line. base .cd-clock (countdown-timer) and the 2-3 tile
-   --totals strips (chronological-age / days-between) are untouched. */
-@media (max-width: 480px) {
-  .cd-clock--totals.cd-clock--wrap2 .seg { flex: 1 1 45%; }
-}
+/* age-calculator's 5-tile totals strip carries a ~10-digit "minutes lived" value (worst
+   case a 100-year-old: 52,879,680 minutes). Squeezing five tiles onto one flex row makes
+   each cell too narrow, so big numbers wrap per-character and MONTHS/MINUTES labels spill
+   into neighbours — and this happens at EVERY width, not just on phones: above 680px the
+   page's .calc becomes a 2-column grid whose results column is only ~365px wide, so the
+   same five tiles squeeze just as badly on desktop (a viewport media query can't see the
+   narrow column). This add-on (applied only on age-calculator, via --wrap2) caps the strip
+   at 2 tiles per row at all widths: the five tiles fall into a 2 + 2 + 1 stack and the lone
+   minutes tile grows to the full row width, so every number stays on one line. The results
+   column never exceeds ~365px anywhere, so one row of five is never viable. base .cd-clock
+   (countdown-timer) and the 2-3 tile --totals strips (chronological-age / days-between,
+   which lack --wrap2) are untouched. */
+.cd-clock--totals.cd-clock--wrap2 .seg { flex: 1 1 45%; }
 
 /* Password generator -------------------------------------------------------- */
 .pw-output { display: flex; gap: 8px; align-items: stretch; }
