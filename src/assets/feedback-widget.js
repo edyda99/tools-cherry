@@ -126,12 +126,30 @@
         });
         b.dataset.val = String(i);
         b.innerHTML = starSvg();
-        (function (btn) {
-          btn.addEventListener('click', function () { choose(parseInt(btn.dataset.val, 10)); });
-        })(b);
+        (function (btn, val) {
+          btn.addEventListener('click', function () { choose(val); });
+          // Hover preview: entering star N lights 1..N, matching how star
+          // ratings are read everywhere else (not just the one under the cursor).
+          btn.addEventListener('mouseenter', function () {
+            if (!rating) previewStars(stars, val);
+          });
+        })(b, i);
         group.appendChild(b);
         stars.push(b);
       }
+      // Leaving the whole group (not just moving between stars) clears the preview.
+      group.addEventListener('mouseleave', function () {
+        if (!rating) previewStars(stars, 0);
+      });
+      // Same cumulative preview for keyboard users as the arrow keys move focus.
+      group.addEventListener('focusin', function (e) {
+        if (rating) return;
+        var btn = e.target.closest('.fbw-star');
+        if (btn) previewStars(stars, parseInt(btn.dataset.val, 10));
+      });
+      group.addEventListener('focusout', function (e) {
+        if (!rating && !group.contains(e.relatedTarget)) previewStars(stars, 0);
+      });
       group.addEventListener('keydown', function (e) {
         var cur = stars.indexOf(document.activeElement);
         if (cur < 0) cur = 0;
@@ -164,11 +182,18 @@
       }
     }
 
+    // Cumulative hover/keyboard-focus preview (star 4 hovered -> stars 1-4 lit).
+    // Purely visual — no aria-checked change, since nothing is selected yet.
+    function previewStars(stars, val) {
+      for (var i = 0; i < stars.length; i++) stars[i].classList.toggle('is-hover', i < val);
+    }
+
     // A star was chosen: lock the rating in, reveal the optional comment step.
     function choose(val) {
       if (!toast || rating) return; // locked after first choice.
       rating = val;
       var stars = toast.stars;
+      previewStars(stars, 0); // clear any leftover hover preview before locking the real state.
       paint(stars, val);
       for (var i = 0; i < stars.length; i++) stars[i].disabled = true;
 

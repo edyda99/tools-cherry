@@ -1008,13 +1008,15 @@ footer.site a:hover { color: var(--text); }
 
 /* ------------------------------------------------------------------------- *
    Feedback widget — "Was this tool helpful?" rating toast (feedback-widget.js).
-   Small, non-modal, bottom-right (bottom-center on phones). z-index sits BELOW
-   the search palette (1000) so it can never cover an open command palette.
-   All colours are theme tokens, so light/dark follow automatically.
+   Small, non-modal, dead-center of the viewport at every width — no backdrop,
+   the page stays fully interactive around it. z-index sits BELOW the search
+   palette (1000) so it can never cover an open command palette. All colours
+   are theme tokens, so light/dark follow automatically.
  * ------------------------------------------------------------------------- */
 .fbw-toast {
   position: fixed; z-index: 900;
-  right: 16px; bottom: 16px;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
   width: calc(100vw - 32px); max-width: 320px;
   box-sizing: border-box;
   padding: 16px 16px 14px;
@@ -1023,7 +1025,10 @@ footer.site a:hover { color: var(--text); }
   box-shadow: var(--shadow-lg);
   animation: fbw-in .16s ease;
 }
-@keyframes fbw-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes fbw-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(.96); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
 
 .fbw-x {
   position: absolute; top: 4px; right: 4px;
@@ -1047,8 +1052,8 @@ footer.site a:hover { color: var(--text); }
   color: var(--border-strong); background: transparent; border: 0; border-radius: var(--radius-sm);
   cursor: pointer; transition: color .1s ease, transform .1s ease;
 }
-.fbw-star:hover:not([disabled]) { color: var(--brand); transform: scale(1.08); }
-.fbw-star.is-on { color: var(--brand); }
+.fbw-star:hover:not([disabled]) { transform: scale(1.08); }
+.fbw-star.is-on, .fbw-star.is-hover { color: var(--brand); }
 .fbw-star:focus-visible { outline: none; box-shadow: var(--ring); }
 .fbw-star[disabled] { cursor: default; }
 
@@ -1079,11 +1084,10 @@ footer.site a:hover { color: var(--text); }
 
 .fbw-thanks { margin: 0; font-size: 15px; font-weight: 600; color: var(--accent); }
 
-/* Bottom-center, full-width-minus-margins on phones. */
+/* Still dead-center on phones, just wider relative to the smaller viewport. */
 @media (max-width: 480px) {
   .fbw-toast {
-    right: 12px; left: 12px; bottom: 12px;
-    width: auto; max-width: none;
+    width: calc(100vw - 24px); max-width: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
