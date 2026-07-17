@@ -3,6 +3,7 @@
 // payment, why, the headroom to the next threshold, and an optional state
 // 1099-K overlay note. All logic runs client-side; nothing is uploaded.
 import { check1099 } from '/assets/form-1099-checker.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
@@ -12,9 +13,13 @@ const STATES = window.__FORM1099_STATES__ || [];
 const usd = (n) => '$' + Math.round(Math.max(0, n || 0)).toLocaleString('en-US');
 const num0 = (n) => Math.round(Math.max(0, n || 0)).toLocaleString('en-US');
 
+// "amount" carries live thousands separators (money field); read it through
+// moneyValue rather than a raw parseFloat, which would silently truncate
+// "8,000" to 8. The transaction count is a plain integer field.
 function num(id) {
   const el = $(id);
   if (!el) return 0;
+  if (id === 'amount') return moneyValue(el);
   const v = parseFloat(el.value);
   return Number.isFinite(v) ? v : 0;
 }
@@ -112,38 +117,66 @@ function render() {
 
   const r = check1099({ taxYear, payerType, amount, transactions, paymentNature, paymentPurpose, state, data: DATA });
 
-  // --- Verdict badge -----------------------------------------------------------
-  let badgeText, badgeClass;
+  // ---- Answer-first summary (stat card) --------------------------------
+  // Personal transfers are a genuinely neutral/N/A case (not a real
+  // threshold verdict — there's no income to test in the first place), so
+  // they get the muted is-zero treatment; both real verdicts (a form will
+  // or won't be issued) are informative answers and get normal styling.
+  let statValue, isZero;
   if (r.reason === 'personal_transfer') {
-    badgeText = 'Not income — no form expected';
-    badgeClass = 'ok-flag';
+    statValue = 'Not income, no form';
+    isZero = true;
   } else if (r.willIssue) {
-    badgeText = `Expect a ${r.form}`;
-    badgeClass = 'warn-flag';
+    statValue = `Expect a ${r.form}`;
+    isZero = false;
   } else {
-    badgeText = 'No 1099 expected';
-    badgeClass = 'ok-flag';
+    statValue = 'No 1099 expected';
+    isZero = false;
   }
 
+  const why = whyLine(r, { amount, transactions, taxYear, paymentPurpose });
+  const statCard =
+    `<div class="stat-card">` +
+      `<p class="stat-kicker">Will you get a 1099?</p>` +
+      `<p class="stat-value${isZero ? ' is-zero' : ''}">${statValue}</p>` +
+      `<p class="stat-sub">${why}</p>` +
+    `</div>`;
+
+  // ---- One headline caveat (state 1099-K overlay) outside the details ---
+  // A state's own, lower threshold changes the practical answer, so it's
+  // worth surfacing up top rather than burying it in the derivation.
+  const headlineCaveat = stateNoteLine(r);
+
+  // ---- Full derivation, moved VERBATIM into a collapsed panel -----------
   const issuerLine = r.willIssue && r.issuer
     ? `<div class="line"><span>Who issues it</span><span class="num">${r.issuer}</span></div>`
     : '';
-
-  const why = whyLine(r, { amount, transactions, taxYear, paymentPurpose });
   const headroom = headroomLine(r);
-  const stateNote = stateNoteLine(r);
+  const derivation =
+    `<details class="derivation"><summary>See how this was calculated</summary>` +
+      issuerLine +
+      `<div class="obbba-note"><strong>Why:</strong> ${why}</div>` +
+      headroom +
+    `</details>`;
 
-  $('out').innerHTML =
-    `<div class="line big"><span>Verdict</span><span class="num ${badgeClass}">${badgeText}</span></div>` +
-    issuerLine +
-    `<div class="obbba-note"><strong>Why:</strong> ${why}</div>` +
-    headroom +
-    stateNote +
+  // Preserve the user's open/closed choice across re-renders (default closed).
+  const out = $('out');
+  const prevDetails = out.querySelector('details.derivation');
+  const wasOpen = prevDetails ? prevDetails.open : false;
+
+  out.innerHTML =
+    statCard +
+    headlineCaveat +
+    derivation +
     `<div class="takeaway">A 1099 is paperwork, not a new tax. Whether or not you get one, taxable income is still taxable and must be reported — no form does not mean no tax.</div>`;
+
+  const newDetails = out.querySelector('details.derivation');
+  if (newDetails) newDetails.open = wasOpen;
 }
 
 function init() {
   populateStates();
+  initMoneyInputs();
   ['taxYear', 'payerType', 'amount', 'transactions', 'paymentNature', 'paymentPurpose', 'state'].forEach((id) => {
     const el = $(id);
     if (!el) return;

@@ -13,10 +13,7 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
 <style>
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; text-align:right; }
-  .obbba-note { font-size:.9rem; opacity:.9; margin-top:8px; }
+  .obbba-out .num { text-align:right; }
   .warn-flag { color:#b26b00; font-weight:700; }
   .ok-flag { color:#2f6f4f; font-weight:700; }
   .info-flag { color:#2a5d8f; font-weight:600; }
@@ -28,9 +25,6 @@
   .code-badge { display:inline-block; padding:2px 8px; border-radius:6px; font-size:.8rem; font-weight:700; margin-left:8px; }
   .code-badge.b-excluded { background:rgba(47,111,79,.18); color:#2f6f4f; }
   .code-badge.b-included { background:rgba(178,107,0,.16); color:#b26b00; }
-  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
-  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
-  .mythbust h2 { margin-top:0; }
   .ttoc-result { margin-top:10px; }
   .ttoc-hit { padding:10px 12px; border:1px solid rgba(128,128,128,.25); border-radius:8px; margin-top:8px; }
   .ttoc-hit .t-code { font-weight:700; font-variant-numeric: tabular-nums; }
@@ -69,17 +63,17 @@
       <form id="w2Form" autocomplete="off" onsubmit="return false">
         <div class="field">
           <label for="amtTP">Box 12 code TP amount ($) <span class="muted-small">(your reported tips)</span></label>
-          <input type="number" id="amtTP" inputmode="numeric" min="0" step="100" value="9800">
+          <input type="text" id="amtTP" inputmode="decimal" data-money autocomplete="off" value="9800">
           <p class="muted-small" style="margin-top:6px">The total cash tips you reported to your employer. Leave blank or 0 if TP isn't on your W-2.</p>
         </div>
         <div class="field">
           <label for="amtTT">Box 12 code TT amount ($) <span class="muted-small">(your overtime premium)</span></label>
-          <input type="number" id="amtTT" inputmode="numeric" min="0" step="100" value="1150">
+          <input type="text" id="amtTT" inputmode="decimal" data-money autocomplete="off" value="1150">
           <p class="muted-small" style="margin-top:6px">Only the extra "half" of time-and-a-half — your employer reports just the premium here. Leave blank or 0 if TT isn't on your W-2.</p>
         </div>
         <div class="field">
           <label for="amtTA">Box 12 code TA amount ($) <span class="muted-small">(Trump account contribution)</span></label>
-          <input type="number" id="amtTA" inputmode="numeric" min="0" step="100" value="2500">
+          <input type="text" id="amtTA" inputmode="decimal" data-money autocomplete="off" value="2500">
           <p class="muted-small" style="margin-top:6px">What your employer contributed to a Trump account for you or your dependent. Leave blank or 0 if TA isn't on your W-2.</p>
         </div>
         <div class="field">

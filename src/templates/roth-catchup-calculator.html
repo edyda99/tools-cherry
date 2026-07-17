@@ -13,18 +13,11 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
 <style>
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; text-align:right; }
-  .obbba-note { font-size:.9rem; opacity:.9; margin-top:8px; }
-  .phaseout-flag { color:#b26b00; font-weight:600; }
+  .obbba-out .num { text-align:right; }
   .warn-flag { color:#b26b00; font-weight:700; }
   .ok-flag { color:#2f6f4f; font-weight:700; }
   .check-field { display:flex; align-items:flex-start; gap:10px; }
   .check-field input[type="checkbox"] { width:20px; height:20px; margin-top:2px; flex:none; }
-  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
-  .mythbust h2 { margin-top:0; }
-  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
 </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Mandatory Roth Catch-Up Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Check whether the SECURE 2.0 Act §603 mandatory Roth catch-up rule (IRC §414(v)(7)) applies to you for 2026: if your prior-year Social Security (Box 3) wages exceed $150,000, your 401(k)/403(b)/457(b) catch-up must be a designated Roth contribution. Shows your catch-up band and maximum, the extra federal tax the forced-Roth treatment costs this year, and the Roth-vs-pre-tax break-even."}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Do I lose my 401(k) catch-up if I earn over $150,000?","acceptedAnswer":{"@type":"Answer","text":"No. You keep every dollar of catch-up room — the full $8,000 (ages 50–59 and 64+) or $11,250 (ages 60–63) for 2026. The only change under the SECURE 2.0 §603 rule is that the catch-up now goes in as Roth (after-tax) instead of pre-tax. You lose the upfront deduction on that portion, but the money then grows and comes out tax-free in retirement. It's a change in the timing of tax, not a lost benefit and not a new tax."}},{"@type":"Question","name":"Who is subject to the mandatory Roth catch-up rule?","acceptedAnswer":{"@type":"Answer","text":"For 2026 contributions, someone who is 50 or older and whose Social Security (FICA, W-2 Box 3) wages from the same employer that sponsors the plan were more than $150,000 in 2025. All three must be true. It applies in 401(k), 403(b), governmental 457(b) plans and the federal Thrift Savings Plan. Exactly $150,000 is not over the line, and someone with no FICA wages from the plan sponsor (a partner or sole proprietor with self-employment income only) is not subject."}},{"@type":"Question","name":"Which year's wages count for the $150,000 test?","acceptedAnswer":{"@type":"Answer","text":"The immediately preceding calendar year. For 2026 contributions the test looks at your 2025 wages — not this year's salary, not two years prior. It is specifically your Social Security (Box 3) wages from the employer that sponsors your plan, not your total or household income and not self-employment income."}},{"@type":"Question","name":"Is $150,000 or $145,000 the threshold?","acceptedAnswer":{"@type":"Answer","text":"$145,000 is the statutory base amount. Indexed for inflation, the threshold first rose to $150,000 for 2026 (per IRS Notice 2025-67). So the number that matters for 2026 contributions is $150,000."}},{"@type":"Question","name":"Does the Roth requirement apply to my whole 401(k)?","acceptedAnswer":{"@type":"Answer","text":"No. Only the catch-up portion. Your regular elective deferral — up to $24,500 in 2026 — can still be pre-tax. The Roth requirement touches only the extra catch-up contributions available to people 50 and older."}},{"@type":"Question","name":"Does forced Roth always cost me money?","acceptedAnswer":{"@type":"Answer","text":"Not necessarily. If your tax rate in retirement is at least your current rate, the Roth treatment leaves you even or ahead — you pay tax now at the same or a lower rate than you would later. You only come out behind if you expect a lower tax rate in retirement. The calculator's break-even output shows which side you are on."}},{"@type":"Question","name":"What is a catch-up contribution?","acceptedAnswer":{"@type":"Answer","text":"A catch-up contribution is an extra amount people age 50 and older can add to a workplace retirement plan on top of the normal annual limit. For 2026 it is $8,000 for most people, or $11,250 in the year you are 60, 61, 62, or 63 (a temporary 'super' catch-up), reverting to $8,000 at 64. The SECURE 2.0 rule changes only how high earners' catch-up is taxed, not how much they can contribute."}},{"@type":"Question","name":"What does 'Roth' mean here?","acceptedAnswer":{"@type":"Answer","text":"A Roth (designated Roth) contribution is made with after-tax dollars: you get no deduction the year you contribute, but qualified withdrawals of both your contributions and their earnings are tax-free in retirement. Pre-tax (traditional) contributions are the reverse — deductible now, taxed when withdrawn. The mandatory Roth catch-up rule forces high earners' catch-up into the after-tax bucket."}}]}</script>
@@ -62,13 +55,13 @@
 
         <div class="field">
           <label for="wages">Last year’s Social Security (Box 3) wages from this employer</label>
-          <input type="number" id="wages" inputmode="numeric" min="0" step="1000" value="180000">
+          <input type="text" id="wages" inputmode="decimal" data-money autocomplete="off" value="180000">
           <p class="muted-small" style="margin-top:6px">Use <strong>Box 3</strong> of last year’s <a href="/tax-glossary/#w-2">W-2</a> (Social Security wages) from the employer that sponsors your plan — <strong>not</strong> this year’s salary, not Box 1, and not your household or self-employment income. This is a <a href="/tax-glossary/#fica">FICA</a> wage test.</p>
         </div>
 
         <div class="field">
           <label for="catchUp">Catch-up you plan to contribute this year</label>
-          <input type="number" id="catchUp" inputmode="numeric" min="0" step="500" value="8000">
+          <input type="text" id="catchUp" inputmode="decimal" data-money autocomplete="off" value="8000">
           <p class="muted-small" style="margin-top:6px">How much extra you’ll add on top of the regular limit. We cap it at your age band’s maximum. Enter 0 if you don’t plan to make a catch-up.</p>
         </div>
 

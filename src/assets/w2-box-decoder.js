@@ -4,6 +4,7 @@
 // UI): only TA is excluded from Box 1 — TP/TT are flags on wages that are
 // ALREADY fully taxed inside Box 1, never a subtraction from them.
 import { decodeW2, searchOccupations } from '/assets/w2-box-engine.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
@@ -12,11 +13,13 @@ const DATA = window.__TTOC__;
 const usd = (n) => '$' + Math.round(Math.max(0, n || 0)).toLocaleString('en-US');
 const escHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+// The three Box 12 amounts carry live thousands separators (money fields);
+// read them through moneyValue rather than a raw parseFloat, which would
+// silently truncate "9,800" to 9.
 function num(id) {
   const el = $(id);
   if (!el) return 0;
-  const v = parseFloat(el.value);
-  return Number.isFinite(v) ? v : 0;
+  return moneyValue(el);
 }
 
 function parse14b(raw) {
@@ -155,6 +158,7 @@ function renderSearch() {
 }
 
 function init() {
+  initMoneyInputs();
   ['amtTP', 'amtTT', 'amtTA', 'codes14b'].forEach((id) => {
     const el = $(id);
     if (!el) return;

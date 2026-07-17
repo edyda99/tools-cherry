@@ -13,16 +13,10 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
 <style>
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; text-align:right; }
-  .obbba-note { font-size:.9rem; opacity:.9; margin-top:8px; }
+  .obbba-out .num { text-align:right; }
   .warn-flag { color:#b26b00; font-weight:700; }
   .ok-flag { color:#2f6f4f; font-weight:700; }
   .info-flag { color:#2a5d8f; font-weight:600; }
-  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
-  .mythbust h2 { margin-top:0; }
-  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
   .card-vs-network { margin-top:12px; padding:11px 14px; border-left:4px solid #2a5d8f; border-radius:8px; background:rgba(42,93,143,.09); font-size:.9rem; }
 </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"1099-K / 1099-NEC Threshold Checker","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Check which 1099 form applies to a payment: 1099-K from a payment app or marketplace (IRC 6050W, only if gross payments exceed $20,000 AND transactions exceed 200), 1099-K from a card processor like Stripe or Square (no minimum at all), or 1099-NEC/1099-MISC from a business paying directly (IRC 6041/6041A, $2,000 or more for tax year 2026, $600 or more for 2025). Shows the exact test that decided it, the headroom to the next threshold, an optional state 1099-K overlay note, and the core myth-bust: a 1099 is a reporting trigger, not a tax trigger."}</script>
@@ -66,7 +60,7 @@
 
         <div class="field">
           <label for="amount">Gross amount this year ($)</label>
-          <input type="number" id="amount" inputmode="numeric" min="0" step="100" value="8000">
+          <input type="text" id="amount" inputmode="decimal" data-money autocomplete="off" value="8000">
           <p class="muted-small" style="margin-top:6px">Total from this one platform, processor, or payer this calendar year — gross, before fees or refunds.</p>
         </div>
 
