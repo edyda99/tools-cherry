@@ -215,6 +215,10 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
   border-radius: var(--radius-lg); padding: 26px; box-shadow: var(--shadow-md);
 }
 @media (max-width: 680px) { .calc { grid-template-columns: 1fr; padding: 20px; gap: 18px; } }
+/* Opt-in: on tools where the result/preview matters most, show it before the
+   form on mobile instead of making the visitor scroll past every control.
+   Scoped to .results-first so this doesn't change every tool's mobile order. */
+@media (max-width: 680px) { .calc .results.results-first { order: -1; } }
 
 .field { margin-bottom: 18px; }
 .field label, .field-label { display: block; font-size: 13.5px; font-weight: 600; color: var(--muted); margin-bottom: 7px; }
@@ -555,6 +559,12 @@ ul.breakdown { list-style: none; padding: 0; }
 /* Inline muted annotation (e.g. kcal alongside macro grams). */
 .muted { color: var(--muted); }
 
+/* Color converter: preview swatch + R/G/B and H/S/L field trios. */
+.color-swatch { width: 100%; height: 72px; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+.trio { display: flex; gap: 8px; }
+.trio label { flex: 1; display: flex; flex-direction: column; font-size: 12px; }
+.trio input { width: 100%; }
+
 /* ---- Prose ----------------------------------------------------------- */
 .prose { color: var(--text); }
 .prose p { margin: 0 0 15px; }
@@ -606,16 +616,29 @@ ul.breakdown { list-style: none; padding: 0; }
 .item-row input { padding: 9px; font-size: 14px; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: 6px; width: 100%; }
 .item-row .rm { background: none; border: 0; color: var(--danger); cursor: pointer; font-size: 18px; line-height: 1; }
 .item-head { display: grid; grid-template-columns: 1fr 56px 80px 80px 28px; gap: 6px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+/* Narrow phones: the 5-column item row (Description/Qty/Rate/Amount/×) crushes
+   Description below ~480px with no breakpoint. Drop to 2 columns and let the
+   description span both; hide the header row since it no longer lines up. */
+@media (max-width: 480px) {
+  .item-row, .item-head { grid-template-columns: 1fr 1fr; }
+  .item-head { display: none; }
+  .item-row .d { grid-column: 1 / -1; }
+}
 
 .tc-row { display: grid; grid-template-columns: 1fr 132px 132px 64px 1fr 28px; gap: 6px; margin-bottom: 6px; align-items: center; }
 .tc-row input { padding: 9px; font-size: 14px; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: 6px; width: 100%; }
 .tc-row .out { font-size: 13.5px; color: var(--text); font-variant-numeric: tabular-nums; text-align: right; padding-right: 4px; }
 .tc-row .rm { background: none; border: 0; color: var(--danger); cursor: pointer; font-size: 18px; line-height: 1; padding: 0; }
 .tc-head { display: grid; grid-template-columns: 1fr 132px 132px 64px 1fr 28px; gap: 6px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+.tc-row .dl { display: none; }
 @media (max-width: 680px) {
   .tc-row, .tc-head { grid-template-columns: 1fr 1fr; }
   .tc-head { display: none; }
   .tc-row .out { text-align: left; }
+  /* The header row no longer lines up with the 2-col layout, so instead of
+     leaving fields unlabeled, show a small per-field label above each input. */
+  .tc-row .dl { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
+  .tc-row .tc-f { display: flex; flex-direction: column; min-width: 0; }
 }
 
 .gpa-row { display: grid; grid-template-columns: 1fr 84px 104px 64px 28px; gap: 6px; margin-bottom: 6px; align-items: center; }
@@ -654,7 +677,7 @@ ul.breakdown { list-style: none; padding: 0; }
   transition: border-color .15s, background .15s, color .15s;
 }
 .dropzone:hover, .dropzone.drag { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
-.editor-wrap { display: inline-block; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-md);
+.editor-wrap { display: inline-block; max-width: 100%; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-md);
   background-image: linear-gradient(45deg,#2a2a2a 25%,transparent 25%),linear-gradient(-45deg,#2a2a2a 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#2a2a2a 75%),linear-gradient(-45deg,transparent 75%,#2a2a2a 75%);
   background-size: 20px 20px; background-position: 0 0,0 10px,10px -10px,-10px 0; }
 .editor-wrap canvas { display: block; width: 320px; height: 320px; max-width: 100%; }
@@ -734,6 +757,10 @@ footer.site a:hover { color: var(--text); }
   font-variant-numeric: tabular-nums; text-align: center;
 }
 .timer-readout.running { color: var(--accent); }
+/* Stopwatch's HH:MM:SS.cc readout runs longer (11 chars) than the countdown/
+   pomodoro formats sharing .timer-readout, so it needs a lower size floor
+   plus wrap safety to avoid horizontal overflow at narrow widths. */
+#swReadout { overflow-wrap: anywhere; font-size: clamp(40px, 14vw, 104px); }
 .timer-status { min-height: 26px; text-align: center; font-weight: 700; font-size: 18px; color: var(--accent); margin: 0 0 16px; }
 #cdTimer.done .timer-readout { color: var(--danger); }
 #cdTimer.done { animation: timer-flash 1s ease-in-out 0s 4; }

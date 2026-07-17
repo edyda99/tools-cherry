@@ -93,6 +93,9 @@ function generatePassphrase(opts) {
 }
 
 const STRENGTH_CLASS = ['vw', 'weak', 'fair', 'strong', 'vs'];
+// Plain-English guess-difficulty gloss, indexed the same as STRENGTH_CLASS /
+// the 0..4 score. Shown instead of a raw entropy-bits count.
+const GUESS_DESC = ['extremely easy to guess', 'easy to guess', 'somewhat guessable', 'hard to guess', 'extremely hard to guess'];
 
 function renderStrength(pw, bits) {
   const { score, label } = passwordStrength(pw);
@@ -100,7 +103,7 @@ function renderStrength(pw, bits) {
   const txt = $('strengthLabel');
   bar.className = 'strength-bar ' + (STRENGTH_CLASS[score] || 'vw');
   bar.style.width = ((score / 4) * 100) + '%';
-  txt.textContent = pw ? (bits > 0 ? `${label} · ≈ ${Math.round(bits)} bits of entropy` : label) : '';
+  txt.textContent = pw ? `${label} (${GUESS_DESC[score] || GUESS_DESC[0]})` : '';
 }
 
 // Map an entropy estimate (bits) onto the same 0..4 meter scale used by the
@@ -123,7 +126,7 @@ function renderMeter(score, label, bits, hasValue) {
   const txt = $('strengthLabel');
   bar.className = 'strength-bar ' + (STRENGTH_CLASS[score] || 'vw');
   bar.style.width = ((score / 4) * 100) + '%';
-  txt.textContent = hasValue ? (bits > 0 ? `${label} · ≈ ${Math.round(bits)} bits of entropy` : label) : '';
+  txt.textContent = hasValue ? `${label} (${GUESS_DESC[score] || GUESS_DESC[0]})` : '';
 }
 
 function generatePasswordOutput() {

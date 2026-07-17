@@ -46,7 +46,7 @@
           </select>
         </div>
         <div class="field">
-          <label for="amount">Gross pay (USD)</label>
+          <label for="amount">Gross pay (before taxes)</label>
           <input id="amount" type="text" inputmode="decimal" data-money autocomplete="off" value="60000" placeholder="60000">
         </div>
         <div class="field" id="hoursField" style="display:none">
@@ -135,10 +135,12 @@
 
         <details class="brackets" id="bracketPanel">
           <summary>How your federal tax is calculated, bracket by bracket</summary>
-          <table class="bracket-table">
-            <thead><tr><th>Bracket</th><th>Income taxed here</th><th>Tax</th></tr></thead>
-            <tbody id="bracketBody"></tbody>
-          </table>
+          <div class="table-scroll">
+            <table class="bracket-table">
+              <thead><tr><th>Bracket</th><th>Income taxed here</th><th>Tax</th></tr></thead>
+              <tbody id="bracketBody"></tbody>
+            </table>
+          </div>
           <p class="muted-small" id="bracketNote"></p>
         </details>
 

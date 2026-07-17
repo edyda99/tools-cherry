@@ -31,11 +31,11 @@ function dayRow(label = '', start = '', end = '', brk = '') {
   const row = document.createElement('div');
   row.className = 'tc-row';
   row.innerHTML =
-    `<input class="lbl-in" placeholder="Day" aria-label="Day label" value="${label}">` +
-    `<input class="start" type="time" aria-label="Start time" value="${start}">` +
-    `<input class="end" type="time" aria-label="End time" value="${end}">` +
-    `<input class="brk" type="number" min="0" step="any" inputmode="numeric" placeholder="0" aria-label="Unpaid break minutes" value="${brk}">` +
-    `<span class="out" aria-live="polite">—</span>` +
+    `<div class="tc-f"><span class="dl">Day</span><input class="lbl-in" placeholder="Day" aria-label="Day label" value="${label}"></div>` +
+    `<div class="tc-f"><span class="dl">Start</span><input class="start" type="time" aria-label="Start time" value="${start}"></div>` +
+    `<div class="tc-f"><span class="dl">End</span><input class="end" type="time" aria-label="End time" value="${end}"></div>` +
+    `<div class="tc-f"><span class="dl">Break (min)</span><input class="brk" type="number" min="0" step="any" inputmode="numeric" placeholder="0" aria-label="Unpaid break minutes" value="${brk}"></div>` +
+    `<div class="tc-f"><span class="dl">Hours</span><span class="out" aria-live="polite">—</span></div>` +
     `<button type="button" class="rm" title="Remove row" aria-label="Remove day">×</button>`;
   row.querySelector('.rm').addEventListener('click', () => { row.remove(); render(); });
   row.querySelectorAll('input').forEach((el) => el.addEventListener('input', render));

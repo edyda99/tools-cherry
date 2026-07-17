@@ -108,16 +108,18 @@ const x = 42;
     <section class="prose">
       <h2>Markdown to HTML: a quick example</h2>
       <p>Markdown is a plain-text formatting syntax that maps cleanly onto HTML. You write readable shorthand and the converter expands it into tags. A few common conversions:</p>
-      <table>
-        <thead><tr><th>Markdown you type</th><th>HTML it produces</th></tr></thead>
-        <tbody>
-          <tr><td><code># Title</code></td><td><code>&lt;h1&gt;Title&lt;/h1&gt;</code></td></tr>
-          <tr><td><code>**bold**</code></td><td><code>&lt;strong&gt;bold&lt;/strong&gt;</code></td></tr>
-          <tr><td><code>[text](https://url)</code></td><td><code>&lt;a href="https://url"&gt;text&lt;/a&gt;</code></td></tr>
-          <tr><td><code>- item</code></td><td><code>&lt;ul&gt;&lt;li&gt;item&lt;/li&gt;&lt;/ul&gt;</code></td></tr>
-          <tr><td><code>`code`</code></td><td><code>&lt;code&gt;code&lt;/code&gt;</code></td></tr>
-        </tbody>
-      </table>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Markdown you type</th><th>HTML it produces</th></tr></thead>
+          <tbody>
+            <tr><td><code># Title</code></td><td><code>&lt;h1&gt;Title&lt;/h1&gt;</code></td></tr>
+            <tr><td><code>**bold**</code></td><td><code>&lt;strong&gt;bold&lt;/strong&gt;</code></td></tr>
+            <tr><td><code>[text](https://url)</code></td><td><code>&lt;a href="https://url"&gt;text&lt;/a&gt;</code></td></tr>
+            <tr><td><code>- item</code></td><td><code>&lt;ul&gt;&lt;li&gt;item&lt;/li&gt;&lt;/ul&gt;</code></td></tr>
+            <tr><td><code>`code`</code></td><td><code>&lt;code&gt;code&lt;/code&gt;</code></td></tr>
+          </tbody>
+        </table>
+      </div>
       <p>So a heading line like <code># Release notes</code> becomes <code>&lt;h1&gt;Release notes&lt;/h1&gt;</code>, and the live preview shows it rendered exactly as a browser would display it. The HTML source pane gives you the same markup as text you can copy.</p>
     </section>
 

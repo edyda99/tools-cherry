@@ -230,7 +230,7 @@ function render() {
   }
   drawLogo(ctx, dim, bg);
   status.textContent =
-    `${count}×${count} modules · ${dim}px PNG` + (logoImg ? ' · logo (ECC: High)' : '');
+    `${count}×${count} squares · ${dim}px PNG` + (logoImg ? ' · logo (ECC: High)' : '');
   updateContrastWarning(fg, bg);
 }
 

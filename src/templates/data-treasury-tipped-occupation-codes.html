@@ -33,6 +33,9 @@
   table.study thead th[data-sort]::after { content:" \2195"; opacity:.35; font-size:.8em; }
   table.study tbody tr:hover { background:rgba(128,128,128,.06); }
   table.study td.code { font-weight:700; font-variant-numeric:tabular-nums; }
+  /* SOC code is reference-only; drop it on narrow phones so the table needs
+     less forced horizontal scroll for the columns that actually matter. */
+  @media (max-width: 560px) { table.study th.soc, table.study td.soc { display:none; } }
   .muted-small { color:var(--muted); font-size:.86rem; }
   .new-flag { display:inline-block; margin-left:6px; font-size:.7rem; font-weight:700; color:var(--accent); white-space:nowrap; text-transform:uppercase; letter-spacing:.02em; }
   .embed-box { border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin:20px 0; background:var(--surface); }
@@ -105,7 +108,7 @@
           <th data-sort="text">Occupation</th>
           <th data-sort="text">Category</th>
           <th data-sort="text">Illustrative examples</th>
-          <th data-sort="text">SOC code</th>
+          <th data-sort="text" class="soc">SOC code</th>
         </tr></thead>
         <tbody>{{TABLE_ROWS}}</tbody>
       </table>
