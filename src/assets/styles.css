@@ -738,6 +738,16 @@ footer.site a:hover { color: var(--text); }
    (shared with countdown-timer). */
 .cd-clock--totals .seg { min-width: 0; flex: 1 1 0; }
 .cd-clock--totals .seg b { font-size: 19px; overflow-wrap: anywhere; }
+/* age-calculator's 5-tile totals strip carries a ~10-digit "minutes lived" value. On a
+   narrow phone (~262px content box) five tiles share one flex row at ~42px each, so big
+   numbers wrap per-character and MONTHS/MINUTES labels spill into neighbours. This add-on
+   (applied only on age-calculator) caps the strip at 2 tiles per row on ≤480px: the five
+   tiles fall into a 2 + 2 + 1 stack and the lone minutes tile grows to the full row width,
+   so every number stays on one line. base .cd-clock (countdown-timer) and the 2-3 tile
+   --totals strips (chronological-age / days-between) are untouched. */
+@media (max-width: 480px) {
+  .cd-clock--totals.cd-clock--wrap2 .seg { flex: 1 1 45%; }
+}
 
 /* Password generator -------------------------------------------------------- */
 .pw-output { display: flex; gap: 8px; align-items: stretch; }
