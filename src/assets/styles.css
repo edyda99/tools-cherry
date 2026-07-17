@@ -663,7 +663,9 @@ footer.site a:hover { color: var(--text); }
 .case-buttons .btn-secondary { flex: 0 1 auto; padding: 9px 12px; }
 .btn-row { display: flex; gap: 10px; margin-top: 14px; }
 .btn-row .btn-primary, .btn-row .btn-secondary { flex: 1; }
-#out { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+/* was: #out { font-family: ui-monospace,… }, which leaked terminal font into prose outputs.
+   Monospace is now opt-in: apply .code-out only where the output is genuinely code/data. */
+#out.code-out, .code-out { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
 /* JSON formatter */
 #input { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre; overflow-wrap: normal; }

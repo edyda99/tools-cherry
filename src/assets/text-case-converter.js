@@ -94,6 +94,10 @@ const TRANSFORMS = {
   invert: invertCase
 };
 
+// Programmer naming styles render best in a monospace font; every other case
+// (upper/lower/title/sentence/alternating/invert) is plain prose.
+const CODE_STYLE_CASES = new Set(['camel', 'pascal', 'snake', 'kebab']);
+
 let current = '';
 
 function apply(kind) {
@@ -102,6 +106,7 @@ function apply(kind) {
   const text = $('text').value;
   current = fn(text);
   $('out').value = current;
+  $('out').classList.toggle('code-out', CODE_STYLE_CASES.has(kind));
   $('out').focus();
 }
 
