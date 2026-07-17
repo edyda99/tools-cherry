@@ -131,10 +131,18 @@ t('nextBirthday: already passed rolls to next year', () =>
   isDate(nb([1990, 3, 10], [2026, 6, 15]), 2027, 3, 10));
 t('nextBirthday: today is the birthday returns today', () =>
   isDate(nb([1990, 6, 15], [2026, 6, 15]), 2026, 6, 15));
-t('nextBirthday: Feb29 born, non-leap target year -> Mar 1', () =>
-  isDate(nb([2000, 2, 29], [2026, 1, 1]), 2026, 3, 1));
+t('nextBirthday: Feb29 born, non-leap target year -> Feb 28 (FAQ/ageBreakdown convention)', () =>
+  isDate(nb([2000, 2, 29], [2026, 1, 1]), 2026, 2, 28));
 t('nextBirthday: Feb29 born, leap target year stays Feb 29', () =>
   isDate(nb([2000, 2, 29], [2028, 1, 1]), 2028, 2, 29));
+// The Feb-28 fallback must agree with ageBreakdown's tick-over: on the returned
+// next-birthday date the age reads as an exact whole year with no leftover.
+t('nextBirthday: Feb29 fallback agrees with ageBreakdown (Feb 28 = exact year)', () => {
+  const bday = nb([2000, 2, 29], [2026, 1, 1]);
+  isDate(bday, 2026, 2, 28);
+  const parts = [bday.getFullYear(), bday.getMonth() + 1, bday.getDate()];
+  assert.deepEqual(age([2000, 2, 29], parts), { years: 26, months: 0, days: 0 });
+});
 
 // --- businessDaysBetween -----------------------------------------------------
 const bd = (a, b) => businessDaysBetween(localDate(...a), localDate(...b));

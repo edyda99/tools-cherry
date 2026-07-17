@@ -179,8 +179,9 @@ export function ageBreakdown(birthDate, asOfDate) {
 
 // The next birthday on or after the as-of date, as a local-midnight Date.
 // If today is the birthday, today is returned (the count reads 0, not a year).
-// Handles Feb 29 birthdays in non-leap years by falling to Mar 1 (the common
-// civil convention), so the date is always valid.
+// Handles Feb 29 birthdays in non-leap years by falling to Feb 28 — the same
+// convention ageBreakdown uses for the yearly anniversary and the one the tool's
+// FAQ promises — so the headline age, this countdown, and the FAQ all agree.
 export function nextBirthday(birthDate, asOfDate = new Date()) {
   const b = startOfDay(birthDate);
   const a = startOfDay(asOfDate);
@@ -188,9 +189,9 @@ export function nextBirthday(birthDate, asOfDate = new Date()) {
   const bDay = b.getDate();
 
   const occurrenceIn = (year) => {
-    // Feb 29 in a non-leap year -> Mar 1.
+    // Feb 29 in a non-leap year -> Feb 28 (matches ageBreakdown's tick-over).
     if (bMonth === 2 && bDay === 29 && daysInMonth(year, 2) < 29) {
-      return localDate(year, 3, 1);
+      return localDate(year, 2, 28);
     }
     return localDate(year, bMonth, bDay);
   };

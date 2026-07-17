@@ -85,14 +85,29 @@ export function halfBirthday(birth, year) {
 }
 
 // MIDPOINT half-birthday: birthday + 182.5 days (half of a 365-day year),
-// rounded to the nearest whole day (so the .5 rounds up by convention). Needs a
-// concrete year because it returns an actual date; pass the year the midpoint
-// should be measured from. Returns { y, m, d } parts, or null on bad input.
+// rounded to the nearest whole day (so the .5 rounds up by convention). Returns
+// { y, m, d } parts, or null on bad input.
+//
+// `year` is the calendar year the half-birthday LANDS in — the same target year
+// the caller displays for the calendar half-birthday — so the midpoint sits next
+// to it for comparison. The 182.5 days are added to the birthday that PRECEDES
+// that landing: for a birth month that wraps past year-end (month + 6 > 12, e.g.
+// a September birthday whose half-birthday is the following March) the preceding
+// birthday is in `year - 1`; otherwise it is in `year`. Without this year anchor
+// a July–December birthday's midpoint would land ~a year away from the calendar
+// half-birthday it's meant to sit beside. When `year` is omitted the birthday is
+// anchored in its own birth year.
 export function midpointHalfBirthday(birth, year) {
   const b = toParts(birth);
   if (!b) return null;
-  const baseYear = (year != null && Number.isFinite(Number(year))) ? Number(year) : b.y;
-  // Anchor on the birthday in the requested year, then add half a year of days.
+  // A wrapping birth month puts the calendar half-birthday in the NEXT year, so
+  // the birthday that precedes that landing year is one year earlier.
+  const wraps = b.m + 6 > 12;
+  const landingYear = (year != null && Number.isFinite(Number(year)))
+    ? Number(year)
+    : (wraps ? b.y + 1 : b.y);
+  const baseYear = wraps ? landingYear - 1 : landingYear;
+  // Anchor on that preceding birthday, then add half a year of days.
   const anchor = toDate({ y: baseYear, m: b.m, d: Math.min(b.d, daysInMonth(baseYear, b.m)) });
   const mid = new Date(anchor.getTime() + Math.round(182.5) * MS_PER_DAY);
   return { y: mid.getFullYear(), m: mid.getMonth() + 1, d: mid.getDate() };
