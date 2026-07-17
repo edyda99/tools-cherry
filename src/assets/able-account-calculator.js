@@ -7,17 +7,20 @@
 import { ableContribution } from '/assets/able-contribution.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 const LIMITS = window.__ABLE_LIMITS__ || {};
 const STATES = window.__ABLE_STATES__ || [];
 
 const usd = (n) => '$' + Math.max(0, Math.round(n || 0)).toLocaleString('en-US');
 
+// Comma-safe: money fields carry live thousands separators, so read them
+// through moneyValue (strips separators) rather than a raw parseFloat, which
+// would silently truncate "28,000" to 28.
 function num(id) {
   const el = $(id);
   if (!el) return 0;
-  const v = parseFloat(el.value);
-  return Number.isFinite(v) ? v : 0;
+  return moneyValue(el);
 }
 
 function populateStates() {
@@ -57,7 +60,9 @@ function render() {
   if ($('onsetGate').value !== 'before46') {
     const r = ableContribution({ onsetBefore46: false, limits: LIMITS });
     out.innerHTML =
-      `<div class="line big"><span>Verdict</span><span class="num warn-flag">Not an eligible individual — no ABLE limit applies</span></div>` +
+      `<div class="stat-card"><p class="stat-kicker">Maximum ABLE contribution this year</p>` +
+      `<p class="stat-value is-zero">$0</p>` +
+      `<p class="stat-sub">Not an eligible individual — disability onset at 46 or later means no ABLE account can be opened, so no contribution limit applies.</p></div>` +
       (r.notes || []).map((n) => `<div class="info-note">${n}</div>`).join('');
     return;
   }
@@ -76,7 +81,10 @@ function render() {
   });
 
   if (r.error) {
-    out.innerHTML = `<div class="obbba-note warn-flag">${(r.notes && r.notes[0]) || 'Could not load the limit data.'}</div>`;
+    out.innerHTML =
+      `<div class="stat-card"><p class="stat-kicker">Maximum ABLE contribution this year</p>` +
+      `<p class="stat-value is-zero">$0</p>` +
+      `<p class="stat-sub">${(r.notes && r.notes[0]) || 'Could not load the limit data.'}</p></div>`;
     return;
   }
 
@@ -123,15 +131,53 @@ function render() {
     (r.bonusCap > 0 ? poolBar(`ABLE-to-Work ${usd(r.bonusCap)} space (beneficiary only)`, r.bonusUsed, r.bonusCap) : '') +
     `</div>`;
 
+  // ---- Answer-first summary (stat card) --------------------------------
+  // roomOwn and roomOthers are two alternate "if only this contributor adds
+  // more" views of the SAME shared base pool (see the derivation) — they are
+  // NOT additive. The true combined room left is the max minus what's
+  // already in, floored at $0.
+  const roomLeft = Math.max(0, r.combinedMax - r.totalContrib);
+  const statSub = r.excess > 0
+    ? `${usd(r.excess)} contributed over the limit — see the breakdown for the 6% excise rule.`
+    : roomLeft > 0
+      ? `That's ${usd(r.totalContrib)} contributed so far, with ${usd(roomLeft)} of room left this year.`
+      : `The full ${usd(r.combinedMax)} has been contributed — no room left this year.`;
+  const statCard =
+    `<div class="stat-card">` +
+      `<p class="stat-kicker">Maximum ABLE contribution this year</p>` +
+      `<p class="stat-value">${usd(r.combinedMax)}</p>` +
+      `<p class="stat-sub">${statSub}</p>` +
+    `</div>`;
+
+  // ---- One headline caveat (over the limit) shown OUTSIDE the details --
+  const headlineCaveat = r.excess > 0
+    ? `<div class="obbba-note ineligible-flag">Heads up: contributions entered are ${usd(r.excess)} over the limit — the 6% excise tax applies unless the excess is returned before the tax deadline (see the breakdown).</div>`
+    : '';
+
+  // ---- Full derivation, moved VERBATIM into a collapsed panel -----------
+  const derivation =
+    `<details class="derivation"><summary>See how this was calculated</summary>` +
+      `<div class="line big"><span>Verdict</span><span class="num ${badgeClass}">${badgeText}</span></div>` +
+      headline +
+      lineHtml +
+      bars +
+    `</details>`;
+
+  const prevDetails = out.querySelector('details.derivation');
+  const wasOpen = prevDetails ? prevDetails.open : false;
+
   out.innerHTML =
-    `<div class="line big"><span>Verdict</span><span class="num ${badgeClass}">${badgeText}</span></div>` +
-    headline +
-    lineHtml +
-    bars +
+    statCard +
+    headlineCaveat +
+    derivation +
     (r.notes || []).map((n) => `<div class="takeaway">${n}</div>`).join('');
+
+  const newDetails = out.querySelector('details.derivation');
+  if (newDetails) newDetails.open = wasOpen;
 }
 
 function init() {
+  initMoneyInputs();
   populateStates();
   ['onsetGate', 'state', 'employed', 'compensation', 'planContribution', 'others', 'own', 'rollover529'].forEach((id) => {
     const el = $(id);

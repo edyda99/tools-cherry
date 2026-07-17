@@ -5,6 +5,7 @@
 // client-side; nothing uploaded. Renders 1–3 per-child input cards dynamically.
 import { adoptionCredit } from '/assets/adoption-credit.js';
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 
 const $ = (id) => document.getElementById(id);
 const DATA = window.__ADOPTION_DATA__ || {};
@@ -17,11 +18,13 @@ const val = (id, dflt) => {
   return el ? el.value : dflt;
 };
 
+// Comma-safe: money fields carry live thousands separators, so read them
+// through moneyValue (strips separators) rather than a raw parseFloat, which
+// would silently truncate "28,000" to 28.
 function num(id) {
   const el = $(id);
   if (!el) return 0;
-  const v = parseFloat(el.value);
-  return Number.isFinite(v) ? v : 0;
+  return moneyValue(el);
 }
 
 function childCardHtml(i) {
@@ -31,7 +34,7 @@ function childCardHtml(i) {
     `<h3>Child ${n}</h3>` +
     `<div class="field">` +
     `<label for="qae${i}">Qualified adoption expenses for child ${n} this year ($)</label>` +
-    `<input type="number" id="qae${i}" class="qae" inputmode="numeric" min="0" step="500" value="${i === 0 ? 15000 : 0}">` +
+    `<input type="text" id="qae${i}" class="qae" inputmode="decimal" data-money autocomplete="off" value="${i === 0 ? 15000 : 0}">` +
     `</div>` +
     `<div class="field">` +
     `<label for="special${i}">Is child ${n} a special-needs adoption that became final this year? (State or tribal determination)</label>` +
@@ -43,7 +46,7 @@ function childCardHtml(i) {
     `<details style="margin-top:4px"><summary class="muted-small">Claimed expenses for this child in a prior year?</summary>` +
     `<div class="field" style="margin-top:8px">` +
     `<label for="prior${i}">Adoption expenses already claimed for child ${n} in prior years ($)</label>` +
-    `<input type="number" id="prior${i}" class="prior" inputmode="numeric" min="0" step="500" value="0">` +
+    `<input type="text" id="prior${i}" class="prior" inputmode="decimal" data-money autocomplete="off" value="0">` +
     `<p class="muted-small" style="margin-top:6px">Reduces the remaining per-child cap. A fresh refundable slice still applies to this year's new expenses.</p>` +
     `</div></details>` +
     `</div>`
@@ -59,6 +62,7 @@ function renderChildren() {
     let html = '';
     for (let i = 0; i < count; i++) html += childCardHtml(i);
     host.innerHTML = html;
+    initMoneyInputs(host);
     host.querySelectorAll('input, select').forEach((el) => {
       el.addEventListener('input', render);
       el.addEventListener('change', render);
@@ -116,12 +120,17 @@ function render() {
 
   if (r.error === 'mfs_not_eligible' || r.eligible === false) {
     out.innerHTML =
-      `<div class="line big"><span>Verdict</span><span class="num warn-flag">Not eligible this year (married filing separately)</span></div>` +
+      `<div class="stat-card"><p class="stat-kicker">Adoption credit you can claim</p>` +
+      `<p class="stat-value is-zero">$0</p>` +
+      `<p class="stat-sub">Not eligible this year: married filing separately generally can't claim the adoption credit (see below for the narrow exception).</p></div>` +
       (r.notes || []).map((n) => `<div class="info-note">${n}</div>`).join('');
     return;
   }
   if (r.error) {
-    out.innerHTML = `<div class="obbba-note warn-flag">${(r.notes && r.notes[0]) || 'Could not compute the credit.'}</div>`;
+    out.innerHTML =
+      `<div class="stat-card"><p class="stat-kicker">Adoption credit you can claim</p>` +
+      `<p class="stat-value is-zero">$0</p>` +
+      `<p class="stat-sub">${(r.notes && r.notes[0]) || 'Could not compute the credit.'}</p></div>`;
     return;
   }
 
@@ -161,15 +170,62 @@ function render() {
       `<tbody>${rows}</tbody></table></div>`;
   }
 
+  // ---- Answer-first summary (stat card) --------------------------------
+  const benefits = r.allowedTotal > 0;
+  const statSub = benefits
+    ? `Of that, ${usd(r.refundableTotal)} is refundable — paid to you even with no tax owed.`
+    : 'No qualified adoption expenses (or a fully phased-out credit) with these inputs — enter expenses above to see a credit.';
+  const statCard =
+    `<div class="stat-card">` +
+      `<p class="stat-kicker">Adoption credit you can claim</p>` +
+      `<p class="stat-value${benefits ? '' : ' is-zero'}">${usd(r.allowedTotal)}</p>` +
+      `<p class="stat-sub">${statSub}</p>` +
+    `</div>`;
+
+  // ---- Refundable vs nonrefundable comparison bars (decorative) --------
+  const compareBars = benefits
+    ? (() => {
+        const barMax = Math.max(r.allowedTotal, 1);
+        const refPct = Math.min(100, (r.refundableTotal / barMax) * 100).toFixed(1);
+        const nonrefPct = Math.min(100, (r.nonrefundableCurrent / barMax) * 100).toFixed(1);
+        return `<div class="compare-bars" aria-hidden="true">` +
+          `<div class="cb-row"><span>Refundable ${usd(r.refundableTotal)}</span><span class="cb-track"><span class="cb-fill" style="width:${refPct}%"></span></span></div>` +
+          `<div class="cb-row"><span>Nonrefundable ${usd(r.nonrefundableCurrent)}</span><span class="cb-track"><span class="cb-fill" style="width:${nonrefPct}%"></span></span></div>` +
+        `</div>`;
+      })()
+    : '';
+
+  // ---- One headline caveat (phase-out) shown OUTSIDE the details -------
+  const headlineCaveat = (benefits && r.ratio > 0)
+    ? `<div class="obbba-note phaseout-flag">Heads up: your income is above the ${usd(r.phaseoutStart)} phase-out threshold, so a ${(r.ratio * 100).toFixed(1)}% reduction already applies (see the breakdown for the math).</div>`
+    : '';
+
+  // ---- Full derivation, moved VERBATIM into a collapsed panel -----------
+  const derivation =
+    `<details class="derivation"><summary>See how this was calculated</summary>` +
+      `<div class="line big"><span>Verdict</span><span class="num ${badgeClass}">${badgeText}</span></div>` +
+      headline +
+      lineHtml +
+      breakdown +
+    `</details>`;
+
+  // Preserve the user's open/closed choice across re-renders (default closed).
+  const prevDetails = out.querySelector('details.derivation');
+  const wasOpen = prevDetails ? prevDetails.open : false;
+
   out.innerHTML =
-    `<div class="line big"><span>Verdict</span><span class="num ${badgeClass}">${badgeText}</span></div>` +
-    headline +
-    lineHtml +
-    breakdown +
+    statCard +
+    compareBars +
+    headlineCaveat +
+    derivation +
     (r.notes || []).map((n) => `<div class="takeaway">${n}</div>`).join('');
+
+  const newDetails = out.querySelector('details.derivation');
+  if (newDetails) newDetails.open = wasOpen;
 }
 
 function init() {
+  initMoneyInputs();
   renderChildren();
   ['taxYear', 'filingStatus', 'livedApart', 'childCount', 'magi', 'taxLiability', 'hasProgram', 'employerBenefits', 'cfAmount', 'cfYear'].forEach((id) => {
     const el = $(id);

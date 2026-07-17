@@ -13,15 +13,8 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
 <style>
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; text-align:right; }
-  .obbba-note { font-size:.9rem; opacity:.9; margin-top:8px; }
   .warn-flag { color:#b26b00; font-weight:700; }
   .ok-flag { color:#2f6f4f; font-weight:700; }
-  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
-  .mythbust h2 { margin-top:0; }
-  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
   .info-note { margin-top:12px; padding:11px 14px; border-left:4px solid #2a5d8f; border-radius:8px; background:rgba(42,93,143,.09); font-size:.9rem; }
   .method-note { margin-top:12px; padding:11px 14px; border-left:4px solid #6b4fa1; border-radius:8px; background:rgba(107,79,161,.09); font-size:.9rem; }
   .childcard { margin-top:12px; padding:12px 14px; border:1px solid rgba(128,128,128,.28); border-radius:10px; }
@@ -95,14 +88,14 @@
         <div id="children"></div>
 
         <div class="field">
-          <label for="magi">Modified adjusted gross income (MAGI) for the year ($)</label>
-          <input type="number" id="magi" inputmode="numeric" min="0" step="1000" value="120000">
-          <p class="muted-small" style="margin-top:6px">Usually your AGI. Add back any foreign earned income / possessions exclusions (Form 2555 or 4563). The credit phases out from $265,080 to $305,080 for 2026.</p>
+          <label for="magi">Your yearly income <span class="muted-small">(Form 1040 line 11)</span></label>
+          <input type="text" id="magi" inputmode="decimal" data-money autocomplete="off" value="120000">
+          <p class="muted-small" style="margin-top:6px">Usually your AGI (the law technically uses MAGI — AGI plus foreign earned income / possessions exclusions from Form 2555 or 4563). The credit phases out from $265,080 to $305,080 for 2026.</p>
         </div>
 
         <div class="field">
           <label for="taxLiability">Federal income tax before this credit, after your other credits ($)</label>
-          <input type="number" id="taxLiability" inputmode="numeric" min="0" step="500" value="8000">
+          <input type="text" id="taxLiability" inputmode="decimal" data-money autocomplete="off" value="8000">
           <p class="muted-small" style="margin-top:6px">This limits the <em>nonrefundable</em> part only — the refundable part is paid regardless. A rough stand-in for the IRS "Credit Limit Worksheet." The refundable part is paid even if this is $0.</p>
         </div>
 
@@ -118,7 +111,7 @@
           <div id="employerFields" style="display:none">
             <div class="field">
               <label for="employerBenefits">Employer benefits paid/excluded for these expenses this year ($)</label>
-              <input type="number" id="employerBenefits" inputmode="numeric" min="0" step="500" value="0">
+              <input type="text" id="employerBenefits" inputmode="decimal" data-money autocomplete="off" value="0">
               <p class="muted-small" style="margin-top:6px">These are excluded from your wages (separate $17,670 cap) and are <em>not</em> qualified expenses for the credit — no double-dip. This tool nets them off your first child's credit expenses.</p>
             </div>
           </div>
@@ -128,7 +121,7 @@
           <summary class="muted-small">Carryforward from a prior year?</summary>
           <div class="field" style="margin-top:8px">
             <label for="cfAmount">Nonrefundable adoption credit carried into this year ($)</label>
-            <input type="number" id="cfAmount" inputmode="numeric" min="0" step="500" value="0">
+            <input type="text" id="cfAmount" inputmode="decimal" data-money autocomplete="off" value="0">
           </div>
           <div class="field">
             <label for="cfYear">Year that carryforward first arose</label>
