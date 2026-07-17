@@ -12,6 +12,7 @@ import {
 } from '/assets/timecard.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 
 function money(n) {
@@ -90,22 +91,27 @@ function render() {
   }
 
   // Optional gross pay (with OT breakdown when overtime applies).
-  const rateRaw = $('rate').value.trim();
+  // Rate is a money field: read it comma-safe so "1,250" isn't truncated to 1.
+  // Blank (or a stray non-numeric like ".") means "no rate yet" -> hide pay,
+  // preserving the field's original optional/skip semantics.
+  const rateEl = $('rate');
+  const rateStr = rateEl.value.trim();
+  const rate = moneyValue(rateEl);
   const payLine = $('payLine');
   const hidePay = () => {
     payLine.hidden = true; $('regPayLine').hidden = true; $('otPayLine').hidden = true;
   };
-  if (rateRaw === '' || !Number.isFinite(parseFloat(rateRaw))) {
+  if (rateStr === '' || !/\d/.test(rateStr)) {
     hidePay();
   } else if (otOn) {
-    const pay = grossPayOvertime(totHours, rateRaw, { thresholdHours: otThreshold, multiplier: otMult });
+    const pay = grossPayOvertime(totHours, rate, { thresholdHours: otThreshold, multiplier: otMult });
     payLine.hidden = false;
     $('grossPay').textContent = money(pay.total);
     $('regPayLine').hidden = !showOT;
     $('otPayLine').hidden = !showOT;
     if (showOT) { $('regPay').textContent = money(pay.regularPay); $('otPay').textContent = money(pay.overtimePay); }
   } else {
-    const gross = grossPay(totHours, rateRaw);
+    const gross = grossPay(totHours, rate);
     payLine.hidden = !Number.isFinite(gross);
     $('regPayLine').hidden = true; $('otPayLine').hidden = true;
     if (Number.isFinite(gross)) $('grossPay').textContent = money(gross);
@@ -114,6 +120,7 @@ function render() {
 
 // --- init --------------------------------------------------------------------
 function init() {
+  initMoneyInputs();
   const rows = $('rows');
   // Seed a Mon–Fri work week with a sensible 9–5 example on the first day.
   rows.appendChild(dayRow('Monday', '09:00', '17:00', '30'));

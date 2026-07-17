@@ -3,6 +3,7 @@
 import { calculatePay, effectiveHourlyRate } from '/assets/double-time-pay.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 
 function money(n, max = 2) {
@@ -21,6 +22,16 @@ function val(id) {
   if (raw === '') return 0;
   const n = parseFloat(raw);
   return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+// The hourly rate is a money field (comma-grouped, e.g. "1,250"): read it
+// comma-safe via moneyValue so a grouped value doesn't truncate at the comma.
+// Blank/zero/negative -> 0, matching val()'s "logged none" semantics.
+function moneyVal(id) {
+  const el = $(id);
+  if (el.value.trim() === '') return 0;
+  const n = moneyValue(el);
+  return n > 0 ? n : 0;
 }
 
 function show(lineId, value) {
@@ -43,7 +54,7 @@ function reset() {
 function calc() {
   reset();
 
-  const rate = val('rate');
+  const rate = moneyVal('rate');
   const regularHours = val('regularHours');
   const overtimeHours = val('overtimeHours');
   const doubleHours = val('doubleHours');
@@ -102,7 +113,8 @@ function calc() {
 }
 
 function init() {
-  document.querySelectorAll('#dtForm input[type="number"]').forEach((el) =>
+  initMoneyInputs();
+  document.querySelectorAll('#dtForm input').forEach((el) =>
     el.addEventListener('input', calc)
   );
   calc();
