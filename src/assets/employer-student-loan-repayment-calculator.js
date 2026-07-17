@@ -4,6 +4,7 @@
 // the statutory arithmetic; this file only reads inputs and renders results.
 import { computeSection127 } from '/assets/section-127.js';
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 
 const $ = (id) => document.getElementById(id);
 const PARAMS = window.__SECTION127__ || {};
@@ -11,11 +12,13 @@ const PARAMS = window.__SECTION127__ || {};
 const usd = (n) => '$' + Math.max(0, Math.round(n || 0)).toLocaleString('en-US');
 const usd2 = (n) => '$' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+// Comma-safe: money fields carry live thousands separators, so read them
+// through moneyValue (strips separators) rather than a raw parseFloat, which
+// would silently truncate "28,000" to 28.
 function num(id) {
   const el = $(id);
   if (!el) return 0;
-  const v = parseFloat(el.value);
-  return Number.isFinite(v) ? v : 0;
+  return moneyValue(el);
 }
 
 function render() {
@@ -33,7 +36,10 @@ function render() {
   });
 
   if (r.error) {
-    out.innerHTML = `<div class="obbba-note warn-flag">${(r.notes && r.notes[0]) || 'Enter valid amounts to see a result.'}</div>`;
+    out.innerHTML =
+      `<div class="stat-card"><p class="stat-kicker">Tax-free employer repayment</p>` +
+      `<p class="stat-value is-zero">$0</p>` +
+      `<p class="stat-sub">${(r.notes && r.notes[0]) || 'Enter valid amounts to see a result.'}</p></div>`;
     return;
   }
 
@@ -86,16 +92,64 @@ function render() {
 
   const notesHtml = (r.notes || []).map((n) => `<div class="takeaway">${n}</div>`).join('');
 
+  // ---- Answer-first summary (stat card) --------------------------------
+  const benefits = r.excludedLoan > 0;
+  const statSub = benefits
+    ? `Employee saves ${usd2(totalSide)} this year in income tax and FICA combined.`
+    : 'No room left under the shared $5,250 cap for tax-free loan repayment this year.';
+  const statCard =
+    `<div class="stat-card">` +
+      `<p class="stat-kicker">Tax-free employer repayment</p>` +
+      `<p class="stat-value${benefits ? '' : ' is-zero'}">${usd(r.excludedLoan)}</p>` +
+      `<p class="stat-sub">${statSub}</p>` +
+    `</div>`;
+
+  // ---- Employee saving vs employer saving comparison bars (decorative) --
+  const compareBars = benefits
+    ? (() => {
+        const barMax = Math.max(totalSide, r.erFicaSaved, 1);
+        const empPct = Math.min(100, (totalSide / barMax) * 100).toFixed(1);
+        const erPct = Math.min(100, (r.erFicaSaved / barMax) * 100).toFixed(1);
+        return `<div class="compare-bars" aria-hidden="true">` +
+          `<div class="cb-row"><span>Employee saves ${usd2(totalSide)}</span><span class="cb-track"><span class="cb-fill" style="width:${empPct}%"></span></span></div>` +
+          `<div class="cb-row"><span>Employer saves ${usd2(r.erFicaSaved)}</span><span class="cb-track"><span class="cb-fill" style="width:${erPct}%"></span></span></div>` +
+        `</div>`;
+      })()
+    : '';
+
+  // ---- One headline caveat shown OUTSIDE the details --------------------
+  const headlineCaveat = r.excessTaxable > 0
+    ? `<div class="obbba-note ineligible-flag">Heads up: ${usd(r.excessTaxable)} of what you entered is over the shared $5,250 cap and counts as ordinary taxable wages (see the breakdown).</div>`
+    : (r.stateTaxCost > 0
+        ? `<div class="obbba-note ineligible-flag">Heads up: your state doesn't conform to this exclusion, so ${usd2(r.stateTaxCost)} of state income tax still applies (see the breakdown).</div>`
+        : '');
+
+  // ---- Full derivation, moved VERBATIM into a collapsed panel -----------
+  const derivation =
+    `<details class="derivation"><summary>See how this was calculated</summary>` +
+      `<div class="line big"><span>Verdict</span><span class="num ${badgeClass}">${badgeText}</span></div>` +
+      meter +
+      (empLines.length ? `<div class="section-label">Employee</div>${empLines.join('')}${ficaNote}` : '') +
+      (erHeadline ? `<div class="section-label">Employer</div>${erHeadline}` : '') +
+      excessBlock +
+    `</details>`;
+
+  const prevDetails = out.querySelector('details.derivation');
+  const wasOpen = prevDetails ? prevDetails.open : false;
+
   out.innerHTML =
-    `<div class="line big"><span>Verdict</span><span class="num ${badgeClass}">${badgeText}</span></div>` +
-    meter +
-    (empLines.length ? `<div class="section-label">Employee</div>${empLines.join('')}${ficaNote}` : '') +
-    (erHeadline ? `<div class="section-label">Employer</div>${erHeadline}` : '') +
-    excessBlock +
+    statCard +
+    compareBars +
+    headlineCaveat +
+    derivation +
     notesHtml;
+
+  const newDetails = out.querySelector('details.derivation');
+  if (newDetails) newDetails.open = wasOpen;
 }
 
 function init() {
+  initMoneyInputs();
   ['loanRepaymentBenefit', 'tuitionAssistanceUsed', 'marginalFedRate', 'wages', 'filingStatus', 'stateMarginalRate', 'stateConforms'].forEach((id) => {
     const el = $(id);
     if (!el) return;

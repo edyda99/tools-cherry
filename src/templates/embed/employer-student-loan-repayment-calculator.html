@@ -12,19 +12,12 @@
   body { margin: 0; padding: 14px; background: transparent; }
   .embed-wrap { max-width: 560px; margin: 0 auto; }
   .embed-wrap h1 { font-size: 1.25rem; margin: 0 0 10px; }
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.05rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; text-align:right; white-space:nowrap; }
-  .obbba-note { font-size:.82rem; opacity:.9; margin-top:8px; }
   .section-label { margin-top:14px; margin-bottom:2px; font-size:.72rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; opacity:.7; }
   .warn-flag { color:#b26b00; font-weight:700; }
   .ok-flag { color:#2f6f4f; font-weight:700; }
   .info-flag { color:#2a5d8f; font-weight:600; }
   .cap-meter { height:11px; border-radius:6px; background:rgba(128,128,128,.2); overflow:hidden; margin-top:12px; }
   .cap-fill { height:100%; background:linear-gradient(90deg,#2f6f4f,#3f8f66); border-radius:6px; }
-  .mythbust { margin-top:10px; padding:11px 13px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); font-size:.82rem; }
-  .mythbust h2 { margin-top:0; }
-  .takeaway { margin-top:10px; padding:10px 12px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.82rem; }
   details.adv { margin-top:6px; border:1px solid rgba(128,128,128,.25); border-radius:8px; padding:4px 10px; }
   details.adv summary { cursor:pointer; font-weight:600; padding:5px 0; font-size:.9rem; }
   .embed-credit { margin-top:14px; text-align:center; font-size:.85rem; opacity:.9; }
@@ -37,11 +30,11 @@
     <form id="s127Form" autocomplete="off" onsubmit="return false">
       <div class="field">
         <label for="loanRepaymentBenefit">Annual employer student loan repayment ($)</label>
-        <input type="number" id="loanRepaymentBenefit" inputmode="numeric" min="0" step="250" value="5250">
+        <input type="text" id="loanRepaymentBenefit" inputmode="decimal" data-money autocomplete="off" value="5250">
       </div>
       <div class="field">
         <label for="tuitionAssistanceUsed">Tuition-type §127 assistance already used this year ($)</label>
-        <input type="number" id="tuitionAssistanceUsed" inputmode="numeric" min="0" step="250" value="0">
+        <input type="text" id="tuitionAssistanceUsed" inputmode="decimal" data-money autocomplete="off" value="0">
       </div>
       <div class="field">
         <label for="marginalFedRate">Your marginal federal income tax rate</label>
@@ -59,7 +52,7 @@
         <summary>Advanced: wages, filing status &amp; state</summary>
         <div class="field" style="margin-top:10px">
           <label for="wages">Other wages this year, excluding the benefit ($)</label>
-          <input type="number" id="wages" inputmode="numeric" min="0" step="1000" value="60000">
+          <input type="text" id="wages" inputmode="decimal" data-money autocomplete="off" value="60000">
         </div>
         <div class="field">
           <label for="filingStatus">Filing status (Additional Medicare threshold)</label>

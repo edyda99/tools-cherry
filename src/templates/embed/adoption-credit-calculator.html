@@ -12,13 +12,8 @@
   body { margin: 0; padding: 14px; background: transparent; }
   .embed-wrap { max-width: 560px; margin: 0 auto; }
   .embed-wrap h1 { font-size: 1.25rem; margin: 0 0 10px; }
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.05rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; text-align:right; }
-  .obbba-note { font-size:.82rem; opacity:.9; margin-top:8px; }
   .warn-flag { color:#b26b00; font-weight:700; }
   .ok-flag { color:#2f6f4f; font-weight:700; }
-  .takeaway { margin-top:10px; padding:10px 12px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.82rem; }
   .info-note { margin-top:10px; padding:10px 12px; border-left:4px solid #2a5d8f; border-radius:8px; background:rgba(42,93,143,.09); font-size:.82rem; }
   .childcard { margin-top:10px; padding:10px 12px; border:1px solid rgba(128,128,128,.28); border-radius:10px; }
   .childcard h3 { margin:0 0 6px; font-size:.95rem; }
@@ -68,12 +63,12 @@
       </div>
       <div id="children"></div>
       <div class="field">
-        <label for="magi">Modified AGI ($)</label>
-        <input type="number" id="magi" inputmode="numeric" min="0" step="1000" value="120000">
+        <label for="magi">Your yearly income <span class="muted-small">(Form 1040 line 11)</span></label>
+        <input type="text" id="magi" inputmode="decimal" data-money autocomplete="off" value="120000">
       </div>
       <div class="field">
         <label for="taxLiability">Federal income tax before this credit ($)</label>
-        <input type="number" id="taxLiability" inputmode="numeric" min="0" step="500" value="8000">
+        <input type="text" id="taxLiability" inputmode="decimal" data-money autocomplete="off" value="8000">
       </div>
       <details style="margin-top:8px">
         <summary class="muted-small">Employer adoption assistance (§137)?</summary>
@@ -87,7 +82,7 @@
         <div id="employerFields" style="display:none">
           <div class="field">
             <label for="employerBenefits">Employer benefits paid/excluded this year ($)</label>
-            <input type="number" id="employerBenefits" inputmode="numeric" min="0" step="500" value="0">
+            <input type="text" id="employerBenefits" inputmode="decimal" data-money autocomplete="off" value="0">
           </div>
         </div>
       </details>
@@ -95,7 +90,7 @@
         <summary class="muted-small">Carryforward from a prior year?</summary>
         <div class="field" style="margin-top:8px">
           <label for="cfAmount">Nonrefundable credit carried into this year ($)</label>
-          <input type="number" id="cfAmount" inputmode="numeric" min="0" step="500" value="0">
+          <input type="text" id="cfAmount" inputmode="decimal" data-money autocomplete="off" value="0">
         </div>
         <div class="field">
           <label for="cfYear">Year that carryforward arose</label>

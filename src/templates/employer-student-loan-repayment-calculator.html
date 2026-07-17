@@ -13,19 +13,12 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
 <style>
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; text-align:right; white-space:nowrap; }
-  .obbba-note { font-size:.9rem; opacity:.9; margin-top:8px; }
   .section-label { margin-top:16px; margin-bottom:2px; font-size:.8rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; opacity:.7; }
   .warn-flag { color:#b26b00; font-weight:700; }
   .ok-flag { color:#2f6f4f; font-weight:700; }
   .info-flag { color:#2a5d8f; font-weight:600; }
   .cap-meter { height:12px; border-radius:7px; background:rgba(128,128,128,.2); overflow:hidden; margin-top:14px; }
   .cap-fill { height:100%; background:linear-gradient(90deg,#2f6f4f,#3f8f66); border-radius:7px; transition:width .15s ease; }
-  .mythbust { margin-top:12px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
-  .mythbust h2 { margin-top:0; }
-  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
   .plan-panel { margin-top:12px; padding:14px 16px; border-left:4px solid #2a5d8f; border-radius:8px; background:rgba(42,93,143,.09); }
   .plan-panel h2 { margin-top:0; }
   .plan-panel ul { margin-bottom:0; }
@@ -54,12 +47,12 @@
       <form id="s127Form" autocomplete="off" onsubmit="return false">
         <div class="field">
           <label for="loanRepaymentBenefit">Annual employer student loan repayment ($)</label>
-          <input type="number" id="loanRepaymentBenefit" inputmode="numeric" min="0" step="250" value="5250">
+          <input type="text" id="loanRepaymentBenefit" inputmode="decimal" data-money autocomplete="off" value="5250">
           <p class="muted-small" style="margin-top:6px">Principal and/or interest your employer pays on your qualified education loan this year — to the lender or reimbursed to you. Must be for your <em>own</em> education (a Parent PLUS loan you took out for a child does not qualify).</p>
         </div>
         <div class="field">
           <label for="tuitionAssistanceUsed">Tuition-type §127 assistance already used this year ($)</label>
-          <input type="number" id="tuitionAssistanceUsed" inputmode="numeric" min="0" step="250" value="0">
+          <input type="text" id="tuitionAssistanceUsed" inputmode="decimal" data-money autocomplete="off" value="0">
           <p class="muted-small" style="margin-top:6px">Tuition, fees, books, or supplies your employer already paid under the same §127 program this year. It <strong>shares the one $5,250 cap</strong> — it reduces the room available for tax-free loan repayment.</p>
         </div>
         <div class="field">
@@ -80,7 +73,7 @@
           <summary>Advanced: wages, filing status &amp; state (for high earners and non-conforming states)</summary>
           <div class="field" style="margin-top:10px">
             <label for="wages">Your other wages this year, excluding the benefit ($)</label>
-            <input type="number" id="wages" inputmode="numeric" min="0" step="1000" value="60000">
+            <input type="text" id="wages" inputmode="decimal" data-money autocomplete="off" value="60000">
             <p class="muted-small" style="margin-top:6px">Used only for the FICA math. If this plus the benefit stays under the $184,500 Social Security wage base, FICA is the simple 7.65%. Above it, the 6.2% Social Security part drops off and only 1.45% Medicare is saved.</p>
           </div>
           <div class="field">

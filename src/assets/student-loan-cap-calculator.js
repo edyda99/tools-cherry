@@ -8,16 +8,19 @@
 import { studentLoanPlan, parentPlusPlan, undergradInfo } from '/assets/student-loan-cap.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 const LIMITS = window.__STUDENT_LOAN_LIMITS__ || {};
 
 const usd = (n) => '$' + Math.max(0, Math.round(n || 0)).toLocaleString('en-US');
 
+// Comma-safe: money fields carry live thousands separators, so read them
+// through moneyValue (strips separators) rather than a raw parseFloat, which
+// would silently truncate "28,000" to 28.
 function num(id) {
   const el = $(id);
   if (!el) return 0;
-  const v = parseFloat(el.value);
-  return Number.isFinite(v) ? v : 0;
+  return moneyValue(el);
 }
 
 const CONSTRAINT_LABELS = {
@@ -84,15 +87,30 @@ function render() {
   if (mode === 'undergradInfo') {
     const r = undergradInfo({ dependent: $('ugDependency').value === 'dependent', yearNumber: parseInt($('ugYear').value, 10) || 1, limits: LIMITS });
     if (r.error) {
-      out.innerHTML = `<div class="obbba-note warn-flag">${(r.notes && r.notes[0]) || 'Could not load the limit data.'}</div>`;
+      out.innerHTML =
+        `<div class="stat-card"><p class="stat-kicker">Your borrowing cap</p>` +
+        `<p class="stat-value is-zero">$0</p>` +
+        `<p class="stat-sub">${(r.notes && r.notes[0]) || 'Could not load the limit data.'}</p></div>`;
       return;
     }
-    out.innerHTML =
-      `<div class="line big"><span>Verdict</span><span class="num ok-flag">Your own limits are unchanged</span></div>` +
-      `<div class="line"><span>Annual Direct Loan limit (year ${r.yearNumber >= 3 ? '3+' : r.yearNumber}, ${r.dependent ? 'dependent' : 'independent'})</span><span class="num">${usd(r.annual)}</span></div>` +
-      (r.maxSubsidized != null ? `<div class="line"><span>Of which subsidized (max)</span><span class="num">${usd(r.maxSubsidized)}</span></div>` : '') +
-      `<div class="line"><span>Aggregate limit</span><span class="num">${usd(r.aggregate)}</span></div>` +
-      r.notes.map((n) => `<div class="takeaway">${n}</div>`).join('');
+    const statCard =
+      `<div class="stat-card">` +
+        `<p class="stat-kicker">Your borrowing cap</p>` +
+        `<p class="stat-value">${usd(r.annual)}</p>` +
+        `<p class="stat-sub">Year ${r.yearNumber >= 3 ? '3+' : r.yearNumber}, ${r.dependent ? 'dependent' : 'independent'} — ${usd(r.aggregate)} aggregate over your whole undergraduate career.</p>` +
+      `</div>`;
+    const derivation =
+      `<details class="derivation"><summary>See how this was calculated</summary>` +
+        `<div class="line big"><span>Verdict</span><span class="num ok-flag">Your own limits are unchanged</span></div>` +
+        `<div class="line"><span>Annual Direct Loan limit (year ${r.yearNumber >= 3 ? '3+' : r.yearNumber}, ${r.dependent ? 'dependent' : 'independent'})</span><span class="num">${usd(r.annual)}</span></div>` +
+        (r.maxSubsidized != null ? `<div class="line"><span>Of which subsidized (max)</span><span class="num">${usd(r.maxSubsidized)}</span></div>` : '') +
+        `<div class="line"><span>Aggregate limit</span><span class="num">${usd(r.aggregate)}</span></div>` +
+      `</details>`;
+    const prevDetails = out.querySelector('details.derivation');
+    const wasOpen = prevDetails ? prevDetails.open : false;
+    out.innerHTML = statCard + derivation + r.notes.map((n) => `<div class="takeaway">${n}</div>`).join('');
+    const newDetails = out.querySelector('details.derivation');
+    if (newDetails) newDetails.open = wasOpen;
     return;
   }
 
@@ -119,7 +137,10 @@ function render() {
   }
 
   if (r.error) {
-    out.innerHTML = `<div class="obbba-note warn-flag">${(r.notes && r.notes[0]) || 'Enter valid amounts to see a result.'}</div>`;
+    out.innerHTML =
+      `<div class="stat-card"><p class="stat-kicker">Your borrowing cap</p>` +
+      `<p class="stat-value is-zero">$0</p>` +
+      `<p class="stat-sub">${(r.notes && r.notes[0]) || 'Enter valid amounts to see a result.'}</p></div>`;
     return;
   }
 
@@ -154,26 +175,84 @@ function render() {
 
   const lineHtml = lines.map(([label, val]) => `<div class="line"><span>${label}</span><span class="num">${val}</span></div>`).join('');
   const legacyNotes = [];
-  const otherNotes = [];
+  const litigationNotes = [];
+  const takeawayNotes = [];
   (r.notes || []).forEach((n) => {
     if (/Legacy exception|exception has run out|pre-2026|exception years/.test(n)) legacyNotes.push(n);
-    else if (r.litigationNote && n === r.litigationNote) otherNotes.push(`<div class="litigation-note">${n}</div>`);
-    else otherNotes.push(`<div class="takeaway">${n}</div>`);
+    else if (r.litigationNote && n === r.litigationNote) litigationNotes.push(n);
+    else takeawayNotes.push(n);
   });
 
+  // ---- Answer-first summary (stat card) ---------------------------------
+  // "Your borrowing cap" for the entered program/year is this year's (year 1)
+  // federal capacity — bound by whichever constraint binds first.
+  const y1 = r.years[0];
+  const fedY1 = y1.federal;
+  const needY1 = y1.need;
+  const benefits = fedY1 > 0;
+  let statSub;
+  if (benefits) {
+    statSub = `Bound by ${constraintLabel(y1, r)} this year.`;
+  } else if (needY1 <= 0) {
+    statSub = 'Grants and other aid already cover your full cost of attendance this year — nothing left to borrow.';
+  } else {
+    statSub = `Bound by ${constraintLabel(y1, r)} — no federal room left this year.`;
+  }
+  const statCard =
+    `<div class="stat-card">` +
+      `<p class="stat-kicker">Your borrowing cap</p>` +
+      `<p class="stat-value${benefits ? '' : ' is-zero'}">${usd(fedY1)}</p>` +
+      `<p class="stat-sub">${statSub}</p>` +
+    `</div>`;
+
+  // ---- Cost vs federal capacity comparison bars (decorative) -----------
+  const compareBars = needY1 > 0
+    ? (() => {
+        const barMax = Math.max(needY1, fedY1, 1);
+        const needPct = Math.min(100, (needY1 / barMax) * 100).toFixed(1);
+        const fedPct = Math.min(100, (fedY1 / barMax) * 100).toFixed(1);
+        return `<div class="compare-bars" aria-hidden="true">` +
+          `<div class="cb-row"><span>This year's cost ${usd(needY1)}</span><span class="cb-track"><span class="cb-fill cb-over" style="width:${needPct}%"></span></span></div>` +
+          `<div class="cb-row"><span>Federal capacity ${usd(fedY1)}</span><span class="cb-track"><span class="cb-fill" style="width:${fedPct}%"></span></span></div>` +
+        `</div>`;
+      })()
+    : '';
+
+  // ---- One headline caveat (multi-year funding gap) shown OUTSIDE details
+  const headlineCaveat = r.totalGap > 0
+    ? `<div class="obbba-note ineligible-flag">Heads up: over your ${r.yearsRemaining}-year plan, federal loans leave a ${usd(r.totalGap)} funding gap (see the year-by-year breakdown).</div>`
+    : '';
+
+  // ---- Full derivation, moved VERBATIM into a collapsed panel -----------
+  const derivation =
+    `<details class="derivation"><summary>See how this was calculated</summary>` +
+      `<div class="line big"><span>Verdict</span><span class="num ${badgeClass}">${badgeText}</span></div>` +
+      headline +
+      yearTable(r) +
+      lineHtml +
+      legacyNotes.map((n) => `<div class="legacy-banner">${n}</div>`).join('') +
+      litigationNotes.map((n) => `<div class="litigation-note">${n}</div>`).join('') +
+      (r.totalGap > 0
+        ? `<div class="obbba-note">Where a gap like this gets covered is outside this tool's scope: students in this position typically look at institutional aid, outside scholarships, assistantships, employer education benefits, savings, or private/institutional loans. Those options differ enormously in cost and protections — this calculator doesn't evaluate or recommend any of them; it only computes the federal arithmetic.</div>`
+        : '') +
+    `</details>`;
+
+  const prevDetails = out.querySelector('details.derivation');
+  const wasOpen = prevDetails ? prevDetails.open : false;
+
   out.innerHTML =
-    `<div class="line big"><span>Verdict</span><span class="num ${badgeClass}">${badgeText}</span></div>` +
-    headline +
-    yearTable(r) +
-    lineHtml +
-    legacyNotes.map((n) => `<div class="legacy-banner">${n}</div>`).join('') +
-    otherNotes.join('') +
-    (r.totalGap > 0
-      ? `<div class="obbba-note">Where a gap like this gets covered is outside this tool's scope: students in this position typically look at institutional aid, outside scholarships, assistantships, employer education benefits, savings, or private/institutional loans. Those options differ enormously in cost and protections — this calculator doesn't evaluate or recommend any of them; it only computes the federal arithmetic.</div>`
-      : '');
+    statCard +
+    compareBars +
+    headlineCaveat +
+    derivation +
+    takeawayNotes.map((n) => `<div class="takeaway">${n}</div>`).join('');
+
+  const newDetails = out.querySelector('details.derivation');
+  if (newDetails) newDetails.open = wasOpen;
 }
 
 function init() {
+  initMoneyInputs();
   ['mode', 'yearsRemaining', 'annualCoa', 'annualOtherAid', 'priorPoolOutstanding', 'everProfessional', 'lifetimeEverBorrowed', 'parentPlusEverBorrowed', 'legacyEligible', 'ugDependency', 'ugYear'].forEach((id) => {
     const el = $(id);
     if (!el) return;

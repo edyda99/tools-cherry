@@ -5,6 +5,7 @@
 import { projectMaxOut, excessFica } from '/assets/ss-maxout-engine.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 const PARAMS = window.__SSMAXOUT_PARAMS__ || {};
 // Fixed to 2026 (spec's own gate: 2027 wage base isn't published until ~Oct
@@ -15,11 +16,13 @@ const MAX_SS = PARAMS[TAX_YEAR] ? PARAMS[TAX_YEAR].wageBase * PARAMS[TAX_YEAR].s
 
 const usd2 = (n) => '$' + Math.max(0, n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+// Comma-safe: money fields carry live thousands separators, so read them
+// through moneyValue (strips separators) rather than a raw parseFloat, which
+// would silently truncate "28,000" to 28.
 function num(id) {
   const el = $(id);
   if (!el) return 0;
-  const v = parseFloat(el.value);
-  return Number.isFinite(v) ? v : 0;
+  return moneyValue(el);
 }
 
 function fmtDateLong(iso) {
@@ -56,7 +59,10 @@ function render() {
     : undefined;
 
   if (!nextPayDate) {
-    $('out').innerHTML = `<div class="obbba-note warn-flag">Enter the date of your next paycheck to see a projection.</div>`;
+    $('out').innerHTML =
+      `<div class="stat-card"><p class="stat-kicker">When Social Security withholding stops</p>` +
+      `<p class="stat-value is-zero">—</p>` +
+      `<p class="stat-sub">Enter the date of your next paycheck to see a projection.</p></div>`;
     return;
   }
 
@@ -71,7 +77,10 @@ function render() {
   });
 
   if (r.error) {
-    $('out').innerHTML = `<div class="obbba-note warn-flag">${(r.notes && r.notes[0]) || 'Enter a valid amount to see a projection.'}</div>`;
+    $('out').innerHTML =
+      `<div class="stat-card"><p class="stat-kicker">When Social Security withholding stops</p>` +
+      `<p class="stat-value is-zero">—</p>` +
+      `<p class="stat-sub">${(r.notes && r.notes[0]) || 'Enter a valid amount to see a projection.'}</p></div>`;
     return;
   }
 
@@ -102,10 +111,54 @@ function render() {
   const lineHtml = lines.map(([label, val]) => `<div class="line"><span>${label}</span><span class="num">${val}</span></div>`).join('');
   const noteHtml = (r.notes || []).map((n) => `<div class="takeaway">${n}</div>`).join('');
 
-  $('out').innerHTML =
-    `<div class="line big"><span>Verdict</span><span class="num ${badgeClass}">${badgeText}</span></div>` +
-    lineHtml +
+  // ---- Answer-first summary (stat card) ---------------------------------
+  // This tool's primary output is WHEN withholding stops, not a dollar
+  // amount — so the stat value is verdict-style text (a date/status) and the
+  // dollar figure rides in the sub, per the redesign's fallback for
+  // date-primary tools.
+  let statValue, statSub, statIsZero;
+  if (r.alreadyMaxed) {
+    statValue = 'Already maxed out';
+    statSub = `$0 more Social Security tax will be withheld this year — you'll pay ${usd2(r.totalSSForYear)} total at this employer.`;
+    statIsZero = true;
+  } else if (r.willNotMaxOutThisYear) {
+    statValue = `Won't reach the cap in ${TAX_YEAR}`;
+    statSub = `You're on pace to pay ${usd2(r.totalSSForYear)} in Social Security tax this year, under the ${usd2(r.maxSS)} maximum.`;
+    statIsZero = false;
+  } else if (r.rolledIntoNextYear) {
+    statValue = fmtDateLong(r.capReachedDate);
+    statSub = `Your last paycheck of ${TAX_YEAR} withholds ${usd2(r.ssOnCrossing)} — total for the year is ${usd2(r.totalSSForYear)}, the year's maximum.`;
+    statIsZero = false;
+  } else {
+    statValue = fmtDateLong(r.firstZeroSSDate);
+    statSub = `+${usd2(r.bumpAmount)} more per paycheck once withholding stops. Total for ${TAX_YEAR}: ${usd2(r.totalSSForYear)}.`;
+    statIsZero = false;
+  }
+  const statCard =
+    `<div class="stat-card">` +
+      `<p class="stat-kicker">When Social Security withholding stops</p>` +
+      `<p class="stat-value${statIsZero ? ' is-zero' : ''}">${statValue}</p>` +
+      `<p class="stat-sub">${statSub}</p>` +
+    `</div>`;
+
+  // ---- Full derivation, moved VERBATIM into a collapsed panel -----------
+  const derivation =
+    `<details class="derivation"><summary>See how this was calculated</summary>` +
+      `<div class="line big"><span>Verdict</span><span class="num ${badgeClass}">${badgeText}</span></div>` +
+      lineHtml +
+    `</details>`;
+
+  const out = $('out');
+  const prevDetails = out.querySelector('details.derivation');
+  const wasOpen = prevDetails ? prevDetails.open : false;
+
+  out.innerHTML =
+    statCard +
+    derivation +
     noteHtml;
+
+  const newDetails = out.querySelector('details.derivation');
+  if (newDetails) newDetails.open = wasOpen;
 }
 
 function renderFica() {
@@ -142,6 +195,7 @@ function renderAll() {
 }
 
 function init() {
+  initMoneyInputs();
   ['ytdWages', 'asOfDate', 'payFrequency', 'nextPayDate', 'perPeriodWages', 'hasRaise', 'raisePeriod', 'raiseAmount'].forEach((id) => {
     const el = $(id);
     if (!el) return;
