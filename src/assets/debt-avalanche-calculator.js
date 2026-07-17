@@ -5,6 +5,7 @@
 import { compare, neverPayoffAtMinimum } from '/assets/debt-avalanche.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 
 function money(n, max = 0) {
@@ -32,6 +33,15 @@ function numOf(raw) {
   const t = String(raw == null ? '' : raw).trim();
   if (t === '') return NaN;
   const n = parseFloat(t);
+  return Number.isFinite(n) ? n : NaN;
+}
+// Parse a money value; blank/whitespace -> NaN, same as numOf(), but strips
+// thousands separators first (mirrors money-input.js's moneyValue) so a
+// comma-grouped "6,000" doesn't silently truncate to 6 via a raw parseFloat.
+function moneyOf(raw) {
+  const t = String(raw == null ? '' : raw).trim();
+  if (t === '') return NaN;
+  const n = parseFloat(t.replace(/[^0-9.\-]/g, ''));
   return Number.isFinite(n) ? n : NaN;
 }
 
@@ -67,12 +77,13 @@ function debtRow(name = '', balance = '', apr = '', minPayment = '') {
   row.dataset.id = id;
   row.innerHTML =
     `<input class="dn" placeholder="Debt name (optional)" aria-label="Debt name" value="${esc(name)}">` +
-    `<input class="db" type="number" inputmode="decimal" step="any" min="0" placeholder="0" aria-label="Balance owed in dollars" value="${esc(balance)}">` +
+    `<input class="db" type="text" inputmode="decimal" data-money autocomplete="off" placeholder="0" aria-label="Balance owed in dollars" value="${esc(balance)}">` +
     `<input class="da" type="number" inputmode="decimal" step="any" min="0" placeholder="0" aria-label="Annual interest rate APR percent" value="${esc(apr)}">` +
-    `<input class="dm" type="number" inputmode="decimal" step="any" min="0" placeholder="0" aria-label="Minimum monthly payment in dollars" value="${esc(minPayment)}">` +
+    `<input class="dm" type="text" inputmode="decimal" data-money autocomplete="off" placeholder="0" aria-label="Minimum monthly payment in dollars" value="${esc(minPayment)}">` +
     `<button type="button" class="rm" title="Remove debt" aria-label="Remove this debt">&times;</button>`;
   row.querySelector('.rm').addEventListener('click', () => { row.remove(); calc(); });
   row.querySelectorAll('input').forEach((el) => el.addEventListener('input', calc));
+  initMoneyInputs(row);
   return row;
 }
 
@@ -80,9 +91,9 @@ function readDebts() {
   return [...document.querySelectorAll('#debts .debt-row')].map((row) => ({
     id: row.dataset.id,
     name: row.querySelector('.dn').value,
-    balance: numOf(row.querySelector('.db').value),
+    balance: moneyOf(row.querySelector('.db').value),
     apr: numOf(row.querySelector('.da').value),
-    minPayment: numOf(row.querySelector('.dm').value)
+    minPayment: moneyOf(row.querySelector('.dm').value)
   }));
 }
 
@@ -187,7 +198,7 @@ function calc() {
   }
 
   const extra = (() => {
-    const e = numOf($('extra').value);
+    const e = moneyOf($('extra').value);
     return Number.isFinite(e) && e > 0 ? e : 0;
   })();
 
@@ -266,6 +277,9 @@ function init() {
   debts.appendChild(debtRow('Store card', '2500', '26.99', '70'));
 
   $('addDebt').addEventListener('click', () => { debts.appendChild(debtRow()); calc(); });
+  // Binds #extra; the debt rows above are already bound individually by
+  // debtRow() (data-moneyBound guards against double-binding).
+  initMoneyInputs();
   $('extra').addEventListener('input', calc);
   calc();
 }

@@ -3,6 +3,7 @@
 import { project } from '/assets/retirement-401k.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 
 function money(n, max = 0) {
@@ -32,6 +33,22 @@ function optVal(id) {
   if (raw === '') return 0;
   const n = parseFloat(raw);
   return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+// Required money field: blank -> NaN, same as val(), but parses through
+// moneyValue so a comma-grouped "60,000" doesn't silently truncate to 60 via
+// a raw parseFloat.
+function moneyVal(id) {
+  const el = $(id);
+  if (el.value.trim() === '') return NaN;
+  return moneyValue(el);
+}
+// Optional money field: blank -> 0, negatives ignored, same as optVal(), but
+// comma-safe.
+function moneyOptVal(id) {
+  const el = $(id);
+  if (el.value.trim() === '') return 0;
+  const n = moneyValue(el);
+  return n >= 0 ? n : 0;
 }
 
 function reset() {
@@ -71,8 +88,8 @@ function calc() {
 
   const currentAge = val('currentAge');
   const retirementAge = val('retirementAge');
-  const currentBalance = optVal('currentBalance');
-  const annualSalary = val('annualSalary');
+  const currentBalance = moneyOptVal('currentBalance');
+  const annualSalary = moneyVal('annualSalary');
   const employeeContribPct = val('employeeContrib');
   const employerMatchPct = optVal('employerMatch');
   const matchCapPct = optVal('matchCap');
@@ -130,6 +147,7 @@ function calc() {
 }
 
 function init() {
+  initMoneyInputs();
   document.querySelectorAll('#retire401kForm input, #retire401kForm select').forEach((el) =>
     el.addEventListener('input', calc)
   );

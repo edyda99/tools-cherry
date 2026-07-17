@@ -3,6 +3,7 @@
 import { requiredContribution, timeToGoal } from '/assets/savings-goal.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 
 function money(n, max = 2) {
@@ -32,6 +33,22 @@ function optVal(id) {
   if (raw === '') return 0;
   const n = parseFloat(raw);
   return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+// Required money field: blank -> NaN, same as val(), but parses through
+// moneyValue so a comma-grouped "20,000" doesn't silently truncate to 20 via
+// a raw parseFloat.
+function moneyVal(id) {
+  const el = $(id);
+  if (el.value.trim() === '') return NaN;
+  return moneyValue(el);
+}
+// Optional money field: blank -> 0, negatives ignored, same as optVal(), but
+// comma-safe.
+function moneyOptVal(id) {
+  const el = $(id);
+  if (el.value.trim() === '') return 0;
+  const n = moneyValue(el);
+  return n >= 0 ? n : 0;
 }
 
 function reset() {
@@ -104,7 +121,7 @@ function calcContribution(target, principal, ratePct, perYear) {
 }
 
 function calcTime(target, principal, ratePct, perYear) {
-  const contribution = optVal('deposit');
+  const contribution = moneyOptVal('deposit');
   if (contribution <= 0 && principal < target) {
     $('outSub').textContent = `Enter how much you can save per ${periodWord(perYear)}.`;
     return;
@@ -138,8 +155,8 @@ function calc() {
   reset();
 
   const mode = $('mode').value; // 'contribution' or 'time'
-  const target = val('target');
-  const principal = optVal('principal');
+  const target = moneyVal('target');
+  const principal = moneyOptVal('principal');
   const ratePct = optVal('rate');
   const perYear = parseInt($('frequency').value, 10) || 12;
 
@@ -161,6 +178,7 @@ function syncMode() {
 }
 
 function init() {
+  initMoneyInputs();
   $('mode').addEventListener('change', syncMode);
   document.querySelectorAll('#goalForm input, #goalForm select').forEach((el) =>
     el.addEventListener('input', calc)

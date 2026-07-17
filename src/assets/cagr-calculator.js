@@ -3,6 +3,7 @@
 import { project } from '/assets/cagr.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 
 function money(n, max = 2) {
@@ -24,6 +25,14 @@ function val(id) {
   if (raw === '') return NaN;
   const n = parseFloat(raw);
   return Number.isFinite(n) ? n : NaN;
+}
+// Required money field: blank/whitespace -> NaN ("not set yet"), same as
+// val(), but parses through moneyValue so a comma-grouped "2,500" doesn't
+// silently truncate to 2 via a raw parseFloat.
+function moneyVal(id) {
+  const el = $(id);
+  if (el.value.trim() === '') return NaN;
+  return moneyValue(el);
 }
 
 function show(lineId, label, value) {
@@ -79,8 +88,8 @@ function resolveYears() {
 function calc() {
   reset();
 
-  const beginning = val('beginning');
-  const ending = val('ending');
+  const beginning = moneyVal('beginning');
+  const ending = moneyVal('ending');
   const years = resolveYears();
 
   if (!Number.isFinite(beginning) || beginning <= 0) {

@@ -3,6 +3,7 @@
 import { amortize } from '/assets/amortization.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 
 function money(n, max = 2) {
@@ -33,6 +34,22 @@ function optVal(id) {
   const n = parseFloat(raw);
   return Number.isFinite(n) && n >= 0 ? n : 0;
 }
+// Required money field: blank -> NaN, same as val(), but parses through
+// moneyValue so a comma-grouped "350,000" doesn't silently truncate to 350
+// via a raw parseFloat.
+function moneyVal(id) {
+  const el = $(id);
+  if (el.value.trim() === '') return NaN;
+  return moneyValue(el);
+}
+// Optional money field: blank -> 0, negatives ignored, same as optVal(), but
+// comma-safe.
+function moneyOptVal(id) {
+  const el = $(id);
+  if (el.value.trim() === '') return 0;
+  const n = moneyValue(el);
+  return n >= 0 ? n : 0;
+}
 
 function reset() {
   $('payBig').textContent = '—';
@@ -62,8 +79,8 @@ function buildSchedule(schedule) {
 function calc() {
   reset();
 
-  const price = val('price');
-  const down = optVal('down');
+  const price = moneyVal('price');
+  const down = moneyOptVal('down');
   const ratePct = val('rate');
   const years = val('years');
 
@@ -96,7 +113,7 @@ function calc() {
 
   // Optional extras → an estimated, clearly-labeled total monthly payment.
   const taxPct = optVal('taxPct');
-  const insurance = optVal('insurance');
+  const insurance = moneyOptVal('insurance');
   const monthlyTax = (price * taxPct / 100) / 12;
   const monthlyIns = insurance / 12;
   const hasExtras = taxPct > 0 || insurance > 0;
@@ -138,6 +155,7 @@ function show(lineId, label, value) {
 }
 
 function init() {
+  initMoneyInputs();
   document.querySelectorAll('#mortgageForm input').forEach((el) =>
     el.addEventListener('input', calc)
   );

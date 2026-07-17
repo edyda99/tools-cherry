@@ -45,11 +45,11 @@
       <form id="mortgageForm" autocomplete="off" onsubmit="return false">
         <div class="field">
           <label for="price">Home price ($)</label>
-          <input id="price" type="number" inputmode="decimal" step="any" min="0" value="350000" placeholder="350000">
+          <input id="price" type="text" inputmode="decimal" data-money autocomplete="off" value="350000" placeholder="350000">
         </div>
         <div class="field">
           <label for="down">Down payment ($)</label>
-          <input id="down" type="number" inputmode="decimal" step="any" min="0" value="70000" placeholder="70000">
+          <input id="down" type="text" inputmode="decimal" data-money autocomplete="off" value="70000" placeholder="70000">
         </div>
         <div class="field inline">
           <span><label for="rate">Interest rate (% per year)</label><input id="rate" type="number" inputmode="decimal" step="any" min="0" value="6.5" placeholder="6.5"></span>
@@ -60,7 +60,7 @@
           <legend style="font-size:13.5px;font-weight:600;color:var(--muted);margin-bottom:7px;padding:0;">Optional — for an estimated total payment</legend>
           <div class="field inline">
             <span><label for="taxPct">Property tax (% per year)</label><input id="taxPct" type="number" inputmode="decimal" step="any" min="0" value="" placeholder="e.g. 1.1"></span>
-            <span><label for="insurance">Home insurance ($ per year)</label><input id="insurance" type="number" inputmode="decimal" step="any" min="0" value="" placeholder="e.g. 1500"></span>
+            <span><label for="insurance">Home insurance ($ per year)</label><input id="insurance" type="text" inputmode="decimal" data-money autocomplete="off" value="" placeholder="e.g. 1500"></span>
           </div>
         </fieldset>
       </form>

@@ -47,13 +47,13 @@
 
       <form id="debtForm" autocomplete="off" onsubmit="return false">
         <div class="field inline">
-          <span><label for="balance">Balance owed ($)</label><input id="balance" type="number" inputmode="decimal" step="any" min="0" value="5000" placeholder="5000"></span>
+          <span><label for="balance">Balance owed ($)</label><input id="balance" type="text" inputmode="decimal" data-money autocomplete="off" value="5000" placeholder="5000"></span>
           <span><label for="rate">Interest rate / APR (% per year)</label><input id="rate" type="number" inputmode="decimal" step="any" min="0" value="20" placeholder="20"></span>
         </div>
         <p class="muted-small" style="margin-top:6px">APR is the yearly interest rate shown on your card or loan statement.</p>
         <div class="field" id="paymentField">
           <label for="payment">Monthly payment ($)</label>
-          <input id="payment" type="number" inputmode="decimal" step="any" min="0" value="200" placeholder="200">
+          <input id="payment" type="text" inputmode="decimal" data-money autocomplete="off" value="200" placeholder="200">
         </div>
         <div class="field" id="monthsField" hidden>
           <label for="months">Pay off in (months)</label>
