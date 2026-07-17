@@ -12,19 +12,6 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
-<style>
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; }
-  .obbba-note { font-size:.9rem; opacity:.85; margin-top:8px; }
-  .phaseout-flag { color:#b26b00; font-weight:600; }
-  .ineligible-flag { color:#b23a00; font-weight:600; }
-  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
-  .mythbust h2 { margin-top:0; }
-  .mip-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  @media (max-width:520px){ .mip-row { grid-template-columns:1fr; } }
-  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
-</style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"PMI / Mortgage Insurance Deduction Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Estimate the 2026 One Big Beautiful Bill Act revival of the mortgage insurance premium deduction (IRC section 163(h)(3)(E)): the AGI phaseout that eliminates the deduction above $109,000 ($54,500 married filing separately), the FHA UFMIP 84-month amortization rule versus the VA/USDA full year-paid deduction, the pre-2007-contract gate, the itemize-vs-standard verdict, and the estimated federal tax saving."}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is PMI tax deductible in 2026?","acceptedAnswer":{"@type":"Answer","text":"Yes. The One Big Beautiful Bill Act permanently revived the mortgage insurance premium deduction starting with tax year 2026. Conventional PMI, FHA mortgage insurance (annual MIP and upfront UFMIP), VA funding fees, and USDA guarantee fees can all be deducted as home mortgage interest on Schedule A, if you itemize. The deduction had lapsed after 2021; OBBBA permanently switched it back on rather than rewriting it."}},{"@type":"Question","name":"What is the AGI limit for the PMI deduction in 2026?","acceptedAnswer":{"@type":"Answer","text":"The deduction shrinks by 10% for every $1,000 (or fraction of $1,000) that your adjusted gross income exceeds $100,000, and is completely eliminated once AGI exceeds $109,000. For married filing separately, the steps are $500 and the deduction is gone above $54,500. Many articles say the cutoff is $110,000 ($55,000 MFS) — that is wrong. Because the statute reduces the deduction for each $1,000 'or fraction thereof,' the tenth and final step is triggered by any amount over $109,000, not at $110,000. There is no separate threshold for married filing jointly; joint filers share the same $100,000 starting point as single filers."}},{"@type":"Question","name":"Is FHA UFMIP deducted the same way as a VA funding fee?","acceptedAnswer":{"@type":"Answer","text":"No. FHA's upfront mortgage insurance premium (UFMIP) and any single-premium or split-premium PMI must be spread out (amortized) ratably over the shorter of the loan's term or 84 months, starting the month the insurance was obtained. A VA funding fee or a USDA (Rural Housing Service) guarantee fee is treated better: it is fully deductible in the year you pay it, with no amortization at all, even if paid as a lump sum at closing."}},{"@type":"Question","name":"Can I deduct mortgage insurance premiums without itemizing?","acceptedAnswer":{"@type":"Answer","text":"No. Unlike some other 2026 tax changes, the mortgage insurance premium deduction is an itemized deduction only — it is claimed on Schedule A alongside your other mortgage interest. If your total itemized deductions do not exceed your standard deduction ($16,100 single/MFS, $32,200 married filing jointly, $24,150 head of household for 2026), the deduction is worth $0 in extra tax savings, even though the premiums technically qualify."}},{"@type":"Question","name":"Does mortgage insurance on an old loan still qualify?","acceptedAnswer":{"@type":"Answer","text":"Only if the mortgage insurance contract was issued after December 31, 2006. This restriction was never repealed and remains part of the law. In practice this excludes almost no active 2026 mortgages, but a very old policy predating 2007 would not qualify."}}]}</script>
 </head>
@@ -56,9 +43,9 @@
         </div>
 
         <div class="field">
-          <label for="agi">Your adjusted gross income (AGI)</label>
-          <input type="number" id="agi" inputmode="numeric" min="0" step="1000" value="95000">
-          <p class="muted-small" style="margin-top:6px">Roughly Form 1040 line 11 — the statute says AGI, not modified AGI. Filing jointly? Use your combined income.</p>
+          <label for="agi">Your yearly income <span class="muted-small">(Form 1040 line 11)</span></label>
+          <input type="text" id="agi" inputmode="decimal" data-money autocomplete="off" value="95000">
+          <p class="muted-small" style="margin-top:6px">This is your adjusted gross income (AGI) — the statute says AGI, not modified AGI. Filing jointly? Use your combined income.</p>
         </div>
 
         <div class="field">
@@ -74,14 +61,14 @@
 
         <div class="field">
           <label for="recurring">Premiums paid during 2026 (recurring)</label>
-          <input type="number" id="recurring" inputmode="numeric" min="0" step="50" value="1800">
+          <input type="text" id="recurring" inputmode="decimal" data-money autocomplete="off" value="1800">
           <p class="muted-small" style="margin-top:6px">Monthly PMI, FHA annual MIP, or a USDA annual fee actually paid in 2026 — see Box 5 of your Form 1098.</p>
         </div>
 
-        <div class="field mip-row" id="upfrontFields">
+        <div class="field est-row" id="upfrontFields">
           <div class="field" style="margin:0">
             <label for="upfront">Upfront premium paid at closing ($) <span class="muted-small">(optional)</span></label>
-            <input type="number" id="upfront" inputmode="numeric" min="0" step="50" value="0">
+            <input type="text" id="upfront" inputmode="decimal" data-money autocomplete="off" value="0">
           </div>
           <div class="field" style="margin:0">
             <label for="closingMonth">Closing month</label>
@@ -111,7 +98,7 @@
 
         <div class="field">
           <label for="other">Other itemized deductions ($)</label>
-          <input type="number" id="other" inputmode="numeric" min="0" step="100" value="20000">
+          <input type="text" id="other" inputmode="decimal" data-money autocomplete="off" value="20000">
           <p class="muted-small" style="margin-top:6px">Mortgage interest, <a href="/salt-cap-calculator/">SALT (after its cap)</a>, <a href="/charitable-deduction-calculator/">charitable gifts</a>, and anything else on Schedule A — used to decide whether itemizing beats your standard deduction.</p>
         </div>
       </form>

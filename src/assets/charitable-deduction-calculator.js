@@ -11,6 +11,7 @@
 // The copy says "you don't have to itemize to get it" (true) and never claims it
 // "lowers your AGI" (false).
 import { charitableComparison } from '/assets/obbba-deduction.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
@@ -20,9 +21,11 @@ const FED = window.__FED__;
 const usd = (n) => '$' + Math.round(Math.max(0, n || 0)).toLocaleString('en-US');
 const pct = (n) => (Math.max(0, n || 0) * 100).toFixed(1) + '%';
 
+// Comma-safe: money fields carry live thousands separators, so read them
+// through moneyValue (strips separators) rather than a raw parseFloat, which
+// would silently truncate "28,000" to 28.
 function num(id) {
-  const v = parseFloat($(id).value);
-  return Number.isFinite(v) ? v : 0;
+  return moneyValue($(id));
 }
 
 // The floor arithmetic in words, for the itemizer branch.
@@ -82,17 +85,55 @@ function render() {
   // --- Federal tax saved by the gift ---------------------------------------
   const savings = r.taxSaved > 0
     ? `<div class="line big"><span>Federal income tax this gift saves you</span><span class="num">${usd(r.taxSaved)}</span></div>` +
-      `<div class="obbba-note">That's your deduction times the effective federal rate on it, about ${pct(r.effectiveRate)} on ${usd(r.charitableDeductible)}${r.topBracketCap ? ' (capped at 35% by §68)' : ''}. A deduction lowers taxable income, not your tax bill dollar-for-dollar.</div>`
+      `<div class="obbba-note">${usd(r.charitableDeductible)} deducted${r.topBracketCap ? ' (capped at 35% by §68)' : ''}, worth ${usd(r.taxSaved)} at the effective federal rate on this deduction (${pct(r.effectiveRate)}). A deduction lowers taxable income, not your tax bill dollar-for-dollar.</div>`
     : `<div class="line big"><span>Federal income tax this gift saves you</span><span class="num">$0</span></div>` +
       `<div class="obbba-note ineligible-flag">${zeroReason(r, cashGift, nonCash)}</div>`;
 
-  $('out').innerHTML =
-    stdBlock +
-    verdict +
-    deductibleBlock +
-    s68Block +
-    savings +
+  // ---- Answer-first summary (stat card) --------------------------------
+  const benefits = r.taxSaved > 0;
+  const statValue = benefits ? usd(r.taxSaved) : '$0';
+  const statSub = benefits
+    ? `Your ${usd(r.charitableDeductible)} deductible gift (of the ${usd(r.totalCharitableGift)} you gave) is claimed ${r.itemize ? 'on Schedule A' : 'as the non-itemizer bonus'}.`
+    : zeroReason(r, cashGift, nonCash); // the "why" stays visible, never hidden in details
+  const statCard =
+    `<div class="stat-card">` +
+      `<p class="stat-kicker">Federal tax saved by your donations</p>` +
+      `<p class="stat-value${benefits ? '' : ' is-zero'}">${statValue}</p>` +
+      `<p class="stat-sub">${statSub}</p>` +
+    `</div>`;
+
+  // ---- One headline caveat shown OUTSIDE the details ---------------------
+  // Zero/ineligible reasons already ride in stat-sub; the remaining gotchas
+  // worth surfacing up top are an active 0.5% floor trim or the §68 haircut.
+  const headlineCaveat = (benefits && r.itemize && r.floorLost > 0)
+    ? `<div class="obbba-note phaseout-flag">Heads up: the 0.5%-of-AGI floor (${usd(r.floor)}) trims your deductible gift to ${usd(r.charDeductible)} (see the breakdown for the math).</div>`
+    : (benefits && r.topBracketCap)
+      ? `<div class="obbba-note phaseout-flag">Heads up: the top-bracket §68 rule trims your itemized deductions, so a dollar here is worth about 35¢, not 37¢ (see the breakdown).</div>`
+      : '';
+
+  // ---- Full derivation, moved VERBATIM into a collapsed panel -----------
+  const derivation =
+    `<details class="derivation"><summary>See how this was calculated</summary>` +
+      stdBlock +
+      verdict +
+      deductibleBlock +
+      s68Block +
+      savings +
+    `</details>`;
+
+  // Preserve the user's open/closed choice across re-renders (default closed).
+  const out = $('out');
+  const prevDetails = out.querySelector('details.derivation');
+  const wasOpen = prevDetails ? prevDetails.open : false;
+
+  out.innerHTML =
+    statCard +
+    headlineCaveat +
+    derivation +
     `<div class="takeaway">In plain terms: this lowers the federal income tax you settle at filing — a bigger refund or smaller bill — not your paycheck. And because it's taken after your AGI, it does <strong>not</strong> reduce your AGI, so it won't change your Medicare IRMAA, ACA subsidy, or how much of your Social Security is taxed.</div>`;
+
+  const newDetails = out.querySelector('details.derivation');
+  if (newDetails) newDetails.open = wasOpen;
 }
 
 // Plain-words reason when the gift saves $0 of federal tax.
@@ -113,6 +154,7 @@ function zeroReason(r, cashGift, nonCash) {
 }
 
 function init() {
+  initMoneyInputs();
   ['filing', 'agi', 'cashGift', 'nonCash', 'other'].forEach((id) => {
     $(id).addEventListener('input', render);
     $(id).addEventListener('change', render);

@@ -12,31 +12,6 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
-<style>
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.1rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; }
-  .obbba-note { font-size:.9rem; opacity:.85; margin-top:8px; }
-  .phaseout-flag { color:#b26b00; font-weight:600; }
-  .ineligible-flag { color:#b23a00; font-weight:600; }
-  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
-  .mythbust h2 { margin-top:0; }
-  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
-  .dc-rec { margin:4px 0 14px; padding:14px 16px; border-radius:10px; border:1px solid rgba(128,128,128,.28); }
-  .dc-rec.rec-fsa { border-left:5px solid #2f6f4f; background:rgba(47,111,79,.09); }
-  .dc-rec.rec-credit { border-left:5px solid #2a5d8f; background:rgba(42,93,143,.09); }
-  .dc-rec-tag { font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; font-weight:700; opacity:.7; }
-  .dc-rec-head { font-size:1.2rem; font-weight:800; margin:2px 0 4px; }
-  .dc-rec-sub { font-size:.92rem; opacity:.9; }
-  .dc-cols { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-  @media (max-width:560px){ .dc-cols { grid-template-columns:1fr; } }
-  .dc-col { padding:12px 14px; border:1px solid rgba(128,128,128,.22); border-radius:10px; }
-  .dc-col.dc-win { border-color:#2f6f4f; box-shadow:0 0 0 1px #2f6f4f inset; }
-  .dc-col-head { font-weight:700; margin-bottom:6px; }
-  .dc-badge { font-size:.72rem; background:#2f6f4f; color:#fff; padding:1px 7px; border-radius:20px; vertical-align:middle; }
-  .dc-delta { margin-top:12px; }
-  .dc-breakeven { margin-top:12px; padding:11px 14px; border-left:4px solid #6b6b6b; border-radius:8px; background:rgba(128,128,128,.08); font-size:.92rem; }
-</style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Dependent Care FSA vs. Child & Dependent Care Credit Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Compare the 2026 Dependent Care FSA (IRC §129, up to $7,500 / $3,750 married filing separately, pre-tax so it saves income tax and FICA) against the Child & Dependent Care Credit (IRC §21, a nonrefundable credit of 50% down to 20% by income on up to $3,000 of expenses for one dependent or $6,000 for two or more). Because the One Big Beautiful Bill Act reduces the credit's expense cap dollar-for-dollar by every FSA dollar, maxing the $7,500 FSA zeroes the credit for any family size — so the tool shows both all-or-nothing scenarios side by side and recommends whichever nets more."}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Can I use both a Dependent Care FSA and the Child and Dependent Care Credit in 2026?","acceptedAnswer":{"@type":"Answer","text":"Not on the same dollars, and in 2026 usually not at all. Internal Revenue Code §21(c) reduces the credit's expense cap ($3,000 for one dependent, $6,000 for two or more) dollar-for-dollar by every dollar you exclude through a Dependent Care FSA. Because the new FSA limit is $7,500 — more than even the $6,000 two-child cap — maxing the FSA drives the creditable expenses to zero and wipes out the credit entirely, for any family size. It is an all-or-nothing choice: max the FSA, or skip it and take the credit."}},{"@type":"Question","name":"Is there an optimal split between the FSA and the credit?","acceptedAnswer":{"@type":"Answer","text":"No. Because each FSA dollar erodes the credit's cap one-for-one, the total benefit is a straight line in the amount you route through the FSA, so the best answer is always a corner: put in as much as you can, or nothing. There is no smooth middle to solve for. The calculator computes both corners exactly and tells you which one nets more."}},{"@type":"Question","name":"Why is a 50% child care credit sometimes worth less than the FSA?","acceptedAnswer":{"@type":"Answer","text":"The Child & Dependent Care Credit is nonrefundable, meaning it can only offset federal income tax you actually owe. At low income — where the standard deduction wipes out most or all of your taxable income — a headline 50% rate can be worth little or nothing because there is barely any tax to cancel. The FSA's payroll savings include Social Security and Medicare (about 7.65%), which come off regardless of your income-tax bill, so the FSA can beat even a 50% credit rate at low income."}},{"@type":"Question","name":"How much can I put in a Dependent Care FSA in 2026?","acceptedAnswer":{"@type":"Answer","text":"Up to $7,500 per tax return ($3,750 if married filing separately — exactly half) for tax year 2026, up from $5,000, under the One Big Beautiful Bill Act. It is a per-return limit, not per person: two working spouses filing jointly share one $7,500, and someone with two employers still gets one $7,500. The change is permanent. Your employer must offer a dependent care assistance plan, and you can only exclude up to the lower-earning spouse's income."}},{"@type":"Question","name":"Can married filing separately claim the Child and Dependent Care Credit?","acceptedAnswer":{"@type":"Answer","text":"Generally no. IRC §21(e)(2) requires married taxpayers to file a joint return to claim the Child & Dependent Care Credit (a narrow exception applies to spouses who lived apart for the last six months of the year and maintained the household). A married-filing-separately filer can still use a Dependent Care FSA, capped at $3,750, so for them the FSA is usually the only lever."}},{"@type":"Question","name":"Are the 2026 dependent care changes permanent?","acceptedAnswer":{"@type":"Answer","text":"Yes. Unlike the One Big Beautiful Bill Act's no-tax-on-tips and no-tax-on-overtime deductions, which sunset after 2028, the dependent care changes — the $7,500 FSA limit and the 50%-to-20% credit schedule — have no expiration date. They take effect for tax years beginning after December 31, 2025."}}]}</script>
 </head>
@@ -68,9 +43,9 @@
         </div>
 
         <div class="field">
-          <label for="agi">Household income (roughly your AGI)</label>
-          <input type="number" id="agi" inputmode="numeric" min="0" step="1000" value="85000">
-          <p class="muted-small" style="margin-top:6px">Roughly Form 1040 line 11 — combined if filing jointly. It sets your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> and the credit's rate, so there's no need to enter a rate. Enter it <strong>before</strong> any FSA; the tool works out the after-FSA figure itself.</p>
+          <label for="agi">Your yearly household income <span class="muted-small">(Form 1040 line 11)</span></label>
+          <input type="text" id="agi" inputmode="decimal" data-money autocomplete="off" value="85000">
+          <p class="muted-small" style="margin-top:6px">This is roughly your AGI, combined if filing jointly. It sets your effective rate and the credit's rate, so there's no need to enter a rate. Enter it <strong>before</strong> any FSA; the tool works out the after-FSA figure itself.</p>
         </div>
 
         <div class="field">
@@ -84,13 +59,13 @@
 
         <div class="field">
           <label for="expenses">Annual dependent-care expenses ($)</label>
-          <input type="number" id="expenses" inputmode="numeric" min="0" step="500" value="6000">
+          <input type="text" id="expenses" inputmode="decimal" data-money autocomplete="off" value="6000">
           <p class="muted-small" style="margin-top:6px">Daycare, after-school care, day camp, a nanny — the care that lets you (and your spouse) work.</p>
         </div>
 
         <div class="field">
           <label for="employerFsa">Max your employer's FSA allows ($)</label>
-          <input type="number" id="employerFsa" inputmode="numeric" min="0" step="250" value="7500">
+          <input type="text" id="employerFsa" inputmode="decimal" data-money autocomplete="off" value="7500">
           <p class="muted-small" style="margin-top:6px">Capped at $7,500 ($3,750 married filing separately). If your employer offers <strong>no</strong> dependent care FSA, set this to <strong>0</strong> and the tool recommends the credit.</p>
         </div>
       </form>
