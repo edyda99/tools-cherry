@@ -4,6 +4,7 @@
 import { compare, TAX_YEAR } from '/assets/employment-tax.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 
 function money(n, max = 0) {
@@ -11,11 +12,14 @@ function money(n, max = 0) {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: max });
 }
 
+// Comma-safe: w2Gross/contractNet carry live thousands separators, so read
+// them through moneyValue (strips separators) rather than a raw parseFloat,
+// which would silently truncate "100,000" to 100. Blank stays NaN (distinct
+// from a typed 0) so calc() can show the "enter a value" prompt.
 function val(id) {
   const raw = $(id).value.trim();
   if (raw === '') return NaN;
-  const n = parseFloat(raw);
-  return Number.isFinite(n) ? n : NaN;
+  return moneyValue($(id));
 }
 
 function setRow(prefix, r, grossId) {
@@ -89,6 +93,7 @@ function calc() {
 }
 
 function init() {
+  initMoneyInputs();
   // Stamp the tax year into the dated-assumptions copy.
   document.querySelectorAll('[data-tax-year]').forEach((el) => { el.textContent = String(TAX_YEAR); });
   document.querySelectorAll('#w2Form input, #w2Form select').forEach((el) =>

@@ -3,6 +3,7 @@
 import { discountBreakdown, percentOffFromPrices } from '/assets/discount.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 const money = (n) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -12,6 +13,9 @@ function update() {
   const percentOff = $('percentOff').value.trim();
   const taxPercent = $('taxPercent').value.trim();
   const quantity = $('quantity').value.trim() || '1';
+  // price carries live thousands separators; read the numeric value through
+  // moneyValue (comma-safe) rather than the raw string below.
+  const priceNum = moneyValue($('price'));
 
   const big = $('resultBig');
   const sub = $('resultSub');
@@ -27,7 +31,7 @@ function update() {
   }
 
   const r = discountBreakdown({
-    price: Number(price),
+    price: priceNum,
     percentOff: Number(percentOff),
     taxPercent: taxPercent ? Number(taxPercent) : 0,
     quantity: Number(quantity)
@@ -71,7 +75,7 @@ function updateReverse() {
     out.textContent = '—';
     return;
   }
-  const pct = percentOffFromPrices(Number(original), Number(sale));
+  const pct = percentOffFromPrices(moneyValue($('rOriginal')), moneyValue($('rSale')));
   if (Number.isNaN(pct)) {
     out.textContent = '—';
     return;
@@ -81,6 +85,7 @@ function updateReverse() {
 }
 
 function init() {
+  initMoneyInputs();
   ['price', 'percentOff', 'taxPercent', 'quantity'].forEach((id) =>
     $(id).addEventListener('input', update)
   );

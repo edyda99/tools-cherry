@@ -54,8 +54,8 @@
     <section class="calc" aria-label="1099 vs W-2 calculator">
       <form id="w2Form" autocomplete="off" onsubmit="return false">
         <div class="field inline">
-          <span><label for="w2Gross">W-2 annual salary ($)</label><input id="w2Gross" type="number" inputmode="decimal" step="any" min="0" value="100000" placeholder="100000"></span>
-          <span><label for="contractNet">1099 contract / net earnings ($)</label><input id="contractNet" type="number" inputmode="decimal" step="any" min="0" value="100000" placeholder="100000"></span>
+          <span><label for="w2Gross">W-2 annual salary ($)</label><input id="w2Gross" type="text" inputmode="decimal" data-money autocomplete="off" value="100000" placeholder="100000"></span>
+          <span><label for="contractNet">1099 contract / net earnings ($)</label><input id="contractNet" type="text" inputmode="decimal" data-money autocomplete="off" value="100000" placeholder="100000"></span>
         </div>
         <div class="field">
           <label for="status">Filing status (for the federal estimate)</label>

@@ -34,7 +34,7 @@
       <form id="tipForm" autocomplete="off" onsubmit="return false">
         <div class="field">
           <label for="bill">Bill amount ($)</label>
-          <input id="bill" type="number" inputmode="decimal" step="any" min="0" value="50" placeholder="50">
+          <input id="bill" type="text" inputmode="decimal" data-money autocomplete="off" value="50" placeholder="50">
         </div>
 
         <div class="field">
@@ -59,7 +59,7 @@
 
         <div class="field">
           <label for="tax">Tax included in the bill (optional, $)</label>
-          <input id="tax" type="number" inputmode="decimal" step="any" min="0" placeholder="0">
+          <input id="tax" type="text" inputmode="decimal" data-money autocomplete="off" placeholder="0">
         </div>
         <div class="field">
           <label class="check"><input id="tipPreTax" type="checkbox"> Tip on the pre-tax amount (bill − tax)</label>
