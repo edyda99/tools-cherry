@@ -20,7 +20,8 @@ memory dir (`MEMORY.md` index loads each session).
 - **Never deploy the pdf-to-word backend** without explicit approval from Edmond. The in-browser
   converter is the default and is unrelated to the backend.
 - Client-side only: no new backend / external server fetch / scaled-thin content for tools
-  (pdf-to-word's optional server path is the sole, already-approved exception).
+  (pdf-to-word's optional server path and the /api/feedback rating widget (D1, approved by Edmond
+  2026-07-17) are the only exceptions).
 - **Workflow:** one branch per feature off `main` → merge to `main` → deploy. No more clone.
 - **Deploy is pre-authorized — no need to ask Edmond.** From `main`: `npm run build`, then
   `npx wrangler pages deploy dist --project-name=tools-cherry` using the stored wrangler OAuth login.

@@ -183,6 +183,24 @@ function injectSearch(html) {
   return out;
 }
 
+// Injects the feedback-widget script on TOOL pages only. Two gates:
+//   1. the shared site <header class="site"> — full site pages only, so the
+//      header-less /embed/ pages are skipped (the widget also self-bails inside
+//      an iframe, but not injecting is cleaner);
+//   2. a tool marker — `class="calc"` (every calculator/converter plus all 51
+//      state paycheck pages and the bonus-tax pages) OR a `<form` (which also
+//      picks up the invoice generator, whose app shell has no `.calc`). Home,
+//      legal/static (prose) pages, data-reference pages, and embeds carry
+//      NEITHER marker, so they never get the widget.
+// The `/assets/feedback-widget.js` path is rewritten to its content-hashed name
+// by the final rewriteHtmlAssetRefs pass (same as /assets/search.js). Idempotent.
+function injectFeedback(html) {
+  if (!html.includes('<header class="site">')) return html;
+  if (!(html.includes('class="calc"') || html.includes('<form'))) return html;
+  if (html.includes('/assets/feedback-widget.js') || !html.includes('</head>')) return html;
+  return html.replace('</head>', '<script defer src="/assets/feedback-widget.js"></script>\n</head>');
+}
+
 // Build date (YYYY-MM-DD) — used for the sitemap's per-URL lastmod default.
 const BUILD_DATE = new Date().toISOString().slice(0, 10);
 
@@ -1002,6 +1020,9 @@ function fill(tpl, map) {
   // Inject the site-wide search trigger + Cmd/Ctrl+K command palette (no-op on
   // header-less pages like embeds).
   out = injectSearch(out);
+  // Inject the "Was this tool helpful?" feedback widget on TOOL pages only
+  // (no-op on home, legal/static, data-reference, and embed pages).
+  out = injectFeedback(out);
   return out;
 }
 
@@ -2770,6 +2791,7 @@ async function main() {
   registerAsset('assets', 'styles.css');
   registerAsset('assets', 'app.js');
   registerAsset('assets', 'search.js'); // global Cmd/Ctrl+K command palette (site-wide)
+  registerAsset('assets', 'feedback-widget.js'); // "Was this tool helpful?" rating toast (tool pages)
   registerAsset('assets', 'money-input.js'); // live thousands separators for $ fields (shared leaf)
   registerAsset('assets', 'invoice.js');
   registerAsset('assets', 'images-to-pdf.js');

@@ -23,6 +23,9 @@ stored by us</strong>. When you close or reload the page, those inputs are gone.
 <p>Like most websites, our hosting provider and analytics may automatically receive standard log
 information (such as your IP address, browser type, referring page, and pages visited). This is
 used to operate, secure, and improve the site.</p>
+<p>If you rate a tool through our optional feedback popup, we store only the tool's name, your star
+rating, any comment you type, and your country — to help us improve the tools; no account is needed
+and your IP address is not stored with it.</p>
 
 <h2>Cookies and advertising</h2>
 <p>We display advertising served by <strong>Google AdSense</strong> to keep our tools free.
