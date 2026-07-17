@@ -40,7 +40,8 @@ function run() {
   }
 }
 
-// Keep the field labels in sync with the chosen direction.
+// Keep the field labels (and the output font) in sync with the chosen direction.
+// Encode output is Base64 data (monospace); decode output is plain text (prose).
 function syncLabels() {
   const mode = document.querySelector('input[name="mode"]:checked').value;
   $('inputLabel').textContent = mode === 'encode' ? 'Text to encode' : 'Base64 to decode';
@@ -48,6 +49,7 @@ function syncLabels() {
   $('input').placeholder = mode === 'encode'
     ? 'Type or paste text…'
     : 'Paste Base64 here…';
+  $('output').classList.toggle('code-out', mode === 'encode');
 }
 
 async function copyOut() {
