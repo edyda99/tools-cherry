@@ -12,6 +12,17 @@ compatibility_date = "2026-06-14"
 binding = "RATE_KV"
 id = "51c0baaa244545629501938f4eda51f7"
 
+# --- Feedback rating widget (functions/api/feedback.js) ----------------------
+# D1 database backing the "Was this tool helpful?" toast. The `feedback` table
+# (id, ts, tool, rating, comment, country) already exists. Create the DB once:
+#   npx wrangler d1 create tb_feedback
+# then paste the printed database_id below. `wrangler pages dev` uses a local
+# SQLite store automatically, so no id is needed for local development.
+[[d1_databases]]
+binding = "FEEDBACK_DB"
+database_name = "tb_feedback"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
 # Non-secret tunables. GLOBAL_DAILY_CAP keeps total AWS usage inside the Lambda
 # free tier (400k GB-s/mo); at the cap the server path returns "daily limit
 # reached" and never invokes Lambda. Secrets (TURNSTILE_SECRET, ID_HMAC_SECRET,
