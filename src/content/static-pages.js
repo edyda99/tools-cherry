@@ -26,6 +26,10 @@ used to operate, secure, and improve the site.</p>
 <p>If you rate a tool through our optional feedback popup, we store only the tool's name, your star
 rating, any comment you type, and your country — to help us improve the tools; no account is needed
 and your IP address is not stored with it.</p>
+<p>If you use the "Report a wrong result" link on a tool, we store the tool's name, the comment you
+type, and — so we can actually reproduce the problem — the input values and the result text shown on
+the page at the moment you report it, along with your country. This too needs no account, and your
+IP address is not stored with it.</p>
 
 <h2>Cookies and advertising</h2>
 <p>We display advertising served by <strong>Google AdSense</strong> to keep our tools free.
