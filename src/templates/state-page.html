@@ -47,7 +47,7 @@
         </div>
         <div class="field">
           <label for="amount">Gross pay (USD)</label>
-          <input id="amount" type="number" inputmode="decimal" min="0" step="any" value="60000" placeholder="60000">
+          <input id="amount" type="text" inputmode="decimal" data-money autocomplete="off" value="60000" placeholder="60000">
         </div>
         <div class="field" id="hoursField" style="display:none">
           <label for="hours">Hours per week</label>
@@ -77,23 +77,23 @@
           <p class="adv-hint">Enter annual amounts. Leave at 0 if they don't apply.</p>
           <div class="field">
             <label for="retirement401k">401(k) / 403(b) contribution (per year)</label>
-            <input id="retirement401k" type="number" inputmode="decimal" min="0" step="any" value="0">
+            <input id="retirement401k" type="text" inputmode="decimal" data-money autocomplete="off" value="0">
           </div>
           <div class="field">
             <label for="cafeteria125">HSA / FSA + health premiums (per year)</label>
-            <input id="cafeteria125" type="number" inputmode="decimal" min="0" step="any" value="0">
+            <input id="cafeteria125" type="text" inputmode="decimal" data-money autocomplete="off" value="0">
           </div>
           <div class="field">
             <label for="dependentsCredit">Dependent / W-4 tax credits (per year)</label>
-            <input id="dependentsCredit" type="number" inputmode="decimal" min="0" step="any" value="0" placeholder="e.g. 2000 per child">
+            <input id="dependentsCredit" type="text" inputmode="decimal" data-money autocomplete="off" value="0" placeholder="e.g. 2000 per child">
           </div>
           <div class="field">
             <label for="extraWithholding">Extra federal withholding (per year)</label>
-            <input id="extraWithholding" type="number" inputmode="decimal" min="0" step="any" value="0">
+            <input id="extraWithholding" type="text" inputmode="decimal" data-money autocomplete="off" value="0">
           </div>
           <div class="field">
             <label for="postTax">Post-tax deductions (per year)</label>
-            <input id="postTax" type="number" inputmode="decimal" min="0" step="any" value="0">
+            <input id="postTax" type="text" inputmode="decimal" data-money autocomplete="off" value="0">
           </div>
         </fieldset>
       </form>

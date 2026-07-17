@@ -8,6 +8,7 @@ import {
 } from '/assets/percentage-math.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 
 // Format a number for display: thousands separators, up to 2 decimals, no
@@ -86,20 +87,22 @@ function calc() {
     line1v.textContent = (diff > 0 ? '+' : '') + fmt(diff);
   } else if (mode === 'discount') {
     if (isBlank('dcPrice') || isBlank('dcOff')) return;
-    const { final, saved } = discount($('dcPrice').value, $('dcOff').value);
+    const dcPrice = moneyValue($('dcPrice'));
+    const { final, saved } = discount(dcPrice, $('dcOff').value);
     if (!Number.isFinite(final)) return;
     big.textContent = money(final);
     sub.textContent = `Final price after ${fmt(parseFloat($('dcOff').value))}% off`;
     line1.hidden = false;
     line2.hidden = false;
     line1v.previousElementSibling.textContent = 'Original price';
-    line1v.textContent = money(parseFloat($('dcPrice').value));
+    line1v.textContent = money(dcPrice);
     line2v.previousElementSibling.textContent = 'You save';
     line2v.textContent = money(saved);
   }
 }
 
 function init() {
+  initMoneyInputs();
   $('mode').addEventListener('change', () => showMode($('mode').value));
   // live update on any input within the calculator form
   document.querySelectorAll('#pctForm input').forEach((el) =>

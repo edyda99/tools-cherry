@@ -3,6 +3,7 @@
 import { splitBill } from '/assets/tip-math.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 
 function money(n) {
@@ -50,11 +51,11 @@ function calc() {
 
   const people = parseInt($('people').value, 10);
   const r = splitBill({
-    bill: $('bill').value,
+    bill: moneyValue($('bill')),
     tipPercent: $('tipPercent').value,
     people: $('people').value,
     roundUp: $('roundUp').checked,
-    tax: $('tax').value,
+    tax: moneyValue($('tax')),
     tipOnPreTax: $('tipPreTax').checked
   });
 
@@ -90,6 +91,7 @@ function stepPeople(delta) {
 }
 
 function init() {
+  initMoneyInputs();
   document.querySelectorAll('#tipForm input').forEach((el) =>
     el.addEventListener('input', calc)
   );

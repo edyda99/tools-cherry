@@ -8,6 +8,7 @@ import {
 } from '/assets/inflation.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 
 const CPI = (typeof window !== 'undefined' && window.__CPI_US__) || { data: {} };
@@ -66,7 +67,7 @@ function calc() {
 
   if (isBlank('amount')) return;
 
-  const amount = parseFloat($('amount').value);
+  const amount = moneyValue($('amount'));
   const yFrom = parseInt($('fromYear').value, 10);
   const yTo = parseInt($('toYear').value, 10);
   const cpiFrom = CPI_DATA[String(yFrom)];
@@ -103,6 +104,7 @@ function calc() {
 }
 
 function init() {
+  initMoneyInputs();
   const range = fillYears();
   if (range.min != null) {
     const note = $('rangeNote');

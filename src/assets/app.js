@@ -4,6 +4,7 @@
 import { computePaycheck, PAY_PERIODS, federalBracketBreakdown } from '/assets/paycheck-engine.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const taxData = window.__TAX_DATA__;
 const stateSlug = window.__STATE_SLUG__;
 
@@ -15,7 +16,10 @@ const pct = (n) => (n * 100).toFixed(1) + '%';
 const ratePct = (n) => (+(n * 100).toFixed(1)).toString() + '%'; // 0.10 -> "10%", 0.105 -> "10.5%"
 
 const $ = (id) => document.getElementById(id);
-const num = (id) => parseFloat($(id).value) || 0;
+// Comma-safe: the advanced-mode deduction fields carry live thousands
+// separators, so read them through moneyValue rather than a raw parseFloat,
+// which would silently truncate "2,000" to 2.
+const num = (id) => moneyValue($(id)) || 0;
 
 function currentMode() {
   const checked = document.querySelector('input[name="mode"]:checked');
@@ -29,7 +33,7 @@ function currentView() {
 
 function readForm() {
   const wageType = $('wageType').value; // 'salary' | 'hourly'
-  const amount = parseFloat($('amount').value) || 0;
+  const amount = moneyValue($('amount')) || 0;
   const hoursPerWeek = parseFloat($('hours').value) || 40;
   const input = {
     wage: { type: wageType, amount, hoursPerWeek },
@@ -189,6 +193,7 @@ function applyMode() {
 }
 
 function init() {
+  initMoneyInputs();
   ['wageType', 'amount', 'hours', 'filingStatus', 'payFrequency',
    'retirement401k', 'cafeteria125', 'dependentsCredit', 'extraWithholding', 'postTax']
     .forEach((id) => {

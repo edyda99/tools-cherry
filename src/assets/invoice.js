@@ -1,4 +1,5 @@
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 // invoice.js — client-side invoice builder + PDF export (jsPDF, loaded globally).
 // No network: inputs stay in the browser, PDF is generated locally.
 
@@ -134,9 +135,12 @@ function itemRow(desc = '', qty = '1', rate = '0') {
   row.innerHTML =
     `<input class="d" placeholder="Description" aria-label="Line item description" value="${attr(desc)}">` +
     `<input class="q" type="number" min="0" step="any" aria-label="Quantity" value="${attr(qty)}">` +
-    `<input class="r" type="number" min="0" step="any" aria-label="Rate" value="${attr(rate)}">` +
+    `<input class="r" type="text" inputmode="decimal" data-money autocomplete="off" aria-label="Rate" value="${attr(rate)}">` +
     `<input class="a" value="0.00" readonly tabindex="-1" aria-label="Line total">` +
     `<button type="button" class="rm" title="Remove" aria-label="Remove line item">×</button>`;
+  // The rate field is created dynamically per row, so bind live thousands
+  // separators on this row now rather than waiting for a document-wide init.
+  initMoneyInputs(row);
   row.querySelector('.rm').addEventListener('click', () => { row.remove(); render(); });
   row.querySelectorAll('input').forEach((el) => el.addEventListener('input', render));
   return row;
@@ -146,7 +150,10 @@ function readItems() {
   return [...document.querySelectorAll('#items .item-row')].map((row) => {
     const desc = row.querySelector('.d').value;
     const qty = parseFloat(row.querySelector('.q').value) || 0;
-    const rate = parseFloat(row.querySelector('.r').value) || 0;
+    // Comma-safe: the rate field carries live thousands separators, so read it
+    // through moneyValue rather than a raw parseFloat, which would silently
+    // truncate "1,500" to 1.
+    const rate = moneyValue(row.querySelector('.r'));
     const amount = qty * rate;
     row.querySelector('.a').value = amount.toFixed(2);
     return { desc, qty, rate, amount };
@@ -159,7 +166,7 @@ function totals(items) {
   const taxMode = ($('taxMode') && $('taxMode').value) || 'percent';
   const discVal = parseFloat($('discount').value) || 0;
   const discMode = ($('discountMode') && $('discountMode').value) || 'flat';
-  const shipping = ($('shipping') && parseFloat($('shipping').value)) || 0;
+  const shipping = ($('shipping') && moneyValue($('shipping'))) || 0;
 
   // Tax can be a percentage of the subtotal or a flat figure.
   const tax = taxMode === 'percent' ? subtotal * (taxVal / 100) : taxVal;
@@ -168,7 +175,7 @@ function totals(items) {
   // Shipping is added after tax/discount (a flat pass-through charge, untaxed).
   const total = Math.max(0, subtotal + tax - discount + shipping);
   // Amount already paid (e.g. a deposit); balance due is what's still owed.
-  const amountPaid = ($('amountPaid') && parseFloat($('amountPaid').value)) || 0;
+  const amountPaid = ($('amountPaid') && moneyValue($('amountPaid'))) || 0;
   const balanceDue = total - amountPaid;
 
   const taxLabel = taxMode === 'percent' ? `Tax (${taxVal}%)` : 'Tax';
@@ -583,6 +590,12 @@ function init() {
   // Restore the lightweight business profile (identity + logo + brand) so it is
   // present even on a device that has the profile but not a full saved invoice.
   loadProfile();
+
+  // Bind shipping/amountPaid (static money fields) now that any restored
+  // values are in place, so a returning visitor's saved figures reformat with
+  // live thousands separators on load. Line-item rate fields (dynamic, one
+  // per row) are bound individually inside itemRow() as each row is created.
+  initMoneyInputs();
 
   $('addItem').addEventListener('click', () => { items.appendChild(itemRow()); render(); });
   ['docType', 'bizName', 'bizDetails', 'cliName', 'cliDetails', 'shipDetails', 'invNo', 'poNumber', 'currency', 'taxRate', 'taxMode', 'discount', 'discountMode', 'shipping', 'amountPaid', 'brandColor', 'notes']

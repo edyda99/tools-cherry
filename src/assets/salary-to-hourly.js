@@ -9,6 +9,7 @@ import {
 } from '/assets/wage.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 
 function money(n) {
@@ -65,9 +66,9 @@ function calc() {
   // Always derive the annual salary first, then a single breakdown drives all rows.
   let annual;
   if (mode === 'salaryToHourly') {
-    annual = parseFloat($('amount').value);
+    annual = moneyValue($('amount'));
   } else {
-    annual = hourlyToSalary($('amount').value, hoursPerWeek, weeks);
+    annual = hourlyToSalary(moneyValue($('amount')), hoursPerWeek, weeks);
   }
   if (!Number.isFinite(annual) || annual <= 0) {
     sub.textContent = 'Enter an amount greater than zero.';
@@ -99,6 +100,7 @@ function fmt(n) {
 }
 
 function init() {
+  initMoneyInputs();
   $('mode').addEventListener('change', () => showMode($('mode').value));
   document.querySelectorAll('#wageForm input').forEach((el) =>
     el.addEventListener('input', calc)

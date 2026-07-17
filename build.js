@@ -2770,6 +2770,7 @@ async function main() {
   registerAsset('assets', 'styles.css');
   registerAsset('assets', 'app.js');
   registerAsset('assets', 'search.js'); // global Cmd/Ctrl+K command palette (site-wide)
+  registerAsset('assets', 'money-input.js'); // live thousands separators for $ fields (shared leaf)
   registerAsset('assets', 'invoice.js');
   registerAsset('assets', 'images-to-pdf.js');
   registerAsset('assets', 'pdf-to-word.js');

@@ -3,6 +3,7 @@
 import { addTax, removeTax } from '/assets/sales-tax.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 
 function money(n) {
@@ -58,7 +59,7 @@ function calc() {
 
   if (mode === 'add') {
     if (isBlank('addPrice') || isBlank('addRate')) return;
-    const r = addTax($('addPrice').value, $('addRate').value);
+    const r = addTax(moneyValue($('addPrice')), $('addRate').value);
     if (!Number.isFinite(r.total)) return;
     big.textContent = money(r.total);
     sub.textContent = `Total with ${fmtRate(parseFloat($('addRate').value))}% sales tax`;
@@ -70,7 +71,7 @@ function calc() {
     line2v.textContent = money(r.tax);
   } else if (mode === 'remove') {
     if (isBlank('remTotal') || isBlank('remRate')) return;
-    const r = removeTax($('remTotal').value, $('remRate').value);
+    const r = removeTax(moneyValue($('remTotal')), $('remRate').value);
     if (!Number.isFinite(r.price)) {
       sub.textContent = 'Enter a valid tax rate.';
       return;
@@ -87,6 +88,7 @@ function calc() {
 }
 
 function init() {
+  initMoneyInputs();
   document.querySelectorAll('.unit-toggle button').forEach((b) =>
     b.addEventListener('click', () => showMode(b.dataset.mode))
   );

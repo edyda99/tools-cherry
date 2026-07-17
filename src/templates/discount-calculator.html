@@ -34,7 +34,7 @@
       <form id="discountForm" autocomplete="off" onsubmit="return false">
         <div class="field">
           <label for="price">Original price ($)</label>
-          <input id="price" type="number" inputmode="decimal" step="any" min="0" value="80" placeholder="80" autofocus>
+          <input id="price" type="text" inputmode="decimal" data-money autocomplete="off" value="80" placeholder="80" autofocus>
         </div>
 
         <div class="field">
@@ -79,11 +79,11 @@
       <form id="reverseForm" autocomplete="off" onsubmit="return false">
         <div class="field">
           <label for="rOriginal">Original price ($)</label>
-          <input id="rOriginal" type="number" inputmode="decimal" step="any" min="0" placeholder="80">
+          <input id="rOriginal" type="text" inputmode="decimal" data-money autocomplete="off" placeholder="80">
         </div>
         <div class="field">
           <label for="rSale">Sale price ($)</label>
-          <input id="rSale" type="number" inputmode="decimal" step="any" min="0" placeholder="60">
+          <input id="rSale" type="text" inputmode="decimal" data-money autocomplete="off" placeholder="60">
         </div>
         <div class="results" aria-live="polite">
           <div class="line"><span class="lbl">Discount</span><span id="reverseOut">—</span></div>

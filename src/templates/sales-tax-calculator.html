@@ -39,14 +39,14 @@
       <form id="taxForm" autocomplete="off" onsubmit="return false">
         <div data-group="add">
           <div class="field inline">
-            <span><label for="addPrice">Pre-tax price ($)</label><input id="addPrice" type="number" inputmode="decimal" step="any" min="0" value="100" placeholder="100"></span>
+            <span><label for="addPrice">Pre-tax price ($)</label><input id="addPrice" type="text" inputmode="decimal" data-money autocomplete="off" value="100" placeholder="100"></span>
             <span><label for="addRate">Sales tax rate (%)</label><input id="addRate" type="number" inputmode="decimal" step="any" min="0" value="8.25" placeholder="8.25"></span>
           </div>
         </div>
 
         <div data-group="remove" hidden>
           <div class="field inline">
-            <span><label for="remTotal">Total price with tax ($)</label><input id="remTotal" type="number" inputmode="decimal" step="any" min="0" value="108.25" placeholder="108.25"></span>
+            <span><label for="remTotal">Total price with tax ($)</label><input id="remTotal" type="text" inputmode="decimal" data-money autocomplete="off" value="108.25" placeholder="108.25"></span>
             <span><label for="remRate">Sales tax rate (%)</label><input id="remRate" type="number" inputmode="decimal" step="any" min="0" value="8.25" placeholder="8.25"></span>
           </div>
         </div>
