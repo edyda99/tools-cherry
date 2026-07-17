@@ -12,6 +12,17 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Scoped extras for the amortization table — uses the shared theme vars. */
+  .amort-summary { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin: 18px 0; font-size: 15.5px; line-height: 1.55; }
+  details.amort { margin: 4px 0 8px; }
+  details.amort > summary { cursor: pointer; font-weight: 600; color: var(--text); padding: 8px 0; }
+  .amort-table-wrap { overflow-x: auto; }
+  table.amort-table { width: 100%; border-collapse: collapse; margin: 8px 0 0; font-size: 14px; }
+  table.amort-table th, table.amort-table td { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  table.amort-table th:first-child, table.amort-table td:first-child { text-align: left; }
+  table.amort-table th { color: var(--muted); font-weight: 600; }
+</style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"401(k) Retirement Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Project your 401(k) retirement savings from your age, salary, contribution percentage, employer match and expected return, with a year-by-year breakdown."}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How does a 401(k) employer match work?","acceptedAnswer":{"@type":"Answer","text":"An employer match means your company adds money to your 401(k) based on what you contribute. A common match is 100% of your contributions up to a cap, such as 6% of your salary. If you earn $60,000 and contribute at least 6%, the employer adds 6% of $60,000 — $3,600 — on top of your own contributions."}},{"@type":"Question","name":"How much should I contribute to my 401(k)?","acceptedAnswer":{"@type":"Answer","text":"A common guideline is to contribute at least enough to get the full employer match, since that match is free money. Many people aim for 10% to 15% of salary including the match. Enter different percentages above to see the long-term impact on your projected balance."}},{"@type":"Question","name":"What return should I assume for a 401(k)?","acceptedAnswer":{"@type":"Answer","text":"Historical long-term stock-market returns have averaged roughly 7% to 10% a year before inflation, but returns vary year to year and are never guaranteed. A 6% to 7% assumption is a common, moderately conservative estimate for projections."}},{"@type":"Question","name":"Does this 401(k) calculator account for salary growth?","acceptedAnswer":{"@type":"Answer","text":"Yes. You can enter an optional annual salary growth percentage, and the calculator increases your salary each year. Because your contributions and employer match are a percentage of salary, both grow as your salary does."}},{"@type":"Question","name":"How is the projected balance calculated?","acceptedAnswer":{"@type":"Answer","text":"Each year, your contribution and employer match are added to the balance, and the whole balance earns your expected annual return. This repeats every year from your current age to your retirement age, compounding the growth — exactly what the year-by-year table shows."}}]}</script>
 </head>

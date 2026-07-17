@@ -12,6 +12,17 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Scoped extras for the amortization table — uses the shared theme vars. */
+  .amort-summary { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin: 18px 0; font-size: 15.5px; line-height: 1.55; }
+  details.amort { margin: 4px 0 8px; }
+  details.amort > summary { cursor: pointer; font-weight: 600; color: var(--text); padding: 8px 0; }
+  .amort-table-wrap { overflow-x: auto; }
+  table.amort-table { width: 100%; border-collapse: collapse; margin: 8px 0 0; font-size: 14px; }
+  table.amort-table th, table.amort-table td { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  table.amort-table th:first-child, table.amort-table td:first-child { text-align: left; }
+  table.amort-table th { color: var(--muted); font-weight: 600; }
+</style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Compound Interest Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Project how savings and investments grow with compound interest, including regular monthly or yearly contributions, with a year-by-year breakdown."}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is compound interest?","acceptedAnswer":{"@type":"Answer","text":"Compound interest is interest earned on both your original money and on the interest it has already earned. Because each period's interest is added to the balance, the balance grows faster over time than with simple interest."}},{"@type":"Question","name":"How is compound interest calculated?","acceptedAnswer":{"@type":"Answer","text":"The future value of a starting amount is principal × (1 + r/n)^(n×t), where r is the annual rate, n is the number of times interest compounds per year, and t is the number of years. Regular deposits are added each period and earn interest from then on. This calculator adds both together."}},{"@type":"Question","name":"What is the difference between simple and compound interest?","acceptedAnswer":{"@type":"Answer","text":"Simple interest is paid only on the original amount, so it grows in a straight line. Compound interest is paid on the original amount plus accumulated interest, so the balance grows faster and faster over time."}},{"@type":"Question","name":"How much will $10,000 grow in 20 years?","acceptedAnswer":{"@type":"Answer","text":"At 7% a year compounded monthly, $10,000 with no further deposits grows to roughly $40,000 in 20 years. Adding regular deposits raises that figure substantially. Enter your own numbers above to see the exact total."}},{"@type":"Question","name":"Does the deposit timing matter?","acceptedAnswer":{"@type":"Answer","text":"Slightly. Deposits made at the start of each period earn one extra period of interest compared with deposits made at the end, so the start-of-period option gives a marginally higher balance."}}]}</script>
 </head>

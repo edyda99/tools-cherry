@@ -3,6 +3,7 @@
 import { fuelCost } from '/assets/fuel-cost.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 
 function money(n) {
@@ -58,7 +59,8 @@ function calc() {
   const r = fuelCost({
     distance: $('distance').value,
     mpg: $('mpg').value,
-    pricePerGallon: $('price').value,
+    // price is a money field — read comma-safe so "1,250" isn't truncated to 1.
+    pricePerGallon: moneyValue($('price')),
     roundTrip,
     people
   });
@@ -93,9 +95,10 @@ function syncSplit() {
 }
 
 function init() {
+  initMoneyInputs();
   $('roundTrip').addEventListener('change', calc);
   $('split').addEventListener('change', syncSplit);
-  document.querySelectorAll('#gasForm input[type="number"]').forEach((el) =>
+  document.querySelectorAll('#gasForm input[type="number"], #gasForm input[data-money]').forEach((el) =>
     el.addEventListener('input', calc)
   );
   syncSplit();
