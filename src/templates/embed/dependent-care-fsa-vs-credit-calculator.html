@@ -12,27 +12,6 @@
   body { margin: 0; padding: 14px; background: transparent; }
   .embed-wrap { max-width: 560px; margin: 0 auto; }
   .embed-wrap h1 { font-size: 1.25rem; margin: 0 0 10px; }
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.05rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; }
-  .obbba-note { font-size:.82rem; opacity:.85; margin-top:8px; }
-  .phaseout-flag { color:#b26b00; font-weight:600; }
-  .ineligible-flag { color:#b23a00; font-weight:600; }
-  .takeaway { margin-top:12px; padding:10px 12px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.82rem; }
-  .dc-rec { margin:4px 0 12px; padding:12px 14px; border-radius:10px; border:1px solid rgba(128,128,128,.28); }
-  .dc-rec.rec-fsa { border-left:5px solid #2f6f4f; background:rgba(47,111,79,.09); }
-  .dc-rec.rec-credit { border-left:5px solid #2a5d8f; background:rgba(42,93,143,.09); }
-  .dc-rec-tag { font-size:.7rem; text-transform:uppercase; letter-spacing:.08em; font-weight:700; opacity:.7; }
-  .dc-rec-head { font-size:1.1rem; font-weight:800; margin:2px 0 4px; }
-  .dc-rec-sub { font-size:.85rem; opacity:.9; }
-  .dc-cols { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  @media (max-width:520px){ .dc-cols { grid-template-columns:1fr; } }
-  .dc-col { padding:10px 12px; border:1px solid rgba(128,128,128,.22); border-radius:10px; }
-  .dc-col.dc-win { border-color:#2f6f4f; box-shadow:0 0 0 1px #2f6f4f inset; }
-  .dc-col-head { font-weight:700; margin-bottom:6px; font-size:.92rem; }
-  .dc-badge { font-size:.68rem; background:#2f6f4f; color:#fff; padding:1px 6px; border-radius:20px; vertical-align:middle; }
-  .dc-delta { margin-top:12px; }
-  .dc-breakeven { margin-top:12px; padding:10px 12px; border-left:4px solid #6b6b6b; border-radius:8px; background:rgba(128,128,128,.08); font-size:.82rem; }
   .embed-credit { margin-top:14px; text-align:center; font-size:.85rem; opacity:.9; }
 </style>
 </head>
@@ -51,8 +30,8 @@
         </select>
       </div>
       <div class="field">
-        <label for="agi">Household income (roughly your AGI)</label>
-        <input type="number" id="agi" inputmode="numeric" min="0" step="1000" value="85000">
+        <label for="agi">Your yearly household income <span class="muted-small">(Form 1040 line 11)</span></label>
+        <input type="text" id="agi" inputmode="decimal" data-money autocomplete="off" value="85000">
         <p class="muted-small" style="margin-top:6px">Before any FSA — combined if filing jointly.</p>
       </div>
       <div class="field">
@@ -64,11 +43,11 @@
       </div>
       <div class="field">
         <label for="expenses">Annual dependent-care expenses ($)</label>
-        <input type="number" id="expenses" inputmode="numeric" min="0" step="500" value="6000">
+        <input type="text" id="expenses" inputmode="decimal" data-money autocomplete="off" value="6000">
       </div>
       <div class="field">
         <label for="employerFsa">Max your employer's FSA allows ($)</label>
-        <input type="number" id="employerFsa" inputmode="numeric" min="0" step="250" value="7500">
+        <input type="text" id="employerFsa" inputmode="decimal" data-money autocomplete="off" value="7500">
         <p class="muted-small" style="margin-top:6px">Capped at $7,500 ($3,750 MFS). No plan? Set to 0.</p>
       </div>
     </form>

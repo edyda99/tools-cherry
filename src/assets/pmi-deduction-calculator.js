@@ -12,6 +12,7 @@
 // plus the dollar gap to itemizing) rather than implying a benefit that isn't
 // there.
 import { mipComparison } from '/assets/obbba-deduction.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
@@ -22,9 +23,11 @@ const usd = (n) => '$' + Math.round(Math.max(0, n || 0)).toLocaleString('en-US')
 const usd2 = (n) => '$' + Math.max(0, n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const pct = (n) => (Math.max(0, n || 0) * 100).toFixed(1) + '%';
 
+// Comma-safe: money fields carry live thousands separators, so read them
+// through moneyValue (strips separators) rather than a raw parseFloat, which
+// would silently truncate "28,000" to 28.
 function num(id) {
-  const v = parseFloat($(id).value);
-  return Number.isFinite(v) ? v : 0;
+  return moneyValue($(id));
 }
 
 const VA_USDA_TYPES = new Set(['va', 'usda']);
@@ -80,9 +83,19 @@ function render() {
   });
 
   if (!contract2007) {
+    const statCard =
+      `<div class="stat-card">` +
+        `<p class="stat-kicker">Federal tax saved by the PMI deduction</p>` +
+        `<p class="stat-value is-zero">$0</p>` +
+        `<p class="stat-sub">Not eligible: only mortgage insurance contracts issued after December 31, 2006 qualify for this deduction. A pre-2007 contract gets $0, no matter your income.</p>` +
+      `</div>`;
+    const derivation =
+      `<details class="derivation"><summary>See how this was calculated</summary>` +
+        `<div class="line big"><span>Qualifying mortgage insurance premium</span><span class="num">$0</span></div>` +
+      `</details>`;
     $('out').innerHTML =
-      `<div class="line big"><span>Qualifying mortgage insurance premium</span><span class="num">$0</span></div>` +
-      `<div class="obbba-note ineligible-flag">Not eligible: only mortgage insurance contracts issued after December 31, 2006 qualify for this deduction. A pre-2007 contract gets $0, no matter your income.</div>` +
+      statCard +
+      derivation +
       `<div class="takeaway">This restriction was never repealed — it's still part of the law today, unchanged since 2006.</div>`;
     return;
   }
@@ -120,16 +133,49 @@ function render() {
   // --- Federal tax saved -------------------------------------------------------
   const savings = r.taxSaved > 0
     ? `<div class="line big"><span>Federal income tax this saves you</span><span class="num">${usd(r.taxSaved)}</span></div>` +
-      `<div class="obbba-note">That's ${usd(r.deductionBenefit)} of incremental deduction at your marginal federal rate (about ${pct(r.marginalRate)}). A deduction lowers taxable income, not your tax bill dollar-for-dollar.</div>`
+      `<div class="obbba-note">${usd(r.deductionBenefit)} of incremental deduction, worth ${usd(r.taxSaved)} at the effective federal rate on this deduction (${pct(r.marginalRate)}). A deduction lowers taxable income, not your tax bill dollar-for-dollar.</div>`
     : `<div class="line big"><span>Federal income tax this saves you</span><span class="num">$0</span></div>` +
       `<div class="obbba-note ineligible-flag">${zeroReason(r)}</div>`;
 
-  $('out').innerHTML =
-    buildup +
-    phaseoutBlock +
-    verdict +
-    savings +
+  // ---- Answer-first summary (stat card) --------------------------------
+  const benefits = r.taxSaved > 0;
+  const statValue = benefits ? usd(r.taxSaved) : '$0';
+  const statSub = benefits
+    ? `Your ${usd2(r.deduction)} deductible premium is claimed on Schedule A.`
+    : zeroReason(r); // the "why" stays visible, never hidden in details
+  const statCard =
+    `<div class="stat-card">` +
+      `<p class="stat-kicker">Federal tax saved by the PMI deduction</p>` +
+      `<p class="stat-value${benefits ? '' : ' is-zero'}">${statValue}</p>` +
+      `<p class="stat-sub">${statSub}</p>` +
+    `</div>`;
+
+  // ---- One headline caveat shown OUTSIDE the details ---------------------
+  const headlineCaveat = (benefits && r.phasedOut && !r.fullyPhasedOut)
+    ? `<div class="obbba-note phaseout-flag">Heads up: your AGI is over the $${r.threshold.toLocaleString('en-US')} threshold, so the phaseout trims your deduction to ${usd2(r.deduction)} (see the breakdown for the math).</div>`
+    : '';
+
+  // ---- Full derivation, moved VERBATIM into a collapsed panel -----------
+  const derivation =
+    `<details class="derivation"><summary>See how this was calculated</summary>` +
+      buildup +
+      phaseoutBlock +
+      verdict +
+      savings +
+    `</details>`;
+
+  const out = $('out');
+  const prevDetails = out.querySelector('details.derivation');
+  const wasOpen = prevDetails ? prevDetails.open : false;
+
+  out.innerHTML =
+    statCard +
+    headlineCaveat +
+    derivation +
     `<div class="takeaway">In plain terms: this only helps if itemizing beats your standard deduction, and only up to $109,000 AGI ($54,500 married filing separately). Past that, or if you take the standard deduction, the premiums you paid are real but produce no extra federal tax saving.</div>`;
+
+  const newDetails = out.querySelector('details.derivation');
+  if (newDetails) newDetails.open = wasOpen;
 }
 
 function zeroReason(r) {
@@ -146,6 +192,7 @@ function zeroReason(r) {
 }
 
 function init() {
+  initMoneyInputs();
   ['filing', 'agi', 'miType', 'recurring', 'upfront', 'closingMonth', 'termMonths', 'contract2007', 'other'].forEach((id) => {
     $(id).addEventListener('input', render);
     $(id).addEventListener('change', render);

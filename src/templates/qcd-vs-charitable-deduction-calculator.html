@@ -12,34 +12,6 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
-<style>
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; }
-  .obbba-note { font-size:.9rem; opacity:.85; margin-top:8px; }
-  .phaseout-flag { color:#b26b00; font-weight:600; }
-  .ineligible-flag { color:#b23a00; font-weight:600; }
-  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
-  .mythbust h2 { margin-top:0; }
-  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
-  .qcd-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  @media (max-width:520px){ .qcd-row { grid-template-columns:1fr; } }
-  .dc-rec { margin:4px 0 14px; padding:14px 16px; border-radius:10px; border:1px solid rgba(128,128,128,.28); }
-  .dc-rec.rec-qcd { border-left:5px solid #2f6f4f; background:rgba(47,111,79,.09); }
-  .dc-rec.rec-info { border-left:5px solid #b26b00; background:rgba(178,107,0,.09); }
-  .dc-rec-tag { font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; font-weight:700; opacity:.7; }
-  .dc-rec-head { font-size:1.2rem; font-weight:800; margin:2px 0 4px; }
-  .dc-rec-sub { font-size:.92rem; opacity:.9; }
-  .dc-cols { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-  @media (max-width:560px){ .dc-cols { grid-template-columns:1fr; } }
-  .dc-col { padding:12px 14px; border:1px solid rgba(128,128,128,.22); border-radius:10px; }
-  .dc-col.dc-win { border-color:#2f6f4f; box-shadow:0 0 0 1px #2f6f4f inset; }
-  .dc-col-head { font-weight:700; margin-bottom:6px; }
-  .dc-badge { font-size:.72rem; background:#2f6f4f; color:#fff; padding:1px 7px; border-radius:20px; vertical-align:middle; }
-  .dc-badge.dc-badge-tie { background:#6b6b6b; }
-  .dc-delta { margin-top:12px; }
-  .dc-breakeven { margin-top:12px; padding:11px 14px; border-left:4px solid #6b6b6b; border-radius:8px; background:rgba(128,128,128,.08); font-size:.92rem; }
-</style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"QCD vs. Charitable Deduction Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Compare a Qualified Charitable Distribution (QCD, IRC §408(d)(8)) — up to $111,000 in 2026, sent directly from a traditional IRA trustee to a public charity and excluded entirely from gross income — against taking the same IRA distribution as taxable income and claiming a charitable deduction under the 2026 charitable-giving rules (the §170(p) non-itemizer cap, the 0.5%-of-AGI floor, and the §68 top-bracket haircut). Shows AGI and federal income tax on both paths side by side, flags the age-70½ eligibility gate (distinct from the RMD age of 73), and correctly notes the case — gifts at or below the §170(p) $1,000/$2,000 cap — where the two paths tie on federal income tax."}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How old do I have to be to do a QCD?","acceptedAnswer":{"@type":"Answer","text":"You must have attained age 70½ on the date of the distribution (IRC §408(d)(8)(B)). That is roughly 2.5 years before Required Minimum Distributions (RMDs) begin at age 73 under SECURE 2.0 — the two ages are unrelated, and mixing them up is the single most common QCD misconception."}},{"@type":"Question","name":"Does a Qualified Charitable Distribution lower my AGI?","acceptedAnswer":{"@type":"Answer","text":"Yes, entirely. Under IRC §408(d)(8)(A), a QCD 'shall not be includible in gross income' — it never enters your adjusted gross income at all. That is different from a charitable deduction, which is subtracted from income you already recognized. A lower AGI can also help with Medicare IRMAA surcharges, how much of your Social Security benefit is taxed, and the 3.8% Net Investment Income Tax threshold."}},{"@type":"Question","name":"Do I also get a charitable deduction for a QCD?","acceptedAnswer":{"@type":"Answer","text":"No. Since the QCD amount was never included in your income in the first place, you can't also deduct it on Schedule A — that would be a double benefit. Pub 590-B is explicit: 'You can't claim a charitable contribution deduction for any QCD not included in your income.'"}},{"@type":"Question","name":"Is a QCD always better than taking the distribution and deducting it?","acceptedAnswer":{"@type":"Answer","text":"Almost always, but not unconditionally. For a gift at or below the IRC §170(p) non-itemizer cap ($1,000 single / $2,000 married filing jointly), taking the distribution and claiming that small deduction removes the exact same dollars from taxable income as the QCD excludes — so the two paths tie on federal income tax. A QCD still wins in that band, but only through a lower AGI, not a bigger refund."}},{"@type":"Question","name":"What is the 2026 QCD limit?","acceptedAnswer":{"@type":"Answer","text":"$111,000 per individual for 2026, per IRS Notice 2025-67 — up from $108,000 in 2025 and $105,000 in 2024. It is indexed for inflation each year and is a per-person limit: on a joint return, each spouse can exclude up to $111,000 from their own IRA."}},{"@type":"Question","name":"Which charities can receive a QCD?","acceptedAnswer":{"@type":"Answer","text":"Only a section 170(b)(1)(A) public charity, and the gift must go directly from the IRA trustee to the charity. Donor-advised funds, private non-operating foundations, and section 509(a)(3) supporting organizations are explicitly excluded by statute (§408(d)(8)(B)(i)) — even though gifts to some of those may still be deductible if you itemize."}},{"@type":"Question","name":"Does a QCD count toward my Required Minimum Distribution?","acceptedAnswer":{"@type":"Answer","text":"Yes, if you're already RMD age (73+). Pub 590-B: 'A QCD will count towards your required minimum distribution.' But ordering matters — the first distributions you take in a year are what count toward the RMD, so make the QCD before any other withdrawal that year, or an earlier taxable withdrawal will eat the RMD first and the QCD becomes 'extra' rather than RMD-satisfying."}},{"@type":"Question","name":"Is a QCD subject to tax withholding?","acceptedAnswer":{"@type":"Answer","text":"No. A QCD is deemed to have elected out of withholding under IRC §3405(a)(2), so the full amount reaches the charity. A normal IRA distribution defaults to 10% federal withholding unless you elect otherwise on Form W-4R."}},{"@type":"Question","name":"Can I do a QCD from a 401(k) or a Roth IRA?","acceptedAnswer":{"@type":"Answer","text":"Not from a 401(k), 403(b), or 457 plan, or an ongoing SEP/SIMPLE IRA — you'd need to roll the funds into a traditional IRA first. A Roth IRA technically qualifies, but it's rarely worth using: qualified Roth withdrawals are already tax-free, so a Roth QCD wastes the exclusion on income that wasn't going to be taxed anyway."}}]}</script>
 </head>
@@ -59,7 +31,7 @@
 
     <section class="calc" aria-label="QCD vs. charitable deduction calculator">
       <form id="qcdForm" autocomplete="off" onsubmit="return false">
-        <div class="field qcd-row">
+        <div class="field est-row">
           <div class="field" style="margin:0">
             <label for="filing">Filing status</label>
             <select id="filing">
@@ -85,19 +57,19 @@
 
         <div class="field">
           <label for="donation">Amount you want to give to charity ($)</label>
-          <input type="number" id="donation" inputmode="numeric" min="0" step="500" value="10000">
+          <input type="text" id="donation" inputmode="decimal" data-money autocomplete="off" value="10000">
         </div>
 
         <div class="field">
-          <label for="agi">Your AGI, excluding this IRA distribution ($)</label>
-          <input type="number" id="agi" inputmode="numeric" min="0" step="1000" value="60000">
-          <p class="muted-small" style="margin-top:6px">Everything else on your return — Social Security, pensions, other IRA withdrawals, investment income. The tool adds the distribution on top for the take-and-deduct path.</p>
+          <label for="agi">Your yearly income <span class="muted-small">(excluding this IRA distribution)</span></label>
+          <input type="text" id="agi" inputmode="decimal" data-money autocomplete="off" value="60000">
+          <p class="muted-small" style="margin-top:6px">This is your adjusted gross income (AGI) minus the gift's distribution — everything else on your return: Social Security, pensions, other IRA withdrawals, investment income. The tool adds the distribution on top for the take-and-deduct path.</p>
         </div>
 
-        <div class="field qcd-row">
+        <div class="field est-row">
           <div class="field" style="margin:0">
             <label for="other">Other itemized deductions ($) <span class="muted-small">(optional)</span></label>
-            <input type="number" id="other" inputmode="numeric" min="0" step="100" value="0">
+            <input type="text" id="other" inputmode="decimal" data-money autocomplete="off" value="0">
           </div>
           <div class="field" style="margin:0">
             <label for="accountType">Account type</label>
@@ -112,14 +84,14 @@
         </div>
         <p class="muted-small" style="margin-top:-6px">"Other itemized" is your non-charitable Schedule A total (state/local taxes after the <a href="/salt-cap-calculator/">SALT cap</a>, mortgage interest). A QCD only works from an IRA — an <strong>ongoing</strong> SEP/SIMPLE or a 401(k)/403(b)/457 doesn't qualify.</p>
 
-        <div class="field qcd-row">
+        <div class="field est-row">
           <div class="field" style="margin:0">
             <label for="rmd">This year's RMD amount ($) <span class="muted-small">(optional)</span></label>
-            <input type="number" id="rmd" inputmode="numeric" min="0" step="500" value="0">
+            <input type="text" id="rmd" inputmode="decimal" data-money autocomplete="off" value="0">
           </div>
           <div class="field" style="margin:0">
             <label for="offset">Post-70½ deducted IRA contributions ($) <span class="muted-small">(optional, rare)</span></label>
-            <input type="number" id="offset" inputmode="numeric" min="0" step="500" value="0">
+            <input type="text" id="offset" inputmode="decimal" data-money autocomplete="off" value="0">
           </div>
         </div>
         <p class="muted-small" style="margin-top:-6px">Leave the RMD field at 0 if you're not RMD age (73+) yet or don't know it. The offset only applies if you're still working and deducting new IRA contributions after 70½ — a rare anti-abuse rule that shrinks your excludable QCD dollar-for-dollar.</p>

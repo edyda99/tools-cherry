@@ -13,21 +13,12 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
 <style>
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; }
-  .obbba-note { font-size:.9rem; opacity:.85; margin-top:8px; }
-  .phaseout-flag { color:#b26b00; font-weight:600; }
-  .ineligible-flag { color:#b23a00; font-weight:600; }
-  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
-  .mythbust h2 { margin-top:0; }
   .loan-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
   .elig { margin:0; padding:0; list-style:none; }
   .elig li { display:flex; gap:10px; align-items:flex-start; padding:7px 0; }
   .elig input { margin-top:3px; flex:0 0 auto; width:18px; height:18px; }
   .elig label { cursor:pointer; }
   @media (max-width:520px){ .loan-row { grid-template-columns:1fr; } }
-  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
 </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Car Loan Interest Deduction Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Estimate the new car loan interest deduction under the One Big Beautiful Bill Act (IRC §163(h)(4)): up to $10,000 of qualified vehicle-loan interest a year for 2025–2028, with the $100,000/$200,000 income phase-out ($200 per $1,000 over), an eligibility check for new / US-assembled / personal-use / non-lease loans, and your estimated federal tax saving."}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How much car loan interest can I deduct under the 2025 law?","acceptedAnswer":{"@type":"Answer","text":"Up to $10,000 of interest (not principal) per tax return per year, for tax years 2025 through 2028. It is one $10,000 limit for the whole return — not per person and not per vehicle — and a married couple filing jointly still shares a single $10,000 cap. The deduction phases out for modified adjusted gross income over $100,000 ($200,000 for joint filers), losing $200 for every $1,000 of income above that line."}},{"@type":"Question","name":"Is this a $10,000 tax credit — does it cut my tax bill by $10,000?","acceptedAnswer":{"@type":"Answer","text":"No. It is a deduction, not a credit. It lowers your taxable income by up to $10,000 of interest, so the actual saving is that amount times your marginal tax rate. For a typical first-year interest of about $2,400 on a $40,000 loan, a filer in the 22% bracket saves roughly $527 — not $2,400 and certainly not $10,000."}},{"@type":"Question","name":"Do used cars or leased vehicles qualify?","acceptedAnswer":{"@type":"Answer","text":"No. The vehicle must be new — its original use has to begin with you — so used cars and cars you buy at the end of a lease do not qualify. Lease financing is excluded outright, as are RVs, campers, trailers, and ATVs. The vehicle must also be a car, minivan, van, SUV, pickup, or motorcycle under 14,000 lbs, with final assembly in the United States, bought for personal use with a loan secured by a first lien and taken out after December 31, 2024."}},{"@type":"Question","name":"How do I check whether my car was assembled in the United States?","acceptedAnswer":{"@type":"Answer","text":"Two ways. Enter your 17-character VIN in the free NHTSA VIN Decoder (vpic.nhtsa.dot.gov/decoder) and look at the plant of manufacture, or read the 'Final Assembly Point' line on the Monroney window sticker that came with the car. Final assembly must be in the United States — where the brand is headquartered does not matter."}},{"@type":"Question","name":"Do I have to itemize to claim the car loan interest deduction?","acceptedAnswer":{"@type":"Answer","text":"No. It is available whether you take the standard deduction or itemize. It is claimed on the new Schedule 1-A and flows to Form 1040 line 13b after your adjusted gross income (AGI), so it reduces your taxable income but does not lower your AGI. You must report the vehicle's VIN on the return."}},{"@type":"Question","name":"What is MAGI?","acceptedAnswer":{"@type":"Answer","text":"MAGI (modified adjusted gross income) is your adjusted gross income plus a few add-backs, mainly foreign-income exclusions — for almost everyone it is the same as your AGI. It is the income figure the car-loan interest phase-out uses."}},{"@type":"Question","name":"What is filing status?","acceptedAnswer":{"@type":"Answer","text":"Your filing status is the category you file under — single, married filing jointly, married filing separately, or head of household. Only a joint return gets the $200,000 phase-out threshold; everyone else (including married filing separately, which is allowed for this deduction) uses $100,000."}}]}</script>
@@ -71,9 +62,9 @@
         </div>
 
         <div class="field">
-          <label for="magi">Your adjusted gross income (AGI / MAGI)</label>
-          <input type="number" id="magi" inputmode="numeric" min="0" step="1000" value="90000">
-          <p class="muted-small" style="margin-top:6px">Roughly Form 1040 line 11. The law uses MAGI — AGI plus a few foreign-income exclusions — which equals AGI for nearly everyone. Filing jointly? Use your combined income.</p>
+          <label for="magi">Your yearly income <span class="muted-small">(Form 1040 line 11)</span></label>
+          <input type="text" id="magi" inputmode="decimal" data-money autocomplete="off" value="90000">
+          <p class="muted-small" style="margin-top:6px">The law uses MAGI — AGI plus a few foreign-income exclusions — which equals AGI for nearly everyone. Filing jointly? Use your combined income.</p>
         </div>
 
         <div class="field">
@@ -81,7 +72,7 @@
           <div class="loan-row">
             <div class="field" style="margin:0">
               <label for="amount" class="muted-small">Loan amount ($)</label>
-              <input type="number" id="amount" inputmode="numeric" min="0" step="500" value="40000">
+              <input type="text" id="amount" inputmode="decimal" data-money autocomplete="off" value="40000">
             </div>
             <div class="field" style="margin:0">
               <label for="apr" class="muted-small">APR (%)</label>

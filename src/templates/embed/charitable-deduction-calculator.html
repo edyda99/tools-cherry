@@ -12,14 +12,6 @@
   body { margin: 0; padding: 14px; background: transparent; }
   .embed-wrap { max-width: 560px; margin: 0 auto; }
   .embed-wrap h1 { font-size: 1.25rem; margin: 0 0 10px; }
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.1rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; }
-  .obbba-note { font-size:.85rem; opacity:.85; margin-top:8px; }
-  .phaseout-flag { color:#b26b00; font-weight:600; }
-  .ineligible-flag { color:#b23a00; font-weight:600; }
-  .gift-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .takeaway { margin-top:12px; padding:10px 12px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.85rem; }
   .embed-credit { margin-top:14px; text-align:center; font-size:.85rem; opacity:.9; }
 </style>
 </head>
@@ -37,22 +29,22 @@
         </select>
       </div>
       <div class="field">
-        <label for="agi">Adjusted gross income (AGI)</label>
-        <input type="number" id="agi" inputmode="numeric" min="0" step="1000" value="175000">
-        <p class="muted-small" style="margin-top:6px">Roughly Form 1040 line 11 — combined income if filing jointly.</p>
+        <label for="agi">Your yearly income <span class="muted-small">(Form 1040 line 11)</span></label>
+        <input type="text" id="agi" inputmode="decimal" data-money autocomplete="off" value="175000">
+        <p class="muted-small" style="margin-top:6px">This is your adjusted gross income (AGI) — combined income if filing jointly.</p>
       </div>
       <div class="field">
         <label for="cashGift">Cash donations to charities ($)</label>
-        <input type="number" id="cashGift" inputmode="numeric" min="0" step="100" value="2500">
+        <input type="text" id="cashGift" inputmode="decimal" data-money autocomplete="off" value="2500">
       </div>
-      <div class="field gift-row">
+      <div class="field est-row">
         <div class="field" style="margin:0">
           <label for="nonCash">Non-cash gifts ($) <span class="muted-small">(optional)</span></label>
-          <input type="number" id="nonCash" inputmode="numeric" min="0" step="100" value="0">
+          <input type="text" id="nonCash" inputmode="decimal" data-money autocomplete="off" value="0">
         </div>
         <div class="field" style="margin:0">
           <label for="other">Other itemized ($) <span class="muted-small">(optional)</span></label>
-          <input type="number" id="other" inputmode="numeric" min="0" step="100" value="20000">
+          <input type="text" id="other" inputmode="decimal" data-money autocomplete="off" value="20000">
         </div>
       </div>
     </form>
