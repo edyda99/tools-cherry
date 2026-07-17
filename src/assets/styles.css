@@ -573,10 +573,6 @@ ul.breakdown { list-style: none; padding: 0; }
 .muted { color: var(--muted); }
 
 /* Color converter: preview swatch + R/G/B and H/S/L field trios. */
-.color-swatch { width: 100%; height: 72px; border-radius: var(--radius-sm); border: 1px solid var(--border); }
-.trio { display: flex; gap: 8px; }
-.trio label { flex: 1; display: flex; flex-direction: column; font-size: 12px; }
-.trio input { width: 100%; }
 
 /* ---- Prose ----------------------------------------------------------- */
 .prose { color: var(--text); }
