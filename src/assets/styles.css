@@ -311,6 +311,12 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 /* Two-up money fields (SALT income tax / property tax, overtime hrs/rate) */
 .est-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
+/* Equal-weight tile pairs — two results that are both "the answer" and
+   neither should read as primary/secondary (e.g. weighted vs unweighted
+   GPA). Pairs with .stat-card/.stat-kicker/.stat-value above. */
+.tile-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+@media (max-width: 380px) { .tile-pair { grid-template-columns: 1fr; } }
+
 /* Dark mode: the flag text colours above are too dark on a dark surface
    (about 2.5:1), so lift them to lighter, AA-passing variants. Box tints
    read fine because their body text uses --text. Follows the site's dual

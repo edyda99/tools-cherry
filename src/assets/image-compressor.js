@@ -40,6 +40,7 @@ function encodeAt(type, quality) {
 // --- loading ----------------------------------------------------------------
 function loadFile(file) {
   if (!file || !/^image\//.test(file.type)) {
+    $('statusBig').hidden = true;
     $('status').textContent = 'Could not load that file — please choose a valid image.';
     return;
   }
@@ -55,11 +56,13 @@ function loadFile(file) {
     $('download').disabled = true;
     $('dropText').textContent = `Loaded: ${file.name}`;
     drawPreview();
+    $('statusBig').hidden = true;
     $('status').textContent =
       `Loaded ${img.width}×${img.height}px (${formatBytes(file.size)}). Pick a size, then compress.`;
   };
   im.onerror = () => {
     URL.revokeObjectURL(url);
+    $('statusBig').hidden = true;
     $('status').textContent = 'Could not load that file — please choose a valid image.';
   };
   im.src = url;
@@ -70,11 +73,13 @@ async function compress() {
   if (!img) return;
   const target = kbToBytes($('targetKb').value);
   if (!target) {
+    $('statusBig').hidden = true;
     $('status').textContent = 'Please enter a target size in KB (a number greater than 0).';
     return;
   }
   const type = $('format').value;
   $('compress').disabled = true;
+  $('statusBig').hidden = true;
   $('status').textContent = 'Compressing…';
 
   // Each measure() encodes once and caches the resulting blob by quality, so we
@@ -95,8 +100,10 @@ async function compress() {
     lastExt = ext;
     $('download').hidden = false;
     $('download').disabled = false;
+    $('statusBig').hidden = false;
+    $('statusBig').textContent = formatBytes(size);
     $('status').textContent =
-      `Done — ${formatBytes(size)} (under your ${formatBytes(target)} target). Click download to save.`;
+      `under your ${formatBytes(target)} target. Click download to save.`;
   } else {
     // Even at the lowest quality we couldn't get under the target. Offer the
     // smallest version anyway and explain in plain English.
@@ -104,9 +111,11 @@ async function compress() {
     lastExt = ext;
     $('download').hidden = false;
     $('download').disabled = false;
+    $('statusBig').hidden = false;
+    $('statusBig').textContent = formatBytes(size);
     $('status').textContent =
-      `This image won't go under ${formatBytes(target)} at full size. The smallest we can make it is ` +
-      `${formatBytes(size)}. You can download that, or try a slightly larger target.`;
+      `is the smallest we could get — over your ${formatBytes(target)} target. ` +
+      `You can download it, or try a slightly larger target.`;
   }
 }
 

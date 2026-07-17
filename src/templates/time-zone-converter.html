@@ -57,10 +57,13 @@
         <p class="net-sub" id="error">Pick a date and time to convert.</p>
 
         <div id="resultCard" hidden>
-          <div class="line"><span class="lbl"><span id="fromName">—</span> <small id="fromOffset"></small></span><span><b id="fromTime">—</b></span></div>
-          <div class="line"><span class="lbl">&nbsp;</span><span id="fromDate" class="net-sub"></span></div>
-          <div class="line"><span class="lbl"><span id="toName">—</span> <small id="toOffset"></small></span><span><b id="toTime">—</b></span></div>
-          <div class="line"><span class="lbl">&nbsp;</span><span id="toDate" class="net-sub"></span></div>
+          <p class="net-sub">In <span id="toName">—</span> <small id="toOffset"></small></p>
+          <p class="net-big" id="toTime">—</p>
+          <p class="net-sub" id="toDate"></p>
+
+          <div class="line"><span class="lbl">From <b id="fromTime">—</b> in <span id="fromName">—</span> <small id="fromOffset"></small></span></div>
+          <p class="net-sub" id="fromDate"></p>
+
           <p class="net-sub" id="diff"></p>
           <p class="muted-small">UTC is the global reference clock; an offset like UTC+05:30 means that zone is 5h30 ahead of it.</p>
         </div>

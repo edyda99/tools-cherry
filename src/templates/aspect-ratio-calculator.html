@@ -71,7 +71,11 @@
           <span><label for="outH">New height</label><input id="outH" type="number" inputmode="decimal" step="any" min="0" placeholder="720"></span>
         </div>
       </form>
-      <p class="net-sub" id="resizeError" role="alert"></p>
+      <div class="results" aria-live="polite">
+        <p class="net-big" id="resizeOut">—</p>
+        <p class="net-sub" id="resizeSub"></p>
+        <p class="net-sub" id="resizeError" role="alert"></p>
+      </div>
       <p class="note">Edit either the width or the height — the other side updates to keep the selected ratio.</p>
     </section>
 

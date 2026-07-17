@@ -89,19 +89,23 @@ function render() {
   const totalWeeks = totalDays / 7;
   const breakdown = ageBreakdown(lo, hi); // years/months/days of the calendar span
 
-  // Headline: the years/months/days breakdown of the calendar span (this does
-  // not change with the include-end toggle, which only affects the day count).
-  $('durBig').textContent = phrase(breakdown);
+  // Weeks: show whole weeks plus leftover days when it isn't an exact multiple.
+  const wholeWeeks = Math.trunc(totalWeeks);
+  const leftover = totalDays - wholeWeeks * 7;
+
+  // Headline: the total day count — the number people actually came for.
+  // The years/months/days breakdown, week count and business-day count move
+  // to the sub-line underneath (this does not change with the include-end
+  // toggle, which only affects the day count).
+  $('durBig').textContent = unit(totalDays, 'day');
+  $('durSub').textContent = `= ${phrase(breakdown)} · ${unit(wholeWeeks, 'week')} · ${unit(business, 'business day')}`;
 
   const inc = includeEnd ? ' (end date included)' : '';
-  $('durSub').textContent = reversed
+  $('durRange').textContent = reversed
     ? `${fmtDate(end)} is before ${fmtDate(start)} — showing the span between them${inc}.`
     : `From ${fmtDate(start)} to ${fmtDate(end)}${inc}.`;
 
   $('totDays').textContent = nf(totalDays);
-  // Weeks: show whole weeks plus leftover days when it isn't an exact multiple.
-  const wholeWeeks = Math.trunc(totalWeeks);
-  const leftover = totalDays - wholeWeeks * 7;
   $('totWeeks').textContent = leftover
     ? `${nf(wholeWeeks)} (${unit(wholeWeeks, 'week')}, ${unit(leftover, 'day')})`
     : nf(wholeWeeks);

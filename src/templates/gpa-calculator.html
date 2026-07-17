@@ -38,12 +38,23 @@
       </form>
 
       <div class="results" aria-live="polite">
-        <p class="net-big" id="gpaBig">—</p>
         <p class="net-sub" id="gpaSub">Add at least one course with credit hours.</p>
-        <div class="line"><span class="lbl">Weighted GPA</span><span id="weightedGpa">—</span></div>
-        <div class="line"><span class="lbl">Total credit hours</span><span id="totalCredits">0</span></div>
-        <div class="line"><span class="lbl">Total quality points <small class="muted-small">(grade value × credits, summed)</small></span><span id="qualityPoints">0</span></div>
-        <p class="muted-small" id="weightedNote" hidden>Weighted GPA adds the typical bump for course difficulty (Honors +0.5, AP/IB +1.0). Schools vary — check yours.</p>
+
+        <div id="gpaResults" hidden>
+          <div class="tile-pair">
+            <div class="stat-card">
+              <p class="stat-kicker">Weighted GPA</p>
+              <p class="stat-value" id="weightedGpa">—</p>
+            </div>
+            <div class="stat-card">
+              <p class="stat-kicker">Unweighted GPA</p>
+              <p class="stat-value" id="gpaBig">—</p>
+            </div>
+          </div>
+          <p class="muted-small" id="weightedNote" hidden>Weighted GPA adds the typical bump for course difficulty (Honors +0.5, AP/IB +1.0). Schools vary — check yours.</p>
+          <div class="line"><span class="lbl">Total credit hours</span><span id="totalCredits">0</span></div>
+          <div class="line"><span class="lbl">Total quality points <small class="muted-small">(grade value × credits, summed)</small></span><span id="qualityPoints">0</span></div>
+        </div>
       </div>
     </section>
 

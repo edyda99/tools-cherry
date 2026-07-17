@@ -34,6 +34,13 @@ function fmtFull(parts) {
   });
 }
 
+// Compact date for the headline, e.g. "Sep 14, 2026".
+function fmtShort(parts) {
+  if (!parts) return '';
+  const d = new Date(parts.y, parts.m - 1, parts.d, 0, 0, 0, 0);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 // "1 day", "2 days" — singular/plural helper.
 function unit(n, word) {
   return `${nf(n)} ${word}${n === 1 ? '' : 's'}`;
@@ -95,20 +102,22 @@ function render() {
 
   showResults(true);
 
-  // Headline: the recurring half-birthday date (month + day).
-  $('hbBig').textContent = fmtMonthDay(half.month, half.day);
+  // Headline: the NEXT occurrence with its year — the number people came
+  // for — not just the recurring month/day, which moves to the sub-line.
+  // (Does not touch the midpoint engine below — a known bug there is held
+  // for the owner.)
+  $('hbBig').textContent = fmtShort(next.date);
 
   const clampNote = half.clamped
     ? ' (your birth day doesn’t exist six months later, so it’s clamped to the last day of that month)'
     : '';
   $('hbSub').textContent =
-    `Your half birthday is six calendar months after your birthday${clampNote}.`;
+    `${fmtMonthDay(half.month, half.day)} recurs every year${clampNote}.`;
 
-  // The exact next occurrence, the weekday it lands on, and the countdown.
+  // The weekday it lands on and the countdown.
   const wd = weekdayIndex(next.date);
   show('weekdayLine', 'Day of the week (next one)',
     Number.isInteger(wd) ? WEEKDAYS[wd] : '—');
-  show('nextDateLine', 'Next half birthday', fmtFull(next.date));
 
   if (next.days === 0) {
     show('countdownLine', 'Countdown', 'Today — happy half birthday!');

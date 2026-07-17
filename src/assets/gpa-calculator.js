@@ -61,12 +61,15 @@ function render() {
   const r = gpaWeighted(courses);
   const hasWeight = courses.some((c) => c.type && c.type !== 'regular');
   if (r.totalCredits > 0) {
+    $('gpaSub').hidden = true;
+    $('gpaResults').hidden = false;
     $('gpaBig').textContent = r.unweighted.toFixed(2);
-    $('gpaSub').textContent = 'Unweighted GPA · 4.0 scale';
     $('weightedGpa').textContent = r.weighted.toFixed(2);
   } else {
-    $('gpaBig').textContent = '—';
+    $('gpaSub').hidden = false;
     $('gpaSub').textContent = 'Add at least one course with credit hours.';
+    $('gpaResults').hidden = true;
+    $('gpaBig').textContent = '—';
     $('weightedGpa').textContent = '—';
   }
   $('totalCredits').textContent = r.totalCredits ? String(+r.totalCredits.toFixed(2)) : '0';

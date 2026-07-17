@@ -57,6 +57,7 @@ function recalc(driver) {
   const err = $('resizeError');
   if (!rw || !rh) {
     err.textContent = 'Enter a valid custom ratio.';
+    updateResizeOut();
     return;
   }
   err.textContent = '';
@@ -74,7 +75,27 @@ function recalc(driver) {
     }
   } catch (e) {
     err.textContent = e.message;
+  } finally {
+    updateResizeOut();
   }
+}
+
+// Render the resolved width x height as the prominent answer for panel 2,
+// mirroring panel 1's .net-big treatment. Display only — reads the values
+// recalc() already solved, no new math.
+function updateResizeOut() {
+  const out = $('resizeOut');
+  const sub = $('resizeSub');
+  const w = $('outW').value;
+  const h = $('outH').value;
+  if (!w || !h) {
+    out.textContent = '—';
+    sub.textContent = '';
+    return;
+  }
+  const { rw, rh } = currentRatio();
+  out.textContent = `${w} × ${h} px`;
+  sub.textContent = rw && rh ? `at a ${rw}:${rh} ratio` : '';
 }
 
 function onPresetChange() {

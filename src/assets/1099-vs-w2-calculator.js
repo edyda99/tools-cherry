@@ -60,16 +60,19 @@ function calc() {
   setRow('se', c.se, 'seGross');
   $('compareWrap').hidden = false;
 
+  // Name the winner right in the headline instead of leaving it to the muted
+  // sub-line — "W-2 keeps $X more" / "1099 keeps $X more" is the number people
+  // came here for.
   const gap = c.takeHomeGap; // w2 - se
   if (Math.abs(gap) < 1) {
     $('headline').textContent = 'About the same';
     $('headlineSub').textContent = 'The two keep roughly the same take-home pay after federal and payroll/SE tax.';
   } else if (gap > 0) {
-    $('headline').textContent = money(gap) + ' more';
-    $('headlineSub').textContent = `The W-2 job keeps about ${money(gap)} more per year after federal and payroll/SE tax (before benefits).`;
+    $('headline').textContent = `W-2 keeps ${money(gap)} more`;
+    $('headlineSub').textContent = 'Per year after federal income tax and payroll/SE tax (before benefits).';
   } else {
-    $('headline').textContent = money(-gap) + ' more';
-    $('headlineSub').textContent = `The 1099 contract keeps about ${money(-gap)} more per year after federal and SE tax (before benefits).`;
+    $('headline').textContent = `1099 keeps ${money(-gap)} more`;
+    $('headlineSub').textContent = 'Per year after federal income tax and SE tax (before benefits).';
   }
 
   // Benefits-gap framing: a 1099 worker self-funds the employer-side payroll tax,
