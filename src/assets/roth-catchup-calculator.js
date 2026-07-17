@@ -3,6 +3,7 @@
 // treatment costs this year, and the Roth-vs-pre-tax break-even. All logic runs
 // client-side; nothing is uploaded.
 import { estimateRothCatchUp } from '/assets/roth-catchup.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
@@ -12,8 +13,14 @@ const usd = (n) => '$' + Math.round(Math.max(0, n || 0)).toLocaleString('en-US')
 const usdSigned = (n) => (n < 0 ? '−$' : '+$') + Math.abs(Math.round(n)).toLocaleString('en-US');
 const pct = (n) => Math.round(Math.max(0, n || 0) * 100) + '%';
 
+// "wages" and "catchUp" carry live thousands separators (money fields); read
+// them through moneyValue rather than a raw parseFloat, which would silently
+// truncate "180,000" to 180. Age/years/growth are plain number fields.
+const MONEY_IDS = new Set(['wages', 'catchUp']);
 function num(id) {
-  const v = parseFloat($(id).value);
+  const el = $(id);
+  if (MONEY_IDS.has(id)) return moneyValue(el);
+  const v = parseFloat(el.value);
   return Number.isFinite(v) ? v : 0;
 }
 
@@ -72,78 +79,110 @@ function render() {
     yearsToRetirement: years, growthRate: growth, params: RC
   });
 
+  // Preserve the user's open/closed choice across re-renders (default closed).
+  const out = $('out');
+  const prevDetails = out.querySelector('details.derivation');
+  const wasOpen = prevDetails ? prevDetails.open : false;
+
+  // ---- Answer-first summary (stat card) --------------------------------
+  // Two branches (no-Roth-plan bar, and "subject but no catch-up elected")
+  // both leave the practical dollar impact at $0 this year, so they get the
+  // muted is-zero treatment even though the technical Yes/No differs; the
+  // real "must be Roth, costs you $X" case gets normal styling.
+  let statValue, isZero, statSub, headlineCaveat = '', derivationBody;
+
   // --- NOT subject (or n/a) branch -----------------------------------------
   if (!r.subject) {
+    statValue = 'No, pre-tax still allowed';
+    isZero = false;
+    statSub = reasonLine(r, year);
     const maxLine = r.band !== 'none' && r.maxCatchUp != null
       ? `<div class="line"><span>Your ${year} catch-up band</span><span class="num">${bandLabel(r.band)} — up to ${usd(r.maxCatchUp)}</span></div>`
       : '';
-    $('out').innerHTML =
-      `<div class="line big"><span>Subject to the mandatory-Roth rule?</span><span class="num ok-flag">No</span></div>` +
-      maxLine +
-      `<div class="obbba-note">${reasonLine(r, year)}</div>` +
-      `<div class="takeaway">${takeawayLine(r)}</div>`;
-    return;
-  }
-
-  // --- Subject: no-Roth-plan branch ----------------------------------------
-  if (r.effect === 'plan_no_roth_cannot_catchup') {
-    $('out').innerHTML =
-      `<div class="line big"><span>Subject to the mandatory-Roth rule?</span><span class="num warn-flag">Yes</span></div>` +
+    derivationBody = maxLine + `<div class="obbba-note">${reasonLine(r, year)}</div>`;
+  } else if (r.effect === 'plan_no_roth_cannot_catchup') {
+    // --- Subject: no-Roth-plan branch --------------------------------------
+    statValue = "Yes, but you can't catch up";
+    isZero = true;
+    statSub = 'Your plan has no Roth option, so it can bar high earners from catch-ups entirely — your catch-up capacity is $0 until it adds one.';
+    derivationBody =
       `<div class="line"><span>Your ${year} catch-up band</span><span class="num">${bandLabel(r.band)} — normally up to ${usd(r.maxCatchUp)}</span></div>` +
       `<div class="line"><span>Catch-up you can actually make</span><span class="num warn-flag">$0</span></div>` +
-      `<div class="obbba-note warn-flag">You’re a high earner subject to the rule, but you told us your plan has <strong>no Roth option</strong>. When that’s the case the plan can simply bar high earners from catch-up contributions altogether — it is <em>not</em> forced to add Roth. So your catch-up capacity is $0 until the plan adds a Roth feature (most large plans are adding one).</div>` +
-      `<div class="takeaway">You’re not losing money to tax here — there’s just no catch-up to make in a no-Roth plan. Ask your plan administrator whether a Roth option is coming.</div>`;
-    return;
-  }
-
-  // --- Subject: must be Roth, but no catch-up elected (n/a path) ------------
-  if (!r.mandateBites) {
-    $('out').innerHTML =
-      `<div class="line big"><span>Subject to the mandatory-Roth rule?</span><span class="num warn-flag">Yes</span></div>` +
+      `<div class="obbba-note warn-flag">You’re a high earner subject to the rule, but you told us your plan has <strong>no Roth option</strong>. When that’s the case the plan can simply bar high earners from catch-up contributions altogether — it is <em>not</em> forced to add Roth. So your catch-up capacity is $0 until the plan adds a Roth feature (most large plans are adding one).</div>`;
+  } else if (!r.mandateBites) {
+    // --- Subject: must be Roth, but no catch-up elected (n/a path) ---------
+    statValue = 'Yes, catch-ups must be Roth';
+    isZero = true;
+    statSub = "You didn't enter a catch-up amount, so there's nothing to convert this year.";
+    derivationBody =
       `<div class="line"><span>Your ${year} catch-up band</span><span class="num">${bandLabel(r.band)} — up to ${usd(r.maxCatchUp)}</span></div>` +
       `<div class="line"><span>Catch-up you plan to contribute</span><span class="num">$0</span></div>` +
-      `<div class="obbba-note">You’re over the threshold, but with no catch-up contribution there’s nothing to convert — the mandate doesn’t affect you this year. If you do decide to make a catch-up, it will have to go in as Roth.</div>` +
-      `<div class="takeaway">Nothing to do: no catch-up means no forced-Roth cost. Enter a catch-up amount above to see what the Roth treatment would cost.</div>`;
-    return;
-  }
-
-  // --- Subject: mandate bites (the main path) ------------------------------
-  const capNote = r.effectiveCatchUp < r.catchUpAmount
-    ? `<div class="obbba-note phaseout-flag">You entered ${usd(r.catchUpAmount)}, but the ${year} maximum for your age band is ${usd(r.maxCatchUp)} — figures below use the ${usd(r.maxCatchUp)} cap.</div>`
-    : '';
-
-  // Future-value / break-even block (only when both rates are supplied).
-  let fvBlock = '';
-  if (r.rothAdvantage != null) {
-    const wins = r.rothAdvantage >= 0;
-    const verdict = wins
-      ? `<span class="ok-flag">forced-Roth leaves you about ${usdSigned(r.rothAdvantage)} ahead</span>`
-      : `<span class="warn-flag">forced-Roth costs you about ${usdSigned(r.rothAdvantage)}</span>`;
-    const why = rateRetire === rateNow
-      ? `Your retirement rate equals your current rate, so it’s essentially a wash.`
-      : (wins
-          ? `Because you expect a <strong>higher</strong> tax rate in retirement (${pct(rateRetire)}) than now (${pct(rateNow)}), paying the tax now at the lower rate comes out ahead.`
-          : `Because you expect a <strong>lower</strong> tax rate in retirement (${pct(rateRetire)}) than now (${pct(rateNow)}), you’d have preferred the pre-tax deduction now.`);
-    fvBlock =
-      `<div class="line"><span>Roth vs. pre-tax at retirement (${years} yr, ${pct(growth)}/yr)</span><span class="num">${verdict}</span></div>` +
-      `<div class="obbba-note">${why} Break-even is when your retirement rate equals your current ${pct(rateNow)} — at or above that, forced-Roth is even or better.</div>` +
-      `<div class="obbba-note muted-small">Estimate only. It assumes the pre-tax route would have reinvested its upfront tax saving at the same growth, and it doesn’t model state tax, RMD differences, or IRMAA. A Roth also gives you tax-rate diversification and has no required minimum distributions.</div>`;
+      `<div class="obbba-note">You’re over the threshold, but with no catch-up contribution there’s nothing to convert — the mandate doesn’t affect you this year. If you do decide to make a catch-up, it will have to go in as Roth.</div>`;
   } else {
-    fvBlock = `<div class="obbba-note muted-small">Add your expected retirement tax rate and years to retirement above to see the Roth-vs-pre-tax break-even.</div>`;
+    // --- Subject: mandate bites (the main path) ----------------------------
+    statValue = 'Yes, catch-ups must be Roth';
+    isZero = false;
+    statSub = `Costs you ${usd(r.extraTaxThisYear)} in this year's deduction on the ${usd(r.effectiveCatchUp)} that must go in as Roth.`;
+
+    headlineCaveat = r.effectiveCatchUp < r.catchUpAmount
+      ? `<div class="obbba-note phaseout-flag">You entered ${usd(r.catchUpAmount)}, but the ${year} maximum for your age band is ${usd(r.maxCatchUp)} — figures below use the ${usd(r.maxCatchUp)} cap.</div>`
+      : '';
+
+    // Future-value / break-even block (only when both rates are supplied).
+    let fvBlock = '';
+    if (r.rothAdvantage != null) {
+      const wins = r.rothAdvantage >= 0;
+      const verdict = wins
+        ? `<span class="ok-flag">forced-Roth leaves you about ${usdSigned(r.rothAdvantage)} ahead</span>`
+        : `<span class="warn-flag">forced-Roth costs you about ${usdSigned(r.rothAdvantage)}</span>`;
+      const why = rateRetire === rateNow
+        ? `Your retirement rate equals your current rate, so it’s essentially a wash.`
+        : (wins
+            ? `Because you expect a <strong>higher</strong> tax rate in retirement (${pct(rateRetire)}) than now (${pct(rateNow)}), paying the tax now at the lower rate comes out ahead.`
+            : `Because you expect a <strong>lower</strong> tax rate in retirement (${pct(rateRetire)}) than now (${pct(rateNow)}), you’d have preferred the pre-tax deduction now.`);
+      fvBlock =
+        `<div class="line"><span>Roth vs. pre-tax at retirement (${years} yr, ${pct(growth)}/yr)</span><span class="num">${verdict}</span></div>` +
+        `<div class="obbba-note">${why} Break-even is when your retirement rate equals your current ${pct(rateNow)} — at or above that, forced-Roth is even or better.</div>` +
+        `<div class="obbba-note muted-small">Estimate only. It assumes the pre-tax route would have reinvested its upfront tax saving at the same growth, and it doesn’t model state tax, RMD differences, or IRMAA. A Roth also gives you tax-rate diversification and has no required minimum distributions.</div>`;
+    } else {
+      fvBlock = `<div class="obbba-note muted-small">Add your expected retirement tax rate and years to retirement above to see the Roth-vs-pre-tax break-even.</div>`;
+    }
+
+    derivationBody =
+      `<div class="line"><span>Your ${year} catch-up band</span><span class="num">${bandLabel(r.band)} — up to ${usd(r.maxCatchUp)}</span></div>` +
+      `<div class="line"><span>Catch-up that must be Roth (after-tax)</span><span class="num">${usd(r.effectiveCatchUp)}</span></div>` +
+      `<div class="line big"><span>Extra federal tax this year</span><span class="num warn-flag">${usd(r.extraTaxThisYear)}</span></div>` +
+      `<div class="obbba-note">That’s the upfront deduction you give up on the catch-up: ${usd(r.effectiveCatchUp)} × ${pct(rateNow)} = ${usd(r.extraTaxThisYear)}. You still contribute the full ${usd(r.effectiveCatchUp)} — it just goes in after-tax, then grows and comes out tax-free.</div>` +
+      fvBlock;
   }
 
-  $('out').innerHTML =
-    `<div class="line big"><span>Subject to the mandatory-Roth rule?</span><span class="num warn-flag">Yes</span></div>` +
-    `<div class="line"><span>Your ${year} catch-up band</span><span class="num">${bandLabel(r.band)} — up to ${usd(r.maxCatchUp)}</span></div>` +
-    `<div class="line"><span>Catch-up that must be Roth (after-tax)</span><span class="num">${usd(r.effectiveCatchUp)}</span></div>` +
-    capNote +
-    `<div class="line big"><span>Extra federal tax this year</span><span class="num warn-flag">${usd(r.extraTaxThisYear)}</span></div>` +
-    `<div class="obbba-note">That’s the upfront deduction you give up on the catch-up: ${usd(r.effectiveCatchUp)} × ${pct(rateNow)} = ${usd(r.extraTaxThisYear)}. You still contribute the full ${usd(r.effectiveCatchUp)} — it just goes in after-tax, then grows and comes out tax-free.</div>` +
-    fvBlock +
-    `<div class="takeaway">In plain terms: you do <strong>not</strong> lose your catch-up. You keep every dollar of it — the only change is that ${usd(r.effectiveCatchUp)} now goes in as Roth instead of pre-tax, costing you about ${usd(r.extraTaxThisYear)} in this year’s deduction in exchange for tax-free growth later.</div>`;
+  const statCard =
+    `<div class="stat-card">` +
+      `<p class="stat-kicker">Subject to the mandatory-Roth catch-up rule?</p>` +
+      `<p class="stat-value${isZero ? ' is-zero' : ''}">${statValue}</p>` +
+      `<p class="stat-sub">${statSub}</p>` +
+    `</div>`;
+
+  const derivation = `<details class="derivation"><summary>See how this was calculated</summary>${derivationBody}</details>`;
+  const takeaway = `<div class="takeaway">${r.subject ? (r.effect === 'plan_no_roth_cannot_catchup'
+    ? `You’re not losing money to tax here — there’s just no catch-up to make in a no-Roth plan. Ask your plan administrator whether a Roth option is coming.`
+    : (!r.mandateBites
+        ? `Nothing to do: no catch-up means no forced-Roth cost. Enter a catch-up amount above to see what the Roth treatment would cost.`
+        : `In plain terms: you do <strong>not</strong> lose your catch-up. You keep every dollar of it — the only change is that ${usd(r.effectiveCatchUp)} now goes in as Roth instead of pre-tax, costing you about ${usd(r.extraTaxThisYear)} in this year’s deduction in exchange for tax-free growth later.`))
+    : takeawayLine(r)}</div>`;
+
+  out.innerHTML =
+    statCard +
+    headlineCaveat +
+    derivation +
+    takeaway;
+
+  const newDetails = out.querySelector('details.derivation');
+  if (newDetails) newDetails.open = wasOpen;
 }
 
 function init() {
+  initMoneyInputs();
   ['year', 'age', 'wages', 'catchUp', 'rateNow', 'rateRetire', 'years', 'growth', 'planRoth'].forEach((id) => {
     $(id).addEventListener('input', render);
     $(id).addEventListener('change', render);

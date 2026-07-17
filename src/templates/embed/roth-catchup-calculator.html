@@ -12,14 +12,9 @@
   body { margin: 0; padding: 14px; background: transparent; }
   .embed-wrap { max-width: 560px; margin: 0 auto; }
   .embed-wrap h1 { font-size: 1.25rem; margin: 0 0 10px; }
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.1rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; text-align:right; }
-  .obbba-note { font-size:.85rem; opacity:.9; margin-top:8px; }
-  .phaseout-flag { color:#b26b00; font-weight:600; }
+  .obbba-out .num { text-align:right; }
   .warn-flag { color:#b26b00; font-weight:700; }
   .ok-flag { color:#2f6f4f; font-weight:700; }
-  .takeaway { margin-top:12px; padding:10px 12px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.9rem; }
   .check-field { display:flex; align-items:flex-start; gap:10px; }
   .check-field input[type="checkbox"] { width:20px; height:20px; margin-top:2px; flex:none; }
   .embed-credit { margin-top:14px; text-align:center; font-size:.85rem; opacity:.9; }
@@ -43,12 +38,12 @@
       </div>
       <div class="field">
         <label for="wages">Last year’s Social Security (Box 3) wages from this employer</label>
-        <input type="number" id="wages" inputmode="numeric" min="0" step="1000" value="180000">
+        <input type="text" id="wages" inputmode="decimal" data-money autocomplete="off" value="180000">
         <p class="muted-small" style="margin-top:6px">Box 3 of last year’s W-2 — not this year’s salary, not household income.</p>
       </div>
       <div class="field">
         <label for="catchUp">Catch-up you plan to contribute</label>
-        <input type="number" id="catchUp" inputmode="numeric" min="0" step="500" value="8000">
+        <input type="text" id="catchUp" inputmode="decimal" data-money autocomplete="off" value="8000">
       </div>
       <div class="field">
         <label for="rateNow">Current federal marginal tax rate</label>
