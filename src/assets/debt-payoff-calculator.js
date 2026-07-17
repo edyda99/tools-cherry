@@ -6,6 +6,7 @@
 import { monthlyPayment, monthsToPayoff } from '/assets/amortization.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 
 function money(n, max = 2) {
@@ -28,6 +29,14 @@ function val(id) {
   if (raw === '') return NaN;
   const n = parseFloat(raw);
   return Number.isFinite(n) ? n : NaN;
+}
+// Required money field: blank -> NaN, same as val(), but parses through
+// moneyValue so a comma-grouped "5,000" doesn't silently truncate to 5 via a
+// raw parseFloat.
+function moneyVal(id) {
+  const el = $(id);
+  if (el.value.trim() === '') return NaN;
+  return moneyValue(el);
 }
 
 // Turn a count of months into a plain "2 years, 3 months" phrase.
@@ -73,7 +82,7 @@ function show(lineId, label, value) {
 }
 
 function calcByPayment(balance, ratePct) {
-  const pay = val('payment');
+  const pay = moneyVal('payment');
   if (!Number.isFinite(pay) || pay <= 0) {
     $('paySub').textContent = 'Enter a monthly payment to start.';
     return;
@@ -143,7 +152,7 @@ function calcByMonths(balance, ratePct) {
 function calc() {
   reset();
 
-  const balance = val('balance');
+  const balance = moneyVal('balance');
   const ratePct = val('rate');
 
   if (!Number.isFinite(balance) || balance <= 0) {
@@ -169,6 +178,7 @@ function setMode(next) {
 }
 
 function init() {
+  initMoneyInputs();
   document.querySelectorAll('#debtForm input').forEach((el) =>
     el.addEventListener('input', calc)
   );

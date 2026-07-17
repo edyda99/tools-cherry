@@ -42,12 +42,12 @@
 
         <div class="field">
           <label for="target">Savings goal ($)</label>
-          <input id="target" type="number" inputmode="decimal" step="any" min="0" value="20000" placeholder="20000">
+          <input id="target" type="text" inputmode="decimal" data-money autocomplete="off" value="20000" placeholder="20000">
         </div>
 
         <div class="field">
           <label for="principal">Already saved ($)</label>
-          <input id="principal" type="number" inputmode="decimal" step="any" min="0" value="2000" placeholder="2000">
+          <input id="principal" type="text" inputmode="decimal" data-money autocomplete="off" value="2000" placeholder="2000">
         </div>
 
         <div class="field">
@@ -72,7 +72,7 @@
 
         <div class="field" id="depositField" hidden>
           <label for="deposit">Amount you can save each period ($)</label>
-          <input id="deposit" type="number" inputmode="decimal" step="any" min="0" value="300" placeholder="300">
+          <input id="deposit" type="text" inputmode="decimal" data-money autocomplete="off" value="300" placeholder="300">
         </div>
       </form>
 

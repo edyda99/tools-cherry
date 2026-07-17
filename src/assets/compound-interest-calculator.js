@@ -3,6 +3,7 @@
 import { project } from '/assets/compound-interest.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 
 function money(n, max = 2) {
@@ -32,6 +33,15 @@ function optVal(id) {
   if (raw === '') return 0;
   const n = parseFloat(raw);
   return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+// Optional money field: blank -> 0, negatives ignored, same as optVal(), but
+// parses through moneyValue so a comma-grouped "10,000" doesn't silently
+// truncate to 10 via a raw parseFloat.
+function moneyOptVal(id) {
+  const el = $(id);
+  if (el.value.trim() === '') return 0;
+  const n = moneyValue(el);
+  return n >= 0 ? n : 0;
 }
 
 function reset() {
@@ -76,8 +86,8 @@ function calc() {
   reset();
   syncDepositLabel();
 
-  const principal = optVal('principal');
-  const contribution = optVal('contribution');
+  const principal = moneyOptVal('principal');
+  const contribution = moneyOptVal('contribution');
   const ratePct = val('rate');
   const years = val('years');
   // How often the deposit is made AND interest is compounded: 12 = monthly, 1 = yearly.
@@ -124,6 +134,7 @@ function calc() {
 }
 
 function init() {
+  initMoneyInputs();
   document.querySelectorAll('#compoundForm input, #compoundForm select').forEach((el) =>
     el.addEventListener('input', calc)
   );

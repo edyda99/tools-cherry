@@ -34,12 +34,12 @@
       <form id="compoundForm" autocomplete="off" onsubmit="return false">
         <div class="field">
           <label for="principal">Starting amount ($)</label>
-          <input id="principal" type="number" inputmode="decimal" step="any" min="0" value="1000" placeholder="1000">
+          <input id="principal" type="text" inputmode="decimal" data-money autocomplete="off" value="1000" placeholder="1000">
         </div>
 
         <div class="field">
           <label for="contribution" id="contribLabel">Regular deposit ($ per month)</label>
-          <input id="contribution" type="number" inputmode="decimal" step="any" min="0" value="100" placeholder="100">
+          <input id="contribution" type="text" inputmode="decimal" data-money autocomplete="off" value="100" placeholder="100">
         </div>
 
         <div class="field">

@@ -3,6 +3,7 @@
 import { amortize, monthsToPayoff } from '/assets/amortization.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 
 function money(n, max = 2) {
@@ -32,6 +33,22 @@ function optVal(id) {
   if (raw === '') return 0;
   const n = parseFloat(raw);
   return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+// Required money field: blank -> NaN, same as val(), but parses through
+// moneyValue so a comma-grouped "35,000" doesn't silently truncate to 35 via
+// a raw parseFloat.
+function moneyVal(id) {
+  const el = $(id);
+  if (el.value.trim() === '') return NaN;
+  return moneyValue(el);
+}
+// Optional money field: blank -> 0, negatives ignored, same as optVal(), but
+// comma-safe.
+function moneyOptVal(id) {
+  const el = $(id);
+  if (el.value.trim() === '') return 0;
+  const n = moneyValue(el);
+  return n >= 0 ? n : 0;
 }
 
 function show(lineId, label, value) {
@@ -64,9 +81,9 @@ function monthsToYM(totalMonths) {
 function calc() {
   reset();
 
-  const price = val('price');
-  const down = optVal('down');
-  const tradeIn = optVal('tradeIn');
+  const price = moneyVal('price');
+  const down = moneyOptVal('down');
+  const tradeIn = moneyOptVal('tradeIn');
   const taxPct = optVal('taxPct');
   const ratePct = val('rate');
   const months = val('term');
@@ -120,7 +137,7 @@ function calc() {
 
   // Extra-payment payoff mode (optional). Pay (monthly payment + extra) until the
   // loan clears, then compare payoff time and total interest to the standard term.
-  const extra = optVal('extra');
+  const extra = moneyOptVal('extra');
   if (extra > 0 && ratePct >= 0) {
     const accelPayment = r.monthlyPayment + extra;
     const payoff = monthsToPayoff(financed, ratePct, accelPayment);
@@ -159,6 +176,7 @@ function syncPresetHighlight() {
 }
 
 function init() {
+  initMoneyInputs();
   document.querySelectorAll('#autoLoanForm input').forEach((el) =>
     el.addEventListener('input', () => { syncPresetHighlight(); calc(); })
   );

@@ -4,6 +4,7 @@
 import { compare } from '/assets/pay-frequency.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 const $ = (id) => document.getElementById(id);
 
 function money(n, max = 2) {
@@ -22,6 +23,14 @@ function val(id) {
   const n = parseFloat(raw);
   return Number.isFinite(n) ? n : NaN;
 }
+// Required money field: blank -> NaN, same as val(), but parses through
+// moneyValue so a comma-grouped "52,000" doesn't silently truncate to 52 via
+// a raw parseFloat.
+function moneyVal(id) {
+  const el = $(id);
+  if (el.value.trim() === '') return NaN;
+  return moneyValue(el);
+}
 
 function reset() {
   ['bwPerCheck', 'bwMonthly', 'bwAnnual', 'smPerCheck', 'smMonthly', 'smAnnual'].forEach((id) => {
@@ -35,7 +44,7 @@ function reset() {
 function calc() {
   reset();
 
-  const salary = val('salary');
+  const salary = moneyVal('salary');
   if (!Number.isFinite(salary) || salary <= 0) {
     $('compareSub').textContent = 'Enter your annual salary to compare the two pay schedules.';
     return;
@@ -67,7 +76,8 @@ function calc() {
 }
 
 function init() {
-  document.querySelectorAll('#payForm input[type="number"]').forEach((el) =>
+  initMoneyInputs();
+  document.querySelectorAll('#payForm input').forEach((el) =>
     el.addEventListener('input', calc)
   );
   calc();
