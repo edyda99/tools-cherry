@@ -25,6 +25,21 @@
     /* Keep the remove "×" a full 44×44 tap target on mobile (was ~22×18). */
     .debt-row .rm { min-width: 44px; min-height: 44px; font-size: 22px; }
   }
+  .dl { display: none; }
+  @media (max-width: 430px) {
+    .debt-head { display: none; }
+    .debt-row {
+      display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: flex-end;
+      background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 10px 12px; margin-bottom: 10px;
+    }
+    .debt-row .df { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .dl { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .debt-row .fname { flex: 1 1 100%; }
+    .debt-row .fbalance, .debt-row .fapr { flex: 1 1 calc(50% - 5px); }
+    .debt-row .fmin { flex: 1 1 auto; }
+    .debt-row .rm { flex: 0 0 44px; min-width: 44px; min-height: 44px; font-size: 22px; }
+  }
   .av-summary { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin: 18px 0; font-size: 15.5px; line-height: 1.55; }
   .av-warn { background: color-mix(in srgb, #d29922 16%, var(--surface-2)); border: 1px solid color-mix(in srgb, #d29922 45%, var(--border)); border-radius: var(--radius); padding: 16px 18px; margin: 18px 0; font-size: 15px; line-height: 1.55; }
   details.amort { margin: 4px 0 8px; }
@@ -58,6 +73,7 @@
       <form id="debtForm" autocomplete="off" onsubmit="return false">
         <h2>Your debts</h2>
         <div id="debts"></div>
+        <p class="muted-small" style="margin:2px 0 12px">APR is the yearly interest rate on your statement; Min/mo is your required minimum payment.</p>
         <button type="button" id="addDebt" class="btn-secondary">+ Add debt</button>
 
         <div class="field" style="margin-top:18px">

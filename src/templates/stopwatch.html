@@ -41,12 +41,14 @@
         <p class="cd-note">Tip: Space starts/stops, L records a lap, R resets.</p>
 
         <div id="lapWrap" hidden>
-          <table class="bracket-table lap-table">
-            <thead>
-              <tr><th>Lap</th><th>Lap time</th><th>Total</th></tr>
-            </thead>
-            <tbody id="lapBody"></tbody>
-          </table>
+          <div class="table-scroll">
+            <table class="bracket-table lap-table">
+              <thead>
+                <tr><th>Lap</th><th>Lap time</th><th>Total</th></tr>
+              </thead>
+              <tbody id="lapBody"></tbody>
+            </table>
+          </div>
           <div class="btn-row">
             <button type="button" class="btn-secondary" id="copyLapsBtn">Copy laps</button>
           </div>

@@ -4236,7 +4236,7 @@ async function main() {
             `<td><strong>${esc(o.title)}</strong>${flag}<br><span class="muted-small">${esc(o.description)}.</span></td>` +
             `<td>${esc(cat.name)}</td>` +
             `<td>${esc(o.examples)}</td>` +
-            `<td>${esc(o.soc || '')}</td></tr>\n`;
+            `<td class="soc">${esc(o.soc || '')}</td></tr>\n`;
         }
       }
       const catCount = ttoc.categories.length;

@@ -19,6 +19,21 @@ function fmtShort(d) {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+// Compact, no-year date for the narrow "next three cycles" table (fits 390px
+// without the row wrapping or forcing a horizontal scroll).
+function fmtCompact(d) {
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// "Aug 12–17" when both ends share a month/year, else "Aug 30 – Sep 2".
+function fmtRangeCompact(start, end) {
+  if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth()) {
+    const month = start.toLocaleDateString('en-US', { month: 'short' });
+    return `${month} ${start.getDate()}–${end.getDate()}`;
+  }
+  return `${fmtCompact(start)} – ${fmtCompact(end)}`;
+}
+
 // Parse a yyyy-mm-dd value into a local-midnight Date, or null if incomplete.
 function parseInput(v) {
   if (!v) return null;
@@ -95,7 +110,7 @@ function render() {
     const lmpI = addDays(s.cycleStart, i * s.cycleLength);
     const ci = ovulationSummary({ lmp: lmpI, cycleLength, today, rollForward: false });
     rows.push(
-      `<tr><td>${fmtShort(ci.fertileStart)} – ${fmtShort(ci.fertileEnd)}</td><td>${fmtShort(ci.ovulation)}</td><td>${fmtShort(ci.nextPeriod)}</td></tr>`
+      `<tr><td>${fmtRangeCompact(ci.fertileStart, ci.fertileEnd)}</td><td>${fmtCompact(ci.ovulation)}</td><td>${fmtCompact(ci.nextPeriod)}</td></tr>`
     );
   }
   $('ovCycles').innerHTML = rows.join('');

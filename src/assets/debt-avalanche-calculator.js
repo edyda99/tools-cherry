@@ -76,10 +76,10 @@ function debtRow(name = '', balance = '', apr = '', minPayment = '') {
   row.className = 'debt-row';
   row.dataset.id = id;
   row.innerHTML =
-    `<input class="dn" placeholder="Debt name (optional)" aria-label="Debt name" value="${esc(name)}">` +
-    `<input class="db" type="text" inputmode="decimal" data-money autocomplete="off" placeholder="0" aria-label="Balance owed in dollars" value="${esc(balance)}">` +
-    `<input class="da" type="number" inputmode="decimal" step="any" min="0" placeholder="0" aria-label="Annual interest rate APR percent" value="${esc(apr)}">` +
-    `<input class="dm" type="text" inputmode="decimal" data-money autocomplete="off" placeholder="0" aria-label="Minimum monthly payment in dollars" value="${esc(minPayment)}">` +
+    `<div class="df fname"><span class="dl">Name</span><input class="dn" placeholder="Debt name (optional)" aria-label="Debt name" value="${esc(name)}"></div>` +
+    `<div class="df fbalance"><span class="dl">Balance ($)</span><input class="db" type="text" inputmode="decimal" data-money autocomplete="off" placeholder="0" aria-label="Balance owed in dollars" value="${esc(balance)}"></div>` +
+    `<div class="df fapr"><span class="dl">APR (%)</span><input class="da" type="number" inputmode="decimal" step="any" min="0" placeholder="0" aria-label="Annual interest rate APR percent" value="${esc(apr)}"></div>` +
+    `<div class="df fmin"><span class="dl">Min/mo ($)</span><input class="dm" type="text" inputmode="decimal" data-money autocomplete="off" placeholder="0" aria-label="Minimum monthly payment in dollars" value="${esc(minPayment)}"></div>` +
     `<button type="button" class="rm" title="Remove debt" aria-label="Remove this debt">&times;</button>`;
   row.querySelector('.rm').addEventListener('click', () => { row.remove(); calc(); });
   row.querySelectorAll('input').forEach((el) => el.addEventListener('input', calc));

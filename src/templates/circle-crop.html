@@ -52,16 +52,6 @@
           <input id="zoom" type="range" min="1" max="5" step="0.01" value="1" style="width:100%">
         </div>
         <div class="field">
-          <label for="rotate">Rotate / straighten (<span id="rotateVal">0</span>°)</label>
-          <input id="rotate" type="range" min="-180" max="180" step="1" value="0" style="width:100%">
-          <button type="button" id="rotateReset" class="btn-secondary" style="margin-top:6px">Reset rotation</button>
-        </div>
-        <div class="field">
-          <label>Flip / mirror</label>
-          <button type="button" id="flipH" class="btn-secondary" aria-pressed="false">Mirror horizontally</button>
-          <button type="button" id="flipV" class="btn-secondary" aria-pressed="false" style="margin-top:6px">Flip vertically</button>
-        </div>
-        <div class="field">
           <label for="preset">Platform preset</label>
           <select id="preset">
             <option value="" selected>Custom size</option>
@@ -94,25 +84,41 @@
           <label for="bgColor">Background color</label>
           <input id="bgColor" type="color" value="#ffffff">
         </div>
-        <div class="field">
-          <label for="padOn"><input id="padOn" type="checkbox"> Add padding (margin around the circle)</label>
-        </div>
-        <div class="field" id="padControls" hidden>
-          <label for="padAmount">Padding amount</label>
-          <input id="padAmount" type="range" min="2" max="30" step="1" value="10" style="width:100%">
-        </div>
-        <div class="field">
-          <label for="borderOn"><input id="borderOn" type="checkbox"> Add a circular border</label>
-        </div>
-        <div class="field" id="borderControls" hidden>
-          <label for="borderColor">Border color</label>
-          <input id="borderColor" type="color" value="#ffffff">
-          <label for="borderWidth" style="margin-top:8px">Border thickness</label>
-          <input id="borderWidth" type="range" min="2" max="20" step="1" value="6" style="width:100%">
-        </div>
+
+        <details class="adv-fields" style="margin:4px 0 14px">
+          <summary style="cursor:pointer;font-weight:600;padding:8px 0">Advanced: rotate, flip, padding, border</summary>
+          <div style="margin-top:10px">
+            <div class="field">
+              <label for="rotate">Rotate / straighten (<span id="rotateVal">0</span>°)</label>
+              <input id="rotate" type="range" min="-180" max="180" step="1" value="0" style="width:100%">
+              <button type="button" id="rotateReset" class="btn-secondary" style="margin-top:6px">Reset rotation</button>
+            </div>
+            <div class="field">
+              <label>Flip / mirror</label>
+              <button type="button" id="flipH" class="btn-secondary" aria-pressed="false">Mirror horizontally</button>
+              <button type="button" id="flipV" class="btn-secondary" aria-pressed="false" style="margin-top:6px">Flip vertically</button>
+            </div>
+            <div class="field">
+              <label for="padOn"><input id="padOn" type="checkbox"> Add padding (margin around the circle)</label>
+            </div>
+            <div class="field" id="padControls" hidden>
+              <label for="padAmount">Padding amount</label>
+              <input id="padAmount" type="range" min="2" max="30" step="1" value="10" style="width:100%">
+            </div>
+            <div class="field">
+              <label for="borderOn"><input id="borderOn" type="checkbox"> Add a circular border</label>
+            </div>
+            <div class="field" id="borderControls" hidden>
+              <label for="borderColor">Border color</label>
+              <input id="borderColor" type="color" value="#ffffff">
+              <label for="borderWidth" style="margin-top:8px">Border thickness</label>
+              <input id="borderWidth" type="range" min="2" max="20" step="1" value="6" style="width:100%">
+            </div>
+          </div>
+        </details>
       </div>
 
-      <div class="results" style="text-align:center">
+      <div class="results results-first" style="text-align:center">
         <div class="editor-wrap"><canvas id="editor" width="512" height="512" aria-label="Circle crop preview — drag to reposition the image and use the zoom slider to scale it">Your cropped image preview appears here. Use the zoom control to adjust it.</canvas></div>
         <p class="muted-small" id="status" style="margin-top:10px">Choose an image to begin.</p>
         <button type="button" id="download" class="btn-primary" disabled>Download PNG</button>

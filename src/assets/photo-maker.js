@@ -18,17 +18,30 @@ function fmtDims(s) {
   return `${s.widthMm}×${s.heightMm} mm · ${s.widthPx}×${s.heightPx}px @ ${s.dpi} DPI`;
 }
 
+// Scale the editor canvas to fit both the MAX_DISPLAY_H cap and the actual
+// width available in the page (editorWrap's parent), so wide specs never
+// overflow a narrow phone screen. Re-run on window resize (see init()).
+function applyDisplaySize(spec) {
+  const cv = $('editor');
+  const wrap = $('editorWrap');
+  const maxW = wrap.parentElement ? wrap.parentElement.clientWidth : MAX_DISPLAY_H;
+  let dispH = Math.min(MAX_DISPLAY_H, spec.heightPx);
+  let dispW = Math.round(dispH * spec.widthPx / spec.heightPx);
+  if (maxW > 0 && dispW > maxW) {
+    dispW = maxW;
+    dispH = Math.round(dispW * spec.heightPx / spec.widthPx);
+  }
+  cv.style.height = dispH + 'px';
+  cv.style.width = dispW + 'px';
+  wrap.style.width = dispW + 'px';
+}
+
 function applySpec(spec) {
   current = spec;
   const cv = $('editor');
   cv.width = spec.widthPx;
   cv.height = spec.heightPx;
-  // display scaling (preserve aspect, cap height)
-  const dispH = Math.min(MAX_DISPLAY_H, spec.heightPx);
-  const dispW = Math.round(dispH * spec.widthPx / spec.heightPx);
-  cv.style.height = dispH + 'px';
-  cv.style.width = dispW + 'px';
-  $('editorWrap').style.width = dispW + 'px';
+  applyDisplaySize(spec);
   if (!editor) {
     editor = new CanvasEditor(cv, { shape: 'rect', background: spec.background });
     editor.on('change', () => { $('zoom').value = String(editor.zoom); });
@@ -267,7 +280,7 @@ function reportFileSize(blob, ext, fitted) {
   } else {
     hint.textContent = `Heads up — this JPG is ${sizeTxt}. US online uploads (DS-160 / DV-Lottery) require ` +
       `${ONLINE_JPG_MAX_KB} KB or smaller. Tick "Fit for US online upload" above, ` +
-      `or choose a smaller print size. Printed photos and DS-82 renewals have no such limit.`;
+      `or choose a smaller print size. Printed photos and mailed passport renewals (DS-82) have no such limit.`;
     hint.style.color = '#c9510c';
   }
   hint.style.display = '';
@@ -421,6 +434,15 @@ function init() {
     if (previewing) renderSheetPreview();
   });
   applySpec(DATA.specs[0]);
+
+  // Recompute the editor display size when the viewport (or an orientation
+  // change) resizes the container, so the canvas keeps fitting the screen.
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    if (!current) return;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => applyDisplaySize(current), 120);
+  });
 
   // Print-sheet size selector (falls back to the legacy single 4×6 sheet).
   const sheetSel = $('sheetSize');
