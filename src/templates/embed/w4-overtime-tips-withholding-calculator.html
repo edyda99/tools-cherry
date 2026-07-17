@@ -12,22 +12,7 @@
   body { margin: 0; padding: 14px; background: transparent; }
   .embed-wrap { max-width: 560px; margin: 0 auto; }
   .embed-wrap h1 { font-size: 1.25rem; margin: 0 0 10px; }
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.1rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; }
-  .obbba-note { font-size:.85rem; opacity:.85; margin-top:8px; }
-  .phaseout-flag { color:#b26b00; font-weight:600; }
-  .empty-flag { color:#b23a00; font-weight:600; }
-  .w4box { margin-top:14px; padding:12px 14px; border:2px solid #2f6f4f; border-radius:10px; background:rgba(47,111,79,.06); }
-  .w4box h3 { margin:0 0 6px; font-size:.95rem; }
-  .w4box .wline { display:flex; justify-content:space-between; gap:12px; padding:4px 0; font-variant-numeric:tabular-nums; border-bottom:1px dashed rgba(47,111,79,.35); }
-  .w4box .wline.total { font-weight:700; border-bottom:none; margin-top:4px; }
-  .w4box .w4-code { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
-  .ot-modes { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:8px; }
-  .ot-modes label { cursor:pointer; }
-  .ot-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .embed-credit { margin-top:14px; text-align:center; font-size:.85rem; opacity:.9; }
-  @media (max-width:520px){ .ot-row { grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
@@ -45,7 +30,7 @@
       </div>
       <div class="field">
         <label for="income">Total expected 2026 income (all sources)</label>
-        <input type="number" id="income" inputmode="numeric" min="0" step="1000" value="52000">
+        <input type="text" id="income" inputmode="decimal" data-money autocomplete="off" value="52000">
       </div>
       <div class="field">
         <label for="freq">How often are you paid?</label>
@@ -58,7 +43,7 @@
       </div>
       <div class="field">
         <label for="tips">Expected qualified tips for the year ($)</label>
-        <input type="number" id="tips" inputmode="numeric" min="0" step="500" value="0">
+        <input type="text" id="tips" inputmode="decimal" data-money autocomplete="off" value="0">
       </div>
       <div class="field">
         <label>Your overtime</label>
@@ -70,7 +55,7 @@
           <div class="ot-row">
             <div class="field" style="margin:0">
               <label for="otrate" class="muted-small">Regular rate ($/hr)</label>
-              <input type="number" id="otrate" inputmode="decimal" min="0" step="0.5" value="20">
+              <input type="text" id="otrate" inputmode="decimal" data-money autocomplete="off" value="20">
             </div>
             <div class="field" style="margin:0">
               <label for="othours" class="muted-small">Overtime hours / year</label>
@@ -81,7 +66,7 @@
         </div>
         <div id="ot-premium" hidden>
           <label for="otpremium" class="muted-small">Overtime premium for the year ($) — the "half" portion</label>
-          <input type="number" id="otpremium" inputmode="numeric" min="0" step="250" value="3000">
+          <input type="text" id="otpremium" inputmode="decimal" data-money autocomplete="off" value="3000">
         </div>
       </div>
       <details class="field">

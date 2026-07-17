@@ -5,6 +5,7 @@
 // and the extra take-home per paycheck. Step 4(b) DEDUCTIONS (lowers
 // withholding), NOT Step 4(c) (extra withholding). All logic client-side.
 import { estimateW4Adjustment, overtimePremium } from '/assets/obbba-deduction.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
@@ -17,6 +18,7 @@ const pct = (n) => (Math.max(0, n || 0) * 100).toFixed(1) + '%';
 const FREQ_LABEL = { weekly: 'weekly', biweekly: 'biweekly', semimonthly: 'semimonthly', monthly: 'monthly' };
 const FREQ_CHECK = { weekly: 'paycheck', biweekly: 'biweekly check', semimonthly: 'check', monthly: 'monthly check' };
 
+// Non-money (count) fields still go through a plain parseFloat.
 function num(id) {
   const el = $(id);
   const v = parseFloat(el ? el.value : '');
@@ -30,8 +32,8 @@ function otMode() {
 
 // The overtime PREMIUM (the deductible 0.5x "half") from whichever entry mode.
 function premiumInput() {
-  if (otMode() === 'premium') return num('otpremium');
-  return overtimePremium(num('otrate'), num('othours'));
+  if (otMode() === 'premium') return moneyValue($('otpremium'));
+  return overtimePremium(moneyValue($('otrate')), num('othours'));
 }
 
 // One phase-out/cliff note per side (spec §1.2): if income is over the
@@ -48,9 +50,9 @@ function phaseoutNote(r) {
 
 function render() {
   const filing = $('filing').value;
-  const income = num('income');
+  const income = moneyValue($('income'));
   const freq = $('freq').value;
-  const tips = num('tips');
+  const tips = moneyValue($('tips'));
   const premium = premiumInput();
   const monthsRemaining = num('months');
 
@@ -58,6 +60,39 @@ function render() {
     income, filingStatus: filing, tips, overtimePremium: premium,
     payFrequency: freq, monthsRemaining, federal: OBBBA, fed: FED
   });
+
+  const out = $('out');
+  const prevDetails = out.querySelector('details.derivation');
+  const wasOpen = prevDetails ? prevDetails.open : false;
+
+  if (r.dTotal <= 0) {
+    // The "why" already covers a full phase-out, so it isn't repeated as a
+    // separate headline caveat too (phaseoutNote(r) would say the same thing).
+    const why = r.anyPhasedOut
+      ? `After the income phase-out, there's no tips or overtime deduction left to claim this year.`
+      : `Enter your expected tips and/or overtime above to see what to put on your W-4.`;
+    const statCard =
+      `<div class="stat-card">` +
+        `<p class="stat-kicker">Recommended withholding reduction</p>` +
+        `<p class="stat-value is-zero">$0</p>` +
+        `<p class="stat-sub">${why}</p>` +
+      `</div>`;
+    const derivation =
+      `<details class="derivation"><summary>See how this was calculated</summary>` +
+        `<div class="line"><span>Line 1a — Qualified tips</span><span class="num">${usd(r.dTips)}</span></div>` +
+        `<div class="line"><span>Line 1b — Qualified overtime (premium only)</span><span class="num">${usd(r.dOt)}</span></div>` +
+        `<div class="line big"><span>Total added to Step 4(b) (line 15)</span><span class="num">${usd(r.dTotal)}</span></div>` +
+      `</details>`;
+    out.innerHTML = statCard + derivation;
+    const newDetails = out.querySelector('details.derivation');
+    if (newDetails) newDetails.open = wasOpen;
+    return;
+  }
+
+  // --- One headline caveat (partial phase-down), shown OUTSIDE the details.
+  // Only reached here when dTotal > 0, so phaseoutNote(r) (if anyPhasedOut)
+  // is always the "partly phased out, use the accurate figure" variant.
+  const headlineCaveat = phaseoutNote(r);
 
   // --- Estimated 2026 deduction (worksheet line 1a / 1b breakout) ---
   const capTips = r.tipsCapBound
@@ -70,17 +105,7 @@ function render() {
     capTips +
     `<div class="line"><span>Line 1b — Qualified overtime (premium only)</span><span class="num">${usd(r.dOt)}</span></div>` +
     capOt +
-    `<div class="line big"><span>Total added to Step 4(b) (line 15)</span><span class="num">${usd(r.dTotal)}</span></div>` +
-    phaseoutNote(r);
-
-  if (r.dTotal <= 0) {
-    const why = r.anyPhasedOut
-      ? `After the income phase-out, there's no tips or overtime deduction left to claim this year.`
-      : `Enter your expected tips and/or overtime above to see what to put on your W-4.`;
-    $('out').innerHTML = deductionBlock +
-      `<div class="obbba-note empty-flag">${why}</div>`;
-    return;
-  }
+    `<div class="line big"><span>Total added to Step 4(b) (line 15)</span><span class="num">${usd(r.dTotal)}</span></div>`;
 
   // --- What to enter on the W-4 (copy-ready) ---
   const w4box =
@@ -93,8 +118,12 @@ function render() {
     `</div>`;
 
   // --- Withholding reduction + extra take-home ---
+  // Label fix: this note previously mislabeled the taxSaved/deduction ratio
+  // as your headline marginal rate; it's really the effective rate the
+  // deduction was taxed at (it can straddle a bracket line). Matches SALT's
+  // calculator wording.
   const savingNote =
-    `<div class="obbba-note">Step 4(b) is subtracted from your annualized wages before the tax brackets apply, so this is about ${usd(r.dTotal)} &times; your ${pct(r.marginalRate)} effective federal rate on this deduction. Withholding is an estimate, not a guarantee.</div>`;
+    `<div class="obbba-note">Step 4(b) is subtracted from your annualized wages before the tax brackets apply, so this is about ${usd(r.dTotal)} &times; the effective federal rate on this deduction (${pct(r.marginalRate)}). Withholding is an estimate, not a guarantee.</div>`;
 
   const perCheckLine =
     `<div class="line big"><span>Extra take-home per ${FREQ_CHECK[freq] || 'paycheck'}</span><span class="num">${usd2(r.perPaycheck)}</span></div>`;
@@ -113,9 +142,36 @@ function render() {
   const caveats =
     `<div class="obbba-note">Still withheld regardless: Social Security + Medicare (FICA) on every tip and overtime dollar. State withholding is unaffected unless your state conforms (most don't). This is a federal-withholding estimate.</div>`;
 
+  // ---- Answer-first summary (stat card) ----------------------------------
+  // Kicker follows the rollout's naming, but the VALUE is a withholding
+  // REDUCTION (Step 4(b) is a deduction, not Step 4(c) extra withholding) —
+  // sub-line states the per-paycheck figure the tool also computes.
+  const perCheckSub = r.fullYear
+    ? `About ${usd2(r.perPaycheck)} extra in every ${FREQ_CHECK[freq] || 'paycheck'} once it's a full year.`
+    : `About ${usd2(r.perPaycheckRemaining)} extra in each of your ${r.remainingPeriods} remaining ${FREQ_LABEL[freq]} checks this year.`;
+  const statCard =
+    `<div class="stat-card">` +
+      `<p class="stat-kicker">Recommended withholding reduction</p>` +
+      `<p class="stat-value">${usd(r.annualReduction)}</p>` +
+      `<p class="stat-sub">${perCheckSub}</p>` +
+    `</div>`;
+
+  // ---- Full derivation, moved VERBATIM into a collapsed panel -----------
+  // (phaseoutNote(r) already shown once, above, as the headline caveat.)
+  const derivation =
+    `<details class="derivation"><summary>See how this was calculated</summary>` +
+      deductionBlock +
+      w4box +
+      resultBlock +
+      caveats +
+    `</details>`;
+
   const takeaway = `<div class="takeaway">In plain terms: this doesn't make your tips or overtime tax-free on your paycheck — it stops your employer from over-withholding, so you keep more each payday instead of waiting for a refund.</div>`;
 
-  $('out').innerHTML = deductionBlock + w4box + resultBlock + caveats + takeaway;
+  out.innerHTML = statCard + headlineCaveat + derivation + takeaway;
+
+  const newDetails = out.querySelector('details.derivation');
+  if (newDetails) newDetails.open = wasOpen;
 }
 
 function syncOtMode() {
@@ -126,6 +182,7 @@ function syncOtMode() {
 }
 
 function init() {
+  initMoneyInputs();
   ['filing', 'income', 'freq', 'tips', 'otrate', 'othours', 'otpremium', 'months'].forEach((id) => {
     const el = $(id);
     if (!el) return;

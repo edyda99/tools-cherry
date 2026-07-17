@@ -1,6 +1,7 @@
 // tips-tax-calculator.js — estimates the OBBBA "no tax on tips" (IRC §224)
 // federal deduction and tax saving. All logic client-side; nothing uploaded.
 import { estimate } from '/assets/obbba-deduction.js';
+import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
@@ -10,11 +11,6 @@ const STATES = window.__STATES__ || {};
 
 const usd = (n) => '$' + Math.round(Math.max(0, n || 0)).toLocaleString('en-US');
 const pct = (n) => (Math.max(0, n || 0) * 100).toFixed(1) + '%';
-
-function num(id) {
-  const v = parseFloat($(id).value);
-  return Number.isFinite(v) ? v : 0;
-}
 
 function fillStates() {
   const sel = $('state');
@@ -54,9 +50,20 @@ function renderState() {
     `<div class="obbba-note">${e.note}</div>`;
 }
 
+// Plain-words reason when there's $0 federal tax saved.
+function zeroBenefitNote(r) {
+  if (r.eligibleAmount <= 0) {
+    return 'Enter your tips above to see your federal tax saving.';
+  }
+  if (r.fullyPhasedOut) {
+    return 'Your income is high enough that the deduction is fully phased out, so there is nothing to deduct this year.';
+  }
+  return 'With these inputs there is no federal tax to save this year.';
+}
+
 function render() {
-  const income = num('income');
-  const tips = num('tips');
+  const income = moneyValue($('income'));
+  const tips = moneyValue($('tips'));
   const filing = $('filing').value;
 
   const r = estimate({ kind: 'tips', eligibleAmount: tips, grossAnnual: income, filingStatus: filing, federal: OBBBA, fed: FED });
@@ -68,19 +75,70 @@ function render() {
     ? `<div class="line"><span>Reduced by income phase-out</span><span class="num phaseout-flag">${r.fullyPhasedOut ? 'fully phased out' : 'yes — cap lowered to ' + usd(r.allowedCap)}</span></div>`
     : '';
 
-  $('out').innerHTML =
-    `<div class="line"><span>Tips you entered</span><span class="num">${usd(r.eligibleAmount)}${capNote}</span></div>` +
-    phaseNote +
-    `<div class="line"><span>Deductible amount</span><span class="num">${usd(r.deduction)}</span></div>` +
-    `<div class="line big"><span>Estimated federal tax saved</span><span class="num">${usd(r.taxSaved)}</span></div>` +
-    `<div class="line"><span>Effective federal rate on this deduction</span><span class="num">${pct(r.marginalRate)}</span></div>` +
-    `<div class="obbba-note">Social Security and Medicare (FICA) still apply to your tips — the deduction lowers federal income tax only, claimed when you file. You must work in a customarily-tipped occupation.</div>` +
+  // ---- Answer-first summary (stat card) --------------------------------
+  const benefits = r.taxSaved > 0;
+  const statValue = benefits ? usd(r.taxSaved) : '$0';
+  const statSub = benefits
+    ? `Your deductible tips are ${usd(r.deduction)} of the ${usd(r.eligibleAmount)} you reported.`
+    : zeroBenefitNote(r); // the "why" stays visible, never hidden in details
+  const statCard =
+    `<div class="stat-card">` +
+      `<p class="stat-kicker">Federal tax saved on your tips</p>` +
+      `<p class="stat-value${benefits ? '' : ' is-zero'}">${statValue}</p>` +
+      `<p class="stat-sub">${statSub}</p>` +
+    `</div>`;
+
+  // ---- Reported vs deductible comparison bars (decorative) --------------
+  const barMax = Math.max(r.eligibleAmount, r.deduction, 1);
+  const reportedPct = Math.min(100, (r.eligibleAmount / barMax) * 100).toFixed(1);
+  const dedPct = Math.min(100, (r.deduction / barMax) * 100).toFixed(1);
+  const compareBars = r.eligibleAmount > 0
+    ? `<div class="compare-bars" aria-hidden="true">` +
+        `<div class="cb-row"><span>Tips reported ${usd(r.eligibleAmount)}</span><span class="cb-track"><span class="cb-fill cb-over" style="width:${reportedPct}%"></span></span></div>` +
+        `<div class="cb-row"><span>Deductible ${usd(r.deduction)}</span><span class="cb-track"><span class="cb-fill" style="width:${dedPct}%"></span></span></div>` +
+      `</div>`
+    : '';
+
+  // ---- One headline caveat (phase-down) shown OUTSIDE the details -------
+  const headlineCaveat = (benefits && r.phasedOut && !r.fullyPhasedOut)
+    ? `<div class="obbba-note phaseout-flag">Heads up: your income is above the phase-out threshold, so your deductible cap is lowered to ${usd(r.allowedCap)} (see the breakdown for the math).</div>`
+    : '';
+
+  // ---- Full derivation, moved VERBATIM into a collapsed panel -----------
+  // Label fix: this row previously mislabeled the taxSaved/deduction ratio
+  // as your headline marginal rate; it's really the effective rate the
+  // deduction was taxed at (it can straddle a bracket line). Matches SALT's
+  // calculator wording.
+  const derivation =
+    `<details class="derivation"><summary>See how this was calculated</summary>` +
+      `<div class="line"><span>Tips you entered</span><span class="num">${usd(r.eligibleAmount)}${capNote}</span></div>` +
+      phaseNote +
+      `<div class="line"><span>Deductible amount</span><span class="num">${usd(r.deduction)}</span></div>` +
+      `<div class="line big"><span>Estimated federal tax saved</span><span class="num">${usd(r.taxSaved)}</span></div>` +
+      `<div class="line"><span>Effective federal rate on this deduction</span><span class="num">${pct(r.marginalRate)}</span></div>` +
+      `<div class="obbba-note">Social Security and Medicare (FICA) still apply to your tips — the deduction lowers federal income tax only, claimed when you file. You must work in a customarily-tipped occupation.</div>` +
+    `</details>`;
+
+  // Preserve the user's open/closed choice across re-renders (default closed).
+  const out = $('out');
+  const prevDetails = out.querySelector('details.derivation');
+  const wasOpen = prevDetails ? prevDetails.open : false;
+
+  out.innerHTML =
+    statCard +
+    compareBars +
+    headlineCaveat +
+    derivation +
     `<div class="takeaway">In plain terms: this lands as a bigger refund (or a smaller bill) when you file next year — your paychecks and their withholding don't change now.</div>`;
+
+  const newDetails = out.querySelector('details.derivation');
+  if (newDetails) newDetails.open = wasOpen;
 
   renderState();
 }
 
 function init() {
+  initMoneyInputs();
   fillStates();
   ['income', 'tips', 'filing', 'state'].forEach((id) => {
     $(id).addEventListener('input', render);

@@ -262,11 +262,18 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 /* ---- OBBBA / tax tool results (shared) ------------------------------- */
 /* The output container (#out) inherits the code-tool monospace font used by
    the text utilities; the answer-first card + bars are prose, so pin them to
-   the body sans stack. These classes are SALT-pilot-only, so no other tool's
-   look changes. The derivation number rows deliberately stay monospace for
-   column alignment. */
+   the body sans stack. */
 .stat-card, .compare-bars, .derivation > summary {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+/* R1: #out{font-family:monospace} (below, text-tool rule) was leaking into
+   every .obbba-out results panel, rendering derivation prose (.line/.obbba-note/
+   .takeaway text, not just the stat-card) in a terminal font. #out.obbba-out
+   (ID+class, specificity 110) outranks the bare #out rule (100) so this wins
+   the cascade; the plain .obbba-out arm covers the one panel that isn't id="out"
+   (ss-wage-base-calculator's #ficaOut). Numeric alignment doesn't need a literal
+   monospace font — .num and .stat-value keep font-variant-numeric: tabular-nums
+   below, which aligns digits in any font. */
+#out.obbba-out, .obbba-out { font-family: inherit; }
 .stat-card { border-radius: var(--radius); background: var(--surface-2);
   border: 1px solid var(--border); padding: 16px 18px; margin-bottom: 14px; }
 .stat-kicker { margin: 0 0 2px; font-size: 13.5px; font-weight: 600; color: var(--muted); }
@@ -315,6 +322,42 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 }
 :root[data-theme="dark"] .phaseout-flag { color: #f0b86e; }
 :root[data-theme="dark"] .ineligible-flag { color: #f08a72; }
+
+/* ---- OBBBA state-conformity verdict box (overtime, tips) ------------- */
+.state-verdict { margin-top: 10px; padding: 10px 12px; border-radius: 8px;
+  background: rgba(128,128,128,.10); font-size: .95rem; }
+
+/* ---- Overtime premium estimator <details> ----------------------------- */
+details.estimator { margin-top: 6px; }
+details.estimator summary { cursor: pointer; font-size: .92rem; opacity: .9; }
+
+/* ---- Senior deduction 65+ checkboxes ----------------------------------- */
+.check-field { display: flex; align-items: flex-start; gap: 10px; }
+.check-field input[type="checkbox"] { width: 20px; height: 20px; margin-top: 2px; flex: none; }
+
+/* ---- W-4 overtime/tips withholding calculator -------------------------- */
+.empty-flag { color: #b23a00; font-weight: 600; }
+.w4box { margin-top: 14px; padding: 14px 16px; border: 2px solid #2f6f4f;
+  border-radius: 10px; background: rgba(47,111,79,.06); }
+.w4box h3 { margin: 0 0 8px; font-size: 1rem; }
+.w4box .wline { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0;
+  font-variant-numeric: tabular-nums; border-bottom: 1px dashed rgba(47,111,79,.35); }
+.w4box .wline.total { font-weight: 700; border-bottom: none; margin-top: 4px; }
+.w4box .w4-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.ot-modes { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+.ot-modes label { cursor: pointer; font-weight: 500; }
+.ot-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 520px) { .ot-row { grid-template-columns: 1fr; } }
+
+/* ---- Bonus tax calculator (withheld-now vs true-cost columns) --------- */
+.ok-flag { color: #2f6f4f; font-weight: 700; }
+.bt-headline { margin: 4px 0 14px; padding: 12px 15px; border-radius: 9px; font-size: 1.02rem; }
+.bt-headline.refund { border-left: 4px solid #2f6f4f; background: rgba(47,111,79,.10); }
+.bt-headline.owe { border-left: 4px solid #b26b00; background: rgba(178,107,0,.10); }
+.bt-headline.even { border-left: 4px solid #4a6785; background: rgba(74,103,133,.10); }
+.bt-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 6px; }
+.bt-col h3 { margin: 0 0 6px; font-size: 1rem; }
+@media (max-width: 640px) { .bt-cols { grid-template-columns: 1fr; } }
 
 /* ---- QR colour pickers + scannability warning ----------------------- */
 .field input[type="color"] { height: 44px; padding: 4px; cursor: pointer; }
