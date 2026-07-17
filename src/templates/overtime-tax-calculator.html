@@ -12,18 +12,6 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
-<style>
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; }
-  .obbba-note { font-size:.9rem; opacity:.85; margin-top:8px; }
-  .phaseout-flag { color:#b26b00; font-weight:600; }
-  .state-verdict { margin-top:10px; padding:10px 12px; border-radius:8px; background:rgba(128,128,128,.10); font-size:.95rem; }
-  .est-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  details.estimator { margin-top:6px; }
-  details.estimator summary { cursor:pointer; font-size:.92rem; opacity:.9; }
-  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
-</style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"No Tax on Overtime Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Estimate the federal One Big Beautiful Bill Act 'no tax on overtime' deduction (IRC §225): how much of your overtime premium is deductible after the income phase-out, and your federal income-tax saving for tax years 2025–2028."}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is overtime really tax-free in 2025?","acceptedAnswer":{"@type":"Answer","text":"Not entirely. The 2025 One Big Beautiful Bill Act created a federal income-tax deduction for the overtime PREMIUM — the extra 'half' of time-and-a-half required by the Fair Labor Standards Act — up to $12,500 (single) or $25,000 (married filing jointly) per year, for tax years 2025 through 2028. It reduces your federal income tax only; Social Security and Medicare (FICA) still apply, and your state may still tax it."}},{"@type":"Question","name":"How much of my overtime qualifies?","acceptedAnswer":{"@type":"Answer","text":"Only the premium portion — the amount paid above your regular rate. If your regular rate is $20/hour and overtime pays $30/hour, only the $10/hour premium counts, not the full $30. Overtime required only by a contract or state law (not by the federal FLSA) does not qualify."}},{"@type":"Question","name":"Does the overtime deduction phase out at higher incomes?","acceptedAnswer":{"@type":"Answer","text":"Yes. The deduction is reduced by $100 for every $1,000 your modified adjusted gross income exceeds $150,000 (single) or $300,000 (joint). It fully phases out at $275,000 (single) or $550,000 (joint)."}},{"@type":"Question","name":"Do I still pay Social Security and Medicare on overtime?","acceptedAnswer":{"@type":"Answer","text":"Yes. The deduction lowers federal income tax only. Social Security (6.2%) and Medicare (1.45%) are still withheld from overtime pay, and the deduction does not change your paycheck withholding — you claim it when you file."}},{"@type":"Question","name":"What is MAGI?","acceptedAnswer":{"@type":"Answer","text":"MAGI (modified adjusted gross income) is your adjusted gross income plus a few add-backs, mainly foreign-income exclusions — for almost everyone it is the same as your AGI. It is the income figure the overtime phase-out uses."}},{"@type":"Question","name":"What is FICA?","acceptedAnswer":{"@type":"Answer","text":"FICA is the Social Security (6.2%) and Medicare (1.45%) payroll tax withheld from your pay. It is separate from federal income tax, and this deduction does not reduce it — FICA still applies to your overtime."}},{"@type":"Question","name":"What is filing status?","acceptedAnswer":{"@type":"Answer","text":"Your filing status is the category you file under — single, married filing jointly, or head of household for this deduction. It sets your cap and phase-out thresholds. Married workers must file jointly to claim it; married filing separately cannot."}}]}</script>
 </head>
@@ -45,16 +33,16 @@
       <form id="otForm" autocomplete="off" onsubmit="return false">
         <div class="field">
           <label for="income">Your total annual income (all wages, before tax)</label>
-          <input type="number" id="income" inputmode="numeric" min="0" step="1000" value="60000">
+          <input type="text" id="income" inputmode="decimal" data-money autocomplete="off" value="60000">
         </div>
 
         <div class="field">
           <label for="premium">Overtime premium for the year <span class="muted-small">(the extra "half" above your normal rate — only this qualifies)</span></label>
-          <input type="number" id="premium" inputmode="numeric" min="0" step="100" value="5000">
+          <input type="text" id="premium" inputmode="decimal" data-money autocomplete="off" value="5000">
           <details class="estimator">
             <summary>Not sure? Estimate it from your rate and hours</summary>
             <div class="est-row" style="margin-top:8px">
-              <div class="field" style="margin:0"><label for="regRate">Regular hourly rate ($)</label><input type="number" id="regRate" inputmode="decimal" min="0" step="0.5" placeholder="20"></div>
+              <div class="field" style="margin:0"><label for="regRate">Regular hourly rate ($)</label><input type="text" id="regRate" inputmode="decimal" data-money autocomplete="off" placeholder="20"></div>
               <div class="field" style="margin:0"><label for="otHours">Overtime hours this year</label><input type="number" id="otHours" inputmode="numeric" min="0" step="1" placeholder="250"></div>
             </div>
             <p class="muted-small" style="margin-top:6px">Premium = ½ × your regular rate × overtime hours. We fill the box above for you.</p>

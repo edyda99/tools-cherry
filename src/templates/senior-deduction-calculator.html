@@ -12,19 +12,6 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
-<style>
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; }
-  .obbba-note { font-size:.9rem; opacity:.85; margin-top:8px; }
-  .phaseout-flag { color:#b26b00; font-weight:600; }
-  .ineligible-flag { color:#b23a00; font-weight:600; }
-  .check-field { display:flex; align-items:flex-start; gap:10px; }
-  .check-field input[type="checkbox"] { width:20px; height:20px; margin-top:2px; flex:none; }
-  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
-  .mythbust h2 { margin-top:0; }
-  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
-</style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Senior Bonus Deduction Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Estimate the One Big Beautiful Bill Act $6,000 senior bonus deduction (IRC §151(d)(5)(C)) for taxpayers 65 and older: your deduction after the 6% income phase-out, and your federal income-tax saving for tax years 2025–2028. Often marketed as 'no tax on Social Security' — Social Security benefit taxation is actually unchanged."}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Did the 2025 law end taxes on Social Security benefits?","acceptedAnswer":{"@type":"Answer","text":"No. The One Big Beautiful Bill Act did not change how Social Security benefits are taxed — up to 85% of benefits remain taxable under the same rules and thresholds as before. What the law added is a separate, temporary $6,000 deduction for each person 65 or older, for tax years 2025 through 2028. It offsets taxable income afterward; the benefit-taxation rules in IRC §86 are untouched."}},{"@type":"Question","name":"How much is the senior bonus deduction?","acceptedAnswer":{"@type":"Answer","text":"$6,000 per qualifying person who is 65 or older by December 31 of the tax year — so $12,000 for a married couple where both spouses qualify. It shrinks by 6 cents for every dollar of modified adjusted gross income above $75,000 (single, head of household, or qualifying surviving spouse) or $150,000 (married filing jointly), reaching zero at $175,000 / $250,000."}},{"@type":"Question","name":"Do I have to itemize to claim the senior deduction?","acceptedAnswer":{"@type":"Answer","text":"No. It is available whether you itemize or take the standard deduction, and it stacks on top of the older, smaller additional standard deduction for people 65 and older ($2,000 single / $1,600 per qualifying spouse in 2025)."}},{"@type":"Question","name":"Can I claim the senior deduction if I'm married filing separately?","acceptedAnswer":{"@type":"Answer","text":"No. Married taxpayers must file a joint return to claim it — married filing separately gets $0. Each qualifying person also needs a work-eligible Social Security number on the return."}},{"@type":"Question","name":"Do I need to receive Social Security to get the senior deduction?","acceptedAnswer":{"@type":"Answer","text":"No. Despite the 'no tax on Social Security' branding, the deduction is based only on age and income — any qualifying taxpayer 65 or older can claim it, even one who receives no Social Security benefits at all."}},{"@type":"Question","name":"What is MAGI?","acceptedAnswer":{"@type":"Answer","text":"MAGI (modified adjusted gross income) is your adjusted gross income plus a few add-backs, mainly foreign-income exclusions — for almost everyone it is the same as your AGI. It is the income figure the senior deduction's 6% phase-out uses."}},{"@type":"Question","name":"What is filing status?","acceptedAnswer":{"@type":"Answer","text":"Your filing status is the category you file under — single, married filing jointly, married filing separately, head of household, or qualifying surviving spouse. It sets your $75,000 or $150,000 phase-out threshold. Married couples must file jointly to claim this deduction; married filing separately gets $0."}}]}</script>
 </head>
@@ -77,9 +64,9 @@
         </div>
 
         <div class="field">
-          <label for="magi">Your modified adjusted gross income (MAGI)</label>
-          <input type="number" id="magi" inputmode="numeric" min="0" step="1000" value="60000">
-          <p class="muted-small" style="margin-top:6px">Roughly your AGI — line 11 on Form 1040 — for most people. Filing jointly? Use your combined income.</p>
+          <label for="magi">Your yearly income (Form 1040 line 11)</label>
+          <input type="text" id="magi" inputmode="decimal" data-money autocomplete="off" value="60000">
+          <p class="muted-small" style="margin-top:6px">The law technically uses MAGI — modified adjusted gross income, roughly your AGI — for almost everyone it's the same number. Filing jointly? Use your combined income.</p>
         </div>
       </form>
 

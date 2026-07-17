@@ -12,15 +12,6 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
-<style>
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; }
-  .obbba-note { font-size:.9rem; opacity:.85; margin-top:8px; }
-  .phaseout-flag { color:#b26b00; font-weight:600; }
-  .state-verdict { margin-top:10px; padding:10px 12px; border-radius:8px; background:rgba(128,128,128,.10); font-size:.95rem; }
-  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
-</style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"No Tax on Tips Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Estimate the federal One Big Beautiful Bill Act 'no tax on tips' deduction (IRC §224): how much of your tip income is deductible (up to $25,000) after the income phase-out, and your federal income-tax saving for tax years 2025–2028."}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Are tips really tax-free in 2025?","acceptedAnswer":{"@type":"Answer","text":"Partly. The 2025 One Big Beautiful Bill Act created a federal income-tax deduction for up to $25,000 of qualified tips per year, for tax years 2025 through 2028. It reduces your federal income tax only; Social Security and Medicare (FICA) still apply to tips, and your state may still tax them. You must work in an occupation that customarily and regularly receives tips."}},{"@type":"Question","name":"Is the $25,000 tip deduction doubled if I'm married?","acceptedAnswer":{"@type":"Answer","text":"No. The $25,000 cap is a single per-return limit — it is the same whether you file single or married filing jointly, it is not doubled. Married taxpayers must file jointly to claim it."}},{"@type":"Question","name":"Does the tips deduction phase out at higher incomes?","acceptedAnswer":{"@type":"Answer","text":"Yes. The deduction is reduced by $100 for every $1,000 your modified adjusted gross income exceeds $150,000 (single) or $300,000 (joint). It fully phases out at $400,000 (single) or $550,000 (joint)."}},{"@type":"Question","name":"Do I still pay Social Security and Medicare on tips?","acceptedAnswer":{"@type":"Answer","text":"Yes. The deduction lowers federal income tax only. Social Security and Medicare are still owed on tips, and you still report all your tips as usual — you claim the deduction when you file."}},{"@type":"Question","name":"What is MAGI?","acceptedAnswer":{"@type":"Answer","text":"MAGI (modified adjusted gross income) is your adjusted gross income plus a few add-backs, mainly foreign-income exclusions — for almost everyone it is the same as your AGI. It is the income figure the tips phase-out uses."}},{"@type":"Question","name":"What is FICA?","acceptedAnswer":{"@type":"Answer","text":"FICA is the Social Security (6.2%) and Medicare (1.45%) payroll tax withheld from your pay. It is separate from federal income tax, and this deduction does not reduce it — FICA is still owed on your tips."}},{"@type":"Question","name":"What is filing status?","acceptedAnswer":{"@type":"Answer","text":"Your filing status is the category you file under — single, married filing jointly, or head of household for this deduction. It sets your phase-out thresholds. Married workers must file jointly to claim it; married filing separately cannot."}}]}</script>
 </head>
@@ -42,12 +33,12 @@
       <form id="tipsForm" autocomplete="off" onsubmit="return false">
         <div class="field">
           <label for="income">Your total annual income (all wages + tips, before tax)</label>
-          <input type="number" id="income" inputmode="numeric" min="0" step="1000" value="45000">
+          <input type="text" id="income" inputmode="decimal" data-money autocomplete="off" value="45000">
         </div>
 
         <div class="field">
           <label for="tips">Tips you received this year</label>
-          <input type="number" id="tips" inputmode="numeric" min="0" step="500" value="18000">
+          <input type="text" id="tips" inputmode="decimal" data-money autocomplete="off" value="18000">
           <p class="muted-small" style="margin-top:6px">Cash and charged tips you reported. Up to $25,000 can be deducted.</p>
         </div>
 

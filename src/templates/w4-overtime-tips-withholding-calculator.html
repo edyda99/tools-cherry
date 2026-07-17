@@ -12,26 +12,6 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
-<style>
-  .obbba-out .line { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid rgba(128,128,128,.18); }
-  .obbba-out .line.big { font-size:1.15rem; font-weight:700; border-bottom:2px solid rgba(128,128,128,.35); }
-  .obbba-out .num { font-variant-numeric: tabular-nums; }
-  .obbba-note { font-size:.9rem; opacity:.85; margin-top:8px; }
-  .phaseout-flag { color:#b26b00; font-weight:600; }
-  .empty-flag { color:#b23a00; font-weight:600; }
-  .mythbust { margin-top:10px; padding:14px 16px; border-left:4px solid #b26b00; border-radius:8px; background:rgba(178,107,0,.08); }
-  .mythbust h2 { margin-top:0; }
-  .takeaway { margin-top:12px; padding:11px 14px; border-left:4px solid #2f6f4f; border-radius:8px; background:rgba(47,111,79,.09); font-size:.95rem; }
-  .w4box { margin-top:14px; padding:14px 16px; border:2px solid #2f6f4f; border-radius:10px; background:rgba(47,111,79,.06); }
-  .w4box h3 { margin:0 0 8px; font-size:1rem; }
-  .w4box .wline { display:flex; justify-content:space-between; gap:12px; padding:5px 0; font-variant-numeric:tabular-nums; border-bottom:1px dashed rgba(47,111,79,.35); }
-  .w4box .wline.total { font-weight:700; border-bottom:none; margin-top:4px; }
-  .w4box .w4-code { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
-  .ot-modes { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:8px; }
-  .ot-modes label { cursor:pointer; font-weight:500; }
-  .ot-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  @media (max-width:520px){ .ot-row { grid-template-columns:1fr; } }
-</style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"W-4 Overtime & Tips Withholding Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Turn the 2025 One Big Beautiful Bill Act no-tax-on-tips (IRC §224) and no-tax-on-overtime (IRC §225) deductions into a paycheck adjustment. Estimates the qualified tips (worksheet line 1a) and qualified overtime-premium (line 1b) deductions after their caps and MAGI phase-out, the combined amount to enter on the 2026 Form W-4 Step 4(b) Deductions Worksheet, the annual federal withholding reduction, and the extra take-home per paycheck for weekly, biweekly, semimonthly, or monthly pay."}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Do I have to wait until I file to benefit from no tax on tips or overtime?","acceptedAnswer":{"@type":"Answer","text":"No. By default your employer withholds federal income tax on tips and overtime as if they were fully taxable, so you over-withhold all year and get the deduction back as a bigger refund. You can instead adjust your 2026 Form W-4 now: put an estimate of the deduction on the Step 4(b) Deductions Worksheet so your employer withholds less each payday and you keep more in every paycheck. Doing nothing is fine too — you just wait for the refund."}},{"@type":"Question","name":"Which W-4 step do I use — Step 4(b) or Step 4(c)?","acceptedAnswer":{"@type":"Answer","text":"Step 4(b), Deductions. Step 4(b) lowers the income your employer withholds on, so it raises your take-home pay. Step 4(c) is the opposite — it is EXTRA withholding that shrinks your paycheck. Any guide telling tipped or overtime workers to use 4(c) for this is wrong. On the 2026 W-4, the tips estimate goes on the Deductions Worksheet line 1a and the overtime-premium estimate on line 1b; they roll into the line-15 total, which you copy to Step 4(b) on the form itself."}},{"@type":"Question","name":"How much extra will my paycheck actually go up?","acceptedAnswer":{"@type":"Answer","text":"Roughly your deduction times your marginal tax rate, spread across the year. Because Publication 15-T subtracts your Step 4(b) amount from your annualized wages before applying the tax brackets, the annual withholding reduction is about the deduction times your marginal rate, and the per-paycheck increase is that annual figure divided by your number of pay periods (52 weekly, 26 biweekly, 24 semimonthly, 12 monthly). It is an estimate, not a guarantee."}},{"@type":"Question","name":"Does adjusting my W-4 change my Social Security and Medicare?","acceptedAnswer":{"@type":"Answer","text":"No. Social Security (6.2%) and Medicare (1.45%) — FICA — are still withheld on every tip and overtime dollar. The tips and overtime deductions reduce federal income tax only, so the W-4 Step 4(b) adjustment changes your federal income-tax withholding and nothing else."}},{"@type":"Question","name":"How much overtime counts — my full overtime pay or just part of it?","acceptedAnswer":{"@type":"Answer","text":"Only the premium, the extra 'half' of time-and-a-half. If your regular rate is $20/hour and overtime pays $30/hour, only the $10/hour premium qualifies, not the full $30. That is the same 'and-a-half portion' the 2026 W-4 asks for on line 1b, and the same amount that will appear in the new W-2 Box 12 code TT next January."}},{"@type":"Question","name":"What are the W-2 codes TT and TP, and do they change my paycheck?","acceptedAnswer":{"@type":"Answer","text":"They are year-end reporting, not a paycheck lever. On your 2026 W-2, Box 12 code TT reports your total qualified overtime (the premium portion only) and code TP reports your total reported tips. Those figures are what you use to fill in Schedule 1-A when you file next year — they confirm the real numbers. They do not change withholding; the W-4 Step 4(b) adjustment is the only thing that does that during the year."}},{"@type":"Question","name":"A big refund is good, isn't it?","acceptedAnswer":{"@type":"Answer","text":"A big refund is your own money that the IRS held all year with no interest. Over-withholding on tips and overtime is an interest-free loan to the government. Adjusting Step 4(b) matches your withholding to your real tax so the money shows up in your paychecks instead. It is optional — if you prefer the forced-savings feel of a refund, do nothing."}}]}</script>
 </head>
@@ -65,7 +45,7 @@
 
         <div class="field">
           <label for="income">Your total expected 2026 income (all sources)</label>
-          <input type="number" id="income" inputmode="numeric" min="0" step="1000" value="52000">
+          <input type="text" id="income" inputmode="decimal" data-money autocomplete="off" value="52000">
           <p class="muted-small" style="margin-top:6px">Roughly your modified adjusted gross income. It sets your tax bracket and the income phase-out. Filing jointly? Use your combined income.</p>
         </div>
 
@@ -82,7 +62,7 @@
 
         <div class="field">
           <label for="tips">Expected qualified tips for the year ($)</label>
-          <input type="number" id="tips" inputmode="numeric" min="0" step="500" value="0">
+          <input type="text" id="tips" inputmode="decimal" data-money autocomplete="off" value="0">
           <p class="muted-small" style="margin-top:6px">Cash and charged tips you expect for all of 2026, up to a $25,000 cap. Leave at 0 if you don't earn tips.</p>
         </div>
 
@@ -96,7 +76,7 @@
             <div class="ot-row">
               <div class="field" style="margin:0">
                 <label for="otrate" class="muted-small">Regular hourly rate ($)</label>
-                <input type="number" id="otrate" inputmode="decimal" min="0" step="0.5" value="20">
+                <input type="text" id="otrate" inputmode="decimal" data-money autocomplete="off" value="20">
               </div>
               <div class="field" style="margin:0">
                 <label for="othours" class="muted-small">Overtime hours for the year</label>
@@ -107,7 +87,7 @@
           </div>
           <div id="ot-premium" hidden>
             <label for="otpremium" class="muted-small">Overtime premium for the year ($) — the "half" portion</label>
-            <input type="number" id="otpremium" inputmode="numeric" min="0" step="250" value="3000">
+            <input type="text" id="otpremium" inputmode="decimal" data-money autocomplete="off" value="3000">
             <p class="muted-small" style="margin-top:6px">Read it off a pay stub or your anticipated W-2 Box 12 <span class="w4-code">TT</span>. Enter only the premium (the extra half), not your full overtime pay.</p>
           </div>
         </div>
