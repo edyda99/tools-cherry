@@ -2094,7 +2094,7 @@ function bonusNeighborTable(state, supp, roster, builtSlugs, taxData, suppData) 
   ]);
   return `<section class="prose"><h2>${heading}</h2>` +
     `<p>${intro}</p>` +
-    `<table class="data-table"><thead><tr><th>State</th><th>Bonus method</th><th>State withheld</th><th>Total withheld</th></tr></thead><tbody>${rows}</tbody></table>` +
+    `<div class="table-scroll"><table class="data-table"><thead><tr><th>State</th><th>Bonus method</th><th>State withheld</th><th>Total withheld</th></tr></thead><tbody>${rows}</tbody></table></div>` +
     `<p class="muted-small">${foot}</p></section>`;
 }
 
@@ -2128,7 +2128,7 @@ function bonusSizeTable(state, supp, taxData, suppData) {
   ]);
   return `<section class="prose"><h2>${heading}</h2>` +
     `<p>${intro}</p>` +
-    `<table class="data-table"><thead><tr><th>Bonus</th><th>Federal</th><th>${state.name}</th><th>FICA</th><th>Total</th><th>% of bonus</th></tr></thead><tbody>${rows}</tbody></table>` +
+    `<div class="table-scroll"><table class="data-table"><thead><tr><th>Bonus</th><th>Federal</th><th>${state.name}</th><th>FICA</th><th>Total</th><th>% of bonus</th></tr></thead><tbody>${rows}</tbody></table></div>` +
     `<p class="muted-small">${foot}</p></section>`;
 }
 
