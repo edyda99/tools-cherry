@@ -92,23 +92,28 @@ function render() {
   // Weeks: show whole weeks plus leftover days when it isn't an exact multiple.
   const wholeWeeks = Math.trunc(totalWeeks);
   const leftover = totalDays - wholeWeeks * 7;
+  // Weeks phrase for the sub-line: keep the leftover days here (as words) so the
+  // numeric Weeks tile can stay a plain number instead of a wrapped sentence.
+  const weeksText = leftover
+    ? `${unit(wholeWeeks, 'week')} and ${unit(leftover, 'day')}`
+    : unit(wholeWeeks, 'week');
 
   // Headline: the total day count — the number people actually came for.
   // The years/months/days breakdown, week count and business-day count move
   // to the sub-line underneath (this does not change with the include-end
   // toggle, which only affects the day count).
   $('durBig').textContent = unit(totalDays, 'day');
-  $('durSub').textContent = `= ${phrase(breakdown)} · ${unit(wholeWeeks, 'week')} · ${unit(business, 'business day')}`;
+  $('durSub').textContent = `= ${phrase(breakdown)} · ${weeksText} · ${unit(business, 'business day')}`;
 
   const inc = includeEnd ? ' (end date included)' : '';
   $('durRange').textContent = reversed
     ? `${fmtDate(end)} is before ${fmtDate(start)} — showing the span between them${inc}.`
     : `From ${fmtDate(start)} to ${fmtDate(end)}${inc}.`;
 
+  // Numeric tiles hold numbers only. The Weeks tile shows the whole-week count;
+  // any leftover days live in the durSub line above (weeksText), not in the tile.
   $('totDays').textContent = nf(totalDays);
-  $('totWeeks').textContent = leftover
-    ? `${nf(wholeWeeks)} (${unit(wholeWeeks, 'week')}, ${unit(leftover, 'day')})`
-    : nf(wholeWeeks);
+  $('totWeeks').textContent = nf(wholeWeeks);
   $('totBiz').textContent = nf(business);
 
   if (reversed) {
