@@ -31,6 +31,7 @@
 
     <div class="calc">
       <div>
+        <h3>1. Upload your photo</h3>
         <div class="field">
           <label for="spec">Document type</label>
           <select id="spec"></select>
@@ -39,6 +40,8 @@
           <input id="file" type="file" accept="image/*" hidden>
           <span id="dropText">Click to choose a photo, or drop one here</span>
         </label>
+
+        <h3 style="margin-top:24px">2. Adjust to fit the guide</h3>
         <div class="field" style="margin-top:14px">
           <label for="zoom">Zoom</label>
           <input id="zoom" type="range" min="1" max="5" step="0.01" value="1" style="width:100%">
@@ -51,17 +54,19 @@
           <input id="rotate" type="range" min="-45" max="45" step="0.5" value="0" style="width:100%">
           <p class="muted-small" id="rotateInfo" style="margin-top:4px">0°. Tilt the slider so the eyes sit level.</p>
         </div>
+
+        <h3 style="margin-top:24px">3. Choose format &amp; download</h3>
         <div class="field">
           <label for="format">Download format</label>
           <select id="format">
             <option value="png">PNG (lossless)</option>
-            <option value="jpg">JPG (smaller — most print labs)</option>
+            <option value="jpg">JPG (smaller, most print labs)</option>
           </select>
         </div>
         <div class="field" id="fitField" style="display:none">
           <label style="display:flex;gap:8px;align-items:flex-start;font-weight:normal">
             <input id="fitOnline" type="checkbox" style="width:auto;margin-top:3px">
-            <span>Shrink the file for online upload (≤240 KB) — needed for US visa (DS-160) and Green Card lottery sites. Printed photos and mailed renewals (DS-82) don't need this.</span>
+            <span>Shrink the file to meet the 240 KB online upload limit for US visa (DS-160) and Green Card lottery sites. Printed photos and mailed renewals (DS-82) don't need this.</span>
           </label>
         </div>
         <div class="field">
@@ -71,11 +76,13 @@
         </div>
         <p class="muted-small" id="specNote"></p>
         <p class="muted-small">Sizes follow each country's official passport/ID photo rules. The on-screen guide shows where your head should sit.</p>
+        <p class="muted-small" style="margin-top:10px">Your live preview and download buttons are on the right (below, on phones).</p>
       </div>
 
       <div class="results" style="text-align:center">
+        <div class="field-label">Live preview</div>
         <div class="editor-wrap" id="editorWrap" style="position:relative">
-          <canvas id="editor" width="600" height="600" aria-label="Passport photo preview — drag to position your face inside the guide and use the zoom slider to scale it">Your photo preview appears here. Use the zoom control to position your face inside the guide.</canvas>
+          <canvas id="editor" width="600" height="600" aria-label="Passport photo preview. Drag to position your face inside the guide and use the zoom slider to scale it">Your photo preview appears here. Use the zoom control to position your face inside the guide.</canvas>
           <svg id="guide" viewBox="0 0 600 600" preserveAspectRatio="none" aria-hidden="true"
                style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></svg>
         </div>
@@ -84,9 +91,9 @@
         <p class="muted-small" id="sizeHint" style="margin-top:6px;display:none"></p>
         <p class="muted-small" id="bgHint" style="margin-top:6px;display:none"></p>
         <div id="checklist" style="display:none;text-align:left;margin-top:12px;border:1px solid var(--border);border-radius:8px;padding:12px 14px">
-          <strong style="display:block;font-size:13px;margin-bottom:8px">Compliance checklist</strong>
+          <strong style="display:block;font-size:13px;margin-bottom:8px">Photo requirements checklist</strong>
           <ul id="checkItems" style="list-style:none;margin:0;padding:0;font-size:13px;line-height:1.5"></ul>
-          <p class="muted-small" style="margin:8px 0 0">A self-check only — it can't read your face or judge lighting. The issuing authority makes the final decision.</p>
+          <p class="muted-small" style="margin:8px 0 0">A self-check only. It can't read your face or judge lighting. The issuing authority makes the final decision.</p>
         </div>
         <div style="display:flex;gap:8px;margin-top:8px">
           <button type="button" id="dlPhoto" class="btn-primary" style="width:auto;flex:1" disabled>Download photo</button>

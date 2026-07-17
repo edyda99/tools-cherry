@@ -252,12 +252,25 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 .results { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; }
 .net-big { font-size: clamp(32px, 8vw, 40px); font-weight: 800; letter-spacing: -.02em; color: var(--accent); margin: 0; }
 .net-sub { color: var(--muted); font-size: 14px; margin: 3px 0 20px; }
-.line { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 15.5px; }
+/* gap guarantees a minimum label-to-value separation: without it, space-between
+   only pads leftover width, so a short label ("RGB") next to a wide value+button
+   pair could end up glued together ("RGBrgb(30, 144, 255)") on a narrow screen. */
+.line { display: flex; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 15.5px; }
 .line:last-child { border-bottom: 0; }
 .line[hidden] { display: none; } /* author .line{display:flex} otherwise beats the UA [hidden] rule */
 .line .lbl { color: var(--muted); }
 .line.total { font-weight: 800; color: var(--text); font-size: 17px; border-top: 2px solid var(--border-strong); margin-top: 4px; padding-top: 12px; }
 .rate-row { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 16px; font-size: 13.5px; color: var(--muted); }
+
+/* ---- Color converter (swatch + R/G/B, H/S/L trios) -------------------- */
+/* Both classes previously had zero rules: the swatch collapsed to 0x0 (the
+   picked/converted color was invisible) and .trio's <label> elements inherited
+   `.field label { display:block }`, so R/G/B and H/S/L each stacked as their
+   own full-width row instead of reading as one related group. */
+.color-swatch { width: 100%; height: 72px; border-radius: var(--radius-sm); border: 1px solid var(--border); box-shadow: var(--shadow-sm); margin-bottom: 16px; }
+.field .trio { display: flex; gap: 8px; }
+.field .trio label { flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 0; }
+.field .trio input { width: 100%; }
 
 /* ---- OBBBA / tax tool results (shared) ------------------------------- */
 /* The output container (#out) inherits the code-tool monospace font used by
@@ -648,7 +661,7 @@ ul.breakdown { list-style: none; padding: 0; }
   transition: border-color .15s, background .15s, color .15s;
 }
 .dropzone:hover, .dropzone.drag { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
-.editor-wrap { display: inline-block; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-md);
+.editor-wrap { display: inline-block; max-width: 100%; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-md);
   background-image: linear-gradient(45deg,#2a2a2a 25%,transparent 25%),linear-gradient(-45deg,#2a2a2a 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#2a2a2a 75%),linear-gradient(-45deg,transparent 75%,#2a2a2a 75%);
   background-size: 20px 20px; background-position: 0 0,0 10px,10px -10px,-10px 0; }
 .editor-wrap canvas { display: block; width: 320px; height: 320px; max-width: 100%; }

@@ -18,17 +18,40 @@ function fmtDims(s) {
   return `${s.widthMm}×${s.heightMm} mm · ${s.widthPx}×${s.heightPx}px @ ${s.dpi} DPI`;
 }
 
+// Compute the on-screen (CSS) display size for a spec's canvas: capped by
+// MAX_DISPLAY_H on the tall side, and by the actual available width of the
+// results panel on the narrow side, so the editor never overflows a
+// phone-width viewport (the wrapper previously got a fixed px width with no
+// upper bound, which pushed it past the edge of the screen on narrow phones).
+function displaySize(spec) {
+  const wrap = $('editorWrap');
+  const availW = wrap && wrap.parentElement ? wrap.parentElement.clientWidth : 0;
+  let dispH = Math.min(MAX_DISPLAY_H, spec.heightPx);
+  let dispW = Math.round(dispH * spec.widthPx / spec.heightPx);
+  if (availW > 0 && dispW > availW) {
+    dispW = availW;
+    dispH = Math.round(dispW * spec.heightPx / spec.widthPx);
+  }
+  return { dispW, dispH };
+}
+
+// Re-apply the current spec's display size only (canvas resolution, zoom and
+// pan are untouched) — used on load and again on window resize.
+function applyDisplaySize() {
+  if (!current) return;
+  const { dispW, dispH } = displaySize(current);
+  const cv = $('editor');
+  cv.style.height = dispH + 'px';
+  cv.style.width = dispW + 'px';
+  $('editorWrap').style.width = dispW + 'px';
+}
+
 function applySpec(spec) {
   current = spec;
   const cv = $('editor');
   cv.width = spec.widthPx;
   cv.height = spec.heightPx;
-  // display scaling (preserve aspect, cap height)
-  const dispH = Math.min(MAX_DISPLAY_H, spec.heightPx);
-  const dispW = Math.round(dispH * spec.widthPx / spec.heightPx);
-  cv.style.height = dispH + 'px';
-  cv.style.width = dispW + 'px';
-  $('editorWrap').style.width = dispW + 'px';
+  applyDisplaySize();
   if (!editor) {
     editor = new CanvasEditor(cv, { shape: 'rect', background: spec.background });
     editor.on('change', () => { $('zoom').value = String(editor.zoom); });
@@ -261,13 +284,13 @@ function reportFileSize(blob, ext, fitted) {
     hint.textContent = `File size: ${sizeTxt}.`;
     hint.style.color = 'var(--accent, #2ea043)';
   } else if (blob.size <= ONLINE_JPG_MAX_KB * 1024) {
-    hint.textContent = `File size: ${sizeTxt} — within the ${ONLINE_JPG_MAX_KB} KB limit for ` +
+    hint.textContent = `File size: ${sizeTxt}, within the ${ONLINE_JPG_MAX_KB} KB limit for ` +
       `US online uploads (DS-160 / DV-Lottery).` + (fitted ? ' Quality reduced to fit.' : '');
     hint.style.color = 'var(--accent, #2ea043)';
   } else {
-    hint.textContent = `Heads up — this JPG is ${sizeTxt}. US online uploads (DS-160 / DV-Lottery) require ` +
+    hint.textContent = `Heads up, this JPG is ${sizeTxt}. US online uploads (DS-160 / DV-Lottery) require ` +
       `${ONLINE_JPG_MAX_KB} KB or smaller. Tick "Fit for US online upload" above, ` +
-      `or choose a smaller print size. Printed photos and DS-82 renewals have no such limit.`;
+      `or choose a smaller print size. Printed photos and mailed passport renewals (Form DS-82) have no such limit.`;
     hint.style.color = '#c9510c';
   }
   hint.style.display = '';
@@ -463,6 +486,8 @@ function init() {
   ['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('drag'); }));
   ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('drag'); }));
   drop.addEventListener('drop', (e) => { const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) handleFile(f); });
+
+  window.addEventListener('resize', applyDisplaySize);
 }
 
 function __bootInit() {
