@@ -23,7 +23,7 @@ UID_DAILY_LIMIT = "2"
 IP_DAILY_LIMIT = "6"
 # Invoke protocol: "inline" (raw PDF in the request) or "r2" (stage in PDF_BUCKET,
 # send only a key). R2 mode also needs the [[r2_buckets]] binding below to exist.
-LAMBDA_PROTO = "inline"
+LAMBDA_PROTO = "r2"
 
 # R2 bucket used only in r2 mode (LAMBDA_PROTO="r2"): staging for the input PDF and
 # the Lambda's .docx output. Create it once: npx wrangler r2 bucket create pdf-to-word-files
