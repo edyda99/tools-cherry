@@ -1,15 +1,13 @@
 # PDF → Word
 
-_Last updated: 2026-07-18 — added the PENDING-stage-2 R2 rework (dual-protocol server path, 25 MB cap once flipped); live behavior today is unchanged. See `AWS-ARCHITECTURE.md` for the full R2 surface + cost pools + flip runbook._
+_Last updated: 2026-07-18. The R2 mode went LIVE same day (dual-protocol server path, 25 MB cap now live). See `AWS-ARCHITECTURE.md` for the full R2 surface + cost pools + flip history._
 
 **In one paragraph:** The tool converts PDFs to `.docx` **in the browser by default** (free, unlimited, nothing uploaded — see `src/assets/pdf-to-word.js`). For higher-fidelity output there's an **optional "server conversion"** that runs `pdf2docx` on AWS Lambda. The server path is gated entirely at Cloudflare's free edge: a **Pages Function** (`functions/api/pdf-to-word.js`) verifies a Turnstile token, identifies the user with an HMAC-signed cookie (no login), enforces **2 conversions/user/day** plus a **global daily cap** that keeps total AWS usage inside the free tier, and only then **SigV4-signs** the request and forwards it to an **IAM-authed Lambda Function URL**. Because the URL requires AWS signature auth, an unsigned or forged hit — even a DDoS — is rejected by AWS **before any Lambda runs, at $0**. When the global cap is hit, the edge returns "daily limit reached" and never invokes Lambda. CloudWatch alarms + an AWS Budget kill-switch are backstops.
 
-**PENDING (stage 2):** a second transfer mode moves the PDF through an R2 bucket instead of
-inline bytes, raising the size cap 5 MB → 25 MB. It's built and will ship dark in stage 1
-(bucket + binding + purge worker deployed, but the gate stays defaulted to inline mode, zero
-behavior change) and only goes live after an Edmond-gated Lambda v2 deploy + a separate flip
-commit. Until that flip, ignore any mention of R2/25 MB below as describing the *future* path,
-not today's.
+**LIVE since 2026-07-18:** a second transfer mode moves the PDF through an R2 bucket instead of
+inline bytes, raising the size cap 5 MB → 25 MB. `LAMBDA_PROTO="r2"` is now the production
+default; the original inline mode remains supported as the legacy protocol the Lambda still
+accepts (dual-protocol path stays true).
 
 ## Request path
 ```
@@ -17,16 +15,17 @@ Browser ──POST /api/pdf-to-word (same origin)──► Cloudflare Pages Func
    (Turnstile token + identity cookie + PDF)        1. verify Turnstile
                                                      2. HMAC identity cookie (anonymous)
                                                      3. KV quotas: global/day cap, uid<2/day, ip<6/day
-                                                     4. dispatch on LAMBDA_PROTO (default "inline"):
-                                                        inline (LIVE, 5 MB cap) — SigV4-sign,
-                                                          PDF bytes in the call ──► Lambda Function
-                                                          URL (AWS_IAM) ──► Lambda (pdf2docx)
-                                                        r2 (PENDING stage 2, 25 MB cap) — PDF_BUCKET
+                                                     4. dispatch on LAMBDA_PROTO (default "r2"):
+                                                        r2 (LIVE, 25 MB cap): PDF_BUCKET
                                                           .put(uploads/<uuid>.pdf), SigV4-signed call
                                                           carries only {key} ──► Lambda downloads via
                                                           boto3/S3 API, converts, uploads
                                                           results/<uuid>.docx ──► gate PDF_BUCKET.get,
                                                           deletes both objects
+                                                        inline (still-supported legacy protocol,
+                                                          5 MB cap): SigV4-sign, PDF bytes in the
+                                                          call ──► Lambda Function URL (AWS_IAM)
+                                                          ──► Lambda (pdf2docx)
    ◄──────────────── .docx ──────────────────────   5. bump counters, return .docx
 Unsigned/forged hit to the Function URL ──► AWS rejects (403) before any Lambda runs → $0
 Backstops: CloudWatch alarms (spike 150/5min, GB-s 4000/15min → minutes) and AWS Budget $1 → kill-switch (concurrency 0)
@@ -39,10 +38,11 @@ The Function URL is **not** in any client code — it lives only in the Cloudfla
 - **Edge gate:** `functions/api/pdf-to-word.js` + `functions/api/_sigv4.js` (SigV4 signer) + `RATE_KV` KV namespace + Turnstile.
 - **Auth to Lambda:** scoped IAM user `pdf-to-word-invoker` with `lambda:InvokeFunctionUrl` on this one function; its access key lives only as Cloudflare secrets.
 - **Cost guards:** edge global cap (proactive) + CloudWatch alarms (spike + GB-s, ~minutes) → kill-switch (concurrency 0) + AWS Budget $1 (slow backstop). Reserved concurrency 2 is *requested* but this account forbids reservations — see Known limitations.
-- **R2 surface (PENDING stage 2, dark in stage 1):** bucket `pdf-to-word-files`, native binding
+- **R2 surface (LIVE since 2026-07-18):** bucket `pdf-to-word-files`, native binding
   `PDF_BUCKET` on the gate, boto3-over-S3-API from Lambda, hourly `r2-purge` worker
-  (`workers/r2-purge/`) + 1-day bucket lifecycle as crash backstops. Full detail (endpoint, env
-  vars, cost pools) in `AWS-ARCHITECTURE.md`.
+  (`workers/r2-purge/`, live at `r2-purge.edydaherz.workers.dev`) + 1-day bucket lifecycle
+  (`backstop-expire-1d`) as crash backstops. Full detail (endpoint, env vars, cost pools) in
+  `AWS-ARCHITECTURE.md`.
 
 ## Deploy runbook
 The Lambda currently sits **disabled** (reserved concurrency 0). `deploy.sh` re-enables it (attempts reserved concurrency 2 — skipped with a loud warning if the account forbids reservations), creates the Function URL + invoker user, and prints the URL and a one-time access key. Do AWS first, then Cloudflare, then build + deploy.
@@ -85,23 +85,23 @@ npx wrangler pages deploy dist --project-name tools-cherry
 - **Kill-switch works (test it once):** `aws sns publish --profile tools-berry --region us-east-1 --topic-arn <pdf-to-word-budget-alerts ARN> --message test` → confirm reserved concurrency went to 0 (`aws lambda get-function-concurrency --function-name pdf-to-word --profile tools-berry --region us-east-1`), then `./restore-service.sh`. An untested kill-switch is a hope, not a control.
 - **Confirm the SNS email** AWS sent to edydaherz@gmail.com — until you click it the human alert is inert (the Lambda kill path still fires).
 
-### 5. Stage 2 (PENDING, Edmond-gated) — flip to R2 mode
-**Do NOT start without Edmond's explicit approval.** Stage 1 (steps 1-4 above, plus the R2
-bucket, gate binding, and purge worker) ships dark with zero behavior change. This step is
-what actually turns the R2 path on. Full detail in `AWS-ARCHITECTURE.md` → "Stage-2 flip
-runbook"; short version:
-1. Create a bucket-scoped R2 S3 token (dashboard → R2 → Manage API tokens), scoped to
+### 5. R2 mode flip, done 2026-07-18
+The R2 path (bucket, gate binding, purge worker provisioned earlier under steps 1-4, then dark)
+went live on 2026-07-18: Lambda v2 deployed, `LAMBDA_PROTO` flipped to `"r2"` in production,
+25 MB cap live, E2E verified with a 6 MB PDF through the real site. Full detail and the flip
+history in `AWS-ARCHITECTURE.md` → "What changed 2026-07-18". Steps that were run, kept here
+as a compact record:
+1. Created a bucket-scoped R2 S3 token (dashboard → R2 → Manage API tokens), scoped to
    `pdf-to-word-files` only.
-2. Export `R2_ENDPOINT` / `R2_BUCKET` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY`.
-3. Run `./deploy.sh` (Edmond-gated) to ship Lambda v2 with those env vars.
-4. Commit the flip: `wrangler.toml` `LAMBDA_PROTO="r2"` + the template copy update
-   ("up to 25 MB"), held as one commit until this point.
-5. Pages deploy the flip commit.
-6. E2E test with a real PDF **>5 MB** through prod.
-7. Update `AWS-ARCHITECTURE.md`'s PENDING markers to live.
+2. Exported `R2_ENDPOINT` / `R2_BUCKET` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY`.
+3. Ran `./deploy.sh` (Edmond-approved) to ship Lambda v2 with those env vars.
+4. Committed the flip: `wrangler.toml` `LAMBDA_PROTO="r2"` + the template copy update
+   ("up to 25 MB"), as one commit.
+5. Pages-deployed the flip commit.
+6. E2E-tested with a real PDF **>5 MB** through prod.
 
 ## Tunables (`wrangler.toml [vars]`)
-`GLOBAL_DAILY_CAP=100` (worst case 100 × 2 GB × 60 s × 30 = 360k GB-s/mo, under the 400k free line, with margin for KV-race overshoot. Raise only after measuring real p99 duration in CloudWatch), `UID_DAILY_LIMIT=2`, `IP_DAILY_LIMIT=6`, `LAMBDA_PROTO=inline` (**PENDING flip to `r2`** — see step 5 above; `inline` = today's 5 MB in-request transfer, `r2` = R2-relayed 25 MB transfer once stage 2 ships).
+`GLOBAL_DAILY_CAP=100` (worst case 100 × 2 GB × 60 s × 30 = 360k GB-s/mo, under the 400k free line, with margin for KV-race overshoot. Raise only after measuring real p99 duration in CloudWatch), `UID_DAILY_LIMIT=2`, `IP_DAILY_LIMIT=6`, `LAMBDA_PROTO=r2` (**LIVE since 2026-07-18**, see step 5 above; `r2` = R2-relayed 25 MB transfer, now the production default; `inline` = the still-supported legacy 5 MB in-request transfer).
 
 ## Cost guardrails (backstops)
 `budget-guardrails.sh` creates: an SNS topic + email sub; the **kill-switch Lambda** (sets converter reserved concurrency to 0); **CloudWatch alarms** → SNS (a *spike* alarm: >150 invocations/5 min; a *GB-seconds* alarm: >4000 GB-s/15 min — both trip in minutes); and an AWS **Budget** $1 with ACTUAL notifications at >1% ($0.01) and >100%. The budget is the *slow* backstop (it lags spend by up to ~8–24 h); the CloudWatch alarms are the fast ones. **Confirm the SNS email** (AWS sends a link) so alerts reach you. Restore after a trip with `./restore-service.sh`.
