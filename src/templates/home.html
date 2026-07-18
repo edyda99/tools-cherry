@@ -9,6 +9,7 @@
 <link rel="canonical" href="{{SITE_URL}}/">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
+<script defer src="/assets/category-toggle.js"></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -34,8 +35,8 @@
 
     <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
 
-    <section id="tools">
-      <h2>Photo &amp; Image Tools</h2>
+    <details class="cat" id="tools" open>
+      <summary class="cat-summary"><h2>Photo &amp; Image Tools</h2><span class="cat-count">8 tools</span><svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
       <p class="lede">Edit, resize, and convert pictures — right on your phone, nothing uploaded.</p>
       <div class="tool-grid">
         <a class="tool-card" href="/resize-image/">
@@ -80,12 +81,12 @@
           <span class="t-desc">Draw or type your signature and download it as a transparent PNG. On-device.</span>
         </a>
       </div>
-    </section>
+    </details>
 
     <div class="ad-slot" data-ad="in-article">Advertisement</div>
 
-    <section id="calculators">
-      <h2>Everyday Calculators</h2>
+    <details class="cat" id="calculators" open>
+      <summary class="cat-summary"><h2>Everyday Calculators</h2><span class="cat-count">30 tools</span><svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
       <p class="lede">Quick answers for the math that comes up in daily life.</p>
       <div class="tool-grid">
         <a class="tool-card" href="/percentage-calculator/">
@@ -239,10 +240,10 @@
           <span class="t-desc">Paste an ingredient list, set old and new servings, and halve, double, or resize every amount.</span>
         </a>
       </div>
-    </section>
+    </details>
 
-    <section id="money">
-      <h2>Money &amp; Finance</h2>
+    <details class="cat" id="money" open>
+      <summary class="cat-summary"><h2>Money &amp; Finance</h2><span class="cat-count">39 tools</span><svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
       <p class="lede">Plan your paycheck, loans, and what your dollar is really worth.</p>
 
       <h3 class="money-subhead">New tax-law calculators (2025–2026)</h3>
@@ -451,10 +452,10 @@
           <span class="t-desc">Get your MPG (US and UK), litres per 100 km, and km per litre from distance and fuel used — or convert between them.</span>
         </a>
       </div>
-    </section>
+    </details>
 
-    <section id="make">
-      <h2>Make &amp; Share</h2>
+    <details class="cat" id="make" open>
+      <summary class="cat-summary"><h2>Make &amp; Share</h2><span class="cat-count">4 tools</span><svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
       <p class="lede">Create documents and codes you can download and send in seconds.</p>
       <div class="tool-grid">
         <a class="tool-card" href="/qr-code-generator/">
@@ -478,10 +479,10 @@
           <span class="t-desc">Count words, characters, sentences, and paragraphs as you type, with reading and speaking time.</span>
         </a>
       </div>
-    </section>
+    </details>
 
-    <section id="devtext">
-      <h2>Developer &amp; Text Tools</h2>
+    <details class="cat" id="devtext" open>
+      <summary class="cat-summary"><h2>Developer &amp; Text Tools</h2><span class="cat-count">11 tools</span><svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
       <p class="lede">Format, convert, and generate code and text — right in your browser, nothing uploaded.</p>
       <div class="tool-grid">
         <a class="tool-card" href="/base64-encode-decode/">
@@ -540,10 +541,10 @@
           <span class="t-desc">Convert text to Morse code and back instantly. Supports letters, numbers, and punctuation.</span>
         </a>
       </div>
-    </section>
+    </details>
 
-    <section id="paycheck">
-      <h2>{{YEAR}} Paycheck Calculators by State</h2>
+    <details class="cat" id="paycheck" open>
+      <summary class="cat-summary"><h2>{{YEAR}} Paycheck Calculators by State</h2><span class="cat-count">51 states</span><svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
       <p class="lede">See your take-home pay after federal tax, FICA, and state income tax.</p>
       <p class="popular-states">Popular state tax pages:
         <a href="/pennsylvania-paycheck-calculator/">Pennsylvania income tax rate {{YEAR}}</a> ·
@@ -553,7 +554,16 @@
         <a href="/new-mexico-paycheck-calculator/">New Mexico income tax rate {{YEAR}}</a>
       </p>
       <div class="state-grid">{{STATE_LINKS}}</div>
-    </section>
+    </details>
+
+    <script>
+(function(){try{
+  document.querySelectorAll('.cat').forEach(function(d){
+    var v=localStorage.getItem('tb-cat:'+d.id);
+    if(v==='0') d.removeAttribute('open');
+  });
+}catch(e){}})();
+</script>
   </div>
 </main>
 

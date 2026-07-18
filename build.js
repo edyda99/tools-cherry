@@ -2799,6 +2799,7 @@ async function main() {
   registerAsset('assets', 'styles.css');
   registerAsset('assets', 'app.js');
   registerAsset('assets', 'search.js'); // global Cmd/Ctrl+K command palette (site-wide)
+  registerAsset('assets', 'category-toggle.js'); // homepage collapsible category persistence (home.html only)
   registerAsset('assets', 'feedback-widget.js'); // "Was this tool helpful?" rating toast (tool pages)
   registerAsset('assets', 'report-widget.js'); // "Report a wrong result" inline reporter (tool pages)
   registerAsset('assets', 'money-input.js'); // live thousands separators for $ fields (shared leaf)

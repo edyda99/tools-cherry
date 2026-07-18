@@ -547,6 +547,19 @@ ul.breakdown { list-style: none; padding: 0; }
 .state-grid a:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-hover); text-decoration: none; transform: translateY(-1px); }
 .state-grid span { color: var(--muted); opacity: .5; cursor: default; }
 
+/* ---- Collapsible homepage category sections -------------------------- */
+.cat { border: none; }
+.cat-summary {
+  display: flex; align-items: baseline; gap: 10px;
+  cursor: pointer; list-style: none;
+}
+.cat-summary::-webkit-details-marker { display: none; }
+.cat-summary::marker { content: ''; }
+.cat-summary:focus-visible { box-shadow: var(--ring); border-radius: var(--radius-sm); }
+.cat-count { color: var(--muted); font-size: 13px; font-weight: 500; }
+.cat-summary .chevron { width: 12px; height: 12px; flex: 0 0 auto; display: block; color: var(--muted); transition: transform .15s; }
+.cat[open] .cat-summary .chevron { transform: rotate(180deg); }
+
 /* ---- Related tools (cross-links injected on tool pages) ------------- */
 .more-tools { margin: 40px 0 8px; }
 .more-tools h2 { font-size: 20px; letter-spacing: -.01em; margin: 0 0 14px; }
@@ -849,6 +862,7 @@ footer.site a:hover { color: var(--text); }
 
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+  .cat-summary .chevron { transition: none; }
 }
 
 /* ===== merged tool styles ported from main (invoice/qr/word-counter/circle-crop/passport) ===== */
