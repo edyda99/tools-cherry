@@ -158,6 +158,7 @@ const SEARCH_MODAL_HTML =
   'aria-controls="tb-search-list" aria-activedescendant="" aria-autocomplete="list" aria-label="Search tools" ' +
   'autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Search tools…">' +
   '<kbd class="tb-search-esckbd" aria-hidden="true">Esc</kbd></div>' +
+  '<p id="tb-search-recent-label" class="tb-search-empty" hidden>Recently viewed</p>' +
   '<ul id="tb-search-list" class="tb-search-list" role="listbox" aria-label="Search results"></ul>' +
   '<p id="tb-search-empty" class="tb-search-empty" role="status" hidden>No tools match your search.</p>' +
   '<div class="tb-search-foot" aria-hidden="true">' +
@@ -1031,6 +1032,10 @@ function fill(tpl, map) {
   // Inject the "Report a wrong result" widget on the SAME tool pages (shared
   // gates via injectToolScript, so the two can never diverge).
   out = injectReport(out);
+  // Record visits to this tool page for the Cmd/Ctrl+K palette's "recently
+  // viewed" recents list. Same gates via injectToolScript, so it loads on
+  // exactly the same pages as the two widgets above.
+  out = injectToolScript(out, '/assets/recent-tools.js');
   return out;
 }
 
@@ -2802,6 +2807,7 @@ async function main() {
   registerAsset('assets', 'category-toggle.js'); // homepage collapsible category persistence (home.html only)
   registerAsset('assets', 'feedback-widget.js'); // "Was this tool helpful?" rating toast (tool pages)
   registerAsset('assets', 'report-widget.js'); // "Report a wrong result" inline reporter (tool pages)
+  registerAsset('assets', 'recent-tools.js'); // records visits for the Cmd/Ctrl+K palette's recents list (tool pages)
   registerAsset('assets', 'money-input.js'); // live thousands separators for $ fields (shared leaf)
   registerAsset('assets', 'invoice.js');
   registerAsset('assets', 'images-to-pdf.js');

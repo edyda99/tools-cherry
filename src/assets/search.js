@@ -18,6 +18,7 @@
     var input = document.getElementById('tb-search-input');
     var list = document.getElementById('tb-search-list');
     var emptyMsg = document.getElementById('tb-search-empty');
+    var recentLabel = document.getElementById('tb-search-recent-label');
     if (!panel || !input || !list || !emptyMsg) return;
 
     var isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent || '');
@@ -43,6 +44,28 @@
         };
       });
       return index;
+    }
+
+    // "Recently viewed" list for the empty state: paths recorded by
+    // recent-tools.js, resolved against the index and capped at 6. Same
+    // {t, score} shape render() expects; score is unused for recents.
+    function getRecent() {
+      var paths;
+      try {
+        var raw = localStorage.getItem('tb-recent');
+        paths = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(paths)) paths = [];
+      } catch (e) {
+        paths = [];
+      }
+      var data = getIndex();
+      var out = [];
+      for (var i = 0; i < paths.length && out.length < 6; i++) {
+        for (var k = 0; k < data.length; k++) {
+          if (data[k].path === paths[i]) { out.push({ t: data[k], score: 0 }); break; }
+        }
+      }
+      return out;
     }
 
     // All chars of q appear in s in order? Return the span (tighter = smaller),
@@ -105,8 +128,9 @@
         .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    function render(items) {
+    function render(items, isRecents) {
       results = items;
+      if (recentLabel) recentLabel.hidden = !(isRecents && items.length);
       if (!items.length) {
         list.innerHTML = '';
         active = -1;
@@ -160,7 +184,7 @@
       isOpen = true;
       trigger.setAttribute('aria-expanded', 'true');
       input.value = '';
-      render([]);
+      render(getRecent(), true);
       input.focus();
     }
 
@@ -173,6 +197,7 @@
       input.value = '';
       list.innerHTML = '';
       emptyMsg.hidden = true;
+      if (recentLabel) recentLabel.hidden = true;
       active = -1;
       results = [];
       // Return focus to where it was before opening; fall back to the trigger if
@@ -188,7 +213,11 @@
     trigger.setAttribute('aria-expanded', 'false');
     trigger.addEventListener('click', openPalette);
 
-    input.addEventListener('input', function () { render(search(input.value)); });
+    input.addEventListener('input', function () {
+      var q = input.value.trim();
+      if (!q) { render(getRecent(), true); return; }
+      render(search(input.value));
+    });
 
     input.addEventListener('keydown', function (e) {
       if (e.key === 'ArrowDown') { e.preventDefault(); if (results.length) setActive(active + 1); }
