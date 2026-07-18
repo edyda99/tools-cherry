@@ -558,7 +558,9 @@
 
     <script>
 (function(){try{
+  var hash=location.hash.slice(1);
   document.querySelectorAll('.cat').forEach(function(d){
+    if(d.id===hash) return; // a nav link brought us straight here — always show it open
     var v=localStorage.getItem('tb-cat:'+d.id);
     if(v==='0') d.removeAttribute('open');
   });
