@@ -11,13 +11,26 @@
 //   4. forwards the PDF to the hidden Lambda with a shared secret, returns the .docx.
 //
 // Enforcement is entirely server-side; the page is never trusted for the limits.
-// Bindings/secrets (set in wrangler.toml [vars] + `wrangler pages secret put`):
-//   RATE_KV (KV)  TURNSTILE_SECRET  ID_HMAC_SECRET  LAMBDA_URL
+//
+// Two invoke modes, auto-selected. Legacy (inline) is the default; R2 mode is
+// used ONLY when BOTH env.PDF_BUCKET (R2 binding) and env.LAMBDA_PROTO === 'r2'
+// are present — otherwise the flow is byte-for-byte the legacy path:
+//   - inline: POST the raw PDF to the Lambda (5 MB cap); the .docx comes back in
+//     the response body.
+//   - r2: stage the PDF in PDF_BUCKET and POST only {key} (25 MB cap); the Lambda
+//     writes the .docx back to R2 and returns {resultKey}, which we stream out and
+//     then delete. The Lambda deletes its own input on success; the gate deletes
+//     the input on any failure so no orphan is ever left behind.
+//
+// Bindings/secrets (wrangler.toml [vars]/[[r2_buckets]] + `wrangler pages secret put`):
+//   RATE_KV (KV)  PDF_BUCKET (R2, r2 mode)  TURNSTILE_SECRET  ID_HMAC_SECRET  LAMBDA_URL
 //   LAMBDA_AWS_ACCESS_KEY_ID  LAMBDA_AWS_SECRET_ACCESS_KEY  [LAMBDA_AWS_REGION]
-//   GLOBAL_DAILY_CAP  UID_DAILY_LIMIT  IP_DAILY_LIMIT
+//   GLOBAL_DAILY_CAP  UID_DAILY_LIMIT  IP_DAILY_LIMIT  LAMBDA_PROTO (inline|r2)
 import { signedFetch } from './_sigv4.js';
 
-const MAX_BYTES = 5 * 1024 * 1024; // Lambda Function URL payload ceiling (~6 MB); leave headroom.
+const MAX_BYTES = 5 * 1024 * 1024;       // inline: raw PDF ships in the invoke (~6 MB URL ceiling); leave headroom.
+const R2_MAX_BYTES = 25 * 1024 * 1024;   // r2: only a key is sent, so the upload cap can be larger.
+const DOCX_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 const json = (status, error, extraHeaders) =>
   new Response(JSON.stringify({ error }), {
@@ -72,11 +85,18 @@ export async function onRequestPost(context) {
     return json(429, "This network has reached today's free server-conversion limit. The in-browser converter is always free and unlimited.", setCookie);
   }
 
+  // R2 mode: PDF is staged in R2 and only a key is sent to Lambda, so the upload
+  // cap can be larger. Requires BOTH the binding and the opt-in var; otherwise the
+  // flow below is byte-for-byte the legacy (inline) path.
+  const r2 = !!(env.PDF_BUCKET && env.LAMBDA_PROTO === 'r2');
+
   // 4. Validate the upload before spending an AWS invocation.
   const buf = await request.arrayBuffer();
   if (!buf || buf.byteLength === 0) return json(400, 'No PDF received.', setCookie);
-  if (buf.byteLength > MAX_BYTES) {
-    return json(413, 'That PDF is larger than the 5 MB server limit. The in-browser converter has no upload limit — try that instead.', setCookie);
+  if (buf.byteLength > (r2 ? R2_MAX_BYTES : MAX_BYTES)) {
+    return json(413, r2
+      ? 'That PDF is larger than the 25 MB server limit. The in-browser converter has no upload limit — try that instead.'
+      : 'That PDF is larger than the 5 MB server limit. The in-browser converter has no upload limit — try that instead.', setCookie);
   }
   const h = new Uint8Array(buf.slice(0, 5));
   if (!(h[0] === 0x25 && h[1] === 0x50 && h[2] === 0x44 && h[3] === 0x46 && h[4] === 0x2d)) {
@@ -89,6 +109,57 @@ export async function onRequestPost(context) {
   // real Lambda GB-seconds) with valid-header-but-unconvertible PDFs while never
   // charging their own 2/day. Failures fail toward not-paying.
   await Promise.all([bump(kv, gKey, ttl), bump(kv, uKey, ttl), bump(kv, iKey, ttl)]);
+
+  // 5a. R2 mode — stage the PDF, invoke with just its key, stream the result back
+  //     from R2. Every exit path deletes the input so a failed invoke leaves no
+  //     orphan (the Lambda deletes the input itself on success).
+  if (r2) {
+    const key = `uploads/${crypto.randomUUID()}.pdf`;
+    await env.PDF_BUCKET.put(key, buf);
+
+    let resp;
+    try {
+      resp = await signedFetch(env.LAMBDA_URL, JSON.stringify({ key }), env, 'application/json');
+    } catch (_) {
+      context.waitUntil(env.PDF_BUCKET.delete(key));
+      return json(502, 'The server converter is unavailable right now. Please use the in-browser converter.', setCookie);
+    }
+    if (!resp.ok) {
+      let msg = 'The server converter could not handle that file. Try the in-browser converter.';
+      try { const j = await resp.json(); if (j && j.error) msg = j.error; } catch (_) {}
+      context.waitUntil(env.PDF_BUCKET.delete(key));
+      return json(resp.status === 413 ? 413 : 502, msg, setCookie);
+    }
+
+    let resultKey;
+    try { ({ resultKey } = await resp.json()); } catch (_) {}
+    // Only fetch a result key we could have produced; a buggy/compromised Lambda
+    // must not be able to steer the gate at arbitrary bucket objects.
+    if (!/^results\/[0-9a-f-]{36}\.docx$/.test(resultKey || '')) {
+      return json(502, 'The server converter is unavailable right now. Please use the in-browser converter.', setCookie);
+    }
+    const obj = await env.PDF_BUCKET.get(resultKey);
+    if (!obj) {
+      return json(502, 'The server converter is unavailable right now. Please use the in-browser converter.', setCookie);
+    }
+    // OOM guard: never buffer a result larger than the input cap (Worker has 128 MB).
+    if (obj.size > R2_MAX_BYTES) {
+      context.waitUntil(env.PDF_BUCKET.delete(resultKey));
+      return json(502, 'The server converter is unavailable right now. Please use the in-browser converter.', setCookie);
+    }
+    // Buffer the .docx before deleting so the delete can't race the response
+    // stream (result is bounded by R2_MAX_BYTES, well under the 128 MB limit).
+    const bytes = await obj.arrayBuffer();
+    context.waitUntil(env.PDF_BUCKET.delete(resultKey));
+    return new Response(bytes, {
+      status: 200,
+      headers: {
+        'content-type': DOCX_TYPE,
+        'content-disposition': 'attachment; filename="converted.docx"',
+        ...setCookie,
+      },
+    });
+  }
 
   // 5. Forward to the hidden Lambda, SigV4-signed for its IAM-authed Function URL.
   //    Only signed requests from our scoped IAM user reach Lambda; unsigned/forged
@@ -112,7 +183,7 @@ export async function onRequestPost(context) {
   return new Response(docx, {
     status: 200,
     headers: {
-      'content-type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'content-type': DOCX_TYPE,
       'content-disposition': 'attachment; filename="converted.docx"',
       ...setCookie,
     },

@@ -1,10 +1,12 @@
 # PDF→Word backend — AWS architecture, security & cost-control runbook
 
-_Last updated: 2026-06-22. Companion to `README.md` (deploy runbook), `budget-guardrails.sh` (provisioning), `restore-service.sh` (recovery). Read this before touching the pdf-to-word AWS backend or its cost guards._
+_Last updated: 2026-07-18 — added the R2 rework surface, dual-protocol request path, and stage-2 flip runbook (all PENDING stage 2, see "R2 surface" below; the live path today is unchanged). Companion to `README.md` (deploy runbook), `budget-guardrails.sh` (provisioning), `restore-service.sh` (recovery). Read this before touching the pdf-to-word AWS backend or its cost guards._
 
 ## TL;DR
 
 The server-side PDF→Word converter is a single Lambda reachable **only** through an IAM-authed Function URL, fronted by a Cloudflare gate that does all abuse control. Cost is bounded by a 10-concurrency account ceiling plus a kill-switch driven by CloudWatch rate alarms **and** two budgets (a $1 cost budget and a 95%-of-free-tier GB-second usage budget). A real bill is structurally close to impossible.
+
+A second, R2-backed transfer mode (raising the size cap 5 MB → 25 MB) is built but **PENDING stage 2** — see "R2 surface". It ships dark in stage 1 (bucket, binding, and purge worker all provisioned, gate hard-defaults to `LAMBDA_PROTO="inline"`) and only goes live after an Edmond-gated Lambda v2 deploy + a separate flip commit. Nothing below changes today's live behavior until that flip lands.
 
 ## Identity / config
 
@@ -28,9 +30,20 @@ browser → Cloudflare Pages Function functions/api/pdf-to-word.js
           ├─ Turnstile verify (bot gate)
           ├─ HMAC-signed anonymous identity cookie
           ├─ KV quotas: 100/day GLOBAL · 2/user/day · 6/IP/day (reserved BEFORE invoke)
-          ├─ size ≤5 MB + %PDF- magic check
-          └─ SigV4-sign (invoker creds) → IAM-authed Function URL → Lambda
+          ├─ size check + %PDF- magic (cap depends on protocol, below)
+          └─ dispatch on LAMBDA_PROTO (wrangler.toml [vars], default "inline"):
+             ├─ "inline" — LIVE today, 5 MB cap: PDF bytes travel inside the
+             │   SigV4-signed Function URL call itself → Lambda legacy path
+             └─ "r2" — PENDING stage 2, 25 MB cap: PDF_BUCKET.put('uploads/<uuid>.pdf')
+                 → SigV4-signed call carries only JSON {key} → Lambda downloads via
+                 boto3/S3 API → converts → uploads results/<uuid>.docx → gate
+                 PDF_BUCKET.get, streams to browser, deletes both objects
 ```
+
+Both branches share every check above the dispatch line and are one file — the gate
+mode-switches on `env.PDF_BUCKET && env.LAMBDA_PROTO === 'r2'` in `functions/api/pdf-to-word.js`;
+there is no separate r2 gate to keep in sync. See "R2 surface" below for what the r2 branch
+touches and why it's still dark.
 
 The Cloudflare gate is the **only** thing that talks to AWS. Unsigned/public hits to the Function URL are rejected by AWS at `$0`. Secrets (`TURNSTILE_SECRET`, `ID_HMAC_SECRET`, `LAMBDA_URL`, `LAMBDA_AWS_ACCESS_KEY_ID/SECRET`) live as Cloudflare secrets — **not** committed; `wrangler.toml` holds only non-secret caps.
 
@@ -38,6 +51,68 @@ The Cloudflare gate is the **only** thing that talks to AWS. Unsigned/public hit
 
 - **Deleted** the orphaned **open HTTP API Gateway `rla8s1dk10`** (`pdf-to-word-api`). It was a v1 entry point left live after the migration to the Function URL (last traffic 2026-06-19); auth was `NONE`, AWS_PROXY straight to the Lambda — a public backdoor that bypassed Cloudflare/Turnstile and was a trivial self-DoS lever (trip the kill-switch from outside). Backup of its definition: `/tmp/rla8s1dk10-backup.json` (ephemeral; recreate from this if ever needed).
 - **Removed** Lambda resource-policy statements `apigw-invoke` (for the deleted API) and `FnUrlPublic` (dormant `Principal:*` / `AuthType:NONE` — one toggle from public). Policy is now **2 statements**, both `AWS_IAM`: `FunctionURLAllowIAM` (account root) + `InvokerUserDirect` (the invoker user).
+
+## R2 surface (PENDING stage 2 — provisioned dark in stage 1)
+
+Stage 1 provisions all of this with **zero behavior change**: the bucket, the gate's R2
+binding, and the purge worker all deploy, but the gate stays hard-defaulted to
+`LAMBDA_PROTO="inline"`, so none of it is on the live request path yet. It goes live only
+after the Edmond-gated Lambda v2 deploy + the flip commit — see "Stage-2 flip runbook" below.
+
+| Thing | Value |
+|---|---|
+| Bucket | `pdf-to-word-files` (private, no public access) |
+| Key layout | UUID keys, two prefixes: `uploads/<uuid>.pdf` (gate → Lambda), `results/<uuid>.docx` (Lambda → gate) |
+| Gate access | Native R2 binding `PDF_BUCKET` on the Pages Function (`wrangler.toml`) — no credentials in gate code, Cloudflare-internal |
+| Lambda access | boto3 S3 client over R2's S3-compatible API — env `R2_ENDPOINT` / `R2_BUCKET` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` |
+| R2 endpoint | `https://42e1924f6e9903245ece8f5adb11d737.r2.cloudflarestorage.com` |
+| Object lifetime, happy path | Seconds — the gate deletes both the uploaded PDF and the result docx in-request (`ctx.waitUntil(delete)`) right after streaming the result to the browser |
+| Object lifetime, crash path | Hourly `r2-purge` worker (`workers/r2-purge/`, own `wrangler.toml`: cron trigger + the same `PDF_BUCKET` binding) deletes anything under `uploads/` or `results/` older than 2 h |
+| Final backstop | 1-day bucket lifecycle rule, in case both the in-request delete and the hourly purge miss an object |
+
+**Why two cleanup paths:** the in-request delete clears the overwhelming majority of objects
+within seconds; the hourly purge + 1-day lifecycle only matter if a request dies mid-flight
+(gate or Lambda crashes after `put` but before the matching `delete`).
+
+### Cost pools (inert until the flip)
+
+| Pool | Budget | Worst case at the 100/day gate cap | Notes |
+|---|---|---|---|
+| R2 storage + ops | **Perpetual** free tier: 10 GB storage, 1M Class A ops/mo, 10M Class B ops/mo, **zero egress** | 100/day × ~25 MB × 2 short-lived objects (upload + result) — **100x+ under** every one of those lines | The only Cloudflare-side pool this rework touches; not a real constraint |
+| AWS data-transfer-out (**new watched pool**) | Always-free **100 GB/mo** (AWS "data transfer out to internet" — R2 is external to AWS, so Lambda's PUT of the converted docx to R2 counts as AWS-side egress) | 100/day × 25 MB × 30 days ≈ **75 GB/mo** — under the 100 GB line, but with far less margin than any pool above | Watch this one; it's the tightest pool the R2 rework introduces |
+
+**R2 is the only Cloudflare product on this site that bills past quota instead of stopping**
+(KV, D1, and Pages Functions all fail closed at their free-tier ceiling). Mitigations, stacked:
+
+- Gate-only access — the bucket has no public access; only the Pages Function binding and the
+  Lambda's scoped token can reach it.
+- KV quotas (100/day global, 2/user/day, 6/IP/day) still gate every request **before** an R2
+  object is ever written — same reservation-before-invoke pattern as today.
+- Bucket-scoped R2 S3 token for Lambda (a stage-2 setup step) — scoped to `pdf-to-word-files`
+  only, never account-wide.
+- Billing-notification tripwire — **TODO, dashboard-only, not yet set up.** Flagging here so it
+  doesn't get lost: needs a Cloudflare billing alert for R2 usage before stage 2 goes live, the
+  same role CloudWatch + AWS Budgets play for the Lambda side today.
+
+## Stage-2 flip runbook (Edmond-gated — do NOT start without explicit approval)
+
+Everything in "R2 surface" above is dark until this runs. Order matters — Lambda must be able
+to reach R2 before the gate is told to hand it R2 keys.
+
+1. **Create a bucket-scoped R2 S3 token** (Cloudflare dashboard → R2 → Manage API tokens),
+   scoped to `pdf-to-word-files` only — not account-wide.
+2. **Export the R2 creds** for the Lambda build/deploy: `R2_ENDPOINT`, `R2_BUCKET`,
+   `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`.
+3. **Run `deploy.sh`** (same hard rule as always — do not run without Edmond's explicit
+   approval) to ship Lambda v2 with those env vars.
+4. **Commit the flip**: `wrangler.toml` `LAMBDA_PROTO="r2"` + the template copy change
+   (server-option text now says "up to 25 MB") — one commit, held back on purpose so the live
+   copy never overstates the cap before the backend can honor it.
+5. **Pages deploy** the flip commit.
+6. **E2E test**: a real PDF **>5 MB** through prod, confirming the r2 branch end to end
+   (upload → Lambda → result → cleanup).
+7. **Update this doc's PENDING markers** — flip "R2 surface" and "Cost pools" above from
+   PENDING/dark to live, and fold this runbook into "What changed" history once done.
 
 ## Cost / abuse controls (defense in depth)
 
@@ -49,7 +124,8 @@ The Cloudflare gate is the **only** thing that talks to AWS. Unsigned/public hit
    - `pdf-to-word-invocation-spike`: Invocations Sum > 150 / 5 min.
    - `pdf-to-word-gbsec-15min`: metric-math GB-sec (`Duration_sum/1000*2`) > 4000 / 15 min.
    - These are **rate tripwires with no monthly memory** — they reset every window.
-4. **$1 cost budget** (`pdf-to-word-freetier-guard`) → SNS at ACTUAL > 1% (`$0.01`) and > 100% (`$1`). Effectively auto-kills **a penny into paid** usage. Slow (~hours refresh). Account-wide cost (no Lambda cost filter), but the account runs ~nothing else.
+4. **$1 cost budget** (`pdf-to-word-freetier-guard`) → SNS at ACTUAL > 100% (`$1`). Slow (~hours refresh). Account-wide cost (no Lambda cost filter) — the account also runs the `pdf-to-word` ECR repo (container-image Lambda deploy, `deploy.sh`), which accrues a small legitimate storage cost independent of converter usage.
+   - **2026-07-18:** originally had a second trip at ACTUAL > 1% (`$0.01`). That trip false-positived on ECR image storage cost alone (not converter abuse) and killed the service. Removed the 1% notification; the $1 trip is the only cost guard now. If ECR storage cost trends up on its own, consider a lifecycle policy to prune old image tags rather than re-adding a low-cost trip.
 5. **95% free-tier USAGE budget** (`pdf-to-word-freetier-gbsec-guard`, added 2026-06-22) → SNS at ACTUAL > 95% of 400,000 GB-sec = **380,000 GB-sec**. Tracks gross `USE1-Lambda-GB-Second`; resets monthly. Stops the converter **before any charge at all** ($0 bill). **A 95% trip is a HARD MONTHLY STOP** — cumulative usage stays ≥95% until month rollover, so `restore-service.sh` gets re-killed at the next budget eval; to bring the path back early you must accept paid use (then the $1 budget guards) or temporarily raise/remove this budget.
 
 All five route through the one SNS topic → email (`edydaherz@gmail.com`) + kill-switch. SNS topic policy already allows `budgets.amazonaws.com` to publish.
@@ -59,6 +135,7 @@ All five route through the one SNS topic → email (`edydaherz@gmail.com`) + kil
 - Always-free (perpetual): **1,000,000 requests/mo** + **400,000 GB-seconds/mo**.
 - At 2 GB memory: 400k GB-sec = **200,000 s of execution/mo**. **GB-seconds is the binding pool**, not requests.
 - Realistic usage under the 100/day gate cap ≈ **7.5%** of free tier (3k req, ~30k GB-sec). Even the pathological case (every job hits the 60 s timeout) ≈ 90% — still under the 95% kill line, so 95% false-trips only under gate-bypass abuse.
+- Stage 2 (PENDING) adds a second AWS pool to watch — data-transfer-out to R2, worst case ≈75 GB/mo against the always-free 100 GB/mo line. See "R2 surface → Cost pools" above; this doesn't apply until the flip.
 
 ## Key gotchas / mental-model corrections
 

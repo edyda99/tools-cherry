@@ -4,3 +4,9 @@ pdf2docx==0.5.8
 # Pillow: recompress pdf2docx's lossless-PNG images back to JPEG so photo-heavy
 # PDFs fit under the Function URL's 6 MB response cap.
 Pillow
+# boto3: R2 path talks to the Cloudflare R2 bucket (S3-compatible API). The Lambda
+# python container base image does NOT bundle boto3, so it must be pinned here.
+# 1.35.99 is the last of the 1.35 line — recent + stable, and deliberately pre-1.36,
+# which changed the default request-checksum behavior in a way R2 historically
+# rejected. Bump only after verifying against a live R2 put_object.
+boto3==1.35.99

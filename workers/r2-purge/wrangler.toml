@@ -1,0 +1,12 @@
+# Standalone Worker (NOT part of the tools-cherry Pages project). Crash-cleanup
+# garbage collector for the pdf-to-word R2 bucket — see README.md.
+name = "r2-purge"
+main = "worker.js"
+compatibility_date = "2026-07-18"
+
+[triggers]
+crons = ["17 * * * *"]
+
+[[r2_buckets]]
+binding = "PDF_BUCKET"
+bucket_name = "pdf-to-word-files"

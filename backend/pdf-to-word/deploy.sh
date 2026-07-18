@@ -16,6 +16,18 @@ EPHEMERAL=1024
 RESERVED_CONCURRENCY=2
 INVOKER_USER="pdf-to-word-invoker"   # scoped IAM user the Cloudflare gate signs as
 
+# --- R2 path config (dual-protocol handler) ---------------------------------
+# The R2 path pulls the PDF from / writes the .docx back to a Cloudflare R2 bucket.
+# Endpoint + bucket have sane defaults; the two credentials MUST come from the
+# deploying shell's environment. Fail fast here — before any build/push/AWS call —
+# with a clear message if either credential is unset or empty. (R2 keys are hex, so
+# they're safe inside the AWS-CLI `Variables={..}` shorthand used below.)
+R2_ENDPOINT="${R2_ENDPOINT:-https://42e1924f6e9903245ece8f5adb11d737.r2.cloudflarestorage.com}"
+R2_BUCKET="${R2_BUCKET:-pdf-to-word-files}"
+: "${R2_ACCESS_KEY_ID:?Set R2_ACCESS_KEY_ID in your shell before deploying (R2 path credential).}"
+: "${R2_SECRET_ACCESS_KEY:?Set R2_SECRET_ACCESS_KEY in your shell before deploying (R2 path credential).}"
+LAMBDA_ENV="Variables={XDG_CACHE_HOME=/tmp,HOME=/tmp,R2_ENDPOINT=${R2_ENDPOINT},R2_BUCKET=${R2_BUCKET},R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID},R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}}"
+
 ACCOUNT="$(aws sts get-caller-identity --profile "$PROFILE" --query Account --output text)"
 ECR="${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com"
 IMAGE="${ECR}/${REPO}:latest"
@@ -52,7 +64,7 @@ else
     --package-type Image --code ImageUri="$IMAGE" --role "$ROLE_ARN" \
     --architectures "$ARCH" --memory-size "$MEMORY" --timeout "$TIMEOUT" \
     --ephemeral-storage Size="$EPHEMERAL" \
-    --environment "Variables={XDG_CACHE_HOME=/tmp,HOME=/tmp}" \
+    --environment "$LAMBDA_ENV" \
     --profile "$PROFILE" --region "$REGION" >/dev/null
 fi
 
@@ -60,7 +72,7 @@ aws lambda wait function-updated --function-name "$FUNCTION" --profile "$PROFILE
 
 echo "==> Updating function configuration (env)"
 aws lambda update-function-configuration --function-name "$FUNCTION" \
-  --environment "Variables={XDG_CACHE_HOME=/tmp,HOME=/tmp}" \
+  --environment "$LAMBDA_ENV" \
   --profile "$PROFILE" --region "$REGION" >/dev/null
 aws lambda wait function-updated --function-name "$FUNCTION" --profile "$PROFILE" --region "$REGION"
 
