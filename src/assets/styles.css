@@ -161,6 +161,23 @@ header.site nav a {
 }
 header.site nav a:hover { color: var(--text); background: var(--surface-2); text-decoration: none; }
 
+/* ---- Anchor-scroll offset --------------------------------------------
+   header.site is position:sticky, so jumping to any in-page anchor (nav
+   links to #tools/#calculators/#money/#paycheck, or any other same-page
+   #id link) lands the target flush under it unless targets reserve space
+   for the header's height. Measured real rendered header.site heights:
+   ~69px on desktop/single-line nav, but the homepage's 4-link nav wraps
+   onto up to 4 lines on narrow viewports (~197px at 390px wide) before
+   settling back to one line at >=800px. Default to the taller
+   measurement + buffer so no width is under-covered; tighten back down
+   once the header is confirmed single-line. */
+main [id] {
+  scroll-margin-top: 212px;
+}
+@media (min-width: 800px) {
+  main [id] { scroll-margin-top: 84px; }
+}
+
 /* ---- Theme (dark mode) toggle --------------------------------------- */
 .theme-toggle {
   flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
