@@ -940,6 +940,23 @@ const reencodeText = (s) => s
 // sheds the marketing hook that SERPs truncate away anyway. Word-boundary
 // fallback for the rare title with no droppable clause.
 const TITLE_SEPS = [' — ', ' – ', ' - ', ': '];
+// A hard word-boundary cut can strand an incomplete trailing fragment. Only two
+// shapes are UNAMBIGUOUSLY broken and safe to trim for any title:
+//   1. an unclosed "(" clause  ("...with Alarm (Pomodoro"  → "...with Alarm")
+//   2. a dangling lone connector ("...Weeks, Months &", "...Each Month to")
+// A "connector + word" tail is deliberately NOT trimmed: "& Divide", "& Distance"
+// and "& Passphrases" are complete list items that merely happen to sit at the
+// cut, indistinguishable by shape from a truncated "& Time". Titles whose cut
+// lands mid-word that way are fixed at the source instead. Only already-truncated
+// titles reach this, so trimming these two shapes never sheds a complete clause.
+function tidyTitleTail(d) {
+  let out = d.trim();
+  if ((out.match(/\(/g) || []).length > (out.match(/\)/g) || []).length) {
+    out = out.slice(0, out.lastIndexOf('(')).trim();
+  }
+  out = out.replace(/\s+(?:[+&/×·]|and|or|to|by|with|for|of|per|vs\.?|plus)$/i, '').trim();
+  return out.replace(/[\s+&/×·,:;–—-]+$/, '').trim();
+}
 function compactTitleStr(raw) {
   let t = raw.trim();
   if (decodedLen(t) <= 60) return t;
@@ -954,7 +971,7 @@ function compactTitleStr(raw) {
     }
   }
   if (decodedLen(t) > 60) {
-    const d = decodeEntities(t).slice(0, 60).replace(/\s+\S*$/, '').trim().replace(/[–—:,;-]+$/, '').trim();
+    const d = tidyTitleTail(decodeEntities(t).slice(0, 60).replace(/\s+\S*$/, '').trim());
     t = reencodeText(d);
   }
   return t;
@@ -1168,20 +1185,38 @@ function stateRateFigure(state) {
   return { title: `${lo}–${hi}`, desc: `graduated from ${lo} to ${hi}` };
 }
 
-// <title> per state. For NEAR_PAGE_1 target states, lead with the exact
-// "{State} income tax rate {year}" query and surface the rate figure up front;
-// every other state keeps the original paycheck-calculator title verbatim.
+// <title> per state. For NEAR_PAGE_1 target states, lead with the paycheck
+// calculator identity (the page IS a calculator, not a rate table) and surface
+// the rate figure as a trailing clause; the "{state} income tax rate {year}"
+// query is still carried by the meta description, H1 and body sentence. Kept
+// ≤60 chars so the compactor never strips the "Paycheck Calculator" identity.
+// Every other state keeps the original paycheck-calculator title verbatim.
 function stateTitle(state, year) {
   if (TARGET_STATES.has(state.slug)) {
     const fig = stateRateFigure(state);
-    if (fig) return `${state.name} Income Tax Rate ${year}: ${fig.title} — Paycheck &amp; Take-Home Pay Calculator (${state.abbr})`;
+    if (fig) return `${state.name} Paycheck Calculator ${year} (${state.abbr}) — Tax ${fig.title}`;
   }
   return `${state.name} Paycheck &amp; Payroll Calculator ${year} (${state.abbr}) — Take-Home Pay After Taxes`;
 }
 
-// Meta description per state. Target states lead with the query + the rate answer
-// in the first ~150 chars; all others keep the original description verbatim.
+// Answer-first meta descriptions (≤155 chars) for the highest-traffic paycheck
+// pages: lead with the concrete figure a searcher wants (the graduated rate, or
+// "no state income tax") instead of a generic "free calculator" opener. Keyed by
+// slug so only these pages change; the other 46 states keep the generated meta.
+// Every figure is the state's own 2026 data (matches stateRateFigure / the page).
+const STATE_META_OVERRIDE = {
+  california: 'California income tax is graduated 1% to 12.3% for 2026. Free California paycheck calculator: your take-home after federal tax, FICA and CA tax.',
+  'new-york': 'New York income tax is graduated 3.9% to 10.9% for 2026. Free New York paycheck calculator: your take-home after federal tax, FICA and NY tax.',
+  oregon: 'Oregon income tax is graduated 4.75% to 9.9% for 2026. Free Oregon paycheck calculator: your take-home after federal tax, FICA and OR tax.',
+  texas: 'Texas has no state income tax, so your 2026 paycheck is cut only by federal tax and FICA. Free Texas paycheck calculator for your take-home pay.',
+  florida: 'Florida has no state income tax, so your 2026 paycheck is cut only by federal tax and FICA. Free Florida paycheck calculator for your take-home.',
+};
+
+// Meta description per state. Answer-first overrides win for the top paycheck
+// pages; target states otherwise lead with the query + the rate answer in the
+// first ~150 chars; all others keep the original description verbatim.
 function stateMetaDesc(state, year) {
+  if (STATE_META_OVERRIDE[state.slug]) return STATE_META_OVERRIDE[state.slug];
   if (TARGET_STATES.has(state.slug)) {
     const fig = stateRateFigure(state);
     if (fig) return `${state.name} income tax rate ${year}: ${fig.desc}. Free ${state.name} paycheck and take-home pay calculator — enter your salary or hourly wage to see your ${year} take-home after federal tax, FICA and ${state.name} state income tax.`;
