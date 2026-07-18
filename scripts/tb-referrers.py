@@ -30,6 +30,16 @@ SELF_HOSTS = (HOST, "tools-cherry.pages.dev")
 SEARCH_ENGINES = {"google", "bing", "yandex", "duckduckgo", "yahoo", "ecosia",
                   "baidu", "brave", "startpage", "qwant", "presearch", "mojeek"}
 
+# AI-assistant referrers — visitors that arrive from a chat/answer engine that
+# retrieved us live (ChatGPT search, Copilot, Perplexity, Claude, Gemini, etc.).
+# Matched by exact host OR subdomain suffix (NOT by dot-separated label like the
+# search set), because some are subdomains whose labels would otherwise be
+# misread — e.g. gemini.google.com contains "google". For that reason the classify
+# loop checks AI *before* search.
+AI_ASSISTANTS = ("chatgpt.com", "chat.openai.com", "perplexity.ai",
+                 "copilot.microsoft.com", "claude.ai", "gemini.google.com",
+                 "you.com", "poe.com")
+
 # Analytics token is named CLOUDFLARE_ANALYTICS_API_TOKEN (NOT CLOUDFLARE_API_TOKEN)
 # so wrangler can't auto-load it during a Pages deploy and fail with auth 10000.
 # Fall back to the old name for safety on un-migrated envs.
@@ -112,6 +122,10 @@ def is_search_engine(host):
     return bool(SEARCH_ENGINES & set(host.split(".")))
 
 
+def is_ai_assistant(host):
+    return any(host == a or host.endswith("." + a) for a in AI_ASSISTANTS)
+
+
 def parse_days():
     if "--days" not in sys.argv:
         return 7
@@ -134,7 +148,14 @@ def main():
 
     direct = {"visits": 0, "pageviews": 0}
     self_ref = {"visits": 0, "pageviews": 0}
-    search, other = [], []
+    ai, search, other = [], [], []
+    # NOTE on utm_source=chatgpt.com: the Cloudflare Web Analytics (RUM) GraphQL
+    # model does not expose query strings — rumPageloadEventsAdaptiveGroups offers
+    # refererHost (and a query-stripped requestPath), not the landing URL's query
+    # params. So a utm_source tag cannot be counted here; AI referrals are detected
+    # by referrer host instead (an AI assistant that sends a real Referer lands in
+    # the "ai_assistants" group below). If Cloudflare later exposes the query
+    # string, add a utm_source=chatgpt.com fallback for referer-less AI arrivals.
     for host, visits, pv in referrers(tag, now - timedelta(days=days), now):
         if not host:
             direct["visits"] += visits
@@ -142,6 +163,8 @@ def main():
         elif is_self(host):
             self_ref["visits"] += visits
             self_ref["pageviews"] += pv
+        elif is_ai_assistant(host):        # before search: gemini.google.com etc.
+            ai.append((host, visits, pv))
         elif is_search_engine(host):
             search.append((host, visits, pv))
         else:
@@ -150,6 +173,7 @@ def main():
     out = {
         "site": HOST, "site_tag": tag, "as_of": iso(now), "days": days,
         "direct": direct,
+        "ai_assistants": [{"host": h, "visits": v, "pageviews": p} for h, v, p in ai],
         "search_engines": [{"host": h, "visits": v, "pageviews": p} for h, v, p in search],
         "other_domains": [{"host": h, "visits": v, "pageviews": p} for h, v, p in other],
         "self_referrals_excluded": self_ref,
@@ -161,6 +185,11 @@ def main():
 
     print(f"Cloudflare Web Analytics — {HOST} referrers, last {days}d  (as of {out['as_of']})")
     print(f"  Direct / no referrer:  {direct['visits']:>5} visits ({direct['pageviews']} pv)")
+    print("  AI assistants (ChatGPT / Perplexity / Copilot / Claude / Gemini / etc.):")
+    for host, v, p in ai or []:
+        print(f"    {v:>5} visits ({p} pv)  {host}")
+    if not ai:
+        print("    (none)")
     print("  Search engines:")
     for host, v, p in search or []:
         print(f"    {v:>5} visits ({p} pv)  {host}")
