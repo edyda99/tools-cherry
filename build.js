@@ -243,6 +243,50 @@ function sitemapLastmod(u) {
   return CONTENT_DATE;
 }
 
+// Format an ISO date (YYYY-MM-DD) as "July 13, 2026" for visible byline text.
+// Parsed from the string parts (not new Date) to stay timezone-agnostic.
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'];
+function humanDate(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+  return m ? `${MONTH_NAMES[+m[2] - 1]} ${+m[3]}, ${m[1]}` : '';
+}
+
+// Tax/finance tool pages whose figures are post-cutoff 2026 statutory numbers
+// AI assistants retrieve live. Each gets a visible "Last updated" byline under
+// its <h1> (injected in fillTool) so the freshness date is machine-readable —
+// dated from the template's real last-change commit, never today-for-all.
+const DATED_TAX_TOOLS = new Set([
+  '/1099-threshold-checker/',
+  '/1099-vs-w2-calculator/',
+  '/able-account-calculator/',
+  '/adoption-credit-calculator/',
+  '/bonus-tax-calculator/',
+  '/charitable-deduction-calculator/',
+  '/dependent-care-fsa-vs-credit-calculator/',
+  '/double-time-pay-calculator/',
+  '/employer-student-loan-repayment-calculator/',
+  '/overtime-tax-calculator/',
+  '/pmi-deduction-calculator/',
+  '/qcd-vs-charitable-deduction-calculator/',
+  '/roth-catchup-calculator/',
+  '/salt-cap-calculator/',
+  '/senior-deduction-calculator/',
+  '/ss-wage-base-calculator/',
+  '/student-loan-cap-calculator/',
+  '/tips-tax-calculator/',
+  '/w2-box-decoder/',
+  '/w4-overtime-tips-withholding-calculator/',
+]);
+// Visible, machine-readable "Last updated" line for a dated tool page. Uses the
+// template's git last-change date (same signal as sitemapLastmod), CONTENT_DATE
+// as the fallback for an uncommitted new template.
+function toolUpdatedLine(currentPath) {
+  const seg = currentPath.replace(/^\/+|\/+$/g, '');
+  const isoDate = gitDate(`src/templates/${seg}.html`) || CONTENT_DATE;
+  return `<p class="tool-updated muted-small">Last updated: <time datetime="${isoDate}">${humanDate(isoDate) || isoDate}</time></p>`;
+}
+
 // One-line description of the publisher entity, reused in the Organization node.
 const ORG_DESCRIPTION =
   'Free, fast, privacy-friendly online calculators and converters that run entirely in your browser — nothing is uploaded.';
@@ -1064,6 +1108,11 @@ const NOINDEX_TOOLS = new Set([
 
 function fillTool(tpl, map, currentPath) {
   let out = fill(tpl, map);
+  // Dated tax tools: inject a visible "Last updated" byline right under the H1
+  // (near the top) as an AI/reader freshness signal for the 2026 figures.
+  if (DATED_TAX_TOOLS.has(currentPath)) {
+    out = out.replace('</h1>', `</h1>\n    ${toolUpdatedLine(currentPath)}`);
+  }
   out = out.replace('<footer class="site">', `${relatedToolsBlock(currentPath)}\n<footer class="site">`);
   if (NOINDEX_TOOLS.has(currentPath)) {
     out = out.replace('</head>', '  <meta name="robots" content="noindex, follow">\n</head>');
@@ -4269,7 +4318,10 @@ async function main() {
         for (const o of cat.occupations) {
           occCount++;
           const flag = o.addedInFinalRule ? ' <span class="new-flag">new in final rule</span>' : '';
-          ttocRows += `<tr>` +
+          // Stable per-row anchor id (e.g. #code-101) so AI assistants and readers
+          // can deep-link a single occupation row. main [id] already carries a
+          // sticky-header scroll-margin (styles.css), so the jump lands cleanly.
+          ttocRows += `<tr id="code-${esc(o.code)}">` +
             `<td class="code">${esc(o.code)}</td>` +
             `<td><strong>${esc(o.title)}</strong>${flag}<br><span class="muted-small">${esc(o.description)}.</span></td>` +
             `<td>${esc(cat.name)}</td>` +
@@ -4301,6 +4353,7 @@ async function main() {
         temporalCoverage: '2025/2028',
         distribution: [
           { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/treasury-tipped-occupation-codes-2026.json` },
+          { '@type': 'DataDownload', encodingFormat: 'text/csv', contentUrl: `${SITE.url}/data/treasury-tipped-occupation-codes-2026.csv` },
         ],
         isAccessibleForFree: true,
       });
@@ -4318,6 +4371,23 @@ async function main() {
         fillDataEmbed(embedDataTtocTpl, ttocMap));
       await writeFile(join(DIST, 'data', 'treasury-tipped-occupation-codes-2026.json'),
         JSON.stringify(stripInternal(ttoc), null, 2) + '\n');
+      // Flat CSV — same source JSON, one row per occupation. Journalist/AI-liftable
+      // companion to the JSON so the /data/ page offers both formats (task parity
+      // with the state-supplemental page). Mirrors the OSS repo's ttoc CSV.
+      const csvEsc = (v) => {
+        const t = String(v == null ? '' : v);
+        return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+      };
+      const ttocAdded = new Set(ttoc.finalRuleAdditions || []);
+      const ttocCsv = [['Code', 'Occupation', 'Category', 'Description', 'Examples', 'SOC code', 'Added in final rule']];
+      for (const cat of ttoc.categories) {
+        for (const o of cat.occupations) {
+          ttocCsv.push([o.code, o.title, cat.name, o.description, o.examples, o.soc || '',
+            ttocAdded.has(o.code) ? 'yes' : 'no']);
+        }
+      }
+      await writeFile(join(DIST, 'data', 'treasury-tipped-occupation-codes-2026.csv'),
+        ttocCsv.map((r) => r.map(csvEsc).join(',')).join('\n') + '\n');
     }
 
     // ---- 2. 2026 Federal Student Loan Limits — from student-loan-limits-2026.json
@@ -4374,6 +4444,7 @@ async function main() {
         temporalCoverage: '2026',
         distribution: [
           { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/2026-student-loan-limits.json` },
+          { '@type': 'DataDownload', encodingFormat: 'text/csv', contentUrl: `${SITE.url}/data/2026-student-loan-limits.csv` },
         ],
         isAccessibleForFree: true,
       });
@@ -4390,6 +4461,16 @@ async function main() {
         fillDataEmbed(embedDataStudentLoanTpl, slMap));
       await writeFile(join(DIST, 'data', '2026-student-loan-limits.json'),
         JSON.stringify(stripInternal(studentLoanLimits), null, 2) + '\n');
+      // Flat CSV — same rows as the on-page table, one line per loan-limit row,
+      // so the /data/ page offers CSV + JSON like the other reference tables.
+      const csvEscSl = (v) => {
+        const t = String(v == null ? '' : v).replace(/[–—]/g, '-');
+        return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+      };
+      const slCsv = [['Borrower / loan type', 'Annual limit', 'Aggregate limit', 'Notes']];
+      for (const r of rowsArr) slCsv.push([r.type, r.annualD, r.aggD, r.note]);
+      await writeFile(join(DIST, 'data', '2026-student-loan-limits.csv'),
+        slCsv.map((r) => r.map(csvEscSl).join(',')).join('\n') + '\n');
     }
 
     // ---- 3. State Supplemental (Bonus) Withholding Rates — from state-supplemental-2026.json
