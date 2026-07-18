@@ -97,13 +97,42 @@
       }).then(function (r) { return r.status; }).catch(function (e) { dbg(e); return 0; });
     }
 
+    // --- copy button: a small, permanent control right after the anchor -------
+    // Reads the anchor's LIVE textContent at click time (never a frozen
+    // snapshot), unlike the report form's snapshot() which is deliberately
+    // frozen. Feature-detected: on browsers/contexts without
+    // navigator.clipboard.writeText, no button is rendered at all rather than
+    // one that would silently fail.
+    function createCopyButton(anchorNode) {
+      if (!window.navigator || !navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') return null;
+      var IDLE = 'Copy result';
+      var b = el('button', 'rpt-copy', { type: 'button' });
+      b.textContent = IDLE;
+      var resetTimer = null;
+      b.addEventListener('click', function () {
+        var text = (anchorNode.textContent || '').replace(/\s+/g, ' ').trim();
+        navigator.clipboard.writeText(text).then(function () {
+          if (resetTimer) clearTimeout(resetTimer);
+          b.textContent = 'Copied';
+          resetTimer = setTimeout(function () { b.textContent = IDLE; resetTimer = null; }, 1500);
+        }).catch(function (e) { dbg(e); });
+      });
+      return b;
+    }
+
     // --- view state: exactly one of link / form / thanks after the anchor -----
     var anchor = null;
     var current = null; // the node currently mounted immediately after the anchor.
 
+    // mount() always inserts immediately after mountAfter, which init() sets to
+    // the Copy button when one exists (so Copy stays permanently between the
+    // anchor and whatever state mount() is currently showing), or to the
+    // anchor itself otherwise — this preserves the original behavior.
+    var mountAfter = null;
+
     function mount(node) {
       if (current && current.parentNode) current.parentNode.removeChild(current);
-      anchor.insertAdjacentElement('afterend', node);
+      mountAfter.insertAdjacentElement('afterend', node);
       current = node;
     }
 
@@ -200,9 +229,34 @@
       try { ta.focus(); } catch (_) {}
     }
 
+    // --- fallback: no single result anchor found — offer a plain contact link -
+    // Runs only when findAnchor() returned null. Scoped to the same .calc/form
+    // container snapshot() already uses; if that isn't found either, do
+    // nothing, matching this file's "skip silently rather than guess" rule.
+    // /contact/ is a plain static mailto page (src/content/static-pages.js) —
+    // it does not read or prefill from any query parameter, so no slug is
+    // threaded onto the link.
+    function showContactFallback() {
+      var scope = document.querySelector('.calc, form');
+      if (!scope) return;
+      var p = el('p', 'rpt-contact-fallback');
+      p.appendChild(document.createTextNode('Spotted a wrong result? '));
+      var a = el('a', null, { href: '/contact/' });
+      a.textContent = 'Contact us';
+      p.appendChild(a);
+      p.appendChild(document.createTextNode('.'));
+      scope.insertAdjacentElement('afterend', p);
+    }
+
     function init() {
       anchor = findAnchor();
-      if (!anchor) return; // no single result element on this page — do nothing.
+      if (!anchor) { showContactFallback(); return; }
+      mountAfter = anchor;
+      var copyBtn = createCopyButton(anchor);
+      if (copyBtn) {
+        anchor.insertAdjacentElement('afterend', copyBtn);
+        mountAfter = copyBtn;
+      }
       showLink();
     }
 

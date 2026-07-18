@@ -1160,3 +1160,17 @@ footer.site a:hover { color: var(--text); }
 
 .rpt-thanks { margin: 10px 0 0; font-size: 14px; font-weight: 600; color: var(--accent); }
 .rpt-error { margin: 8px 0 0; font-size: 13px; color: var(--danger); }
+
+.rpt-copy {
+  display: inline-block; margin: 10px 0 0 12px; padding: 2px 0;
+  font: 500 13px/1.4 inherit; color: var(--muted);
+  background: transparent; border: 0; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.rpt-copy:hover { color: var(--text); }
+.rpt-copy:focus-visible { outline: none; box-shadow: var(--ring); border-radius: 4px; }
+
+.rpt-contact-fallback { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+.rpt-contact-fallback a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+.rpt-contact-fallback a:hover { color: var(--text); }
+.rpt-contact-fallback a:focus-visible { outline: none; box-shadow: var(--ring); border-radius: 4px; }
