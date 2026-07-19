@@ -12,7 +12,7 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"PDF to Word Converter","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Convert a text-based PDF into an editable Word (.docx) document entirely in your browser. No signup, nothing uploaded."}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is this PDF to Word converter free?","acceptedAnswer":{"@type":"Answer","text":"Yes. It is completely free with no signup and no watermark. Choose a PDF and download an editable Word .docx file."}},{"@type":"Question","name":"Are my files uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"The default in-browser conversion uploads nothing. There is also an optional server conversion for higher fidelity, which uploads your PDF over an encrypted connection, converts it, and discards it right after."}},{"@type":"Question","name":"Will my formatting be kept?","acceptedAnswer":{"@type":"Answer","text":"It rebuilds the text, paragraphs and headings from text-based PDFs. Because everything runs privately in your browser, very complex layouts and tables may need a little cleanup in Word."}},{"@type":"Question","name":"Does it work on scanned PDFs?","acceptedAnswer":{"@type":"Answer","text":"No. Scanned PDFs are images of pages with no underlying text, so there is nothing to extract. Use a PDF that was exported from a word processor, browser or report tool."}},{"@type":"Question","name":"Is there a file size limit?","acceptedAnswer":{"@type":"Answer","text":"The limit is 50 MB per PDF, which covers almost any text document. Very large files take longer because the work happens on your own device."}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is this PDF to Word converter free?","acceptedAnswer":{"@type":"Answer","text":"Yes. It is completely free with no signup and no watermark. Choose a PDF and download an editable Word .docx file."}},{"@type":"Question","name":"Are my files uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"The default in-browser conversion uploads nothing. There is also an optional server conversion for higher fidelity, which uploads your PDF over an encrypted connection, converts it, and discards it right after."}},{"@type":"Question","name":"Will my formatting be kept?","acceptedAnswer":{"@type":"Answer","text":"It rebuilds the text, paragraphs and headings from text-based PDFs. Because everything runs privately in your browser, very complex layouts and tables may need a little cleanup in Word."}},{"@type":"Question","name":"Does it work on scanned PDFs?","acceptedAnswer":{"@type":"Answer","text":"No. Scanned PDFs are images of pages with no underlying text, so there is nothing to extract. Use a PDF that was exported from a word processor, browser or report tool."}},{"@type":"Question","name":"Is there a file size limit?","acceptedAnswer":{"@type":"Answer","text":"The limit is 50 MB per PDF, which covers almost any text document. Very large files take longer because the work happens on your own device."}},{"@type":"Question","name":"How is this different from other PDF to Word converters?","acceptedAnswer":{"@type":"Answer","text":"Most free converters — including iLovePDF, Smallpdf, and ExactPDF's Office-format conversions — upload your file to a server before converting it. This one converts in your browser by default, so nothing leaves your device, and it still offers an optional server mode for harder files — something browser-only tools like PDF Edit don't have."}},{"@type":"Question","name":"Can I convert a PDF to Word with no internet connection?","acceptedAnswer":{"@type":"Answer","text":"Yes, for the default browser mode. Once the page has loaded, you can turn off Wi-Fi or switch to airplane mode and the conversion still works, because your PDF is read and rebuilt entirely on your device. The optional server mode does need an internet connection."}},{"@type":"Question","name":"Do I need to install anything or create an account?","acceptedAnswer":{"@type":"Answer","text":"No. It runs in your web browser with no install and no signup for either the browser conversion or the optional server conversion."}}]}</script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -56,6 +56,8 @@
       </div>
     </div>
 
+    <p class="note" style="margin-top:14px"><strong>Don't take our word for it — prove it:</strong> turn on airplane mode, or unplug your Wi-Fi, before you convert. The default mode still works with zero network connection, because your PDF is read and rebuilt entirely on your device — nothing is sent anywhere. Reconnect before trying the optional server mode below, which needs the internet by design.</p>
+
     <div class="ad-slot" data-ad="incontent">Advertisement</div>
 
     <section class="prose">
@@ -63,6 +65,27 @@
       <p>Click the box above to choose a PDF, or drag one straight in. Then click <strong>Convert to Word</strong>. Your browser reads the text out of the PDF, rebuilds it as an editable <strong>.docx</strong>, and a download link appears for the Word file — usually in a second or two.</p>
       <p>It works best on PDFs that hold <strong>real text</strong> — the kind exported from a word processor, browser, or report tool. It keeps the words, paragraphs, and headings; very complex multi-column layouts and tables may need a quick tidy-up in Word. Scanned documents are pictures of pages with no underlying text, so there is nothing to pull out.</p>
       <p class="note"><strong>About your privacy:</strong> the default conversion runs entirely in your browser, so your PDF never leaves your device. If you choose the optional <strong>higher-fidelity server conversion</strong>, that file is uploaded over an encrypted (HTTPS) connection, converted, and immediately discarded — nothing is stored, logged, or shared.</p>
+      <p>The browser mode handles PDFs up to <strong>50 MB</strong> with no daily cap and no account. If a complex layout doesn't come out clean, the same page offers a second option: a <strong>25&nbsp;MB server conversion, 2 free per day</strong>, that trades a brief upload for higher fidelity on harder files — the file is converted and discarded immediately after.</p>
+
+      <h2>Who this converter is built for</h2>
+      <p><strong>Legal and contracts.</strong> NDAs, leases, and client agreements often contain terms nobody wants sitting on a third-party's server, even briefly. Converting in-browser means the document never has to leave the machine it's already on.</p>
+      <p><strong>Students and researchers.</strong> Turning a lecture-note PDF or a journal article into an editable Word file to annotate or cite is common on shared or public library computers — devices where you don't want to leave files behind on someone else's upload history.</p>
+      <p><strong>HR and small business.</strong> Offer letters, policies, and resumes carry names, salaries, and addresses. The same no-upload logic that protects legal documents applies here.</p>
+
+      <h2>How does this compare to other free PDF to Word converters?</h2>
+      <p>Every comparison below is a factual, checkable claim about how each tool works today — not a knock on the competition.</p>
+      <table class="data-table">
+        <thead>
+          <tr><th>Converter</th><th>Runs in your browser</th><th>Optional server fallback</th><th>Free limits</th><th>Signup</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Tools Berry</td><td>Yes, by default</td><td>Yes — 25 MB, 2/day, discarded after use</td><td>50 MB browser mode</td><td>No</td></tr>
+          <tr><td>PDF Edit</td><td>Yes, client-side only</td><td>None — no fallback for files the browser struggles with</td><td>Not published</td><td>No</td></tr>
+          <tr><td>ExactPDF</td><td>Markets "100% local" for core PDF tools, but its own disclaimer states Office-format conversions run through a temporary LibreOffice server</td><td>N/A — server-based for Office conversions</td><td>Not published</td><td>No</td></tr>
+          <tr><td>Sejda</td><td>No — files are uploaded</td><td>N/A — always server-based</td><td>20 pages per Word conversion, 3 tasks/hour</td><td>No</td></tr>
+          <tr><td>iLovePDF</td><td>No — files are uploaded</td><td>N/A — always server-based</td><td>Varies by tool, not consistently published; ad-supported</td><td>No</td></tr>
+        </tbody>
+      </table>
 
       <h2>Frequently asked questions</h2>
       <h3>Is this PDF to Word converter free?</h3>
@@ -75,6 +98,12 @@
       <p>No. Scanned PDFs are images with no underlying text, so there is nothing to extract. Use a PDF exported from a program for the best result.</p>
       <h3>Is there a file size limit?</h3>
       <p>The limit is 50 MB per PDF, which covers almost any text document. Very large files take a little longer because the work happens on your device.</p>
+      <h3>How is this different from other PDF to Word converters?</h3>
+      <p>Most free converters — including iLovePDF, Smallpdf, and ExactPDF's Office-format conversions — upload your file to a server before converting it. This one converts in your browser by default, so nothing leaves your device, and it still offers an optional server mode for harder files — something browser-only tools like PDF Edit don't have.</p>
+      <h3>Can I convert a PDF to Word with no internet connection?</h3>
+      <p>Yes, for the default browser mode. Once the page has loaded, turn off Wi-Fi or switch to airplane mode — the conversion still works, because your PDF is read and rebuilt entirely on your device. The optional server mode does need an internet connection.</p>
+      <h3>Do I need to install anything or create an account?</h3>
+      <p>No. It runs in your web browser with no install and no signup, for either the browser conversion or the optional server conversion.</p>
     </section>
   </div>
 </main>
