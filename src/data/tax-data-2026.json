@@ -2132,78 +2132,77 @@
       "abbr": "NE",
       "slug": "nebraska",
       "hasIncomeTax": true,
-      "figureYear": 2025,
+      "figureYear": 2026,
       "tax": {
         "type": "bracket",
         "standardDeduction": {
-          "single": 8600,
-          "married": 17200,
-          "head_of_household": 12600
+          "single": 8850,
+          "married": 17700,
+          "head_of_household": 12950
         },
         "brackets": {
           "single": [
             {
               "rate": 0.0246,
-              "upTo": 4030
+              "upTo": 4130
             },
             {
               "rate": 0.0351,
-              "upTo": 24120
+              "upTo": 24760
             },
             {
-              "rate": 0.0501,
-              "upTo": 38870
+              "rate": 0.0455,
+              "upTo": 39900
             },
             {
-              "rate": 0.052,
+              "rate": 0.0455,
               "upTo": null
             }
           ],
           "married": [
             {
               "rate": 0.0246,
-              "upTo": 8040
+              "upTo": 8250
             },
             {
               "rate": 0.0351,
-              "upTo": 48250
+              "upTo": 49530
             },
             {
-              "rate": 0.0501,
-              "upTo": 77730
+              "rate": 0.0455,
+              "upTo": 79800
             },
             {
-              "rate": 0.052,
+              "rate": 0.0455,
               "upTo": null
             }
           ],
           "head_of_household": [
             {
               "rate": 0.0246,
-              "upTo": 7510
+              "upTo": 7700
             },
             {
               "rate": 0.0351,
-              "upTo": 38590
+              "upTo": 39620
             },
             {
-              "rate": 0.0501,
-              "upTo": 57630
+              "rate": 0.0455,
+              "upTo": 59160
             },
             {
-              "rate": 0.052,
+              "rate": 0.0455,
               "upTo": null
             }
           ]
         }
       },
-      "_source": "Nebraska individual income tax \u2014 official 2025 Nebraska Tax Calculation Schedule (Form 8-460-2025) and the 2025 Nebraska Individual Income Tax Booklet standard-deduction chart, both from the Nebraska Dept. of Revenue. ADDED UNDER THE APPROVED PRIOR-YEAR FALLBACK POLICY: Nebraska's 2026 income-tax RATE schedule is NOT yet officially published. Nebraska is mid-LB754 (2023) phase-down \u2014 the four-bracket statutory schedule keeps rates 2.46% / 3.51% / 5.01% on the lower bands while only the TOP rate steps down (2024 = 5.84%, 2025 = 5.20%, 2026 = 4.55%, 2027 = 3.99%), and the bracket thresholds are inflation-indexed annually. Because the 2026 indexed thresholds have not been officially released (the 2026 Form 1040N rate schedule is not posted; the 2026 Circular EN gives only withholding-table figures, which differ from the return rate schedule), this state is added with the COMPLETE OFFICIAL 2025 schedule and figureYear=2025 plus an unmistakable user-visible label, rather than mixing the known 2026 top rate with unpublished 2026 thresholds (which would be unverified). 2025 schedule (verbatim from 8-460-2025): Single/MFS 2.46% to $4,030, 3.51% to $24,120, 5.01% to $38,870, 5.20% above; MFJ/QSS 2.46% to $8,040, 3.51% to $48,250, 5.01% to $77,730, 5.20% above; HoH 2.46% to $7,510, 3.51% to $38,590, 5.01% to $57,630, 5.20% above. 2025 Nebraska standard deduction (base, 0 boxes): $8,600 single/MFS, $17,200 MFJ/QSS, $12,600 HoH. Modeled state-only. https://revenue.nebraska.gov/sites/default/files/doc/tax-forms/2025/2025_Tax_Calculation_Schedule.pdf ; https://revenue.nebraska.gov/sites/default/files/doc/tax-forms/2025/f_Individual_Income_Tax_Booklet.pdf",
+      "_source": "Nebraska individual income tax, official 2026 Nebraska Estimated Income Tax Rate Schedule from the Nebraska Dept. of Revenue 2026 Form 1040N-ES booklet (Rev. 11-2025), carrying full inflation-indexed 2026 dollar thresholds; standard-deduction and personal-exemption-credit figures from the same booklet's Estimated Income Tax Worksheet. Under LB754, the 2026 individual income-tax rates for the third and fourth brackets are both 4.55% per Neb. Rev. Stat. Sec. 77-2715.03(2)(c)(v) (top rate down from 5.20% in 2025 to 4.55%); the lower two rates remain 2.46% and 3.51%. 2026 rate schedule (verbatim from the 1040N-ES): Single and MFS 2.46% to $4,130, then $101.60 + 3.51% to $24,760, then $825.71 + 4.55% to $39,900, then $1,514.58 + 4.55% above; MFJ and Surviving Spouse 2.46% to $8,250, then $202.95 + 3.51% to $49,530, then $1,651.88 + 4.55% to $79,800, then $3,029.16 + 4.55% above; HoH 2.46% to $7,700, then $189.42 + 3.51% to $39,620, then $1,309.81 + 4.55% to $59,160, then $2,198.88 + 4.55% above. 2026 Nebraska standard deduction (base, 0 boxes): $8,850 single/MFS, $17,700 MFJ, $12,950 HoH. Personal exemption credit $176 each. Modeled state-only. https://revenue.nebraska.gov/sites/default/files/doc/tax-forms/2025/f_1040N-ES.pdf (2026 Form 1040N-ES, Rev. 11-2025, rate schedule p.5-6); 2026 Nebraska Circular EN withholding tables at https://revenue.nebraska.gov/sites/default/files/doc/business/Cir_En_2025/2026cir_en_whole.pdf",
       "disclaimer": [
-        "Showing 2025 rates \u2014 Nebraska has not published its 2026 income-tax brackets yet; this page will update when 2026 figures are released. (Under LB754, Nebraska's top rate is scheduled to drop from 5.20% in 2025 to 4.55% in 2026, so 2026 tax for higher earners will be somewhat lower than shown.)",
         "State tax only. Nebraska has no local/city income tax on wages.",
-        "Nebraska's $171-per-exemption personal exemption credit, the additional standard deduction for filers age 65+ or blind, and other credits/subtractions (including the Social Security benefit exemption) are not modeled."
+        "Nebraska's $176-per-exemption personal exemption credit, the additional standard deduction for filers age 65+ or blind, and other credits/subtractions (including the Social Security benefit exemption) are not modeled."
       ],
-      "notes": "Progressive four-bracket 2.46%-5.20% (official 2025 Tax Calculation Schedule). Showing 2025 rates pending Nebraska's 2026 release; LB754 lowers the 2026 top rate to 4.55%. No local income tax."
+      "notes": "Progressive 2.46% / 3.51% / 4.55% bracket schedule (official 2026 Nebraska Estimated Income Tax Rate Schedule; LB754 dropped the top rate from 5.20% to 4.55% for 2026). No local income tax."
     },
     "oklahoma": {
       "name": "Oklahoma",
