@@ -58,7 +58,7 @@ t('every state: slug matches key, valid bracket shape, decimal rates', () => {
 t('New York $75k single ≈ $3,453', () => approx(stateTax('new-york', 75000), 3453, 1));
 t('Delaware $75k single = $3,719.00', () => approx(stateTax('delaware', 75000), 3719.0));
 t('New Mexico $75k single = $2,359.30', () => approx(stateTax('new-mexico', 75000), 2359.30, 0.05));
-t('Utah $75k single = $2,650.50 (flat 4.5%)', () => approx(stateTax('utah', 75000), 2650.50, 0.05));
+t('Utah $75k single = $2,621.05 (flat 4.45%)', () => approx(stateTax('utah', 75000), 2621.05, 0.05));
 t('Texas has no state income tax', () => assert.equal(stateTax('texas', 75000), 0));
 
 // --- prior-year fallback states are labeled (figureYear 2025, not 2026) ------

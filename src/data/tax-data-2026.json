@@ -834,18 +834,18 @@
       "figureYear": 2026,
       "tax": {
         "type": "flat",
-        "rate": 0.045,
+        "rate": 0.0445,
         "standardDeduction": {
           "single": 16100,
           "married": 32200,
           "head_of_household": 24150
         }
       },
-      "_source": "UT flat 4.45% for tax years beginning on/after Jan 1 2026 (SB60, signed Mar 23 2026). Base is federal taxable income. https://le.utah.gov/~2026/bills/static/SB0060.html",
+      "_source": "UT flat individual income tax rate 4.45% for tax years beginning on/after Jan 1 2026 (SB60, 2026 General Session, sponsored Sen. McCay/Rep. Eliason; signed by the Governor Mar 23 2026, general effective date May 6 2026 but the rate cut applies retroactively to TY beginning on/after Jan 1 2026; 6th consecutive annual cut, 4.50%->4.45%, also cutting the corporate/franchise rate 4.50%->4.45% with the $100 minimum unchanged). Utah does NOT tax federal taxable income: TC-40 starts from federal adjusted gross income (line 4, from 1040 line 11), applies Utah additions/subtractions to reach Utah taxable income (line 9), then multiplies by the flat rate (line 10). The federal standard deduction is reflected via the nonrefundable Taxpayer Tax Credit (6% of federal deductions + Utah personal exemptions, phased out at higher income) and a full exemption when FAGI <= the federal standard deduction, NOT by directly reducing the base; this calculator approximates the base as wages minus the federal standard deduction. NOTE: the Utah State Tax Commission rate page (incometax.utah.gov/paying/tax-rates) still lists '4.5% / .045 -- January 1, 2025 -- current' with no 2026 row (a lagging administrative page not yet updated for SB60); the enacted statute controls. https://le.utah.gov/~2026/bills/static/SB0060.html ; https://taxnews.ey.com/news/2026-0913-utah-law-lowers-state-income-tax-rate-retroactive-to-January-1-2026 ; https://orbitax.com/news/country/article/Utah-Cuts-Individual-and-Corpo-61573 ; https://incometax.utah.gov/line-by-line/",
       "disclaimer": [
         "Utah's nonrefundable Taxpayer Tax Credit (which phases out with income) is not modeled, so this estimate may overstate tax for lower incomes. Base approximated as wages minus the federal standard deduction."
       ],
-      "notes": "Flat 4.45% on federal taxable income."
+      "notes": "Flat 4.45% (SB60, TY2026) on Utah taxable income, which starts from federal adjusted gross income adjusted by Utah additions/subtractions (not federal taxable income). The Taxpayer Tax Credit is not modeled; base approximated as wages minus the federal standard deduction."
     },
     "michigan": {
       "name": "Michigan",
@@ -1903,9 +1903,9 @@
       "tax": {
         "type": "bracket",
         "standardDeduction": {
-          "single": 5540,
-          "married": 11080,
-          "head_of_household": 11080
+          "single": 5706,
+          "married": 11412,
+          "head_of_household": 11412
         },
         "brackets": {
           "single": [
@@ -2024,7 +2024,7 @@
           ]
         }
       },
-      "_source": "California 2025 Form 540 tax rate schedules (Schedule X single/MFS, Schedule Y MFJ/QSS, Schedule Z head of household) per the OFFICIAL FTB \u2014 nine statutory rates 1/2/4/6/8/9.3/10.3/11.3/12.3%. ADDED under the APPROVED prior-year fallback policy (2026-06-16): the FTB has NOT published 2026 CA rate schedules and directs 2026 filers to use the 2025 tables (2026 Form 540-ES instructions), so figureYear=2025 with a user-visible label. Single thresholds 11079/26264/41452/57542/72724/371479/445771/742953; MFJ ~2x single; HoH per Schedule Z. 2025 standard deduction $5,540 single/MFS, $11,080 MFJ/HoH (the $5,706/$11,412 figures some sources cite are the 2026 amounts and the 540-2EZ table credits, NOT the 2025 Form 540 standard deduction). Brackets validated vs LegalClarity and TaxFormFinder (identical values; TaxFormFinder swaps its X/Y labels but the numbers match) and the 2025 std deduction confirmed across sources. Modeled state-only. https://www.ftb.ca.gov/forms/2025/2025-540-tax-rate-schedules.pdf ; https://www.ftb.ca.gov/forms/2026/2026-540-es-instructions.html",
+      "_source": "California 2025 Form 540 tax rate schedules (Schedule X single/MFS, Schedule Y MFJ/QSS, Schedule Z head of household) per the OFFICIAL FTB \u2014 nine statutory rates 1/2/4/6/8/9.3/10.3/11.3/12.3%. ADDED under the APPROVED prior-year fallback policy (2026-06-16): the FTB has NOT published 2026 CA rate schedules and directs 2026 filers to use the 2025 tables (2026 Form 540-ES instructions), so figureYear=2025 with a user-visible label. Single thresholds 11079/26264/41452/57542/72724/371479/445771/742953; MFJ ~2x single; HoH per Schedule Z. 2025 California standard deduction (FTB indexed): $5,706 single/MFS, $11,412 MFJ/HoH/QSS -- HoH equals the MFJ amount. CORRECTED 2026-07-21: the prior $5,540 single/$11,080 joint values were the 2024 amounts; FTB's October 2025 indexing table shows single/MFS $5,540->$5,706 and joint/surviving-spouse/HoH $11,080->$11,412 for 2025, and the 2025 Form 540 booklet Standard Deduction Chart confirms $5,706 single/MFS and $11,412 MFJ/MFS-note/HoH/QSS. Brackets validated vs LegalClarity and TaxFormFinder (identical values; TaxFormFinder swaps its X/Y labels but the numbers match). Modeled state-only. https://www.ftb.ca.gov/forms/2025/2025-540-tax-rate-schedules.pdf ; https://www.ftb.ca.gov/about-ftb/newsroom/tax-news/2025/10.html ; https://www.ftb.ca.gov/forms/2025/2025-540-booklet.html ; https://www.ftb.ca.gov/forms/2026/2026-540-es-instructions.html",
       "disclaimer": [
         "Showing 2025 California rates \u2014 the FTB has not published 2026 brackets yet; will update when released. California directs 2026 filers to use the 2025 tax tables.",
         "State tax only. The California 1% Behavioral Health Services Tax (formerly Mental Health Services Act) surcharge on taxable income over $1,000,000 \u2014 which raises the top effective rate to 13.3% \u2014 is NOT modeled here.",
