@@ -62,8 +62,10 @@ t('Utah $75k single = $2,650.50 (flat 4.5%)', () => approx(stateTax('utah', 7500
 t('Texas has no state income tax', () => assert.equal(stateTax('texas', 75000), 0));
 
 // --- prior-year fallback states are labeled (figureYear 2025, not 2026) ------
-t('California/Nebraska/Oklahoma carry figureYear 2025 (fallback)', () => {
-  for (const s of ['california', 'nebraska', 'oklahoma']) assert.equal(tax.states[s].figureYear, 2025, `${s} should be 2025-fallback`);
+// Nebraska moved to official 2026 figures (1040N-ES, Rev. 11-2025) on 2026-07-21.
+t('California/Oklahoma carry figureYear 2025 (fallback); Nebraska is 2026', () => {
+  for (const s of ['california', 'oklahoma']) assert.equal(tax.states[s].figureYear, 2025, `${s} should be 2025-fallback`);
+  assert.equal(tax.states.nebraska.figureYear, 2026, 'nebraska should carry official 2026 figures');
 });
 
 console.log(`\n${pass} passing`);

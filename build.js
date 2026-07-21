@@ -1533,7 +1533,7 @@ function payrollDeductionsBlock(state, p) {
       : '';
     statusNote = `<p class="note"><strong>Included in your take-home:</strong> the ${labels} ${isAre} subtracted from the take-home estimate at the top of this page.${extra} These are withheld after tax and do not lower your taxable income.</p>`;
   } else {
-    statusNote = `<p class="note"><strong>Not in the estimate:</strong> these amounts are not subtracted from the take-home figure at the top of this page — a confirmed 2026 employee rate and wage cap were not available, so verify them with your employer or the program's official site before relying on the net figure.</p>`;
+    statusNote = `<p class="note"><strong>Not in the estimate:</strong> these amounts are not subtracted from the take-home figure at the top of this page — what is actually withheld varies by employer or the program is too new for a confirmed statewide employee figure, so check your pay stub or the program's official site for what your employer takes out.</p>`;
   }
   return `<section class="prose"><h2>${names}: what else ${state.name} takes from your check</h2>` +
     `<p>${intro}</p>` +
