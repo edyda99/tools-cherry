@@ -311,6 +311,8 @@ const TOOLS = [
   { name: 'Images to PDF', path: '/images-to-pdf/', cat: 'image' },
   { name: 'PDF to Word', path: '/pdf-to-word/', cat: 'image' },
   { name: 'Word to PDF', path: '/word-to-pdf/', cat: 'image' },
+  { name: 'Merge PDF', path: '/merge-pdf/', cat: 'image' },
+  { name: 'Split PDF', path: '/split-pdf/', cat: 'image' },
   { name: 'Signature Maker', path: '/signature-maker/', cat: 'make' },
   { name: 'Percentage Calculator', path: '/percentage-calculator/', cat: 'calc' },
   { name: 'Tip & Bill Split', path: '/tip-calculator/', cat: 'calc' },
@@ -413,6 +415,8 @@ const TOOL_DESCRIPTIONS = {
   '/images-to-pdf/': 'Combine multiple images into a single PDF in your browser.',
   '/pdf-to-word/': 'Convert a PDF into an editable Word (.docx) document.',
   '/word-to-pdf/': 'Convert a Word (.docx) document into a PDF in your browser.',
+  '/merge-pdf/': 'Combine multiple PDF files into one, in your browser.',
+  '/split-pdf/': 'Extract a page range or split every page of a PDF into separate files, in your browser.',
   '/signature-maker/': 'Draw or type a signature and download it as a transparent PNG.',
   '/percentage-calculator/': 'Work out percentages, percentage change, and percentage of a number.',
   '/tip-calculator/': 'Calculate tips and split a bill evenly across any number of people.',
@@ -2588,6 +2592,8 @@ async function main() {
   const imagesToPdfTpl = await read(join(SRC, 'templates', 'images-to-pdf.html'));
   const pdfToWordTpl = await read(join(SRC, 'templates', 'pdf-to-word.html'));
   const wordToPdfTpl = await read(join(SRC, 'templates', 'word-to-pdf.html'));
+  const mergePdfTpl = await read(join(SRC, 'templates', 'merge-pdf.html'));
+  const splitPdfTpl = await read(join(SRC, 'templates', 'split-pdf.html'));
   const qrTpl = await read(join(SRC, 'templates', 'qr-generator.html'));
   const circleTpl = await read(join(SRC, 'templates', 'circle-crop.html'));
   const photoTpl = await read(join(SRC, 'templates', 'passport-photo-maker.html'));
@@ -2902,6 +2908,9 @@ async function main() {
   registerAsset('assets', 'word-to-pdf.js');
   registerAsset('assets', 'mammoth.browser.min.js');
   registerAsset('assets', 'jspdf.umd.min.js');
+  registerAsset('assets', 'merge-pdf.js');
+  registerAsset('assets', 'split-pdf.js');
+  registerAsset('assets', 'pdf-lib.min.js');
   registerAsset('assets', 'pdf.min.js');
   registerAsset('assets', 'pdf.worker.min.js');
   registerAsset('assets', 'docx.umd.js');
@@ -3300,6 +3309,22 @@ async function main() {
     fillTool(wordToPdfTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/word-to-pdf/')
   );
   urls.push(`${SITE.url}/word-to-pdf/`);
+
+  // Merge PDF (100% client-side; pdf-lib copies pages across documents)
+  await mkdir(join(DIST, 'merge-pdf'), { recursive: true });
+  await writeFile(
+    join(DIST, 'merge-pdf', 'index.html'),
+    fillTool(mergePdfTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/merge-pdf/')
+  );
+  urls.push(`${SITE.url}/merge-pdf/`);
+
+  // Split PDF (100% client-side; pdf-lib extracts a range or splits every page)
+  await mkdir(join(DIST, 'split-pdf'), { recursive: true });
+  await writeFile(
+    join(DIST, 'split-pdf', 'index.html'),
+    fillTool(splitPdfTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/split-pdf/')
+  );
+  urls.push(`${SITE.url}/split-pdf/`);
 
   // qr code generator (standalone tool page)
   await mkdir(join(DIST, 'qr-code-generator'), { recursive: true });

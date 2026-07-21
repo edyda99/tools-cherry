@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Merge PDF Files - Free, Private, Combine PDFs In Your Browser (No Upload)</title>
+<meta name="description" content="Free online tool to merge PDF files. Add as many PDFs as you like, reorder them, and download one combined file — no signup, no watermark, and nothing is uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/merge-pdf/">
+<meta property="og:title" content="Merge PDF Files — Free, Private, In Your Browser">
+<meta property="og:description" content="Combine multiple PDFs into one file, right in your browser. Free, no signup — nothing is uploaded.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Merge PDF","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Combine multiple PDF files into a single PDF entirely in your browser. No signup, nothing uploaded."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is this PDF merge tool free?","acceptedAnswer":{"@type":"Answer","text":"Yes — completely free, with no signup and no watermark on the result."}},{"@type":"Question","name":"Are my PDFs uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. The merge runs entirely in your browser, so your files never leave your device. Nothing is uploaded, stored, or logged."}},{"@type":"Question","name":"How many files can I merge, and is there a size limit?","acceptedAnswer":{"@type":"Answer","text":"You can add up to 30 PDFs at once, each up to 50 MB. That covers almost any everyday merge job — contracts, chapters, invoices, and reports."}},{"@type":"Question","name":"Can I change the order the PDFs are combined in?","acceptedAnswer":{"@type":"Answer","text":"Yes. Each PDF you add appears in a list with its page count. Use the up and down arrows to set the order, or the × button to remove one — the merged file follows the order shown in the list."}},{"@type":"Question","name":"Does it work with no internet connection?","acceptedAnswer":{"@type":"Answer","text":"Yes. Once the page has loaded, turn on airplane mode or unplug your Wi-Fi — the merge still works, because your files are read and combined entirely on your device."}},{"@type":"Question","name":"What happens if one of my PDFs is password-protected?","acceptedAnswer":{"@type":"Answer","text":"A password-protected or corrupted PDF is skipped automatically — the other files still merge, and the final message tells you which file was skipped and why. Remove the password from that file first if you need it included."}},{"@type":"Question","name":"Do I need to sign up or install anything?","acceptedAnswer":{"@type":"Answer","text":"No. It runs in your web browser with no install, no plugin, and no account."}},{"@type":"Question","name":"Will the page order inside each original PDF be preserved?","acceptedAnswer":{"@type":"Answer","text":"Yes. Every page from each file keeps its original internal order — reordering only changes which file's pages come before another's, not the order of pages within a file."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Merge PDF Files</h1>
+    <p class="lede">Combine several PDFs into one file — right here in your browser. Free, no signup, no watermark, and <strong>nothing is uploaded</strong>.</p>
+    <p class="note"><strong>This tool combines multiple PDF files into a single PDF, in the order you set.</strong> Add your files, reorder with the up and down arrows, then download the merged PDF — it all happens in your browser, so nothing is ever sent to a server.</p>
+
+    <div class="calc">
+      <div>
+        <label id="drop" class="dropzone" for="file">
+          <input id="file" type="file" accept="application/pdf,.pdf" multiple hidden>
+          <span id="dropText">Click to choose PDFs, or drop them here</span>
+        </label>
+        <p class="muted-small" style="margin-top:10px">Up to 30 files, 50 MB each · combined on your device, nothing uploaded.</p>
+      </div>
+
+      <div class="results">
+        <div class="pdf-list" id="list" aria-live="polite"></div>
+        <p class="muted-small" id="status" style="margin-top:10px">Add some PDFs to begin.</p>
+        <div class="field inline" style="margin-bottom:0">
+          <button type="button" id="mergePdf" class="btn-primary" disabled>Merge PDFs</button>
+          <button type="button" id="clearAll" class="btn-secondary">Clear all</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="note" style="margin-top:14px"><strong>Don't take our word for it — prove it:</strong> turn on airplane mode, or unplug your Wi-Fi, before you merge. It still works with zero network connection, because your PDFs are read and combined entirely on your device — nothing is sent anywhere.</p>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to merge PDF files</h2>
+      <p>Click the box above to choose PDF files, or drag them straight in. You can add several at once, and each one appears in the list below with its page count. Use the up and down arrows to set the order they should appear in the final file, or the × button to remove one you don't want. Then click <strong>Merge PDFs</strong> and the combined file downloads to your device as <code>merged.pdf</code>.</p>
+
+      <h2>Who this is for</h2>
+      <p><strong>Contracts and legal bundling.</strong> Combining a signed agreement, its exhibits, and any addenda into one PDF for filing or sending is common — and doing it in-browser means those documents never sit on a third-party server, even briefly.</p>
+      <p><strong>Students.</strong> Combining separate chapter or lecture-note PDFs into a single file for studying or submission, without needing to sign up for anything.</p>
+      <p><strong>Small business.</strong> Bundling invoices, receipts, or purchase orders into one PDF for bookkeeping or a client handoff.</p>
+
+      <p class="note"><strong>Why in-browser?</strong> PDFs often carry contract terms, invoices, or personal records nobody wants sitting on someone else's server, even for a moment. Once this page has loaded, you can disconnect from the internet entirely and it still works — the clearest possible proof that nothing is being sent anywhere.</p>
+
+      <h2>Frequently asked questions</h2>
+      <h3>Is this PDF merge tool free?</h3>
+      <p>Yes — completely free, with no signup and no watermark on the result.</p>
+      <h3>Are my PDFs uploaded anywhere?</h3>
+      <p>No. The merge runs entirely in your browser, so your files never leave your device. Nothing is uploaded, stored, or logged.</p>
+      <h3>How many files can I merge, and is there a size limit?</h3>
+      <p>You can add up to 30 PDFs at once, each up to 50 MB. That covers almost any everyday merge job — contracts, chapters, invoices, and reports.</p>
+      <h3>Can I change the order the PDFs are combined in?</h3>
+      <p>Yes. Each PDF you add appears in a list with its page count. Use the up and down arrows to set the order, or the × button to remove one — the merged file follows the order shown in the list.</p>
+      <h3>Does it work with no internet connection?</h3>
+      <p>Yes. Once the page has loaded, turn on airplane mode or unplug your Wi-Fi — the merge still works, because your files are read and combined entirely on your device.</p>
+      <h3>What happens if one of my PDFs is password-protected?</h3>
+      <p>A password-protected or corrupted PDF is skipped automatically — the other files still merge, and the final message tells you which file was skipped and why. Remove the password from that file first if you need it included.</p>
+      <h3>Do I need to sign up or install anything?</h3>
+      <p>No. It runs in your web browser with no install, no plugin, and no account.</p>
+      <h3>Will the page order inside each original PDF be preserved?</h3>
+      <p>Yes. Every page from each file keeps its original internal order — reordering only changes which file's pages come before another's, not the order of pages within a file.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a> · <a href="/embed/">Embed our calculators</a> · <a href="/corrections/">Corrections log</a></span>
+  </div>
+</footer>
+
+<script src="/assets/pdf-lib.min.js"></script>
+<script type="module" src="/assets/merge-pdf.js"></script>
+</body>
+</html>

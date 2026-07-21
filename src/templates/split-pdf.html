@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Split PDF - Free, Private, Extract or Split Pages In Your Browser (No Upload)</title>
+<meta name="description" content="Free online tool to split a PDF. Pull out a page range into one new PDF, or split every page into its own file — no signup, no watermark, and nothing is uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/split-pdf/">
+<meta property="og:title" content="Split PDF — Free, Private, In Your Browser">
+<meta property="og:description" content="Extract a page range or split every page of a PDF into separate files, right in your browser. Free, no signup — nothing is uploaded.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Split PDF","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Extract a page range from a PDF into a new file, or split every page into its own PDF, entirely in your browser. No signup, nothing uploaded."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is this PDF splitter free?","acceptedAnswer":{"@type":"Answer","text":"Yes — completely free, with no signup and no watermark on the result."}},{"@type":"Question","name":"Are my files uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. Splitting runs entirely in your browser, so your PDF never leaves your device. Nothing is uploaded, stored, or logged."}},{"@type":"Question","name":"Can I pick specific pages instead of splitting everything?","acceptedAnswer":{"@type":"Answer","text":"Yes. Choose \"Extract a range into one PDF\" and type the pages you want, like 1-3,5,8-10 — the tool builds a single new PDF with just those pages, in the order you listed them."}},{"@type":"Question","name":"Is there a page or file size limit?","acceptedAnswer":{"@type":"Answer","text":"The file size limit is 50 MB. There is no fixed page-count limit — the practical ceiling is how much memory your device and browser have available, since the whole job runs locally."}},{"@type":"Question","name":"Does it work with no internet connection?","acceptedAnswer":{"@type":"Answer","text":"Yes. Once the page has loaded, turn on airplane mode or unplug your Wi-Fi — splitting still works, because your PDF is read and rebuilt entirely on your device."}},{"@type":"Question","name":"What happens if my PDF is password-protected?","acceptedAnswer":{"@type":"Answer","text":"You'll see a clear message asking you to remove the password first. Password-protected PDFs can't be read in the browser, so there's nothing to split until the password is removed."}},{"@type":"Question","name":"How do I download multiple split files?","acceptedAnswer":{"@type":"Answer","text":"When you split every page into separate files, your browser downloads them one after another automatically, named after your original file — for example report-page-1.pdf, report-page-2.pdf, and so on. Your browser may ask permission to allow multiple downloads from this page; allowing it lets all the pages come through."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Split PDF</h1>
+    <p class="lede">Pull specific pages out of a PDF, or split every page into its own file — right here in your browser. Free, no signup, no watermark, and <strong>nothing is uploaded</strong>.</p>
+    <p class="note"><strong>This tool splits one PDF into pages, either a chosen range bundled into one new file, or every page as its own separate file.</strong> Choose your PDF, pick a mode, then download — it all happens in your browser, so nothing is ever sent to a server.</p>
+
+    <div class="calc">
+      <div>
+        <label id="drop" class="dropzone" for="file">
+          <input id="file" type="file" accept="application/pdf,.pdf" hidden>
+          <span id="dropText">Click to choose a PDF, or drop it here</span>
+        </label>
+        <p class="muted-small" style="margin-top:10px">Up to 50 MB · split on your device, nothing uploaded.</p>
+        <p class="muted-small" id="pageInfo"></p>
+      </div>
+
+      <div class="results">
+        <div class="json-toolbar">
+          <label><input type="radio" name="mode" value="range"> Extract a range into one PDF</label>
+          <label><input type="radio" name="mode" value="all" checked> Split every page into separate PDFs</label>
+        </div>
+
+        <div class="field" id="rangeField">
+          <label for="range">Pages to extract</label>
+          <input id="range" type="text" placeholder="e.g. 1-3,5,8-10" autocomplete="off">
+          <p class="muted-small" style="margin:6px 0 0">List pages and ranges separated by commas — they'll be combined into one new PDF in the order you type them.</p>
+        </div>
+
+        <p class="muted-small" id="status" style="margin-top:10px">Choose a PDF to begin.</p>
+        <div class="field inline" style="margin-bottom:0">
+          <button type="button" id="splitBtn" class="btn-primary" disabled>Split every page</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="note" style="margin-top:14px"><strong>Don't take our word for it — prove it:</strong> turn on airplane mode, or unplug your Wi-Fi, before you split. It still works with zero network connection, because your PDF is read and rebuilt entirely on your device — nothing is sent anywhere.</p>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to split a PDF</h2>
+      <p>Click the box above to choose a PDF, or drag one straight in. Once it's read, you'll see the page count and two modes: <strong>Extract a range into one PDF</strong> lets you type specific pages like <code>1-3,5,8-10</code> and combines just those into a single new file; <strong>Split every page into separate PDFs</strong> turns every page of the document into its own individual file. Pick a mode, click the button, and the result downloads straight to your device.</p>
+
+      <h2>Who this is for</h2>
+      <p><strong>Pulling out one chapter or exhibit.</strong> Extracting a single chapter from a long report, or one exhibit from a lengthy contract, without sending the whole document anywhere.</p>
+      <p><strong>Teachers.</strong> Splitting a scanned packet into per-student pages before handing results back or filing them individually.</p>
+      <p><strong>Removing pages before sharing.</strong> Extracting just the pages you want to send someone, leaving the rest of the document out of what you share.</p>
+
+      <p class="note"><strong>Why in-browser?</strong> PDFs often carry contract terms, student records, or personal documents nobody wants sitting on someone else's server, even for a moment. Once this page has loaded, you can disconnect from the internet entirely and it still works — the clearest possible proof that nothing is being sent anywhere.</p>
+
+      <h2>How does this compare to other free PDF splitters?</h2>
+      <p>Every comparison below is a factual, checkable claim about how each tool works today — not a knock on the competition.</p>
+      <table class="data-table">
+        <thead>
+          <tr><th>Splitter</th><th>Runs in your browser</th><th>Free limits</th><th>Signup</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Tools Berry</td><td>Yes, client-side only</td><td>50 MB, no page-count limit</td><td>No</td></tr>
+          <tr><td>PDF Edit</td><td>Yes, client-side only</td><td>No artificial limit stated — desktop handles 1000-page/multi-GB files, mobile comfortably handles 500 pages, older phones may run short above 2000 pages</td><td>No</td></tr>
+          <tr><td>ExactPDF</td><td>Claims local processing ("bytes never leave the device")</td><td>Up to 150 MB; no page-count limit stated</td><td>No</td></tr>
+          <tr><td>Sejda</td><td>No — files are uploaded, deleted after processing</td><td>Up to 200 pages or 50 MB; 3 tasks per hour on the free tier</td><td>Not required for free tier</td></tr>
+          <tr><td>iLovePDF</td><td>Not stated on-page; Drive/Dropbox import suggests cloud processing</td><td>Not published; a "Premium" badge appears on the Split-by-Size mode specifically</td><td>Not required, but sign-in is offered</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Frequently asked questions</h2>
+      <h3>Is this PDF splitter free?</h3>
+      <p>Yes — completely free, with no signup and no watermark on the result.</p>
+      <h3>Are my files uploaded anywhere?</h3>
+      <p>No. Splitting runs entirely in your browser, so your PDF never leaves your device. Nothing is uploaded, stored, or logged.</p>
+      <h3>Can I pick specific pages instead of splitting everything?</h3>
+      <p>Yes. Choose "Extract a range into one PDF" and type the pages you want, like 1-3,5,8-10 — the tool builds a single new PDF with just those pages, in the order you listed them.</p>
+      <h3>Is there a page or file size limit?</h3>
+      <p>The file size limit is 50 MB. There is no fixed page-count limit — the practical ceiling is how much memory your device and browser have available, since the whole job runs locally.</p>
+      <h3>Does it work with no internet connection?</h3>
+      <p>Yes. Once the page has loaded, turn on airplane mode or unplug your Wi-Fi — splitting still works, because your PDF is read and rebuilt entirely on your device.</p>
+      <h3>What happens if my PDF is password-protected?</h3>
+      <p>You'll see a clear message asking you to remove the password first. Password-protected PDFs can't be read in the browser, so there's nothing to split until the password is removed.</p>
+      <h3>How do I download multiple split files?</h3>
+      <p>When you split every page into separate files, your browser downloads them one after another automatically, named after your original file — for example report-page-1.pdf, report-page-2.pdf, and so on. Your browser may ask permission to allow multiple downloads from this page; allowing it lets all the pages come through.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a> · <a href="/embed/">Embed our calculators</a> · <a href="/corrections/">Corrections log</a></span>
+  </div>
+</footer>
+
+<script src="/assets/pdf-lib.min.js"></script>
+<script type="module" src="/assets/split-pdf.js"></script>
+</body>
+</html>
