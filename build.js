@@ -1343,10 +1343,15 @@ function stateAnswerBlock(state, year, taxData) {
   } catch (_) { return ''; }
   if (!Number.isFinite(net)) return '';
   const stateClause = state.hasIncomeTax ? `, and ${state.name} state income tax` : '';
+  // When this state's disability / paid-leave employee contributions are modeled,
+  // the net above already nets them out — say so, so the enumerated list matches
+  // the figure.
+  const progClause = (state.employeePrograms && state.employeePrograms.length)
+    ? ` and ${state.abbr} disability / paid-leave contributions` : '';
   const lead = pickFrame(state.slug, 'answer', [
-    `In ${state.name} for ${year}, a $75,000 salary takes home about ${usd0(net)} per year after federal income tax and FICA (Social Security and Medicare)${stateClause}.`,
-    `A $75,000 salary in ${state.name} nets roughly ${usd0(net)} a year in ${year}, once federal income tax, Social Security and Medicare${state.hasIncomeTax ? ` and ${state.name} state tax` : ''} are withheld.`,
-    `Earning $75,000 in ${state.name}? Your estimated ${year} take-home is about ${usd0(net)} after federal tax and FICA${stateClause}.`
+    `In ${state.name} for ${year}, a $75,000 salary takes home about ${usd0(net)} per year after federal income tax and FICA (Social Security and Medicare)${stateClause}${progClause}.`,
+    `A $75,000 salary in ${state.name} nets roughly ${usd0(net)} a year in ${year}, once federal income tax, Social Security and Medicare${state.hasIncomeTax ? ` and ${state.name} state tax` : ''}${progClause} are withheld.`,
+    `Earning $75,000 in ${state.name}? Your estimated ${year} take-home is about ${usd0(net)} after federal tax and FICA${stateClause}${progClause}.`
   ]);
   const tail = pickFrame(state.slug, 'answertail', [
     `Enter your own pay below to estimate your ${state.name} take-home pay for any salary or hourly wage.`,
@@ -1507,9 +1512,27 @@ function payrollDeductionsBlock(state, p) {
   // so each state's heading carries its own facts.
   const shortName = (n) => String(n).replace(/\s*\(.*$/, '');
   const names = items.slice(0, 2).map((it) => shortName(it.name)).join(' and ');
+  // Honest inclusion note: the disability/paid-leave programs the ENGINE models
+  // for this state (state.employeePrograms) are now subtracted from the take-home
+  // figure at the top of the page. Any other rows in this table (unemployment,
+  // long-term-care, etc.) are not modeled, so say so plainly — this is the fix
+  // for the "documents SDI but never subtracts it" criticism.
+  const modeled = Array.isArray(state.employeePrograms) ? state.employeePrograms : [];
+  let statusNote;
+  if (modeled.length) {
+    const labels = modeled.map((pr) => escHtml(pr.label)).join(', ');
+    const isAre = modeled.length > 1 ? 'contributions are' : 'contribution is';
+    const extra = items.length > modeled.length
+      ? ` Other programs in this table (such as unemployment or long-term-care contributions) are not subtracted from that estimate.`
+      : '';
+    statusNote = `<p class="note"><strong>Included in your take-home:</strong> the ${labels} ${isAre} subtracted from the take-home estimate at the top of this page.${extra} These are withheld after tax and do not lower your taxable income.</p>`;
+  } else {
+    statusNote = `<p class="note"><strong>Not in the estimate:</strong> these amounts are not subtracted from the take-home figure at the top of this page — a confirmed 2026 employee rate and wage cap were not available, so verify them with your employer or the program's official site before relying on the net figure.</p>`;
+  }
   return `<section class="prose"><h2>${names}: what else ${state.name} takes from your check</h2>` +
     `<p>${intro}</p>` +
-    `<table class="data-table"><thead><tr><th>Program</th><th>Employee rate (2026)</th><th>Wage base / cap</th></tr></thead><tbody>${rows}</tbody></table></section>`;
+    `<table class="data-table"><thead><tr><th>Program</th><th>Employee rate (2026)</th><th>Wage base / cap</th></tr></thead><tbody>${rows}</tbody></table>` +
+    statusNote + `</section>`;
 }
 
 function localTaxBlock(state, p) {
