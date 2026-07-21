@@ -52,7 +52,7 @@ parts of the site may not function as intended if you disable cookies.</p>
 <p>Our tools are general-purpose and are not directed at children under 13.</p>
 
 <h2>Contact</h2>
-<p>Questions about this policy? Email <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a>.</p>
+<p>Questions about this policy? Email <!--email_off--><a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a><!--/email_off-->.</p>
 `
   },
   {
@@ -83,7 +83,7 @@ from your use of, or reliance on, the site or its tools.</p>
 <p>We may update these terms or the tools at any time without notice.</p>
 
 <h2>Contact</h2>
-<p>Email <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a>.</p>
+<p>Email <!--email_off--><a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a><!--/email_off-->.</p>
 `
   },
   {
@@ -129,7 +129,7 @@ checked against the primary source (statute, IRS notice, or form instructions) b
 errors caught along the way are published in the <a href="/corrections/">corrections log</a>.</p>
 
 <h2>Contact</h2>
-<p>Feedback or a correction? Email <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a>.</p>
+<p>Feedback or a correction? Email <!--email_off--><a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a><!--/email_off-->.</p>
 `
   },
   {
@@ -139,7 +139,7 @@ errors caught along the way are published in the <a href="/corrections/">correct
     robots: 'index, follow',
     body: `
 <p>Questions, feedback, or a correction to one of our calculators? We'd like to hear it.</p>
-<p>Email: <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a></p>
+<p>Email: <!--email_off--><a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a><!--/email_off--></p>
 <p>If you're reporting a tax figure you think is wrong, please include the state, filing status, and
 the source you're comparing against — it helps us verify and fix quickly.</p>
 `
@@ -334,7 +334,7 @@ the source you're comparing against — it helps us verify and fix quickly.</p>
 </table>
 </div>
 
-<p class="note">Found a figure that looks wrong? Email <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a> with the tool, the number, and what you're comparing it against &mdash; corrections ship within days.</p>
+<p class="note">Found a figure that looks wrong? Email <!--email_off--><a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a><!--/email_off--> with the tool, the number, and what you're comparing it against &mdash; corrections ship within days.</p>
 `
   }
 ];
