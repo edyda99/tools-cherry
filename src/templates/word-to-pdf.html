@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Word to PDF Converter — Free, Private, In Your Browser (No Upload)</title>
+<meta name="description" content="Free Word to PDF converter that runs entirely in your browser. Turn a .docx into a PDF with real, selectable text — no signup, no watermark, and nothing is uploaded.">
+<link rel="canonical" href="{{SITE_URL}}/word-to-pdf/">
+<meta property="og:title" content="Word to PDF Converter — Free, Private, In Your Browser">
+<meta property="og:description" content="Turn a Word .docx into a PDF right in your browser. Free, no signup, nothing uploaded.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Word to PDF Converter","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Convert a Word (.docx) document into a PDF entirely in your browser. No signup, nothing uploaded."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is this Word to PDF converter free?","acceptedAnswer":{"@type":"Answer","text":"Yes. It is completely free with no signup and no watermark. Choose a .docx file and download a PDF."}},{"@type":"Question","name":"Are my files uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. The conversion runs entirely in your browser, so your Word document never leaves your device. Nothing is uploaded, stored, or logged."}},{"@type":"Question","name":"Will my formatting be kept?","acceptedAnswer":{"@type":"Answer","text":"It rebuilds the text, headings, lists, and embedded images from your document, and the PDF's text stays real and selectable. Because everything runs privately in your browser, exact fonts, multi-column layouts, and complex tables may need a little cleanup. Tables are converted to plain text rows rather than a formatted grid."}},{"@type":"Question","name":"Does it work on any .docx file?","acceptedAnswer":{"@type":"Answer","text":"It works on standard .docx files created by Word, Google Docs, or LibreOffice. Old-style .doc files are not supported, so open one in Word and save it as .docx first. Password-protected documents must have the password removed before converting."}},{"@type":"Question","name":"Is there a file size limit?","acceptedAnswer":{"@type":"Answer","text":"The limit is 30 MB per document, which covers almost any Word file. Very large documents with many images take a little longer because the work happens on your own device."}},{"@type":"Question","name":"How is this different from other Word to PDF converters?","acceptedAnswer":{"@type":"Answer","text":"Most free online converters upload your file to a server before converting it. This one converts in your browser, so nothing leaves your device. It prioritizes real, selectable PDF text over a pixel-perfect copy of Word's layout."}},{"@type":"Question","name":"Can I convert Word to PDF with no internet connection?","acceptedAnswer":{"@type":"Answer","text":"Yes. Once the page has loaded, you can turn off Wi-Fi or switch to airplane mode and the conversion still works, because your document is read and rebuilt entirely on your device."}},{"@type":"Question","name":"Do I need to install anything or create an account?","acceptedAnswer":{"@type":"Answer","text":"No. It runs in your web browser with no install, no plugin, and no signup."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Word to PDF Converter</h1>
+    <p class="lede">Turn a Word (.docx) document into a PDF — right here in your browser. Free, no signup, no watermark, and <strong>nothing is uploaded</strong>. The PDF keeps real, selectable text.</p>
+    <p class="note"><strong>This converter reads the text, headings, lists, and images out of your Word document and rebuilds them as a PDF you can open, print, or share anywhere.</strong> Drop in a .docx, pick a page size, and download the PDF — it all happens in your browser, so the file is never uploaded.</p>
+
+    <div class="calc">
+      <div>
+        <label id="drop" class="dropzone" for="file">
+          <input id="file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+          <span id="dropText">Click to choose a Word .docx, or drop it here</span>
+        </label>
+        <div class="field" style="margin-top:14px">
+          <label for="pageSize">Page size</label>
+          <select id="pageSize">
+            <option value="letter" selected>US Letter (8.5 × 11 in)</option>
+            <option value="a4">A4 (210 × 297 mm)</option>
+          </select>
+        </div>
+        <p class="muted-small" id="fileInfo" style="margin-top:10px">Up to 30 MB · converted on your device, nothing uploaded.</p>
+      </div>
+
+      <div class="results">
+        <p class="muted-small" id="status" aria-live="polite">Choose a Word document to begin.</p>
+        <div class="field inline" style="margin-bottom:0">
+          <button type="button" id="convert" class="btn-primary" disabled>Convert to PDF</button>
+          <button type="button" id="clear" class="btn-secondary">Clear</button>
+        </div>
+        <p><a id="download" href="#" download hidden class="btn-primary" style="display:none">Download PDF</a></p>
+        <p class="muted-small" style="margin-top:10px">Best for text documents, reports, and letters. Exact fonts, multi-column layouts, and complex tables may need a little cleanup after conversion.</p>
+      </div>
+    </div>
+
+    <p class="note" style="margin-top:14px"><strong>Don't take our word for it — prove it:</strong> turn on airplane mode, or unplug your Wi-Fi, before you convert. It still works with zero network connection, because your document is read and rebuilt entirely on your device — nothing is sent anywhere.</p>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How to convert a Word document to PDF</h2>
+      <p>Click the box above to choose a <strong>.docx</strong> file, or drag one straight in. Pick <strong>US Letter</strong> or <strong>A4</strong> for the page size, then click <strong>Convert to PDF</strong>. Your browser reads the document, rebuilds it, and a download link for the PDF appears — usually in a second or two.</p>
+
+      <h2>How it works, and what it keeps</h2>
+      <p>This tool converts the <strong>content and structure</strong> of your document rather than taking a pixel-perfect photograph of Word's layout. That trade-off is deliberate: it means the text in the finished PDF stays <strong>real and selectable</strong> (you can copy from it and search it), instead of being flattened into an image.</p>
+      <p>Here is an honest picture of what survives the conversion and what may not:</p>
+      <ul>
+        <li><strong>Kept:</strong> paragraph text, heading levels, bulleted and numbered lists, and images embedded in the document. Text stays selectable and searchable in the PDF.</li>
+        <li><strong>Simplified:</strong> tables are converted to plain text rows (cells separated by " | "), not a drawn grid. Bold or italic applied to a few words inside a paragraph is not carried through — only whole headings are shown in bold.</li>
+        <li><strong>Not reproduced:</strong> exact theme fonts (the PDF uses a standard built-in font), multi-column layouts, precise page margins, headers/footers, and page-break positions from Word. Non-Latin alphabets (for example Arabic or Chinese) may not render with the built-in font.</li>
+        <li><strong>Note on edits:</strong> if the document has tracked changes, the accepted content is converted as though the changes were already applied. Comments are not included in the PDF.</li>
+      </ul>
+      <p>For a pixel-perfect copy of a heavily designed document, open the .docx in Word or Google Docs and use their own "Export to PDF" or "Print to PDF". For everyday letters, reports, notes, and text-heavy documents, this converter produces a clean, shareable PDF without your file ever leaving your device.</p>
+
+      <p class="note"><strong>Why in-browser?</strong> Word documents carry names, addresses, salary figures, contract terms, and unpublished drafts. A converter that runs entirely in your browser means that content never has to sit on someone else's server, even for a moment. Once this page has loaded, you can disconnect from the internet and it still works — the clearest possible proof that nothing is being sent anywhere.</p>
+
+      <h2>Who this converter is built for</h2>
+      <p><strong>Legal and contracts.</strong> Agreements and NDAs often contain terms nobody wants sitting on a third-party server, even briefly. Converting in-browser means the document never leaves the machine it's already on.</p>
+      <p><strong>Students and job seekers.</strong> Turning a resume, cover letter, or essay into a PDF for submission is common on shared or public computers — devices where you don't want to leave files behind on someone else's upload history.</p>
+      <p><strong>HR and small business.</strong> Offer letters, policies, and invoices carry names, salaries, and addresses. The same no-upload logic that protects legal documents applies here.</p>
+
+      <h2>Frequently asked questions</h2>
+      <h3>Is this Word to PDF converter free?</h3>
+      <p>Yes — completely free, with no signup and no watermark on the result.</p>
+      <h3>Are my files uploaded anywhere?</h3>
+      <p>No. The conversion runs entirely in your browser, so your Word document never leaves your device. Nothing is uploaded, stored, or logged.</p>
+      <h3>Will my formatting be kept?</h3>
+      <p>It rebuilds the text, headings, lists, and embedded images, and the PDF's text stays real and selectable. Because it runs privately in your browser, exact fonts, multi-column layouts, and complex tables may need a little cleanup. Tables are converted to plain text rows rather than a formatted grid.</p>
+      <h3>Does it work on any .docx file?</h3>
+      <p>It works on standard .docx files from Word, Google Docs, or LibreOffice. Old-style .doc files are not supported — open one in Word and save it as .docx first. Password-protected documents need the password removed before converting.</p>
+      <h3>Is there a file size limit?</h3>
+      <p>The limit is 30 MB per document, which covers almost any Word file. Very large documents with many images take a little longer because the work happens on your device.</p>
+      <h3>How is this different from other Word to PDF converters?</h3>
+      <p>Most free online converters upload your file to a server before converting it. This one converts in your browser, so nothing leaves your device. It also prioritizes real, selectable PDF text over a pixel-perfect copy of Word's layout.</p>
+      <h3>Can I convert Word to PDF with no internet connection?</h3>
+      <p>Yes. Once the page has loaded, turn off Wi-Fi or switch to airplane mode — the conversion still works, because your document is read and rebuilt entirely on your device.</p>
+      <h3>Do I need to install anything or create an account?</h3>
+      <p>No. It runs in your web browser with no install, no plugin, and no signup.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a> · <a href="/embed/">Embed our calculators</a> · <a href="/corrections/">Corrections log</a></span>
+  </div>
+</footer>
+
+<script src="/assets/jspdf.umd.min.js"></script>
+<script src="/assets/mammoth.browser.min.js"></script>
+<script type="module" src="/assets/word-to-pdf.js"></script>
+</body>
+</html>
