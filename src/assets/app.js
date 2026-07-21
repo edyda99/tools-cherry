@@ -13,7 +13,8 @@ const usd = (n) =>
 const usd2 = (n) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const pct = (n) => (n * 100).toFixed(1) + '%';
-const ratePct = (n) => (+(n * 100).toFixed(1)).toString() + '%'; // 0.10 -> "10%", 0.105 -> "10.5%"
+const ratePct = (n) => (+(n * 100).toFixed(3)).toString() + '%'; // 0.10 -> "10%", 0.0432 -> "0.432%"
+const escLbl = (s) => String(s == null ? '' : s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
 const $ = (id) => document.getElementById(id);
 // Comma-safe: the advanced-mode deduction fields carry live thousands
@@ -63,7 +64,7 @@ function renderBreakdown(r) {
   if (g <= 0) { $('breakdown').style.display = 'none'; return; }
   $('breakdown').style.display = '';
   const taxes = r.annual.totalTax;
-  const ded = r.annual.preTax + r.annual.postTax;
+  const ded = r.annual.preTax + r.annual.postTax + (r.annual.statePrograms || 0);
   const net = r.annual.net;
   const w = (v) => (v / g * 100).toFixed(2) + '%';
   $('segNet').style.width = w(net);
@@ -107,6 +108,16 @@ function render() {
 
   // hide state row when the state has no income tax
   $('stateLine').style.display = taxData.states[stateSlug]?.hasIncomeTax ? '' : 'none';
+
+  // state disability / paid-leave employee contributions — one labeled line each,
+  // e.g. "CA SDI (1.3%)". Rebuilt from the current view (per-period vs annual).
+  const progHost = $('programLines');
+  if (progHost) {
+    const progs = p.programs || [];
+    progHost.innerHTML = progs.map((pr) =>
+      `<div class="line"><span class="lbl">${escLbl(pr.label)} (${ratePct(pr.rate)})</span><span>−${usd2(pr.amount)}</span></div>`
+    ).join('');
+  }
 
   // deduction rows: only show when non-zero (style.display, since .line { display:flex }
   // overrides the [hidden] attribute via specificity)

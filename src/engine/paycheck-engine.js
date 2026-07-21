@@ -122,6 +122,44 @@ export function stateIncomeTax(grossAnnual, filingStatus, stateData, preTax = 0)
 }
 
 /**
+ * State employee-side disability / paid-leave contributions (SDI / TDI / PFML /
+ * FLI / FAMLI). These are POST-TAX payroll deductions withheld on GROSS wages:
+ * they do NOT reduce federal or state taxable income and are independent of
+ * income-tax withholding. Purely data-driven — a state opts in by carrying an
+ * `employeePrograms` array in tax-data-2026.json.
+ *
+ * Program shape: {label, rate, wageBase?, annualMax?, weeklyMax?}
+ *   rate       decimal employee rate (e.g. 0.013 = 1.3%)
+ *   wageBase   annual taxable-wage ceiling in USD; rate stops applying above it
+ *   annualMax  hard annual contribution cap in USD (e.g. NY PFL $411.91)
+ *   weeklyMax  per-WEEK contribution cap in USD (e.g. HI TDI $7.50, NY DBL $0.60)
+ *
+ * Cap math, honest across pay frequencies: the annual contribution is
+ * rate × min(gross, wageBase), then clamped to an annual dollar ceiling.
+ * A weekly dollar cap is converted to its annual equivalent (weeklyMax × 52).
+ * Because this calculator assumes even wages across the year (it annualises a
+ * single wage input), capping each week at weeklyMax is EXACTLY weeklyMax × 52
+ * annually, which then divides cleanly into any pay frequency — no rounding
+ * approximation is introduced.
+ * @param {number} grossAnnual
+ * @param {object} stateData - the single-state entry from tax-data
+ * @returns {Array<{label:string, rate:number, annual:number}>}
+ */
+export function stateEmployeePrograms(grossAnnual, stateData) {
+  const list = stateData && Array.isArray(stateData.employeePrograms) ? stateData.employeePrograms : [];
+  const g = Math.max(0, grossAnnual);
+  return list.map((pr) => {
+    const base = pr.wageBase != null ? Math.min(g, pr.wageBase) : g;
+    let annual = base * (pr.rate || 0);
+    const annualCap = pr.annualMax != null
+      ? pr.annualMax
+      : (pr.weeklyMax != null ? pr.weeklyMax * 52 : null);
+    if (annualCap != null) annual = Math.min(annual, annualCap);
+    return { label: pr.label, rate: pr.rate || 0, annual };
+  });
+}
+
+/**
  * Optional advanced inputs (W-4 + deductions). All annual USD, all default 0
  * so omitting `adv` reproduces the simple-mode result exactly.
  * @typedef {object} AdvancedInputs
@@ -167,9 +205,15 @@ export function computePaycheck({ wage, filingStatus, payFrequency, stateSlug, a
   const fica = ficaTax(grossAnnual, filingStatus, fed, preTaxFica);
   const state = stateIncomeTax(grossAnnual, filingStatus, stateData, preTaxIncome);
 
+  // State disability / paid-leave employee contributions: post-tax, on gross
+  // wages, kept OUT of totalTax and out of annual.state (so tax-only rates and
+  // the pinned state-tax regression tests are unaffected).
+  const programs = stateEmployeePrograms(grossAnnual, stateData);
+  const statePrograms = programs.reduce((s, p) => s + p.annual, 0);
+
   const totalTax = federal + fica.total + state;
   const preTaxDeductions = preTaxIncome;                 // 401k + cafeteria leave the paycheck too
-  const netAnnual = Math.max(0, grossAnnual - totalTax - preTaxDeductions - postTax);
+  const netAnnual = Math.max(0, grossAnnual - totalTax - preTaxDeductions - postTax - statePrograms);
 
   const periods = PAY_PERIODS[payFrequency] ?? 1;
   const perPeriod = (v) => v / periods;
@@ -180,6 +224,8 @@ export function computePaycheck({ wage, filingStatus, payFrequency, stateSlug, a
     socialSecurity: fica.socialSecurity,
     medicare: fica.medicare + fica.additionalMedicare,
     state,
+    statePrograms,
+    programs: programs.map((p) => ({ label: p.label, rate: p.rate, amount: p.annual })),
     preTax: preTaxDeductions,
     postTax,
     totalTax,
@@ -194,6 +240,8 @@ export function computePaycheck({ wage, filingStatus, payFrequency, stateSlug, a
     socialSecurity: perPeriod(annual.socialSecurity),
     medicare: perPeriod(annual.medicare),
     state: perPeriod(annual.state),
+    statePrograms: perPeriod(statePrograms),
+    programs: programs.map((p) => ({ label: p.label, rate: p.rate, amount: perPeriod(p.annual) })),
     preTax: perPeriod(annual.preTax),
     postTax: perPeriod(annual.postTax),
     totalTax: perPeriod(annual.totalTax),

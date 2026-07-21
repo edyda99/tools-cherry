@@ -435,6 +435,22 @@
       "name": "New York",
       "abbr": "NY",
       "slug": "new-york",
+      "employeePrograms": [
+        {
+          "label": "NY PFL",
+          "rate": 0.00432,
+          "annualMax": 411.91,
+          "_fullName": "Paid Family Leave (employee-funded; contributions stop at $411.91/yr)",
+          "_source": "https://paidfamilyleave.ny.gov/2026"
+        },
+        {
+          "label": "NY DBL",
+          "rate": 0.005,
+          "weeklyMax": 0.60,
+          "_fullName": "Disability Benefits Law employee share (statutory $0.60/week cap; employer-collected where applied)",
+          "_source": "https://www.wcb.ny.gov/content/main/DisabilityBenefits/employee-disability-benefits.jsp"
+        }
+      ],
       "hasIncomeTax": true,
       "figureYear": 2026,
       "tax": {
@@ -673,6 +689,15 @@
       "name": "Washington",
       "abbr": "WA",
       "slug": "washington",
+      "employeePrograms": [
+        {
+          "label": "WA PFML",
+          "rate": 0.0080716,
+          "wageBase": 184500,
+          "_fullName": "Paid Family & Medical Leave worker share (71.43% of the 1.13% total premium)",
+          "_source": "https://esd.wa.gov/about-us/news-release/2025/paid-family-medical-leave-premium-rate-increases-113-2026"
+        }
+      ],
       "hasIncomeTax": false,
       "tax": {
         "type": "none"
@@ -869,6 +894,15 @@
       "name": "Colorado",
       "abbr": "CO",
       "slug": "colorado",
+      "employeePrograms": [
+        {
+          "label": "CO FAMLI",
+          "rate": 0.0044,
+          "wageBase": 184500,
+          "_fullName": "Paid Family & Medical Leave Insurance (employee half of the 0.88% total)",
+          "_source": "https://famli.colorado.gov/employers"
+        }
+      ],
       "hasIncomeTax": true,
       "figureYear": 2026,
       "tax": {
@@ -1091,6 +1125,15 @@
       "name": "Massachusetts",
       "abbr": "MA",
       "slug": "massachusetts",
+      "employeePrograms": [
+        {
+          "label": "MA PFML",
+          "rate": 0.0046,
+          "wageBase": 184500,
+          "_fullName": "Paid Family & Medical Leave employee share (0.28% medical + 0.18% family)",
+          "_source": "https://www.mass.gov/info-details/paid-family-and-medical-leave-employer-contribution-rates-and-calculator"
+        }
+      ],
       "hasIncomeTax": true,
       "figureYear": 2026,
       "tax": {
@@ -1143,6 +1186,22 @@
       "name": "New Jersey",
       "abbr": "NJ",
       "slug": "new-jersey",
+      "employeePrograms": [
+        {
+          "label": "NJ TDI",
+          "rate": 0.0019,
+          "wageBase": 171100,
+          "_fullName": "Temporary Disability Insurance worker share (2026 worker wage base $171,100)",
+          "_source": "https://www.nj.gov/labor/lwdhome/press/2025/20251229_newbenefitrates2026.shtml"
+        },
+        {
+          "label": "NJ FLI",
+          "rate": 0.0023,
+          "wageBase": 171100,
+          "_fullName": "Family Leave Insurance (employee-funded)",
+          "_source": "https://www.nj.gov/labor/lwdhome/press/2025/20251229_newbenefitrates2026.shtml"
+        }
+      ],
       "hasIncomeTax": true,
       "figureYear": 2026,
       "tax": {
@@ -1624,6 +1683,15 @@
       "name": "Connecticut",
       "abbr": "CT",
       "slug": "connecticut",
+      "employeePrograms": [
+        {
+          "label": "CT Paid Leave",
+          "rate": 0.005,
+          "wageBase": 184500,
+          "_fullName": "CT Paid Leave (fully employee-funded; rate held at 0.5% for 2026)",
+          "_source": "https://www.ctpaidleave.org/how-ct-paid-leave-works/contributions"
+        }
+      ],
       "hasIncomeTax": true,
       "figureYear": 2026,
       "tax": {
@@ -1734,6 +1802,15 @@
       "name": "Oregon",
       "abbr": "OR",
       "slug": "oregon",
+      "employeePrograms": [
+        {
+          "label": "OR Paid Leave",
+          "rate": 0.006,
+          "wageBase": 184500,
+          "_fullName": "Paid Leave Oregon employee share (60% of the 1% total)",
+          "_source": "https://paidleave.oregon.gov/employers-overview/"
+        }
+      ],
       "hasIncomeTax": true,
       "figureYear": 2026,
       "tax": {
@@ -1813,6 +1890,14 @@
       "name": "California",
       "abbr": "CA",
       "slug": "california",
+      "employeePrograms": [
+        {
+          "label": "CA SDI",
+          "rate": 0.013,
+          "_fullName": "State Disability Insurance (includes Paid Family Leave); no wage cap since SB 951 (Jan 1, 2024)",
+          "_source": "https://edd.ca.gov/en/payroll_taxes/rates_and_withholding/"
+        }
+      ],
       "hasIncomeTax": true,
       "figureYear": 2025,
       "tax": {
@@ -2433,6 +2518,15 @@
       "name": "Maine",
       "abbr": "ME",
       "slug": "maine",
+      "employeePrograms": [
+        {
+          "label": "ME PFML",
+          "rate": 0.005,
+          "wageBase": 184500,
+          "_fullName": "Paid Family & Medical Leave (employee max 0.5%; live on paychecks since Jan 1, 2025)",
+          "_source": "https://www.maine.gov/paidleave/docs/2026/employers/faq/employerFAQenglish.pdf"
+        }
+      ],
       "hasIncomeTax": true,
       "figureYear": 2026,
       "tax": {
@@ -2476,6 +2570,15 @@
       "name": "Hawaii",
       "abbr": "HI",
       "slug": "hawaii",
+      "employeePrograms": [
+        {
+          "label": "HI TDI",
+          "rate": 0.005,
+          "weeklyMax": 7.50,
+          "_fullName": "Temporary Disability Insurance (employer may withhold up to 0.5% of weekly wages, max $7.50/week)",
+          "_source": "https://labor.hawaii.gov/dcd/files/2025/12/2026-Maximum-Weekly-Wage-Base.pdf"
+        }
+      ],
       "hasIncomeTax": true,
       "figureYear": 2026,
       "tax": {
@@ -2542,6 +2645,15 @@
       "name": "Rhode Island",
       "abbr": "RI",
       "slug": "rhode-island",
+      "employeePrograms": [
+        {
+          "label": "RI TDI/TCI",
+          "rate": 0.011,
+          "wageBase": 100000,
+          "_fullName": "Temporary Disability + Caregiver Insurance (single employee-funded rate; 2026 base $100,000)",
+          "_source": "https://dlt.ri.gov/press-releases/2026-tax-rates-unemployment-insurance-and-temporary-disability-insurance"
+        }
+      ],
       "hasIncomeTax": true,
       "figureYear": 2026,
       "tax": {
