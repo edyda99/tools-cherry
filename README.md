@@ -1,65 +1,74 @@
-# utility-portfolio
+# Tools Berry
 
-Portfolio of free, client-side web utilities monetized by display ads. One umbrella domain, many tools, all static.
+A collection of free, 100% client-side web utilities: calculators, converters,
+image/file tools, and a cluster of 2025/2026 U.S. tax calculators built around
+the One Big Beautiful Bill Act (OBBBA). Every tool runs entirely in the browser;
+nothing you type or upload is sent to a server (the one exception is an optional,
+opt-in server path for PDF to Word, described below). The site is a static build
+generated from templates plus sourced data, hosted on Cloudflare Pages.
 
-**Tool #1 — State paycheck calculators.** pSEO: one engine, one page per state at `/{state}-paycheck-calculator/`. All math runs in the browser; no backend. 24 states built (9 no-tax + 15 flat/simple); indexed-bracket states (CA, NY, …) deferred until their 2026 tables publish.
+Live: **https://tools-berry.com**
 
-**Tool #2 — Invoice generator.** `/invoice-generator/` — fill a form, get a downloadable PDF (jsPDF, vendored locally in `src/assets/`). No signup, nothing uploaded.
+## What's in it
 
-## Structure
+The build produces **231 pages**. In broad strokes:
+
+| Category | What it covers |
+|----------|----------------|
+| Photo & Image tools | Resize, convert, compress, crop-to-circle, passport/ID photos, images-to-PDF, PDF-to-Word, signature maker |
+| Everyday calculators | Percentage, tip/bill-split, dates & age, unit/cooking converters, BMI/calories, GPA, timers, and more |
+| Money & Finance | Mortgage, auto loan, debt payoff, compound interest, inflation, savings, plus the 2025/2026 OBBBA tax cluster (No Tax on Tips, No Tax on Overtime, car-loan interest, SALT cap, senior deduction, charitable/QCD, PMI, dependent-care, W-2 decoder, and others) |
+| Make & Share | QR codes, passwords, invoices, word counter |
+| Developer & Text | JSON formatter, base64, diff, UUID, color/base converters, Markdown to HTML, Morse |
+| State paycheck calculators | One page per jurisdiction at `/{state}-paycheck-calculator/` — 51 pages covering all 50 states plus D.C. |
+| State bonus-tax calculators | Supplemental-wage/bonus withholding, one page per jurisdiction at `/{state}-bonus-tax-calculator/` — 51 pages |
+| Tax glossary & corrections log | `/tax-glossary/` explains terms; `/corrections/` is a public log of data fixes |
+| Embeddable widgets | 23 pages under `/embed/` — 19 iframe-friendly twins of the tax calculators, a hub index, and 3 data-reference twins under `/embed/data/` |
+
+The **PDF to Word** tool converts in-browser by default. It also offers an
+optional, opt-in higher-fidelity conversion that uploads the PDF over HTTPS to a
+server, converts it, and discards it immediately.
+
+## Repo layout
 
 ```
+build.js              generates dist/ from templates + data (single build script)
 src/
-  data/
-    tax-data-2026.json    # federal brackets/std deduction/FICA + per-state tax tables (the ONLY annual maintenance)
-    states.json           # 50-state roster (names/slugs) for the nav grid
-  engine/
-    paycheck-engine.js     # pure calc: federal withholding + FICA + state tax (data-driven)
-  content/
-    static-pages.js        # privacy / terms / about / contact bodies (AdSense-required)
-  templates/
-    state-page.html        # pSEO template — fills from tax-data
-    home.html              # portfolio home + tools + state grid
-    page.html              # generic content-page template (legal/404)
-    invoice-generator.html # tool #2 page
-  assets/
-    styles.css
-    app.js                 # paycheck: wires form -> engine -> live results
-    invoice.js             # invoice: form -> live preview -> PDF
-    jspdf.umd.min.js       # vendored PDF lib (no CDN, keeps data local)
-build.js                   # generates ./dist from templates + data
-scripts/test-engine.js     # smoke tests for the federal+FICA core
+  data/               sourced tax/limit tables (JSON) — the annual maintenance
+  engine/             pure calculation modules, one per tool, unit-tested
+  templates/          page templates; templates/embed/ are the iframe twins
+  content/            legal, about, contact, glossary and corrections copy
+  assets/             CSS, JS, and vendored libs (jsPDF, pdf.js, etc.) — no CDN
+scripts/              engine/data test suite + data-freshness check
+functions/            Cloudflare Pages Functions (feedback, report, PDF proxy)
+backend/pdf-to-word/  optional server-side PDF→Word converter (AWS Lambda)
+workers/              scheduled R2 cleanup worker for the server path
+docs/                 per-tool build specs
+dist/                 build output (gitignored) — the deploy target
 ```
 
-## Develop
+## Build
 
 ```
-npm test         # validate the engine math
-npm run build    # generate ./dist
-npm run dev      # build + serve dist locally
+npm install
+npm run build    # runs node build.js → writes dist/
+npm test         # runs the engine + tax-data test suite and a freshness check
+npm run dev      # build, then serve dist/ locally
 ```
 
-## Deploy (Cloudflare Pages)
+The output in `dist/` is a plain static site: deploy the folder to any static
+host (this one runs on Cloudflare Pages).
 
-- Framework preset: **None**
-- Build command: `npm run build`
-- Build output directory: `dist`
-- Before first deploy, set `SITE.name` and `SITE.url` in `build.js`.
+## Data accuracy & sourcing
 
-## Adding a state (states 2–50)
+This is a tax/finance (YMYL) site, so numbers matter. All figures live in
+`src/data/*.json`, each keyed to an official source — federal brackets, standard
+deduction and FICA come from IRS Rev. Proc. releases, SSA, and the Tax Foundation
+(see `_meta.sources` in `tax-data-2026.json`); per-state payroll tables carry
+`_sourcedOn` / `_accuracyVerified` metadata. Calculations run client-side from
+these tables, and any errors caught after publishing are recorded in the public
+[corrections log](https://tools-berry.com/corrections/).
 
-1. Add an entry under `states` in `tax-data-2026.json`:
-   - No-income-tax state: `"tax": { "type": "none" }`, `"hasIncomeTax": false`.
-   - Flat tax: `"type": "flat"`, `"rate": 0.0xx`, optional `standardDeduction`.
-   - Bracketed: `"type": "bracket"`, `"brackets": { "single": [...], ... }`.
-2. `npm run build`. The page, sitemap entry, and nav link generate automatically.
+## License
 
-No template or engine changes needed — states are pure data.
-
-## ⚠️ Tax-data accuracy (do not skip before launch)
-
-All `tax-data-2026.json` figures are sourced (Oct 2025 IRS Rev. Proc. 2025-32 + Tax Foundation, see `_meta.sources`) but **must be re-verified against IRS.gov / each state DOR before launch** — a wrong paycheck calculator is worthless and AdSense-risky. Federal brackets, standard deduction, and FICA wage base are populated for 2026; only Texas has a state entry so far.
-
-## Monetization
-
-Ad slots are placeholder `<div class="ad-slot">` markers. Apply to AdSense once ~15–20 real content pages exist; swap placeholders for ad units then. Ezoic at ~10k sessions/mo, Mediavine at 50k.
+Released under the [MIT License](LICENSE) — Copyright (c) 2026 Edmond Daher.
