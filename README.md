@@ -23,7 +23,7 @@ The build produces **231 pages**. In broad strokes:
 | State paycheck calculators | One page per jurisdiction at `/{state}-paycheck-calculator/` — 51 pages covering all 50 states plus D.C. |
 | State bonus-tax calculators | Supplemental-wage/bonus withholding, one page per jurisdiction at `/{state}-bonus-tax-calculator/` — 51 pages |
 | Tax glossary & corrections log | `/tax-glossary/` explains terms; `/corrections/` is a public log of data fixes |
-| Embeddable widgets | 20 pages under `/embed/` — iframe-friendly twins of the tax calculators plus a hub index |
+| Embeddable widgets | 23 pages under `/embed/` — 19 iframe-friendly twins of the tax calculators, a hub index, and 3 data-reference twins under `/embed/data/` |
 
 The **PDF to Word** tool converts in-browser by default. It also offers an
 optional, opt-in higher-fidelity conversion that uploads the PDF over HTTPS to a
