@@ -313,6 +313,7 @@ const TOOLS = [
   { name: 'Word to PDF', path: '/word-to-pdf/', cat: 'image' },
   { name: 'Merge PDF', path: '/merge-pdf/', cat: 'image' },
   { name: 'Split PDF', path: '/split-pdf/', cat: 'image' },
+  { name: 'Compress PDF', path: '/compress-pdf/', cat: 'image' },
   { name: 'Signature Maker', path: '/signature-maker/', cat: 'make' },
   { name: 'Percentage Calculator', path: '/percentage-calculator/', cat: 'calc' },
   { name: 'Tip & Bill Split', path: '/tip-calculator/', cat: 'calc' },
@@ -417,6 +418,7 @@ const TOOL_DESCRIPTIONS = {
   '/word-to-pdf/': 'Convert a Word (.docx) document into a PDF in your browser.',
   '/merge-pdf/': 'Combine multiple PDF files into one, in your browser.',
   '/split-pdf/': 'Extract a page range or split every page of a PDF into separate files, in your browser.',
+  '/compress-pdf/': 'Shrink a PDF\'s file size by re-rendering every page as a compressed image, in your browser.',
   '/signature-maker/': 'Draw or type a signature and download it as a transparent PNG.',
   '/percentage-calculator/': 'Work out percentages, percentage change, and percentage of a number.',
   '/tip-calculator/': 'Calculate tips and split a bill evenly across any number of people.',
@@ -2617,6 +2619,7 @@ async function main() {
   const wordToPdfTpl = await read(join(SRC, 'templates', 'word-to-pdf.html'));
   const mergePdfTpl = await read(join(SRC, 'templates', 'merge-pdf.html'));
   const splitPdfTpl = await read(join(SRC, 'templates', 'split-pdf.html'));
+  const compressPdfTpl = await read(join(SRC, 'templates', 'compress-pdf.html'));
   const qrTpl = await read(join(SRC, 'templates', 'qr-generator.html'));
   const circleTpl = await read(join(SRC, 'templates', 'circle-crop.html'));
   const photoTpl = await read(join(SRC, 'templates', 'passport-photo-maker.html'));
@@ -2933,6 +2936,7 @@ async function main() {
   registerAsset('assets', 'jspdf.umd.min.js');
   registerAsset('assets', 'merge-pdf.js');
   registerAsset('assets', 'split-pdf.js');
+  registerAsset('assets', 'compress-pdf.js');
   registerAsset('assets', 'pdf-lib.min.js');
   registerAsset('assets', 'pdf.min.js');
   registerAsset('assets', 'pdf.worker.min.js');
@@ -3348,6 +3352,14 @@ async function main() {
     fillTool(splitPdfTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/split-pdf/')
   );
   urls.push(`${SITE.url}/split-pdf/`);
+
+  // Compress PDF (100% client-side; pdf.js renders each page, jsPDF rebuilds a smaller PDF)
+  await mkdir(join(DIST, 'compress-pdf'), { recursive: true });
+  await writeFile(
+    join(DIST, 'compress-pdf', 'index.html'),
+    fillTool(compressPdfTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/compress-pdf/')
+  );
+  urls.push(`${SITE.url}/compress-pdf/`);
 
   // qr code generator (standalone tool page)
   await mkdir(join(DIST, 'qr-code-generator'), { recursive: true });

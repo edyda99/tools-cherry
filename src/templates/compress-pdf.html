@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Compress PDF — Free, Private, Shrink File Size In Your Browser (No Upload)</title>
+<meta name="description" content="Free online tool to shrink a PDF's file size. Pick a compression level and download a smaller PDF — no signup, no watermark, and nothing is uploaded. Note: pages become images, so text is no longer selectable.">
+<link rel="canonical" href="{{SITE_URL}}/compress-pdf/">
+<meta property="og:title" content="Compress PDF — Free, Private, In Your Browser">
+<meta property="og:description" content="Shrink a PDF's file size right in your browser. Free, no signup — nothing is uploaded. Pages become images, so selectable text is not preserved.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Compress PDF","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Shrink a PDF's file size by re-rendering every page as a compressed image, entirely in your browser. No signup, nothing uploaded. Pages become images, so selectable text is not preserved."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is this PDF compressor free?","acceptedAnswer":{"@type":"Answer","text":"Yes — completely free, with no signup and no watermark on the result."}},{"@type":"Question","name":"Are my files uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. Compression runs entirely in your browser, so your PDF never leaves your device. Nothing is uploaded, stored, or logged."}},{"@type":"Question","name":"How much smaller will my file get?","acceptedAnswer":{"@type":"Answer","text":"It depends on the PDF and the level you pick. Scanned or photo-heavy PDFs usually shrink a lot, since their pages are already large images being re-encoded at a lower quality. PDFs that are mostly text and already small may not shrink at all — if that happens, this tool tells you honestly instead of pretending the result is smaller."}},{"@type":"Question","name":"Will I lose my selectable text?","acceptedAnswer":{"@type":"Answer","text":"Yes. This tool converts every page into a JPEG image and rebuilds the PDF from those images. Any real, selectable, searchable text in your original file will no longer be selectable or searchable afterward — it becomes part of a picture. If keeping selectable text matters, don't use this tool on that file."}},{"@type":"Question","name":"Is there a size or page limit?","acceptedAnswer":{"@type":"Answer","text":"The file size limit is 50 MB. There is no fixed page-count limit — the practical ceiling is how much memory your device and browser have available, since every page is rendered locally."}},{"@type":"Question","name":"Does it work with no internet connection?","acceptedAnswer":{"@type":"Answer","text":"Yes. Once the page has loaded, turn on airplane mode or unplug your Wi-Fi — compression still works, because your PDF is read, rendered, and rebuilt entirely on your device."}},{"@type":"Question","name":"What happens if my PDF is password-protected?","acceptedAnswer":{"@type":"Answer","text":"You'll see a clear message asking you to remove the password first. Password-protected PDFs can't be read in the browser, so there's nothing to compress until the password is removed."}},{"@type":"Question","name":"What do the compression levels mean?","acceptedAnswer":{"@type":"Answer","text":"Each level renders every page at a different resolution and JPEG quality: Smaller file uses 100 DPI at 50% JPEG quality for the smallest result; Balanced uses 120 DPI at 65% quality; Higher quality uses 150 DPI at 80% quality, which keeps small text more legible after compression at the cost of a bigger file."}}]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Compress PDF</h1>
+    <p class="lede">Shrink a PDF's file size — right here in your browser. Free, no signup, no watermark, and <strong>nothing is uploaded</strong>.</p>
+    <p class="note"><strong>Important trade-off: this tool converts every page into an image to shrink the file.</strong> Any real, selectable text in your PDF will no longer be selectable or searchable afterward. It's a great fit for scanned documents and photo-heavy PDFs that are already images — a poor fit for text documents where you need to keep the text selectable. See "Who this is for" below before you compress.</p>
+
+    <div class="calc">
+      <div>
+        <label id="drop" class="dropzone" for="file">
+          <input id="file" type="file" accept="application/pdf,.pdf" hidden>
+          <span id="dropText">Click to choose a PDF, or drop it here</span>
+        </label>
+        <p class="muted-small" style="margin-top:10px">Up to 50 MB · compressed on your device, nothing uploaded.</p>
+        <p class="muted-small" id="pageInfo"></p>
+      </div>
+
+      <div class="results">
+        <p class="note" id="textWarning" role="status" hidden>This PDF has real, selectable text. Compressing will convert every page to an image — the text will no longer be selectable or searchable. Proceed only if you are OK with that trade-off.</p>
+
+        <div class="json-toolbar">
+          <label><input type="radio" name="level" value="smaller"> Smaller file <span class="muted-small">(100 DPI)</span></label>
+          <label><input type="radio" name="level" value="balanced" checked> Balanced <span class="muted-small">(120 DPI)</span></label>
+          <label><input type="radio" name="level" value="higher"> Higher quality <span class="muted-small">(150 DPI)</span></label>
+        </div>
+
+        <p class="muted-small" id="status" style="margin-top:10px" aria-live="polite">Choose a PDF to begin.</p>
+        <div class="field inline" style="margin-bottom:0">
+          <button type="button" id="compressBtn" class="btn-primary" disabled>Compress PDF</button>
+        </div>
+        <p><a id="download" href="#" download hidden class="btn-primary" style="display:none">Download</a></p>
+      </div>
+    </div>
+
+    <p class="note" style="margin-top:14px"><strong>Don't take our word for it — prove it:</strong> turn on airplane mode, or unplug your Wi-Fi, before you compress. It still works with zero network connection, because your PDF is read, rendered, and rebuilt entirely on your device — nothing is sent anywhere.</p>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>How this PDF compressor works — and its one big trade-off</h2>
+      <p>Click the box above to choose a PDF, or drag one straight in. Pick a compression level, click <strong>Compress PDF</strong>, and your browser renders every page as a JPEG image and rebuilds a new, smaller PDF from those images — all locally, with a progress message showing which page it's on.</p>
+      <p><strong>Read this before you compress:</strong> because every page becomes an image, any real text in your original PDF (the kind you could normally click and drag to select, or search with Ctrl/Cmd+F) is gone after compression — it's now just pixels that happen to look like text. This is unavoidable with an image-based compressor; it isn't a bug. If your PDF has a scanned page or a photo, there was no selectable text to lose in the first place, so this trade-off costs you nothing.</p>
+      <p>Before compressing, the tool quickly checks the first few pages for real text. If it finds a meaningful amount, it shows a warning so you can decide with full information — it never blocks you from proceeding, it just won't let the trade-off be a surprise.</p>
+      <p>When it's done, you'll see your original file size and the new file size side by side, with the real percentage saved — calculated from the actual bytes, never estimated. If a file was already efficient and the "compressed" version isn't actually smaller, it says so plainly instead of dressing up a non-win as a win.</p>
+
+      <h2>Who this is for</h2>
+      <p><strong>Scanned documents and receipts.</strong> A scanned form, a photographed receipt, or an image-only PDF is already just pictures of pages — there's no selectable text to lose, so this tool is a clean fit.</p>
+      <p><strong>Email attachment limits.</strong> Many inboxes cap attachments around 20–25 MB. Shrinking a large PDF before sending it is a common, low-stakes use case even when the file does contain some text.</p>
+      <p><strong>Archiving large, photo-heavy PDFs.</strong> Reports or portfolios stuffed with high-resolution photos can be shrunk a lot without much visible quality loss, since the source images were already large before this tool touches them.</p>
+      <p class="note"><strong>Not a good fit:</strong> if your PDF is a contract, report, resume, or anything else where people need to select, copy, or search the text, don't run it through this tool — you'll get a smaller file but lose that text permanently. Instead, go back to whatever created the PDF (Word, Google Docs, your browser's Print → Save as PDF) and export a new, appropriately-sized PDF from the source document.</p>
+
+      <h2>How does this compare to other free PDF compressors?</h2>
+      <p>Every comparison below is a factual, checkable claim about how each tool works today — not a knock on the competition.</p>
+      <table class="data-table">
+        <thead>
+          <tr><th>Compressor</th><th>Preserves selectable text?</th><th>Runs in your browser</th><th>Free limits</th><th>Signup</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Tools Berry</td><td>No — always converts pages to images</td><td>Yes, client-side only</td><td>50 MB, no page-count limit</td><td>No</td></tr>
+          <tr><td>PDF Edit</td><td>Yes, on its Light/Recommended/Strong presets (re-encodes embedded images only); only its opt-in Extreme preset rasterizes</td><td>Yes, client-side only</td><td>Not stated ("only limit is your device memory")</td><td>No</td></tr>
+          <tr><td>ExactPDF</td><td>Not stated either way — offers 3 opaque levels (Light/Medium/Heavy)</td><td>Claims local processing ("files never leave your device")</td><td>Up to 150 MB; no page-count limit stated</td><td>No</td></tr>
+          <tr><td>Sejda</td><td>Not stated either way</td><td>No — files are uploaded, deleted after 2 hours</td><td>200 pages or 100 MB; 3 tasks per hour on the free tier</td><td>Not required for free tier</td></tr>
+          <tr><td>iLovePDF</td><td>Not stated either way</td><td>Not stated on-page; three quality presets offered (Extreme/Recommended/Less compression)</td><td>Not published</td><td>Not required, but sign-in is offered</td></tr>
+        </tbody>
+      </table>
+      <p class="muted-small">The one gap worth calling out honestly: PDF Edit's default presets re-encode only the images already embedded in a PDF and leave real text untouched, reserving full rasterization for an opt-in "Extreme" setting. This tool always rasterizes every page — there's no lighter, text-preserving mode (yet). If preserving selectable text matters, this isn't the right tool for that file.</p>
+
+      <h2>Frequently asked questions</h2>
+      <h3>Is this PDF compressor free?</h3>
+      <p>Yes — completely free, with no signup and no watermark on the result.</p>
+      <h3>Are my files uploaded anywhere?</h3>
+      <p>No. Compression runs entirely in your browser, so your PDF never leaves your device. Nothing is uploaded, stored, or logged.</p>
+      <h3>How much smaller will my file get?</h3>
+      <p>It depends on the PDF and the level you pick. Scanned or photo-heavy PDFs usually shrink a lot, since their pages are already large images being re-encoded at a lower quality. PDFs that are mostly text and already small may not shrink at all — if that happens, this tool tells you honestly instead of pretending the result is smaller.</p>
+      <h3>Will I lose my selectable text?</h3>
+      <p>Yes. This tool converts every page into a JPEG image and rebuilds the PDF from those images. Any real, selectable, searchable text in your original file will no longer be selectable or searchable afterward — it becomes part of a picture. If keeping selectable text matters, don't use this tool on that file.</p>
+      <h3>Is there a size or page limit?</h3>
+      <p>The file size limit is 50 MB. There is no fixed page-count limit — the practical ceiling is how much memory your device and browser have available, since every page is rendered locally.</p>
+      <h3>Does it work with no internet connection?</h3>
+      <p>Yes. Once the page has loaded, turn on airplane mode or unplug your Wi-Fi — compression still works, because your PDF is read, rendered, and rebuilt entirely on your device.</p>
+      <h3>What happens if my PDF is password-protected?</h3>
+      <p>You'll see a clear message asking you to remove the password first. Password-protected PDFs can't be read in the browser, so there's nothing to compress until the password is removed.</p>
+      <h3>What do the compression levels mean?</h3>
+      <p>Each level renders every page at a different resolution and JPEG quality: Smaller file uses 100 DPI at 50% JPEG quality for the smallest result; Balanced uses 120 DPI at 65% quality; Higher quality uses 150 DPI at 80% quality, which keeps small text more legible after compression at the cost of a bigger file.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a> · <a href="/embed/">Embed our calculators</a> · <a href="/corrections/">Corrections log</a></span>
+  </div>
+</footer>
+
+<script src="/assets/pdf.min.js"></script>
+<script src="/assets/jspdf.umd.min.js"></script>
+<script type="module" src="/assets/compress-pdf.js"></script>
+</body>
+</html>
