@@ -314,6 +314,7 @@ const TOOLS = [
   { name: 'Merge PDF', path: '/merge-pdf/', cat: 'image' },
   { name: 'Split PDF', path: '/split-pdf/', cat: 'image' },
   { name: 'Compress PDF', path: '/compress-pdf/', cat: 'image' },
+  { name: 'PDF Tools', path: '/pdf-tools/', cat: 'image' },
   { name: 'Signature Maker', path: '/signature-maker/', cat: 'make' },
   { name: 'Percentage Calculator', path: '/percentage-calculator/', cat: 'calc' },
   { name: 'Tip & Bill Split', path: '/tip-calculator/', cat: 'calc' },
@@ -419,6 +420,7 @@ const TOOL_DESCRIPTIONS = {
   '/merge-pdf/': 'Combine multiple PDF files into one, in your browser.',
   '/split-pdf/': 'Extract a page range or split every page of a PDF into separate files, in your browser.',
   '/compress-pdf/': 'Shrink a PDF\'s file size by re-rendering every page as a compressed image, in your browser.',
+  '/pdf-tools/': 'All six free PDF tools in one place — convert, merge, split, compress, and build PDFs from images.',
   '/signature-maker/': 'Draw or type a signature and download it as a transparent PNG.',
   '/percentage-calculator/': 'Work out percentages, percentage change, and percentage of a number.',
   '/tip-calculator/': 'Calculate tips and split a bill evenly across any number of people.',
@@ -513,6 +515,57 @@ const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, 
 // Hand-picked related links for pages that aren't in TOOLS (data studies, the
 // embed gallery). Keyed by currentPath.
 const RELATED_OVERRIDES = {
+  // PDF cluster: explicit cross-links to every sibling PDF tool + the hub page,
+  // instead of the cat-based random pick (which would dilute in with the 5
+  // non-PDF image tools sharing cat:'image').
+  '/pdf-to-word/': [
+    { name: 'Word to PDF Converter', path: '/word-to-pdf/' },
+    { name: 'Merge PDF Files', path: '/merge-pdf/' },
+    { name: 'Split PDF', path: '/split-pdf/' },
+    { name: 'Compress PDF', path: '/compress-pdf/' },
+    { name: 'Images to PDF Converter', path: '/images-to-pdf/' },
+    { name: 'All PDF Tools', path: '/pdf-tools/' }
+  ],
+  '/word-to-pdf/': [
+    { name: 'PDF to Word Converter', path: '/pdf-to-word/' },
+    { name: 'Merge PDF Files', path: '/merge-pdf/' },
+    { name: 'Split PDF', path: '/split-pdf/' },
+    { name: 'Compress PDF', path: '/compress-pdf/' },
+    { name: 'Images to PDF Converter', path: '/images-to-pdf/' },
+    { name: 'All PDF Tools', path: '/pdf-tools/' }
+  ],
+  '/merge-pdf/': [
+    { name: 'Split PDF', path: '/split-pdf/' },
+    { name: 'Compress PDF', path: '/compress-pdf/' },
+    { name: 'PDF to Word Converter', path: '/pdf-to-word/' },
+    { name: 'Word to PDF Converter', path: '/word-to-pdf/' },
+    { name: 'Images to PDF Converter', path: '/images-to-pdf/' },
+    { name: 'All PDF Tools', path: '/pdf-tools/' }
+  ],
+  '/split-pdf/': [
+    { name: 'Merge PDF Files', path: '/merge-pdf/' },
+    { name: 'Compress PDF', path: '/compress-pdf/' },
+    { name: 'PDF to Word Converter', path: '/pdf-to-word/' },
+    { name: 'Word to PDF Converter', path: '/word-to-pdf/' },
+    { name: 'Images to PDF Converter', path: '/images-to-pdf/' },
+    { name: 'All PDF Tools', path: '/pdf-tools/' }
+  ],
+  '/compress-pdf/': [
+    { name: 'Merge PDF Files', path: '/merge-pdf/' },
+    { name: 'Split PDF', path: '/split-pdf/' },
+    { name: 'PDF to Word Converter', path: '/pdf-to-word/' },
+    { name: 'Word to PDF Converter', path: '/word-to-pdf/' },
+    { name: 'Images to PDF Converter', path: '/images-to-pdf/' },
+    { name: 'All PDF Tools', path: '/pdf-tools/' }
+  ],
+  '/images-to-pdf/': [
+    { name: 'PDF to Word Converter', path: '/pdf-to-word/' },
+    { name: 'Word to PDF Converter', path: '/word-to-pdf/' },
+    { name: 'Merge PDF Files', path: '/merge-pdf/' },
+    { name: 'Split PDF', path: '/split-pdf/' },
+    { name: 'Compress PDF', path: '/compress-pdf/' },
+    { name: 'All PDF Tools', path: '/pdf-tools/' }
+  ],
   '/overtime-tax-calculator/': [
     { name: 'W-2 Box 12 Decoder & Tipped Occupation Lookup', path: '/w2-box-decoder/' },
     { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
@@ -2620,6 +2673,7 @@ async function main() {
   const mergePdfTpl = await read(join(SRC, 'templates', 'merge-pdf.html'));
   const splitPdfTpl = await read(join(SRC, 'templates', 'split-pdf.html'));
   const compressPdfTpl = await read(join(SRC, 'templates', 'compress-pdf.html'));
+  const pdfToolsTpl = await read(join(SRC, 'templates', 'pdf-tools.html'));
   const qrTpl = await read(join(SRC, 'templates', 'qr-generator.html'));
   const circleTpl = await read(join(SRC, 'templates', 'circle-crop.html'));
   const photoTpl = await read(join(SRC, 'templates', 'passport-photo-maker.html'));
@@ -3360,6 +3414,14 @@ async function main() {
     fillTool(compressPdfTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/compress-pdf/')
   );
   urls.push(`${SITE.url}/compress-pdf/`);
+
+  // PDF Tools hub (pure content/interlinking page — no JS asset, no calculator)
+  await mkdir(join(DIST, 'pdf-tools'), { recursive: true });
+  await writeFile(
+    join(DIST, 'pdf-tools', 'index.html'),
+    fillTool(pdfToolsTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/pdf-tools/')
+  );
+  urls.push(`${SITE.url}/pdf-tools/`);
 
   // qr code generator (standalone tool page)
   await mkdir(join(DIST, 'qr-code-generator'), { recursive: true });
