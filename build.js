@@ -2785,6 +2785,8 @@ async function main() {
   const adoptionTpl = await read(join(SRC, 'templates', 'adoption-credit-calculator.html'));
   const embedAdoptionTpl = await read(join(SRC, 'templates', 'embed', 'adoption-credit-calculator.html'));
   const embedGalleryTpl = await read(join(SRC, 'templates', 'embed-gallery.html'));
+  const embedMergePdfTpl = await read(join(SRC, 'templates', 'embed', 'merge-pdf.html'));
+  const embedWordToPdfTpl = await read(join(SRC, 'templates', 'embed', 'word-to-pdf.html'));
   const overtimeStudyTpl = await read(join(SRC, 'templates', 'data-overtime-tax-by-state.html'));
   const tipsStudyTpl = await read(join(SRC, 'templates', 'data-tips-tax-by-state.html'));
   // Standalone /data/ reference tables (citable link-bait): each re-packages an
@@ -4801,6 +4803,10 @@ async function main() {
   await writeFile(join(DIST, 'embed', 'adoption-credit-calculator', 'index.html'), fillEmbed(embedAdoptionTpl));
   await mkdir(join(DIST, 'embed', 'bonus-tax-calculator'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'bonus-tax-calculator', 'index.html'), fillEmbed(embedBonusTaxTpl));
+  await mkdir(join(DIST, 'embed', 'merge-pdf'), { recursive: true });
+  await writeFile(join(DIST, 'embed', 'merge-pdf', 'index.html'), fillEmbed(embedMergePdfTpl));
+  await mkdir(join(DIST, 'embed', 'word-to-pdf'), { recursive: true });
+  await writeFile(join(DIST, 'embed', 'word-to-pdf', 'index.html'), fillEmbed(embedWordToPdfTpl));
   // Indexable embed gallery (fillTool is fine here — real page, benefits from schema
   // + the More-tools cross-links). This one IS in the sitemap.
   await writeFile(join(DIST, 'embed', 'index.html'), fillTool(embedGalleryTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/embed/'));

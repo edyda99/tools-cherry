@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Word to PDF Converter — Tools Berry (embed)</title>
+<meta name="robots" content="noindex, follow">
+<link rel="canonical" href="{{SITE_URL}}/word-to-pdf/">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  body { margin: 0; padding: 14px; background: transparent; }
+  .embed-wrap { max-width: 560px; margin: 0 auto; }
+  .embed-wrap h1 { font-size: 1.25rem; margin: 0 0 10px; }
+  .embed-credit { margin-top: 14px; text-align: center; font-size: .85rem; opacity: .9; }
+</style>
+</head>
+<body>
+<div class="embed-wrap">
+  <h1>Word to PDF Converter</h1>
+  <div class="calc">
+    <div>
+      <label id="drop" class="dropzone" for="file">
+        <input id="file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+        <span id="dropText">Click to choose a Word .docx, or drop it here</span>
+      </label>
+      <div class="field" style="margin-top:14px">
+        <label for="pageSize">Page size</label>
+        <select id="pageSize">
+          <option value="letter" selected>US Letter (8.5 × 11 in)</option>
+          <option value="a4">A4 (210 × 297 mm)</option>
+        </select>
+      </div>
+      <p class="muted-small" id="fileInfo" style="margin-top:10px">Up to 30 MB · converted on your device, nothing uploaded.</p>
+    </div>
+    <div class="results">
+      <p class="muted-small" id="status" aria-live="polite">Choose a Word document to begin.</p>
+      <div class="field inline" style="margin-bottom:0">
+        <button type="button" id="convert" class="btn-primary" disabled>Convert to PDF</button>
+        <button type="button" id="clear" class="btn-secondary">Clear</button>
+      </div>
+      <p><a id="download" href="#" download hidden class="btn-primary" style="display:none">Download PDF</a></p>
+    </div>
+  </div>
+  <p class="embed-credit">Free <a href="{{SITE_URL}}/word-to-pdf/" target="_blank" rel="noopener">Word to PDF</a> tool by {{SITE_NAME}}</p>
+</div>
+
+<script src="/assets/jspdf.umd.min.js"></script>
+<script src="/assets/mammoth.browser.min.js"></script>
+<script type="module" src="/assets/word-to-pdf.js"></script>
+</body>
+</html>

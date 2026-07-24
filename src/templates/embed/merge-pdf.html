@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Merge PDF Files — Tools Berry (embed)</title>
+<meta name="robots" content="noindex, follow">
+<link rel="canonical" href="{{SITE_URL}}/merge-pdf/">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  body { margin: 0; padding: 14px; background: transparent; }
+  .embed-wrap { max-width: 560px; margin: 0 auto; }
+  .embed-wrap h1 { font-size: 1.25rem; margin: 0 0 10px; }
+  .embed-credit { margin-top: 14px; text-align: center; font-size: .85rem; opacity: .9; }
+</style>
+</head>
+<body>
+<div class="embed-wrap">
+  <h1>Merge PDF Files</h1>
+  <div class="calc">
+    <div>
+      <label id="drop" class="dropzone" for="file">
+        <input id="file" type="file" accept="application/pdf,.pdf" multiple hidden>
+        <span id="dropText">Click to choose PDFs, or drop them here</span>
+      </label>
+      <p class="muted-small" style="margin-top:10px">Up to 30 files, 50 MB each · combined on your device, nothing uploaded.</p>
+    </div>
+    <div class="results">
+      <div class="pdf-list" id="list" aria-live="polite"></div>
+      <p class="muted-small" id="status" style="margin-top:10px">Add some PDFs to begin.</p>
+      <div class="field inline" style="margin-bottom:0">
+        <button type="button" id="mergePdf" class="btn-primary" disabled>Merge PDFs</button>
+        <button type="button" id="clearAll" class="btn-secondary">Clear all</button>
+      </div>
+    </div>
+  </div>
+  <p class="embed-credit">Free <a href="{{SITE_URL}}/merge-pdf/" target="_blank" rel="noopener">Merge PDF</a> tool by {{SITE_NAME}}</p>
+</div>
+
+<script src="/assets/pdf-lib.min.js"></script>
+<script type="module" src="/assets/merge-pdf.js"></script>
+</body>
+</html>
