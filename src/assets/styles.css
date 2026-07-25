@@ -1224,7 +1224,13 @@ footer.site a:hover { color: var(--text); }
     order: 3; flex: 1 0 100%; flex-wrap: nowrap;
     overflow-x: auto; overscroll-behavior-x: contain;
     scrollbar-width: none; -ms-overflow-style: none;
-    gap: 6px; margin: 0 -14px; padding: 0 14px 1px;
+    /* overflow-x:auto computes overflow-y to auto, so the scroller clips
+       descendant painting. The 3px focus ring on the chips is drawn outside
+       their border box and was being cut off. Vertical padding gives the ring
+       room; matching negative margins cancel it so the header height and the
+       measured scroll-margin-top offsets are unchanged. Same technique as the
+       horizontal -14px/14px pair already on this rule. */
+    gap: 6px; margin: -4px -14px -5px; padding: 4px 14px 6px;
   }
   header.site nav::-webkit-scrollbar { width: 0; height: 0; }
   header.site nav a {

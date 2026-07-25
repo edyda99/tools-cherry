@@ -600,8 +600,12 @@
     if(d.id===hash) return; // a nav link brought us straight here, always show it open
     var v=null;
     try{v=localStorage.getItem('tb-cat:'+d.id);}catch(e){}
-    if(v==='0'){d.removeAttribute('open');return;}
-    if(v===null&&narrow&&d.id!==KEEP_OPEN) d.removeAttribute('open');
+    // Mark programmatic collapses. removeAttribute fires a native `toggle`
+    // event asynchronously, and category-toggle.js persists every toggle, so
+    // without this flag a narrow-viewport default would be written to
+    // localStorage as a real preference and follow the browser to desktop.
+    if(v==='0'){d.dataset.tbAuto='1';d.removeAttribute('open');return;}
+    if(v===null&&narrow&&d.id!==KEEP_OPEN){d.dataset.tbAuto='1';d.removeAttribute('open');}
   });
 }catch(e){}})();
 </script>
