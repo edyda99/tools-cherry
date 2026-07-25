@@ -36,7 +36,7 @@
     <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
 
     <details class="cat" id="tools" open>
-      <summary class="cat-summary"><h2>Photo &amp; Image Tools</h2><span class="cat-count">8 tools</span><svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
+      <summary class="cat-summary"><h2>Photo &amp; Image Tools</h2><span class="cat-count">13 tools</span><svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
       <p class="lede">Edit, resize, and convert pictures — right on your phone, nothing uploaded.</p>
       <div class="tool-grid">
         <a class="tool-card" href="/resize-image/">
@@ -591,10 +591,17 @@
     <script>
 (function(){try{
   var hash=location.hash.slice(1);
+  // Narrow viewports get the sections collapsed on a first visit (no stored
+  // preference) so a phone lands on a short table of contents instead of all
+  // 98 cards; one section stays open as proof of content. Desktop is untouched.
+  var narrow=!(window.matchMedia&&window.matchMedia('(min-width: 800px)').matches);
+  var KEEP_OPEN='tools';
   document.querySelectorAll('.cat').forEach(function(d){
-    if(d.id===hash) return; // a nav link brought us straight here — always show it open
-    var v=localStorage.getItem('tb-cat:'+d.id);
-    if(v==='0') d.removeAttribute('open');
+    if(d.id===hash) return; // a nav link brought us straight here, always show it open
+    var v=null;
+    try{v=localStorage.getItem('tb-cat:'+d.id);}catch(e){}
+    if(v==='0'){d.removeAttribute('open');return;}
+    if(v===null&&narrow&&d.id!==KEEP_OPEN) d.removeAttribute('open');
   });
 }catch(e){}})();
 </script>

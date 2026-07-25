@@ -13,6 +13,11 @@
 // script in home.html covers a fresh page load with the hash already present;
 // this hashchange listener covers clicking the same-page nav link without a
 // reload. Setting .open triggers the toggle listener below, which persists it.
+//
+// A delegated click handler covers the one case `hashchange` cannot: tapping a
+// nav link whose hash is already the current fragment fires no hashchange at
+// all, so a collapsed target would leave the visitor on a bare heading. The
+// click runs before the browser scrolls, so the section is open on arrival.
 (function () {
   'use strict';
   try {
@@ -29,6 +34,15 @@
     window.addEventListener('hashchange', function () {
       var target = document.getElementById(location.hash.slice(1));
       if (target && target.classList.contains('cat') && !target.open) target.open = true;
+    });
+    document.addEventListener('click', function (e) {
+      if (!e.target || !e.target.closest) return;
+      var a = e.target.closest('a[href^="#"], a[href^="/#"]');
+      if (!a) return;
+      var id = a.getAttribute('href').replace(/^\/?#/, '');
+      if (!id) return;
+      var t = document.getElementById(id);
+      if (t && t.classList.contains('cat') && !t.open) t.open = true;
     });
   } catch (err) {
     if (window.console && console.debug) console.debug('tb-category-toggle init failed', err);

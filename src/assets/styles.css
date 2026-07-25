@@ -165,14 +165,14 @@ header.site nav a:hover { color: var(--text); background: var(--surface-2); text
    header.site is position:sticky, so jumping to any in-page anchor (nav
    links to #tools/#calculators/#money/#paycheck, or any other same-page
    #id link) lands the target flush under it unless targets reserve space
-   for the header's height. Measured real rendered header.site heights:
-   ~69px on desktop/single-line nav, but the homepage's 4-link nav wraps
-   onto up to 4 lines on narrow viewports (~197px at 390px wide) before
-   settling back to one line at >=800px. Default to the taller
-   measurement + buffer so no width is under-covered; tighten back down
-   once the header is confirmed single-line. */
+   for the header's height. Below 800px the homepage nav is a single-line
+   horizontally scrolling chip strip on its own row (see the mobile density
+   block at the end of this file), so the header measures 107px there;
+   at >=800px the whole header is one line and measures 69px. Both heights
+   were measured on the built page at 390px, 768px and 1280px wide; each
+   value below is that measured height plus a small buffer. */
 main [id] {
-  scroll-margin-top: 212px;
+  scroll-margin-top: 126px;
 }
 @media (min-width: 800px) {
   main [id] { scroll-margin-top: 84px; }
@@ -1191,3 +1191,86 @@ footer.site a:hover { color: var(--text); }
 .rpt-contact-fallback a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
 .rpt-contact-fallback a:hover { color: var(--text); }
 .rpt-contact-fallback a:focus-visible { outline: none; box-shadow: var(--ring); border-radius: 4px; }
+
+/* ---------------------------------------------------------------------------
+   Mobile density pass — LAST BLOCK IN THE FILE ON PURPOSE.
+   Every rule here lives inside a max-width (or hover:none) query, so nothing
+   below can reach desktop, and being last in source order it wins over the
+   earlier same-specificity mobile rules it deliberately overrides (notably the
+   max-width:560px search-trigger block above). Three jobs:
+     A. Turn the header from a 4-line wrapped nav (~197px of permanently sticky
+        chrome at 390px) into a two-row header: brand + full-width search bar,
+        then a one-line horizontally scrolling nav chip strip that doubles as
+        the jump bar for the collapsed category sections.
+     B. Tighten type, spacing and the card/state grids so a section that is
+        opened is a browsable list rather than a wall. The tool descriptions
+        are clamped to 2 lines visually only, the full sentence stays in the
+        HTML and in the search index, and every layout returns to normal at
+        560px and up.
+     C. Kill the hover lift on touch, where it sticks after a tap and misreads
+        as a selection state. Transform only, never box-shadow, because
+        .tool-card--hot carries its ring in box-shadow.
+ * ------------------------------------------------------------------------- */
+@media (max-width: 799px) {
+  header.site .wrap { flex-wrap: wrap; gap: 8px 10px; padding: 10px 14px; min-height: 0; }
+  header.site .brand { flex: 0 0 auto; margin-right: 0; font-size: 18px; }
+  .theme-toggle { order: 2; }
+  .tb-search-trigger {
+    order: 1; margin-left: 0; flex: 1 1 auto; justify-content: flex-start;
+    min-height: 40px; padding: 8px 14px;
+  }
+  .tb-search-trigger-txt { display: inline; }
+  header.site nav {
+    order: 3; flex: 1 0 100%; flex-wrap: nowrap;
+    overflow-x: auto; overscroll-behavior-x: contain;
+    scrollbar-width: none; -ms-overflow-style: none;
+    gap: 6px; margin: 0 -14px; padding: 0 14px 1px;
+  }
+  header.site nav::-webkit-scrollbar { width: 0; height: 0; }
+  header.site nav a {
+    flex: 0 0 auto; white-space: nowrap; font-size: 13px; padding: 7px 12px;
+    background: var(--surface-2); border: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 559px) {
+  .wrap { padding: 0 14px; }
+  main { padding: 18px 0 32px; }
+  .hero { padding: 4px 0 2px; }
+  .hero h1 { font-size: 26px; max-width: none; margin: 0 0 6px; }
+  .hero .lede { font-size: 15.5px; margin: 0 0 10px; }
+  .hero .badges { gap: 6px; margin: 10px 0 2px; }
+  .badge { font-size: 12px; padding: 5px 10px; }
+  .cat-summary h2 { font-size: 18.5px; margin: 20px 0 6px; }
+  .cat-count { font-size: 12px; }
+  .cat > .lede { font-size: 14.5px; margin: 0 0 10px; }
+  .money-subhead { font-size: 15.5px; margin-top: 18px; }
+  .money-subhead:first-of-type { margin-top: 10px; }
+  .popular-states { font-size: 14px; line-height: 1.5; margin: 0 0 10px; }
+  footer.site { padding: 20px 0; margin-top: 16px; }
+
+  .tool-grid { grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 2px; }
+  .tool-card { padding: 10px 11px; gap: 3px; border-radius: 10px; }
+  .tool-card .ic {
+    width: 26px; height: 26px; font-size: 15px; margin-bottom: 3px; border-radius: 7px;
+  }
+  .tool-card .t-name { font-size: 14px; line-height: 1.25; overflow-wrap: break-word; }
+  .tool-card .t-desc {
+    font-size: 12px; line-height: 1.35;
+    display: -webkit-box; -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+  }
+  .tool-card .t-tag { top: 6px; right: 6px; font-size: 9.5px; padding: 1px 6px; }
+
+  .state-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .state-grid a, .state-grid span {
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    min-height: 44px; padding: 6px 4px; font-size: 12.5px; line-height: 1.2;
+    border-radius: 8px; overflow-wrap: break-word;
+  }
+}
+
+@media (hover: none) {
+  .tool-card:hover { transform: none; }
+  .state-grid a:hover { transform: none; }
+}
