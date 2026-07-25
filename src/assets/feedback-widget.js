@@ -188,14 +188,16 @@
       for (var i = 0; i < stars.length; i++) stars[i].classList.toggle('is-hover', i < val);
     }
 
-    // A star was chosen: lock the rating in, reveal the optional comment step.
+    // A star was chosen: record the rating, reveal the optional comment step.
+    // Stars stay clickable so the visitor can change their mind (e.g. picked 3,
+    // meant 4) right up until Send/Skip is actually pressed in submit().
     function choose(val) {
-      if (!toast || rating) return; // locked after first choice.
+      if (!toast) return;
       rating = val;
       var stars = toast.stars;
-      previewStars(stars, 0); // clear any leftover hover preview before locking the real state.
+      previewStars(stars, 0); // clear any leftover hover preview before painting the real state.
       paint(stars, val);
-      for (var i = 0; i < stars.length; i++) stars[i].disabled = true;
+      if (toast.querySelector('.fbw-step')) return; // comment step already shown; just update the rating.
 
       var step = el('div', 'fbw-step');
       var ta = el('textarea', 'fbw-comment', {
