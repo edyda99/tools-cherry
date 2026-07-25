@@ -116,6 +116,20 @@ runner does not "helpfully" change a number that is supposed to stay constant.
    **fails** when the calendar year exceeds `tax-data-2026.json`'s `taxYear`. When you roll
    to 2027 data, that gate updates automatically; if you defer the roll, expect the
    freshness test to start failing on Jan 1, 2027.
+7. **`/data/take-home-pay-by-state/` (added 2026-07-25) needs NO manual figure edits, but its
+   prose must be re-read after any tax-data roll.** Every number on it (all 51 take-home
+   figures, the $6,440 spread, the eight-way tie at the top, the "$13,408 federal + FICA"
+   stat) is computed at build time from `tax-data-2026.json` via `computePaycheck`, so a data
+   roll updates the page automatically and nothing is hardcoded. What a roll CAN break is the
+   narrative: the analysis paragraphs (eight-way tie, "North Dakota is the surprise",
+   Washington's paid-leave premium, California) are each guarded so they disappear rather than
+   state something false, but a disappeared paragraph leaves a thinner page. **On refresh day,
+   load the page and confirm the analysis sections still render and still describe the new
+   numbers.** The title and H1 also carry the literal year "(2026)" and must be bumped by hand.
+8. **Outbound citations on ~36 tool pages** (`src/data/tool-sources.json`, added 2026-07-25)
+   are third-party URLs that rot without warning. The daily advisor digest now HEADs all of
+   them and reports any that break, so this needs no calendar slot — but if the digest flags
+   one, fix it there rather than deleting the citation.
 
 ---
 
