@@ -7,6 +7,7 @@ import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { transform as esbuildTransform } from 'esbuild';
 import { STATIC_PAGES } from './src/content/static-pages.js';
 import { computePaycheck } from './src/engine/paycheck-engine.js';
 import { computeBonus } from './src/engine/bonus-tax.js';
@@ -2587,6 +2588,34 @@ function assetRefRegex(basename) {
 // file's internal references to already-hashed dependency names, hashes the
 // resulting bytes, and writes `<base>.<hash>.<ext>` into dist/assets/. Returns
 // a Map of original basename -> hashed basename for the HTML rewrite pass.
+// Minify a first-party asset's bytes before it is hashed, so the content hash
+// matches what actually ships. Runs AFTER the dependency-reference rewrite
+// above, because that rewrite regex matches the un-minified quoting style.
+// Vendored `*.min.js` bundles are already minified and are left untouched —
+// re-minifying them buys nothing and risks breaking third-party UMD wrappers.
+// Identifier renaming is deliberately off for JS: these files are classic
+// scripts and ES modules whose top-level names are referenced across files and
+// from inline handlers, so only whitespace/comments/syntax are compressed.
+async function minifyAsset(name, content) {
+  if (name.endsWith('.min.js')) return content;
+  const loader = name.endsWith('.css') ? 'css' : name.endsWith('.js') ? 'js' : null;
+  if (!loader) return content;
+  try {
+    const out = await esbuildTransform(content, {
+      loader,
+      minifyWhitespace: true,
+      minifySyntax: true,
+      minifyIdentifiers: false,
+      legalComments: 'none',
+      target: 'es2020',
+    });
+    return out.code.length && out.code.length < content.length ? out.code : content;
+  } catch (err) {
+    console.warn(`  minify skipped for ${name}: ${err.message.split('\n')[0]}`);
+    return content;
+  }
+}
+
 async function hashAssets(queue) {
   const raw = new Map();
   for (const { dir, name } of queue) raw.set(name, await read(join(SRC, dir, name)));
@@ -2616,6 +2645,7 @@ async function hashAssets(queue) {
       for (const dep of deps.get(name)) {
         content = content.replace(assetRefRegex(dep), (_m, quote, prefix) => `${quote}${prefix}${hashMap.get(dep)}${quote}`);
       }
+      content = await minifyAsset(name, content);
       const hash = createHash('sha256').update(content).digest('hex').slice(0, 10);
       const dot = name.lastIndexOf('.');
       const hashedName = `${name.slice(0, dot)}.${hash}${name.slice(dot)}`;
