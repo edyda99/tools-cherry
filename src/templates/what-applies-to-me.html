@@ -27,6 +27,17 @@
   html.js #wamResult { display: none; }
   html.js #wamResult[data-shown] { display: block; }
   html.js .wam-allstates-note { display: none; }
+  /* Three things on this page exist only as one pre-rendered variant per possible
+     answer: the step counter, the echo of what you answered, and the running
+     counts. The script reveals exactly one of each. With JavaScript off there is
+     no script and no answer, so every variant would print at once and the page
+     would read as a run of numbers and contradictory sentences. These two classes
+     drop all three, including the brackets around a count, when the script is not
+     there. Two classes because one wrapper is a block and the others sit inside a
+     line of text. */
+  .wam-jsonly, .wam-jsonly-i { display: none; }
+  html.js .wam-jsonly { display: block; }
+  html.js .wam-jsonly-i { display: inline; }
 
   .wam-nojs { border-left: 4px solid var(--brand); background: var(--brand-soft); border-radius: 0 var(--radius) var(--radius) 0; padding: 12px 16px; margin: 16px 0; }
   .wam-status { font-size: .85rem; color: var(--muted); margin: 0 0 10px; min-height: 1.2em; }
@@ -97,7 +108,7 @@
     <p class="wam-nojs">JavaScript is off, so every question and every rule for all 51 states is already shown below. Use the state list to jump to yours.</p>
 
     <form id="wamFlow" autocomplete="off" onsubmit="return false">
-      <p class="wam-status" aria-live="polite">{{STATUS_SPANS}}</p>
+      <p class="wam-status wam-jsonly" aria-live="polite">{{STATUS_SPANS}}</p>
 
       <section class="wam-screen" data-screen="1" aria-labelledby="wamH1">
         <h2 id="wamH1" tabindex="-1">Which state do you live in?</h2>
@@ -229,14 +240,14 @@
 
       <p class="wam-allstates-note">Every state is shown below, in alphabetical order, because this page carries all 51 jurisdictions in full.</p>
 
-      <p class="wam-echo">{{ECHO_STATE}}
+      <p class="wam-echo wam-jsonly">{{ECHO_STATE}}
         <span class="g" data-w="travel remote">You work in {{ECHO_CROSS}}.</span>
         <span class="g" data-w="moved">You moved from {{ECHO_MOVED}}.</span>
         {{ECHO_TRIGGERS}}
         {{ECHO_MARRIED}}
       </p>
 
-      <p class="wam-count" aria-live="polite"><span id="wamRuleCount">{{RULE_COUNTS}}</span> rules match your answers. Each one has conditions only you can check.</p>
+      <p class="wam-count wam-jsonly" aria-live="polite"><span id="wamRuleCount">{{RULE_COUNTS}}</span> rules match your answers. Each one has conditions only you can check.</p>
       <p class="muted-small">A rule shown here matched one of your answers. Every rule has conditions we cannot check for you, so it appearing does not mean it is yours.</p>
       <p class="muted-small g" data-has="none">These are the situations we can check. Tax has plenty of others, so an empty list here does not mean nothing applies to you.</p>
 
@@ -284,7 +295,7 @@
       </section>
 
       <section class="g" data-hide-if-empty aria-labelledby="wamSec3H">
-        <h2 id="wamSec3H">Things we do not work out for you (<span id="wamGapCount">{{GAP_COUNTS}}</span>)</h2>
+        <h2 id="wamSec3H">Things we do not work out for you<span class="wam-jsonly-i"> (<span id="wamGapCount">{{GAP_COUNTS}}</span>)</span></h2>
         <p class="muted-small">These are listed in no order of importance. Every one of them is the same kind of gap, and none of them is smaller than the others.</p>
         {{SEC3_INLINE}}
         <article class="wam-gap gap g" data-w="moved">
@@ -292,7 +303,7 @@
           <p>Everything above assumes a full year in one state. We do not split a year between two states.</p>
         </article>
         <details class="wam-more g" data-hide-if-empty>
-          <summary>Other things we leave out (<span id="wamMoreCount">{{MORE_COUNTS}}</span>)</summary>
+          <summary>Other things we leave out<span class="wam-jsonly-i"> (<span id="wamMoreCount">{{MORE_COUNTS}}</span>)</span></summary>
           {{SEC3_MORE}}
           <article class="wam-gap gap g" data-has="age">
             <h4>Retirement income</h4>

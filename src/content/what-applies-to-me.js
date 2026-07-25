@@ -292,6 +292,12 @@ export function buildWamParts(deps) {
     // ── SECTION 2: the two conformity verdicts ──────────────────────────────
     const verdictCard = (axis, axisLabel, breakLabel) => {
       const data = ob[axis] || {};
+      // A state with no wage income tax gets the generated "no state return for this
+      // deduction to appear on" sentence, which already carries everything the raw
+      // note says. Printing the note under it as well would repeat the claim in the
+      // stronger wording a safety review ruled out for this page. The note itself is
+      // untouched in the data file, so the two data study pages still print it.
+      const noteSuppressed = data.y2025 === 'n/a' && data.y2026 === 'n/a';
       const verbatimOnly = SIX_VERBATIM.has(slug)
         || data.y2025 !== data.y2026
         || data.y2026 === 'partial' || data.y2025 === 'partial';
@@ -309,7 +315,7 @@ export function buildWamParts(deps) {
         + `<h4>The new federal break on ${esc(axisLabel)} in ${esc(name)}</h4>`
         + yearHalf('2025', data.y2025)
         + yearHalf('2026', data.y2026)
-        + (obNote
+        + (obNote && !noteSuppressed
           ? `<p class="wam-detail-h">The detail on this one</p><p class="wam-verbatim">${esc(obNote)}</p>`
           : '')
         + asOf(OB_DATE)
@@ -591,9 +597,8 @@ export function buildWamParts(deps) {
     `<article class="wam-card rule g" data-has="age">`
     + `<h4>The federal deduction for people 65 and older</h4>`
     + `<p>${usd0(sen.amountPerPerson)} for each person who is 65 or older, for tax years ${sen.firstYear} through ${sen.lastYear}. It shrinks by ${(sen.phaseoutRate * 100).toFixed(0)}% of everything you make over ${usd0(sen.phaseoutStartMagi.single)} on your own, or ${usd0(sen.phaseoutStartMagi.married)} married filing together.</p>`
-    + `<p>Gone at ${usd0(sen.fullPhaseoutMagi.single)} on your own. For a couple, each qualifying spouse's ${usd0(sen.amountPerPerson)} runs out $100,000 above the ${usd0(sen.phaseoutStartMagi.married)} joint start, so ${usd0(sen.fullPhaseoutMagi.married)} if one of you is 65 or older and $350,000 if both of you are. These end points are our arithmetic from the ${(sen.phaseoutRate * 100).toFixed(0)}% rate. The IRS does not publish them.</p>`
+    + `<p>Gone at ${usd0(sen.fullPhaseoutMagi.single)} on your own, or ${usd0(sen.fullPhaseoutMagi.married)} married filing together.</p>`
     + `<p>This comes off after your income total is worked out, so it does not change that total, and it does not change how much of your Social Security gets taxed. It does not rise with inflation.</p>`
-    + `<p class="wam-note g" data-who="skip">We did not ask which of you is 65, so we cannot tell you which of these two figures is yours.</p>`
     + bandLine(sen.phaseoutStartMagi.single, sen.phaseoutStartMagi.married, sen.fullPhaseoutMagi.single, sen.fullPhaseoutMagi.married)
     + asOf(OB_DATE) + src(F.senior.sources[0].url, 'Source')
     + btn('/senior-deduction-calculator/', 'Do the math')
@@ -657,6 +662,7 @@ export function buildWamParts(deps) {
     `<article class="wam-card rule g" data-has="home">`
     + `<h4>Mortgage insurance <span class="wam-label">only if you add up your deductions and you pay PMI, FHA MIP, a VA funding fee or a USDA fee</span></h4>`
     + `<p>Back from ${mip.firstYear} and permanent. It comes down ${(mip.phaseout.reductionPerStep * 100).toFixed(0)}% for each $1,000 you make over ${usd0(mip.phaseout.threshold.single)}, and is gone above ${usd0(mip.phaseout.eliminatedAboveAgi.single)}. If you paid a lump sum up front, it is spread over the shorter of the loan term or ${mip.prepaid.amortizationMonthsMax} months.</p>`
+    + `<p>If you are married and file separately, those figures halve: it comes down for each ${usd0(mip.phaseout.stepSize.married_separate)} you make over ${usd0(mip.phaseout.threshold.married_separate)}, and is gone above ${usd0(mip.phaseout.eliminatedAboveAgi.married_separate)}.</p>`
     + asOf(OB_DATE) + src(mip.sources && mip.sources[0] ? mip.sources[0].url : '', 'Source')
     + btn('/pmi-deduction-calculator/', 'Do the math')
     + `</article>`,
