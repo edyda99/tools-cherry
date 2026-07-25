@@ -9,6 +9,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { transform as esbuildTransform } from 'esbuild';
 import { STATIC_PAGES } from './src/content/static-pages.js';
+import { buildWamParts } from './src/content/what-applies-to-me.js';
 import { computePaycheck } from './src/engine/paycheck-engine.js';
 import { computeBonus } from './src/engine/bonus-tax.js';
 
@@ -278,6 +279,7 @@ const DATED_TAX_TOOLS = new Set([
   '/tips-tax-calculator/',
   '/w2-box-decoder/',
   '/w4-overtime-tips-withholding-calculator/',
+  '/what-applies-to-me/',
 ]);
 // Visible, machine-readable "Last updated" line for a dated tool page. Uses the
 // template's git last-change date (same signal as sitemapLastmod), CONTENT_DATE
@@ -362,6 +364,7 @@ const TOOLS = [
   { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/', cat: 'money' },
   { name: 'Mandatory Roth Catch-Up Calculator', path: '/roth-catchup-calculator/', cat: 'money' },
   { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/', cat: 'money' },
+  { name: 'What Tax Rules Apply to Me', path: '/what-applies-to-me/', cat: 'money' },
   { name: 'Social Security Wage Base Max-Out Date Calculator', path: '/ss-wage-base-calculator/', cat: 'money' },
   { name: 'Federal Student Loan Cap Calculator', path: '/student-loan-cap-calculator/', cat: 'money' },
   { name: 'ABLE Account Contribution Limit Calculator', path: '/able-account-calculator/', cat: 'money' },
@@ -475,6 +478,7 @@ const TOOL_DESCRIPTIONS = {
   '/dependent-care-fsa-vs-credit-calculator/': 'Max the 2026 $7,500 Dependent Care FSA or take the Child & Dependent Care Credit? It\'s one or the other — maxing the FSA zeroes the credit. See both scenarios side by side, the dollar difference, and which wins for your income (MFS-aware; the credit is nonrefundable).',
   '/w4-overtime-tips-withholding-calculator/': 'Turn the no-tax-on-tips / no-tax-on-overtime deduction into bigger paychecks now: see what to enter on your 2026 Form W-4 Step 4(b) (lines 1a/1b) and the extra take-home per paycheck, instead of waiting for a refund.',
   '/roth-catchup-calculator/': 'Earn over $150,000? See if the 2026 SECURE 2.0 rule forces your 401(k) catch-up into Roth (after-tax), what that costs this year, and the Roth-vs-pre-tax break-even.',
+  '/what-applies-to-me/': 'Answer six plain questions and see which 2026 tax rules match your answers, for all 50 states and DC: your state\'s tips and overtime verdict, local wage taxes, employee-paid programs, and the federal tips, overtime, senior, car loan, charity, SALT and mortgage insurance rules. We list the rules and link the calculator that does the math. We never work out what you owe.',
   '/bonus-tax-calculator/': 'See what\'s withheld from your bonus now (flat 22% federal + your state\'s supplemental rate + FICA) versus what it will really cost at tax time — with the refund or amount owed, for all 50 states + DC.',
   '/ss-wage-base-calculator/': 'Find the exact 2026 paycheck your 6.2% Social Security tax stops for the year once you cross the $184,500 wage base, and how much your take-home pay jumps — plus a multi-employer excess-FICA check and a Medicare contrast note.',
   '/student-loan-cap-calculator/': 'The federal borrowing caps in effect since July 1, 2026: graduate $20,500/yr ($100,000 aggregate), professional $50,000/yr ($200,000 shared pool), Parent PLUS $20,000/yr ($65,000 per student), the $257,500 lifetime cap, and the legacy grandfather exception. See your year-by-year federal capacity, which cap binds, and your program\'s funding gap — statute-cited, no borrowing advice.',
@@ -577,7 +581,18 @@ const RELATED_OVERRIDES = {
     { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
     { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
     { name: 'Hours Calculator (Time Card)', path: '/hours-calculator/' },
-    { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' }
+    { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
+    { name: 'What Tax Rules Apply to Me', path: '/what-applies-to-me/' }
+  ],
+  '/what-applies-to-me/': [
+    { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
+    { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
+    { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/' },
+    { name: 'SALT Cap Calculator', path: '/salt-cap-calculator/' },
+    { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
+    { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
+    { name: 'PMI / Mortgage Insurance Deduction Calculator', path: '/pmi-deduction-calculator/' },
+    { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' }
   ],
   '/tips-tax-calculator/': [
     { name: 'W-2 Box 12 Decoder & Tipped Occupation Lookup', path: '/w2-box-decoder/' },
@@ -589,7 +604,8 @@ const RELATED_OVERRIDES = {
     { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
     { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' },
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
-    { name: 'Tip & Bill Split', path: '/tip-calculator/' }
+    { name: 'Tip & Bill Split', path: '/tip-calculator/' },
+    { name: 'What Tax Rules Apply to Me', path: '/what-applies-to-me/' }
   ],
   '/w4-overtime-tips-withholding-calculator/': [
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
@@ -785,7 +801,8 @@ const RELATED_OVERRIDES = {
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
     { name: 'Double Time Pay Calculator', path: '/double-time-pay-calculator/' },
     { name: 'Hours Calculator (Time Card)', path: '/hours-calculator/' },
-    { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' }
+    { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
+    { name: 'What Tax Rules Apply to Me', path: '/what-applies-to-me/' }
   ],
   '/data/take-home-pay-by-state/': [
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
@@ -805,7 +822,8 @@ const RELATED_OVERRIDES = {
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
     { name: 'Tip & Bill Split', path: '/tip-calculator/' },
     { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
-    { name: 'Biweekly vs Semimonthly Paycheck Calculator', path: '/biweekly-vs-semimonthly/' }
+    { name: 'Biweekly vs Semimonthly Paycheck Calculator', path: '/biweekly-vs-semimonthly/' },
+    { name: 'What Tax Rules Apply to Me', path: '/what-applies-to-me/' }
   ],
   '/data/treasury-tipped-occupation-codes/': [
     { name: 'W-2 Box 12 Decoder & Tipped Occupation Lookup', path: '/w2-box-decoder/' },
@@ -2850,6 +2868,7 @@ async function main() {
   const embedWordToPdfTpl = await read(join(SRC, 'templates', 'embed', 'word-to-pdf.html'));
   const overtimeStudyTpl = await read(join(SRC, 'templates', 'data-overtime-tax-by-state.html'));
   const tipsStudyTpl = await read(join(SRC, 'templates', 'data-tips-tax-by-state.html'));
+  const wamTpl = await read(join(SRC, 'templates', 'what-applies-to-me.html'));
   const thpTpl = await read(join(SRC, 'templates', 'data-take-home-pay-by-state.html'));
   // Key-figures line for the take-home study, computed inside its build block below
   // and consumed by llms-full.txt after that block's scope closes.
@@ -3047,6 +3066,7 @@ async function main() {
   registerAsset('assets', 'category-toggle.js'); // homepage collapsible category persistence (home.html only)
   registerAsset('assets', 'feedback-widget.js'); // "Was this tool helpful?" rating toast (tool pages)
   registerAsset('assets', 'report-widget.js'); // "Report a wrong result" inline reporter (tool pages)
+  registerAsset('assets', 'what-applies-to-me.js'); // visibility-only flow controller (/what-applies-to-me/)
   registerAsset('assets', 'recent-tools.js'); // records visits for the Cmd/Ctrl+K palette's recents list (tool pages)
   registerAsset('assets', 'money-input.js'); // live thousands separators for $ fields (shared leaf)
   registerAsset('assets', 'invoice.js');
@@ -4522,6 +4542,61 @@ async function main() {
     }
     await writeFile(join(DIST, 'data', 'tips-tax-by-state-2026.csv'),
       csvLines.map(r => r.map(csvEsc).join(',')).join('\n') + '\n');
+  }
+
+  // "What tax rules apply to me?" DISCOVERY FLOW (/what-applies-to-me/).
+  // A six-question flow that ends in a sourced LIST OF RULES, never a dollar figure
+  // and never a computed tax: discovery here, arithmetic in the existing calculators.
+  // All 51 jurisdictions ship inside this one page (same all-states-in-one-page
+  // pattern as /bonus-tax-calculator/), so nothing is generated client-side. The
+  // page asset only toggles visibility; with JavaScript off every question and
+  // every rule for every state is already on screen and readable.
+  //
+  // Deliberately ONE page, not 52: per-state URLs would cannibalize the existing
+  // /{state}-paycheck-calculator/ pages, which already own the per-state tax queries
+  // and already render a per-state tips/overtime verdict block.
+  {
+    const wamParts = buildWamParts({
+      states: roster,
+      obbba,
+      taxData,
+      payroll: payrollData,
+      supplemental: suppData,
+      esc: escHtml,
+    });
+
+    const wamArticleLd = JSON.stringify({
+      '@context': 'https://schema.org', '@type': 'WebPage',
+      name: 'What tax rules should I check?',
+      description: 'A question-led guide to the 2026 tax rules that match your answers, for all 50 US states and DC. '
+        + 'It lists rules and links the calculator for each one; it does not compute a tax.',
+      url: `${SITE.url}/what-applies-to-me/`,
+      inLanguage: 'en-US',
+      isAccessibleForFree: true,
+      author: { '@type': 'Person', '@id': `${SITE.url}/#edmond-daher`, name: 'Edmond Daher', url: `${SITE.url}/about/` },
+      publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+    });
+    const wamDatasetLd = JSON.stringify({
+      '@context': 'https://schema.org', '@type': 'Dataset',
+      name: 'State tax rules surfaced by the Tools Berry rule finder, tax year 2026',
+      description: 'Per-jurisdiction tips and overtime conformity, local wage-tax status, employee-paid payroll '
+        + 'programs and supplemental-wage withholding method for all 50 US states and DC, tax year 2026.',
+      creator: { '@type': 'Person', name: 'Edmond Daher' },
+      publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+      license: 'https://creativecommons.org/licenses/by/4.0/',
+      temporalCoverage: '2026',
+      isAccessibleForFree: true,
+    });
+
+    await mkdir(join(DIST, 'what-applies-to-me'), { recursive: true });
+    await writeFile(
+      join(DIST, 'what-applies-to-me', 'index.html'),
+      fillTool(wamTpl, Object.assign({
+        SITE_NAME: SITE.name, SITE_URL: SITE.url,
+        ARTICLE_LD: wamArticleLd, DATASET_LD: wamDatasetLd,
+      }, wamParts), '/what-applies-to-me/')
+    );
+    urls.push(`${SITE.url}/what-applies-to-me/`);
   }
 
   // "Take-home pay on $75,000 in all 51 states" DATA STUDY (/data/take-home-pay-by-state/).
