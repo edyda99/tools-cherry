@@ -1185,6 +1185,25 @@ const NOINDEX_TOOLS = new Set([
   '/time-zone-converter/',
 ]);
 
+// Per-tool authoritative citations (src/data/tool-sources.json). Only pages with a
+// genuine primary authority carry these — NIST for measurement, IRS for contribution
+// limits, ACOG for gestational dating, CFPB for mortgage mechanics, and so on. Pages
+// with nothing real to cite (a countdown timer, a diff checker) deliberately have no
+// entry: inventing a citation for them is the same thin-content padding the rest of
+// this build works to avoid. Every URL was fetched and content-checked when added.
+let TOOL_SOURCES = {};
+
+function toolSourcesBlock(currentPath) {
+  const slug = String(currentPath || '').replace(/^\/|\/$/g, '');
+  const items = TOOL_SOURCES[slug];
+  if (!items || !items.length) return '';
+  const lis = items.map((s) => (
+    `<li><a href="${escHtml(s.url)}" rel="nofollow noopener" target="_blank">${escHtml(s.title)}</a>`
+    + ` — ${escHtml(s.publisher)}</li>`
+  )).join('');
+  return `<section class="sources"><h2>Sources</h2><ul>${lis}</ul></section>`;
+}
+
 function fillTool(tpl, map, currentPath) {
   let out = fill(tpl, map);
   // Dated tax tools: inject a visible "Last updated" byline right under the H1
@@ -1192,7 +1211,7 @@ function fillTool(tpl, map, currentPath) {
   if (DATED_TAX_TOOLS.has(currentPath)) {
     out = out.replace('</h1>', `</h1>\n    ${toolUpdatedLine(currentPath)}`);
   }
-  out = out.replace('<footer class="site">', `${relatedToolsBlock(currentPath)}\n<footer class="site">`);
+  out = out.replace('<footer class="site">', `${toolSourcesBlock(currentPath)}\n${relatedToolsBlock(currentPath)}\n<footer class="site">`);
   if (NOINDEX_TOOLS.has(currentPath)) {
     out = out.replace('</head>', '  <meta name="robots" content="noindex, follow">\n</head>');
   }
@@ -2691,6 +2710,7 @@ async function rewriteHtmlAssetRefs(dir, hashMap) {
 async function main() {
   const taxData = await readJSON(join(SRC, 'data', 'tax-data-2026.json'));
   const roster = await readJSON(join(SRC, 'data', 'states.json'));
+  TOOL_SOURCES = await readJSON(join(SRC, 'data', 'tool-sources.json'));
   const payrollData = await readJSON(join(SRC, 'data', 'state-payroll-2026.json'));
   const payroll = (payrollData && payrollData.states) || {};
   const stateTpl = await read(join(SRC, 'templates', 'state-page.html'));
