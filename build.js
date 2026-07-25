@@ -781,10 +781,21 @@ const RELATED_OVERRIDES = {
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
     { name: 'Tip Income Tax by State (Data Study)', path: '/data/tips-tax-by-state/' },
+    { name: 'Take-Home Pay by State on $75,000 (Data Study)', path: '/data/take-home-pay-by-state/' },
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
     { name: 'Double Time Pay Calculator', path: '/double-time-pay-calculator/' },
     { name: 'Hours Calculator (Time Card)', path: '/hours-calculator/' },
     { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' }
+  ],
+  '/data/take-home-pay-by-state/': [
+    { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
+    { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
+    { name: 'Biweekly vs Semimonthly Paycheck Calculator', path: '/biweekly-vs-semimonthly/' },
+    { name: 'Overtime Tax by State (Data Study)', path: '/data/overtime-tax-by-state/' },
+    { name: 'Tip Income Tax by State (Data Study)', path: '/data/tips-tax-by-state/' },
+    { name: '2026 State Bonus Withholding Rates', path: '/data/state-supplemental-withholding-rates-2026/' },
+    { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
+    { name: 'Social Security Wage Base Max-Out Date Calculator', path: '/ss-wage-base-calculator/' }
   ],
   '/data/tips-tax-by-state/': [
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
@@ -2839,6 +2850,10 @@ async function main() {
   const embedWordToPdfTpl = await read(join(SRC, 'templates', 'embed', 'word-to-pdf.html'));
   const overtimeStudyTpl = await read(join(SRC, 'templates', 'data-overtime-tax-by-state.html'));
   const tipsStudyTpl = await read(join(SRC, 'templates', 'data-tips-tax-by-state.html'));
+  const thpTpl = await read(join(SRC, 'templates', 'data-take-home-pay-by-state.html'));
+  // Key-figures line for the take-home study, computed inside its build block below
+  // and consumed by llms-full.txt after that block's scope closes.
+  let dataPageStatsTakeHome = '';
   // Standalone /data/ reference tables (citable link-bait): each re-packages an
   // already-sourced dataset that lives inside an existing tool page, plus an
   // iframe-able /embed/data/* twin.
@@ -3241,6 +3256,7 @@ async function main() {
       { name: `${state.name} Bonus Tax Calculator`, path: `/${slug}-bonus-tax-calculator/` },
       { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
       { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
+      { name: 'Take-Home Pay by State on $75,000 (Data Study)', path: '/data/take-home-pay-by-state/' },
       { name: 'Overtime Tax by State (Data Study)', path: '/data/overtime-tax-by-state/' },
       { name: 'Tip Income Tax by State (Data Study)', path: '/data/tips-tax-by-state/' },
       { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' }
@@ -3389,7 +3405,12 @@ async function main() {
   // home
   await writeFile(
     join(DIST, 'index.html'),
-    fill(homeTpl, { STATE_LINKS: homeLinks, YEAR: year, SITE_NAME: SITE.name, SITE_URL: SITE.url })
+    fill(homeTpl, {
+      STATE_LINKS: homeLinks, YEAR: year, SITE_NAME: SITE.name, SITE_URL: SITE.url,
+      // Live count of built state pages, so the take-home-study link on the
+      // paycheck hub can never claim a roster size the build didn't produce.
+      ROW_COUNT_STATES: String(builtSlugs.size),
+    })
   );
 
   // static content pages (privacy / terms / about / contact) — two-pass fill so
@@ -4503,6 +4524,413 @@ async function main() {
       csvLines.map(r => r.map(csvEsc).join(',')).join('\n') + '\n');
   }
 
+  // "Take-home pay on $75,000 in all 51 states" DATA STUDY (/data/take-home-pay-by-state/).
+  // Doubles as the topical HUB for the 51 per-state paycheck calculators: every row
+  // deep-links to its own /<slug>-paycheck-calculator/ page.
+  //
+  // EVERY figure on the page is computed here, at build time, by running the SAME
+  // paycheck engine the state pages run (computePaycheck + tax-data-2026.json), so
+  // the study can never drift from the calculators and regenerates correctly when a
+  // state publishes new brackets. Nothing about the result is hardcoded: the winners,
+  // the losers, the spread, the ties, the analysis paragraphs and the FAQ are all
+  // derived from the sorted result set, and each analysis block is guarded so it
+  // disappears rather than lies if the underlying pattern stops holding.
+  {
+    const SALARY = 75000;
+    const STUDY_PUBLISHED_ISO = '2026-07-25';
+    const STUDY_UPDATED_ISO = '2026-07-25';
+    const STUDY_DATE_HUMAN = humanDate(STUDY_UPDATED_ISO);
+    const esc = escHtml;
+    const pct1 = (r) => (r * 100).toFixed(1) + '%';
+    const pct2 = (r) => (r * 100).toFixed(2) + '%';
+    const NUM_WORD = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight',
+      'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen'];
+    const numWord = (n) => NUM_WORD[n] || String(n);
+    const listAnd = (arr) => (arr.length <= 1
+      ? (arr[0] || '')
+      : arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1]);
+
+    // One row per jurisdiction in the roster that tax-data actually carries.
+    const thpRows = roster
+      .filter((s) => taxData.states[s.slug])
+      .map((s) => {
+        const st = taxData.states[s.slug];
+        const a = computePaycheck({
+          wage: { type: 'salary', amount: SALARY },
+          filingStatus: 'single', payFrequency: 'annual', stateSlug: s.slug,
+        }, taxData).annual;
+        // Total withholding rate INCLUDES the post-tax state disability/paid-leave
+        // premiums, because the take-home column already nets them out — using the
+        // engine's tax-only effectiveRate here would make WA look identical to TX
+        // while showing a smaller paycheck.
+        return {
+          name: st.name, slug: s.slug, abbr: st.abbr,
+          net: a.net, stateTax: a.state, programs: a.statePrograms,
+          federal: a.federal, fica: a.socialSecurity + a.medicare,
+          totalRate: SALARY > 0 ? (SALARY - a.net) / SALARY : 0,
+          hasIncomeTax: !!st.hasIncomeTax,
+          figureYear: st.figureYear,
+          topRate: (() => {
+            const t = st.tax;
+            if (!st.hasIncomeTax || !t) return 0;
+            if (t.type === 'flat') return t.rate || 0;
+            if (t.type === 'bracket') {
+              const b = (t.brackets && (t.brackets.single || [])) || [];
+              return b.length ? b[b.length - 1].rate : 0;
+            }
+            return 0;
+          })(),
+        };
+      })
+      .sort((x, y) => y.net - x.net || x.name.localeCompare(y.name));
+
+    // Competition ranking on the UNROUNDED net, so tied states share a rank.
+    let rk = 0, prevNet = null;
+    thpRows.forEach((r, i) => {
+      if (prevNet === null || Math.abs(r.net - prevNet) > 0.005) { rk = i + 1; prevNet = r.net; }
+      r.rank = rk;
+    });
+
+    const rowCount = thpRows.length;
+    const best = thpRows[0];
+    const worst = thpRows[rowCount - 1];
+    const spread = best.net - worst.net;
+    const topTied = thpRows.filter((r) => r.rank === 1);
+    const topNames = topTied.map((r) => r.name);
+    // Federal income tax + FICA are identical in every row (same gross, same status).
+    const fedFica = best.federal + best.fica;
+    const median = thpRows[Math.floor(rowCount / 2)];
+    // Next-lowest state that is NOT tied with the last one.
+    const nextUp = [...thpRows].reverse().find((r) => r.rank !== worst.rank);
+
+    const tableRows = thpRows.map((r) => {
+      const progCell = r.programs > 0
+        ? `<td class="num" data-val="${Math.round(r.programs)}">${usd0(r.programs)}</td>`
+        : '<td class="num zero" data-val="0">None</td>';
+      const stateCell = r.stateTax > 0
+        ? `<td class="num" data-val="${Math.round(r.stateTax)}">${usd0(r.stateTax)}</td>`
+        : '<td class="num zero" data-val="0">None</td>';
+      return `<tr id="state-${r.slug}">` +
+        `<td class="rank" data-val="${r.rank}">${r.rank}</td>` +
+        `<td><a href="/${r.slug}-paycheck-calculator/">${esc(r.name)}</a></td>` +
+        `<td class="num net" data-val="${Math.round(r.net)}">${usd0(r.net)}</td>` +
+        stateCell + progCell +
+        `<td class="num" data-val="${(r.totalRate * 100).toFixed(2)}">${pct2(r.totalRate)}</td></tr>`;
+    }).join('\n');
+
+    // --- Analysis blocks. Each is guarded on the pattern it describes still holding.
+    const blocks = [];
+    const maxStateTaxRow = [...thpRows].sort((a, b) => b.stateTax - a.stateTax)[0];
+    blocks.push(
+      `<h3>Most of the tax bill never changes</h3>` +
+      `<p>Before any state gets involved, a single filer on ${usd0(SALARY)} owes ${usd0(best.federal)} ` +
+      `in federal income tax and ${usd0(best.fica)} in FICA (Social Security at 6.2% plus Medicare at 1.45%). ` +
+      `That ${usd0(fedFica)} is the same in every jurisdiction on this page. Only the state layer moves, ` +
+      `and state income tax across the ${rowCount} jurisdictions runs from nothing at all to ` +
+      `${usd0(maxStateTaxRow.stateTax)} in ${esc(maxStateTaxRow.name)}. Even in ${esc(worst.name)}, ` +
+      `where the total bill is highest, federal tax and FICA are still ` +
+      `${pct1(fedFica / (SALARY - worst.net))} of everything withheld. Moving state cannot touch that part.</p>`
+    );
+    if (topTied.length > 1) {
+      blocks.push(
+        `<h3>The top of the table is a tie, not a race</h3>` +
+        `<p>${numWord(topTied.length)} jurisdictions land on exactly ${usd0(best.net)}: ` +
+        `${esc(listAnd(topNames))}. They are identical because they do the same thing, which is nothing: ` +
+        `no state income tax on wages and no employee-side payroll premium either. There is no ranking to ` +
+        `be had between them on take-home pay. Where they differ is sales tax, property tax and housing, ` +
+        `none of which touch a pay stub.</p>`
+      );
+    }
+    // The lowest-billing state that still HAS an income tax: the "you would not guess it" row.
+    const gentlest = thpRows.filter((r) => r.hasIncomeTax && r.stateTax > 0)
+      .sort((a, b) => a.stateTax - b.stateTax)[0];
+    if (gentlest && gentlest.stateTax < spread / 4) {
+      blocks.push(
+        `<h3>${esc(gentlest.name)} is the surprise</h3>` +
+        `<p>${esc(gentlest.name)} does levy an income tax, but on ${usd0(SALARY)} it collects only ` +
+        `${usd0(gentlest.stateTax)}. That tax is the single thing separating it from the states above, ` +
+        `so it finishes at ${usd0(gentlest.net)}, exactly ${usd0(best.net - gentlest.net)} behind them. ` +
+        `On this salary it behaves like a ` +
+        `no-income-tax state. That is the useful reminder in this dataset: "has an income tax" and ` +
+        `"takes a meaningful bite" are different questions, and a headline rate answers neither, because ` +
+        `standard deductions and bracket widths do most of the work at ordinary salaries.</p>`
+      );
+    }
+    // A state with NO income tax that still withholds something (paid-leave/disability).
+    const noTaxWithProgram = thpRows.find((r) => !r.hasIncomeTax && r.programs > 0);
+    if (noTaxWithProgram) {
+      blocks.push(
+        `<h3>No income tax does not always mean no state deduction</h3>` +
+        `<p>${esc(noTaxWithProgram.name)} has no state income tax and still does not tie for first. ` +
+        `It withholds ${usd0(noTaxWithProgram.programs)} a year for its state paid-leave premium, which ` +
+        `lands it at ${usd0(noTaxWithProgram.net)}, rank ${noTaxWithProgram.rank} of ${rowCount}. It is the ` +
+        `clearest case in the table of a state deduction that is not an income tax, and it is why ` +
+        `"no income tax" predicts take-home pay less well than people assume.</p>`
+      );
+    }
+    // Bottom of the table, plus how flat the middle really is.
+    const midLow = thpRows[Math.floor(rowCount * 0.3)];
+    const midHigh = thpRows[Math.floor(rowCount * 0.8)];
+    if (nextUp) {
+      const gapToNext = nextUp.net - worst.net;
+      const outlier = gapToNext > spread * 0.15
+        ? `That is ${usd0(gapToNext)} below ${esc(nextUp.name)}, the next-lowest, so the bottom of this ` +
+          `table is one genuine outlier rather than a gradual slope. `
+        : `${esc(nextUp.name)} is close behind at ${usd0(nextUp.net)}, so the bottom of the table is a ` +
+          `cluster rather than a single outlier. `;
+      blocks.push(
+        `<h3>The bottom of the table, and how flat the middle is</h3>` +
+        `<p>${esc(worst.name)} keeps the least, ${usd0(worst.net)}, on a ${usd0(SALARY)} salary. ` +
+        outlier +
+        `The middle is much flatter than the headline spread suggests: between the rank-${midLow.rank} ` +
+        `state (${esc(midLow.name)}) and the rank-${midHigh.rank} state (${esc(midHigh.name)}) the entire ` +
+        `difference is ${usd0(midLow.net - midHigh.net)} a year, under ` +
+        `${usd0((midLow.net - midHigh.net) / 12)} a month. For most of the country, the state you pick ` +
+        `changes your paycheck by less than a single utility bill.</p>`
+      );
+    }
+    // Highest headline top marginal rate vs. what it actually costs at this salary.
+    const headline = [...thpRows].sort((a, b) => b.topRate - a.topRate)[0];
+    const beatenBy = headline && headline.topRate > 0
+      ? thpRows.filter((r) => r.stateTax > headline.stateTax && r.topRate < headline.topRate).length
+      : 0;
+    if (headline && headline.topRate > 0 && beatenBy > 0) {
+      blocks.push(
+        `<h3>A high state rate is not the same as a high state bill</h3>` +
+        `<p>${esc(headline.name)} has the highest top marginal income-tax rate in the country at ` +
+        `${pct1(headline.topRate)}, but that rate applies to income far above ${usd0(SALARY)}. At this ` +
+        `salary ${esc(headline.name)} takes ${usd0(headline.stateTax)} of income tax, less than ` +
+        `${beatenBy} states whose top rate is lower than its own` +
+        (headline.programs > 0
+          ? `, and it finishes rank ${headline.rank} of ${rowCount} largely because it adds ` +
+            `${usd0(headline.programs)} of state disability insurance on top`
+          : '') +
+        `. A marginal rate describes your last dollar; this table describes all of them.</p>`
+      );
+    }
+    const analysisBlocks = blocks.join('\n      ');
+
+    // --- Cost-of-living context table: the tied leaders plus the bottom three, next
+    // to the taxes a paycheck calculator structurally cannot see. Figures come from
+    // the already-sourced state-payroll-2026.json the state pages use.
+    const colPick = [...topTied, ...thpRows.slice(-3).filter((r) => r.rank !== 1)];
+    const colSeen = new Set();
+    const colRows = colPick.filter((r) => (colSeen.has(r.slug) ? false : colSeen.add(r.slug)))
+      .map((r) => {
+        const p = payroll[r.slug] || {};
+        const sales = p.salesTax && typeof p.salesTax.combinedAvgRatePct === 'number' ? p.salesTax.combinedAvgRatePct : null;
+        const prop = p.propertyTax && typeof p.propertyTax.effectiveRatePct === 'number' ? p.propertyTax.effectiveRatePct : null;
+        const mhi = p.medianHouseholdIncome && p.medianHouseholdIncome.amountUsd;
+        const cell = (v, suffix) => (v == null
+          ? '<td class="num zero" data-val="">n/a</td>'
+          : `<td class="num" data-val="${v}">${v}${suffix}</td>`);
+        return `<tr><td><a href="/${r.slug}-paycheck-calculator/">${esc(r.name)}</a></td>` +
+          `<td class="num net" data-val="${Math.round(r.net)}">${usd0(r.net)}</td>` +
+          cell(sales, '%') + cell(prop, '%') +
+          (mhi ? `<td class="num" data-val="${mhi}">${usd0(mhi)}</td>` : '<td class="num zero" data-val="">n/a</td>') +
+          `</tr>`;
+      }).join('\n');
+    // A concrete, computed contrast between the highest-sales-tax leader and the
+    // lowest-take-home state, so the caveat is backed by numbers rather than assertion.
+    const salesOf = (r) => {
+      const p = payroll[r.slug];
+      return p && p.salesTax && typeof p.salesTax.combinedAvgRatePct === 'number' ? p.salesTax.combinedAvgRatePct : null;
+    };
+    const salesLeader = topTied.filter((r) => salesOf(r) != null).sort((a, b) => salesOf(b) - salesOf(a))[0];
+    const worstSales = salesOf(worst);
+    const colContrast = (salesLeader && worstSales != null)
+      ? `${esc(salesLeader.name)} ${topTied.length > 1 ? 'ties for' : 'takes'} the most take-home pay ` +
+        `and also charges an average ${salesOf(salesLeader)}% combined sales tax, while ` +
+        `${esc(worst.name)}, last on take-home pay, charges ${worstSales}%.`
+      : '';
+
+    // Rosters used in the methodology and limits sections, all counted from the data.
+    const noTaxStates = thpRows.filter((r) => !r.hasIncomeTax).map((r) => r.name).sort();
+    const programStates = thpRows.filter((r) => r.programs > 0).map((r) => r.name).sort();
+    const localStates = roster
+      .filter((s) => payroll[s.slug] && payroll[s.slug].localIncomeTax && payroll[s.slug].localIncomeTax.exists)
+      .map((s) => s.name).sort();
+    // Any jurisdiction still shown on prior-year figures (the documented fallback).
+    const priorYear = thpRows.filter((r) => r.hasIncomeTax && Number(r.figureYear) && Number(r.figureYear) !== Number(year));
+    const priorYearNote = priorYear.length
+      ? `<p><strong>Prior-year figures.</strong> ${esc(listAnd(priorYear.map((r) => `${r.name} (${r.figureYear})`)))} ` +
+        `${priorYear.length === 1 ? 'has' : 'have'} not published ${year} brackets yet, so ` +
+        `${priorYear.length === 1 ? 'that row uses' : 'those rows use'} the most recent official figures. ` +
+        `Each row updates automatically once the ${year} tables are released.</p>`
+      : '';
+
+    // --- FAQ. The visible Q&A and the FAQPage schema are generated from ONE array,
+    // so the rendered page and the structured data can never disagree.
+    const faq = [
+      {
+        q: `Which state has the highest take-home pay on a ${usd0(SALARY)} salary?`,
+        a: topTied.length > 1
+          ? `${numWord(topTied.length)} jurisdictions tie at ${usd0(best.net)} a year: ${listAnd(topNames)}. Each has no state income tax on wages and no state payroll premium, so a single filer keeps the same amount in all of them.`
+          : `${best.name}, at ${usd0(best.net)} a year for a single filer taking the standard deduction.`,
+      },
+      {
+        q: `Which state has the lowest take-home pay on ${usd0(SALARY)}?`,
+        a: `${worst.name}, at ${usd0(worst.net)} a year, which is ${usd0(spread)} less than the top of the table on identical gross pay.`,
+      },
+      {
+        q: 'Is a no-income-tax state always the better financial move?',
+        a: `No. This page measures payroll only. States without an income tax generally raise revenue through sales and property taxes instead, and housing costs, which are not a tax at all, vary by far more than the ${usd0(spread)} spread shown here. A bigger paycheck in a more expensive place can leave you worse off.`,
+      },
+      noTaxWithProgram ? {
+        q: 'Why do two states with no income tax show different take-home pay?',
+        a: `Because an income tax is not the only thing a state can withhold. ${noTaxWithProgram.name} has no income tax but collects ${usd0(noTaxWithProgram.programs)} a year for its state paid-leave program, which is why it does not tie with the other no-income-tax states.`,
+      } : null,
+      {
+        q: 'Are city and local income taxes included?',
+        a: `No. ${localStates.length} states permit local income taxes, and they are excluded so that every row compares like with like. If you work in a city that levies one, your actual take-home pay will be lower than the figure shown for your state.`,
+      },
+      {
+        q: 'Why is the gap between states smaller than I expected?',
+        a: `Because most of the bill is federal. On ${usd0(SALARY)} a single filer pays ${usd0(fedFica)} in federal income tax and FICA no matter where they live. State tax is the only variable, and on this salary it is worth at most ${usd0(spread)} a year.`,
+      },
+    ].filter(Boolean);
+    const faqBlocks = faq.map((f) =>
+      `<h3>${esc(f.q)}</h3>\n      <p>${esc(f.a)}</p>`).join('\n\n      ');
+    const faqLd = JSON.stringify({
+      '@context': 'https://schema.org', '@type': 'FAQPage',
+      mainEntity: faq.map((f) => ({
+        '@type': 'Question', name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    });
+
+    // Federal primary sources (IRS + SSA), straight out of tax-data's _meta.
+    const SOURCE_TITLES = {
+      federal_brackets: `IRS: ${year} inflation-adjusted tax brackets (Rev. Proc. 2025-32)`,
+      standard_deduction: `IRS: ${year} standard deduction`,
+      fica: 'Social Security Administration: Contribution and Benefit Base (Social Security wage base)',
+      additional_medicare: 'IRS: Topic no. 751, Additional Medicare Tax',
+      federal_brackets_hoh: `Tax Foundation: ${year} federal tax brackets`,
+    };
+    const metaSources = (taxData._meta && taxData._meta.sources) || {};
+    const srcSeen = new Set();
+    const sourceRows = Object.entries(metaSources)
+      .filter(([, u]) => /^https?:\/\//.test(u) && !srcSeen.has(u) && srcSeen.add(u))
+      .map(([k, u]) => `<li><a href="${esc(u)}" rel="nofollow noopener" target="_blank">` +
+        `${esc(SOURCE_TITLES[k] || k.replace(/_/g, ' '))}</a></li>`)
+      .join('');
+
+    const studyDesc = `${usd0(SALARY)} pays ${usd0(spread)} more a year in some US states than others. ` +
+      `Computed ${year} take-home pay for a single filer on ${usd0(SALARY)} in all ${rowCount} jurisdictions, ` +
+      `from ${usd0(best.net)} down to ${usd0(worst.net)}, after federal income tax, FICA, state income tax ` +
+      `and state payroll deductions.`;
+    const articleLd = JSON.stringify({
+      '@context': 'https://schema.org', '@type': 'Article',
+      headline: `Take-Home Pay on ${usd0(SALARY)} in All ${rowCount} States, Compared (${year})`,
+      description: studyDesc,
+      datePublished: STUDY_PUBLISHED_ISO, dateModified: STUDY_UPDATED_ISO,
+      author: { '@type': 'Person', '@id': `${SITE.url}/#edmond-daher`, name: 'Edmond Daher', url: `${SITE.url}/about/` },
+      publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+      mainEntityOfPage: `${SITE.url}/data/take-home-pay-by-state/`,
+      isAccessibleForFree: true,
+    });
+    const datasetLd = JSON.stringify({
+      '@context': 'https://schema.org', '@type': 'Dataset',
+      name: `US take-home pay on a ${usd0(SALARY)} salary by state, tax year ${year}`,
+      description: `Computed ${year} annual take-home pay, state income tax, state payroll deductions and ` +
+        `total effective tax rate for a single filer earning ${usd0(SALARY)}, in all 50 US states and the ` +
+        `District of Columbia. Derived from ${year} IRS federal brackets, the SSA wage base and each state's ` +
+        `own income tax tables.`,
+      url: `${SITE.url}/data/take-home-pay-by-state/`,
+      creator: { '@type': 'Person', name: 'Edmond Daher' },
+      publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+      license: 'https://creativecommons.org/licenses/by/4.0/',
+      temporalCoverage: String(year),
+      spatialCoverage: { '@type': 'Country', name: 'United States' },
+      variableMeasured: ['Annual take-home pay', 'State income tax', 'State payroll deductions', 'Total effective tax rate'],
+      distribution: [
+        { '@type': 'DataDownload', encodingFormat: 'text/csv', contentUrl: `${SITE.url}/data/take-home-pay-by-state-${year}.csv` },
+        { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/take-home-pay-by-state-${year}.json` },
+      ],
+      isAccessibleForFree: true,
+    });
+
+    await mkdir(join(DIST, 'data', 'take-home-pay-by-state'), { recursive: true });
+    await writeFile(
+      join(DIST, 'data', 'take-home-pay-by-state', 'index.html'),
+      fillTool(thpTpl, {
+        SITE_NAME: SITE.name, SITE_URL: SITE.url,
+        TAX_YEAR: String(year), SALARY: usd0(SALARY), ROW_COUNT: String(rowCount),
+        PUB_DATE: STUDY_DATE_HUMAN,
+        TABLE_ROWS: tableRows, COL_ROWS: colRows, COL_CONTRAST: colContrast,
+        ANALYSIS_BLOCKS: analysisBlocks, FAQ_BLOCKS: faqBlocks,
+        TOP_NET: usd0(best.net), BOTTOM_NET: usd0(worst.net),
+        SPREAD: usd0(spread), SPREAD_MONTHLY: usd0(spread / 12),
+        TOP_STATES_TEXT: esc(listAnd(topNames)),
+        TOP_STATES_SHORT: esc(topNames.length > 3 ? `${topNames.slice(0, 3).join(', ')} +${topNames.length - 3} more` : listAnd(topNames)),
+        TOP_STATES_COUNT_WORD: numWord(topTied.length),
+        // Guarded so the callout stays grammatical (and true) if the top ever
+        // stops being a tie.
+        TOP_TIE_PHRASE: topTied.length > 1
+          ? `${numWord(topTied.length)} jurisdictions tie for the most take-home pay at ` +
+            `${usd0(best.net)} (${esc(listAnd(topNames))}), because they levy no state income tax ` +
+            `and no state payroll deduction.`
+          : `${esc(best.name)} leaves the most take-home pay, ${usd0(best.net)}.`,
+        BOTTOM_STATE: esc(worst.name),
+        FED_TAX: usd0(best.federal), FICA_TAX: usd0(best.fica), FED_FICA: usd0(fedFica),
+        FED_STD_DED: usd0(taxData.federal.standardDeduction.single),
+        SS_WAGE_BASE: usd0(taxData.federal.fica.socialSecurity.wageBase),
+        NOTAX_COUNT: String(noTaxStates.length), NOTAX_STATES: esc(listAnd(noTaxStates)),
+        PROGRAM_COUNT: String(programStates.length), PROGRAM_STATES: esc(listAnd(programStates)),
+        LOCAL_COUNT: String(localStates.length), LOCAL_STATES: esc(listAnd(localStates)),
+        PRIOR_YEAR_NOTE: priorYearNote,
+        SOURCE_ROWS: sourceRows,
+        LAST_SOURCED: esc((taxData._meta && taxData._meta.lastSourced) || ''),
+        ARTICLE_LD: articleLd, DATASET_LD: datasetLd, FAQ_LD: faqLd,
+      }, '/data/take-home-pay-by-state/')
+    );
+    urls.push(`${SITE.url}/data/take-home-pay-by-state/`);
+
+    // Journalist-liftable citation kit: the exact rows the page renders, as CSV and
+    // JSON, generated from the same computed array (never a second calculation).
+    const csvEscT = (v) => {
+      const s = String(v == null ? '' : v);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const csvT = [['Rank', 'State', 'Abbr', 'Gross salary', 'Annual take-home', 'Federal income tax',
+      'FICA', 'State income tax', 'State payroll deductions', 'Total effective tax rate']];
+    for (const r of thpRows) {
+      csvT.push([r.rank, r.name, r.abbr, SALARY, Math.round(r.net), Math.round(r.federal),
+        Math.round(r.fica), Math.round(r.stateTax), Math.round(r.programs), (r.totalRate * 100).toFixed(2) + '%']);
+    }
+    await writeFile(join(DIST, 'data', `take-home-pay-by-state-${year}.csv`),
+      csvT.map((r) => r.map(csvEscT).join(',')).join('\n') + '\n');
+    await writeFile(join(DIST, 'data', `take-home-pay-by-state-${year}.json`),
+      JSON.stringify({
+        name: `US take-home pay on a ${usd0(SALARY)} salary by state, tax year ${year}`,
+        taxYear: year,
+        assumptions: {
+          grossSalary: SALARY, filingStatus: 'single', payFrequency: 'annual',
+          standardDeduction: true, preTaxDeductions: 0,
+          excludes: ['local income taxes', 'pre-tax deductions', 'tax credits', 'itemized deductions', 'cost of living'],
+        },
+        license: 'https://creativecommons.org/licenses/by/4.0/',
+        source: `${SITE.url}/data/take-home-pay-by-state/`,
+        states: thpRows.map((r) => ({
+          rank: r.rank, state: r.name, abbr: r.abbr, slug: r.slug,
+          takeHomeAnnual: Math.round(r.net),
+          federalIncomeTax: Math.round(r.federal),
+          fica: Math.round(r.fica),
+          stateIncomeTax: Math.round(r.stateTax),
+          statePayrollDeductions: Math.round(r.programs),
+          totalEffectiveTaxRate: Number((r.totalRate * 100).toFixed(2)),
+          calculator: `${SITE.url}/${r.slug}-paycheck-calculator/`,
+        })),
+      }, null, 2) + '\n');
+
+    // One-line key-figures summary for llms-full.txt, from the same computed values.
+    dataPageStatsTakeHome = `${rowCount} jurisdictions; take-home on a ${usd0(SALARY)} single-filer salary ` +
+      `ranges ${usd0(best.net)} (${topNames.join(', ')}) to ${usd0(worst.net)} (${worst.name}), a ` +
+      `${usd0(spread)} spread; federal income tax + FICA are ${usd0(fedFica)} in every state; ` +
+      `${noTaxStates.length} states levy no wage income tax; ${programStates.length} withhold a state ` +
+      `disability or paid-leave premium.`;
+  }
+
   // Standalone /data/ REFERENCE TABLES. Each re-packages an already-sourced
   // dataset that otherwise only lives buried inside a tool page, as its own
   // citable, embeddable resource (the kind of page that earns external links,
@@ -5021,6 +5449,12 @@ async function main() {
     })
     .join('\n\n');
   const llmsFullDatasets = [
+    {
+      name: 'Take-Home Pay on $75,000 in All 51 States',
+      path: '/data/take-home-pay-by-state/',
+      what: 'Compares computed annual take-home pay on an identical $75,000 single-filer salary across all 50 US states and DC, with state income tax, state payroll deductions and total effective tax rate per state.',
+      figures: dataPageStatsTakeHome,
+    },
     {
       name: 'Treasury Tipped Occupation Codes (TTOC)',
       path: '/data/treasury-tipped-occupation-codes/',
