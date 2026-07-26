@@ -25,8 +25,9 @@
     for (var i = 0; i < cats.length; i++) {
       (function (el) {
         el.addEventListener('toggle', function () {
-          // A collapse applied by the pre-paint script in home.html is a
-          // viewport default, not a choice the visitor made, so it must not be
+          // A collapse applied by the pre-paint script in home.html is the
+          // site default (every section except "popular" starts collapsed on a
+          // first visit), not a choice the visitor made, so it must not be
           // stored. It marks those elements with data-tb-auto; the flag is
           // cleared here so any later real toggle persists normally.
           var auto = el.dataset && el.dataset.tbAuto === '1';
