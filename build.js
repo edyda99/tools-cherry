@@ -316,6 +316,7 @@ const TOOLS = [
   { name: 'Split PDF', path: '/split-pdf/', cat: 'image' },
   { name: 'Compress PDF', path: '/compress-pdf/', cat: 'image' },
   { name: 'PDF Tools', path: '/pdf-tools/', cat: 'image' },
+  { name: 'PDF Converter Alternatives & Pricing', path: '/pdf-word-converter-alternatives/', cat: 'image' },
   { name: 'Signature Maker', path: '/signature-maker/', cat: 'make' },
   { name: 'Percentage Calculator', path: '/percentage-calculator/', cat: 'calc' },
   { name: 'Tip & Bill Split', path: '/tip-calculator/', cat: 'calc' },
@@ -422,6 +423,7 @@ const TOOL_DESCRIPTIONS = {
   '/split-pdf/': 'Extract a page range or split every page of a PDF into separate files, in your browser.',
   '/compress-pdf/': 'Shrink a PDF\'s file size by re-rendering every page as a compressed image, in your browser.',
   '/pdf-tools/': 'All six free PDF tools in one place — convert, merge, split, compress, and build PDFs from images.',
+  '/pdf-word-converter-alternatives/': 'Honest, verified pricing comparison of PDF/Word converter alternatives.',
   '/signature-maker/': 'Draw or type a signature and download it as a transparent PNG.',
   '/percentage-calculator/': 'Work out percentages, percentage change, and percentage of a number.',
   '/tip-calculator/': 'Calculate tips and split a bill evenly across any number of people.',
@@ -525,7 +527,8 @@ const RELATED_OVERRIDES = {
     { name: 'Split PDF', path: '/split-pdf/' },
     { name: 'Compress PDF', path: '/compress-pdf/' },
     { name: 'Images to PDF Converter', path: '/images-to-pdf/' },
-    { name: 'All PDF Tools', path: '/pdf-tools/' }
+    { name: 'All PDF Tools', path: '/pdf-tools/' },
+    { name: 'PDF Converter Alternatives & Pricing', path: '/pdf-word-converter-alternatives/' }
   ],
   '/word-to-pdf/': [
     { name: 'PDF to Word Converter', path: '/pdf-to-word/' },
@@ -533,7 +536,8 @@ const RELATED_OVERRIDES = {
     { name: 'Split PDF', path: '/split-pdf/' },
     { name: 'Compress PDF', path: '/compress-pdf/' },
     { name: 'Images to PDF Converter', path: '/images-to-pdf/' },
-    { name: 'All PDF Tools', path: '/pdf-tools/' }
+    { name: 'All PDF Tools', path: '/pdf-tools/' },
+    { name: 'PDF Converter Alternatives & Pricing', path: '/pdf-word-converter-alternatives/' }
   ],
   '/merge-pdf/': [
     { name: 'Split PDF', path: '/split-pdf/' },
@@ -541,7 +545,8 @@ const RELATED_OVERRIDES = {
     { name: 'PDF to Word Converter', path: '/pdf-to-word/' },
     { name: 'Word to PDF Converter', path: '/word-to-pdf/' },
     { name: 'Images to PDF Converter', path: '/images-to-pdf/' },
-    { name: 'All PDF Tools', path: '/pdf-tools/' }
+    { name: 'All PDF Tools', path: '/pdf-tools/' },
+    { name: 'PDF Converter Alternatives & Pricing', path: '/pdf-word-converter-alternatives/' }
   ],
   '/split-pdf/': [
     { name: 'Merge PDF Files', path: '/merge-pdf/' },
@@ -549,7 +554,8 @@ const RELATED_OVERRIDES = {
     { name: 'PDF to Word Converter', path: '/pdf-to-word/' },
     { name: 'Word to PDF Converter', path: '/word-to-pdf/' },
     { name: 'Images to PDF Converter', path: '/images-to-pdf/' },
-    { name: 'All PDF Tools', path: '/pdf-tools/' }
+    { name: 'All PDF Tools', path: '/pdf-tools/' },
+    { name: 'PDF Converter Alternatives & Pricing', path: '/pdf-word-converter-alternatives/' }
   ],
   '/compress-pdf/': [
     { name: 'Merge PDF Files', path: '/merge-pdf/' },
@@ -557,7 +563,8 @@ const RELATED_OVERRIDES = {
     { name: 'PDF to Word Converter', path: '/pdf-to-word/' },
     { name: 'Word to PDF Converter', path: '/word-to-pdf/' },
     { name: 'Images to PDF Converter', path: '/images-to-pdf/' },
-    { name: 'All PDF Tools', path: '/pdf-tools/' }
+    { name: 'All PDF Tools', path: '/pdf-tools/' },
+    { name: 'PDF Converter Alternatives & Pricing', path: '/pdf-word-converter-alternatives/' }
   ],
   '/images-to-pdf/': [
     { name: 'PDF to Word Converter', path: '/pdf-to-word/' },
@@ -565,7 +572,8 @@ const RELATED_OVERRIDES = {
     { name: 'Merge PDF Files', path: '/merge-pdf/' },
     { name: 'Split PDF', path: '/split-pdf/' },
     { name: 'Compress PDF', path: '/compress-pdf/' },
-    { name: 'All PDF Tools', path: '/pdf-tools/' }
+    { name: 'All PDF Tools', path: '/pdf-tools/' },
+    { name: 'PDF Converter Alternatives & Pricing', path: '/pdf-word-converter-alternatives/' }
   ],
   '/overtime-tax-calculator/': [
     { name: 'W-2 Box 12 Decoder & Tipped Occupation Lookup', path: '/w2-box-decoder/' },
@@ -2735,6 +2743,7 @@ async function main() {
   const splitPdfTpl = await read(join(SRC, 'templates', 'split-pdf.html'));
   const compressPdfTpl = await read(join(SRC, 'templates', 'compress-pdf.html'));
   const pdfToolsTpl = await read(join(SRC, 'templates', 'pdf-tools.html'));
+  const pdfAltTpl = await read(join(SRC, 'templates', 'pdf-word-converter-alternatives.html'));
   const qrTpl = await read(join(SRC, 'templates', 'qr-generator.html'));
   const circleTpl = await read(join(SRC, 'templates', 'circle-crop.html'));
   const photoTpl = await read(join(SRC, 'templates', 'passport-photo-maker.html'));
@@ -3495,6 +3504,14 @@ async function main() {
     fillTool(pdfToolsTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/pdf-tools/')
   );
   urls.push(`${SITE.url}/pdf-tools/`);
+
+  // PDF converter alternatives + pricing comparison (pure content page, no JS asset)
+  await mkdir(join(DIST, 'pdf-word-converter-alternatives'), { recursive: true });
+  await writeFile(
+    join(DIST, 'pdf-word-converter-alternatives', 'index.html'),
+    fillTool(pdfAltTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/pdf-word-converter-alternatives/')
+  );
+  urls.push(`${SITE.url}/pdf-word-converter-alternatives/`);
 
   // qr code generator (standalone tool page)
   await mkdir(join(DIST, 'qr-code-generator'), { recursive: true });
