@@ -32,6 +32,17 @@ const MAX_BYTES = 5 * 1024 * 1024;       // inline: raw PDF ships in the invoke 
 const R2_MAX_BYTES = 25 * 1024 * 1024;   // r2: only a key is sent, so the upload cap can be larger.
 const DOCX_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
+// The Lambda's own timeout is 60s. Give up two seconds earlier so a conversion that
+// blows the budget (image-heavy PDFs are the usual cause) comes back as OUR json()
+// error, not as whatever the platform emits once nothing answers in time — the
+// browser used to get a non-JSON body here and could only show a vague "didn't work".
+const LAMBDA_TIMEOUT_MS = 58000;
+const TIMEOUT_MSG =
+  'That PDF was too heavy for the server converter — it ran out of time (image-heavy or ' +
+  'very complex pages are the usual cause). The in-browser converter above has no time limit.';
+
+const isTimeout = (e) => !!e && (e.name === 'TimeoutError' || e.name === 'AbortError');
+
 const json = (status, error, extraHeaders) =>
   new Response(JSON.stringify({ error }), {
     status,
@@ -119,10 +130,12 @@ export async function onRequestPost(context) {
 
     let resp;
     try {
-      resp = await signedFetch(env.LAMBDA_URL, JSON.stringify({ key }), env, 'application/json');
-    } catch (_) {
+      resp = await signedFetch(env.LAMBDA_URL, JSON.stringify({ key }), env, 'application/json', LAMBDA_TIMEOUT_MS);
+    } catch (e) {
       context.waitUntil(env.PDF_BUCKET.delete(key));
-      return json(502, 'The server converter is unavailable right now. Please use the in-browser converter.', setCookie);
+      return isTimeout(e)
+        ? json(504, TIMEOUT_MSG, setCookie)
+        : json(502, 'The server converter is unavailable right now. Please use the in-browser converter.', setCookie);
     }
     if (!resp.ok) {
       let msg = 'The server converter could not handle that file. Try the in-browser converter.';
@@ -166,9 +179,11 @@ export async function onRequestPost(context) {
   //    hits to that URL are rejected by AWS before invocation, at $0.
   let resp;
   try {
-    resp = await signedFetch(env.LAMBDA_URL, buf, env);
-  } catch (_) {
-    return json(502, 'The server converter is unavailable right now. Please use the in-browser converter.', setCookie);
+    resp = await signedFetch(env.LAMBDA_URL, buf, env, 'application/pdf', LAMBDA_TIMEOUT_MS);
+  } catch (e) {
+    return isTimeout(e)
+      ? json(504, TIMEOUT_MSG, setCookie)
+      : json(502, 'The server converter is unavailable right now. Please use the in-browser converter.', setCookie);
   }
   if (!resp.ok) {
     // Surface the Lambda's own message (page-count limit, too-large-after-recompress,

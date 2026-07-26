@@ -477,8 +477,21 @@ ul.breakdown { list-style: none; padding: 0; }
 }
 .btn-secondary:hover { background: var(--surface-2); border-color: var(--muted); }
 .btn-secondary:focus-visible { box-shadow: var(--ring); }
+/* A disabled button must LOOK disabled — buttons kept their full live styling while
+   [disabled], so a conversion in flight (or a tool waiting on a file) showed a button
+   that invited a click and swallowed it. Hover is neutralised too, or the button still
+   reacted to the pointer. */
+.btn-primary:disabled, .btn-secondary:disabled,
+.btn-primary:disabled:hover, .btn-secondary:disabled:hover {
+  opacity: .5; cursor: not-allowed; box-shadow: none; transform: none;
+}
+.btn-primary:disabled, .btn-primary:disabled:hover { background: var(--accent); }
+.btn-secondary:disabled, .btn-secondary:disabled:hover { background: var(--surface); border-color: var(--border-strong); }
 .muted-small { font-size: 12.5px; color: var(--muted); min-height: 14px; margin: 0 0 12px; }
 .muted-small.error { color: var(--danger); }
+/* In-progress status line: full-strength text, not muted, so "working on it" reads
+   as loudly as the result that replaces it. */
+.muted-small.busy { color: var(--text); font-weight: 700; }
 
 /* ---- Unit toggle (imperial / metric) -------------------------------- */
 .unit-toggle { display: flex; gap: 8px; margin: 0 0 16px; }

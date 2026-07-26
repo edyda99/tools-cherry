@@ -74,7 +74,7 @@ export async function signRequest({ url, body, accessKeyId, secretAccessKey, reg
 
 // Sign and send. `body` is an ArrayBuffer/Uint8Array/string. `env` carries the
 // IAM-user creds. `contentType` defaults to application/pdf (raw-PDF invoke).
-export async function signedFetch(url, body, env, contentType = 'application/pdf') {
+export async function signedFetch(url, body, env, contentType = 'application/pdf', timeoutMs = 0) {
   const headers = await signRequest({
     url,
     body,
@@ -84,5 +84,10 @@ export async function signedFetch(url, body, env, contentType = 'application/pdf
     service: 'lambda',
     contentType,
   });
-  return fetch(url, { method: 'POST', headers, body });
+  // Bound the wait when asked: a Lambda that runs to its own timeout must abort here
+  // first, so the gate still answers with its own JSON error instead of being torn
+  // down mid-request and letting an edge error page reach the browser.
+  const init = { method: 'POST', headers, body };
+  if (timeoutMs > 0) init.signal = AbortSignal.timeout(timeoutMs);
+  return fetch(url, init);
 }

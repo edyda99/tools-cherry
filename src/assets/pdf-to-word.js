@@ -300,6 +300,7 @@ function resetServerDownload() {
 // in-browser converter — which needs no network at all.
 const TS_SCRIPT_TIMEOUT_MS = 12000; // challenges.cloudflare.com/api.js never answers
 const TS_SOLVE_TIMEOUT_MS = 25000;  // widget rendered but no token and no error
+const SERVER_TIMEOUT_MS = 70000;    // gate gives up on the converter at 58s; outlast it
 
 const TS_BLOCKED_MSG =
   'The human check couldn’t load — an ad blocker, VPN, or restricted network usually blocks it. ' +
@@ -384,15 +385,21 @@ async function doServerConvert() {
   if (!selected || !tsToken) { serverConvertBtn.disabled = false; return; }
   serverConvertBtn.disabled = true;
   resetServerDownload();
-  setServerStatus('Converting on the server…');
+  setServerStatus('Converting on the server…', 'busy');
   try {
     const res = await fetch('/api/pdf-to-word', {
       method: 'POST',
       headers: { 'content-type': 'application/pdf', 'cf-turnstile-token': tsToken },
       body: selected,
+      // The gate gives up on the converter at 58s; stop waiting a little after that
+      // rather than spinning forever if the response itself never arrives.
+      signal: AbortSignal.timeout(SERVER_TIMEOUT_MS),
     });
     if (!res.ok) {
-      let msg = 'The server conversion didn’t work. Please try again, or use the in-browser converter above.';
+      // The gate answers with {error}. Anything else means it died before it could —
+      // say what that actually means instead of a shrug.
+      let msg = 'The server converter couldn’t finish this PDF — it may be too heavy for it. ' +
+        'The in-browser converter above has no time limit.';
       try { const j = await res.json(); if (j && j.error) msg = j.error; } catch (_) {}
       setServerStatus(msg, 'error');
       return;
@@ -407,8 +414,13 @@ async function doServerConvert() {
     serverDownload.style.display = '';
     serverDownload.textContent = `Download ${outName}`;
     setServerStatus('Done — your high-fidelity Word document is ready.', 'success');
-  } catch (_) {
-    setServerStatus('Couldn’t reach the server converter. Please check your connection and try again.', 'error');
+  } catch (e) {
+    setServerStatus(
+      e && (e.name === 'TimeoutError' || e.name === 'AbortError')
+        ? 'The server converter took too long on this PDF and gave up. The in-browser converter above has no time limit.'
+        : 'Couldn’t reach the server converter. Please check your connection and try again.',
+      'error'
+    );
   } finally {
     serverConvertBtn.disabled = false;
     if (window.turnstile && tsWidgetId !== null) {
