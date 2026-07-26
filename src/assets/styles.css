@@ -464,6 +464,35 @@ details.estimator summary { cursor: pointer; font-size: .92rem; opacity: .9; }
 .adv legend { padding: 0 8px; font-size: 13.5px; font-weight: 700; color: var(--text); }
 .adv-hint { margin: 0 0 14px; font-size: 13px; color: var(--muted); }
 
+/* Each Advanced question: a plain sentence, a small note carrying the technical
+   term it replaces, a yes/no pair, and the money field the answer reveals. */
+.adv-q { border: 0; padding: 0; margin: 0 0 20px; }
+.adv-q + .adv-q { border-top: 1px solid var(--border); padding-top: 18px; }
+.adv .adv-q legend { padding: 0; font-size: 15px; font-weight: 600; line-height: 1.35; color: var(--text); }
+.adv-q-note { margin: 5px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+.yn { display: flex; gap: 8px; margin: 10px 0 0; max-width: 240px; }
+.yn .seg { flex: 1; margin: 0; position: relative; cursor: pointer; }
+.yn .seg input { position: absolute; opacity: 0; width: 0; height: 0; }
+.yn .seg span {
+  display: block; text-align: center; padding: 9px 12px; font-size: 14px; font-weight: 700;
+  color: var(--muted); background: var(--surface); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm); transition: background .15s, color .15s, border-color .15s;
+}
+.yn .seg input:checked + span { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+.yn .seg input:focus-visible + span { box-shadow: var(--ring); }
+/* Ships visible so the fields are usable if this script never runs; app.js sets
+   [hidden] on the ones whose question is answered No. */
+.adv-reveal { margin-top: 14px; animation: advReveal .18s ease-out; }
+.adv-reveal[hidden] { display: none; }
+.adv-reveal .field:last-child { margin-bottom: 0; }
+.adv-derived { margin: 2px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.adv-derived b { color: var(--text); }
+@keyframes advReveal { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .adv-reveal { animation: none; }
+  .yn .seg span { transition: none; }
+}
+
 /* ---- Federal bracket breakdown (collapsible) ------------------------ */
 .brackets { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
 .brackets summary { cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--link); }
