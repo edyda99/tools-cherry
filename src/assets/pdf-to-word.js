@@ -292,6 +292,35 @@ function resetServerDownload() {
   }
 }
 
+// --- pre-flight: is this PDF even convertible on the server? -----------------
+// The server engine (pdf2docx) rebuilds every embedded image, so its cost tracks
+// image count, not file size or page count. Word exports shading and borders as
+// swarms of tiny masked image objects: one real 19-page, 3.4 MB document carried
+// 2,068 of them, and a single page of it took 655 SECONDS to convert locally. No
+// timeout can rescue that file, so counting first is the only honest answer — it
+// costs a second and saves a three-minute wait, a wasted daily slot, and a Lambda
+// invocation that was always going to die.
+const MAX_SERVER_IMAGES = 400;
+
+async function countImagePaints(file, limit) {
+  const IMAGE_OPS = new Set([
+    window.pdfjsLib.OPS.paintImageXObject,
+    window.pdfjsLib.OPS.paintInlineImageXObject,
+    window.pdfjsLib.OPS.paintImageMaskXObject,
+    window.pdfjsLib.OPS.paintImageXObjectRepeat,
+  ]);
+  const pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  let n = 0;
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const ops = await page.getOperatorList();
+    for (const fn of ops.fnArray) if (IMAGE_OPS.has(fn)) n++;
+    if (typeof page.cleanup === 'function') page.cleanup();
+    if (n > limit) break; // no need for an exact count once it's hopeless
+  }
+  return n;
+}
+
 // Turnstile can fail in ways that never throw at us: the script is blocked by an
 // extension, or it loads but its own challenge request can't reach Cloudflare (VPN,
 // corporate proxy, captive portal) and the widget just draws its "unable to connect"
@@ -442,8 +471,29 @@ async function doServerConvert() {
 if (serverConvertBtn) {
   serverConvertBtn.addEventListener('click', async () => {
     if (!selected) { setServerStatus('Choose a PDF first.'); return; }
-    pendingServerSubmit = true;
     serverConvertBtn.disabled = true;
+
+    // Check before spending anything — the daily slot is charged the moment the
+    // upload reaches the converter, so a doomed file must never get that far.
+    setServerStatus('Checking this PDF…', 'busy');
+    try {
+      const images = await countImagePaints(selected, MAX_SERVER_IMAGES);
+      if (images > MAX_SERVER_IMAGES) {
+        setServerStatus(
+          `This PDF draws over ${MAX_SERVER_IMAGES} embedded images (documents exported from Word ` +
+          'store shading and borders that way). The server converter rebuilds every one of them and ' +
+          'would run out of time, so it isn’t worth your daily slot — the in-browser result above is ' +
+          'the best this file can give.',
+          'error'
+        );
+        serverConvertBtn.disabled = false;
+        return;
+      }
+    } catch (_) {
+      // Counting is an optimisation, not a gate: if it fails, let the server try.
+    }
+
+    pendingServerSubmit = true;
     setServerStatus('Verifying you’re human…');
     // Backstop for the silent case: widget rendered, no token, no error callback.
     clearTsSolveTimer();
