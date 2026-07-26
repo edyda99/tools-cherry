@@ -59,6 +59,29 @@ const PERIOD_LABEL = {
   monthly: 'per month', annual: 'per year'
 };
 
+// Caption for the headline figure, so a number and the assumptions behind it are
+// provably computed from the same inputs. build.js pre-renders the default-input
+// version of this exact sentence (stateNetLabel), so the first render overwrites
+// it with an identical string and nothing visibly changes on load.
+const PAID_LABEL = {
+  weekly: 'paid every week', biweekly: 'paid every 2 weeks', semimonthly: 'paid twice a month',
+  monthly: 'paid monthly', annual: 'paid once a year'
+};
+const FILING_LABEL = {
+  single: 'single filer', married: 'married filing jointly', head_of_household: 'head of household'
+};
+
+function netLabelText(input) {
+  const name = taxData.states[stateSlug]?.name;
+  if (!name) return '';
+  const filing = FILING_LABEL[input.filingStatus] || FILING_LABEL.single;
+  const paid = PAID_LABEL[input.payFrequency] || PAID_LABEL.biweekly;
+  const basis = input.wage.type === 'hourly'
+    ? `${usd2(input.wage.amount)} an hour over ${input.wage.hoursPerWeek} hours a week`
+    : `a ${usd(input.wage.amount)} salary`;
+  return `Based on ${basis} in ${name}, ${filing}, ${paid}`;
+}
+
 function renderBreakdown(r) {
   const g = r.annual.gross;
   if (g <= 0) { $('breakdown').style.display = 'none'; return; }
@@ -89,6 +112,11 @@ function render() {
   $('netSub').textContent = annualView
     ? `take-home per year · ${usd2(r.perPaycheck.net)} ${PERIOD_LABEL[r.payFrequency]}`
     : `take-home ${PERIOD_LABEL[r.payFrequency]} · ${usd(r.annual.net)}/yr`;
+
+  // Only the state paycheck pages carry the caption; guard so shared consumers
+  // of this module are unaffected.
+  const lbl = $('netLabel');
+  if (lbl) lbl.textContent = netLabelText(input);
 
   $('rGross').textContent = usd2(p.gross);
   $('rFederal').textContent = '−' + usd2(p.federal);

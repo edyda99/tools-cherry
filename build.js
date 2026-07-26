@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { transform as esbuildTransform } from 'esbuild';
 import { STATIC_PAGES } from './src/content/static-pages.js';
 import { buildWamParts } from './src/content/what-applies-to-me.js';
+import { buildStateApplies } from './src/content/state-applies.js';
 import { computePaycheck } from './src/engine/paycheck-engine.js';
 import { computeBonus } from './src/engine/bonus-tax.js';
 
@@ -1438,20 +1439,54 @@ function targetIntro(state, year) {
   return `<p class="note">Free ${state.name} salary-after-taxes and income tax calculator — a no-signup, in-browser alternative to paid tools like SmartAsset and ADP. Estimate your ${year} take-home pay for any salary, hourly rate, or pay frequency.</p>`;
 }
 
+// ONE $75,000 single-filer computation per state, shared by every place a
+// take-home figure is rendered on that page: the extractable answer sentence,
+// the headline number in the calculator's answer band, and the band's sub-line.
+// Two independent computations can drift apart under a later engine change; one
+// cannot. Computed at the biweekly frequency so the per-paycheck figure comes
+// out of the same call as the annual one.
+function stateNet75(state, taxData) {
+  try {
+    const r = computePaycheck(
+      { wage: { type: 'salary', amount: 75000 }, filingStatus: 'single', payFrequency: 'biweekly', stateSlug: state.slug },
+      taxData
+    );
+    if (!Number.isFinite(r.annual.net) || !Number.isFinite(r.perPaycheck.net)) return null;
+    return { annualNet: r.annual.net, biweeklyNet: r.perPaycheck.net };
+  } catch (_) { return null; }
+}
+
+// Byte-for-byte copies of app.js's two currency formatters (app.js lines 11-14),
+// so a build-rendered figure and the figure the browser writes over it on the
+// first render are the same string and hydration is a visual no-op. The build
+// asserts parity per state below (assertFormatterParity) rather than trusting it.
+const usdApp = (n) =>
+  n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+const usd2App = (n) =>
+  n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// Fails the build if a future currency/rounding tweak makes the pre-rendered
+// figures disagree with what app.js will write on first paint.
+function assertFormatterParity(state, net75) {
+  if (!net75) return;
+  if (usd0(net75.annualNet) !== usdApp(net75.annualNet)) {
+    throw new Error(
+      `formatter parity broken for ${state.slug}: build usd0 "${usd0(net75.annualNet)}" ` +
+      `vs app.js usd "${usdApp(net75.annualNet)}" — the pre-rendered take-home would flicker on hydration.`
+    );
+  }
+}
+
 // Extractable, plain-language direct-answer block for each state paycheck page.
 // Uses the real computed take-home for a representative $75,000 single-filer
 // salary, and omits the state-tax clause for no-income-tax states (mirrors the
 // existing hasIncomeTax handling). Highest-priority AI-SEO block: it answers the
-// page's core question in one sentence near the top.
-function stateAnswerBlock(state, year, taxData) {
-  let net = null;
-  try {
-    net = computePaycheck(
-      { wage: { type: 'salary', amount: 75000 }, filingStatus: 'single', payFrequency: 'annual', stateSlug: state.slug },
-      taxData
-    ).annual.net;
-  } catch (_) { return ''; }
-  if (!Number.isFinite(net)) return '';
+// page's core question in one sentence near the top, so the LEAD half stays
+// above the calculator (and above the mobile fold); only the "now use the tool"
+// TAIL half moves down into the prose section.
+function stateAnswerParts(state, year, net75) {
+  if (!net75) return { lead: '', tail: '' };
+  const net = net75.annualNet;
   const stateClause = state.hasIncomeTax ? `, and ${state.name} state income tax` : '';
   // When this state's disability / paid-leave employee contributions are modeled,
   // the net above already nets them out — say so, so the enumerated list matches
@@ -1463,19 +1498,28 @@ function stateAnswerBlock(state, year, taxData) {
     `A $75,000 salary in ${state.name} nets roughly ${usd0(net)} a year in ${year}, once federal income tax, Social Security and Medicare${state.hasIncomeTax ? ` and ${state.name} state tax` : ''}${progClause} are withheld.`,
     `Earning $75,000 in ${state.name}? Your estimated ${year} take-home is about ${usd0(net)} after federal tax and FICA${stateClause}${progClause}.`
   ]);
+  // Wording is direction-neutral ("in the calculator", not "below") because the
+  // tail now sits underneath the calculator rather than above it.
   const tail = pickFrame(state.slug, 'answertail', [
-    `Enter your own pay below to estimate your ${state.name} take-home pay for any salary or hourly wage.`,
-    `Use the calculator below for your own salary or hourly rate.`,
-    `Adjust the inputs below to see the breakdown for your own ${state.name} paycheck.`
+    `Enter your own pay in the calculator to estimate your ${state.name} take-home pay for any salary or hourly wage.`,
+    `Use the calculator for your own salary or hourly rate.`,
+    `Adjust the calculator inputs to see the breakdown for your own ${state.name} paycheck.`
   ]);
   const rateSentence = TARGET_STATES.has(state.slug) ? stateRateSentence(state, year) : '';
-  if (rateSentence) {
-    // NEAR_PAGE_1 target states: surface the exact search query as an <h2>
-    // directly above the extractable rate sentence.
-    const h2 = `<h2>${state.name} income tax rate ${year}</h2>`;
-    return `${h2}<p class="note"><strong>${rateSentence} ${lead}</strong> ${tail}</p>`;
-  }
-  return `<p class="note"><strong>${lead}</strong> ${tail}</p>`;
+  // NEAR_PAGE_1 target states: surface the exact search query as an <h2>
+  // directly above the extractable rate sentence.
+  const h2 = rateSentence ? `<h2>${state.name} income tax rate ${year}</h2>` : '';
+  const leadHtml = rateSentence
+    ? `${h2}<p class="note"><strong>${rateSentence} ${lead}</strong></p>`
+    : `<p class="note"><strong>${lead}</strong></p>`;
+  return { lead: leadHtml, tail: `<p class="note">${tail}</p>` };
+}
+
+// The band's caption line. app.js rewrites this from the live inputs on every
+// render (app.js netLabel()), so the wording here MUST match what app.js emits
+// for the page's default inputs, or the caption would visibly change on load.
+function stateNetLabel(state) {
+  return `Based on a $75,000 salary in ${state.name}, single filer, paid every 2 weeks`;
 }
 
 // Each no-income-tax state's revenue model in a short phrase — condensed from
@@ -1743,9 +1787,17 @@ function obbbaConformityBlock(state, obbba, year) {
     `<a href="/data/overtime-tax-by-state/#state-${state.slug}">overtime by state</a>`,
     `<a href="/data/tips-tax-by-state/#state-${state.slug}">tips by state</a>`
   ]).join(' · ') + '.';
-  const fed =
+  // Frame-varied 3 ways: this federal sentence is identical on all 51 pages, and
+  // a shared run of state-invariant words is exactly what the near-duplicate
+  // gate counts. Same meaning, same single link, three wordings.
+  const fed = pickFrame(state.slug, 'obbbafed', [
     `<p>Qualified <strong>overtime premium pay</strong> and <strong>tips</strong> are federally deductible for 2025–2028 ` +
-    `(<a href="/data/overtime-tax-by-state/">OBBBA caps &amp; rules</a>); FICA still applies.</p>`;
+      `(<a href="/data/overtime-tax-by-state/">OBBBA caps &amp; rules</a>); FICA still applies.</p>`,
+    `<p>Federal law lets you deduct qualified <strong>tips</strong> and <strong>overtime premium pay</strong> from 2025 through 2028 ` +
+      `(<a href="/data/overtime-tax-by-state/">OBBBA caps &amp; rules</a>), though Social Security and Medicare are still withheld.</p>`,
+    `<p>For tax years 2025 to 2028 there is a federal deduction for qualified <strong>overtime premium pay</strong> and <strong>tips</strong> ` +
+      `(<a href="/data/overtime-tax-by-state/">OBBBA caps &amp; rules</a>). FICA comes out either way.</p>`
+  ]);
   // Verdict-keyed heading: the query stays, and the state's actual 2026
   // treatment (from the sourced conformity data) is answered in the heading.
   const otV = e.overtime && e.overtime.y2026, tipV = e.tips && e.tips.y2026;
@@ -1968,6 +2020,29 @@ function neighborHeading(roster, builtSlugs, currentSlug) {
   return names.length
     ? `Compare a paycheck next door: ${names.join(', ')} &amp; ${last}`
     : `Compare a paycheck next door in ${last}`;
+}
+
+// Summary text for the calculator's "compare with another state" panel. Naming
+// the actual neighbours beats "another state" for the reader, and it breaks up
+// what is otherwise the single largest run of identical words on all 51 pages
+// (the calculator chrome), which is what the near-duplicate gate measures.
+function compareSummary(roster, builtSlugs, currentSlug) {
+  const names = neighborStates(roster, builtSlugs, currentSlug).map((s) => s.name);
+  if (!names.length) return 'Compare your take-home pay in another state';
+  const last = names.pop();
+  return names.length
+    ? `Compare your take-home pay with ${names.join(', ')} or ${last}`
+    : `Compare your take-home pay with ${last}`;
+}
+
+// Summary text for the calculator's federal-bracket panel. Frame-varied and
+// state-keyed for the same reason as compareSummary above.
+function bracketSummary(state) {
+  return pickFrame(state.slug, 'bracketsum', [
+    `How your federal tax is calculated on a paycheck in ${state.name}, bracket by bracket`,
+    `Bracket by bracket: the federal tax inside your ${state.name} paycheck`,
+    `Your federal tax on ${state.name} pay, worked out one bracket at a time`
+  ]);
 }
 
 // Slug-stable ordering for the ancillary sections (min wage, distinctive facts,
@@ -3067,6 +3142,7 @@ async function main() {
   registerAsset('assets', 'feedback-widget.js'); // "Was this tool helpful?" rating toast (tool pages)
   registerAsset('assets', 'report-widget.js'); // "Report a wrong result" inline reporter (tool pages)
   registerAsset('assets', 'what-applies-to-me.js'); // visibility-only flow controller (/what-applies-to-me/)
+  registerAsset('assets', 'state-flow.js'); // hide-on-demand controller for the 4-question block on state paycheck pages
   registerAsset('assets', 'recent-tools.js'); // records visits for the Cmd/Ctrl+K palette's recents list (tool pages)
   registerAsset('assets', 'money-input.js'); // live thousands separators for $ fields (shared leaf)
   registerAsset('assets', 'invoice.js');
@@ -3293,6 +3369,11 @@ async function main() {
       incomeContextBlock(state, p, taxData)
     ]).filter(Boolean);
     const ancSplit = Math.ceil(ancillary.length / 2);
+    // One take-home computation for this state, shared by the extractable answer
+    // sentence and by the pre-rendered figures in the calculator's answer band.
+    const net75 = stateNet75(state, taxData);
+    assertFormatterParity(state, net75);
+    const answer = stateAnswerParts(state, year, net75);
     const html = fill(stateTpl, {
       STATE_NAME: state.name,
       STATE_TITLE: stateTitle(state, year),
@@ -3313,7 +3394,24 @@ async function main() {
         ? ` — also works as a ${state.name} income tax calculator`
         : `. ${state.name} has no state income tax, so it doubles as a federal income tax calculator`,
       FIGURE_BANNER: figureYearBanner(state, year),
-      ANSWER_BLOCK: stateAnswerBlock(state, year, taxData),
+      ANSWER_LEAD: answer.lead,
+      ANSWER_TAIL: answer.tail,
+      // Pre-rendered so the headline number is right on first paint, right with
+      // JavaScript off, and right to a crawler that never executes anything.
+      // app.js's first render reproduces these strings exactly (parity asserted
+      // above), so hydration is a visual no-op.
+      NET_LABEL: net75 ? stateNetLabel(state) : '',
+      NET_BIG: net75 ? usd2App(net75.biweeklyNet) : '$0.00',
+      NET_SUB: net75 ? `take-home per 2 weeks · ${usd0(net75.annualNet)}/yr` : '',
+      BRACKET_SUMMARY: bracketSummary(state),
+      COMPARE_SUMMARY: compareSummary(roster, builtSlugs, slug),
+      APPLIES_BLOCK: buildStateApplies({
+        state,
+        obbbaEntry: obbba && obbba.states && obbba.states[slug],
+        suppEntry: suppData && suppData.states && suppData.states[slug],
+        notaxAngle: NOTAX_ANGLE[slug],
+        pickFrame
+      }),
       TARGET_INTRO: targetIntro(state, year),
       STATE_LEDE: stateLede(state, year),
       STATE_BODY_H2: stateBodyH2(state, year),

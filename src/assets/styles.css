@@ -269,6 +269,33 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 .field .combo input { flex: 1; min-width: 0; }
 .field .combo select { flex: 0 0 70px; padding-right: 28px; background-position: right 8px center; }
 
+/* ---- Answer band (state paycheck pages) ------------------------------ */
+/* First child of .calc, spanning both columns, so the answer sits above the
+   form on desktop AND on mobile without an `order` override: it is already
+   first in the DOM. Leaves .calc's 1fr 1fr grid intact for the row below. */
+.answer-band {
+  grid-column: 1 / -1;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px;
+}
+/* The prior-year notice, when a state has one, is a full-width row of .calc
+   sitting between the band and the form (2 of 51 pages). */
+.calc > .year-fallback { grid-column: 1 / -1; margin: 0; }
+.net-label { font-size: 13px; color: var(--muted); margin: 0 0 6px; line-height: 1.45; }
+.answer-band .net-sub { margin: 3px 0 14px; }
+.answer-band .mode-row.view-toggle { margin: 0; }
+
+/* ---- "Which rules apply to me" block (state paycheck pages) ---------- */
+.applies-chips { border: 0; padding: 0; margin: 0 0 16px; }
+.applies-chips legend { padding: 0; font-size: 13.5px; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+.applies-opt { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; font-size: 15.5px; cursor: pointer; }
+.applies-opt input { width: 18px; height: 18px; flex: 0 0 auto; margin-top: 2px; accent-color: var(--accent); }
+.applies-line { margin: 0 0 12px; }
+.applies-more { margin: 4px 0 0; }
+/* Hide-on-demand only: scoped to html.js so the lines stay visible with
+   JavaScript off, and state-flow.js only sets data-hidden after a tick. */
+html.js .applies-line[data-hidden] { display: none; }
+
 /* ---- Results panel --------------------------------------------------- */
 .results { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; }
 .net-big { font-size: clamp(32px, 8vw, 40px); font-weight: 800; letter-spacing: -.02em; color: var(--accent); margin: 0; }
