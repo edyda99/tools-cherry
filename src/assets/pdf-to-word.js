@@ -98,6 +98,11 @@ clearBtn.addEventListener('click', () => {
   resetDownload();
   resetServerDownload();
   setServerStatus('');
+  // Clearing mid-verification must not leave the server button disabled forever.
+  clearTsSolveTimer();
+  pendingServerSubmit = false;
+  tsToken = null;
+  if (serverConvertBtn) serverConvertBtn.disabled = false;
   if (serverFallback) serverFallback.hidden = true;
   setStatus('Choose a PDF to begin.');
 });
@@ -286,38 +291,97 @@ function resetServerDownload() {
   }
 }
 
+// Turnstile can fail in ways that never throw at us: the script is blocked by an
+// extension, or it loads but its own challenge request can't reach Cloudflare (VPN,
+// corporate proxy, captive portal) and the widget just draws its "unable to connect"
+// box. Without the timeouts below the status line sat on "Verifying you're human…"
+// forever and the button stayed disabled, with no way forward. Every failure path
+// now lands on serverVerifyFailed(), which says what happened and points back at the
+// in-browser converter — which needs no network at all.
+const TS_SCRIPT_TIMEOUT_MS = 12000; // challenges.cloudflare.com/api.js never answers
+const TS_SOLVE_TIMEOUT_MS = 25000;  // widget rendered but no token and no error
+
+const TS_BLOCKED_MSG =
+  'The human check couldn’t load — an ad blocker, VPN, or restricted network usually blocks it. ' +
+  'The in-browser converter above needs none of this and still works.';
+
+let tsSolveTimer = null;
+
+function clearTsSolveTimer() {
+  if (tsSolveTimer !== null) {
+    clearTimeout(tsSolveTimer);
+    tsSolveTimer = null;
+  }
+}
+
+// Single exit for every verification failure: unstick the UI, drop the stale token,
+// and put the widget back in a state where a second click can retry.
+function serverVerifyFailed(msg) {
+  clearTsSolveTimer();
+  pendingServerSubmit = false;
+  tsToken = null;
+  setServerStatus(msg || TS_BLOCKED_MSG, 'error');
+  if (serverConvertBtn) serverConvertBtn.disabled = false;
+  if (window.turnstile && tsWidgetId !== null) {
+    try { window.turnstile.reset(tsWidgetId); } catch (_) {}
+  }
+}
+
 function loadTurnstile() {
   return new Promise((resolve, reject) => {
     if (window.turnstile) return resolve();
+    let settled = false;
+    const finish = (err) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      err ? reject(err) : resolve();
+    };
+    const timer = setTimeout(() => finish(new Error(TS_BLOCKED_MSG)), TS_SCRIPT_TIMEOUT_MS);
     const s = document.createElement('script');
     s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
     s.async = true;
     s.defer = true;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error('Could not load the verification widget. Please try again.'));
+    s.onload = () => finish(window.turnstile ? null : new Error(TS_BLOCKED_MSG));
+    s.onerror = () => finish(new Error(TS_BLOCKED_MSG));
     document.head.appendChild(s);
   });
 }
 
 async function ensureTurnstile() {
   await loadTurnstile();
-  if (tsWidgetId === null && window.turnstile) {
+  if (!window.turnstile) throw new Error(TS_BLOCKED_MSG);
+  if (tsWidgetId === null) {
     const c = document.getElementById('ts-container');
     tsWidgetId = window.turnstile.render(c, {
       sitekey: c.getAttribute('data-sitekey'),
       callback: (token) => {
+        clearTsSolveTimer();
         tsToken = token;
         if (pendingServerSubmit) doServerConvert();
       },
-      'error-callback': () => { tsToken = null; },
+      'error-callback': () => { serverVerifyFailed(); },
+      'timeout-callback': () => { serverVerifyFailed(); },
+      'unsupported-callback': () => {
+        serverVerifyFailed(
+          'This browser can’t run the human check the server conversion requires. The in-browser converter above still works.'
+        );
+      },
       'expired-callback': () => { tsToken = null; },
     });
+  } else {
+    // Re-arm a widget that already errored or was consumed by a previous conversion.
+    // reset() invalidates any token we are still holding, so drop it and let the
+    // fresh solve callback drive the submit.
+    tsToken = null;
+    try { window.turnstile.reset(tsWidgetId); } catch (_) {}
   }
 }
 
 async function doServerConvert() {
+  clearTsSolveTimer();
   pendingServerSubmit = false;
-  if (!selected || !tsToken) return;
+  if (!selected || !tsToken) { serverConvertBtn.disabled = false; return; }
   serverConvertBtn.disabled = true;
   resetServerDownload();
   setServerStatus('Converting on the server…');
@@ -358,12 +422,17 @@ if (serverConvertBtn) {
   serverConvertBtn.addEventListener('click', async () => {
     if (!selected) { setServerStatus('Choose a PDF first.'); return; }
     pendingServerSubmit = true;
+    serverConvertBtn.disabled = true;
     setServerStatus('Verifying you’re human…');
+    // Backstop for the silent case: widget rendered, no token, no error callback.
+    clearTsSolveTimer();
+    tsSolveTimer = setTimeout(() => {
+      if (pendingServerSubmit && !tsToken) serverVerifyFailed();
+    }, TS_SOLVE_TIMEOUT_MS);
     try {
       await ensureTurnstile();
     } catch (e) {
-      pendingServerSubmit = false;
-      setServerStatus(e.message || 'Could not start verification. Please try again.', 'error');
+      serverVerifyFailed(e && e.message);
       return;
     }
     if (tsToken) doServerConvert();
