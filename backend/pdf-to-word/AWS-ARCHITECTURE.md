@@ -15,7 +15,7 @@ A second, R2-backed transfer mode (raising the size cap 5 MB → 25 MB) is **LIV
 | AWS account | `560904638428` |
 | CLI profile | `tools-berry` (NOT `default`, NOT `investigation`) |
 | Region | `us-east-1` |
-| Converter fn | `pdf-to-word` — 2048 MB, 60 s timeout |
+| Converter fn | `pdf-to-word` — 2048 MB, 180 s timeout (raised from 60 s on 2026-07-26: image-heavy PDFs were hitting the 60 s wall and failing) |
 | Function URL | `https://vic66rvzf3llucynt3iefqj7ky0oolgs.lambda-url.us-east-1.on.aws/` (AuthType `AWS_IAM`) |
 | Invoker IAM user | `pdf-to-word-invoker` (Cloudflare gate signs as this; creds are Cloudflare secrets) |
 | Kill-switch fn | `pdf-to-word-budget-killswitch` (python3.12) — zeroes reserved concurrency |
@@ -136,7 +136,8 @@ All five route through the one SNS topic → email (`edydaherz@gmail.com`) + kil
 
 - Always-free (perpetual): **1,000,000 requests/mo** + **400,000 GB-seconds/mo**.
 - At 2 GB memory: 400k GB-sec = **200,000 s of execution/mo**. **GB-seconds is the binding pool**, not requests.
-- Realistic usage under the 100/day gate cap ≈ **7.5%** of free tier (3k req, ~30k GB-sec). Even the pathological case (every job hits the 60 s timeout) ≈ 90% — still under the 95% kill line, so 95% false-trips only under gate-bypass abuse.
+- Realistic usage under the 100/day gate cap ≈ **7.5%** of free tier (3k req, ~30k GB-sec) — unchanged by the timeout raise, since a typical conversion finishes in seconds and is billed for what it uses, not for the ceiling.
+- **The pathological ceiling moved past free tier when the timeout went 60 s → 180 s (2026-07-26).** Every job running to the wall was ~90% of free tier at 60 s (100/day × 120 GB-sec × 30); at 180 s it is ~**270%** (100/day × 360 GB-sec × 30 ≈ 1.08M GB-sec vs the 400k pool). That case can no longer be absorbed silently — the **95% usage budget is now the thing that stops it**, and it would trip around day 11 of such a month. Guard behaviour is unchanged (hard monthly stop, $0 bill); what changed is that the guard is now load-bearing rather than headroom.
 - The R2 mode adds a second AWS pool to watch, live since 2026-07-18: data-transfer-out to R2, worst case ≈75 GB/mo against the always-free 100 GB/mo line. See "R2 surface → Cost pools" above.
 
 ## Key gotchas / mental-model corrections

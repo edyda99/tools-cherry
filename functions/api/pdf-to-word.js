@@ -32,11 +32,13 @@ const MAX_BYTES = 5 * 1024 * 1024;       // inline: raw PDF ships in the invoke 
 const R2_MAX_BYTES = 25 * 1024 * 1024;   // r2: only a key is sent, so the upload cap can be larger.
 const DOCX_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
-// The Lambda's own timeout is 60s. Give up two seconds earlier so a conversion that
-// blows the budget (image-heavy PDFs are the usual cause) comes back as OUR json()
-// error, not as whatever the platform emits once nothing answers in time — the
-// browser used to get a non-JSON body here and could only show a vague "didn't work".
-const LAMBDA_TIMEOUT_MS = 58000;
+// The Lambda's own timeout is 180s (raised from 60s on 2026-07-26 — image-heavy PDFs
+// were hitting the old wall). Give up two seconds earlier so a conversion that blows
+// even that budget comes back as OUR json() error, not as whatever the platform emits
+// once nothing answers in time — the browser used to get a non-JSON body here and
+// could only show a vague "didn't work". Verified on 2026-07-26 that the edge holds a
+// Pages Function request open well past this: a 170s request returned 200 intact.
+const LAMBDA_TIMEOUT_MS = 178000;
 const TIMEOUT_MSG =
   'That PDF was too heavy for the server converter — it ran out of time (image-heavy or ' +
   'very complex pages are the usual cause). The in-browser converter above has no time limit.';

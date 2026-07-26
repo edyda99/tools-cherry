@@ -25,6 +25,7 @@ let serverLastUrl = null;
 let tsToken = null;
 let tsWidgetId = null;
 let pendingServerSubmit = false;
+let serverTicker = null;
 
 // pdf.js runs its parser in a Web Worker, vendored alongside this script.
 if (window.pdfjsLib) {
@@ -300,7 +301,7 @@ function resetServerDownload() {
 // in-browser converter — which needs no network at all.
 const TS_SCRIPT_TIMEOUT_MS = 12000; // challenges.cloudflare.com/api.js never answers
 const TS_SOLVE_TIMEOUT_MS = 25000;  // widget rendered but no token and no error
-const SERVER_TIMEOUT_MS = 70000;    // gate gives up on the converter at 58s; outlast it
+const SERVER_TIMEOUT_MS = 190000;   // gate gives up on the converter at 178s; outlast it
 
 const TS_BLOCKED_MSG =
   'The human check couldn’t load — an ad blocker, VPN, or restricted network usually blocks it. ' +
@@ -385,13 +386,20 @@ async function doServerConvert() {
   if (!selected || !tsToken) { serverConvertBtn.disabled = false; return; }
   serverConvertBtn.disabled = true;
   resetServerDownload();
+  // A heavy PDF can now hold the converter for minutes, so count the wait out loud —
+  // a status line frozen on the same three words for two minutes reads as a hang.
   setServerStatus('Converting on the server…', 'busy');
+  const startedAt = Date.now();
+  serverTicker = setInterval(() => {
+    const s = Math.round((Date.now() - startedAt) / 1000);
+    if (s >= 10) setServerStatus(`Converting on the server… ${s}s (big or image-heavy PDFs take longer)`, 'busy');
+  }, 1000);
   try {
     const res = await fetch('/api/pdf-to-word', {
       method: 'POST',
       headers: { 'content-type': 'application/pdf', 'cf-turnstile-token': tsToken },
       body: selected,
-      // The gate gives up on the converter at 58s; stop waiting a little after that
+      // The gate gives up on the converter at 178s; stop waiting a little after that
       // rather than spinning forever if the response itself never arrives.
       signal: AbortSignal.timeout(SERVER_TIMEOUT_MS),
     });
@@ -422,6 +430,7 @@ async function doServerConvert() {
       'error'
     );
   } finally {
+    if (serverTicker !== null) { clearInterval(serverTicker); serverTicker = null; }
     serverConvertBtn.disabled = false;
     if (window.turnstile && tsWidgetId !== null) {
       try { window.turnstile.reset(tsWidgetId); } catch (_) {}

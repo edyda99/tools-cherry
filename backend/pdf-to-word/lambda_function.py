@@ -35,11 +35,11 @@ JPEG_QUALITY = 85
 
 # Function URL hard-caps request/response payloads at 6 MB. Leave headroom.
 MAX_BYTES = 5 * 1024 * 1024
-MAX_PAGES = 50  # bound per-invocation work so a crafted PDF can't max the 60s timeout
+MAX_PAGES = 50  # bound per-invocation work so a crafted PDF can't max the 180s timeout
 
 # R2 path: the PDF arrives via object storage, not the response, so it can be much
 # larger than the inline 6 MB cap. Still bounded so a crafted PDF can't run the
-# function to its 60s timeout / exhaust /tmp.
+# function to its 180s timeout / exhaust /tmp.
 R2_MAX_MB = 25
 R2_MAX_BYTES = R2_MAX_MB * 1024 * 1024
 

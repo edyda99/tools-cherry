@@ -1199,6 +1199,11 @@ footer.site a:hover { color: var(--text); }
 }
 .rpt-copy:hover { color: var(--text); }
 .rpt-copy:focus-visible { outline: none; box-shadow: var(--ring); border-radius: 4px; }
+/* report-widget.js mounts its link/thanks node immediately after the Copy button,
+   two underlined text-buttons with no whitespace between them — they rendered as one
+   run-on string ("Copy resultReport a wrong result"). The gap belongs on whatever
+   follows Copy, since Copy's own left margin separates it from the result instead. */
+.rpt-copy + .rpt-link { margin-left: 12px; }
 
 .rpt-contact-fallback { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
 .rpt-contact-fallback a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
