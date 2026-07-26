@@ -1482,10 +1482,14 @@ function assertFormatterParity(state, net75) {
 // salary, and omits the state-tax clause for no-income-tax states (mirrors the
 // existing hasIncomeTax handling). Highest-priority AI-SEO block: it answers the
 // page's core question in one sentence near the top, so the LEAD half stays
-// above the calculator (and above the mobile fold); only the "now use the tool"
-// TAIL half moves down into the prose section.
+// above the calculator (and above the mobile fold); the "now use the tool" TAIL
+// half and, on target states, the RATE half both sit below the calculator.
+//
+// The lead is deliberately NOT a .note: the answer band 18px below it is already
+// a bordered card, and two stacked cards cost 42px of fold budget on every one
+// of the 51 pages for no reader benefit. See .answer-lead in styles.css.
 function stateAnswerParts(state, year, net75) {
-  if (!net75) return { lead: '', tail: '' };
+  if (!net75) return { lead: '', rate: '', tail: '' };
   const net = net75.annualNet;
   const stateClause = state.hasIncomeTax ? `, and ${state.name} state income tax` : '';
   // When this state's disability / paid-leave employee contributions are modeled,
@@ -1507,12 +1511,19 @@ function stateAnswerParts(state, year, net75) {
   ]);
   const rateSentence = TARGET_STATES.has(state.slug) ? stateRateSentence(state, year) : '';
   // NEAR_PAGE_1 target states: surface the exact search query as an <h2>
-  // directly above the extractable rate sentence.
+  // directly above the extractable rate sentence. The pair used to be welded
+  // into the lead paragraph above the calculator, where it pushed the salary
+  // input below the mobile fold (up to 206px on California). It now travels
+  // with the tail into section.prose, still in the crawlable HTML, still an
+  // <h2> with the same text, and now a single-topic paragraph under a heading
+  // that is the literal query — a better extraction unit than the old
+  // rate-plus-take-home run-on paragraph, not a worse one.
   const h2 = rateSentence ? `<h2>${state.name} income tax rate ${year}</h2>` : '';
-  const leadHtml = rateSentence
-    ? `${h2}<p class="note"><strong>${rateSentence} ${lead}</strong></p>`
-    : `<p class="note"><strong>${lead}</strong></p>`;
-  return { lead: leadHtml, tail: `<p class="note">${tail}</p>` };
+  return {
+    lead: `<p class="answer-lead"><strong>${lead}</strong></p>`,
+    rate: rateSentence ? `${h2}<p class="note"><strong>${rateSentence}</strong></p>` : '',
+    tail: `<p class="note">${tail}</p>`
+  };
 }
 
 // The band's caption line. app.js rewrites this from the live inputs on every
@@ -3396,6 +3407,9 @@ async function main() {
       FIGURE_BANNER: figureYearBanner(state, year),
       ANSWER_LEAD: answer.lead,
       ANSWER_TAIL: answer.tail,
+      // Empty on the 46 non-target states. fill() leaves an unmatched key as a
+      // literal {{RATE_BLOCK}} in the output, so this must be present for all 51.
+      RATE_BLOCK: answer.rate,
       // Pre-rendered so the headline number is right on first paint, right with
       // JavaScript off, and right to a crawler that never executes anything.
       // app.js's first render reproduces these strings exactly (parity asserted

@@ -43,12 +43,6 @@
           <label class="seg"><input type="radio" name="view" value="annual"><span>Annual</span></label>
         </div>
       </div>
-      <!-- The prior-year notice qualifies the figure directly above it, so it sits
-           with that figure rather than 400px higher up the page. Kept OUTSIDE the
-           band's live region: a screen reader should not re-read the whole notice
-           on every keystroke. Only California and Oklahoma render anything here. -->
-      {{FIGURE_BANNER}}
-
       <form id="paycheckForm" autocomplete="off" onsubmit="return false">
         <div class="field">
           <label for="amount">Gross pay (before taxes)</label>
@@ -166,6 +160,16 @@
       </div>
     </section>
 
+    <!-- The prior-year notice qualifies the headline figure in the card above, so
+         it sits directly under that card rather than 400px higher up the page or
+         below an ad slot. It used to be a full-width row INSIDE .calc, between the
+         answer band and the form, where it pushed the salary input 172px down the
+         page (its own height plus one grid gap) on the two states that render it.
+         Kept OUTSIDE the band's live region either way: a screen reader should not
+         re-read the whole notice on every keystroke. Only California and Oklahoma
+         render anything here. -->
+    {{FIGURE_BANNER}}
+
     {{APPLIES_BLOCK}}
 
     <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
@@ -174,6 +178,11 @@
       {{TARGET_INTRO}}
       <p class="lede">{{STATE_LEDE}}</p>
       {{ANSWER_TAIL}}
+      <!-- Target states only (5 of 51): the "{state} income tax rate {year}" H2 and
+           its one-sentence answer, relocated out of the lead paragraph above the
+           calculator. Sits directly above the long-form section on the same
+           brackets, so the short extractable answer leads into its explanation. -->
+      {{RATE_BLOCK}}
       <h2>{{STATE_BODY_H2}}</h2>
       {{STATE_BODY}}
 
