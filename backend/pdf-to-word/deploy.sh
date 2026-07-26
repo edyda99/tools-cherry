@@ -11,7 +11,10 @@ FUNCTION="pdf-to-word"
 ROLE="pdf-to-word-lambda-role"
 ARCH="arm64"
 MEMORY=2048
-TIMEOUT=60
+# 180s, raised from 60s on 2026-07-26 with Edmond's approval. This file is the source
+# of truth: a deploy re-applies it, so changing the timeout in the console alone gets
+# silently reverted by the next run.
+TIMEOUT=180
 EPHEMERAL=1024
 RESERVED_CONCURRENCY=2
 INVOKER_USER="pdf-to-word-invoker"   # scoped IAM user the Cloudflare gate signs as

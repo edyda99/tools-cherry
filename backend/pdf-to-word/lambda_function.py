@@ -25,8 +25,25 @@ import time
 import uuid
 import zipfile
 
+import fitz  # PyMuPDF, pdf2docx's PDF engine — patched below before pdf2docx loads
+
 from pdf2docx import Converter
 from PIL import Image
+
+
+def _install_fill_chip_filter():
+    """Hide sub-pixel-art "images" from pdf2docx, process-wide.
+
+    pdf2docx reaches every image through fitz.Page.get_images, so one filter here
+    covers extraction, grouping and the page re-renders it drives. See TINY_IMAGE_PX
+    below for why these entries exist and what dropping them costs.
+    """
+    original = fitz.Page.get_images
+
+    def get_images(self, full=False):
+        return [im for im in original(self, full=full) if im[2] * im[3] > TINY_IMAGE_PX]
+
+    fitz.Page.get_images = get_images
 
 # Recompress embedded images larger than this; cap their longest side; JPEG quality.
 IMG_RECOMPRESS_THRESHOLD = 300_000
@@ -36,6 +53,32 @@ JPEG_QUALITY = 85
 # Function URL hard-caps request/response payloads at 6 MB. Leave headroom.
 MAX_BYTES = 5 * 1024 * 1024
 MAX_PAGES = 50  # bound per-invocation work so a crafted PDF can't max the 180s timeout
+
+# Word does not store cell shading as a colour: it stores a 2x2-pixel image stretched
+# over the cell, one per shaded cell, each with a full-size soft mask. A real 19-page,
+# 3.4 MB report carried 897 such chips against 40 actual pictures.
+#
+# That wrecks pdf2docx. Its ImagesExtractor collects every image occurrence, groups
+# them by pairwise intersection (quadratic), and then RE-RENDERS the page region for
+# every intersecting group at 3x resolution. Adjacent shaded cells all intersect, so a
+# few hundred chips turn into a pile of full-page renders: that report timed out at 60s
+# and again at 180s. Profiling put the time in ImagesExtractor.extract_images ->
+# Collection.group, exactly there.
+#
+# Chips carry no content, only colour, so hiding them from pdf2docx costs a cell
+# background and buys the conversion: the same report now finishes in 4 seconds with
+# its text, 20 tables and all 22 real images intact. Filter on INTRINSIC pixel size,
+# never on the drawn rectangle — a chip's rectangle is cell-sized, which is why
+# pdf2docx's own "ignore small images" test (bbox area <= 4) never catches one.
+TINY_IMAGE_PX = 64  # 8x8 intrinsic and under: a fill, never a picture
+
+# Even with chips filtered, a document can hold more real images than we can rebuild in
+# the time available. Counted AFTER the filter, so shading never trips it. Mirrors
+# MAX_SERVER_IMAGES in src/assets/pdf-to-word.js, which stops such files in the browser;
+# this copy is what protects a caller posting straight at the API.
+MAX_IMAGES = 400
+
+_install_fill_chip_filter()
 
 # R2 path: the PDF arrives via object storage, not the response, so it can be much
 # larger than the inline 6 MB cap. Still bounded so a crafted PDF can't run the
@@ -164,23 +207,36 @@ def _reset(*paths):
 
 
 def _pdf_pages(data):
-    """Validate PDF magic + page count on the raw bytes. Returns the page count.
+    """Validate PDF magic + page count + image census on the raw bytes.
 
-    Shared by both protocols. Raises _HandlerError(415) for a non-PDF / unreadable
-    file and _HandlerError(413) when the page count exceeds MAX_PAGES — the same
-    taxonomy the inline path has always used.
+    Returns the page count. Shared by both protocols. Raises _HandlerError(415) for a
+    non-PDF / unreadable file and _HandlerError(413) when the page count exceeds
+    MAX_PAGES or the image count exceeds MAX_IMAGES — the same taxonomy the inline
+    path has always used.
     """
     if data[:5] != b"%PDF-":
         raise _HandlerError(415, "Not a PDF")
     try:
-        import fitz  # PyMuPDF, a pdf2docx dependency
-
         with fitz.open(stream=data, filetype="pdf") as _doc:
             pages = _doc.page_count
+            images = 0
+            # get_images is filtered (see _install_fill_chip_filter), so this counts
+            # real pictures only. Stop early once it's hopeless; the exact total
+            # doesn't change the answer.
+            for _page in _doc:
+                images += len(_page.get_images())
+                if images > MAX_IMAGES:
+                    break
     except Exception:
         raise _HandlerError(415, "Could not read that PDF.")
     if pages > MAX_PAGES:
         raise _HandlerError(413, f"That PDF has {pages} pages; the limit is {MAX_PAGES}.")
+    if images > MAX_IMAGES:
+        raise _HandlerError(
+            413,
+            f"That PDF embeds more than {MAX_IMAGES} images, which this converter cannot "
+            "rebuild in the time it has. Use the in-browser converter, which has no time limit.",
+        )
     return pages
 
 

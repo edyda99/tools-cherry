@@ -1,6 +1,13 @@
 # PDF -> Word (.docx) conversion engine.
 # pdf2docx pulls in PyMuPDF, python-docx, opencv-python-headless, fonttools, numpy.
 pdf2docx==0.5.8
+# PyMuPDF must be pinned, not left to pdf2docx's open ">=1.19.0". PyMuPDF 1.26 removed
+# Rect.get_area(), which pdf2docx 0.5.8 still calls in ImagesExtractor — install it and
+# EVERY conversion fails instantly with "'Rect' object has no attribute 'get_area'".
+# The running image predates 1.26 and is fine; an unpinned rebuild would have shipped a
+# dead converter. 1.25.5 is the newest release that keeps the API, verified end to end
+# on 2026-07-27. Re-verify a real conversion before moving this.
+PyMuPDF==1.25.5
 # Pillow: recompress pdf2docx's lossless-PNG images back to JPEG so photo-heavy
 # PDFs fit under the Function URL's 6 MB response cap.
 Pillow

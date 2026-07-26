@@ -292,29 +292,43 @@ function resetServerDownload() {
   }
 }
 
-// --- pre-flight: is this PDF even convertible on the server? -----------------
-// The server engine (pdf2docx) rebuilds every embedded image, so its cost tracks
-// image count, not file size or page count. Word exports shading and borders as
-// swarms of tiny masked image objects: one real 19-page, 3.4 MB document carried
-// 2,068 of them, and a single page of it took 655 SECONDS to convert locally. No
-// timeout can rescue that file, so counting first is the only honest answer — it
-// costs a second and saves a three-minute wait, a wasted daily slot, and a Lambda
-// invocation that was always going to die.
+// --- pre-flight: is this PDF worth sending to the server? --------------------
+// The server engine rebuilds every embedded image, so its cost tracks image count,
+// not file size or page count. It ignores Word's shading chips (2x2-pixel fills
+// stretched over a cell — a 19-page report held 1,004 of them against 40 real
+// pictures), so count the way the server counts: intrinsic pixel size, skipping
+// anything too small to be a picture. Only genuinely image-heavy documents are
+// turned away, and turning them away here costs a second instead of a long wait,
+// a wasted daily slot, and a conversion that was never going to finish.
+// Reading a page's operator list costs ~600ms on an image-dense page, so scanning a
+// whole document would tax every server conversion with 10+ seconds of "Checking…".
+// Only the opening pages are read: a document dense enough to fail is dense from the
+// start, and the converter runs the authoritative count itself in well under a second.
 const MAX_SERVER_IMAGES = 400;
+const PREFLIGHT_PAGES = 3;
+const TINY_IMAGE_PX = 64; // matches TINY_IMAGE_PX in backend/pdf-to-word/lambda_function.py
 
 async function countImagePaints(file, limit) {
-  const IMAGE_OPS = new Set([
-    window.pdfjsLib.OPS.paintImageXObject,
-    window.pdfjsLib.OPS.paintInlineImageXObject,
-    window.pdfjsLib.OPS.paintImageMaskXObject,
-    window.pdfjsLib.OPS.paintImageXObjectRepeat,
-  ]);
+  const OPS = window.pdfjsLib.OPS;
+  // paintImageXObject carries [id, width, height] — the only op that can be judged
+  // by size. The others are counted whole; they never appear in fill-chip swarms.
+  const SIZELESS_IMAGE_OPS = new Set([OPS.paintInlineImageXObject, OPS.paintImageMaskXObject]);
   const pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  const lastPage = Math.min(pdf.numPages, PREFLIGHT_PAGES);
   let n = 0;
-  for (let p = 1; p <= pdf.numPages; p++) {
+  for (let p = 1; p <= lastPage; p++) {
     const page = await pdf.getPage(p);
     const ops = await page.getOperatorList();
-    for (const fn of ops.fnArray) if (IMAGE_OPS.has(fn)) n++;
+    for (let i = 0; i < ops.fnArray.length; i++) {
+      const fn = ops.fnArray[i];
+      if (fn === OPS.paintImageXObject) {
+        const [, w, h] = ops.argsArray[i] || [];
+        if (typeof w === 'number' && typeof h === 'number' && w * h <= TINY_IMAGE_PX) continue;
+        n++;
+      } else if (SIZELESS_IMAGE_OPS.has(fn)) {
+        n++;
+      }
+    }
     if (typeof page.cleanup === 'function') page.cleanup();
     if (n > limit) break; // no need for an exact count once it's hopeless
   }
@@ -480,10 +494,9 @@ if (serverConvertBtn) {
       const images = await countImagePaints(selected, MAX_SERVER_IMAGES);
       if (images > MAX_SERVER_IMAGES) {
         setServerStatus(
-          `This PDF draws over ${MAX_SERVER_IMAGES} embedded images (documents exported from Word ` +
-          'store shading and borders that way). The server converter rebuilds every one of them and ' +
-          'would run out of time, so it isn’t worth your daily slot — the in-browser result above is ' +
-          'the best this file can give.',
+          `This PDF holds over ${MAX_SERVER_IMAGES} pictures. The server converter rebuilds every ` +
+          'one of them and would run out of time, so it isn’t worth your daily slot — the ' +
+          'in-browser result above is the best this file can give.',
           'error'
         );
         serverConvertBtn.disabled = false;
