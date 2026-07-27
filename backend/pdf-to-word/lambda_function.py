@@ -30,6 +30,8 @@ import fitz  # PyMuPDF, pdf2docx's PDF engine — patched below before pdf2docx 
 from pdf2docx import Converter
 from PIL import Image
 
+import stencil_ocr
+
 
 def _install_fill_chip_filter():
     """Hide sub-pixel-art "images" from pdf2docx, process-wide.
@@ -241,11 +243,28 @@ def _pdf_pages(data):
 
 
 def _convert(in_path, out_path):
-    """Run pdf2docx then the image-shrink pass. Returns the .docx bytes.
+    """Run pdf2docx (with stencil-text recovery when needed) then the
+    image-shrink pass. Returns the .docx bytes.
 
     Raises _HandlerError(500) if pdf2docx fails, surfacing the message to the client
     exactly as the inline path always has.
     """
+    stenciled = False
+    try:
+        # Stencil-text documents (text drawn as masked colour chips, no text
+        # layer) must be OCR-rewritten first or the .docx comes out empty.
+        # Ordinary PDFs skip this entirely - is_stencil_pdf is a cheap census.
+        doc = fitz.open(in_path)
+        if stencil_ocr.is_stencil_pdf(doc):
+            stenciled = True
+            t = time.time()
+            stencil_ocr.recover_text(doc)
+            doc.save(in_path + ".ocr.pdf", garbage=4, deflate=True)
+            in_path = in_path + ".ocr.pdf"
+            print(json.dumps({"m": "stencil_ocr", "ms": int((time.time() - t) * 1000)}))
+        doc.close()
+    except Exception as e:  # noqa: BLE001
+        raise _HandlerError(500, f"Conversion failed: {e}")
     try:
         cv = Converter(in_path)
         cv.convert(out_path)
@@ -254,6 +273,13 @@ def _convert(in_path, out_path):
         raise _HandlerError(500, f"Conversion failed: {e}")
     with open(out_path, "rb") as f:
         out = f.read()
+    if stenciled:
+        # narrow glyphs + grow provably-overflowing rows; only worthwhile (and
+        # only tuned) for OCR-recovered documents
+        try:
+            out = stencil_ocr.postprocess_docx(out)
+        except Exception:
+            pass
     # pdf2docx re-saves embedded photos as lossless PNG; recompress back to JPEG.
     return _shrink_docx_images(out)
 
