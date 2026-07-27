@@ -117,7 +117,13 @@
         </fieldset>
       </form>
 
-      <div class="results" aria-live="polite">
+      <!-- data-tb-result is the explicit anchor for report-widget.js. Without it the
+           widget falls back to sniffing [aria-live="polite"], and this page has two of
+           them, so the narrowing can resolve to the wrong node or to none at all — which
+           is how the "Report a wrong result" and "Copy result" controls silently vanished
+           from all 51 state pages once before. Keep the attribute even though the
+           fallback usually works. -->
+      <div class="results" data-tb-result aria-live="polite">
         <div class="breakdown" id="breakdown" aria-hidden="true">
           <div class="bar">
             <span class="seg-net" id="segNet" style="width:0%"></span>
