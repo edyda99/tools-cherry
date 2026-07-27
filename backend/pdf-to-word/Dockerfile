@@ -36,7 +36,7 @@ COPY vendor/eng.traineddata /opt/tesseract/share/tessdata/eng.traineddata
 FROM public.ecr.aws/lambda/python:3.12-arm64
 
 # opencv (pulled in by pdf2docx) needs libGL; libjpeg/libtiff back tesseract.
-RUN dnf install -y mesa-libGL libjpeg-turbo libtiff libpng && dnf clean all
+RUN dnf install -y mesa-libGL libjpeg-turbo libtiff libpng libgomp && dnf clean all
 
 COPY --from=tesseract-build /opt/tesseract /opt/tesseract
 ENV PATH="/opt/tesseract/bin:${PATH}" \
