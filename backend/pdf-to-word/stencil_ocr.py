@@ -45,12 +45,28 @@ PAD = 2.5            # stencil-rect merge/crop padding, points
 MIN_STENCILS = 8     # fewer masked chips than this on every page = not a stencil doc
 TESSERACT = "tesseract"
 
+# lambda_function monkey-patches fitz.Page.get_images to hide colour chips from
+# pdf2docx - which would blind this module to the very chips it exists to find.
+# It hands us the unpatched original via set_raw_get_images() at import time.
+_raw_get_images = None
+
+
+def set_raw_get_images(fn):
+    global _raw_get_images
+    _raw_get_images = fn
+
+
+def _get_images(pg, full=False):
+    if _raw_get_images is not None:
+        return _raw_get_images(pg, full=full)
+    return pg.get_images(full=full)
+
 
 def is_stencil_pdf(doc):
     """True when any page draws enough masked colour chips to be stencil text."""
     for pg in doc:
         n = 0
-        for im in pg.get_images(full=True):
+        for im in _get_images(pg, full=True):
             if im[2] * im[3] <= TINY and im[1]:
                 n += 1
                 if n >= MIN_STENCILS:
@@ -154,7 +170,7 @@ def recover_text(doc):
     plan, kill = [], set()
     for pg in doc:
         stencil, fills = [], []
-        for im in pg.get_images(full=True):
+        for im in _get_images(pg, full=True):
             xref, smask, w, h = im[0], im[1], im[2], im[3]
             if w * h > TINY:
                 continue
@@ -241,7 +257,7 @@ def recover_text(doc):
     # blank the chips last (transparent 1x1 swap is doc-wide per xref)
     removed = set()
     for pg in doc:
-        for im in pg.get_images(full=True):
+        for im in _get_images(pg, full=True):
             if im[0] in kill and im[0] not in removed:
                 try:
                     pg.delete_image(im[0])

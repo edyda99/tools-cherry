@@ -46,6 +46,8 @@ def _install_fill_chip_filter():
         return [im for im in original(self, full=full) if im[2] * im[3] > TINY_IMAGE_PX]
 
     fitz.Page.get_images = get_images
+    # stencil_ocr must see the chips this filter hides
+    stencil_ocr.set_raw_get_images(original)
 
 # Recompress embedded images larger than this; cap their longest side; JPEG quality.
 IMG_RECOMPRESS_THRESHOLD = 300_000
