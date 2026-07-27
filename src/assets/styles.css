@@ -716,6 +716,14 @@ ul.breakdown { list-style: none; padding: 0; }
 .cat-summary h2 { font-size: 19px; margin: 0; }
 .cat:not([open]) > .cat-summary h2 { font-size: 17.5px; line-height: 1.25; }
 .cat[open] > .cat-summary h2 { font-size: 23px; }
+/* The count and the chevron are one flex item, not two, so the wrapping row can
+   never put them on different lines. With them loose, a heading long enough to
+   nearly fill the row left just enough space for the count and not for the
+   chevron, and the chevron alone dropped to a second line — the disclosure
+   control's only affordance, orphaned under the bar it belongs to, and a whole
+   line of height for 12px of glyph. Grouped, the pair either both fit beside the
+   heading or both move down together, which is what the six short rows do. */
+.cat-meta { display: inline-flex; align-items: baseline; gap: 0 10px; flex: 0 0 auto; }
 .cat-count { color: var(--muted); font-size: 13px; font-weight: 500; }
 /* Not a sentence about the section — the names of tools actually inside it, which
    is what a visitor scans for. Kept short enough to hold ONE line down to 320px,
@@ -1393,99 +1401,6 @@ footer.site a:hover { color: var(--text); }
 .rpt-contact-fallback a:focus-visible { outline: 2px solid transparent; outline-offset: 2px; box-shadow: var(--ring); border-radius: 4px; }
 
 /* ---------------------------------------------------------------------------
-   Mobile density pass — LAST BLOCK IN THE FILE ON PURPOSE.
-   Every rule here lives inside a max-width (or hover:none) query, so nothing
-   below can reach desktop, and being last in source order it wins over the
-   earlier same-specificity mobile rules it deliberately overrides (notably the
-   max-width:560px search-trigger block above). Three jobs:
-     A. Turn the header from a 4-line wrapped nav (~197px of permanently sticky
-        chrome at 390px) into a two-row header: brand + full-width search bar,
-        then a one-line horizontally scrolling nav chip strip that doubles as
-        the jump bar for the collapsed category sections.
-     B. Tighten type, spacing and the card/state grids so a section that is
-        opened is a browsable list rather than a wall. The tool descriptions
-        are clamped to 2 lines visually only, the full sentence stays in the
-        HTML and in the search index, and every layout returns to normal at
-        560px and up.
-     C. Kill the hover lift on touch, where it sticks after a tap and misreads
-        as a selection state. Transform only, never box-shadow, because
-        .tool-card--hot carries its ring in box-shadow.
- * ------------------------------------------------------------------------- */
-@media (max-width: 799px) {
-  header.site .wrap { flex-wrap: wrap; gap: 8px 10px; padding: 10px 14px; min-height: 0; }
-  header.site .brand { flex: 0 0 auto; margin-right: 0; font-size: 18px; }
-  .theme-toggle { order: 2; }
-  .tb-search-trigger {
-    order: 1; margin-left: 0; flex: 1 1 auto; justify-content: flex-start;
-    min-height: 40px; padding: 8px 14px;
-  }
-  .tb-search-trigger-txt { display: inline; }
-  header.site nav {
-    order: 3; flex: 1 0 100%; flex-wrap: nowrap;
-    overflow-x: auto; overscroll-behavior-x: contain;
-    scrollbar-width: none; -ms-overflow-style: none;
-    gap: 6px; margin: 0 -14px; padding: 0 14px 1px;
-  }
-  header.site nav::-webkit-scrollbar { width: 0; height: 0; }
-  header.site nav a {
-    flex: 0 0 auto; white-space: nowrap; font-size: 13px; padding: 7px 12px;
-    background: var(--surface-2); border: 1px solid var(--border);
-  }
-}
-
-@media (max-width: 559px) {
-  .wrap { padding: 0 14px; }
-  main { padding: 18px 0 32px; }
-  .hero { padding: 4px 0 2px; }
-  .hero h1 { font-size: 26px; max-width: none; margin: 0 0 6px; }
-  .hero .lede { font-size: 15.5px; margin: 0 0 10px; }
-  .hero .badges { gap: 6px; margin: 10px 0 2px; }
-  .badge { font-size: 12px; padding: 5px 10px; }
-  /* Same rhythm as before, now carried by the bar instead of the heading's own
-     margin, so the open/closed sizes below can change without moving anything.
-     The open section still outranks the closed bars, at the density this pass
-     exists to protect rather than at the desktop sizes. */
-  .cat-summary { padding: 20px 0 6px; }
-  /* Phone rhythm for the directory rows. Tighter than desktop because this is the
-     width where the seven rows are the whole first screen. */
-  .cat:not([open]) > .cat-summary { padding: 8px 0 7px; }
-  .cat-summary h2 { font-size: 18.5px; margin: 0; }
-  .cat:not([open]) > .cat-summary h2 { font-size: 17px; }
-  .cat[open] > .cat-summary h2 { font-size: 20px; }
-  .cat-count { font-size: 12px; }
-  .cat > .lede { font-size: 14.5px; margin: 0 0 10px; }
-  .money-subhead { font-size: 15.5px; margin-top: 18px; }
-  .money-subhead:first-of-type { margin-top: 10px; }
-  .popular-states { font-size: 14px; line-height: 1.5; margin: 0 0 10px; }
-  footer.site { padding: 20px 0; margin-top: 16px; }
-
-  .tool-grid { grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 2px; }
-  .tool-card { padding: 10px 11px; gap: 3px; border-radius: 10px; }
-  .tool-card .ic {
-    width: 26px; height: 26px; font-size: 15px; margin-bottom: 3px; border-radius: 7px;
-  }
-  .tool-card .t-name { font-size: 14px; line-height: 1.25; overflow-wrap: break-word; }
-  .tool-card .t-desc {
-    font-size: 12px; line-height: 1.35;
-    display: -webkit-box; -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
-  }
-  .tool-card .t-tag { top: 6px; right: 6px; font-size: 9.5px; padding: 1px 6px; }
-
-  .state-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .state-grid a, .state-grid span {
-    display: flex; align-items: center; justify-content: center; text-align: center;
-    min-height: 44px; padding: 6px 4px; font-size: 12.5px; line-height: 1.2;
-    border-radius: 8px; overflow-wrap: break-word;
-  }
-}
-
-@media (hover: none) {
-  .tool-card:hover { transform: none; }
-  .state-grid a:hover { transform: none; }
-}
-
-/* ---------------------------------------------------------------------------
    Forced colours (Windows High Contrast). The whole site draws keyboard focus
    with box-shadow, and box-shadow is dropped in this mode, which would leave a
    keyboard user with no visible focus at all. Every rule that suppresses the
@@ -1593,7 +1508,17 @@ footer.site a:hover { color: var(--text); }
   .hero .lede { font-size: 15.5px; margin: 0 0 10px; }
   .hero .badges { gap: 6px; margin: 10px 0 2px; }
   .badge { font-size: 12px; padding: 5px 10px; }
-  .cat-summary h2 { font-size: 18.5px; margin: 20px 0 6px; }
+  /* Same rhythm as before, now carried by the bar instead of the heading's own
+     margin, so the open/closed sizes below can change without moving anything.
+     The open section still outranks the closed bars, at the density this pass
+     exists to protect rather than at the desktop sizes. */
+  .cat-summary { padding: 20px 0 6px; }
+  /* Phone rhythm for the directory rows. Tighter than desktop because this is the
+     width where the seven rows are the whole first screen. */
+  .cat:not([open]) > .cat-summary { padding: 8px 0 7px; }
+  .cat-summary h2 { font-size: 18.5px; margin: 0; }
+  .cat:not([open]) > .cat-summary h2 { font-size: 17px; }
+  .cat[open] > .cat-summary h2 { font-size: 20px; }
   .cat-count { font-size: 12px; }
   .cat > .lede { font-size: 14.5px; margin: 0 0 10px; }
   .money-subhead { font-size: 15.5px; margin-top: 18px; }
