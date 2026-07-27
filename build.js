@@ -1317,6 +1317,17 @@ function effectiveFlatFacts(t) {
   return { rate, zeroUpTo: b[0].upTo };
 }
 
+// Does this state's sourced tax data carry a standard-deduction figure at all?
+// Five states do not (Ohio, New Jersey, Wisconsin, Connecticut, Pennsylvania),
+// and the shared copy used to assume every state did: the lede, the body opener,
+// the bracket-table intro and the FAQ all said the rate lands "after the state
+// deduction", while stateTaxFacts said, correctly from the same data, that the
+// state provides none. Both halves were visible on one page, and on Ohio the
+// wrong half was also the FAQPage JSON-LD Google receives. Every sentence that
+// mentions the deduction now branches on this, so it is true per state. Reads
+// the data only — it invents no figure for the states that have none.
+const hasStateDeduction = (t) => !!(t && t.standardDeduction);
+
 // Genuinely state-specific tax facts derived from the (already-sourced) data:
 // bracket count, rate range, top rate + threshold, standard deduction, and a
 // worked $60k example. Distinct per state — clears scaled/duplicate-content risk.
@@ -1337,12 +1348,19 @@ function stateTaxFacts(state, year, taxData) {
   } catch (_) { /* leave example empty if compute fails */ }
 
   if (t.type === 'flat') {
-    return `<p>${sdText}; after that, all remaining taxable income is taxed at the single ` +
+    // "after that, all REMAINING taxable income" only parses when sdText named a
+    // deduction to come off first; after "X does not provide a state standard
+    // deduction" it pointed at nothing.
+    const rest = sd ? 'after that, all remaining taxable income is' : 'all taxable income is';
+    return `<p>${sdText}; ${rest} taxed at the single ` +
       `flat rate of <strong>${pctStr(t.rate)}</strong> — ${state.name} does not use graduated brackets for ${year}.${example}</p>`;
   }
   if (isEffectivelyFlat(t)) {
     const f = effectiveFlatFacts(t);
-    return `<p>${sdText}; after that, the first ${usd0(f.zeroUpTo)} of remaining taxable income is taxed at ` +
+    const band = sd
+      ? `after that, the first ${usd0(f.zeroUpTo)} of remaining taxable income is`
+      : `the first ${usd0(f.zeroUpTo)} of ${state.name} taxable income is`;
+    return `<p>${sdText}; ${band} taxed at ` +
       `<strong>0%</strong> and every dollar above it at the single flat rate of <strong>${pctStr(f.rate)}</strong> — ` +
       `${state.name} does not run a ladder of rising rates for ${year}.${example}</p>`;
   }
@@ -1455,7 +1473,13 @@ function stateLede(state, year) {
   }
   if (isEffectivelyFlat(t)) {
     const f = effectiveFlatFacts(t);
-    return `${open} after federal income tax, Social Security, Medicare, and ${state.name}'s flat ${pctStr(f.rate)} state income tax, which skips the first ${usd0(f.zeroUpTo)} of taxable income — your pay after the state deduction.`;
+    // The trailing gloss explains what "taxable income" means for THIS state.
+    // Ohio has no state standard deduction, so "your pay after the state
+    // deduction" described a step Ohio does not have.
+    const gloss = hasStateDeduction(t)
+      ? ` — your pay after the state deduction.`
+      : `, and it has no state standard deduction.`;
+    return `${open} after federal income tax, Social Security, Medicare, and ${state.name}'s flat ${pctStr(f.rate)} state income tax, which skips the first ${usd0(f.zeroUpTo)} of taxable income${gloss}`;
   }
   const b = (t.brackets && t.brackets.single) || [];
   const range = b.length ? ` (${numWord(b.length)} brackets, ${pctStr(b[0].rate)} to ${pctStr(b[b.length - 1].rate)})` : '';
@@ -1645,14 +1669,28 @@ function stateBody(state, year, taxData) {
     // One rate, with a 0% band under it — not a ladder. Saying "graduated" here
     // while the same page's FAQ and lede say "flat" read as a contradiction.
     const f = effectiveFlatFacts(t);
-    how = `${state.name} levies a <strong>flat ${pctStr(f.rate)} state income tax</strong> for ${year}, ` +
-      `applied after the state deduction for your filing status — and the first ${usd0(f.zeroUpTo)} of ` +
-      `taxable income above that deduction is taxed at 0%, so only what is left pays the ${pctStr(f.rate)}.`;
-  } else {
+    how = hasStateDeduction(t)
+      ? `${state.name} levies a <strong>flat ${pctStr(f.rate)} state income tax</strong> for ${year}, ` +
+        `applied after the state deduction for your filing status — and the first ${usd0(f.zeroUpTo)} of ` +
+        `taxable income above that deduction is taxed at 0%, so only what is left pays the ${pctStr(f.rate)}.`
+      : `${state.name} levies a <strong>flat ${pctStr(f.rate)} state income tax</strong> for ${year} ` +
+        `with no state standard deduction — the first ${usd0(f.zeroUpTo)} of ${state.name} taxable income ` +
+        `is taxed at 0%, so only what is left pays the ${pctStr(f.rate)}.`;
+  } else if (hasStateDeduction(t)) {
     how = pickFrame(state.slug, 'gradhow', [
       `${state.name} taxes income on a graduated state schedule for ${year}, applied after the state deduction for your filing status.`,
       `${state.name} uses graduated ${year} state income-tax brackets, so higher pay is taxed at higher marginal rates after the state deduction.`,
       `Your ${state.name} state income tax for ${year} is figured on a graduated bracket schedule, layered on after the state deduction.`
+    ]);
+  } else {
+    // Same three voices, same salt and same array length, so each state keeps the
+    // frame it already had — only the deduction clause changes. New Jersey,
+    // Wisconsin and Connecticut land here: their pages promised a state deduction
+    // in this sentence and denied one two paragraphs later.
+    how = pickFrame(state.slug, 'gradhow', [
+      `${state.name} taxes income on a graduated state schedule for ${year}, with no state standard deduction to come off first.`,
+      `${state.name} uses graduated ${year} state income-tax brackets, so higher pay is taxed at higher marginal rates — and there is no state standard deduction to subtract first.`,
+      `Your ${state.name} state income tax for ${year} is figured on a graduated bracket schedule, with no state standard deduction beneath it.`
     ]);
   }
 
@@ -1729,7 +1767,8 @@ function bracketTableBlock(state, year) {
     return `<tr><td>${range}</td><td>${pctStr(br.rate)}</td></tr>`;
   }).join('');
   return `<section class="prose"><h2>${state.name}'s ${numWord(b.length)} ${dispYear} brackets, from ${pctStr(b[0].rate)} to ${pctStr(b[b.length - 1].rate)} (single filers)</h2>` +
-    `<p>${state.name}'s ${isEffectivelyFlat(t) ? 'single-filer' : 'graduated single-filer'} schedule for ${dispYear}, applied after the state deduction:</p>` +
+    `<p>${state.name}'s ${isEffectivelyFlat(t) ? 'single-filer' : 'graduated single-filer'} schedule for ${dispYear}` +
+    (hasStateDeduction(t) ? ', applied after the state deduction' : ', with no state standard deduction to subtract first') + `:</p>` +
     `<table class="data-table"><thead><tr><th>Taxable income</th><th>Marginal rate</th></tr></thead><tbody>${rows}</tbody></table></section>`;
 }
 
@@ -2001,9 +2040,15 @@ function flatBandRider(state, fact) {
   if (!state.hasIncomeTax || !t || !isEffectivelyFlat(t)) return '';
   if (/taxable income/i.test(fact)) return '';
   const f = effectiveFlatFacts(t);
+  // Only Idaho reaches this today (Ohio's unique FAQ is its municipal-tax one,
+  // Mississippi's fact already frames itself in taxable income), but the clause
+  // is gated anyway so a deduction-less state can never inherit a deduction it
+  // does not have. No output changes for Idaho.
+  const order = hasStateDeduction(t)
+    ? `the state standard deduction comes off first, a 0% band takes the next slice, and the rate `
+    : `there is no state standard deduction, a 0% band takes the first slice, and the rate `;
   return ` In practice the ${pctStr(f.rate)} lands on taxable income rather than on gross wages: ` +
-    `the state standard deduction comes off first, a 0% band takes the next slice, and the rate ` +
-    `reaches only what is left.`;
+    order + `reaches only what is left.`;
 }
 
 // FAQ entries shared by the JSON-LD block and the visible FAQ section (Google
@@ -2025,10 +2070,21 @@ function stateFaqEntries(state, p, year) {
     // income — it sits on top of the state standard deduction — so the sentence
     // has to say so; "the first $4,811 you earn" would be off by the deduction.
     const f = effectiveFlatFacts(t);
-    a1 = `Yes — though it behaves like a flat ${pctStr(f.rate)} rather than a ladder of rising rates. ` +
-      `For ${year}, a single filer's first ${usd0(f.zeroUpTo)} of taxable income — that is pay left after ` +
-      `the state standard deduction — is taxed at 0%, and every dollar above it at ${pctStr(f.rate)}, ` +
-      `on top of federal tax and FICA.`;
+    // Idaho and Mississippi DO have a state standard deduction and their 0% band
+    // sits on top of it, which is where the shared "pay left after the state
+    // standard deduction" gloss came from. Ohio has no such deduction — its band
+    // sits directly on Ohio taxable income — so on Ohio that gloss contradicted
+    // the same page's own "Ohio does not provide a state standard deduction",
+    // and the contradicting half was the one emitted as FAQPage JSON-LD.
+    a1 = hasStateDeduction(t)
+      ? `Yes — though it behaves like a flat ${pctStr(f.rate)} rather than a ladder of rising rates. ` +
+        `For ${year}, a single filer's first ${usd0(f.zeroUpTo)} of taxable income — that is pay left after ` +
+        `the state standard deduction — is taxed at 0%, and every dollar above it at ${pctStr(f.rate)}, ` +
+        `on top of federal tax and FICA.`
+      : `Yes — though it behaves like a flat ${pctStr(f.rate)} rather than a ladder of rising rates. ` +
+        `${state.name} does not provide a state standard deduction, so for ${year} a single filer's first ` +
+        `${usd0(f.zeroUpTo)} of ${state.name} taxable income is taxed at 0%, and every dollar above it at ` +
+        `${pctStr(f.rate)}, on top of federal tax and FICA.`;
   } else {
     const b = (t.brackets && t.brackets.single) || [];
     a1 = b.length

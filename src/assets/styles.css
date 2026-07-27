@@ -129,6 +129,14 @@ a:hover { text-decoration: underline; }
   transition: top .15s ease;
 }
 .skip-link:focus { top: 8px; text-decoration: none; }
+/* The :focus-visible rule above and .skip-link's own box-shadow are both a
+   single class, (0,1,0), and .skip-link is the later of the two — so the ring
+   lost on source order and never painted on the first tab stop of all 240
+   pages. Re-stating it on the component, one pseudo-class up at (0,2,0), is
+   the smallest thing that wins; the resting shadow is kept as the second layer
+   so the panel still lifts off the page. Same collision, same fix, on
+   .tool-card further down. */
+.skip-link:focus-visible { box-shadow: var(--ring), var(--shadow-md); }
 
 img, canvas, svg { max-width: 100%; }
 
@@ -238,9 +246,37 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 @media (max-width: 680px) { .calc .results.results-first { order: -1; } }
 
 .field { margin-bottom: 18px; }
-/* The question outranks the answer box it sits above: full-strength ink at the
-   body's own reading size, not a muted caption. */
-.field label, .field-label { display: block; font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 7px; }
+.field label, .field-label { display: block; font-size: 13.5px; font-weight: 600; color: var(--muted); margin-bottom: 7px; }
+/* ---- The in-scope hook ------------------------------------------------
+   READ THIS BEFORE ENLARGING ANYTHING ON A SHARED CLASS.
+
+   This pass reworked 58 pages: the 51 state paycheck pages and the 7 tax
+   tools. Three of its type changes were written straight onto shared classes,
+   so they landed on every page that happens to use those classes. Measured
+   against a clean main build at 1280px, the unscoped versions changed
+   .stat-value on 84 pages, this label rule on 157 pages and .prose p/li/.note
+   on 158 pages that the pass never touched — including tools whose "value" is
+   a sentence, a date or a GPA. .net-big was caught earlier and scoped to
+   #netBig; these three are the same leak.
+
+   Two classes mark an in-scope page and appear nowhere else in dist:
+   `.answer-band` (51 pages, the paycheck set) and `.calc-answer` (6 pages, the
+   tool set — the seventh, /data/take-home-pay-by-state/, is a table rather
+   than a calculator and wants none of this). Neither appears on any other
+   built page and neither appears on any of the 24 embed widgets, so
+   `:root:has(.answer-band, .calc-answer)` selects exactly those 57 pages.
+
+   :has() takes the specificity of its most specific argument, so the hook adds
+   (0,1,0) — enough to beat the base rule directly above, small enough that the
+   per-component overrides further down this file still win. In a browser
+   without :has() the rule is simply dropped and the page renders as main does,
+   which is the safe way to fail. */
+:root:has(.answer-band, .calc-answer) .field label,
+:root:has(.answer-band, .calc-answer) .field-label {
+  /* The question outranks the answer box it sits above: full-strength ink at
+     the body's own reading size, not a muted caption. */
+  font-size: 15px; color: var(--text);
+}
 .field input, .field select, .field textarea {
   width: 100%; padding: 12px 14px; font-size: 16px; font-family: inherit;
   background: var(--surface); color: var(--text);
@@ -359,8 +395,18 @@ html.js .applies-line[data-hidden] { display: none; }
 /* Says whose numbers are on screen before the visitor has typed anything, so a
    pre-filled figure never reads as the visitor's own answer. */
 .calc-example { font-size: 13.5px; line-height: 1.45; color: var(--muted); margin: 0 0 10px; }
-.stat-value  { margin: 0; font-size: clamp(38px, 11vw, 56px); line-height: 1.05; font-weight: 800;
+.stat-value  { margin: 0; font-size: clamp(30px, 8vw, 40px); font-weight: 800;
   letter-spacing: -.02em; color: var(--accent); font-variant-numeric: tabular-nums; }
+/* Money set as money, on the tools this pass reworked only — the same
+   treatment #netBig gets on the paycheck pages. `.calc-answer` is the wrapper
+   those 7 templates put round their result and it exists on no other built
+   page, so a plain descendant selector at (0,2,0) is enough; the hook
+   documented at .field label above is only needed where the target sits
+   outside the calculator. Enlarging .stat-value itself put 56px/1.05 on 84
+   pages it was never designed for: /gpa-calculator/'s "3.42 GPA",
+   /car-loan-interest-calculator/'s total, all 51 bonus-tax pages and 18 embed
+   widgets, where a two-line value grew from 66px to 117.6px tall. */
+.calc-answer .stat-value { font-size: clamp(38px, 11vw, 56px); line-height: 1.05; }
 .stat-value.is-zero { color: var(--text); }
 .stat-sub    { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
 
@@ -664,6 +710,17 @@ ul.breakdown { list-style: none; padding: 0; }
   transform: translateY(-3px); box-shadow: var(--shadow-lg);
   border-color: var(--accent); text-decoration: none;
 }
+/* Every tool card is a link, so every one is a tab stop — and the global
+   :focus-visible ring is (0,1,0), exactly the same as .tool-card above it, so
+   the resting shadow won on source order and the ring painted on none of them.
+   These two rules are (0,2,0): high enough to beat the component, low enough
+   to leave every other focus state alone. They set box-shadow only, so a
+   focused card keeps its own larger border-radius rather than the ring rule's
+   --radius-sm. Placed after :hover, which is also (0,2,0), so a card that is
+   both hovered and focused still shows the ring. */
+.tool-card:focus-visible { box-shadow: var(--ring), var(--shadow-sm); }
+/* A promoted card keeps its inset accent marker while focused. */
+.tool-card--hot:focus-visible { box-shadow: var(--ring), 0 0 0 1px var(--accent) inset, var(--shadow-sm); }
 /* A tinted chip on all 26 cards made none of them stand out. The tint is now a
    mark of something: the promoted cards, and whichever card is under the
    pointer. Everything else gets the neutral surface. */
@@ -766,9 +823,26 @@ ul.breakdown { list-style: none; padding: 0; }
 
 /* ---- Prose ----------------------------------------------------------- */
 .prose { color: var(--text); }
-/* Cap the reading line at a comfortable measure. Running text only: tables and
-   their scroll wrappers still use the full column width. */
-.prose p, .prose li, .prose > .note { max-width: 68ch; }
+/* Cap the reading line at a comfortable measure, on the 57 pages this pass
+   reworked only — see the hook documented at .field label above. Running text
+   only: tables and their scroll wrappers still use the full column width.
+   Unscoped this narrowed every paragraph on all 216 prose pages from 900px to
+   728px at 1280px and made the 158 unrelated ones materially taller
+   (/401k-calculator/ 3159px -> 3398px, /1099-threshold-checker/ 4946px ->
+   5355px of document height).
+
+   `.lede` is excluded rather than re-declared: `.prose p` is (0,1,1) and
+   `.lede` is only (0,1,0), so a lede inside a .prose section silently loses
+   its own measure to any rule written this way. And because ch is
+   font-relative, losing it makes the lede WIDER, not narrower — 68ch at the
+   lede's 19px is 811px against 728px for the 16px body text it introduces, so
+   the paragraph that is meant to read as the short intro ends up the longest
+   line on the page. Measured on /tax-glossary/ and on all 51 paycheck pages,
+   which are the 52 pages that put a .lede inside .prose. Excluding it here
+   leaves `.lede { max-width: 60ch }` as the single source of that measure. */
+:root:has(.answer-band, .calc-answer) .prose p:not(.lede),
+:root:has(.answer-band, .calc-answer) .prose li,
+:root:has(.answer-band, .calc-answer) .prose > .note { max-width: 68ch; }
 .prose p { margin: 0 0 15px; }
 .prose a { font-weight: 600; }
 .prose table { width: 100%; border-collapse: collapse; margin: 8px 0 18px; font-size: 14.5px; }
@@ -1458,39 +1532,76 @@ footer.site a:hover { color: var(--text); }
     gap: 6px; margin: -4px -14px -5px; padding: 4px 14px 6px;
   }
   header.site nav::-webkit-scrollbar { width: 0; height: 0; }
-  /* The fade is the cue that the strip continues past the right edge, so it may
-     only be painted when the strip actually does. It was on the rule above
-     unconditionally, and no built page overflows here: 216 of the 217 pages
-     with a nav carry a single chip, the homepage carries four, and at 390px
-     every one of them measures scrollWidth === clientWidth. So the cue was
-     advertising scroll that does not exist on every page at every width.
-     A scroll-progress timeline is the one thing in CSS that knows: per spec a
-     scroll() timeline whose scroller has no scrollable overflow in that axis is
-     inactive, and an animation on an inactive timeline has no effect, so the
-     keyframe below simply does not apply until a real overflow appears. The
-     @supports guard keeps browsers without scroll-driven animations on the
-     no-fade path, which is the correct rendering for every page shipping today.
-     The gradient stops 14px early because the negative margins above push this
-     element's border box past the header's content column on both sides; ending
-     the fade at calc(100% - 14px) lands it on the column edge the visitor sees
-     instead of 14px outside it. */
+  /* The fade is the cue that the strip continues past the right edge, so it
+     may only be painted while it actually does. That is two questions, and the
+     rule below has to answer both.
+
+     1. Does this page's strip overflow at all? A scroll-progress timeline
+        answers that for free: per spec a scroll() timeline whose scroller has
+        no scrollable overflow in that axis is inactive, and an animation on an
+        inactive timeline has no effect, so with no mask-image on the element
+        itself the keyframe simply does not apply until a real overflow
+        appears. Measured on the built pages at 320/360/375/390/412/430/480/
+        560/640/768/799px: 216 of the 217 pages with a nav carry a single chip
+        (widest label "Paycheck Calculators") and never overflow at any of
+        those widths. The homepage carries four chips, measures 371px of
+        scrollWidth, and DOES overflow — at 320px (51px of travel) and at 360px
+        (11px). An earlier version of this comment claimed nothing overflows
+        here; that was checked at 390px only, where it happens to be true, and
+        is wrong at the two widths below it.
+
+     2. Is there anything left to scroll to? That is what the keyframe is for
+        now. It used to hold one value from `from` to `to`, so on the homepage
+        at 320px the last chip stayed dimmed at 51/51 — the fade advertised
+        content that was not there, at the one place a visitor most needs to
+        know they have reached the end. The fade now holds through the first
+        90% of the travel and is gone from 95% on.
+
+     The turn-off is a step, not a ramp, because Chrome interpolates mask-image
+     DISCRETELY: measured, a two-keyframe gradient flips at the midpoint of the
+     interval (from,90% -> to gives a clean flip at 95%) instead of easing. A
+     registered @property carrying the gradient's alpha does interpolate
+     smoothly, and was tried, but it requires a mask-image on the element at
+     rest — and an all-opaque mask is not a no-op: screenshotting the header at
+     390px with and without one gives different pixels (masking moves the chip
+     text off subpixel antialiasing). That would have changed text rendering on
+     all 217 pages to smooth the last 5% of one page's scroll, so the step
+     stays and the element carries no mask-image of its own.
+
+     `to` is `none` rather than a fully-opaque gradient for the same reason: at
+     the end of the travel there is no mask at all, so nothing is dimmed and
+     nothing is clipped — in particular the 3px focus ring on the last chip,
+     which the negative margins above exist to protect, is drawn in the clear.
+
+     The @supports guard keeps browsers without scroll-driven animations on the
+     no-fade path, which is the correct rendering for 216 of the 217 pages. The
+     gradient stops 14px early because the negative margins push this element's
+     border box past the header's content column on both sides; ending the fade
+     at calc(100% - 14px) lands it on the column edge the visitor sees instead
+     of 14px outside it. */
   @supports (animation-timeline: scroll(self inline)) {
     header.site nav {
       animation: tb-nav-overflow-fade linear both;
       animation-timeline: scroll(self inline);
     }
     /* The blanket `* { animation: none !important }` under prefers-reduced-motion
-       would take the fade with it. This keyframe holds one value from end to end
-       and never moves — it is being used as a conditional, not as motion — so it
-       is restored here. `header.site nav` outranks `*`, so the two !importants
-       resolve in this rule's favour. */
+       would take the fade with it, and with it the only signal that the strip
+       scrolls. Nothing here moves: the keyframe steps a mask on and off from
+       the scroll position, so it is a conditional driven by the visitor's own
+       gesture rather than motion they did not ask for. It is restored here.
+       `header.site nav` outranks `*`, so the two !importants resolve in this
+       rule's favour. */
     @media (prefers-reduced-motion: reduce) {
       header.site nav { animation: tb-nav-overflow-fade linear both !important; }
     }
     @keyframes tb-nav-overflow-fade {
-      from, to {
+      from, 90% {
         mask-image: linear-gradient(to right, #000 calc(100% - 38px), transparent calc(100% - 14px));
         -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 38px), transparent calc(100% - 14px));
+      }
+      to {
+        mask-image: none;
+        -webkit-mask-image: none;
       }
     }
   }

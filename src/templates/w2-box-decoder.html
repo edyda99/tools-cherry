@@ -23,8 +23,26 @@
   .code-card h3 { margin:0 0 6px; font-size:1.02rem; }
   .code-card p { margin:6px 0; font-size:.93rem; }
   .code-badge { display:inline-block; padding:2px 8px; border-radius:6px; font-size:.8rem; font-weight:700; margin-left:8px; }
-  .code-badge.b-excluded { background:rgba(47,111,79,.18); color:#2f6f4f; }
-  .code-badge.b-included { background:rgba(178,107,0,.16); color:#b26b00; }
+  /* These two badges print their ink on a tint of the SAME colour, stacked on
+     the .code-card tint, so they never had the contrast their plain-background
+     siblings do. #2f6f4f measured 4.19:1 in light and 2.28:1 in dark; #b26b00
+     measured 3.20:1 and 3.16:1 — all four under AA's 4.5:1. Being page-scoped,
+     they also sat outside the styles.css dark-mode flag fix, which is why that
+     pass missed them.
+     Dark reuses exactly what that fix chose for the sibling flags carrying these
+     same two light hexes: #2f6f4f/.ok-flag → #3fb863, #b26b00/.phaseout-flag →
+     #f0b86e. Light needs its own values because the siblings' light inks are the
+     failing ones here (#b26b00 misses AA even on plain white, at 4.20:1), so
+     these take the next darkest hexes the palette already owns: #0f5132 is
+     --accent-hover, #8a4b00 is the .qr-warn ink. No new colour enters the site. */
+  .code-badge.b-excluded { background:rgba(47,111,79,.18); color:#0f5132; }
+  .code-badge.b-included { background:rgba(178,107,0,.16); color:#8a4b00; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .code-badge.b-excluded { color:#3fb863; }
+    :root:not([data-theme="light"]) .code-badge.b-included { color:#f0b86e; }
+  }
+  :root[data-theme="dark"] .code-badge.b-excluded { color:#3fb863; }
+  :root[data-theme="dark"] .code-badge.b-included { color:#f0b86e; }
   .ttoc-result { margin-top:10px; }
   .ttoc-hit { padding:10px 12px; border:1px solid rgba(128,128,128,.25); border-radius:8px; margin-top:8px; }
   .ttoc-hit .t-code { font-weight:700; font-variant-numeric: tabular-nums; }
