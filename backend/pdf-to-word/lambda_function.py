@@ -48,6 +48,9 @@ def _install_fill_chip_filter():
     fitz.Page.get_images = get_images
     # stencil_ocr must see the chips this filter hides
     stencil_ocr.set_raw_get_images(original)
+    # and pdf2docx must not see the hidden zero-advance text a sanitiser leaves
+    # behind; the repair stays dormant until a stencil document is recovered
+    stencil_ocr.install_span_repair()
 
 # Recompress embedded images larger than this; cap their longest side; JPEG quality.
 IMG_RECOMPRESS_THRESHOLD = 300_000
@@ -267,12 +270,17 @@ def _convert(in_path, out_path):
         doc.close()
     except Exception as e:  # noqa: BLE001
         raise _HandlerError(500, f"Conversion failed: {e}")
+    # the hidden-text repair applies to stencil documents only, and only for
+    # this conversion - warm containers serve later, ordinary PDFs too
+    stencil_ocr.set_span_repair(stenciled)
     try:
         cv = Converter(in_path)
         cv.convert(out_path)
         cv.close()
     except Exception as e:  # noqa: BLE001 - surface any conversion error to the client
         raise _HandlerError(500, f"Conversion failed: {e}")
+    finally:
+        stencil_ocr.set_span_repair(False)
     with open(out_path, "rb") as f:
         out = f.read()
     if stenciled:
