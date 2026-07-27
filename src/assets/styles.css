@@ -32,7 +32,7 @@
   --shadow-sm: 0 1px 2px rgba(20, 30, 50, .06), 0 1px 3px rgba(20, 30, 50, .05);
   --shadow-md: 0 4px 12px rgba(20, 30, 50, .07), 0 2px 4px rgba(20, 30, 50, .05);
   --shadow-lg: 0 12px 28px rgba(20, 30, 50, .12);
-  --ring: 0 0 0 3px rgba(28, 95, 196, .28);
+  --ring: 0 0 0 3px rgba(28, 95, 196, .85);
 
   /* Layout & rhythm */
   --maxw: 940px;
@@ -68,7 +68,7 @@
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
     --shadow-md: 0 4px 14px rgba(0, 0, 0, .45);
     --shadow-lg: 0 14px 32px rgba(0, 0, 0, .55);
-    --ring: 0 0 0 3px rgba(111, 176, 255, .4);
+    --ring: 0 0 0 3px rgba(111, 176, 255, .8);
   }
 }
 :root[data-theme="dark"] {
@@ -92,7 +92,7 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
   --shadow-md: 0 4px 14px rgba(0, 0, 0, .45);
   --shadow-lg: 0 14px 32px rgba(0, 0, 0, .55);
-  --ring: 0 0 0 3px rgba(111, 176, 255, .4);
+  --ring: 0 0 0 3px rgba(111, 176, 255, .8);
 }
 /* Match native UI (form controls, scrollbars, date pickers) to a forced theme,
    so choosing light on a dark OS doesn't leave dark scrollbars behind. */
@@ -238,7 +238,9 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 @media (max-width: 680px) { .calc .results.results-first { order: -1; } }
 
 .field { margin-bottom: 18px; }
-.field label, .field-label { display: block; font-size: 13.5px; font-weight: 600; color: var(--muted); margin-bottom: 7px; }
+/* The question outranks the answer box it sits above: full-strength ink at the
+   body's own reading size, not a muted caption. */
+.field label, .field-label { display: block; font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 7px; }
 .field input, .field select, .field textarea {
   width: 100%; padding: 12px 14px; font-size: 16px; font-family: inherit;
   background: var(--surface); color: var(--text);
@@ -247,7 +249,7 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 }
 .field input:hover, .field select:hover, .field textarea:hover { border-color: var(--muted); }
 .field input:focus, .field select:focus, .field textarea:focus {
-  outline: none; border-color: var(--link); box-shadow: var(--ring);
+  outline: 2px solid transparent; outline-offset: 2px; border-color: var(--link); box-shadow: var(--ring);
 }
 .field select { appearance: none; -webkit-appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%235a6675' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
@@ -269,14 +271,57 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 .field .combo input { flex: 1; min-width: 0; }
 .field .combo select { flex: 0 0 70px; padding-right: 28px; background-position: right 8px center; }
 
+/* ---- Answer band (state paycheck pages) ------------------------------ */
+/* First child of .calc, spanning both columns, so the answer sits above the
+   form on desktop AND on mobile without an `order` override: it is already
+   first in the DOM. Leaves .calc's 1fr 1fr grid intact for the row below. */
+.answer-band {
+  grid-column: 1 / -1;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px;
+}
+/* The prior-year notice, when a state has one, is a full-width row of .calc
+   sitting between the band and the form (2 of 51 pages). */
+.calc > .year-fallback { grid-column: 1 / -1; margin: 0; }
+.net-label { font-size: 13px; color: var(--muted); margin: 0 0 6px; line-height: 1.45; }
+.answer-band .net-sub { margin: 3px 0 14px; }
+.answer-band .mode-row.view-toggle { margin: 0; }
+
+/* ---- "Which rules apply to me" block (state paycheck pages) ---------- */
+.applies-chips { border: 0; padding: 0; margin: 0 0 16px; }
+.applies-chips legend { padding: 0; font-size: 13.5px; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+.applies-opt { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; font-size: 15.5px; cursor: pointer; }
+.applies-opt input { width: 18px; height: 18px; flex: 0 0 auto; margin-top: 2px; accent-color: var(--accent); }
+.applies-line { margin: 0 0 12px; }
+.applies-more { margin: 4px 0 0; }
+/* Hide-on-demand only: scoped to html.js so the lines stay visible with
+   JavaScript off, and state-flow.js only sets data-hidden after a tick. */
+html.js .applies-line[data-hidden] { display: none; }
+
 /* ---- Results panel --------------------------------------------------- */
 .results { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; }
-.net-big { font-size: clamp(32px, 8vw, 40px); font-weight: 800; letter-spacing: -.02em; color: var(--accent); margin: 0; }
-.net-sub { color: var(--muted); font-size: 14px; margin: 3px 0 20px; }
+/* .net-big is the shared "headline answer" class. 96 built pages use it, and
+   only 51 of them (the state paycheck pages, #netBig) hold a money figure —
+   the other 45 hold a sentence or a unit-bearing phrase: "11:16 PM (previous
+   day)" on /time-zone-converter/, "15.00 hours" on /hours-calculator/,
+   "70.4-75.2 kg" on /ideal-weight-calculator/, "W-2 keeps $4,925 more" on
+   /1099-vs-w2-calculator/. So the base rule stays at the size those pages were
+   designed around; the money treatment is opted into below, not out of. */
+.net-big { font-size: clamp(32px, 8vw, 40px); font-weight: 800; letter-spacing: -.02em; color: var(--accent); font-variant-numeric: tabular-nums; margin: 0; }
+/* A zero/placeholder answer is not a positive result, so it drops the green. */
+.net-big.is-zero { color: var(--text); }
+/* Money set as money: the take-home figure is the one thing a paycheck page
+   exists to say, so it outranks the page title, and tight leading keeps a
+   wrapped figure reading as one number. Scoped to #netBig, which exists only
+   on the 51 state paycheck pages — enlarging .net-big itself pushed a
+   three-line sentence to 42.9px/135px tall on tool pages that were never part
+   of this work. */
+#netBig.net-big { font-size: clamp(38px, 11vw, 56px); line-height: 1.05; }
+.net-sub { color: var(--muted); font-size: 14px; margin: 6px 0 20px; }
 /* gap guarantees a minimum label-to-value separation: without it, space-between
    only pads leftover width, so a short label ("RGB") next to a wide value+button
    pair could end up glued together ("RGBrgb(30, 144, 255)") on a narrow screen. */
-.line { display: flex; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 15.5px; }
+.line { display: flex; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 15.5px; font-variant-numeric: tabular-nums; }
 .line:last-child { border-bottom: 0; }
 .line[hidden] { display: none; } /* author .line{display:flex} otherwise beats the UA [hidden] rule */
 .line .lbl { color: var(--muted); }
@@ -311,7 +356,10 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 .stat-card { border-radius: var(--radius); background: var(--surface-2);
   border: 1px solid var(--border); padding: 16px 18px; margin-bottom: 14px; }
 .stat-kicker { margin: 0 0 2px; font-size: 13.5px; font-weight: 600; color: var(--muted); }
-.stat-value  { margin: 0; font-size: clamp(30px, 8vw, 40px); font-weight: 800;
+/* Says whose numbers are on screen before the visitor has typed anything, so a
+   pre-filled figure never reads as the visitor's own answer. */
+.calc-example { font-size: 13.5px; line-height: 1.45; color: var(--muted); margin: 0 0 10px; }
+.stat-value  { margin: 0; font-size: clamp(38px, 11vw, 56px); line-height: 1.05; font-weight: 800;
   letter-spacing: -.02em; color: var(--accent); font-variant-numeric: tabular-nums; }
 .stat-value.is-zero { color: var(--text); }
 .stat-sub    { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
@@ -344,6 +392,13 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 
 /* Two-up money fields (SALT income tax / property tax, overtime hrs/rate) */
 .est-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* Side by side these leave each input about 150px on a 390px phone, too narrow
+   for a labelled dollar amount, so they stack. This override MUST stay below
+   the base rule above: both selectors are one class (0,1,0) and a media query
+   adds no specificity, so source order is the only thing that decides — the
+   same override sitting higher up in the file silently lost. Not written as
+   `.field.est-row` because overtime-tax-calculator's row has no .field class. */
+@media (max-width: 480px) { .est-row { grid-template-columns: 1fr; } }
 
 /* Equal-weight tile pairs — two results that are both "the answer" and
    neither should read as primary/secondary (e.g. weighted vs unweighted
@@ -359,9 +414,25 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .phaseout-flag { color: #f0b86e; }
   :root:not([data-theme="light"]) .ineligible-flag { color: #f08a72; }
+  :root:not([data-theme="light"]) .ok-flag,
+  :root:not([data-theme="light"]) .new-flag { color: #3fb863; }
+  :root:not([data-theme="light"]) .empty-flag { color: #f08a72; }
 }
 :root[data-theme="dark"] .phaseout-flag { color: #f0b86e; }
 :root[data-theme="dark"] .ineligible-flag { color: #f08a72; }
+/* The three flags below were left out of the dark treatment when it was
+   written, so they kept their light-mode ink on a dark surface: .ok-flag and
+   .new-flag sat at #2f6f4f (2.83:1 on --surface, 3.11:1 on --bg) and
+   .empty-flag at #b23a00, all under the 4.5:1 AA threshold. #3fb863 is the
+   dark --accent, so /data/treasury-tipped-occupation-codes/ — whose .new-flag
+   already resolved to var(--accent) — is unchanged, while w2-box-decoder's
+   hard-coded green is lifted. #f08a72 matches .ineligible-flag, which carries
+   the same light-mode colour and the same meaning. Both selectors are
+   (0,3,0), enough to beat the page-scoped `.ttoc-browse .new-flag` at (0,2,0)
+   without !important. */
+:root[data-theme="dark"] .ok-flag,
+:root[data-theme="dark"] .new-flag { color: #3fb863; }
+:root[data-theme="dark"] .empty-flag { color: #f08a72; }
 
 /* ---- OBBBA state-conformity verdict box (overtime, tips) ------------- */
 .state-verdict { margin-top: 10px; padding: 10px 12px; border-radius: 8px;
@@ -410,16 +481,47 @@ details.estimator summary { cursor: pointer; font-size: .92rem; opacity: .9; }
 
 /* ---- Simple / Advanced toggle --------------------------------------- */
 .mode-row { grid-column: 1 / -1; display: flex; gap: 8px; }
-.mode-row .seg { flex: 1; margin: 0; position: relative; cursor: pointer; }
+/* The <label> stretches to the row's height (align-items defaults to stretch)
+   but the <span> inside it is the thing that carries the border and the fill,
+   and it only ever grew to its own text height. With one label on two lines and
+   the other on one, that showed as a 70px box beside a 46px box. Making the
+   label a column flex container and letting the span grow puts the two painted
+   boxes on the same height, and centring the text keeps a one-line label
+   optically level with a two-line one. */
+.mode-row .seg { flex: 1; margin: 0; position: relative; cursor: pointer; display: flex; }
+/* The two view options ("Per paycheck" / "Annual") are peers, so they split the
+   row evenly — that is the rule above. The two mode options are not: one is
+   three words, the other is "Add 401(k), health & W-4 details". Forcing that
+   pair to 50/50 spent half the row on a short label and wrapped the long one to
+   two lines at 1280px and four at 390px. Sizing them to their content instead
+   puts both on one line at 1280px and holds them level everywhere else. */
+.mode-row:not(.view-toggle) .seg { flex: 1 1 auto; min-width: 0; }
 .mode-row .seg input { position: absolute; opacity: 0; width: 0; height: 0; }
-.mode-row .seg span {
-  display: block; text-align: center; padding: 10px 12px; font-size: 14.5px; font-weight: 700;
+/* Child combinator, not descendant: the label text nests a <span class="nowrap">
+   and it must not inherit this box. */
+.mode-row .seg > span {
+  display: flex; flex: 1 1 auto; align-items: center; justify-content: center;
+  text-align: center; padding: 10px 12px; font-size: 14.5px; font-weight: 700;
   color: var(--muted); background: var(--surface-2); border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm); transition: background .15s, color .15s, border-color .15s;
 }
+/* This box is a FLEX container (it is what vertically centres a one-line label
+   against a two-line one). That means any label whose text is broken up by an
+   inline element gets split into several anonymous flex items, and the
+   whitespace-only runs between them are dropped — "health & W-4 details"
+   rendered as "health &W-4details". So a label with any markup inside it must be
+   wrapped in one .seg-label so the flex container sees a single item and the
+   text inside flows as ordinary text. Plain-text labels need no wrapper, but it
+   is harmless on them and cheaper than remembering the rule. */
+.mode-row .seg > span > .seg-label { min-width: 0; }
 .mode-row.view-toggle { margin-bottom: 16px; }
 .mode-row .seg input:checked + span { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
 .mode-row .seg input:focus-visible + span { box-shadow: var(--ring); }
+/* A hyphen is a legal line-break opportunity, so "W-4" was being split across
+   lines and read as "W-" then "4 details". Applied via a wrapper rather than by
+   swapping in a non-breaking hyphen so the text stays a plain ASCII "W-4" for
+   copy-paste, search and screen readers. */
+.nowrap { white-space: nowrap; }
 
 /* ---- Advanced fieldset ---------------------------------------------- */
 .adv { grid-column: 1 / -1; margin: 4px 0 0; border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 18px 2px; background: var(--surface-2); }
@@ -456,7 +558,7 @@ details.estimator summary { cursor: pointer; font-size: .92rem; opacity: .9; }
 /* Stat-row lists: `.breakdown` used as a <ul> of <li><span class="lbl">label</span><span>value</span></li>
    (average / fraction / sleep / tile). Without this, label+value rendered with no separator ("Count6"). */
 ul.breakdown { list-style: none; padding: 0; }
-.breakdown > li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 15.5px; }
+.breakdown > li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 15.5px; font-variant-numeric: tabular-nums; }
 .breakdown > li:last-child { border-bottom: 0; }
 .breakdown > li .lbl { color: var(--muted); }
 
@@ -555,15 +657,22 @@ ul.breakdown { list-style: none; padding: 0; }
   padding: 3px 9px; border-radius: var(--radius-pill);
   background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent);
 }
+/* One hover hue for the whole site: every other hoverable surface (state grid,
+   related tools, presets) already lifts to --accent, so the cards stop being the
+   only place a second brand colour appears. */
 .tool-card:hover {
   transform: translateY(-3px); box-shadow: var(--shadow-lg);
-  border-color: var(--brand); text-decoration: none;
+  border-color: var(--accent); text-decoration: none;
 }
+/* A tinted chip on all 26 cards made none of them stand out. The tint is now a
+   mark of something: the promoted cards, and whichever card is under the
+   pointer. Everything else gets the neutral surface. */
 .tool-card .ic {
   width: 44px; height: 44px; border-radius: var(--radius-sm); margin-bottom: 8px;
   display: flex; align-items: center; justify-content: center;
-  background: var(--accent-soft); color: var(--accent); font-size: 22px;
+  background: var(--surface-2); font-size: 22px;
 }
+.tool-card--hot .ic, .tool-card:hover .ic { background: var(--accent-soft); }
 .tool-card .t-name { font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
 .tool-card .t-desc { color: var(--muted); font-size: 14px; line-height: 1.5; }
 
@@ -579,14 +688,44 @@ ul.breakdown { list-style: none; padding: 0; }
 
 /* ---- Collapsible homepage category sections -------------------------- */
 .cat { border: none; }
+/* The bar's vertical rhythm used to come from the global h2 margin (40px above,
+   14px below) applied to the heading sitting inside this flex row. It moves onto
+   the summary itself at exactly those measurements, so the heading can now be
+   sized differently open vs closed without the spacing moving with it. The row
+   also wraps, which is what lets .cat-sub take a second line. */
 .cat-summary {
-  display: flex; align-items: baseline; gap: 10px;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px;
+  padding: 40px 0 14px;
   cursor: pointer; list-style: none;
+}
+/* Six of the seven sections are collapsed on a first visit, so what the visitor
+   actually faces is a DIRECTORY of seven rows, not seven section headings. A row
+   in a list does not need a section heading's block of air above it: the hairline
+   does the separating, and the space it frees is what pays for the tool names on
+   the second line. That is the whole trade — the scent line costs nothing extra
+   because it is spent out of the old whitespace, not added on top of it. */
+.cat:not([open]) > .cat-summary {
+  padding: 11px 0 10px;
+  border-bottom: 1px solid var(--border);
 }
 .cat-summary::-webkit-details-marker { display: none; }
 .cat-summary::marker { content: ''; }
 .cat-summary:focus-visible { box-shadow: var(--ring); border-radius: var(--radius-sm); }
+/* A closed bar is one entry in a list of sections; an open one is the heading of
+   the section you are reading. Only the open one gets full h2 size. */
+.cat-summary h2 { font-size: 19px; margin: 0; }
+.cat:not([open]) > .cat-summary h2 { font-size: 17.5px; line-height: 1.25; }
+.cat[open] > .cat-summary h2 { font-size: 23px; }
 .cat-count { color: var(--muted); font-size: 13px; font-weight: 500; }
+/* Not a sentence about the section — the names of tools actually inside it, which
+   is what a visitor scans for. Kept short enough to hold ONE line down to 320px,
+   because a second line here is multiplied by seven rows. */
+.cat-sub { flex-basis: 100%; font-size: 12.5px; font-weight: 400; color: var(--muted); line-height: 1.35; margin-top: 2px; }
+/* Scent is what you need in front of a CLOSED door. An open section has its own
+   cards right underneath, so the keyword line there would only restate three of
+   them; it is hidden rather than removed, and comes back the moment the visitor
+   closes the section. */
+.cat[open] > .cat-summary > .cat-sub { display: none; }
 .cat-summary .chevron { width: 12px; height: 12px; flex: 0 0 auto; display: block; color: var(--muted); transition: transform .15s; }
 .cat[open] .cat-summary .chevron { transform: rotate(180deg); }
 
@@ -619,6 +758,9 @@ ul.breakdown { list-style: none; padding: 0; }
 
 /* ---- Prose ----------------------------------------------------------- */
 .prose { color: var(--text); }
+/* Cap the reading line at a comfortable measure. Running text only: tables and
+   their scroll wrappers still use the full column width. */
+.prose p, .prose li, .prose > .note { max-width: 68ch; }
 .prose p { margin: 0 0 15px; }
 .prose a { font-weight: 600; }
 .prose table { width: 100%; border-collapse: collapse; margin: 8px 0 18px; font-size: 14.5px; }
@@ -903,8 +1045,10 @@ footer.site a:hover { color: var(--text); }
 #ageResults[hidden] { display: none; }
 
 /* ---- Word & character counter --------------------------------------- */
-.wc-input { width: 100%; min-height: 220px; padding: 14px 16px; font: inherit; font-size: 15px; line-height: 1.55; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); resize: vertical; }
-.wc-input:focus { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
+/* No .wc-input rules here: the counter's textarea carries no class and is
+   styled by `.field input, .field select, .field textarea` above. Two rules for
+   a .wc-input that no template ever shipped used to sit here and matched
+   nothing. */
 .wc-toolbar { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
 .wc-toolbar .btn-secondary { width: auto; padding: 8px 16px; flex: 0 0 auto; }
 .wc-toolbar .btn-secondary.copied { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
@@ -955,7 +1099,7 @@ footer.site a:hover { color: var(--text); }
   transition: color .12s ease, border-color .12s ease, background .12s ease;
 }
 .tb-search-trigger:hover { color: var(--text); border-color: var(--border-strong); }
-.tb-search-trigger:focus-visible { outline: none; box-shadow: var(--ring); }
+.tb-search-trigger:focus-visible { outline: 2px solid transparent; outline-offset: 2px; box-shadow: var(--ring); }
 .tb-search-trigger .tb-search-ic { color: var(--muted); flex: 0 0 auto; }
 .tb-search-trigger:hover .tb-search-ic { color: var(--text); }
 .tb-search-trigger-kbd {
@@ -965,7 +1109,9 @@ footer.site a:hover { color: var(--text); }
   padding: 3px 5px; white-space: nowrap;
 }
 
-.tb-search-sr {
+/* Visually hidden, still announced by a screen reader. .sr-only is the generic
+   name for the same pattern; one rule serves both so they can never drift. */
+.tb-search-sr, .sr-only {
   position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
@@ -994,11 +1140,24 @@ footer.site a:hover { color: var(--text); }
   padding: 14px 16px; border-bottom: 1px solid var(--border);
 }
 .tb-search-field .tb-search-ic { color: var(--muted); flex: 0 0 auto; }
+/* `inherit` is not a legal font-family inside the `font` shorthand, so
+   `font: 400 18px/1.4 inherit` was invalid and the browser dropped the whole
+   declaration, leaving this control at the UA default (13.33px Arial). The same
+   mistake appears on the .fbw-* and .rpt-* controls below; every one of them is
+   now written longhand with its authored values. */
 .tb-search-input {
   flex: 1 1 auto; min-width: 0;
-  font: 400 18px/1.4 inherit; color: var(--text);
-  background: transparent; border: 0; outline: none; padding: 4px 0;
+  font-family: inherit; font-weight: 400; font-size: 18px; line-height: 1.4;
+  color: var(--text);
+  background: transparent; border: 0; padding: 4px 0;
 }
+/* `outline: 2px solid transparent` is the forced-colors-safe way to write
+   `outline: none`: transparent is ignored in normal rendering but forced to a
+   system colour under forced-colors, so the ring survives. It only belongs on
+   the focus rule. On the base rule it painted a permanent 2px ring around this
+   field at rest in forced-colors mode. :focus rather than :focus-visible so it
+   still matches the original suppression, which applied to any focus. */
+.tb-search-input:focus { outline: 2px solid transparent; outline-offset: 2px; }
 .tb-search-input::placeholder { color: var(--muted); }
 .tb-search-esckbd {
   font: 600 11px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -1082,7 +1241,7 @@ footer.site a:hover { color: var(--text); }
   cursor: pointer;
 }
 .fbw-x:hover { color: var(--text); background: var(--surface-2); }
-.fbw-x:focus-visible { outline: none; box-shadow: var(--ring); }
+.fbw-x:focus-visible { outline: 2px solid transparent; outline-offset: 2px; box-shadow: var(--ring); }
 
 .fbw-q {
   margin: 0 28px 10px 0;
@@ -1098,33 +1257,36 @@ footer.site a:hover { color: var(--text); }
 }
 .fbw-star:hover:not([disabled]) { transform: scale(1.08); }
 .fbw-star.is-on, .fbw-star.is-hover { color: var(--brand); }
-.fbw-star:focus-visible { outline: none; box-shadow: var(--ring); }
+.fbw-star:focus-visible { outline: 2px solid transparent; outline-offset: 2px; box-shadow: var(--ring); }
 .fbw-star[disabled] { cursor: default; }
 
 .fbw-step { margin-top: 12px; }
 .fbw-comment {
   width: 100%; box-sizing: border-box; resize: vertical; min-height: 48px;
-  font: 400 14px/1.4 inherit; color: var(--text);
+  font-family: inherit; font-weight: 400; font-size: 14px; line-height: 1.4;
+  color: var(--text);
   background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
   padding: 8px 10px;
 }
 .fbw-comment::placeholder { color: var(--muted); }
-.fbw-comment:focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
+.fbw-comment:focus-visible { outline: 2px solid transparent; outline-offset: 2px; border-color: var(--accent); box-shadow: var(--ring); }
 
 .fbw-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
 .fbw-send {
-  font: 600 14px/1 inherit; color: var(--accent-ink); background: var(--accent);
+  font-family: inherit; font-weight: 600; font-size: 14px; line-height: 1;
+  color: var(--accent-ink); background: var(--accent);
   border: 0; border-radius: var(--radius-pill); padding: 9px 18px; cursor: pointer;
 }
 .fbw-send:hover { background: var(--accent-hover); }
-.fbw-send:focus-visible { outline: none; box-shadow: var(--ring); }
+.fbw-send:focus-visible { outline: 2px solid transparent; outline-offset: 2px; box-shadow: var(--ring); }
 .fbw-skip {
-  font: 500 14px/1 inherit; color: var(--muted);
+  font-family: inherit; font-weight: 500; font-size: 14px; line-height: 1;
+  color: var(--muted);
   background: transparent; border: 0; padding: 6px 4px; cursor: pointer;
   text-decoration: underline; text-underline-offset: 2px;
 }
 .fbw-skip:hover { color: var(--text); }
-.fbw-skip:focus-visible { outline: none; box-shadow: var(--ring); border-radius: 4px; }
+.fbw-skip:focus-visible { outline: 2px solid transparent; outline-offset: 2px; box-shadow: var(--ring); border-radius: 4px; }
 
 .fbw-thanks { margin: 0; font-size: 15px; font-weight: 600; color: var(--accent); }
 
@@ -1147,14 +1309,20 @@ footer.site a:hover { color: var(--text); }
    query — it flows with the page. Fully theme-token driven (no hex, no separate
    dark-mode block), same convention as the .fbw-* block above.
  * ------------------------------------------------------------------------- */
+/* 13px underlined text on a 2px vertical pad gave these two buttons an ~18px
+   tall target sitting a few pixels apart, so a thumb aiming at Copy landed on
+   the corrections form instead. Both are now a full 44px tall (WCAG 2.5.8) with
+   real space between them; the text keeps its size, the padding does the work. */
 .rpt-link {
-  display: inline-block; margin-top: 10px; padding: 2px 0;
-  font: 500 13px/1.4 inherit; color: var(--muted);
+  display: inline-flex; align-items: center; min-height: 44px;
+  margin-top: 10px; padding: 10px 0;
+  font-family: inherit; font-weight: 500; font-size: 13px; line-height: 1.4;
+  color: var(--muted);
   background: transparent; border: 0; cursor: pointer;
   text-decoration: underline; text-underline-offset: 2px;
 }
 .rpt-link:hover { color: var(--text); }
-.rpt-link:focus-visible { outline: none; box-shadow: var(--ring); border-radius: 4px; }
+.rpt-link:focus-visible { outline: 2px solid transparent; outline-offset: 2px; box-shadow: var(--ring); border-radius: 4px; }
 
 .rpt-form {
   margin-top: 10px; padding: 12px;
@@ -1165,50 +1333,174 @@ footer.site a:hover { color: var(--text); }
 }
 .rpt-comment {
   width: 100%; box-sizing: border-box; resize: vertical; min-height: 60px;
-  font: 400 14px/1.4 inherit; color: var(--text);
+  font-family: inherit; font-weight: 400; font-size: 14px; line-height: 1.4;
+  color: var(--text);
   background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
   padding: 8px 10px;
 }
 .rpt-comment::placeholder { color: var(--muted); }
-.rpt-comment:focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
+.rpt-comment:focus-visible { outline: 2px solid transparent; outline-offset: 2px; border-color: var(--accent); box-shadow: var(--ring); }
 
 .rpt-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
 .rpt-send {
-  font: 600 14px/1 inherit; color: var(--accent-ink); background: var(--accent);
+  font-family: inherit; font-weight: 600; font-size: 14px; line-height: 1;
+  color: var(--accent-ink); background: var(--accent);
   border: 0; border-radius: var(--radius-pill); padding: 9px 18px; cursor: pointer;
 }
 .rpt-send:hover:not([disabled]) { background: var(--accent-hover); }
-.rpt-send:focus-visible { outline: none; box-shadow: var(--ring); }
+.rpt-send:focus-visible { outline: 2px solid transparent; outline-offset: 2px; box-shadow: var(--ring); }
 .rpt-send[disabled] { opacity: .5; cursor: default; }
 .rpt-cancel {
-  font: 500 14px/1 inherit; color: var(--muted);
+  font-family: inherit; font-weight: 500; font-size: 14px; line-height: 1;
+  color: var(--muted);
   background: transparent; border: 0; padding: 6px 4px; cursor: pointer;
   text-decoration: underline; text-underline-offset: 2px;
 }
 .rpt-cancel:hover { color: var(--text); }
-.rpt-cancel:focus-visible { outline: none; box-shadow: var(--ring); border-radius: 4px; }
+.rpt-cancel:focus-visible { outline: 2px solid transparent; outline-offset: 2px; box-shadow: var(--ring); border-radius: 4px; }
 
 .rpt-thanks { margin: 10px 0 0; font-size: 14px; font-weight: 600; color: var(--accent); }
 .rpt-error { margin: 8px 0 0; font-size: 13px; color: var(--danger); }
 
 .rpt-copy {
-  display: inline-block; margin: 10px 0 0 12px; padding: 2px 0;
-  font: 500 13px/1.4 inherit; color: var(--muted);
+  display: inline-flex; align-items: center; min-height: 44px;
+  margin: 10px 0 0 12px; padding: 10px 0;
+  font-family: inherit; font-weight: 500; font-size: 13px; line-height: 1.4;
+  color: var(--muted);
   background: transparent; border: 0; cursor: pointer;
   text-decoration: underline; text-underline-offset: 2px;
 }
 .rpt-copy:hover { color: var(--text); }
-.rpt-copy:focus-visible { outline: none; box-shadow: var(--ring); border-radius: 4px; }
+.rpt-copy:focus-visible { outline: 2px solid transparent; outline-offset: 2px; box-shadow: var(--ring); border-radius: 4px; }
 /* report-widget.js mounts its link/thanks node immediately after the Copy button,
    two underlined text-buttons with no whitespace between them — they rendered as one
    run-on string ("Copy resultReport a wrong result"). The gap belongs on whatever
    follows Copy, since Copy's own left margin separates it from the result instead. */
-.rpt-copy + .rpt-link { margin-left: 12px; }
+.rpt-copy + .rpt-link { margin-left: 16px; }
+/* On a phone the pair is stacked rather than sat side by side. This has to be
+   `flex`, not the inherited `inline-flex`: as an inline-level box the second
+   button stays on the same line, margin-top does nothing useful, and dropping
+   margin-left would glue the two underlined labels back into one run-on string
+   ("Copy resultReport a wrong result"), the exact bug the margin above fixed.
+   width:fit-content keeps the 44px tap target the width of its own label. */
+@media (max-width: 680px) {
+  .rpt-copy + .rpt-link { display: flex; width: fit-content; margin-left: 0; margin-top: 8px; }
+}
 
 .rpt-contact-fallback { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
 .rpt-contact-fallback a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
 .rpt-contact-fallback a:hover { color: var(--text); }
-.rpt-contact-fallback a:focus-visible { outline: none; box-shadow: var(--ring); border-radius: 4px; }
+.rpt-contact-fallback a:focus-visible { outline: 2px solid transparent; outline-offset: 2px; box-shadow: var(--ring); border-radius: 4px; }
+
+/* ---------------------------------------------------------------------------
+   Mobile density pass — LAST BLOCK IN THE FILE ON PURPOSE.
+   Every rule here lives inside a max-width (or hover:none) query, so nothing
+   below can reach desktop, and being last in source order it wins over the
+   earlier same-specificity mobile rules it deliberately overrides (notably the
+   max-width:560px search-trigger block above). Three jobs:
+     A. Turn the header from a 4-line wrapped nav (~197px of permanently sticky
+        chrome at 390px) into a two-row header: brand + full-width search bar,
+        then a one-line horizontally scrolling nav chip strip that doubles as
+        the jump bar for the collapsed category sections.
+     B. Tighten type, spacing and the card/state grids so a section that is
+        opened is a browsable list rather than a wall. The tool descriptions
+        are clamped to 2 lines visually only, the full sentence stays in the
+        HTML and in the search index, and every layout returns to normal at
+        560px and up.
+     C. Kill the hover lift on touch, where it sticks after a tap and misreads
+        as a selection state. Transform only, never box-shadow, because
+        .tool-card--hot carries its ring in box-shadow.
+ * ------------------------------------------------------------------------- */
+@media (max-width: 799px) {
+  header.site .wrap { flex-wrap: wrap; gap: 8px 10px; padding: 10px 14px; min-height: 0; }
+  header.site .brand { flex: 0 0 auto; margin-right: 0; font-size: 18px; }
+  .theme-toggle { order: 2; }
+  .tb-search-trigger {
+    order: 1; margin-left: 0; flex: 1 1 auto; justify-content: flex-start;
+    min-height: 40px; padding: 8px 14px;
+  }
+  .tb-search-trigger-txt { display: inline; }
+  header.site nav {
+    order: 3; flex: 1 0 100%; flex-wrap: nowrap;
+    overflow-x: auto; overscroll-behavior-x: contain;
+    scrollbar-width: none; -ms-overflow-style: none;
+    gap: 6px; margin: 0 -14px; padding: 0 14px 1px;
+  }
+  header.site nav::-webkit-scrollbar { width: 0; height: 0; }
+  header.site nav a {
+    flex: 0 0 auto; white-space: nowrap; font-size: 13px; padding: 7px 12px;
+    background: var(--surface-2); border: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 559px) {
+  .wrap { padding: 0 14px; }
+  main { padding: 18px 0 32px; }
+  .hero { padding: 4px 0 2px; }
+  .hero h1 { font-size: 26px; max-width: none; margin: 0 0 6px; }
+  .hero .lede { font-size: 15.5px; margin: 0 0 10px; }
+  .hero .badges { gap: 6px; margin: 10px 0 2px; }
+  .badge { font-size: 12px; padding: 5px 10px; }
+  /* Same rhythm as before, now carried by the bar instead of the heading's own
+     margin, so the open/closed sizes below can change without moving anything.
+     The open section still outranks the closed bars, at the density this pass
+     exists to protect rather than at the desktop sizes. */
+  .cat-summary { padding: 20px 0 6px; }
+  /* Phone rhythm for the directory rows. Tighter than desktop because this is the
+     width where the seven rows are the whole first screen. */
+  .cat:not([open]) > .cat-summary { padding: 8px 0 7px; }
+  .cat-summary h2 { font-size: 18.5px; margin: 0; }
+  .cat:not([open]) > .cat-summary h2 { font-size: 17px; }
+  .cat[open] > .cat-summary h2 { font-size: 20px; }
+  .cat-count { font-size: 12px; }
+  .cat > .lede { font-size: 14.5px; margin: 0 0 10px; }
+  .money-subhead { font-size: 15.5px; margin-top: 18px; }
+  .money-subhead:first-of-type { margin-top: 10px; }
+  .popular-states { font-size: 14px; line-height: 1.5; margin: 0 0 10px; }
+  footer.site { padding: 20px 0; margin-top: 16px; }
+
+  .tool-grid { grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 2px; }
+  .tool-card { padding: 10px 11px; gap: 3px; border-radius: 10px; }
+  .tool-card .ic {
+    width: 26px; height: 26px; font-size: 15px; margin-bottom: 3px; border-radius: 7px;
+  }
+  .tool-card .t-name { font-size: 14px; line-height: 1.25; overflow-wrap: break-word; }
+  .tool-card .t-desc {
+    font-size: 12px; line-height: 1.35;
+    display: -webkit-box; -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+  }
+  .tool-card .t-tag { top: 6px; right: 6px; font-size: 9.5px; padding: 1px 6px; }
+
+  .state-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .state-grid a, .state-grid span {
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    min-height: 44px; padding: 6px 4px; font-size: 12.5px; line-height: 1.2;
+    border-radius: 8px; overflow-wrap: break-word;
+  }
+}
+
+@media (hover: none) {
+  .tool-card:hover { transform: none; }
+  .state-grid a:hover { transform: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Forced colours (Windows High Contrast). The whole site draws keyboard focus
+   with box-shadow, and box-shadow is dropped in this mode, which would leave a
+   keyboard user with no visible focus at all. Every rule that suppresses the
+   native outline now suppresses it with a transparent one, and here that
+   transparent outline is given the system Highlight colour back.
+ * ------------------------------------------------------------------------- */
+@media (forced-colors: active) {
+  :focus-visible,
+  .field input:focus,
+  .field select:focus,
+  .field textarea:focus {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
 
 /* ---------------------------------------------------------------------------
    Mobile density pass — LAST BLOCK IN THE FILE ON PURPOSE.
@@ -1251,6 +1543,42 @@ footer.site a:hover { color: var(--text); }
     gap: 6px; margin: -4px -14px -5px; padding: 4px 14px 6px;
   }
   header.site nav::-webkit-scrollbar { width: 0; height: 0; }
+  /* The fade is the cue that the strip continues past the right edge, so it may
+     only be painted when the strip actually does. It was on the rule above
+     unconditionally, and no built page overflows here: 216 of the 217 pages
+     with a nav carry a single chip, the homepage carries four, and at 390px
+     every one of them measures scrollWidth === clientWidth. So the cue was
+     advertising scroll that does not exist on every page at every width.
+     A scroll-progress timeline is the one thing in CSS that knows: per spec a
+     scroll() timeline whose scroller has no scrollable overflow in that axis is
+     inactive, and an animation on an inactive timeline has no effect, so the
+     keyframe below simply does not apply until a real overflow appears. The
+     @supports guard keeps browsers without scroll-driven animations on the
+     no-fade path, which is the correct rendering for every page shipping today.
+     The gradient stops 14px early because the negative margins above push this
+     element's border box past the header's content column on both sides; ending
+     the fade at calc(100% - 14px) lands it on the column edge the visitor sees
+     instead of 14px outside it. */
+  @supports (animation-timeline: scroll(self inline)) {
+    header.site nav {
+      animation: tb-nav-overflow-fade linear both;
+      animation-timeline: scroll(self inline);
+    }
+    /* The blanket `* { animation: none !important }` under prefers-reduced-motion
+       would take the fade with it. This keyframe holds one value from end to end
+       and never moves — it is being used as a conditional, not as motion — so it
+       is restored here. `header.site nav` outranks `*`, so the two !importants
+       resolve in this rule's favour. */
+    @media (prefers-reduced-motion: reduce) {
+      header.site nav { animation: tb-nav-overflow-fade linear both !important; }
+    }
+    @keyframes tb-nav-overflow-fade {
+      from, to {
+        mask-image: linear-gradient(to right, #000 calc(100% - 38px), transparent calc(100% - 14px));
+        -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 38px), transparent calc(100% - 14px));
+      }
+    }
+  }
   header.site nav a {
     flex: 0 0 auto; white-space: nowrap; font-size: 13px; padding: 7px 12px;
     background: var(--surface-2); border: 1px solid var(--border);

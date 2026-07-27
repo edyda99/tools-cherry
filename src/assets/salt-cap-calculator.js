@@ -21,6 +21,27 @@ function num(id) {
   return moneyValue($(id));
 }
 
+// The page loads with example inputs nobody typed, so the answer is labelled
+// as an example until the visitor edits a field. Optional-chained: the /embed/
+// build of this calculator has no such note.
+function clearExampleNote() {
+  document.querySelector('.calc-example')?.remove();
+}
+
+// #outStatus is the ONLY live region on the page. #out rewrites its whole
+// innerHTML on every keystroke, so leaving aria-live on it queued the entire
+// result panel for re-reading each character. Instead we debounce one plain
+// sentence, and only for user-driven recomputes (never the load render).
+let statusTimer = null;
+let announceReady = false;
+function announce(text) {
+  if (!announceReady) return;
+  const el = $('outStatus');
+  if (!el) return;
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => { el.textContent = text; }, 500);
+}
+
 // The phase-down arithmetic, in words, for the cap line.
 function capNote(r) {
   if (r.floorReached) {
@@ -149,6 +170,8 @@ function render() {
     t.hidden = true;
     t.innerHTML = '';
   }
+
+  announce(`Federal tax saved vs the old $10,000 cap: ${statValue}`);
 }
 
 function init() {
@@ -157,7 +180,10 @@ function init() {
     $(id).addEventListener('input', render);
     $(id).addEventListener('change', render);
   });
+  const form = $('saltForm');
+  ['input', 'change'].forEach((evt) => form?.addEventListener(evt, clearExampleNote, { once: true }));
   render();
+  announceReady = true;
 }
 
 function __bootInit() {

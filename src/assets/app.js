@@ -16,11 +16,29 @@ const pct = (n) => (n * 100).toFixed(1) + '%';
 const ratePct = (n) => (+(n * 100).toFixed(3)).toString() + '%'; // 0.10 -> "10%", 0.00432 -> "0.432%"
 const escLbl = (s) => String(s == null ? '' : s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
+// What the three rate figures say while the pay field is empty. The honest
+// behaviour is to decline to answer — a rate computed from no pay is not zero,
+// it is unknown — but the previous placeholder said "n/a", an abbreviation
+// aimed at a reader who already knows the convention, on pages whose whole
+// premise is plain language. This says the same thing in words, and echoes the
+// wording already under the headline figure ("Enter your pay above to see your
+// take-home") so the panel speaks with one voice. All three rows share it, so
+// they cannot drift apart.
+const NO_PAY_YET = 'enter your pay';
+
 const $ = (id) => document.getElementById(id);
 // Comma-safe: the advanced-mode deduction fields carry live thousands
 // separators, so read them through moneyValue rather than a raw parseFloat,
 // which would silently truncate "2,000" to 2.
 const num = (id) => moneyValue($(id)) || 0;
+
+// Same grouping style as money-input.js writes into the money fields, so a
+// value we set programmatically keeps the separators the visitor sees.
+const fmtAmount = (n, dp) => n.toLocaleString('en-US', { maximumFractionDigits: dp });
+
+// True until the visitor edits the form, i.e. while the figure on screen is
+// still the page's own worked example rather than the visitor's own numbers.
+let exampleLive = true;
 
 function currentMode() {
   const checked = document.querySelector('input[name="mode"]:checked');
@@ -59,6 +77,29 @@ const PERIOD_LABEL = {
   monthly: 'per month', annual: 'per year'
 };
 
+// Caption for the headline figure, so a number and the assumptions behind it are
+// provably computed from the same inputs. build.js pre-renders the default-input
+// version of this exact sentence (stateNetLabel), so the first render overwrites
+// it with an identical string and nothing visibly changes on load.
+const PAID_LABEL = {
+  weekly: 'paid every week', biweekly: 'paid every 2 weeks', semimonthly: 'paid twice a month',
+  monthly: 'paid monthly', annual: 'paid once a year'
+};
+const FILING_LABEL = {
+  single: 'single filer', married: 'married filing jointly', head_of_household: 'head of household'
+};
+
+function netLabelText(input) {
+  const name = taxData.states[stateSlug]?.name;
+  if (!name) return '';
+  const filing = FILING_LABEL[input.filingStatus] || FILING_LABEL.single;
+  const paid = PAID_LABEL[input.payFrequency] || PAID_LABEL.biweekly;
+  const basis = input.wage.type === 'hourly'
+    ? `${usd2(input.wage.amount)} an hour over ${input.wage.hoursPerWeek} hours a week`
+    : `a ${usd(input.wage.amount)} salary`;
+  return `Based on ${basis} in ${name}, ${filing}, ${paid}`;
+}
+
 function renderBreakdown(r) {
   const g = r.annual.gross;
   if (g <= 0) { $('breakdown').style.display = 'none'; return; }
@@ -90,6 +131,11 @@ function render() {
     ? `take-home per year · ${usd2(r.perPaycheck.net)} ${PERIOD_LABEL[r.payFrequency]}`
     : `take-home ${PERIOD_LABEL[r.payFrequency]} · ${usd(r.annual.net)}/yr`;
 
+  // Only the state paycheck pages carry the caption; guard so shared consumers
+  // of this module are unaffected.
+  const lbl = $('netLabel');
+  if (lbl) lbl.textContent = netLabelText(input);
+
   $('rGross').textContent = usd2(p.gross);
   $('rFederal').textContent = '−' + usd2(p.federal);
   $('rSS').textContent = '−' + usd2(p.socialSecurity);
@@ -97,13 +143,15 @@ function render() {
   $('rState').textContent = '−' + usd2(p.state);
   $('rNet').textContent = usd2(p.net);
 
-  $('rEff').textContent = pct(r.annual.effectiveRate);
-  $('rTake').textContent = pct(r.annual.takeHomeRate);
+  $('rEff').textContent = isZero ? NO_PAY_YET : pct(r.annual.effectiveRate);
+  // Guarded like its two neighbours: with no pay entered there is no take-home
+  // share to report, and "0.0%" would claim the visitor keeps none of their pay.
+  $('rTake').textContent = isZero ? NO_PAY_YET : pct(r.annual.takeHomeRate);
 
   // federal bracket-by-bracket breakdown + marginal rate (reuses the engine's brackets)
   const preTax = input.adv ? (input.adv.retirement401k || 0) + (input.adv.cafeteria125 || 0) : 0;
   const bb = federalBracketBreakdown(r.annual.gross, input.filingStatus, taxData.federal, preTax);
-  $('rMarginal').textContent = ratePct(bb.marginalRate);
+  $('rMarginal').textContent = isZero ? NO_PAY_YET : ratePct(bb.marginalRate);
   renderBrackets(bb);
 
   // hide state row when the state has no income tax
@@ -128,6 +176,51 @@ function render() {
 
   renderBreakdown(r);
   renderCompare();
+  announceResult();
+}
+
+// --- screen-reader status ---------------------------------------------------
+// The results block is no longer aria-live (it would read the whole table on
+// every keystroke). Instead one debounced sentence goes to #outStatus, and only
+// for renders the visitor caused, never the boot render.
+let booted = false;
+let statusTimer = null;
+
+function announceResult() {
+  const out = $('outStatus');
+  if (!out || !booted) return;
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => {
+    const sub = $('netSub').textContent.replace(/ · /g, ', ').replace(/\/yr/g, ' per year');
+    out.textContent = $('netBig').classList.contains('is-zero')
+      ? sub
+      : `Take-home ${$('netBig').textContent}, ${sub}`;
+  }, 500);
+}
+
+// --- pay type switch --------------------------------------------------------
+// Switching salary <-> hourly used to leave the old number in place, so an
+// annual salary was read as an hourly rate. Convert the visitor's own figure
+// instead; no tax figure is involved.
+let prevWageType = null;
+
+function convertOnWageTypeSwitch() {
+  const now = $('wageType').value;
+  const from = prevWageType;
+  if (from === null || from === now) { prevWageType = now; return; }
+  prevWageType = now;
+
+  const amountEl = $('amount');
+  const current = moneyValue(amountEl);
+  if (!Number.isFinite(current) || current <= 0) return;
+  const hoursPerYear = (parseFloat($('hours').value) || 40) * 52;
+  if (!(hoursPerYear > 0)) return;
+
+  if (from === 'salary' && now === 'hourly') {
+    amountEl.value = fmtAmount(Math.round((current / hoursPerYear) * 100) / 100, 2);
+  } else if (from === 'hourly' && now === 'salary') {
+    amountEl.value = fmtAmount(Math.round(current * hoursPerYear), 0);
+  }
 }
 
 // --- compare with another state (fetches the published full tax data on demand) ---
@@ -205,6 +298,25 @@ function applyMode() {
 
 function init() {
   initMoneyInputs();
+  prevWageType = $('wageType').value;
+  // Registered before the render listeners so the amount is already converted
+  // by the time the render for this same event runs.
+  ['change', 'input'].forEach((evt) =>
+    $('wageType').addEventListener(evt, convertOnWageTypeSwitch));
+
+  // The pre-filled figure is labelled as an example until the visitor touches
+  // the form; after that the label must not claim to be an example any more.
+  const form = $('paycheckForm');
+  const dropExampleLabel = () => {
+    exampleLive = false;
+    const kicker = $('netKicker');
+    if (kicker) kicker.textContent = 'Your estimated take-home pay';
+  };
+  if (form) {
+    form.addEventListener('input', dropExampleLabel, { once: true });
+    form.addEventListener('change', dropExampleLabel, { once: true });
+  }
+
   ['wageType', 'amount', 'hours', 'filingStatus', 'payFrequency',
    'retirement401k', 'cafeteria125', 'dependentsCredit', 'extraWithholding', 'postTax']
     .forEach((id) => {
@@ -219,6 +331,7 @@ function init() {
   if (cmpPanel) cmpPanel.addEventListener('toggle', () => { if (cmpPanel.open) populateCompare().then(renderCompare); });
   if ($('cmpState')) $('cmpState').addEventListener('change', renderCompare);
   applyMode();
+  booted = true;
 }
 
 function __bootInit() {

@@ -39,19 +39,8 @@
 <main id="main">
   <div class="wrap">
     <h1>1099 vs W-2 Calculator</h1>
-    <p class="lede">Compare estimated take-home pay as a W-2 employee versus a 1099 self-employed contractor. Enter a salary and a contract amount, and the calculator estimates federal income tax, FICA or self-employment tax, and the employer-benefits gap. Results update as you type.</p>
-
-    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin:0 0 18px;font-size:15px;line-height:1.6;">
-      <strong>New to these terms?</strong> They're the two main ways you get paid for a job in the US, named after the tax form you receive.
-      <strong>W-2</strong> means a regular <em>employee</em> — your employer takes taxes out of every paycheck and usually gives benefits like health insurance, paid time off, and half of your payroll tax.
-      <strong>1099</strong> means an <em>independent contractor or freelancer</em> — you're paid the full amount, then pay your own taxes and buy your own benefits.
-    </div>
-
-    <p class="note"><strong>At the same income, a 1099 contractor keeps less than a W-2 employee, mainly because they pay the full 15.3% self-employment tax instead of the 7.65% FICA an employee pays.</strong> The contractor covers both the employee and employer halves of Social Security and Medicare, and self-funds benefits an employer would otherwise provide.</p>
-
-    <p class="year-fallback" role="note"><strong>Estimate — federal taxes only.</strong> Uses <span data-tax-year>2026</span> federal brackets, the standard deduction, FICA (7.65%), and self-employment tax (15.3% on 92.35% of net earnings, with the employer-half deduction). No state or local tax, no QBI deduction, no additional Medicare tax. Not tax advice.</p>
-
     <section class="calc" aria-label="1099 vs W-2 calculator">
+      <h2 class="sr-only">1099 vs W-2 take-home comparison</h2>
       <form id="w2Form" autocomplete="off" onsubmit="return false">
         <div class="field inline">
           <span><label for="w2Gross">W-2 annual salary ($)</label><input id="w2Gross" type="text" inputmode="decimal" data-money autocomplete="off" value="100000" placeholder="100000"></span>
@@ -67,11 +56,27 @@
         <p class="muted-small" style="margin-top:6px">For the 1099 side, enter your net earnings — contract income after business expenses.</p>
       </form>
 
-      <div class="results" aria-live="polite">
-        <p class="net-big" id="headline">—</p>
-        <p class="net-sub" id="headlineSub"></p>
+      <div class="calc-answer">
+        <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+        <div class="results" data-tb-result>
+          <p class="net-big" id="headline">—</p>
+          <p class="net-sub" id="headlineSub"></p>
+        </div>
       </div>
+      <p id="outStatus" role="status" class="sr-only"></p>
     </section>
+
+    <p class="lede">Compare estimated take-home pay as a W-2 employee versus a 1099 self-employed contractor. Enter a salary and a contract amount, and the calculator estimates federal income tax, FICA or self-employment tax, and the employer-benefits gap. Results update as you type.</p>
+
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin:18px 0;font-size:15px;line-height:1.6;">
+      <strong>New to these terms?</strong> They're the two main ways you get paid for a job in the US, named after the tax form you receive.
+      <strong>W-2</strong> means a regular <em>employee</em> — your employer takes taxes out of every paycheck and usually gives benefits like health insurance, paid time off, and half of your payroll tax.
+      <strong>1099</strong> means an <em>independent contractor or freelancer</em> — you're paid the full amount, then pay your own taxes and buy your own benefits.
+    </div>
+
+    <p class="note"><strong>At the same income, a 1099 contractor keeps less than a W-2 employee, mainly because they pay the full 15.3% self-employment tax instead of the 7.65% FICA an employee pays.</strong> The contractor covers both the employee and employer halves of Social Security and Medicare, and self-funds benefits an employer would otherwise provide.</p>
+
+    <p class="year-fallback" role="note"><strong>Estimate — federal taxes only.</strong> Uses <span data-tax-year>2026</span> federal brackets, the standard deduction, FICA (7.65%), and self-employment tax (15.3% on 92.35% of net earnings, with the employer-half deduction). No state or local tax, no QBI deduction, no additional Medicare tax. Not tax advice.</p>
 
     <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
 

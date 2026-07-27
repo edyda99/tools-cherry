@@ -27,9 +27,8 @@
 <main id="main">
   <div class="wrap">
     <h1>No Tax on Tips Calculator</h1>
-    <p class="lede">The 2025 One Big Beautiful Bill Act lets you <strong>deduct up to $25,000 of tips</strong> from your federal taxable income, for tax years 2025–2028. Enter your tips and income to see how much is deductible and what it saves you. Everything runs in your browser — nothing is uploaded.</p>
-
     <section class="calc" aria-label="Tips tax deduction calculator">
+      <h2 class="sr-only">Tips tax savings calculator</h2>
       <form id="tipsForm" autocomplete="off" onsubmit="return false">
         <div class="field">
           <label for="income">Your total annual income (all wages + tips, before tax)</label>
@@ -58,9 +57,15 @@
         </div>
       </form>
 
-      <div class="obbba-out" id="out" aria-live="polite"></div>
+      <div class="calc-answer">
+        <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+        <div class="obbba-out" id="out" data-tb-result></div>
+      </div>
+      <p id="outStatus" role="status" class="sr-only"></p>
       <div class="state-verdict" id="stateVerdict" hidden></div>
     </section>
+
+    <p class="lede">The 2025 One Big Beautiful Bill Act lets you <strong>deduct up to $25,000 of tips</strong> from your federal taxable income, for tax years 2025–2028. Enter your tips and income to see how much is deductible and what it saves you. Everything runs in your browser — nothing is uploaded.</p>
 
     <p class="note">Estimate for general guidance only — not tax advice. Figures use the 2026 federal brackets and standard deduction; your actual deduction depends on your full return and your occupation. Verify with the IRS or a tax professional.</p>
 

@@ -22,6 +22,31 @@ function num(id) {
   return moneyValue(el);
 }
 
+// The page loads with example amounts nobody typed, so the decoded answer is
+// labelled as an example until the visitor edits a field. Optional-chained:
+// the /embed/ build of this tool has no such note.
+function clearExampleNote() {
+  document.querySelector('.calc-example')?.remove();
+}
+
+// Neither result panel is a live region any more. Both #out (the decoder) and
+// #occOut (the occupation lookup) rewrite their whole innerHTML on every
+// keystroke, so aria-live on either one queued the entire rendered panel for
+// re-reading on each character typed — measured on #occOut at up to 1,307
+// characters and four result cards for one nine-letter job title. Each panel now
+// has its own sr-only role="status" paragraph instead (#outStatus, #occStatus),
+// carrying one debounced plain sentence, and only for user-driven recomputes.
+// Separate timers per region so the two panels can't cancel each other.
+const statusTimers = {};
+let announceReady = false;
+function announce(id, text) {
+  if (!announceReady) return;
+  const el = $(id);
+  if (!el) return;
+  clearTimeout(statusTimers[id]);
+  statusTimers[id] = setTimeout(() => { el.textContent = text; }, 500);
+}
+
 function parse14b(raw) {
   return String(raw || '')
     .split(/[\s,;]+/)
@@ -85,6 +110,7 @@ function render() {
 
   if (!box12.length && !codes14b.length) {
     $('out').innerHTML = '<div class="obbba-note">Enter the amounts next to the codes on your W-2 (leave the ones you don\'t have blank) and any Box 14b code — the explanation appears here.</div>';
+    announce('outStatus', 'Enter an amount from your W-2 to see what its code means.');
     return;
   }
 
@@ -108,6 +134,13 @@ function render() {
     r.box12.map(codeCard).join('') +
     box14bHtml(r.box14b) +
     `<div class="takeaway">Rule of thumb: <strong>TA lowers your taxable wages up front; TP and TT don't</strong> — their deduction happens later, on Schedule 1-A. And FICA (Social Security + Medicare) applies to tips and overtime either way.</div>`;
+
+  // One plain sentence for the status region, built only from the amounts the
+  // decoder just read back. No figure is invented here.
+  const spoken = [];
+  if (inBox1.length) spoken.push(`Already inside your Box 1 wages, fully taxed: ${inBox1.join(' plus ')}`);
+  if (r.flags.hasTA) spoken.push(`excluded from your Box 1 wages: ${usd(r.totals.taExcluded)} (TA)`);
+  announce('outStatus', spoken.length ? spoken.join('; ') + '.' : 'Your Box 14b code is decoded below.');
 }
 
 function occHit(o) {
@@ -128,6 +161,7 @@ function renderSearch() {
   if (!out) return;
   if (!q) {
     out.innerHTML = '<div class="obbba-note">Type your job — the everyday name works ("barista", "nail tech", "valet"). Or browse the full list below.</div>';
+    announce('occStatus', 'Type your job title to search the tipped occupation list.');
     return;
   }
   const r = searchOccupations(q, DATA, 6);
@@ -143,10 +177,12 @@ function renderSearch() {
       : '';
     out.innerHTML = `<div class="ttoc-notfound"><strong>Not on the IRS list.</strong> ${escHtml(r.notFound.explanation)}</div>` + dym +
       `<div class="obbba-note">Double-check in the ${browseLink} — searches aren't perfect.</div>`;
+    announce('occStatus', `${q} is not on the IRS tipped occupation list.`);
     return;
   }
   if (!r.matches.length) {
     out.innerHTML = '<div class="obbba-note">Keep typing — or browse the full list below.</div>';
+    announce('occStatus', `No match yet for ${q}. Keep typing.`);
     return;
   }
   const top = r.matches[0];
@@ -155,6 +191,10 @@ function renderSearch() {
     `<div class="obbba-note ok-flag">Likely match — this occupation qualifies for the tips deduction. Its code is what belongs in W-2 Box 14b.</div>` +
     occHit(top) +
     (rest.length ? `<div class="obbba-note">Other possible matches:</div>` + rest.map(occHit).join('') : '');
+  // One short sentence, not the four rendered cards: the count plus the closest
+  // hit. Both values come straight from the search result.
+  const n = r.matches.length;
+  announce('occStatus', `${n} match${n === 1 ? '' : 'es'} for ${q}. Closest: ${top.title}, code ${top.code}.`);
 }
 
 function init() {
@@ -170,8 +210,11 @@ function init() {
     q.addEventListener('input', renderSearch);
     q.addEventListener('change', renderSearch);
   }
+  const form = $('w2Form');
+  ['input', 'change'].forEach((evt) => form?.addEventListener(evt, clearExampleNote, { once: true }));
   render();
   renderSearch();
+  announceReady = true;
 }
 
 function __bootInit() {

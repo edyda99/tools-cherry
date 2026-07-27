@@ -56,8 +56,6 @@
 <main id="main">
   <div class="wrap">
     <h1>W-2 Box 12 Decoder (TA, TP, TT) &amp; Tipped Occupation Code Lookup</h1>
-    <p class="lede">Starting with <strong>2026 W-2s</strong> (the ones that arrive in January 2027), Box 12 has three brand-new codes and Box 14 is split in two. The one thing to get right: <strong>TA</strong> (Trump account contributions) is <strong>excluded</strong> from your Box 1 wages — never taxed as wages — while <strong>TP</strong> (your reported tips) and <strong>TT</strong> (your overtime premium) are <strong>still fully taxed inside Box 1</strong>. TP and TT don't lower your wages; they flag how much of your wages you can deduct later, on Schedule 1-A, under the "no tax on tips" and "no tax on overtime" rules. Enter your codes below to decode them, and use the <a href="#ttoc-lookup">occupation lookup</a> to find (or verify) the Box 14b code for your job. Everything runs in your browser — nothing is uploaded.</p>
-
     <section class="calc" aria-label="W-2 Box 12 and Box 14b decoder">
       <h2 style="margin-top:0;grid-column:1/-1">Decode your Box 12 &amp; Box 14b</h2>
       <form id="w2Form" autocomplete="off" onsubmit="return false">
@@ -82,8 +80,18 @@
           <p class="muted-small" style="margin-top:6px">The Treasury Tipped Occupation Code(s) printed in Box 14b. Separate two codes with a comma or space. Leave blank if Box 14b is empty.</p>
         </div>
       </form>
-      <div class="obbba-out" id="out" aria-live="polite"></div>
+      <div class="calc-answer">
+        <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+        <div class="obbba-out" id="out" data-tb-result></div>
+      </div>
+      <p id="outStatus" role="status" class="sr-only"></p>
     </section>
+
+    <!-- One lede, not two. These were separate paragraphs when they sat above the
+         calculator; stacked below it they rendered as two identical 19px intros in
+         a row, which reads as the same paragraph said twice. Merged verbatim — no
+         sentence dropped. -->
+    <p class="lede">Starting with <strong>2026 W-2s</strong> (the ones that arrive in January 2027), Box 12 has three brand-new codes and Box 14 is split in two. The one thing to get right: <strong>TA</strong> (Trump account contributions) is <strong>excluded</strong> from your Box 1 wages — never taxed as wages — while <strong>TP</strong> (your reported tips) and <strong>TT</strong> (your overtime premium) are <strong>still fully taxed inside Box 1</strong>. TP and TT don't lower your wages; they flag how much of your wages you can deduct later, on Schedule 1-A, under the "no tax on tips" and "no tax on overtime" rules. Enter your own amounts in the decoder above, then use the <a href="#ttoc-lookup">occupation lookup</a> below to find (or verify) the Box 14b code for your job. Everything runs in your browser — nothing is uploaded.</p>
 
     <p class="note">For general guidance only — not tax advice. This tool explains what the new W-2 codes mean; it does not compute your deduction. For the dollar figures, see the <a href="/tips-tax-calculator/">no tax on tips calculator</a> and the <a href="/overtime-tax-calculator/">no tax on overtime calculator</a>. Verify your own situation with the IRS or a tax professional.</p>
 
@@ -96,7 +104,8 @@
         <label for="occQuery">Your job title</label>
         <input type="text" id="occQuery" placeholder="e.g. bartender, nail tech, uber driver" value="">
       </div>
-      <div class="ttoc-result" id="occOut" aria-live="polite"></div>
+      <div class="ttoc-result" id="occOut"></div>
+      <p id="occStatus" role="status" class="sr-only"></p>
     </section>
 
     <section class="prose ttoc-browse" id="ttoc-browse">

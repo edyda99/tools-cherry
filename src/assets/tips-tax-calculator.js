@@ -12,6 +12,27 @@ const STATES = window.__STATES__ || {};
 const usd = (n) => '$' + Math.round(Math.max(0, n || 0)).toLocaleString('en-US');
 const pct = (n) => (Math.max(0, n || 0) * 100).toFixed(1) + '%';
 
+// The page loads with example inputs nobody typed, so the answer is labelled
+// as an example until the visitor edits a field. Optional-chained: the /embed/
+// build of this calculator has no such note.
+function clearExampleNote() {
+  document.querySelector('.calc-example')?.remove();
+}
+
+// #outStatus is the ONLY live region on the page. #out rewrites its whole
+// innerHTML on every keystroke, so leaving aria-live on it queued the entire
+// result panel for re-reading each character. Instead we debounce one plain
+// sentence, and only for user-driven recomputes (never the load render).
+let statusTimer = null;
+let announceReady = false;
+function announce(text) {
+  if (!announceReady) return;
+  const el = $('outStatus');
+  if (!el) return;
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => { el.textContent = text; }, 500);
+}
+
 function fillStates() {
   const sel = $('state');
   Object.keys(STATES)
@@ -135,6 +156,8 @@ function render() {
   if (newDetails) newDetails.open = wasOpen;
 
   renderState();
+
+  announce(`Federal tax saved on your tips: ${statValue}`);
 }
 
 function init() {
@@ -144,7 +167,10 @@ function init() {
     $(id).addEventListener('input', render);
     $(id).addEventListener('change', render);
   });
+  const form = $('tipsForm');
+  ['input', 'change'].forEach((evt) => form?.addEventListener(evt, clearExampleNote, { once: true }));
   render();
+  announceReady = true;
 }
 
 function __bootInit() {

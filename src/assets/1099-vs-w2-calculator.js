@@ -37,7 +37,31 @@ function reset() {
   $('summaryBox').hidden = true;
 }
 
-function calc() {
+// The pre-filled figures are an example until the visitor touches the form, so
+// the "example numbers" line is dropped the first time they type or change a
+// field. Two once:true listeners on the form catch both event types via bubbling.
+function dropExampleNote() {
+  document.querySelector('.calc-example')?.remove();
+}
+
+// Screen-reader announcement. The results block itself is NOT a live region:
+// re-announcing on every keystroke of a salary made it unusable. Instead the
+// headline is written to a debounced status line, and only for recomputes the
+// visitor triggered (never the initial render, which they never asked for).
+let statusTimer = 0;
+function announceResult() {
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => {
+    const out = $('outStatus');
+    if (!out) return;
+    const head = ($('headline')?.textContent || '').trim();
+    const sub = ($('headlineSub')?.textContent || '').trim();
+    const parts = [head, sub].filter((t) => t && t !== '—');
+    out.textContent = parts.join('. ').replace(/\.\.+/g, '.');
+  }, 500);
+}
+
+function render() {
   reset();
 
   const w2Gross = val('w2Gross');
@@ -95,13 +119,23 @@ function calc() {
   $('summaryBox').hidden = false;
 }
 
+// fromUser = this recompute came from a keystroke or a select change, so it is
+// worth announcing. The first-paint render passes nothing and stays silent.
+function calc(fromUser) {
+  render();
+  if (fromUser) announceResult();
+}
+
 function init() {
   initMoneyInputs();
   // Stamp the tax year into the dated-assumptions copy.
   document.querySelectorAll('[data-tax-year]').forEach((el) => { el.textContent = String(TAX_YEAR); });
   document.querySelectorAll('#w2Form input, #w2Form select').forEach((el) =>
-    el.addEventListener('input', calc)
+    el.addEventListener('input', () => calc(true))
   );
+  const form = $('w2Form');
+  form?.addEventListener('input', dropExampleNote, { once: true });
+  form?.addEventListener('change', dropExampleNote, { once: true });
   calc();
 }
 

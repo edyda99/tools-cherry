@@ -1519,8 +1519,8 @@
    },
    "distinctiveFacts": [
     {
-     "fact": "Under HB 96, Ohio became a true flat-tax state in 2026: 0% on the first $26,050 of nonbusiness income and a single 2.75% rate above that, the nation's second-lowest flat income tax rate.",
-     "source": "https://itrfoundation.org/ohios-new-2-75-flat-tax-puts-pressure-on-other-states/"
+     "fact": "Under HB 96, Ohio became a true flat-tax state in 2026: 0% on the first $26,050 of nonbusiness income and a single 2.75% rate above that, with the 3.125% band over $100,000 applying to 2025 only.",
+     "source": "https://codes.ohio.gov/ohio-revised-code/section-5747.02"
     },
     {
      "fact": "Because of widespread municipal income taxes (collected by RITA/CCA), an Ohio worker's combined state-plus-local income tax can reach roughly 5%-5.25% in major cities even though the state rate is only 2.75%.",

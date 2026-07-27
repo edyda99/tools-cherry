@@ -27,9 +27,9 @@
 <main id="main">
   <div class="wrap">
     <h1>SALT Cap Calculator</h1>
-    <p class="lede">The 2025 One Big Beautiful Bill Act raised the cap on deducting <strong>state and local taxes (SALT)</strong> from $10,000 to <strong>$40,000</strong> for 2025 ($40,400 for 2026) — but only for <a href="/tax-glossary/#itemizing">itemizers</a>, and it phases back down above $500,000 of income. Enter your numbers to see your allowed SALT deduction, whether itemizing beats your standard deduction, and what the raise actually saves you. Everything runs in your browser — nothing is uploaded.</p>
 
     <section class="calc" aria-label="SALT deduction cap calculator">
+      <h2 class="sr-only">SALT deduction savings calculator</h2>
       <form id="saltForm" autocomplete="off" onsubmit="return false">
         <div class="field">
           <label for="year">Tax year</label>
@@ -52,8 +52,9 @@
         </div>
 
         <div class="field">
-          <label for="magi">Your yearly income <span class="muted-small">(Form 1040 line 11)</span></label>
+          <label for="magi">Your yearly income before deductions</label>
           <input type="text" id="magi" inputmode="decimal" data-money autocomplete="off" value="300000">
+          <p class="muted-small">If you filed last year, this is line 11 on your Form 1040.</p>
           <p class="muted-small" style="margin-top:6px">The law technically uses MAGI — AGI plus foreign-income exclusions — which equals AGI for nearly everyone. Filing jointly? Use your combined income.</p>
         </div>
 
@@ -76,9 +77,15 @@
         </div>
       </form>
 
-      <div class="obbba-out" id="out" aria-live="polite"></div>
+      <div class="calc-answer">
+        <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+        <div class="obbba-out" id="out" data-tb-result></div>
+      </div>
+      <p id="outStatus" role="status" class="sr-only"></p>
       <div class="torpedo-warn" id="torpedo" hidden></div>
     </section>
+
+    <p class="lede">The 2025 One Big Beautiful Bill Act raised the cap on deducting <strong>state and local taxes (SALT)</strong> from $10,000 to <strong>$40,000</strong> for 2025 ($40,400 for 2026) — but only for <a href="/tax-glossary/#itemizing">itemizers</a>, and it phases back down above $500,000 of income. Enter your numbers to see your allowed SALT deduction, whether itemizing beats your standard deduction, and what the raise actually saves you. Everything runs in your browser — nothing is uploaded.</p>
 
     <p class="note">Estimate for general guidance only — not tax advice. The tax-saving figure compares your best deduction under the new cap against the old $10,000 cap in the same year, using the 2026 federal brackets (married filing separately is estimated with the single table). It does not model the AMT, PTET elections, or other Schedule A limits. Verify with the IRS or a tax professional.</p>
 

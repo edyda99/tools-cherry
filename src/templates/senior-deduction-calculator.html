@@ -27,9 +27,8 @@
 <main id="main">
   <div class="wrap">
     <h1>Senior Bonus Deduction Calculator</h1>
-    <p class="lede">The 2025 One Big Beautiful Bill Act gives people <strong>65 and older a $6,000 tax deduction each</strong> ($12,000 for a couple where both qualify) for tax years 2025–2028 — the break widely marketed as <em>"no tax on Social Security."</em> Enter your details to see your deduction, the income phase-out, and your estimated federal tax saving. Everything runs in your browser — nothing is uploaded.</p>
-
     <section class="calc" aria-label="Senior bonus deduction calculator">
+      <h2 class="sr-only">Senior deduction calculator</h2>
       <form id="seniorForm" autocomplete="off" onsubmit="return false">
         <div class="field">
           <label for="year">Tax year</label>
@@ -64,14 +63,21 @@
         </div>
 
         <div class="field">
-          <label for="magi">Your yearly income (Form 1040 line 11)</label>
+          <label for="magi">Your yearly income before deductions</label>
           <input type="text" id="magi" inputmode="decimal" data-money autocomplete="off" value="60000">
+          <p class="muted-small">If you filed last year, this is line 11 on your Form 1040.</p>
           <p class="muted-small" style="margin-top:6px">The law technically uses MAGI — modified adjusted gross income, roughly your AGI — for almost everyone it's the same number. Filing jointly? Use your combined income.</p>
         </div>
       </form>
 
-      <div class="obbba-out" id="out" aria-live="polite"></div>
+      <div class="calc-answer">
+        <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+        <div class="obbba-out" id="out" data-tb-result></div>
+      </div>
+      <p id="outStatus" role="status" class="sr-only"></p>
     </section>
+
+    <p class="lede">The 2025 One Big Beautiful Bill Act gives people <strong>65 and older a $6,000 tax deduction each</strong> ($12,000 for a couple where both qualify) for tax years 2025–2028 — the break widely marketed as <em>"no tax on Social Security."</em> Enter your details to see your deduction, the income phase-out, and your estimated federal tax saving. Everything runs in your browser — nothing is uploaded.</p>
 
     <p class="note">Estimate for general guidance only — not tax advice. The tax-saving figure uses the 2026 federal brackets and regular standard deduction; it does not model the taxable portion of your Social Security benefits or the separate extra standard deduction for 65+, so your actual saving depends on your full return. Verify with the IRS or a tax professional.</p>
 

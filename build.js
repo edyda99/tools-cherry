@@ -9,8 +9,10 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { transform as esbuildTransform } from 'esbuild';
 import { STATIC_PAGES } from './src/content/static-pages.js';
+import { buildStateApplies } from './src/content/state-applies.js';
 import { computePaycheck } from './src/engine/paycheck-engine.js';
 import { computeBonus } from './src/engine/bonus-tax.js';
+import { verifyDist, reportFailures } from './scripts/verify-dist.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SRC = join(__dirname, 'src');
@@ -1266,8 +1268,54 @@ function figureYearBanner(state, year) {
     `</p>`;
 }
 
-const pctStr = (r) => (r * 100).toFixed(2).replace(/\.?0+$/, '') + '%';
+// Rate formatter. Rounds to 3 decimal places of a percent and drops trailing
+// zeros via Number coercion, so 0.05525 prints "5.525%" rather than the old
+// two-decimal "5.53%" (which misstated New Jersey's real bracket rate).
+// Matches the client-side `ratePct` in src/assets/app.js so the server-rendered
+// prose and the live calculator never disagree.
+const pctStr = (r) => (+(r * 100).toFixed(3)).toString() + '%';
+// (Retired) A two-decimal formatter used to serve the FAQ answers alone, so
+// those strings — which are the page's FAQPage JSON-LD as well as its visible
+// FAQ — stayed byte-identical to what was already indexed while a title/markup
+// experiment ran. It let a state's FAQ round a rate differently from the prose
+// right above it, i.e. the page contradicted itself. The FAQ answers now use the
+// same pctStr as the prose. New Jersey's 5.525% band is the one rate on the site
+// that needs the third decimal; it appears in bracket tables, not in a FAQ.
 const usd0 = (n) => '$' + Math.round(n).toLocaleString('en-US');
+
+// The one salary every pre-computed example on a state page is based on: the
+// answer-block prose, the neighbour comparison table, and the calculator's
+// pre-filled input all resolve to this number, so a visitor who has typed
+// nothing never sees the page quote two different example salaries.
+const DEFAULT_SALARY = 75000;
+
+// Some states are legally "graduated" but behave as a single rate: a 0% band on
+// the first slice of income, then one rate on everything above it (Idaho,
+// Mississippi, and Ohio since HB 96 took full effect in 2026). Describing those
+// as "graduated, two brackets, 0% to 5.3%" and then as "a flat 5.3% rate" on the
+// same page reads as a contradiction. True only when the single-filer ladder
+// opens at 0% and has exactly one distinct non-zero rate; a state with two
+// distinct non-zero rates stays graduated.
+function isEffectivelyFlat(t) {
+  if (!t || t.type === 'flat') return false;
+  const b = (t.brackets && t.brackets.single) || [];
+  if (b.length < 2) return false;
+  if (b[0].rate !== 0) return false;
+  const nonZero = new Set(b.map((br) => br.rate).filter((r) => r > 0));
+  return nonZero.size === 1;
+}
+// The two numbers such a state's copy needs, composed only from its own bracket
+// data: the single effective rate, and where the 0% band stops. zeroUpTo is a
+// TAXABLE-income figure — it applies after the state standard deduction — so
+// every sentence built from it has to say "taxable income", never plain
+// "income". Idaho's $4,811 sits on top of a $16,100 single deduction; calling it
+// "the first $4,811 of income" told the visitor tax starts about $16k too early
+// and contradicted the page's own bracket table.
+function effectiveFlatFacts(t) {
+  const b = (t.brackets && t.brackets.single) || [];
+  const rate = b.map((br) => br.rate).find((r) => r > 0);
+  return { rate, zeroUpTo: b[0].upTo };
+}
 
 // Genuinely state-specific tax facts derived from the (already-sourced) data:
 // bracket count, rate range, top rate + threshold, standard deduction, and a
@@ -1291,6 +1339,12 @@ function stateTaxFacts(state, year, taxData) {
   if (t.type === 'flat') {
     return `<p>${sdText}; after that, all remaining taxable income is taxed at the single ` +
       `flat rate of <strong>${pctStr(t.rate)}</strong> — ${state.name} does not use graduated brackets for ${year}.${example}</p>`;
+  }
+  if (isEffectivelyFlat(t)) {
+    const f = effectiveFlatFacts(t);
+    return `<p>${sdText}; after that, the first ${usd0(f.zeroUpTo)} of remaining taxable income is taxed at ` +
+      `<strong>0%</strong> and every dollar above it at the single flat rate of <strong>${pctStr(f.rate)}</strong> — ` +
+      `${state.name} does not run a ladder of rising rates for ${year}.${example}</p>`;
   }
   const b = t.brackets.single || [];
   const n = b.length;
@@ -1399,6 +1453,10 @@ function stateLede(state, year) {
   if (t.type === 'flat') {
     return `${open} after federal income tax, Social Security, Medicare, and ${state.name}'s flat ${pctStr(t.rate)} state income tax.`;
   }
+  if (isEffectivelyFlat(t)) {
+    const f = effectiveFlatFacts(t);
+    return `${open} after federal income tax, Social Security, Medicare, and ${state.name}'s flat ${pctStr(f.rate)} state income tax, which skips the first ${usd0(f.zeroUpTo)} of taxable income — your pay after the state deduction.`;
+  }
   const b = (t.brackets && t.brackets.single) || [];
   const range = b.length ? ` (${numWord(b.length)} brackets, ${pctStr(b[0].rate)} to ${pctStr(b[b.length - 1].rate)})` : '';
   return `${open} after federal income tax, Social Security, Medicare, and ${state.name}'s graduated state income tax${range}.`;
@@ -1415,6 +1473,10 @@ function stateBodyH2(state, year) {
   if (t.type === 'flat') {
     return `How ${state.name}'s flat ${pctStr(t.rate)} income tax hits your ${year} paycheck`;
   }
+  if (isEffectivelyFlat(t)) {
+    const f = effectiveFlatFacts(t);
+    return `How ${state.name}'s flat ${pctStr(f.rate)} income tax, which skips the first ${usd0(f.zeroUpTo)} of taxable income, hits your ${year} paycheck`;
+  }
   const b = (t.brackets && t.brackets.single) || [];
   if (!b.length) return `How ${state.name} paychecks are taxed in ${year}`;
   return `${state.name}'s ${numWord(b.length)}-bracket ladder (${pctStr(b[0].rate)}–${pctStr(b[b.length - 1].rate)}): what comes out of each ${year} check`;
@@ -1428,20 +1490,54 @@ function targetIntro(state, year) {
   return `<p class="note">Free ${state.name} salary-after-taxes and income tax calculator — a no-signup, in-browser alternative to paid tools like SmartAsset and ADP. Estimate your ${year} take-home pay for any salary, hourly rate, or pay frequency.</p>`;
 }
 
+// ONE $75,000 single-filer computation per state, shared by every place a
+// take-home figure is rendered on that page: the extractable answer sentence,
+// the headline number in the calculator's answer band, and the band's sub-line.
+// Two independent computations can drift apart under a later engine change; one
+// cannot. Computed at the biweekly frequency so the per-paycheck figure comes
+// out of the same call as the annual one.
+function stateNet75(state, taxData) {
+  try {
+    const r = computePaycheck(
+      { wage: { type: 'salary', amount: 75000 }, filingStatus: 'single', payFrequency: 'biweekly', stateSlug: state.slug },
+      taxData
+    );
+    if (!Number.isFinite(r.annual.net) || !Number.isFinite(r.perPaycheck.net)) return null;
+    return { annualNet: r.annual.net, biweeklyNet: r.perPaycheck.net };
+  } catch (_) { return null; }
+}
+
+// Byte-for-byte copies of app.js's two currency formatters (app.js lines 11-14),
+// so a build-rendered figure and the figure the browser writes over it on the
+// first render are the same string and hydration is a visual no-op. The build
+// asserts parity per state below (assertFormatterParity) rather than trusting it.
+const usdApp = (n) =>
+  n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+const usd2App = (n) =>
+  n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// Fails the build if a future currency/rounding tweak makes the pre-rendered
+// figures disagree with what app.js will write on first paint.
+function assertFormatterParity(state, net75) {
+  if (!net75) return;
+  if (usd0(net75.annualNet) !== usdApp(net75.annualNet)) {
+    throw new Error(
+      `formatter parity broken for ${state.slug}: build usd0 "${usd0(net75.annualNet)}" ` +
+      `vs app.js usd "${usdApp(net75.annualNet)}" — the pre-rendered take-home would flicker on hydration.`
+    );
+  }
+}
+
 // Extractable, plain-language direct-answer block for each state paycheck page.
 // Uses the real computed take-home for a representative $75,000 single-filer
 // salary, and omits the state-tax clause for no-income-tax states (mirrors the
 // existing hasIncomeTax handling). Highest-priority AI-SEO block: it answers the
-// page's core question in one sentence near the top.
-function stateAnswerBlock(state, year, taxData) {
-  let net = null;
-  try {
-    net = computePaycheck(
-      { wage: { type: 'salary', amount: 75000 }, filingStatus: 'single', payFrequency: 'annual', stateSlug: state.slug },
-      taxData
-    ).annual.net;
-  } catch (_) { return ''; }
-  if (!Number.isFinite(net)) return '';
+// page's core question in one sentence near the top, so the LEAD half stays
+// above the calculator (and above the mobile fold); only the "now use the tool"
+// TAIL half moves down into the prose section.
+function stateAnswerParts(state, year, net75) {
+  if (!net75) return { lead: '', tail: '' };
+  const net = net75.annualNet;
   const stateClause = state.hasIncomeTax ? `, and ${state.name} state income tax` : '';
   // When this state's disability / paid-leave employee contributions are modeled,
   // the net above already nets them out — say so, so the enumerated list matches
@@ -1453,19 +1549,28 @@ function stateAnswerBlock(state, year, taxData) {
     `A $75,000 salary in ${state.name} nets roughly ${usd0(net)} a year in ${year}, once federal income tax, Social Security and Medicare${state.hasIncomeTax ? ` and ${state.name} state tax` : ''}${progClause} are withheld.`,
     `Earning $75,000 in ${state.name}? Your estimated ${year} take-home is about ${usd0(net)} after federal tax and FICA${stateClause}${progClause}.`
   ]);
+  // Wording is direction-neutral ("in the calculator", not "below") because the
+  // tail now sits underneath the calculator rather than above it.
   const tail = pickFrame(state.slug, 'answertail', [
-    `Enter your own pay below to estimate your ${state.name} take-home pay for any salary or hourly wage.`,
-    `Use the calculator below for your own salary or hourly rate.`,
-    `Adjust the inputs below to see the breakdown for your own ${state.name} paycheck.`
+    `Enter your own pay in the calculator to estimate your ${state.name} take-home pay for any salary or hourly wage.`,
+    `Use the calculator for your own salary or hourly rate.`,
+    `Adjust the calculator inputs to see the breakdown for your own ${state.name} paycheck.`
   ]);
   const rateSentence = TARGET_STATES.has(state.slug) ? stateRateSentence(state, year) : '';
-  if (rateSentence) {
-    // NEAR_PAGE_1 target states: surface the exact search query as an <h2>
-    // directly above the extractable rate sentence.
-    const h2 = `<h2>${state.name} income tax rate ${year}</h2>`;
-    return `${h2}<p class="note"><strong>${rateSentence} ${lead}</strong> ${tail}</p>`;
-  }
-  return `<p class="note"><strong>${lead}</strong> ${tail}</p>`;
+  // NEAR_PAGE_1 target states: surface the exact search query as an <h2>
+  // directly above the extractable rate sentence.
+  const h2 = rateSentence ? `<h2>${state.name} income tax rate ${year}</h2>` : '';
+  const leadHtml = rateSentence
+    ? `${h2}<p class="note"><strong>${rateSentence} ${lead}</strong></p>`
+    : `<p class="note"><strong>${lead}</strong></p>`;
+  return { lead: leadHtml, tail: `<p class="note">${tail}</p>` };
+}
+
+// The band's caption line. app.js rewrites this from the live inputs on every
+// render (app.js netLabel()), so the wording here MUST match what app.js emits
+// for the page's default inputs, or the caption would visibly change on load.
+function stateNetLabel(state) {
+  return `Based on a $75,000 salary in ${state.name}, single filer, paid every 2 weeks`;
 }
 
 // Each no-income-tax state's revenue model in a short phrase — condensed from
@@ -1498,9 +1603,24 @@ const NOTAX_FACTS = {
   wyoming: 'Wyoming has no individual or corporate income tax, relying on mineral severance taxes and federal mineral royalties to fund state government.'
 };
 
+// Every state's estimate misses the same class of deductions, whatever its
+// income tax looks like, so this sentence is appended to all 51 lists. It names
+// no rate, threshold or figure, so it needs no source.
+const BASELINE_DISCLAIMER =
+  'City, county or school-district income taxes where they apply, court-ordered deductions, ' +
+  'union dues, and anything else your specific employer withholds are not in this figure; ' +
+  'your pay stub is the authority on those.';
+
+// The no-income-tax pages need one extra line: "no income tax" is routinely
+// misread as "nothing comes out for the state".
+const NOTAX_DISCLAIMER =
+  'No state income tax does not mean no state payroll deductions. ' +
+  'Check your stub for state-run leave or disability contributions.';
+
 // Prose body per state — branches on whether the state levies income tax.
 function stateBody(state, year, taxData) {
   const noTax = !state.hasIncomeTax;
+  let body;
   if (noTax) {
     const fact = NOTAX_FACTS[state.slug] ? ` ${NOTAX_FACTS[state.slug]}` : '';
     const opener = pickFrame(state.slug, 'notax', [
@@ -1510,7 +1630,8 @@ function stateBody(state, year, taxData) {
     ]);
     // No federal-mechanics paragraph here: the calculator's bracket-by-bracket
     // panel above covers it interactively (was verbatim across all 9 pages).
-    return `<p>${opener}${fact}</p>`;
+    body = `<p>${opener}${fact}</p>`;
+    return body + stateDisclaimerNote(state, noTax);
   }
 
   const t = state.tax;
@@ -1520,6 +1641,13 @@ function stateBody(state, year, taxData) {
     how += t.standardDeduction
       ? `, applied after the state allowance/deduction for your filing status.`
       : ` on your wages, with no state standard deduction.`;
+  } else if (isEffectivelyFlat(t)) {
+    // One rate, with a 0% band under it — not a ladder. Saying "graduated" here
+    // while the same page's FAQ and lede say "flat" read as a contradiction.
+    const f = effectiveFlatFacts(t);
+    how = `${state.name} levies a <strong>flat ${pctStr(f.rate)} state income tax</strong> for ${year}, ` +
+      `applied after the state deduction for your filing status — and the first ${usd0(f.zeroUpTo)} of ` +
+      `taxable income above that deduction is taxed at 0%, so only what is left pays the ${pctStr(f.rate)}.`;
   } else {
     how = pickFrame(state.slug, 'gradhow', [
       `${state.name} taxes income on a graduated state schedule for ${year}, applied after the state deduction for your filing status.`,
@@ -1528,17 +1656,25 @@ function stateBody(state, year, taxData) {
     ]);
   }
 
-  let body =
+  body =
     `<p>${how} This calculator applies that on top of federal withholding and ` +
     `Social Security / Medicare to estimate your ${state.name} take-home pay.</p>` +
     stateTaxFacts(state, year, taxData);
 
-  const disclaimers = state.disclaimer || [];
-  if (disclaimers.length) {
-    body += `<p class="note"><strong>What this estimate doesn't include:</strong> ` +
-      disclaimers.join(' ') + `</p>`;
-  }
-  return body;
+  return body + stateDisclaimerNote(state, noTax);
+}
+
+// The "what this estimate doesn't include" note. Emitted on all 51 pages from
+// this one place, so the heading is byte-identical everywhere and no state can
+// silently ship without the caveat again (13 of 51 used to). Each state's own
+// sourced sentences stay first and unchanged; the baseline sentence is appended
+// to every state, and the no-income-tax line only to the nine that need it.
+function stateDisclaimerNote(state, noTax) {
+  const disclaimers = (state.disclaimer || []).slice();
+  disclaimers.push(BASELINE_DISCLAIMER);
+  if (noTax) disclaimers.push(NOTAX_DISCLAIMER);
+  return `<p class="note"><strong>What this estimate doesn't include:</strong> ` +
+    disclaimers.join(' ') + `</p>`;
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -1593,7 +1729,7 @@ function bracketTableBlock(state, year) {
     return `<tr><td>${range}</td><td>${pctStr(br.rate)}</td></tr>`;
   }).join('');
   return `<section class="prose"><h2>${state.name}'s ${numWord(b.length)} ${dispYear} brackets, from ${pctStr(b[0].rate)} to ${pctStr(b[b.length - 1].rate)} (single filers)</h2>` +
-    `<p>${state.name}'s graduated single-filer schedule for ${dispYear}, applied after the state deduction:</p>` +
+    `<p>${state.name}'s ${isEffectivelyFlat(t) ? 'single-filer' : 'graduated single-filer'} schedule for ${dispYear}, applied after the state deduction:</p>` +
     `<table class="data-table"><thead><tr><th>Taxable income</th><th>Marginal rate</th></tr></thead><tbody>${rows}</tbody></table></section>`;
 }
 
@@ -1706,7 +1842,14 @@ function incomeContextBlock(state, p, taxData) {
 function distinctiveFactsBlock(state, p, faqEntries) {
   // NOTAX_FACTS already appear in the body opener, and a fact used as the
   // page's unique FAQ answer shouldn't repeat here — no duplicated sentences.
-  const usedInFaq = new Set((faqEntries || []).map((e) => e.a));
+  // Match on the raw source sentence as well as the rendered answer: an entry
+  // may extend its fact with a clarifying clause, and the extended string would
+  // no longer equal the fact it consumed — which would print it twice.
+  const usedInFaq = new Set();
+  for (const e of faqEntries || []) {
+    if (e && e.a) usedInFaq.add(String(e.a));
+    if (e && e.srcFact) usedInFaq.add(String(e.srcFact));
+  }
   const facts = [];
   const df = (p && p.distinctiveFacts) || [];
   for (const f of df) { if (f && f.fact && !usedInFaq.has(String(f.fact))) facts.push(escHtml(f.fact)); }
@@ -1733,9 +1876,17 @@ function obbbaConformityBlock(state, obbba, year) {
     `<a href="/data/overtime-tax-by-state/#state-${state.slug}">overtime by state</a>`,
     `<a href="/data/tips-tax-by-state/#state-${state.slug}">tips by state</a>`
   ]).join(' · ') + '.';
-  const fed =
+  // Frame-varied 3 ways: this federal sentence is identical on all 51 pages, and
+  // a shared run of state-invariant words is exactly what the near-duplicate
+  // gate counts. Same meaning, same single link, three wordings.
+  const fed = pickFrame(state.slug, 'obbbafed', [
     `<p>Qualified <strong>overtime premium pay</strong> and <strong>tips</strong> are federally deductible for 2025–2028 ` +
-    `(<a href="/data/overtime-tax-by-state/">OBBBA caps &amp; rules</a>); FICA still applies.</p>`;
+      `(<a href="/data/overtime-tax-by-state/">OBBBA caps &amp; rules</a>); FICA still applies.</p>`,
+    `<p>Federal law lets you deduct qualified <strong>tips</strong> and <strong>overtime premium pay</strong> from 2025 through 2028 ` +
+      `(<a href="/data/overtime-tax-by-state/">OBBBA caps &amp; rules</a>), though Social Security and Medicare are still withheld.</p>`,
+    `<p>For tax years 2025 to 2028 there is a federal deduction for qualified <strong>overtime premium pay</strong> and <strong>tips</strong> ` +
+      `(<a href="/data/overtime-tax-by-state/">OBBBA caps &amp; rules</a>). FICA comes out either way.</p>`
+  ]);
   // Verdict-keyed heading: the query stays, and the state's actual 2026
   // treatment (from the sourced conformity data) is answered in the heading.
   const otV = e.overtime && e.overtime.y2026, tipV = e.tips && e.tips.y2026;
@@ -1828,12 +1979,31 @@ function stateUniqueFaq(state, p, year) {
   }
   const df = (p && p.distinctiveFacts) || [];
   if (df.length && df[0].fact) {
+    const fact = String(df[0].fact);
     return {
       q: `What is unusual about how ${state.name} handles payroll taxes?`,
-      a: String(df[0].fact)
+      a: fact + flatBandRider(state, fact),
+      // The unmodified source sentence, so distinctiveFactsBlock can still tell
+      // this fact has been consumed even when the rider below extends it.
+      srcFact: fact
     };
   }
   return null;
+}
+
+// A one-clause correction for the effectively-flat states whose sourced fact
+// says the single rate lands on "wages". It lands on taxable income: the state
+// standard deduction and the 0% band come off first. Added only when the fact
+// does not already frame itself in taxable income (Mississippi's does, and says
+// where its band stops, so it gets nothing). Introduces no new figure.
+function flatBandRider(state, fact) {
+  const t = state.tax;
+  if (!state.hasIncomeTax || !t || !isEffectivelyFlat(t)) return '';
+  if (/taxable income/i.test(fact)) return '';
+  const f = effectiveFlatFacts(t);
+  return ` In practice the ${pctStr(f.rate)} lands on taxable income rather than on gross wages: ` +
+    `the state standard deduction comes off first, a 0% band takes the next slice, and the rate ` +
+    `reaches only what is left.`;
 }
 
 // FAQ entries shared by the JSON-LD block and the visible FAQ section (Google
@@ -1848,6 +2018,17 @@ function stateFaqEntries(state, p, year) {
     a1 = `No — ${state.name} runs on ${angle || 'other taxes'}, not a wage tax.`;
   } else if (t.type === 'flat') {
     a1 = `Yes — a flat ${pctStr(t.rate)} on taxable wages in ${year}, on top of federal tax and FICA.`;
+  } else if (isEffectivelyFlat(t)) {
+    // One rate with a 0% band beneath it. Calling that "graduated brackets from
+    // 0% to 5.3%" here while the body and the lede call it flat is the exact
+    // self-contradiction this branch exists to remove. zeroUpTo is TAXABLE
+    // income — it sits on top of the state standard deduction — so the sentence
+    // has to say so; "the first $4,811 you earn" would be off by the deduction.
+    const f = effectiveFlatFacts(t);
+    a1 = `Yes — though it behaves like a flat ${pctStr(f.rate)} rather than a ladder of rising rates. ` +
+      `For ${year}, a single filer's first ${usd0(f.zeroUpTo)} of taxable income — that is pay left after ` +
+      `the state standard deduction — is taxed at 0%, and every dollar above it at ${pctStr(f.rate)}, ` +
+      `on top of federal tax and FICA.`;
   } else {
     const b = (t.brackets && t.brackets.single) || [];
     a1 = b.length
@@ -1960,6 +2141,29 @@ function neighborHeading(roster, builtSlugs, currentSlug) {
     : `Compare a paycheck next door in ${last}`;
 }
 
+// Summary text for the calculator's "compare with another state" panel. Naming
+// the actual neighbours beats "another state" for the reader, and it breaks up
+// what is otherwise the single largest run of identical words on all 51 pages
+// (the calculator chrome), which is what the near-duplicate gate measures.
+function compareSummary(roster, builtSlugs, currentSlug) {
+  const names = neighborStates(roster, builtSlugs, currentSlug).map((s) => s.name);
+  if (!names.length) return 'Compare your take-home pay in another state';
+  const last = names.pop();
+  return names.length
+    ? `Compare your take-home pay with ${names.join(', ')} or ${last}`
+    : `Compare your take-home pay with ${last}`;
+}
+
+// Summary text for the calculator's federal-bracket panel. Frame-varied and
+// state-keyed for the same reason as compareSummary above.
+function bracketSummary(state) {
+  return pickFrame(state.slug, 'bracketsum', [
+    `How your federal tax is calculated on a paycheck in ${state.name}, bracket by bracket`,
+    `Bracket by bracket: the federal tax inside your ${state.name} paycheck`,
+    `Your federal tax on ${state.name} pay, worked out one bracket at a time`
+  ]);
+}
+
 // Slug-stable ordering for the ancillary sections (min wage, distinctive facts,
 // other taxes, income context): the order differs page to page but is
 // deterministic per slug, so rebuilds are byte-stable. The core sequence
@@ -1987,7 +2191,7 @@ function neighborCompareTable(roster, builtSlugs, currentSlug, taxData, year) {
   };
   const net75 = (slug) => {
     try {
-      const n = computePaycheck({ wage: { type: 'salary', amount: 75000 }, filingStatus: 'single', payFrequency: 'annual', stateSlug: slug }, taxData).annual.net;
+      const n = computePaycheck({ wage: { type: 'salary', amount: DEFAULT_SALARY }, filingStatus: 'single', payFrequency: 'annual', stateSlug: slug }, taxData).annual.net;
       return Number.isFinite(n) ? usd0(n) : null;
     } catch (_) { return null; }
   };
@@ -3058,6 +3262,8 @@ async function main() {
   registerAsset('assets', 'report-widget.js'); // "Report a wrong result" inline reporter (tool pages)
   registerAsset('assets', 'recent-tools.js'); // records visits for the Cmd/Ctrl+K palette's recents list (tool pages)
   registerAsset('assets', 'money-input.js'); // live thousands separators for $ fields (shared leaf)
+  registerAsset('assets', 'state-flow.js'); // guided rule-finder flow on the 51 state paycheck pages
+  registerAsset('assets', 'what-applies-to-me.js'); // the same flow on /what-applies-to-me/
   registerAsset('assets', 'invoice.js');
   registerAsset('assets', 'images-to-pdf.js');
   registerAsset('assets', 'pdf-to-word.js');
@@ -3282,6 +3488,11 @@ async function main() {
       incomeContextBlock(state, p, taxData)
     ]).filter(Boolean);
     const ancSplit = Math.ceil(ancillary.length / 2);
+    // One take-home computation for this state, shared by the extractable answer
+    // sentence and by the pre-rendered figures in the calculator's answer band.
+    const net75 = stateNet75(state, taxData);
+    assertFormatterParity(state, net75);
+    const answer = stateAnswerParts(state, year, net75);
     const html = fill(stateTpl, {
       STATE_NAME: state.name,
       STATE_TITLE: stateTitle(state, year),
@@ -3302,7 +3513,24 @@ async function main() {
         ? ` — also works as a ${state.name} income tax calculator`
         : `. ${state.name} has no state income tax, so it doubles as a federal income tax calculator`,
       FIGURE_BANNER: figureYearBanner(state, year),
-      ANSWER_BLOCK: stateAnswerBlock(state, year, taxData),
+      ANSWER_LEAD: answer.lead,
+      ANSWER_TAIL: answer.tail,
+      // Pre-rendered so the headline number is right on first paint, right with
+      // JavaScript off, and right to a crawler that never executes anything.
+      // app.js's first render reproduces these strings exactly (parity asserted
+      // above), so hydration is a visual no-op.
+      NET_LABEL: net75 ? stateNetLabel(state) : '',
+      NET_BIG: net75 ? usd2App(net75.biweeklyNet) : '$0.00',
+      NET_SUB: net75 ? `take-home per 2 weeks · ${usd0(net75.annualNet)}/yr` : '',
+      BRACKET_SUMMARY: bracketSummary(state),
+      COMPARE_SUMMARY: compareSummary(roster, builtSlugs, slug),
+      APPLIES_BLOCK: buildStateApplies({
+        state,
+        obbbaEntry: obbba && obbba.states && obbba.states[slug],
+        suppEntry: suppData && suppData.states && suppData.states[slug],
+        notaxAngle: NOTAX_ANGLE[slug],
+        pickFrame
+      }),
       TARGET_INTRO: targetIntro(state, year),
       STATE_LEDE: stateLede(state, year),
       STATE_BODY_H2: stateBodyH2(state, year),
@@ -5512,6 +5740,19 @@ async function main() {
   // hashed filenames computed by hashAssets() above. Must run last — after
   // every page has been written — so it can't miss a page written earlier.
   await rewriteHtmlAssetRefs(DIST, assetHashMap);
+
+  // Integrity gate. This runs on EVERY build, on purpose: the documented deploy
+  // path is `npm run build` followed by a bare `wrangler pages deploy dist`, so
+  // a check wired only into an `npm run deploy` wrapper protects nothing. Doing
+  // it here means a dist that a concurrent build corrupted can never be reported
+  // as built, and therefore can never be the thing that gets deployed.
+  // Silent on success (~70ms, ~1% of the build); the summary line below is the
+  // only success output. `npm run verify-dist` re-runs the same checks by hand.
+  const { failures } = await verifyDist(DIST);
+  if (failures.length) {
+    reportFailures(failures);
+    process.exit(1);
+  }
 
   console.log(`Built ${builtSlugs.size} state page(s) + home + ${STATIC_PAGES.length} content pages → dist/`);
   console.log(`States: ${[...builtSlugs].join(', ')}`);

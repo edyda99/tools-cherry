@@ -53,13 +53,29 @@
       return node.id === 'out' || /(^|[\s-])results?([\s-]|$)/.test(node.className) || /-out(\s|$)/.test(node.className);
     }
 
+    // data-tb-result is the explicit, stable contract: a template marks its one
+    // result container with it and this widget mounts there. It exists because
+    // the old aria-live sniffing coupled a shipped D1 feature to an a11y
+    // implementation detail — the day the result panels swapped aria-live for a
+    // separate role="status" announcer, the selector matched nothing and the
+    // Copy/Report controls silently vanished site-wide. aria-live is still read
+    // as a fallback for the pages that carry no hook, and an ambiguous or
+    // missing anchor is now logged instead of failing mute.
     function findAnchor() {
+      var hooked = Array.prototype.slice.call(mainEl.querySelectorAll('[data-tb-result]'));
+      if (hooked.length === 1) return hooked[0];
+      if (hooked.length > 1) { dbg('ambiguous data-tb-result: ' + hooked.length); return null; }
+
       var candidates = Array.prototype.slice.call(mainEl.querySelectorAll('[aria-live="polite"]'));
       if (candidates.length > 1) {
         var narrowed = candidates.filter(looksLikeResult);
         if (narrowed.length) candidates = narrowed;
       }
-      if (candidates.length !== 1) return null; // ambiguous or none — skip silently, no fallback guess.
+      if (candidates.length !== 1) {
+        // No fallback guess: a wrong anchor would snapshot the wrong text.
+        dbg('no single result anchor (' + candidates.length + ' aria-live candidates, no data-tb-result)');
+        return null;
+      }
       return candidates[0];
     }
 

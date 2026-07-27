@@ -19,6 +19,27 @@ function num(id) {
   return moneyValue($(id));
 }
 
+// The page loads with example inputs nobody typed, so the answer is labelled
+// as an example until the visitor edits a field. Optional-chained: the /embed/
+// build of this calculator has no such note.
+function clearExampleNote() {
+  document.querySelector('.calc-example')?.remove();
+}
+
+// #outStatus is the ONLY live region on the page. #out rewrites its whole
+// innerHTML on every keystroke, so leaving aria-live on it queued the entire
+// result panel for re-reading each character. Instead we debounce one plain
+// sentence, and only for user-driven recomputes (never the load render).
+let statusTimer = null;
+let announceReady = false;
+function announce(text) {
+  if (!announceReady) return;
+  const el = $('outStatus');
+  if (!el) return;
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => { el.textContent = text; }, 500);
+}
+
 // Plain-words explanations for the engine's ineligibility notes.
 function ineligibleLine(r, year) {
   if (r.notes.includes('mfs_denied')) {
@@ -67,6 +88,7 @@ function render() {
     out.innerHTML = statCard + derivation;
     const newDetails = out.querySelector('details.derivation');
     if (newDetails) newDetails.open = wasOpen;
+    announce('Federal tax saved by the senior deduction: $0');
     return;
   }
 
@@ -111,6 +133,8 @@ function render() {
 
   const newDetails = out.querySelector('details.derivation');
   if (newDetails) newDetails.open = wasOpen;
+
+  announce(`Federal tax saved by the senior deduction: ${usd(r.taxSaved)}`);
 }
 
 function init() {
@@ -119,7 +143,10 @@ function init() {
     $(id).addEventListener('input', render);
     $(id).addEventListener('change', render);
   });
+  const form = $('seniorForm');
+  ['input', 'change'].forEach((evt) => form?.addEventListener(evt, clearExampleNote, { once: true }));
   render();
+  announceReady = true;
 }
 
 function __bootInit() {

@@ -26,17 +26,33 @@
 <main id="main">
   <div class="wrap">
     <h1>{{STATE_H1}}</h1>
-    <p class="updated">Data compiled and maintained by <a href="/data/overtime-tax-by-state/#author">Edmond Daher</a> · Updated {{VERIFIED}}</p>
-    <p class="lede">{{STATE_LEDE}}</p>
-    {{FIGURE_BANNER}}
-    {{ANSWER_BLOCK}}
-    {{TARGET_INTRO}}
+    {{ANSWER_LEAD}}
 
     <section class="calc" aria-label="Paycheck calculator">
+      <!-- role="status" is an implicit polite live region, so the headline figure
+           is announced as it changes, but it deliberately does NOT carry a literal
+           aria-live attribute: report-widget.js anchors its "Copy result" /
+           "Report a wrong result" controls to [aria-live="polite"], and those
+           belong under the full breakdown at the bottom, not above the form. -->
+      <div class="answer-band" role="status">
+        <p class="net-label" id="netLabel">{{NET_LABEL}}</p>
+        <p class="net-big" id="netBig">{{NET_BIG}}</p>
+        <p class="net-sub" id="netSub">{{NET_SUB}}</p>
+        <div class="mode-row view-toggle" role="radiogroup" aria-label="Show amounts as">
+          <label class="seg"><input type="radio" name="view" value="period" checked><span>Per paycheck</span></label>
+          <label class="seg"><input type="radio" name="view" value="annual"><span>Annual</span></label>
+        </div>
+      </div>
+      <!-- The prior-year notice qualifies the figure directly above it, so it sits
+           with that figure rather than 400px higher up the page. Kept OUTSIDE the
+           band's live region: a screen reader should not re-read the whole notice
+           on every keystroke. Only California and Oklahoma render anything here. -->
+      {{FIGURE_BANNER}}
+
       <form id="paycheckForm" autocomplete="off" onsubmit="return false">
-        <div class="field mode-row" role="radiogroup" aria-label="Calculator mode">
-          <label class="seg"><input type="radio" name="mode" value="simple" checked><span>Simple</span></label>
-          <label class="seg"><input type="radio" name="mode" value="advanced"><span>Advanced</span></label>
+        <div class="field">
+          <label for="amount">Gross pay (before taxes)</label>
+          <input id="amount" type="text" inputmode="decimal" data-money autocomplete="off" value="75000" placeholder="75000">
         </div>
         <div class="field">
           <label for="wageType">Pay type</label>
@@ -44,10 +60,6 @@
             <option value="salary">Salary (annual)</option>
             <option value="hourly">Hourly</option>
           </select>
-        </div>
-        <div class="field">
-          <label for="amount">Gross pay (before taxes)</label>
-          <input id="amount" type="text" inputmode="decimal" data-money autocomplete="off" value="60000" placeholder="60000">
         </div>
         <div class="field" id="hoursField" style="display:none">
           <label for="hours">Hours per week</label>
@@ -72,6 +84,11 @@
           </select>
         </div>
 
+        <div class="field mode-row" role="radiogroup" aria-label="Calculator mode">
+          <label class="seg"><input type="radio" name="mode" value="simple" checked><span>Simple</span></label>
+          <label class="seg"><input type="radio" name="mode" value="advanced"><span>Advanced</span></label>
+        </div>
+
         <fieldset id="advancedFields" class="adv" hidden>
           <legend>Advanced — deductions &amp; W-4</legend>
           <p class="adv-hint">Enter annual amounts. Leave at 0 if they don't apply.</p>
@@ -80,12 +97,14 @@
             <input id="retirement401k" type="text" inputmode="decimal" data-money autocomplete="off" value="0">
           </div>
           <div class="field">
-            <label for="cafeteria125">HSA / FSA + health premiums (per year)</label>
+            <label for="cafeteria125">Health savings / flexible spending accounts and health premiums (per year)</label>
             <input id="cafeteria125" type="text" inputmode="decimal" data-money autocomplete="off" value="0">
+            <p class="muted-small">Money taken out before tax for an HSA, an FSA, or your share of health insurance.</p>
           </div>
           <div class="field">
-            <label for="dependentsCredit">Dependent / W-4 tax credits (per year)</label>
+            <label for="dependentsCredit">Child and dependent credits from your W-4, Step 3 (per year)</label>
             <input id="dependentsCredit" type="text" inputmode="decimal" data-money autocomplete="off" value="0" placeholder="e.g. 2000 per child">
+            <p class="muted-small">The dollar total you claimed on your W-4 form for children and other dependents. Leave at 0 if you did not fill that in.</p>
           </div>
           <div class="field">
             <label for="extraWithholding">Extra federal withholding (per year)</label>
@@ -99,13 +118,6 @@
       </form>
 
       <div class="results" aria-live="polite">
-        <div class="mode-row view-toggle" role="radiogroup" aria-label="Show amounts as">
-          <label class="seg"><input type="radio" name="view" value="period" checked><span>Per paycheck</span></label>
-          <label class="seg"><input type="radio" name="view" value="annual"><span>Annual</span></label>
-        </div>
-        <p class="net-big" id="netBig">$0.00</p>
-        <p class="net-sub" id="netSub"></p>
-
         <div class="breakdown" id="breakdown" aria-hidden="true">
           <div class="bar">
             <span class="seg-net" id="segNet" style="width:0%"></span>
@@ -135,7 +147,7 @@
         </div>
 
         <details class="brackets" id="bracketPanel">
-          <summary>How your federal tax is calculated, bracket by bracket</summary>
+          <summary>{{BRACKET_SUMMARY}}</summary>
           <div class="table-scroll">
             <table class="bracket-table">
               <thead><tr><th>Bracket</th><th>Income taxed here</th><th>Tax</th></tr></thead>
@@ -146,7 +158,7 @@
         </details>
 
         <details class="brackets" id="comparePanel">
-          <summary>Compare your take-home pay in another state</summary>
+          <summary>{{COMPARE_SUMMARY}}</summary>
           <div class="field" style="margin-top:12px">
             <label for="cmpState">Compare with</label>
             <select id="cmpState"><option value="">Choose a state…</option></select>
@@ -156,13 +168,18 @@
       </div>
     </section>
 
+    {{APPLIES_BLOCK}}
+
     <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
 
     <section class="prose">
+      {{TARGET_INTRO}}
+      <p class="lede">{{STATE_LEDE}}</p>
+      {{ANSWER_TAIL}}
       <h2>{{STATE_BODY_H2}}</h2>
       {{STATE_BODY}}
 
-      <p class="note">Estimates only, not tax advice — our <a href="/terms/">terms</a> cover what's modeled.</p>
+      <p class="note">Estimates only, not tax advice. The section "What this estimate doesn't include" above lists what's left out; see also our <a href="/terms/">terms</a> and the <a href="/corrections/">corrections log</a>.</p>
     </section>
 
     {{BRACKET_TABLE}}
@@ -180,6 +197,7 @@
       {{NEIGHBOR_COMPARE}}
       <div class="state-grid">{{STATE_LINKS}}</div>
       <p><a href="/#paycheck">All state paycheck calculators &rarr;</a></p>
+      <p class="updated">Data compiled and maintained by <a href="/data/overtime-tax-by-state/#author">Edmond Daher</a> · Updated {{VERIFIED}}</p>
     </section>
 
     {{SOURCES}}
@@ -198,5 +216,6 @@
   window.__STATE_SLUG__ = "{{STATE_SLUG}}";
 </script>
 <script type="module" src="/assets/app.js"></script>
+<script type="module" src="/assets/state-flow.js"></script>
 </body>
 </html>

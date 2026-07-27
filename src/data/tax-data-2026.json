@@ -1331,10 +1331,6 @@
             },
             {
               "rate": 0.0275,
-              "upTo": 100000
-            },
-            {
-              "rate": 0.03125,
               "upTo": null
             }
           ],
@@ -1345,10 +1341,6 @@
             },
             {
               "rate": 0.0275,
-              "upTo": 100000
-            },
-            {
-              "rate": 0.03125,
               "upTo": null
             }
           ],
@@ -1359,22 +1351,17 @@
             },
             {
               "rate": 0.0275,
-              "upTo": 100000
-            },
-            {
-              "rate": 0.03125,
               "upTo": null
             }
           ]
         }
       },
-      "_source": "Ohio 2026 nonbusiness-income tax schedule per the official Ohio Dept. of Taxation 2026 Estimated Income Tax Payment Worksheet (ITES instructions, tax.ohio.gov): 0% up to $26,050; $342 + 2.75% of excess to $100,000; $2,394.32 + 3.125% of excess over $100,000. HB 96 (signed June 30, 2025) phases Ohio toward a flat 2.75%, but tax year 2026 is the second phase-in year and the official 2026 worksheet retains a 3.125% top band over $100,000 (the move to a single flat 2.75% lands in a later year). Same schedule for all filing statuses. Modeled as marginal brackets (the engine reproduces marginal tax, not Ohio's small base-amount rounding offsets). Validated vs official DOR worksheet over conflicting secondary sources that mislabel the flat-2.75% year. https://dam.assets.ohio.gov/image/upload/v1735926006/tax.ohio.gov/forms/ohio_individual/individual/2026/ites-instructions-fi.pdf",
+      "_source": "Ohio 2026 nonbusiness-income tax schedule per the statute as amended by HB 96 (signed June 30, 2025), ORC 5747.02(A)(3): for taxable years beginning in 2026 and thereafter the tax is $332.00 plus 2.75% of the amount in excess of $26,050, i.e. one rate on every taxable dollar above the 0% band. The 3.125% band over $100,000 that HB 96 created was a 2025-only step and does not apply to 2026. Same schedule for all filing statuses. Modeled as marginal brackets (the engine reproduces marginal tax, not Ohio's small base-amount rounding offset). Note the 2026 IT 1040 ES worksheet PDF still prints the superseded pre-HB 96 ladder ($2,394.32 + 3.125% over $100,000); the statute governs. https://codes.ohio.gov/ohio-revised-code/section-5747.02",
       "disclaimer": [
         "State tax only. Ohio municipalities and school districts levy separate local income taxes (commonly 1%-3%) that are NOT included in this estimate.",
-        "Ohio's $1,900-per-exemption personal/dependent deduction, joint-filing credit, and other credits are not modeled.",
-        "Tax year 2026 retains a 3.125% top band over $100,000 per the official 2026 DOR worksheet; the further cut to a single flat 2.75% applies in a later year. Several secondary sources mislabel 2026 as already flat 2.75%."
+        "Ohio's $1,900-per-exemption personal/dependent deduction, joint-filing credit, and other credits are not modeled."
       ],
-      "notes": "Tiered (HB 96 phase-in): 0% under $26,050, 2.75% to $100,000, 3.125% above. Local municipal income taxes not included."
+      "notes": "Flat since 2026 (HB 96): 0% up to $26,050, then 2.75% on everything above. Local municipal income taxes not included."
     },
     "maryland": {
       "name": "Maryland",
