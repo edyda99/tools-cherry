@@ -46,7 +46,7 @@
         <div class="field">
           <label for="loanRepaymentBenefit">How much is your employer putting toward your student loans this year?</label>
           <input type="text" id="loanRepaymentBenefit" inputmode="decimal" data-money autocomplete="off" value="5250" aria-describedby="loanRepaymentBenefitNote">
-          <p class="muted-small" id="loanRepaymentBenefitNote" style="margin-top:6px">Money your employer pays on your student loan this year, either straight to the lender or paid back to you. Both the balance you owe and the interest count. It has to be a loan for your own schooling, so a Parent PLUS loan you took out for your child does not count. The tax rule behind this is IRC section 127, and $5,250 a year is the most that can come to you tax-free.</p>
+          <p class="muted-small" id="loanRepaymentBenefitNote" style="margin-top:6px">Money your employer pays on your student loan this year, either straight to the lender or paid back to you. Both the balance you owe and the interest count. It has to be a loan for your own schooling, so a Parent PLUS loan you took out for your child does not count. $5,250 a year is the most that can come to you tax-free.</p>
         </div>
         <div class="field">
           <label for="marginalFedRate">What federal tax rate do you pay on your next dollar of income?</label>
@@ -59,7 +59,7 @@
             <option value="0.35">35%</option>
             <option value="0.37">37%</option>
           </select>
-          <p class="muted-small" id="marginalFedRateNote" style="margin-top:6px">This is your top tax bracket, the rate the next dollar you earn would be taxed at. Not sure? 22% fits most single people earning roughly $50,000 to $105,000, and most couples earning roughly $100,000 to $210,000. Because this benefit is kept out of your pay from the start rather than written off later, you save that full rate, so someone in the 37% bracket keeps 37 cents of every dollar. Tax people call it your marginal rate.</p>
+          <p class="muted-small" id="marginalFedRateNote" style="margin-top:6px">This is your top tax bracket, the rate the next dollar you earn would be taxed at. Not sure? 22% fits most single people earning roughly $50,000 to $105,000, and most couples earning roughly $100,000 to $210,000. Because this benefit is kept out of your pay from the start rather than written off later, you save that full rate, so someone in the 37% bracket keeps 37 cents of every dollar.</p>
         </div>
 
         <!-- The four Advanced fields are now three plain questions. Each field a
@@ -90,12 +90,12 @@
              would get a different headline number depending on whether
              question-flow.js loaded. -->
         <fieldset class="adv">
-          <legend>Three more questions, if they apply to you</legend>
-          <p class="adv-hint">Answer only the ones that apply to you. If none of them do, leave all three on No.</p>
+          <legend>A few more questions, only if they apply to you</legend>
+          <p class="adv-hint">Answer only the ones that apply to you. Leave all three on No and you get the plain federal saving on its own.</p>
 
           <fieldset class="adv-q" aria-describedby="qTuitionNote">
             <legend>Has your employer also paid for classes, tuition or books for you this year?</legend>
-            <p class="adv-q-note" id="qTuitionNote">This only counts if it came out of the same workplace education benefit. It matters because tuition help and loan help share one $5,250 limit for the year, so tuition help leaves less room for tax-free loan payments. The rules call it section 127 educational assistance.</p>
+            <p class="adv-q-note" id="qTuitionNote">This only counts if it came out of the same workplace education benefit. It matters because tuition help and loan help share one $5,250 limit for the year, so tuition help leaves less room for tax-free loan payments.</p>
             <div class="yn">
               <label class="seg"><input type="radio" name="qTuition" value="no" checked><span>No</span></label>
               <label class="seg"><input type="radio" name="qTuition" value="yes"><span>Yes</span></label>
@@ -110,7 +110,7 @@
 
           <fieldset class="adv-q" aria-describedby="qHighEarnerNote">
             <legend>Will you earn more than about $120,000 this year?</legend>
-            <p class="adv-q-note" id="qHighEarnerNote">Two payroll-tax lines only start to bite up there. Social Security tax stops once your pay for the year passes $184,500, and an extra 0.9% Medicare tax starts somewhere between $125,000 and $250,000 depending on how you file. Under roughly $120,000 neither one can change your answer, so leave this on No. That $184,500 line is called the Social Security wage base.</p>
+            <p class="adv-q-note" id="qHighEarnerNote">Two payroll-tax lines only start to bite up there. Social Security tax stops once your pay for the year passes $184,500, and an extra 0.9% Medicare tax starts somewhere between $125,000 and $250,000 depending on how you file. Under roughly $120,000 neither one can change your answer, so leave this on No.</p>
             <div class="yn">
               <label class="seg"><input type="radio" name="qHighEarner" value="no" checked><span>No</span></label>
               <label class="seg"><input type="radio" name="qHighEarner" value="yes"><span>Yes</span></label>
@@ -128,7 +128,7 @@
                   <option value="marriedJoint">Married, filing together</option>
                   <option value="marriedSeparate">Married, filing separately</option>
                 </select>
-                <p class="muted-small" id="filingStatusNote" style="margin-top:6px">This sets the pay level where the extra 0.9% Medicare tax starts: $200,000 if you file single or as head of household, $250,000 married filing together, $125,000 married filing separately. Its official name is the Additional Medicare Tax.</p>
+                <p class="muted-small" id="filingStatusNote" style="margin-top:6px">This sets the pay level where the extra 0.9% Medicare tax starts: $200,000 if you file single or as head of household, $250,000 married filing together, $125,000 married filing separately.</p>
               </div>
             </div>
           </fieldset>

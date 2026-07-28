@@ -47,11 +47,12 @@
 
     <section class="calc" aria-label="ABLE account contribution limit calculator">
       <!-- The form is a short sequence of plain questions, not a wall of
-           jargon-labelled money fields. Every technical term this page used to
-           put in a label (W-2, compensation, 401(k)/403(b)/457(b), ABLE-to-Work,
-           529 rollover) survives verbatim in the small note under its question,
-           so a knowledgeable visitor still recognises the field and the terms
-           stay findable, while nobody is blocked by one.
+           jargon-labelled money fields. A technical term survives in the small
+           note under its question ONLY where the visitor physically meets that
+           term on a form or a statement: W-2, 401(k)/403(b)/457(b), 529. The
+           names for rules nobody meets in writing (ABLE-to-Work, "the
+           beneficiary's compensation") were dropped, because a word a reader
+           will not look up is dead weight at best and a stopper at worst.
 
            HIDE-ON-DEMAND, NEVER SHOW-ON-DEMAND. Both conditional blocks
            (#employedFields and the [data-reveal] rollover wrapper) ship VISIBLE
@@ -97,8 +98,8 @@
           </div>
 
           <fieldset class="adv">
-            <legend>Two more questions that can change the limit</legend>
-            <p class="adv-hint">Answer only the ones that apply. Leaving both on No gives the plain $20,000 limit that every beneficiary gets.</p>
+            <legend>A few more questions, only if they apply to you</legend>
+            <p class="adv-hint">Answer only the ones that apply. Leave both on No and you get the plain $20,000 limit every beneficiary gets.</p>
 
             <!-- #employed and #planContribution stay <select> elements on purpose:
                  able-account-calculator.js reads their .value, so a yes/no radio
@@ -106,7 +107,7 @@
                  carries the question and names each select via aria-labelledby. -->
             <fieldset class="adv-q" aria-describedby="qJobNote">
               <legend id="qJobLegend">Did the beneficiary earn any money from work in 2026?</legend>
-              <p class="adv-q-note" id="qJobNote">Pay from a job, the kind that shows up on a W-2, or money earned working for themself. Answering Yes can let them add more of their own money on top of the $20,000, under a rule called ABLE-to-Work.</p>
+              <p class="adv-q-note" id="qJobNote">Pay from a job, the kind that shows up on a W-2, or money earned working for themself. Answering Yes can let them add more of their own money on top of the $20,000.</p>
               <div class="field">
                 <select id="employed" aria-labelledby="qJobLegend">
                   <option value="no" selected>No</option>
@@ -118,12 +119,12 @@
                 <div class="field">
                   <label for="compensation">How much did the beneficiary earn from work in 2026?</label>
                   <input type="text" id="compensation" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="compNote">
-                  <p class="muted-small" id="compNote" style="margin-top:6px">In dollars: wages, salary and tips, or what is left after expenses if they work for themself. Only pay that counts as taxable income. The tax rules call this the beneficiary's compensation.</p>
+                  <p class="muted-small" id="compNote" style="margin-top:6px">In dollars: wages, salary and tips, or what is left after expenses if they work for themself. Only pay that counts as taxable income.</p>
                 </div>
 
                 <fieldset class="adv-q" aria-describedby="qPlanNote">
                   <legend id="qPlanLegend">In 2026, is any money going into a retirement plan at work for the beneficiary?</legend>
-                  <p class="adv-q-note" id="qPlanNote">Often called a 401(k), a 403(b) or a 457(b). Any amount counts, even money the employer puts in on its own that the beneficiary never asked for, and it switches off the extra room for the whole year. An old-style pension that simply builds up does not count.</p>
+                  <p class="adv-q-note" id="qPlanNote">A 401(k), a 403(b) or a 457(b), the names a pay stub or a plan statement uses. Any amount counts, even money the employer puts in on its own that the beneficiary never asked for, and it switches off the extra room for the whole year. An old-style pension that simply builds up does not count.</p>
                   <div class="field">
                     <select id="planContribution" aria-labelledby="qPlanLegend">
                       <option value="no" selected>No</option>
@@ -136,7 +137,7 @@
 
             <fieldset class="adv-q" aria-describedby="qRolloverNote">
               <legend>Is money being moved into the ABLE account from a college savings plan this year?</legend>
-              <p class="adv-q-note" id="qRolloverNote">Often called a 529 to ABLE rollover. It comes out of the same $20,000 as everybody else's money. Moving money from one ABLE account to another is not this, so leave that out.</p>
+              <p class="adv-q-note" id="qRolloverNote">A 529 college savings plan is the usual source, and the money moved over comes out of the same $20,000 as everybody else's. Moving money from one ABLE account to another is not this, so leave that out.</p>
               <div class="yn">
                 <label class="seg"><input type="radio" name="qRollover" value="no" checked><span>No</span></label>
                 <label class="seg"><input type="radio" name="qRollover" value="yes"><span>Yes</span></label>

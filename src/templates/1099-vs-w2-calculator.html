@@ -43,13 +43,17 @@
       <h2 class="sr-only">1099 vs W-2 take-home comparison</h2>
       <!-- Every field here is required to get any answer at all, so none of them
            hides behind a question: all three ship always-visible and carry the
-           question in the label instead. The jargon each label used to lead with
-           (W-2, 1099, net earnings, filing status) survives verbatim in the small
-           note under the field, so a visitor who knows the term still recognises
-           the field and the terms stay findable, while a visitor who does not is
-           never blocked by one. Ids and option values are the engine's contract
-           and are unchanged: 1099-vs-w2-calculator.js reads #w2Gross, #contractNet
-           and #status, and compares #status.value against the string "married". -->
+           question in the label instead. There is no optional-questions block on
+           this page, and no reveal wrappers at all, because the engine has exactly
+           these three inputs and nothing further to reveal. So this page no longer
+           needs question-flow.js and should drop out of QUESTION_FLOW_PAGES in
+           build.js. #contractNetNote carries the page's one correctness trap: the
+           contract figure must already have the costs of doing the work taken off
+           it, or the contract side reads too high. There is no expenses input to
+           add, because the engine takes that figure already net of those costs.
+           Ids and option values are the engine's contract and are unchanged:
+           1099-vs-w2-calculator.js reads #w2Gross, #contractNet and #status, and
+           compares #status.value against the string "married". -->
       <form id="w2Form" autocomplete="off" onsubmit="return false">
         <div class="field">
           <label for="w2Gross">If you take the employee job, what is the yearly salary?</label>
@@ -60,7 +64,7 @@
         <div class="field">
           <label for="contractNet">If you take the contract job, how much is left for you over a year?</label>
           <input id="contractNet" type="text" inputmode="decimal" data-money autocomplete="off" value="100000" placeholder="100000" aria-describedby="contractNetNote">
-          <p class="adv-q-note" id="contractNetNote">The contract money in dollars, after you have paid the costs of doing the work. This is the 1099 side, and this figure is what tax people call your net earnings.</p>
+          <p class="adv-q-note" id="contractNetNote">The contract money in dollars, after taking off what you spend to do the work: a laptop, tools, a work phone, driving your own car. This is the 1099 side of the comparison. Add up a full year of those costs and subtract them before you type, because tax on contract work is charged on what is left, not on the headline figure. Typing the headline figure makes the contract job look better than it really is.</p>
         </div>
 
         <div class="field">
@@ -70,30 +74,6 @@
             <option value="married">Jointly with my spouse (married filing jointly)</option>
           </select>
           <p class="adv-q-note" id="statusNote">This is called your filing status. It sets which federal tax rates the estimate uses.</p>
-        </div>
-
-        <!-- A plain .adv card rather than a fieldset with an "Advanced" legend:
-             there is exactly one question and it adds no input, so framing it as a
-             drawer of optional extras would promise settings that do not exist.
-             The card is still what gives ".adv .adv-q legend" something to match,
-             which is the only reason the question's legend is styled at all.
-             The reveal holds guidance, not a field, because the engine takes the
-             contract figure already net of expenses and there is no expenses input
-             to feed. It ships visible and question-flow.js only ever adds [hidden]
-             while the answer is No, so a broken or absent script leaves the advice
-             on screen. Answering it feeds nothing into the maths by design. -->
-        <div class="adv">
-          <fieldset class="adv-q" aria-describedby="qExpensesNote">
-            <legend>Do you pay for anything out of your own pocket to do the contract work?</legend>
-            <p class="adv-q-note" id="qExpensesNote">Things like a laptop, software, tools, a work phone, or driving your own car. These are called business expenses.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qExpenses" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qExpenses" value="yes"><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qExpenses">
-              <p class="adv-q-note">Add up a full year of those costs and take them off the contract amount before you type it in above. Tax on contract work is worked out on what is left after those costs, not on the headline figure, so entering the headline figure makes the contract job look better than it is. Answering this question on its own does not change the numbers below.</p>
-            </div>
-          </fieldset>
         </div>
       </form>
 

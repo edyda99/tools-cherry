@@ -55,26 +55,30 @@
           <label for="magi">How much did you make this year, before tax?</label>
           <input type="text" id="magi" inputmode="decimal" data-money autocomplete="off" value="300000">
           <p class="muted-small">If you filed last year, this is line 11 on your Form 1040. Married and filing one return together? Add both incomes.</p>
-          <p class="muted-small" style="margin-top:6px">This figure is what decides whether your limit gets cut. Tax people call it your MAGI, which for nearly everyone is the same as that line 11 number.</p>
+          <p class="muted-small" style="margin-top:6px">This figure is what decides whether your limit gets cut.</p>
         </div>
 
         <!-- These two boxes ARE the thing this page is about: added together they are
              what the law calls your SALT. Neither is optional enough to hide behind a
              question, so both stay on screen and the wording carries the work instead.
              The two cases that used to be buried in one shared footnote (no state
-             income tax where you live, and renting) now each get told what to type. -->
-        <div class="field est-row">
-          <div class="field" style="margin:0">
-            <label for="incomeTax">State and local income tax you paid</label>
-            <input type="text" id="incomeTax" inputmode="decimal" data-money autocomplete="off" value="28000" aria-describedby="incomeTaxNote">
-          </div>
-          <div class="field" style="margin:0">
-            <label for="propTax">Property tax you paid</label>
-            <input type="text" id="propTax" inputmode="decimal" data-money autocomplete="off" value="20000" aria-describedby="propTaxNote">
-          </div>
+             income tax where you live, and renting) now each get told what to type.
+             They are two SEPARATE .field blocks, each with its note directly under its
+             own input. They used to share one .est-row grid with both notes printed
+             after the pair, which reads fine on a desktop and breaks on a phone: at
+             480px the row collapses to one column and the note explaining the first
+             box lands underneath the second box. Do not put them back in a grid. -->
+        <div class="field">
+          <label for="incomeTax">State and local income tax you paid</label>
+          <input type="text" id="incomeTax" inputmode="decimal" data-money autocomplete="off" value="28000" aria-describedby="incomeTaxNote">
+          <p class="muted-small" id="incomeTaxNote">What your state, city, or county took out of your pay for the year, plus anything more you paid them at filing time. Live somewhere with no state income tax? Put the general sales tax you paid in this box instead. You may claim one or the other, never both.</p>
         </div>
-        <p class="muted-small" id="incomeTaxNote" style="margin-top:-6px"><strong>Income tax:</strong> what your state, city, or county took out of your pay for the year, plus anything more you paid them at filing time. Live somewhere with no state income tax? Put the general sales tax you paid in that box instead. You may claim one or the other, never both.</p>
-        <p class="muted-small" id="propTaxNote"><strong>Property tax:</strong> what you paid on your home and land, plus any yearly tax your state charges on what a car or boat is worth. Renting, and no such car tax? Put 0. These two boxes added together are what the law calls your SALT.</p>
+
+        <div class="field">
+          <label for="propTax">Property tax you paid</label>
+          <input type="text" id="propTax" inputmode="decimal" data-money autocomplete="off" value="20000" aria-describedby="propTaxNote">
+          <p class="muted-small" id="propTaxNote">What you paid on your home and land, plus any yearly tax your state charges on what a car or boat is worth. Renting, and no such car tax? Put 0. These two boxes added together are what the law calls your SALT.</p>
+        </div>
 
         <!-- "Other itemized deductions" was the one label on this page that stops a
              non-expert cold, and it is also the only input here that a large share of
@@ -95,8 +99,8 @@
              itemize-vs-standard verdict recomputes with the box genuinely empty
              rather than quietly keeping the $10,000. -->
         <fieldset class="adv">
-          <legend>One more question</legend>
-          <p class="adv-hint">Answer No if the state and local taxes above are the only big write-offs you have.</p>
+          <legend>A few more questions, only if they apply to you</legend>
+          <p class="adv-hint">If the state and local taxes you just entered are the only big write-offs you have, answer No and the extra box goes away.</p>
 
           <fieldset class="adv-q" aria-describedby="qOtherNote">
             <legend>Do you write off other big expenses on your tax return?</legend>

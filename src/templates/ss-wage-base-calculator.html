@@ -35,7 +35,7 @@
 <main id="main">
   <div class="wrap">
     <h1>Social Security Wage Base Max-Out Date Calculator</h1>
-    <p class="lede">Social Security (OASDI) tax is <strong>6.2% of wages</strong>, but only up to an annual cap — for <strong>2026 that cap is $184,500</strong>. The moment your year-to-date Social Security wages at a job cross that line, your employer <strong>stops withholding the 6.2%</strong> for the rest of the calendar year, and your <strong>take-home pay visibly jumps</strong> by that same 6.2% of gross — starting the very next paycheck. On January 1 the cap resets to $0 and withholding starts again. Enter your numbers below to find the exact paycheck it happens on. Everything runs in your browser — nothing is uploaded.</p>
+    <p class="lede">Social Security tax takes <strong>6.2% of your pay</strong>, but only up to a yearly limit, and for <strong>2026 that limit is $184,500</strong>. The moment your pay at one job passes that line, your employer <strong>stops taking the 6.2%</strong> for the rest of the calendar year, and your <strong>take-home pay visibly jumps</strong> by that same 6.2%, starting with the very next paycheck. On January 1 it starts again from zero. Fill in your numbers below to find the exact paycheck it happens on. Everything runs in your browser, nothing is uploaded.</p>
 
     <section class="calc" aria-label="Social Security wage base max-out date calculator">
       <!-- Every label here is a plain sentence a person can answer without knowing the
@@ -61,13 +61,13 @@
         <div class="field">
           <label for="ytdWages">How much have you earned at this job so far this year?</label>
           <input type="text" id="ytdWages" inputmode="decimal" data-money autocomplete="off" value="150000" aria-describedby="ytdWagesNote">
-          <p class="adv-q-note" id="ytdWagesNote">Payroll calls this your <strong>Social Security wages</strong>, and it is <strong>Box 3</strong> on your W-2. It is close to your gross pay with one twist: money taken out of your pay for health cover, an HSA or an FSA comes off it first, but money you put into a 401(k) does not. Look for the year-to-date "Social Security wages" line on a recent pay stub. If you cannot find it, your gross pay so far this year is close enough.</p>
+          <p class="muted-small" style="margin-top:6px" id="ytdWagesNote">Payroll calls this your <strong>Social Security wages</strong>, and it is <strong>Box 3</strong> on your W-2. It is close to your gross pay with one twist: money taken out of your pay for health cover, an HSA or an FSA comes off it first, but money you put into a 401(k) does not. Look for the year-to-date "Social Security wages" line on a recent pay stub. If you cannot find it, your gross pay so far this year is close enough.</p>
         </div>
 
         <div class="field">
           <label for="asOfDate">What date is that total up to?</label>
           <input type="date" id="asOfDate" value="2026-07-10" aria-describedby="asOfDateNote">
-          <p class="adv-q-note" id="asOfDateNote">The date of the most recent paycheck counted in the amount above.</p>
+          <p class="muted-small" style="margin-top:6px" id="asOfDateNote">The date of the most recent paycheck counted in the amount above.</p>
         </div>
 
         <div class="field">
@@ -83,18 +83,18 @@
         <div class="field">
           <label for="nextPayDate">When is your next payday?</label>
           <input type="date" id="nextPayDate" value="2026-07-24" aria-describedby="nextPayDateNote">
-          <p class="adv-q-note" id="nextPayDateNote">We work the later paydays out from this one and your answer above: every 14 days if you are paid every two weeks, the 15th and the last day of the month if you are paid twice a month, and the same date each month if you are paid monthly. If your real dates differ, change this one and the rest move with it.</p>
+          <p class="muted-small" style="margin-top:6px" id="nextPayDateNote">We work the later paydays out from this one and your answer above: every 14 days if you are paid every two weeks, the 15th and the last day of the month if you are paid twice a month, and the same date each month if you are paid monthly. If your real dates differ, change this one and the rest move with it.</p>
         </div>
 
         <div class="field">
           <label for="perPeriodWages">How much do you expect to earn on each paycheck from now on?</label>
           <input type="text" id="perPeriodWages" inputmode="decimal" data-money autocomplete="off" value="6000" aria-describedby="perPeriodWagesNote">
-          <p class="adv-q-note" id="perPeriodWagesNote">Measured the same way as the amount at the top, so before tax but after anything taken out for health cover, an HSA or an FSA. If your pay goes up later in the year, put what you earn now and answer the question below.</p>
+          <p class="muted-small" style="margin-top:6px" id="perPeriodWagesNote">Measured the same way as the amount at the top, so before tax but after anything taken out for health cover, an HSA or an FSA. If your pay goes up later in the year, put what you earn now and answer the question below.</p>
         </div>
 
         <fieldset class="adv">
-          <legend>One more question, only if it applies to you</legend>
-          <p class="adv-hint">Leave it on No if your pay is staying the same for the rest of the year.</p>
+          <legend>A few more questions, only if they apply to you</legend>
+          <p class="adv-hint">Leave this on No if your pay is staying the same for the rest of the year.</p>
 
           <fieldset class="adv-q" aria-describedby="qRaiseNote">
             <legend>Is your pay going up before the end of the year?</legend>
@@ -148,7 +148,7 @@
           <div class="field" id="employer1Field">
             <label for="employer1">How much Social Security tax has the first job taken out so far?</label>
             <input type="text" id="employer1" inputmode="decimal" data-money autocomplete="off" value="7440" aria-describedby="employer1Note">
-            <p class="adv-q-note" id="employer1Note">On a pay stub this is the year-to-date line marked <strong>Social Security</strong>, OASDI or FICA-SS. On a W-2 it is <strong>Box 4</strong>. It is the tax taken out, not the wages it was taken from, so it is a much smaller number than the amount at the top of the page.</p>
+            <p class="muted-small" style="margin-top:6px" id="employer1Note">On a pay stub this is the year-to-date line marked <strong>Social Security</strong>, OASDI or FICA-SS. On a W-2 it is <strong>Box 4</strong>. It is the tax taken out, not the wages it was taken from, so it is a much smaller number than the amount at the top of the page.</p>
           </div>
           <div class="field" id="employer2Field">
             <label for="employer2">How much has the second job taken out so far?</label>

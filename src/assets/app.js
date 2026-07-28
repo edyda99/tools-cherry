@@ -25,6 +25,12 @@ const escLbl = (s) => String(s == null ? '' : s).replace(/[&<>]/g, (c) => ({ '&'
 // take-home") so the panel speaks with one voice. All three rows share it, so
 // they cannot drift apart.
 const NO_PAY_YET = 'enter your pay';
+// Sentence form of the same phrase, for the places that need a whole line rather
+// than a table cell: the band caption and the Advanced echo. Derived from
+// NO_PAY_YET rather than written out again, so the panel cannot end up saying two
+// different things about the same state.
+const NO_PAY_YET_ASK =
+  NO_PAY_YET.charAt(0).toUpperCase() + NO_PAY_YET.slice(1) + ' above and this updates';
 
 const $ = (id) => document.getElementById(id);
 // Comma-safe: the advanced-mode deduction fields carry live thousands
@@ -154,6 +160,80 @@ function netLabelText(input) {
   return `Based on ${basis} in ${name}, ${filing}, ${paid}`;
 }
 
+// --- the extractable answer sentence above the calculator -------------------
+// build.js server-renders one sentence per state ("In Missouri for 2026, a
+// $75,000 salary takes home about $59,005 per year after ...") so a crawler and
+// a no-JavaScript visitor both get a complete answer. It stayed frozen at
+// $75,000 while the calculator underneath it moved, so a visitor who typed
+// 40,000 read two different take-home figures 200px apart on a money tool. The
+// sentence stays in the served HTML exactly as before; render() now rewrites its
+// two dollar figures from the live result.
+//
+// Rewriting figures rather than rebuilding the sentence is deliberate: build.js
+// picks one of three wordings per state and appends a state-tax clause and a
+// disability/paid-leave clause conditionally, none of which app.js can see. What
+// it CAN rely on is the shape, and only the shape: every one of the 51 built
+// pages carries exactly two dollar figures in this paragraph, the $75,000
+// example salary first and its take-home second. Anything else is a sentence
+// this code does not understand, so it is left untouched rather than guessed at.
+//
+// Always annual, never the per-paycheck view: the sentence says "per year" in
+// all three wordings, so it must not follow the Per paycheck / Annual toggle.
+let answerLead = null; // null = not looked at yet, false = leave it alone
+
+function captureAnswerLead() {
+  if (answerLead !== null) return answerLead;
+  const host = document.querySelector('.answer-lead');
+  const el = (host && host.querySelector('strong')) || host;
+  if (!el) { answerLead = false; return answerLead; }
+  const text = el.textContent;
+  const spans = [];
+  const re = /\$[\d,]+(?:\.\d+)?/g;
+  let m;
+  while ((m = re.exec(text)) !== null) spans.push([m.index, m.index + m[0].length]);
+  answerLead = spans.length === 2 ? { el, text, spans } : false;
+  return answerLead;
+}
+
+function renderAnswerLead(r) {
+  const lead = captureAnswerLead();
+  if (!lead) return;
+  const { el, text, spans } = lead;
+  // With the pay field empty there is nothing live to state, so the page's own
+  // worked example comes back rather than a sentence full of zeroes.
+  if (!(r.annual.gross > 0)) { el.textContent = text; return; }
+  const [g, n] = spans;
+  el.textContent =
+    text.slice(0, g[0]) + usd(r.annual.gross) +
+    text.slice(g[1], n[0]) + usd(r.annual.net) +
+    text.slice(n[1]);
+}
+
+// --- zero state -------------------------------------------------------------
+// The money rows the results panel prints unconditionally. With no pay entered
+// they used to read "−$0.00" five times under a "$0.00" headline, which asserts
+// an answer instead of asking for input, and this is the primary path, not an
+// edge case, because the salary field ships pre-filled so most visitors clear it
+// before they type. style.display rather than [hidden] for the same reason the
+// deduction rows below use it: author .line{display:flex} beats the UA [hidden]
+// rule.
+//
+// .rate-row is deliberately NOT in here. Those three figures already decline to
+// answer in this state (NO_PAY_YET, "enter your pay"), which is the behaviour
+// this change is extending to the rest of the panel, not something to undo. It
+// also keeps the card from going completely blank: one row still says what to do
+// next, which is the point.
+const ALWAYS_ON_ROW_IDS = ['rGross', 'rFederal', 'rSS', 'rMedicare', 'rNet'];
+
+function showResultRows(show) {
+  const value = show ? '' : 'none';
+  for (const id of ALWAYS_ON_ROW_IDS) {
+    const el = $(id);
+    const row = el && el.closest('.line');
+    if (row) row.style.display = value;
+  }
+}
+
 function renderBreakdown(r) {
   const g = r.annual.gross;
   if (g <= 0) { $('breakdown').style.display = 'none'; return; }
@@ -185,18 +265,36 @@ function render() {
   // field — counts as no pay rather than as a real zero.
   const isZero = !(r.annual.gross > 0);
 
-  $('netBig').textContent = usd2(p.net);
+  // Nothing entered yet: ask, do not answer. A blank headline and a caption that
+  // says what to do next beat "$0.00" under "Based on a $0 salary", which is a
+  // confident wrong answer about the visitor's own pay.
+  $('netBig').textContent = isZero ? '' : usd2(p.net);
   // The headline drops to body colour while there is nothing to report, so the
   // accent is spent on a real answer. announceResult() reads the same class.
   $('netBig').classList.toggle('is-zero', isZero);
-  $('netSub').textContent = annualView
-    ? `take-home per year · ${usd2(r.perPaycheck.net)} ${PERIOD_LABEL[r.payFrequency]}`
-    : `take-home ${PERIOD_LABEL[r.payFrequency]} · ${usd(r.annual.net)}/yr`;
+  $('netSub').textContent = isZero
+    ? ''
+    : (annualView
+      ? `take-home per year · ${usd2(r.perPaycheck.net)} ${PERIOD_LABEL[r.payFrequency]}`
+      : `take-home ${PERIOD_LABEL[r.payFrequency]} · ${usd(r.annual.net)}/yr`);
 
   // Only the state paycheck pages carry the caption; guard so shared consumers
   // of this module are unaffected.
   const lbl = $('netLabel');
-  if (lbl) lbl.textContent = netLabelText(input);
+  if (lbl) lbl.textContent = isZero ? NO_PAY_YET_ASK : netLabelText(input);
+
+  // The Advanced questions run to y=1797 on a 390px viewport while the answer
+  // band sits at y=394, so the last three questions change a figure one to two
+  // screens above the thumb. This line lives at the foot of that panel.
+  const echo = $('advEcho');
+  if (echo) {
+    echo.textContent = isZero
+      ? NO_PAY_YET_ASK
+      : `Take-home now: ${usd2(p.net)} ${annualView ? PERIOD_LABEL.annual : PERIOD_LABEL[r.payFrequency]}`;
+  }
+
+  showResultRows(!isZero);
+  renderAnswerLead(r);
 
   $('rGross').textContent = usd2(p.gross);
   $('rFederal').textContent = '−' + usd2(p.federal);
@@ -216,14 +314,16 @@ function render() {
   $('rMarginal').textContent = isZero ? NO_PAY_YET : ratePct(bb.marginalRate);
   renderBrackets(bb);
 
-  // hide state row when the state has no income tax
-  $('stateLine').style.display = taxData.states[stateSlug]?.hasIncomeTax ? '' : 'none';
+  // hide state row when the state has no income tax, and in the zero state,
+  // where showResultRows() has already hidden its neighbours
+  $('stateLine').style.display =
+    (!isZero && taxData.states[stateSlug]?.hasIncomeTax) ? '' : 'none';
 
   // state disability / paid-leave employee contributions — one labeled line each,
   // e.g. "CA SDI (1.3%)". Rebuilt from the current view (per-period vs annual).
   const progHost = $('programLines');
   if (progHost) {
-    const progs = p.programs || [];
+    const progs = isZero ? [] : (p.programs || []);
     progHost.innerHTML = progs.map((pr) =>
       `<div class="line"><span class="lbl">${escLbl(pr.label)} (${ratePct(pr.rate)})</span><span>−${usd2(pr.amount)}</span></div>`
     ).join('');
@@ -231,9 +331,9 @@ function render() {
 
   // deduction rows: only show when non-zero (style.display, since .line { display:flex }
   // overrides the [hidden] attribute via specificity)
-  if (p.preTax > 0) { $('preTaxLine').style.display = ''; $('rPreTax').textContent = '−' + usd2(p.preTax); }
+  if (!isZero && p.preTax > 0) { $('preTaxLine').style.display = ''; $('rPreTax').textContent = '−' + usd2(p.preTax); }
   else $('preTaxLine').style.display = 'none';
-  if (p.postTax > 0) { $('postTaxLine').style.display = ''; $('rPostTax').textContent = '−' + usd2(p.postTax); }
+  if (!isZero && p.postTax > 0) { $('postTaxLine').style.display = ''; $('rPostTax').textContent = '−' + usd2(p.postTax); }
   else $('postTaxLine').style.display = 'none';
 
   renderBreakdown(r);
@@ -253,10 +353,15 @@ function announceResult() {
   if (!out || !booted) return;
   clearTimeout(statusTimer);
   statusTimer = setTimeout(() => {
+    // In the zero state #netSub is now blank, so the caption is what carries the
+    // meaning. Reading it keeps the announcement in step with the screen, which
+    // is the whole point of a single announcer.
+    if ($('netBig').classList.contains('is-zero')) {
+      out.textContent = $('netLabel') ? $('netLabel').textContent : NO_PAY_YET_ASK;
+      return;
+    }
     const sub = $('netSub').textContent.replace(/ · /g, ', ').replace(/\/yr/g, ' per year');
-    out.textContent = $('netBig').classList.contains('is-zero')
-      ? sub
-      : `Take-home ${$('netBig').textContent}, ${sub}`;
+    out.textContent = `Take-home ${$('netBig').textContent}, ${sub}`;
   }, 500);
 }
 
@@ -339,7 +444,7 @@ function renderBrackets(bb) {
   const body = $('bracketBody');
   if (!body) return;
   if (!bb.bands.length || bb.taxable <= 0) {
-    body.innerHTML = '<tr><td colspan="3">No federal income tax — taxable income is $0 after the standard deduction.</td></tr>';
+    body.innerHTML = '<tr><td colspan="3">No federal income tax, taxable income is $0 after the standard deduction.</td></tr>';
     $('bracketNote').textContent = '';
     return;
   }

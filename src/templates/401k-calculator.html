@@ -43,6 +43,12 @@
 
     <section class="calc" aria-label="401(k) retirement calculator">
       <form id="retire401kForm" autocomplete="off" onsubmit="return false">
+        <!-- Every box on this page loads pre-filled, and two of the questions below
+             ship answered Yes over those figures, so say plainly that the numbers on
+             screen are a demonstration. Lives inside the form, not beside it:
+             section.calc is a two-column grid, and a third direct child would drop
+             the results panel onto a row of its own. -->
+        <p class="calc-example">These are example numbers. Type yours to see your own.</p>
         <div class="field">
           <label for="currentAge">How old are you now?</label>
           <input id="currentAge" type="number" inputmode="decimal" step="any" min="0" value="30" placeholder="30">
@@ -67,7 +73,7 @@
         <div class="field">
           <label for="employeeContrib">How much of your pay goes into the account? (%)</label>
           <input id="employeeContrib" type="number" inputmode="decimal" step="any" min="0" value="6" placeholder="6" aria-describedby="employeeContribNote">
-          <p class="adv-q-note" id="employeeContribNote">Often called your contribution rate, or your salary deferral. Put 6 if 6 cents of every dollar you earn is taken out of your pay and saved.</p>
+          <p class="adv-q-note" id="employeeContribNote">Put 6 if 6 cents of every dollar you earn is taken out of your pay and saved.</p>
         </div>
 
         <div class="field">
@@ -80,19 +86,23 @@
              field lives inside a [data-reveal] wrapper that ships VISIBLE in the
              HTML; question-flow.js hides the ones whose question is answered No, so
              JavaScript off, JavaScript broken or a crawler still sees every field.
-             The terms these questions replace (employer match, match cap, salary
-             growth) survive verbatim in the note under each question, so a visitor
-             who already knows them still recognises the field.
+             Of the terms these questions replace, only "employer match" survives, in
+             the note under its own question, because that is the one a visitor meets
+             in writing on a pay stub. "Match cap", "salary growth" and "salary
+             deferral" were dropped: naming a rule the reader will never look up buys
+             nothing and costs the sentence.
              Both questions ship on Yes, matching the values the page has always
              shipped with (a 100% match up to 6% of pay, and 2% yearly pay growth),
-             so an untouched page projects exactly what it projected before. -->
+             so an untouched page projects exactly what it projected before.
+             Answering No to either one would park its fields at 0 and change that
+             projection, which is why neither may default to No. -->
         <fieldset class="adv">
-          <legend>A couple of questions about your plan</legend>
-          <p class="adv-hint">Both start on the answer most workplace plans use. Change either one if it does not match yours.</p>
+          <legend>A few more questions, only if they apply to you</legend>
+          <p class="adv-hint">Both start on Yes, because that is what most workplace plans look like. Switch either one to No if yours is different.</p>
 
           <fieldset class="adv-q" aria-describedby="qMatchNote">
             <legend>Does your employer put money in as well?</legend>
-            <p class="adv-q-note" id="qMatchNote">Often called an employer match. Answer Yes if your company adds to the account whenever you pay into it.</p>
+            <p class="adv-q-note" id="qMatchNote">An employer match: your company adds money to the account whenever you pay into it. Answer Yes if yours does.</p>
             <div class="yn">
               <label class="seg"><input type="radio" name="qMatch" value="no"><span>No</span></label>
               <label class="seg"><input type="radio" name="qMatch" value="yes" checked><span>Yes</span></label>
@@ -106,14 +116,14 @@
               <div class="field">
                 <label for="matchCap">Your employer stops adding once you have paid in this share of your pay (%)</label>
                 <input id="matchCap" type="number" inputmode="decimal" step="any" min="0" value="6" placeholder="6" aria-describedby="matchCapNote">
-                <p class="adv-q-note" id="matchCapNote">Often called the match cap, or the match limit. Put 6 if your plan matches you up to 6 percent of your pay and nothing above that.</p>
+                <p class="adv-q-note" id="matchCapNote">Put 6 if your plan matches you up to 6 percent of your pay and nothing above that.</p>
               </div>
             </div>
           </fieldset>
 
           <fieldset class="adv-q" aria-describedby="qGrowthNote">
             <legend>Do you expect your pay to go up over the years?</legend>
-            <p class="adv-q-note" id="qGrowthNote">Often called salary growth. Because what you save is a share of your pay, a raise lifts both your own saving and the amount your employer adds.</p>
+            <p class="adv-q-note" id="qGrowthNote">Because what you save is a share of your pay, a raise lifts both your own saving and the amount your employer adds.</p>
             <div class="yn">
               <label class="seg"><input type="radio" name="qGrowth" value="no"><span>No</span></label>
               <label class="seg"><input type="radio" name="qGrowth" value="yes" checked><span>Yes</span></label>

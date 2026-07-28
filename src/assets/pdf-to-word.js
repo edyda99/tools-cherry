@@ -1,10 +1,14 @@
-// PDF -> Word (.docx) converter — runs entirely in the browser.
+// PDF -> Word (.docx) converter, runs entirely in the browser.
 // Uses the vendored pdf.js (window.pdfjsLib) to read the PDF's text layer and the
 // vendored docx library (window.docx) to build an editable .docx. No server, no
-// upload: the file never leaves the device. Works best on text-based PDFs; scanned
-// (image-only) PDFs have no text layer to extract, so there is nothing to convert.
+// upload: the file never leaves the device. Works best on text-based PDFs; a scanned
+// (image-only) PDF has no text layer here, which is exactly what the optional server
+// conversion is for: it runs OCR and can read the text out of the picture.
 
-const MAX_BYTES = 50 * 1024 * 1024; // 50 MB — generous; conversion runs on your own device
+const MAX_BYTES = 50 * 1024 * 1024;        // 50 MB, generous: conversion runs on your own device
+const SERVER_MAX_BYTES = 25 * 1024 * 1024; // matches R2_MAX_BYTES in functions/api/pdf-to-word.js
+const SERVER_MAX_PAGES = 50;               // matches MAX_PAGES in backend/pdf-to-word/lambda_function.py
+const DROP_PROMPT = 'Click to choose a PDF, or drop it here';
 
 const $ = (id) => document.getElementById(id);
 const fileInput = $('file');
@@ -20,6 +24,7 @@ const serverStatus = $('serverStatus');
 const serverDownload = $('serverDownload');
 
 let selected = null;
+let serverTooBig = false;
 let lastUrl = null;
 let serverLastUrl = null;
 let tsToken = null;
@@ -46,30 +51,59 @@ function resetDownload() {
   download.style.display = 'none';
 }
 
+// The server block asks the visitor whether the result is good enough, so it must
+// not appear until there is a result to look at. Hidden on every new file, shown
+// once the browser converter has finished or failed.
+function hideServerOption() {
+  if (serverFallback) serverFallback.hidden = true;
+}
+
+function showServerOption() {
+  if (!serverFallback) return;
+  serverFallback.hidden = false;
+  if (serverTooBig && selected) {
+    if (serverConvertBtn) serverConvertBtn.disabled = true;
+    setServerStatus(
+      `This file is ${(selected.size / 1024 / 1024).toFixed(1)} MB and the server conversion only accepts ` +
+      'files up to 25 MB, so it cannot take this one. Splitting the PDF into smaller parts first would let ' +
+      'each part through.',
+      'error'
+    );
+  }
+}
+
 function pickFile(file) {
   resetDownload();
   resetServerDownload();
   setServerStatus('');
-  if (serverFallback) serverFallback.hidden = true;
+  hideServerOption();
+  serverTooBig = false;
+  if (serverConvertBtn) serverConvertBtn.disabled = false;
   if (!file) return;
   const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
   if (!isPdf) {
     selected = null;
     convertBtn.disabled = true;
+    // Leaving the rejected name in the box while the message says it is not a PDF
+    // reads as though the file was accepted anyway.
+    dropText.textContent = DROP_PROMPT;
     setStatus('That is not a PDF. Please choose a .pdf file.', 'error');
     return;
   }
   if (file.size > MAX_BYTES) {
     selected = null;
     convertBtn.disabled = true;
-    setStatus(`That PDF is ${(file.size / 1024 / 1024).toFixed(1)} MB — the limit is 50 MB.`, 'error');
+    dropText.textContent = DROP_PROMPT;
+    setStatus(`That PDF is ${(file.size / 1024 / 1024).toFixed(1)} MB, and the limit is 50 MB.`, 'error');
     return;
   }
   selected = file;
+  // Knowing now that the server would refuse this file means we never upload 25 MB+
+  // over a phone connection only to be turned away, and never spend a daily slot on it.
+  serverTooBig = file.size > SERVER_MAX_BYTES;
   convertBtn.disabled = false;
   dropText.textContent = file.name;
   setStatus(`Ready: ${file.name} (${(file.size / 1024).toFixed(0)} KB). Click "Convert to Word".`);
-  if (serverFallback) serverFallback.hidden = false;
 }
 
 fileInput.addEventListener('change', () => pickFile(fileInput.files[0]));
@@ -77,13 +111,13 @@ fileInput.addEventListener('change', () => pickFile(fileInput.files[0]));
 ['dragenter', 'dragover'].forEach((e) =>
   drop.addEventListener(e, (ev) => {
     ev.preventDefault();
-    drop.classList.add('dragover');
+    drop.classList.add('drag');
   })
 );
 ['dragleave', 'drop'].forEach((e) =>
   drop.addEventListener(e, (ev) => {
     ev.preventDefault();
-    drop.classList.remove('dragover');
+    drop.classList.remove('drag');
   })
 );
 drop.addEventListener('drop', (ev) => {
@@ -93,9 +127,10 @@ drop.addEventListener('drop', (ev) => {
 
 clearBtn.addEventListener('click', () => {
   selected = null;
+  serverTooBig = false;
   fileInput.value = '';
   convertBtn.disabled = true;
-  dropText.textContent = 'Click to choose a PDF, or drop it here';
+  dropText.textContent = DROP_PROMPT;
   resetDownload();
   resetServerDownload();
   setServerStatus('');
@@ -104,7 +139,7 @@ clearBtn.addEventListener('click', () => {
   pendingServerSubmit = false;
   tsToken = null;
   if (serverConvertBtn) serverConvertBtn.disabled = false;
-  if (serverFallback) serverFallback.hidden = true;
+  hideServerOption();
   setStatus('Choose a PDF to begin.');
 });
 
@@ -240,14 +275,21 @@ convertBtn.addEventListener('click', async () => {
 
   try {
     if (!window.pdfjsLib || !window.docx) {
-      throw new Error('Converter libraries failed to load — please refresh and try again.');
+      throw new Error('Converter libraries failed to load. Please refresh and try again.');
     }
     const buf = await selected.arrayBuffer();
     const { blob, empty, sparse } = await pdfToDocxBlob(buf, (p, n) => setStatus(`Converting… page ${p} of ${n}`));
 
     if (empty) {
+      // A dead end here sends away the exact person the server converter was built
+      // for. Name the next step instead: it is on this page, a few lines down.
       setStatus(
-        'No selectable text found — this looks like a scanned (image-only) PDF, so there is no text to convert. Use a PDF that contains real text.',
+        'This PDF is a picture of a page rather than text, so the in-browser converter has nothing to ' +
+        'pull out. ' +
+        (serverTooBig
+          ? 'The server conversion can read text out of a picture, but only for files up to 25 MB.'
+          : 'The server conversion just below can read the text out of the picture, and usually does give ' +
+            'you an editable document.'),
         'error'
       );
       return;
@@ -263,13 +305,13 @@ convertBtn.addEventListener('click', async () => {
     if (sparse) {
       // an honest warning beats a confidently empty document
       setStatus(
-        'Heads up: most of this PDF’s text is stored as images, which the in-browser ' +
-        'converter can’t read — the Word file will be missing most of the content. ' +
-        'The server converter below reads text out of images (OCR) and will do far better here.',
+        'Heads up: most of this PDF’s text is stored as pictures, which the in-browser converter ' +
+        'cannot read, so the Word file is missing most of the content. The server conversion below ' +
+        'reads the text out of pictures and will do far better here.',
         'error'
       );
     } else {
-      setStatus('Done — your Word document is ready.', 'success');
+      setStatus('Done, your Word document is ready.', 'success');
     }
   } catch (err) {
     let msg = err && err.message;
@@ -282,6 +324,9 @@ convertBtn.addEventListener('click', async () => {
   } finally {
     convertBtn.disabled = !selected;
     clearBtn.disabled = false;
+    // Finished or failed, either way there is now a result to judge, so the second
+    // option earns its place on the screen.
+    if (selected) showServerOption();
   }
 });
 
@@ -322,7 +367,10 @@ const MAX_SERVER_IMAGES = 400;
 const PREFLIGHT_PAGES = 3;
 const TINY_IMAGE_PX = 64; // matches TINY_IMAGE_PX in backend/pdf-to-word/lambda_function.py
 
-async function countImagePaints(file, limit) {
+// Returns { images, pages }. The page count is free: the document has to be opened
+// to count pictures anyway, and the converter refuses anything over SERVER_MAX_PAGES.
+// Catching that here saves a captcha, a full upload and a daily slot.
+async function preflightPdf(file, limit) {
   const OPS = window.pdfjsLib.OPS;
   // paintImageXObject carries [id, width, height] — the only op that can be judged
   // by size. The others are counted whole; they never appear in fill-chip swarms.
@@ -346,7 +394,7 @@ async function countImagePaints(file, limit) {
     if (typeof page.cleanup === 'function') page.cleanup();
     if (n > limit) break; // no need for an exact count once it's hopeless
   }
-  return n;
+  return { images: n, pages: pdf.numPages };
 }
 
 // Turnstile can fail in ways that never throw at us: the script is blocked by an
@@ -360,8 +408,15 @@ const TS_SCRIPT_TIMEOUT_MS = 12000; // challenges.cloudflare.com/api.js never an
 const TS_SOLVE_TIMEOUT_MS = 25000;  // widget rendered but no token and no error
 const SERVER_TIMEOUT_MS = 190000;   // gate gives up on the converter at 178s; outlast it
 
+// One of the two daily conversions is charged the moment the upload reaches the
+// converter, and it is not given back when the conversion then fails. Anything
+// refused before that point (too large, wrong file type, allowance already used)
+// costs nothing, so this note belongs only on failures that happened after the
+// work had already started.
+const SLOT_SPENT = ' This attempt still used one of today’s two server conversions.';
+
 const TS_BLOCKED_MSG =
-  'The human check couldn’t load — an ad blocker, VPN, or restricted network usually blocks it. ' +
+  'The human check couldn’t load. An ad blocker, VPN, or restricted network usually blocks it. ' +
   'The in-browser converter above needs none of this and still works.';
 
 let tsSolveTimer = null;
@@ -461,16 +516,18 @@ async function doServerConvert() {
       signal: AbortSignal.timeout(SERVER_TIMEOUT_MS),
     });
     if (!res.ok) {
-      // The gate answers with {error}. Anything else means it died before it could —
-      // say what that actually means instead of a shrug.
-      let msg = 'The server converter couldn’t finish this PDF — it may be too heavy for it. ' +
+      // The gate answers with {error}. Anything else means it died before it could,
+      // so say what that actually means instead of a shrug.
+      let msg = 'The server conversion couldn’t finish this PDF, it may be too heavy for it. ' +
         'The in-browser converter above has no time limit.';
       try { const j = await res.json(); if (j && j.error) msg = j.error; } catch (_) {}
-      setServerStatus(msg, 'error');
+      // 5xx means the file reached the converter and the work began, so the slot is
+      // gone. A refusal up front (413/415/429) is answered before any charge.
+      setServerStatus(res.status >= 500 ? msg + SLOT_SPENT : msg, 'error');
       return;
     }
     const blob = await res.blob();
-    if (!blob.size) { setServerStatus('The server returned an empty file. Please try again.', 'error'); return; }
+    if (!blob.size) { setServerStatus('The server sent back an empty file. Please try again.' + SLOT_SPENT, 'error'); return; }
     serverLastUrl = URL.createObjectURL(blob);
     const outName = selected.name.replace(/\.pdf$/i, '') + '.docx';
     serverDownload.href = serverLastUrl;
@@ -478,12 +535,13 @@ async function doServerConvert() {
     serverDownload.hidden = false;
     serverDownload.style.display = '';
     serverDownload.textContent = `Download ${outName}`;
-    setServerStatus('Done — your high-fidelity Word document is ready.', 'success');
+    setServerStatus('Done, your Word document from the server is ready.', 'success');
   } catch (e) {
     setServerStatus(
       e && (e.name === 'TimeoutError' || e.name === 'AbortError')
-        ? 'The server converter took too long on this PDF and gave up. The in-browser converter above has no time limit.'
-        : 'Couldn’t reach the server converter. Please check your connection and try again.',
+        ? 'The server conversion took too long on this PDF and gave up. The in-browser converter above ' +
+          'has no time limit.' + SLOT_SPENT
+        : 'Couldn’t reach the server conversion. Please check your connection and try again.',
       'error'
     );
   } finally {
@@ -501,15 +559,35 @@ if (serverConvertBtn) {
     if (!selected) { setServerStatus('Choose a PDF first.'); return; }
     serverConvertBtn.disabled = true;
 
-    // Check before spending anything — the daily slot is charged the moment the
+    // Check before spending anything: the daily slot is charged the moment the
     // upload reaches the converter, so a doomed file must never get that far.
+    if (selected.size > SERVER_MAX_BYTES) {
+      setServerStatus(
+        `This file is ${(selected.size / 1024 / 1024).toFixed(1)} MB and the server conversion only ` +
+        'accepts files up to 25 MB. Splitting the PDF into smaller parts first would let each part through.',
+        'error'
+      );
+      serverConvertBtn.disabled = false;
+      return;
+    }
+
     setServerStatus('Checking this PDF…', 'busy');
     try {
-      const images = await countImagePaints(selected, MAX_SERVER_IMAGES);
+      const { images, pages } = await preflightPdf(selected, MAX_SERVER_IMAGES);
+      if (pages > SERVER_MAX_PAGES) {
+        setServerStatus(
+          `This PDF has ${pages} pages, and the server conversion takes at most ${SERVER_MAX_PAGES} at a ` +
+          'time. We checked here on your device, so this cost you nothing. Splitting it into shorter PDFs ' +
+          'first would let each part through.',
+          'error'
+        );
+        serverConvertBtn.disabled = false;
+        return;
+      }
       if (images > MAX_SERVER_IMAGES) {
         setServerStatus(
-          `This PDF holds over ${MAX_SERVER_IMAGES} pictures. The server converter rebuilds every ` +
-          'one of them and would run out of time, so it isn’t worth your daily slot — the ' +
+          `This PDF holds over ${MAX_SERVER_IMAGES} pictures. The server conversion rebuilds every one of ` +
+          'them and would run out of time, so it is not worth one of your two daily conversions. The ' +
           'in-browser result above is the best this file can give.',
           'error'
         );

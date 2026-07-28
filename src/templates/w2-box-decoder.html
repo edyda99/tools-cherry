@@ -74,107 +74,58 @@
 <main id="main">
   <div class="wrap">
     <h1>W-2 Box 12 Decoder (TA, TP, TT) &amp; Tipped Occupation Code Lookup</h1>
+    <!-- The lede sits ABOVE the decoder on purpose. This page is a lookup, not a
+         calculator: people arrive wanting to know what a code on their form
+         means, so the page explains itself before it asks them for anything. -->
+    <p class="lede">Starting with <strong>2026 W-2s</strong> (the ones that arrive in January 2027), Box 12 has three brand-new codes and Box 14 is split in two. The one thing to get right: <strong>TA</strong> (Trump account contributions) is <strong>excluded</strong> from your Box 1 wages, never taxed as wages, while <strong>TP</strong> (your reported tips) and <strong>TT</strong> (your overtime premium) are <strong>still fully taxed inside Box 1</strong>. TP and TT don't lower your wages; they flag how much of your wages you can deduct later, on Schedule 1-A, under the "no tax on tips" and "no tax on overtime" rules. Enter your own amounts in the decoder below, then use the <a href="#ttoc-lookup">occupation lookup</a> to find (or verify) the Box 14b code for your job. Everything runs in your browser, nothing is uploaded.</p>
+
     <section class="calc" aria-label="W-2 Box 12 and Box 14b decoder">
-      <h2 style="margin-top:0;grid-column:1/-1">Decode your Box 12 &amp; Box 14b</h2>
+      <h2 class="sr-only">Decode your Box 12 and Box 14b</h2>
       <form id="w2Form" autocomplete="off" onsubmit="return false">
-        <!-- Every box on this form is optional, and every one of them used to be
-             labelled with a code letter or a box number that means nothing to
-             someone holding a W-2 for the first time. Each is now a plain
-             question about what actually happened to them at work, with the code
-             letters (TP, TT, TA) and the box numbers kept verbatim in the small
-             note underneath, so a visitor who already knows the jargon still
-             recognises the field and the terms stay findable and searchable.
-             There is no always-visible primary field here on purpose: the
-             decoder has no required input, and its engine renders a "nothing
-             entered yet" panel when all four are empty.
-
-             All four questions ship answered YES on purpose. Every box on this
-             page has always loaded pre-filled with an example figure (9,800 /
-             1,150 / 2,500 / 101) and the answer panel is labelled an example
-             until the visitor edits something, so a No default would change what
-             an untouched page shows.
-
-             The fields live in [data-reveal] wrappers that ship VISIBLE here;
-             question-flow.js hides one only after load, once its question is
-             answered No, so JavaScript off, a broken script, or a crawler all
-             still see every field. Never invert this to show-on-demand.
-             /w2-box-decoder/ is already listed in QUESTION_FLOW_PAGES in
-             build.js, which is what injects that script.
+        <!-- This tool is a LOOKUP, not a calculator, so all four boxes are shown
+             plainly and none is hidden behind a Yes/No question. A blank box
+             already says "that line is not on my form", which is what a question
+             would have said, and someone who came here to find out what a code
+             means should be able to see the codes without answering anything
+             first. There are deliberately no [data-reveal] wrappers and no radio
+             groups on this page, so /w2-box-decoder/ does not belong in
+             QUESTION_FLOW_PAGES in build.js.
 
              w2-box-decoder.js reads #amtTP, #amtTT, #amtTA and #codes14b by id,
-             unconditionally, and knows nothing about these questions, so those
-             ids must not change. #codes14b carries data-qf-off="" because
-             question-flow.js parks an inputmode="numeric" field at "0", and a
-             parked "0" would be decoded and displayed as an unrecognised
-             occupation code. Empty is what "no code on my form" means here. -->
-        <fieldset class="adv">
-          <legend>Four questions about your W-2</legend>
-          <p class="adv-hint">Answer No to anything that is not on your form and the box for it disappears. The figures shown are examples, put your own in their place.</p>
+             unconditionally, so those four ids must not change. The engine
+             renders a "nothing entered yet" panel when all four are empty, which
+             is why the page needs no required field. -->
+        <p class="muted-small">Fill in only the lines that are actually printed on your W-2 and leave the rest blank. The figures below are examples, type your own over them.</p>
 
-          <fieldset class="adv-q" aria-describedby="qTipsNote">
-            <legend>Did you earn tips at work?</legend>
-            <p class="adv-q-note" id="qTipsNote">Tips you told your employer about. On a 2026 W-2 they appear in <strong>Box 12</strong> on a line marked <strong>TP</strong>.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qTips" value="no"><span>No</span></label>
-              <label class="seg"><input type="radio" name="qTips" value="yes" checked><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qTips">
-              <div class="field">
-                <label for="amtTP">How much did you report in tips for the whole year?</label>
-                <input type="text" id="amtTP" inputmode="decimal" data-money autocomplete="off" value="9800" aria-describedby="amtTPNote">
-                <p class="adv-q-note" id="amtTPNote">Copy the figure printed next to TP. It is the total cash tips you reported to your employer over the year.</p>
-              </div>
-            </div>
-          </fieldset>
+        <div class="field">
+          <label for="amtTP">How much did you report in tips for the whole year?</label>
+          <input type="text" id="amtTP" inputmode="decimal" data-money autocomplete="off" value="9800" aria-describedby="amtTPNote">
+          <p class="adv-q-note" id="amtTPNote">The tips you told your employer about. On a 2026 W-2 they sit in <strong>Box 12</strong>, on a line marked <strong>TP</strong>. Copy that figure. Blank is fine if your form has no TP line.</p>
+        </div>
 
-          <fieldset class="adv-q" aria-describedby="qOvertimeNote">
-            <legend>Were you paid a higher rate for working overtime?</legend>
-            <p class="adv-q-note" id="qOvertimeNote">The extra rate for hours past your normal week, not the hours themselves. On a 2026 W-2 it appears in <strong>Box 12</strong> on a line marked <strong>TT</strong>, where it is called the qualified overtime premium.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qOvertime" value="no"><span>No</span></label>
-              <label class="seg"><input type="radio" name="qOvertime" value="yes" checked><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qOvertime">
-              <div class="field">
-                <label for="amtTT">What overtime figure is printed on your W-2?</label>
-                <input type="text" id="amtTT" inputmode="decimal" data-money autocomplete="off" value="1150" aria-describedby="amtTTNote">
-                <p class="adv-q-note" id="amtTTNote">Copy the figure next to TT, do not add up your overtime paychecks. Your employer reports only the extra part: if you earn $20 an hour normally and $30 an hour on overtime, this counts the $10, not the $30.</p>
-              </div>
-            </div>
-          </fieldset>
+        <div class="field">
+          <label for="amtTT">What overtime figure is printed on your W-2?</label>
+          <input type="text" id="amtTT" inputmode="decimal" data-money autocomplete="off" value="1150" aria-describedby="amtTTNote">
+          <p class="adv-q-note" id="amtTTNote">The extra rate you get for hours past your normal week, called the overtime premium, not the hours themselves. On a 2026 W-2 it sits in <strong>Box 12</strong>, on a line marked <strong>TT</strong>. Copy that figure, do not add up your overtime paychecks: if you earn $20 an hour normally and $30 an hour on overtime, your employer reports only the $10 extra. Blank is fine if your form has no TT line.</p>
+        </div>
 
-          <fieldset class="adv-q" aria-describedby="qTrumpNote">
-            <legend>Did your employer put money into a savings account for a child?</legend>
-            <p class="adv-q-note" id="qTrumpNote">A new kind of savings account for a child under 18, called a <strong>Trump account</strong>. On a 2026 W-2 your employer's payment into one appears in <strong>Box 12</strong> on a line marked <strong>TA</strong>.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qTrump" value="no"><span>No</span></label>
-              <label class="seg"><input type="radio" name="qTrump" value="yes" checked><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qTrump">
-              <div class="field">
-                <label for="amtTA">How much did your employer put in over the year?</label>
-                <input type="text" id="amtTA" inputmode="decimal" data-money autocomplete="off" value="2500" aria-describedby="amtTANote">
-                <p class="adv-q-note" id="amtTANote">Copy the figure printed next to TA. It covers only what your employer paid in, for you or for your dependent, not anything you paid in yourself.</p>
-              </div>
-            </div>
-          </fieldset>
+        <div class="field">
+          <label for="amtTA">How much did your employer put into a savings account for a child?</label>
+          <input type="text" id="amtTA" inputmode="decimal" data-money autocomplete="off" value="2500" aria-describedby="amtTANote">
+          <p class="adv-q-note" id="amtTANote">A <strong>Trump account</strong> is a new kind of savings account for a child under 18. Money your employer paid into one, for you or for your dependent, sits in <strong>Box 12</strong>, on a line marked <strong>TA</strong>. Copy that figure, it covers only what your employer paid in, not anything you paid in yourself. Blank is fine if your form has no TA line.</p>
+        </div>
 
-          <fieldset class="adv-q" aria-describedby="qJobCodeNote">
-            <legend>Does your W-2 print a three-digit number for the job your tips came from?</legend>
-            <p class="adv-q-note" id="qJobCodeNote">Look in <strong>Box 14b</strong>, which is new for 2026. It holds up to two <strong>Treasury Tipped Occupation Codes</strong>, and it is filled in only when Box 12 has a TP line, so an empty Box 14b is normal for most people. Answer No if there is nothing there.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qJobCode" value="no"><span>No</span></label>
-              <label class="seg"><input type="radio" name="qJobCode" value="yes" checked><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qJobCode">
-              <div class="field">
-                <label for="codes14b">Type the number, or both numbers</label>
-                <input type="text" id="codes14b" inputmode="numeric" data-qf-off="" placeholder="e.g. 101, or 101, 000" value="101" aria-describedby="codes14bNote">
-                <p class="adv-q-note" id="codes14bNote">Put a comma or a space between two numbers. Each number stands for a job that customarily gets tips, and 000 means some of your tips came from a job that does not.</p>
-              </div>
-            </div>
-          </fieldset>
-        </fieldset>
+        <div class="field">
+          <label for="codes14b">Which three-digit number is printed for the job your tips came from?</label>
+          <!-- Ships with 101 on purpose, matching the three money boxes above it, so the
+               untouched page decodes a complete worked example. Blanking it while Box 12
+               still demos a TP line makes the engine fire its "Box 12 has code TP but Box
+               14b is empty, ask your employer" note instead, so the first thing a visitor
+               sees becomes a nag rather than an answer. The placeholder stays for the
+               visitor who clears the box, which is when it is actually reachable. -->
+          <input type="text" id="codes14b" inputmode="numeric" value="101" placeholder="e.g. 101, or 101, 000" aria-describedby="codes14bNote">
+          <p class="adv-q-note" id="codes14bNote">Look in <strong>Box 14b</strong>, which is new for 2026. It holds up to two of these numbers, one for each job your tips came from, and it is filled in only when Box 12 has a TP line, so an empty Box 14b is normal for most people. Put a comma or a space between two numbers. A number stands for a job that customarily gets tips, and 000 means some of your tips came from a job that does not.</p>
+        </div>
       </form>
       <div class="calc-answer">
         <p class="calc-example">These are example numbers. Type yours to see your own.</p>
@@ -182,12 +133,6 @@
       </div>
       <p id="outStatus" role="status" class="sr-only"></p>
     </section>
-
-    <!-- One lede, not two. These were separate paragraphs when they sat above the
-         calculator; stacked below it they rendered as two identical 19px intros in
-         a row, which reads as the same paragraph said twice. Merged verbatim — no
-         sentence dropped. -->
-    <p class="lede">Starting with <strong>2026 W-2s</strong> (the ones that arrive in January 2027), Box 12 has three brand-new codes and Box 14 is split in two. The one thing to get right: <strong>TA</strong> (Trump account contributions) is <strong>excluded</strong> from your Box 1 wages — never taxed as wages — while <strong>TP</strong> (your reported tips) and <strong>TT</strong> (your overtime premium) are <strong>still fully taxed inside Box 1</strong>. TP and TT don't lower your wages; they flag how much of your wages you can deduct later, on Schedule 1-A, under the "no tax on tips" and "no tax on overtime" rules. Enter your own amounts in the decoder above, then use the <a href="#ttoc-lookup">occupation lookup</a> below to find (or verify) the Box 14b code for your job. Everything runs in your browser — nothing is uploaded.</p>
 
     <p class="note">For general guidance only — not tax advice. This tool explains what the new W-2 codes mean; it does not compute your deduction. For the dollar figures, see the <a href="/tips-tax-calculator/">no tax on tips calculator</a> and the <a href="/overtime-tax-calculator/">no tax on overtime calculator</a>. Verify your own situation with the IRS or a tax professional.</p>
 

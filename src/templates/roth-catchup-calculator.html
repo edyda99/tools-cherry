@@ -35,15 +35,15 @@
 <main id="main">
   <div class="wrap">
     <h1>Mandatory Roth Catch-Up Calculator</h1>
-    <p class="lede">Starting with <strong>2026</strong>, if you’re <strong>50 or older</strong> and earned <strong>more than $150,000</strong> in Social Security (Box 3) wages last year from the employer that sponsors your plan, your 401(k) <strong>catch-up</strong> can no longer go in pre-tax — it must go in as <strong>Roth (after-tax)</strong>. This is the SECURE 2.0 Act §603 rule. Enter your details to see whether it hits you, what the forced-Roth treatment costs this year, and whether that cost is actually a loss. Everything runs in your browser — nothing is uploaded.</p>
+    <p class="lede">From <strong>2026</strong>, people aged <strong>50 and over</strong> who were paid <strong>more than $150,000</strong> last year by the employer that runs their workplace retirement plan lose a choice. The extra money you are allowed to save on top of the normal yearly limit can no longer come out of your pay <strong>before</strong> tax. It has to come out <strong>after</strong> tax instead, so you pay more tax this year and none at all on that money when you take it out later. Answer the questions below to see whether this applies to you, what it costs you this year, and whether you really end up worse off. Everything runs in your browser, nothing is uploaded.</p>
 
     <section class="calc" aria-label="Mandatory Roth catch-up calculator">
       <!-- Every label here is a plain sentence a person can answer without knowing
-           the vocabulary. The technical terms this page is about (catch-up
-           contribution, Roth, designated Roth, Box 3 / Social Security wages, FICA,
-           marginal tax rate) survive verbatim in the small note under each field, so
-           a visitor who already knows them still recognises what is being asked and
-           the terms stay findable.
+           the vocabulary. Only the names a visitor physically meets survive in the
+           small note under a field: Box 3 / Box 1 on the W-2, "catch-up
+           contribution" and "Roth" as the plan itself labels them, and "tax
+           bracket". The rest (designated Roth, FICA, marginal tax rate) were the
+           "tax people call this X" flourish and are gone.
            The five fields everyone needs stay always-visible. The three that only
            matter if you want the long-run comparison sit inside a [data-reveal]
            wrapper that ships VISIBLE in the HTML; question-flow.js hides it only if
@@ -58,25 +58,25 @@
             <option value="2026" selected>2026</option>
             <option value="2025">2025</option>
           </select>
-          <p class="adv-q-note" id="yearNote">The rule is in force for 2026. For 2025 the IRS gave everyone a pass, and the 2027 figures are not published yet.</p>
+          <p class="muted-small" style="margin-top:6px" id="yearNote">The rule is in force for 2026. For 2025 the IRS gave everyone a pass, and the 2027 figures are not published yet.</p>
         </div>
 
         <div class="field">
           <label for="age">How old will you be on the last day of that year?</label>
           <input type="number" id="age" inputmode="numeric" min="0" max="120" step="1" value="55" aria-describedby="ageNote">
-          <p class="adv-q-note" id="ageNote">Your age sets how much extra you are allowed to add for 2026: $8,000 if you are 50 to 59, or 64 and over, and $11,250 if you are 60 to 63.</p>
+          <p class="muted-small" style="margin-top:6px" id="ageNote">Your age sets how much extra you are allowed to add for 2026: $8,000 if you are 50 to 59, or 64 and over, and $11,250 if you are 60 to 63.</p>
         </div>
 
         <div class="field">
           <label for="wages">How much did the employer that runs your plan pay you last year?</label>
           <input type="text" id="wages" inputmode="decimal" data-money autocomplete="off" value="180000" aria-describedby="wagesNote">
-          <p class="adv-q-note" id="wagesNote">Use <strong>Box 3</strong> of last year’s <a href="/tax-glossary/#w-2">W-2</a>, the box marked Social Security wages, from the employer that runs your retirement plan. That is a <a href="/tax-glossary/#fica">FICA</a> wage figure. It is <strong>not</strong> this year’s salary, not Box 1, and not your household or self-employment income.</p>
+          <p class="muted-small" style="margin-top:6px" id="wagesNote">Use <strong>Box 3</strong> of last year’s <a href="/tax-glossary/#w-2">W-2</a>, the box marked Social Security wages, from the employer that runs your retirement plan. It is <strong>not</strong> this year’s salary, not Box 1, and not your household or self-employment income.</p>
         </div>
 
         <div class="field">
           <label for="catchUp">How much extra do you plan to put in this year, on top of the normal limit?</label>
           <input type="text" id="catchUp" inputmode="decimal" data-money autocomplete="off" value="8000" aria-describedby="catchUpNote">
-          <p class="adv-q-note" id="catchUpNote">That extra amount is called a catch-up contribution, and only people 50 and over can make one. We cap it at the most your age allows. Put 0 if you do not plan to add anything extra.</p>
+          <p class="muted-small" style="margin-top:6px" id="catchUpNote">Your plan calls this extra amount a catch-up contribution, and only people 50 and over can make one. We cap it at the most your age allows. Put 0 if you do not plan to add anything extra.</p>
         </div>
 
         <div class="field">
@@ -90,19 +90,21 @@
             <option value="0.35">35%</option>
             <option value="0.37">37%</option>
           </select>
-          <p class="adv-q-note" id="rateNowNote">Often called your <a href="/tax-glossary/#marginal-tax-rate">marginal tax rate</a>, or your tax bracket. It sets how much the up-front deduction you give up is worth.</p>
+          <p class="muted-small" style="margin-top:6px" id="rateNowNote">This is your <a href="/tax-glossary/#marginal-tax-rate">tax bracket</a>, the rate charged on the last dollar you earn. It sets how much the up-front break you are giving up is worth.</p>
         </div>
 
         <fieldset class="adv">
-          <legend>Two more questions</legend>
+          <legend>A few more questions, only if they apply to you</legend>
           <p class="adv-hint">Both start on the answer most people give. Change one only if it does not match you.</p>
 
           <fieldset class="adv-q" aria-describedby="qPlanRothNote">
             <legend>Does your workplace plan let you put money in after tax?</legend>
-            <p class="adv-q-note" id="qPlanRothNote">Money paid in after tax is called Roth, or a designated Roth: you get no deduction now, but you pay no tax on it or its growth when you take it out. Most large plans allow it and more are adding it. Leave the box ticked unless you know yours does not, because a plan with no after-tax option is allowed to stop high earners from adding anything extra at all.</p>
-            <div class="field check-field">
-              <input type="checkbox" id="planRoth" checked>
-              <label for="planRoth">Yes, my plan lets me put money in after tax</label>
+            <p class="adv-q-note" id="qPlanRothNote">Your plan calls money paid in after tax Roth: you get no break now, but you pay no tax on it or on anything it earns when you take it out. Most large plans allow it and more are adding it. Leave the box ticked unless you know yours does not, because a plan with no after-tax option is allowed to stop high earners from adding anything extra at all.</p>
+            <div class="field">
+              <div class="check-field">
+                <input type="checkbox" id="planRoth" checked>
+                <label for="planRoth">Yes, my plan lets me put money in after tax</label>
+              </div>
             </div>
           </fieldset>
 

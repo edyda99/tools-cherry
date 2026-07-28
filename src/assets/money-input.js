@@ -43,13 +43,54 @@ function handleInput(el) {
   try { el.setSelectionRange(pos, pos); } catch (_) { /* non-text inputs */ }
 }
 
+// A money field holds exactly one number, so the first tap into it should
+// REPLACE what is there, not add to it. This is a correctness fix, not a
+// nicety: on a phone, tapping the middle of a pre-filled "75,000" and typing
+// 60000 produced "75,00060000", which formatMoney above then happily rendered
+// as "$7,500,060,000", a silent 100,000x error the visitor has no reason to
+// suspect, on pages whose entire output is a dollar figure.
+//
+// Why not the one-liner `el.addEventListener('focus', () => el.select())`:
+// focus fires BEFORE mouseup (and before the tap's caret placement), and the
+// browser then collapses the selection to the point that was clicked, undoing
+// it. So the selection is made on focus (which is what keyboard Tab needs) and
+// re-made on the first click after focus (which is what mouse and touch need).
+//
+// Three guards keep it from taking editing away from anyone who wants it:
+//   - the re-select runs only for a pointer that ENTERS the field. pointerdown
+//     fires before focus, so activeElement at that moment distinguishes "tapping
+//     in" from "moving the caret inside a field I am already editing". A second
+//     tap therefore places the caret exactly where it was tapped, which is what
+//     someone correcting one digit expects;
+//   - only when the selection came back COLLAPSED, so deliberately dragging
+//     across part of the number is preserved;
+//   - and it is one shot per entry, cleared on click and on blur.
+// A browser without Pointer Events simply falls back to the focus-only
+// behaviour, which is no worse than not having this at all.
+function bindSelectOnFocus(el) {
+  let enteringTap = false;
+  const selectAll = () => {
+    try { el.setSelectionRange(0, el.value.length); } catch (_) { /* non-text inputs */ }
+  };
+  el.addEventListener('pointerdown', () => { enteringTap = document.activeElement !== el; });
+  el.addEventListener('focus', selectAll);
+  el.addEventListener('click', () => {
+    if (!enteringTap) return;
+    enteringTap = false;
+    if (el.selectionStart === el.selectionEnd) selectAll();
+  });
+  el.addEventListener('blur', () => { enteringTap = false; });
+}
+
 export function initMoneyInputs(root = document) {
   root.querySelectorAll('input[data-money]').forEach((el) => {
     if (el.dataset.moneyBound) return;
     el.dataset.moneyBound = '1';
-    // Normalise any server-rendered default value on load.
+    // Normalise any server-rendered default value on load. An empty field stays
+    // empty: a placeholder="0" default must not become a typed-looking "0".
     if (el.value) el.value = formatMoney(el.value);
     el.addEventListener('input', () => handleInput(el));
+    bindSelectOnFocus(el);
   });
 }
 

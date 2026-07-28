@@ -33,13 +33,13 @@
         <div class="field">
           <label for="income">How much did you earn in total this year, before anything was taken out?</label>
           <input type="text" id="income" inputmode="decimal" data-money autocomplete="off" value="45000" aria-describedby="incomeNote">
-          <p class="muted-small" id="incomeNote" style="margin-top:6px">Everything you were paid for the whole year, your wages and your tips together. Married and sending in one return together? Add both incomes. This number is what decides whether the tip break starts shrinking, which begins at $150,000 on your own or $300,000 filing jointly. Tax forms measure that against your modified adjusted gross income, or MAGI, which for almost everyone is the same figure.</p>
+          <p class="muted-small" id="incomeNote" style="margin-top:6px">Everything you were paid for the whole year, your wages and your tips together. Married and sending in one return together? Add both incomes. This number is what decides whether the tip break starts shrinking, which begins at $150,000 on your own or $300,000 filing jointly.</p>
         </div>
 
         <div class="field">
           <label for="tips">How much of that was tips?</label>
           <input type="text" id="tips" inputmode="decimal" data-money autocomplete="off" value="18000" aria-describedby="tipsNote">
-          <p class="muted-small" id="tipsNote" style="margin-top:6px">The tips customers chose to give you over the year, in cash or on a card, as you reported them. Up to $25,000 of them can come off your taxable income. A charge the business adds by itself, such as an automatic 18% for a large table, is not a tip and does not count. Tax forms call the ones that do count qualified tips.</p>
+          <p class="muted-small" id="tipsNote" style="margin-top:6px">The tips customers chose to give you over the year, in cash or on a card, as you reported them. Up to $25,000 of them can come off the income you are taxed on. A charge the business adds by itself, such as an automatic 18% for a large table, is not a tip and does not count.</p>
         </div>
 
         <div class="field">
@@ -49,7 +49,7 @@
             <option value="married">Married filing jointly</option>
             <option value="head_of_household">Head of household</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>. Pick Single if you are not married. Pick Married filing jointly if you are married and you and your spouse send in one return together, which married couples have to do to claim this break. Pick Head of household if you are unmarried and pay most of the cost of a home for a child or another dependent. Married but sending in separate returns means you cannot claim it.</p>
+          <p class="muted-small" style="margin-top:6px">Form 1040 prints this at the top as your <a href="/tax-glossary/#filing-status">filing status</a>. Pick Single if you are not married. Pick Married filing jointly if you are married and you and your spouse send in one return together, which married couples have to do to claim this break. Pick Head of household if you are unmarried and pay most of the cost of a home for a child or another dependent. Married but sending in separate returns means you cannot claim it.</p>
         </div>
 
         <!-- The one optional thing this page asks for is now a plain question rather
@@ -59,9 +59,9 @@
              the page loads, and parks it back at its empty value when the answer goes
              back to No, so a state picked and then un-picked cannot keep feeding the
              verdict panel. Script off, script broken, or a crawler all still see every
-             field. Hide-on-demand, never show-on-demand. The jargon the question
-             replaces (state conformity) survives verbatim in the small note under it,
-             so a visitor who knows the term still recognises the field.
+             field. Hide-on-demand, never show-on-demand. The word "conformity" was
+             deleted rather than kept: it appears on no form or pay stub a visitor
+             will ever hold, so it bought nothing and cost a re-read.
 
              The ids income, tips, filing and state, and the filing option values
              single / married / head_of_household, are read by
@@ -69,12 +69,12 @@
              stay inside the .adv fieldset: its legend is styled by ".adv .adv-q legend"
              and is unstyled anywhere else. -->
         <fieldset class="adv">
-          <legend>One more question, only if it applies to you</legend>
-          <p class="adv-hint">Leaving this on No gives you the federal answer, which is the one most people need.</p>
+          <legend>A few more questions, only if they apply to you</legend>
+          <p class="adv-hint">Left on No, you get the federal answer, which is the one most people need.</p>
 
           <fieldset class="adv-q" aria-describedby="qStateNote">
             <legend>Do you want to know whether your state taxes your tips too?</legend>
-            <p class="adv-q-note" id="qStateNote">This break is a federal one, so it lowers the tax you send to Washington. Some states copy it, some do not, and nine states do not tax wages at all. When a state copies a federal rule like this, tax people call it conformity.</p>
+            <p class="adv-q-note" id="qStateNote">This break is a federal one, so it lowers the tax you send to Washington. Some states copy it, some do not, and nine states do not tax wages at all.</p>
             <div class="yn">
               <label class="seg"><input type="radio" name="qState" value="no" checked><span>No</span></label>
               <label class="seg"><input type="radio" name="qState" value="yes"><span>Yes</span></label>
@@ -97,7 +97,7 @@
       <div class="state-verdict" id="stateVerdict" hidden></div>
     </section>
 
-    <p class="lede">The 2025 One Big Beautiful Bill Act lets you <strong>deduct up to $25,000 of tips</strong> from your federal taxable income, for tax years 2025–2028. Enter your tips and income to see how much is deductible and what it saves you. Everything runs in your browser — nothing is uploaded.</p>
+    <p class="lede">The 2025 One Big Beautiful Bill Act lets you take <strong>up to $25,000 of tips</strong> off the income the federal government taxes you on, for the 2025 to 2028 tax years. Fill in your tips and your income to see how much of it counts and what it saves you. Everything runs in your browser, nothing is uploaded.</p>
 
     <p class="note">Estimate for general guidance only — not tax advice. Figures use the 2026 federal brackets and standard deduction; your actual deduction depends on your full return and your occupation. Verify with the IRS or a tax professional.</p>
 

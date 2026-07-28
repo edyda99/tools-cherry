@@ -27,7 +27,7 @@
 <main id="main">
   <div class="wrap">
     <h1>PMI / Mortgage Insurance Deduction Calculator</h1>
-    <p class="lede">Starting in <strong>2026</strong>, the One Big Beautiful Bill Act <strong>permanently revived</strong> the mortgage insurance premium deduction — dead since 2021. Conventional PMI, FHA mortgage insurance, VA funding fees, and USDA guarantee fees are deductible again as home mortgage interest on <a href="/tax-glossary/#itemizing">Schedule A</a>, if you <a href="/tax-glossary/#itemizing">itemize</a>. It phases out fast: gone completely once <a href="/tax-glossary/#agi">AGI</a> exceeds <strong>$109,000</strong> (<strong>$54,500</strong> married filing separately) — not $110,000 like most articles say. Enter your numbers to see what's deductible and what it saves. Everything runs in your browser — nothing is uploaded.</p>
+    <p class="lede">From <strong>2026</strong> you can once again take the mortgage insurance you pay off your taxable income. It had not been allowed since 2021. The monthly charge on an ordinary loan, FHA mortgage insurance, a VA funding fee and a USDA guarantee fee all count, but only if you already list your bigger expenses one by one on your tax return instead of taking the flat amount everyone is offered, which is called <a href="/tax-glossary/#itemizing">itemizing</a>. It also fades fast as income rises: nothing at all once your <a href="/tax-glossary/#agi">income for the year</a> passes <strong>$109,000</strong>, or <strong>$54,500</strong> if you are married and send in your own separate return. Most articles say $110,000, and they are wrong. Fill in your numbers to see what counts and what it saves you. Everything runs in your browser, nothing is uploaded.</p>
 
     <section class="calc" aria-label="PMI / mortgage insurance deduction calculator">
       <form id="mipForm" autocomplete="off" onsubmit="return false">
@@ -45,7 +45,7 @@
         <div class="field">
           <label for="agi">How much did you make this year, before tax?</label>
           <input type="text" id="agi" inputmode="decimal" data-money autocomplete="off" value="95000">
-          <p class="muted-small" style="margin-top:6px">Your pay and other income after a few adjustments, the figure on line 11 of your Form 1040. Tax people call it your <a href="/tax-glossary/#agi">adjusted gross income, or AGI</a>. This deduction uses that plain figure, not the modified version some other tax breaks use. Married and filing together? Add both incomes.</p>
+          <p class="muted-small" style="margin-top:6px">Your pay and other income for the year, after a few adjustments. It is the figure on line 11 of your Form 1040, where it is printed as your <a href="/tax-glossary/#agi">adjusted gross income</a>. Married and filing together? Add both incomes.</p>
         </div>
 
         <div class="field">
@@ -66,8 +66,11 @@
         </div>
 
         <div class="field">
-          <label for="contract2007"><input type="checkbox" id="contract2007" checked style="width:auto;margin-right:8px"> My mortgage insurance policy started in 2007 or later</label>
-          <p class="muted-small" style="margin-top:6px">Almost every policy still running today did, so leave this ticked unless you know otherwise. Only policies taken out after December 31, 2006 count, and that rule was never dropped. Untick it only if yours genuinely dates from 2006 or earlier, which is rare. Unticked, the deduction is $0 whatever your income.</p>
+          <div class="check-field">
+            <input type="checkbox" id="contract2007" checked>
+            <label for="contract2007">My mortgage insurance policy started in 2007 or later</label>
+          </div>
+          <p class="muted-small" style="margin-top:6px">Almost every policy still running today did, so leave this ticked unless you know otherwise. Only policies taken out after December 31, 2006 count. Untick it only if yours genuinely dates from 2006 or earlier, which is rare. Unticked, the deduction is $0 whatever your income.</p>
         </div>
 
         <!-- The two things that stop a non-expert here are the lump sum paid at
@@ -89,12 +92,12 @@
              toggles #termField / #closingMonth's .field wrapper by display,
              which is why both keep their ids and their .field wrappers. -->
         <fieldset class="adv">
-          <legend>Two more questions</legend>
-          <p class="adv-hint">Change an answer if it does not match your year, and put your own figures in place of the examples.</p>
+          <legend>A few more questions, only if they apply to you</legend>
+          <p class="adv-hint">Left as they are, these say you paid nothing extra at closing and you already write off other big expenses. The amounts in the boxes are examples, put your own in.</p>
 
           <fieldset class="adv-q" aria-describedby="qUpfrontNote">
             <legend>Did you pay a lump sum for mortgage insurance when you closed on the loan?</legend>
-            <p class="adv-q-note" id="qUpfrontNote">A single charge paid at closing, on top of any monthly amount. On an FHA loan it is called the upfront mortgage insurance premium, or UFMIP. On a VA loan it is the funding fee, on a USDA loan the guarantee fee, and on an ordinary loan it is a single premium PMI policy.</p>
+            <p class="adv-q-note" id="qUpfrontNote">A single charge paid at closing, on top of anything you pay monthly. Your closing paperwork names it by loan type: upfront mortgage insurance premium on an FHA loan, funding fee on a VA loan, guarantee fee on a USDA loan, or a single premium policy on an ordinary loan.</p>
             <div class="yn">
               <label class="seg"><input type="radio" name="qUpfront" value="no" checked><span>No</span></label>
               <label class="seg"><input type="radio" name="qUpfront" value="yes"><span>Yes</span></label>

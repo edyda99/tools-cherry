@@ -31,14 +31,14 @@
       <h2 class="sr-only">Senior deduction calculator</h2>
       <!-- Every control here is required to get any answer at all: the year, how
            you file, who is 65 or older, and your income. Nothing is left over as
-           optional, so this form deliberately carries no "Advanced" block and no
-           [data-reveal] wrappers, and question-flow.js (this path is opted in via
-           QUESTION_FLOW_PAGES in build.js) simply finds nothing to hide. The fix
-           here is wording, not machinery: every label is now a real question, and
-           the jargon those labels used to lean on (filing status, MAGI, the
-           phase-out) survives verbatim in the small note under its own field, so
-           a visitor who already knows the term still recognises it and a visitor
-           who does not is never blocked by it.
+           optional, so this form deliberately carries no optional-questions block
+           and no [data-reveal] wrappers, and this path is deliberately NOT in
+           QUESTION_FLOW_PAGES in build.js: there is nothing for question-flow.js
+           to hide, so the page must not download it. The fix here is wording, not
+           machinery: every label is a real question, and the only jargon left is
+           "filing status", which is printed on the Form 1040 box the question is
+           about. MAGI is gone; the visitor is told to use line 11 instead, which
+           is the number they can actually find.
            #spouseRow is shown and hidden by render() in
            senior-deduction-calculator.js off the filing answer, which is why it
            must never also carry data-reveal: question-flow.js sets the same
@@ -66,7 +66,7 @@
             <option value="head_of_household">On my own, paying most of the costs of a home for a child or relative (head of household)</option>
             <option value="qss">Widowed in the last two years, with a dependent child at home (qualifying surviving spouse)</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">This is the box you tick at the top of Form 1040, known as your filing status. It sets the income level where this deduction starts to shrink. Married couples have to file one return together to claim it, so filing separately gets $0.</p>
+          <p class="muted-small" style="margin-top:6px">This is the box you tick at the top of Form 1040, printed there as your filing status. It sets the income level where this deduction starts to shrink. Married couples have to file one return together to claim it, so filing separately gets $0.</p>
         </div>
 
         <div class="field">
@@ -88,8 +88,7 @@
         <div class="field">
           <label for="magi">What is your yearly income?</label>
           <input type="text" id="magi" inputmode="decimal" data-money autocomplete="off" value="60000">
-          <p class="muted-small" style="margin-top:6px">Use the income figure from your tax return, line 11 on Form 1040. Filing one return with your spouse? Use the combined figure for the two of you.</p>
-          <p class="muted-small" style="margin-top:6px">The law calls this figure your modified adjusted gross income, or MAGI, but for almost everyone it is the same number as line 11. Above $75,000, or $150,000 if you and your spouse file one return together, each qualifying person's $6,000 shrinks by 6 cents for every extra dollar. It reaches $0 at $175,000, or at $250,000 on a joint return.</p>
+          <p class="muted-small" style="margin-top:6px">Use the income figure from your tax return, line 11 on Form 1040. Filing one return with your spouse? Use the combined figure for the two of you. Above $75,000, or $150,000 on a joint return, each qualifying person's $6,000 shrinks by 6 cents for every extra dollar, and it runs out completely at $175,000, or at $250,000 on a joint return.</p>
         </div>
       </form>
 
@@ -100,7 +99,7 @@
       <p id="outStatus" role="status" class="sr-only"></p>
     </section>
 
-    <p class="lede">The 2025 One Big Beautiful Bill Act gives people <strong>65 and older a $6,000 tax deduction each</strong> ($12,000 for a couple where both qualify) for tax years 2025–2028 — the break widely marketed as <em>"no tax on Social Security."</em> Enter your details to see your deduction, the income phase-out, and your estimated federal tax saving. Everything runs in your browser — nothing is uploaded.</p>
+    <p class="lede">The 2025 One Big Beautiful Bill Act lets people aged <strong>65 and older</strong> take <strong>$6,000 each</strong> off the income they are taxed on, so $12,000 for a couple where both qualify, for the 2025 to 2028 tax years. It is the break sold as <em>"no tax on Social Security."</em> Fill in your details to see how much you get, how it shrinks at higher incomes, and roughly what it saves you. Everything runs in your browser, nothing is uploaded.</p>
 
     <p class="note">Estimate for general guidance only — not tax advice. The tax-saving figure uses the 2026 federal brackets and regular standard deduction; it does not model the taxable portion of your Social Security benefits or the separate extra standard deduction for 65+, so your actual saving depends on your full return. Verify with the IRS or a tax professional.</p>
 

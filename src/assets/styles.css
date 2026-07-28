@@ -363,7 +363,11 @@ html.js .applies-line[data-hidden] { display: none; }
    on the 51 state paycheck pages — enlarging .net-big itself pushed a
    three-line sentence to 42.9px/135px tall on tool pages that were never part
    of this work. */
-#netBig.net-big { font-size: clamp(38px, 11vw, 56px); line-height: 1.05; }
+/* min-height reserves the line box. #netBig is now blanked rather than printing
+   $0.00 when there is no pay to work from, and without this the answer band
+   collapsed by about 60px the moment a visitor cleared the salary field, which is
+   the first thing most of them do because the field ships prefilled. */
+#netBig.net-big { font-size: clamp(38px, 11vw, 56px); line-height: 1.05; min-height: 1.05em; }
 /* Bare .net-sub is shared by 100 built pages, only 53 of which are calculators
    anyone has worked on. The extra top margin this rule briefly carried bought
    nothing in scope, because the 51 state pages take .answer-band .net-sub above,
@@ -589,14 +593,26 @@ details.estimator summary { cursor: pointer; font-size: .92rem; opacity: .9; }
 .nowrap { white-space: nowrap; }
 
 /* ---- Advanced fieldset ---------------------------------------------- */
-.adv { grid-column: 1 / -1; margin: 4px 0 0; border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 18px 2px; background: var(--surface-2); }
-.adv legend { padding: 0 8px; font-size: 13.5px; font-weight: 700; color: var(--text); }
+.adv { grid-column: 1 / -1; margin: 4px 0 0; border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px 2px; background: var(--surface-2); }
+/* The panel heading is floated out of the fieldset's legend notch rather than sitting
+   in it. In the notch it fits on one line at desktop but wraps to two on a phone, and
+   a wrapped legend does not re-cut the border: measured at 390px the legend box was
+   282px across a 320px panel, so the top border survived only as two ~19px stubs at
+   the corners and line one floated on the page background outside the panel. Floating
+   it full-width puts it above the border entirely, which cannot break at any width.
+   The ::after clears the float so the panel still contains its own children. */
+.adv > legend { float: left; width: 100%; padding: 0; margin: 0 0 12px; font-size: 13.5px; font-weight: 700; color: var(--text); }
+.adv::after { content: ''; display: table; clear: both; }
 .adv-hint { margin: 0 0 14px; font-size: 13px; color: var(--muted); }
 
 /* Each Advanced question: a plain sentence, a small note carrying the technical
    term it replaces, a yes/no pair, and the money field the answer reveals. */
 .adv-q { border: 0; padding: 0; margin: 0 0 20px; }
-.adv-q + .adv-q { border-top: 1px solid var(--border); padding-top: 18px; }
+/* --border is tuned for lines drawn on --surface. These sit on --surface-2, where the
+   same colour measured 1.11:1 against its background, so the four separators existed
+   in the DOM and were invisible to the eye and the five questions read as one wall of
+   text. --border-strong is the variable that registers on the darker panel. */
+.adv-q + .adv-q { border-top: 1px solid var(--border-strong); padding-top: 18px; }
 .adv .adv-q legend { padding: 0; font-size: 15px; font-weight: 600; line-height: 1.35; color: var(--text); }
 .adv-q-note { margin: 5px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--muted); }
 .yn { display: flex; gap: 8px; margin: 10px 0 0; max-width: 240px; }
@@ -614,6 +630,10 @@ details.estimator summary { cursor: pointer; font-size: .92rem; opacity: .9; }
 .adv-reveal { margin-top: 14px; animation: advReveal .18s ease-out; }
 .adv-reveal[hidden] { display: none; }
 .adv-reveal .field:last-child { margin-bottom: 0; }
+/* The live take-home echo at the foot of the Advanced panel. Its own class rather
+   than a borrowed .adv-q, which is on 121 pages and means "a question". */
+.adv-echo { border-top: 1px solid var(--border-strong); padding-top: 18px; margin: 0 0 4px; font-weight: 600; color: var(--text); }
+.adv-echo:empty { display: none; }
 .adv-derived { margin: 2px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
 .adv-derived b { color: var(--text); }
 @keyframes advReveal { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }

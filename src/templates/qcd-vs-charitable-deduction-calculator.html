@@ -27,7 +27,7 @@
 <main id="main">
   <div class="wrap">
     <h1>QCD vs. Charitable Deduction Calculator</h1>
-    <p class="lede">If you're <strong>70½ or older</strong> with a traditional IRA, there are two very different ways to give to charity from it. A <strong>Qualified Charitable Distribution (QCD)</strong> sends the money straight from your IRA trustee to the charity — it's <strong>excluded from your income entirely</strong>, up to <strong>$111,000</strong> in 2026. Or you can <strong>take the distribution as taxable income and deduct the gift</strong> — which only helps if you itemize, and is capped by the same 2026 charitable-deduction rules as everyone else's giving. Enter your numbers to see the real AGI and federal-tax difference between the two, side by side. Everything runs in your browser — nothing is uploaded.</p>
+    <p class="lede">If you are <strong>70½ or older</strong> and have a traditional IRA, there are two very different ways to give money from it to a charity. You can have the IRA pay the charity <strong>directly</strong>, and then the money never counts as your income at all, up to <strong>$111,000</strong> in 2026. Or you can take the money out yourself, count it as income, and write the gift off, which only helps if you already list your bigger expenses one by one on your tax return. Fill in your numbers to see what each way does to your income and to your federal tax, side by side. The direct route has a name on the paperwork, a qualified charitable distribution or QCD, and your IRA provider will expect you to ask for it by that name. Everything runs in your browser, nothing is uploaded.</p>
 
     <section class="calc" aria-label="QCD vs. charitable deduction calculator">
       <form id="qcdForm" autocomplete="off" onsubmit="return false">
@@ -48,11 +48,11 @@
         <p class="muted-small" id="ageNote" style="margin-top:-6px">You can enter a half year here, for example 70.5. Sending money straight from your IRA to a charity is only allowed once you have actually reached <strong>70½</strong> on the day the money leaves the account, not simply turned 70 that year. That is about two and a half years before you are first made to take money out, which starts at 73.</p>
 
         <div class="field" id="spouseWrap">
-          <label style="display:flex; align-items:center; gap:8px; font-weight:400">
-            <input type="checkbox" id="spouseAge65" style="width:auto">
-            My spouse is also 65 or older
-          </label>
-          <p class="muted-small" style="margin-top:6px">People aged 65 and over get a slightly bigger flat deduction, the <a href="/tax-glossary/#standard-deduction">standard deduction</a>. This box only changes the side where you take the money as income and write the gift off, and only when the two of you file one joint return.</p>
+          <div class="check-field">
+            <input type="checkbox" id="spouseAge65">
+            <label for="spouseAge65">My spouse is also 65 or older</label>
+          </div>
+          <p class="muted-small" style="margin-top:6px">People aged 65 and over get a slightly bigger version of the <a href="/tax-glossary/#standard-deduction">flat deduction</a> everyone is offered. This box only changes the side where you take the money as income and write the gift off, and only when the two of you file one joint return.</p>
         </div>
 
         <div class="field">
@@ -75,7 +75,7 @@
         <div class="field">
           <label for="agi">How much other income will you have this year?</label>
           <input type="text" id="agi" inputmode="decimal" data-money autocomplete="off" value="60000" aria-describedby="agiNote">
-          <p class="muted-small" id="agiNote" style="margin-top:6px">Everything else on your tax return: Social Security, a pension, other withdrawals, investment income. Leave the money for this gift out of it. The tool adds that back on its own, on the side where you take it as income first. Tax forms call this figure your <a href="/tax-glossary/#agi">adjusted gross income, or AGI</a>.</p>
+          <p class="muted-small" id="agiNote" style="margin-top:6px">Everything else on your tax return: Social Security, a pension, other withdrawals, investment income. Leave the money for this gift out of it. The tool adds that back on its own, on the side where you take it as income first, and works your <a href="/tax-glossary/#agi">income for the year</a> out from there.</p>
         </div>
 
         <!-- The last three inputs are the ones that stop a non-expert: "other
@@ -90,8 +90,8 @@
              to 0, so every question ships answered No and an untouched page
              computes exactly what it computed before. -->
         <fieldset class="adv">
-          <legend>Three more questions about your year</legend>
-          <p class="adv-hint">Answer only the ones that apply to you. Leaving all three on No gives the same result as skipping this section.</p>
+          <legend>A few more questions, only if they apply to you</legend>
+          <p class="adv-hint">Left on No, these say you have nothing else to write off, nothing you are made to take out of the IRA, and no new money paid into it. Change any that do not match you.</p>
 
           <fieldset class="adv-q" aria-describedby="qOtherNote">
             <legend>Do you already write off other big expenses on your tax return?</legend>

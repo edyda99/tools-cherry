@@ -66,22 +66,34 @@
           </select>
           <p class="muted-small" style="margin-top:6px">California holds back a higher rate on bonuses and stock options than on other kinds of extra pay, so it is the only state that asks this.</p>
         </div>
-        <!-- Advanced is two plain questions, not a pair of jargon-labelled boxes. The
-             money input the first question needs sits inside a [data-reveal] wrapper that
-             ships VISIBLE in the built HTML; question-flow.js (these 51 pages opt in via
-             QUESTION_FLOW_PAGE_RE in build.js) only ever ADDS `hidden` once the page is
-             up. Hide-on-demand, never show-on-demand, so JavaScript off, JavaScript
-             broken or a crawler all still see every field. The jargon each question
-             replaces (supplemental wages, the flat or percentage method, the aggregate
-             method) survives verbatim in the small note under it, so a visitor who knows
-             the term still recognises the field and the terms stay findable. -->
-        <details class="adv">
-          <summary>A few more questions, only if they apply to you</summary>
-          <p class="adv-hint">Skip this whole section unless one of the questions below is true of you. Leaving it alone does not change your answer.</p>
+        <!-- Advanced is two plain questions in an ALWAYS-VISIBLE fieldset, never a
+             collapsed <details>. The sentence that tells a visitor they can skip this
+             is worthless if it only becomes readable after they open the thing it is
+             telling them to skip, which is exactly what the old summary/details shape
+             did. The money input the first question needs sits inside a [data-reveal]
+             wrapper that ships VISIBLE in the built HTML; question-flow.js (these 51
+             pages opt in via QUESTION_FLOW_PAGE_RE in build.js) only ever ADDS `hidden`
+             once the page is up. Hide-on-demand, never show-on-demand, so JavaScript
+             off, JavaScript broken or a crawler all still see every field.
+
+             The ids ytdSupp and method, the radio group name qYtd, and the method
+             option values flat / aggregate are read by
+             /assets/bonus-tax-calculator.js and must not be renamed. #method stays a
+             <select> and not a Yes/No pair: the script reads
+             document.getElementById('method').value, and a radio returns its own value
+             whether or not it is checked, so radios carrying that id would report the
+             wrong method silently. Its legend does the asking, with no second heading
+             above the control. Every .adv-q must stay inside the .adv fieldset: its
+             legend is styled by ".adv .adv-q legend" and is unstyled anywhere else.
+             This block is kept character-for-character identical to the hub template
+             at src/templates/bonus-tax-calculator.html; change one, change both. -->
+        <fieldset class="adv">
+          <legend>A few more questions, only if they apply to you</legend>
+          <p class="adv-hint">Leave these alone and your figures stay exactly as they are. Change an answer only if it applies to you.</p>
 
           <fieldset class="adv-q" aria-describedby="qYtdNote">
             <legend>Have you already been paid other bonuses this year?</legend>
-            <p class="adv-q-note" id="qYtdNote">This changes your answer only once your bonuses pass $1,000,000 for the year, where the federal share held back jumps from 22% to 37% on the part above that. Payroll calls these payments supplemental wages.</p>
+            <p class="adv-q-note" id="qYtdNote">This only changes your answer once your bonuses add up to more than $1,000,000 for the year, where the federal share held back jumps from 22% to 37% on the part above that.</p>
             <div class="yn">
               <label class="seg"><input type="radio" name="qYtd" value="no" checked><span>No</span></label>
               <label class="seg"><input type="radio" name="qYtd" value="yes"><span>Yes</span></label>
@@ -96,20 +108,22 @@
           </fieldset>
 
           <fieldset class="adv-q" aria-describedby="qMethodNote">
-            <legend>How was this bonus paid to you?</legend>
-            <p class="adv-q-note" id="qMethodNote">Most bonuses arrive on their own, which is the answer already picked, so leave this alone if that sounds like yours. Payroll calls that the flat, or percentage, method and calls the other one the aggregate method. Your final tax is the same either way, only the amount held back right now changes.</p>
+            <legend id="qMethodLegend">How was this bonus paid to you?</legend>
+            <p class="adv-q-note" id="qMethodNote">Most bonuses arrive on their own, which is the answer already picked, so leave this alone if that sounds like yours. Your final tax is the same either way, only the amount held back right now changes.</p>
             <div class="field">
-              <label for="method">Pick the one that matches your pay stub</label>
-              <select id="method">
+              <select id="method" aria-labelledby="qMethodLegend">
                 <option value="flat">On its own, separate from my regular paycheck</option>
                 <option value="aggregate">Added onto a regular paycheck, all in one lump</option>
               </select>
             </div>
           </fieldset>
-        </details>
+        </fieldset>
       </form>
 
-      <div class="obbba-out" id="out" aria-live="polite"></div>
+      <div class="calc-answer">
+        <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+        <div class="obbba-out" id="out" aria-live="polite" data-tb-result></div>
+      </div>
     </section>
 
     <p class="note">Estimate only, not tax advice — <a href="/terms/">terms</a>.</p>

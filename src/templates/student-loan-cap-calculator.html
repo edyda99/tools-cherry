@@ -39,7 +39,7 @@
 <main id="main">
   <div class="wrap">
     <h1>Federal Student Loan Cap Calculator (2026)</h1>
-    <p class="lede">Since <strong>July 1, 2026</strong>, federal law caps how much graduate students, professional students, and parents can borrow from the federal government for school — amounts that used to be available up to the <em>full cost of attendance</em> through PLUS loans. <strong>Grad PLUS is gone</strong> for new borrowers. Graduate students now get <strong>$20,500/year</strong> ($100,000 aggregate), professional students <strong>$50,000/year</strong> ($200,000 shared pool), Parent PLUS <strong>$20,000/year</strong> ($65,000 per student), and everyone faces a <strong>$257,500 lifetime cap</strong>. Enter your program's numbers to see your year-by-year federal borrowing capacity, exactly which cap binds each year, and the resulting <strong>funding gap</strong> — computed straight from the statute (20 U.S.C. §1087e(a)) and ED's final rule, with citations. Everything runs in your browser — nothing is uploaded.</p>
+    <p class="lede">Since <strong>July 1, 2026</strong> there is a hard limit on how much you can borrow from the federal government for school. Until that date a graduate student or a parent could borrow up to the whole cost of a year through a PLUS loan. That is over, and <strong>Grad PLUS is gone</strong> for new borrowers. A graduate student now gets <strong>$20,500 a year</strong> and <strong>$100,000 in total</strong>. A student on a professional course such as medicine, law or dentistry gets <strong>$50,000 a year</strong> out of a <strong>$200,000</strong> pool the two groups share. A parent borrowing for a child gets <strong>$20,000 a year</strong> and <strong>$65,000</strong> per child. And nobody can borrow more than <strong>$257,500</strong> for their own education in a lifetime. Fill in your program's numbers to see what you can borrow each year, which limit is the one stopping you, and how much of the cost is left over. Every figure comes straight from the law, cited below. Everything runs in your browser, nothing is uploaded.</p>
 
     <section class="calc" aria-label="Federal student loan cap calculator">
       <!-- The optional money boxes are plain yes/no questions, not jargon-labelled
@@ -49,17 +49,23 @@
            question-flow.js (opted in by path in build.js) hides the wrapper and
            parks its value at 0 while the answer is No, so JavaScript off, broken,
            or a crawler still sees every field. Hide-on-demand, never show-on-demand.
-           The jargon each question replaces (cost of attendance, Direct
-           Unsubsidized, Grad PLUS, Parent PLUS, the restorable pool vs. the
-           lifetime odometer, the grandfather exception) survives verbatim in the
-           small note under each question, so a knowledgeable visitor still
-           recognises the field and the terms stay findable.
+           Only names a visitor physically meets survive in the notes: cost of
+           attendance (the school's own letter), other financial assistance (the
+           award letter), Direct Unsubsidized / Grad PLUS / Parent PLUS / FFEL
+           (StudentAid.gov), dependent student (the FAFSA). "The legacy exception,
+           often called grandfathering" was deleted; the note now leads with what
+           actually happens.
+           ONE container, not three: the parent question and the legacy question
+           used to sit in .adv fieldsets of their own, so parent mode showed three
+           stacked optional-question boxes with three different headings. They are
+           now .adv-q fieldsets inside the single .adv block, keeping their ids and
+           therefore the script's display toggles untouched.
            IDs ARE LOAD-BEARING: student-loan-cap-calculator.js toggles #mode,
            #studentFields, #parentFields, #undergradFields, #legacyField,
            #poolField, #everProfField and #lifetimeField by id, reads every input
            by id, and rewrites #legacyLabel's text on every render. #poolField,
-           #everProfField and #lifetimeField now sit ON the .adv-q fieldsets
-           themselves so the script's display toggle keeps working unchanged. -->
+           #everProfField, #lifetimeField, #parentFields and #legacyField all sit
+           ON .adv-q fieldsets so those display toggles keep working unchanged. -->
       <form id="slcForm" autocomplete="off" onsubmit="return false">
         <div class="field">
           <label for="mode">Who is borrowing the money?</label>
@@ -91,8 +97,8 @@
           </div>
 
           <fieldset class="adv">
-            <legend>More detail, so the numbers match your situation</legend>
-            <p class="adv-hint">Answer only what applies. Every question starts on No, which means no free aid and no borrowing so far, and that is what this page assumes until you change it.</p>
+            <legend>A few more questions, only if they apply to you</legend>
+            <p class="adv-hint">Answer only what applies to you. Left alone, these say nobody else is paying part of the cost, you have never borrowed for study before, and this program did not start before July 2026.</p>
 
             <fieldset class="adv-q" aria-describedby="qAidNote">
               <legend>Is any of this cost already covered by money that never has to be paid back?</legend>
@@ -130,7 +136,10 @@
               <legend>Have you ever been enrolled as a professional student as well?</legend>
               <p class="adv-q-note" id="qEverProfNote">Professional programs are ones like medicine, law and dentistry. Graduate study and professional study share a single $200,000 limit, so anyone who has ever been a professional student gets that shared $200,000 rather than the $100,000 a graduate-only student gets.</p>
               <div class="field">
-                <label for="everProfessional"><input type="checkbox" id="everProfessional"> Yes, I am now or have been a professional student</label>
+                <div class="check-field">
+                  <input type="checkbox" id="everProfessional">
+                  <label for="everProfessional">Yes, I am now or have been a professional student</label>
+                </div>
               </div>
             </fieldset>
 
@@ -149,15 +158,8 @@
                 </div>
               </div>
             </fieldset>
-          </fieldset>
-        </div>
 
-        <div id="parentFields" style="display:none">
-          <fieldset class="adv">
-            <legend>A question about what you have already borrowed for this child</legend>
-            <p class="adv-hint">Answer No if no parent has taken out a federal parent loan for this child yet.</p>
-
-            <fieldset class="adv-q" aria-describedby="qParentPriorNote">
+            <fieldset class="adv-q" id="parentFields" style="display:none" aria-describedby="qParentPriorNote">
               <legend>Has either parent already borrowed a federal parent loan for this child?</legend>
               <p class="adv-q-note" id="qParentPriorNote">These are Parent PLUS loans. The $65,000 limit is counted per child and covers both parents together, and paying it back does not free up more room.</p>
               <div class="yn">
@@ -169,6 +171,17 @@
                   <label for="parentPlusEverBorrowed">How much have both parents borrowed for this child so far?</label>
                   <input type="text" id="parentPlusEverBorrowed" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="parentPlusEverBorrowedNote">
                   <p class="adv-q-note" id="parentPlusEverBorrowedNote">Count everything ever borrowed for this child by either parent, including amounts already paid back.</p>
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset class="adv-q" id="legacyField" aria-describedby="qLegacyNote">
+              <legend>Was this program already under way before July 1, 2026?</legend>
+              <p class="adv-q-note" id="qLegacyNote">If the studies were already under way and a federal loan had already been made for this same program, the older and more generous rules keep applying for up to 3 more school years, or until the program ends if that comes sooner. Those older rules let Grad PLUS or Parent PLUS cover the whole cost of a year. Dropping out or stopping the studies ends it. If you are the borrowing parent, a loan made to you or to your child both count. Tick the box only if both halves of the sentence are true.</p>
+              <div class="field">
+                <div class="check-field">
+                  <input type="checkbox" id="legacyEligible">
+                  <label for="legacyEligible"><span id="legacyLabel">I was enrolled in this program on June 30, 2026 AND a Direct Loan was made for it before July 1, 2026</span></label>
                 </div>
               </div>
             </fieldset>
@@ -193,18 +206,6 @@
             </select>
           </div>
         </div>
-
-        <fieldset class="adv" id="legacyField">
-          <legend>One last question, only if this program started before July 2026</legend>
-
-          <fieldset class="adv-q" aria-describedby="qLegacyNote">
-            <legend>Was this program already under way before July 1, 2026?</legend>
-            <p class="adv-q-note" id="qLegacyNote">This is the legacy exception, often called grandfathering. If the studies were already under way and a federal loan had already been made for this same program, the older and more generous rules keep applying for up to 3 more school years, or until the program ends if that comes sooner. Those older rules let Grad PLUS or Parent PLUS cover the full cost of attendance. Dropping out or stopping the studies ends it. If you are the borrowing parent, a loan made to you or to your child both count. Tick the box only if both halves of the sentence are true.</p>
-            <div class="field">
-              <label for="legacyEligible"><input type="checkbox" id="legacyEligible"> <span id="legacyLabel">I was enrolled in this program on June 30, 2026 AND a Direct Loan was made for it before July 1, 2026</span></label>
-            </div>
-          </fieldset>
-        </fieldset>
       </form>
 
       <div class="obbba-out" id="out" aria-live="polite"></div>

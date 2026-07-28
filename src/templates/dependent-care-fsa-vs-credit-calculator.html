@@ -31,6 +31,12 @@
 
     <section class="calc" aria-label="Dependent Care FSA vs. Child and Dependent Care Credit calculator">
       <form id="dcForm" autocomplete="off" onsubmit="return false">
+        <!-- The boxes load pre-filled and the FSA question below ships answered Yes
+             over $7,500, so say plainly that the figures on screen are a
+             demonstration. Lives inside the form, not beside it: section.calc is a
+             two-column grid, and a third direct child would drop the answer panel
+             onto a row of its own. -->
+        <p class="calc-example">These are example numbers. Type yours to see your own.</p>
         <div class="field">
           <label for="filing">How do you file your taxes?</label>
           <select id="filing">
@@ -45,7 +51,7 @@
         <div class="field">
           <label for="agi">How much does your household make in a year, before tax?</label>
           <input type="text" id="agi" inputmode="decimal" data-money autocomplete="off" value="85000">
-          <p class="muted-small" style="margin-top:6px">Your pay and other income, after a few adjustments. It is the number on line 11 of your Form 1040, and tax people call it your <a href="/tax-glossary/#agi">adjusted gross income, or AGI</a>. Married and filing one return together? Add both incomes. Put in the figure from <strong>before</strong> anything comes out of your pay for childcare, the tool works out the rest itself. This one number sets both your tax rate and the rate the credit pays, so there is no rate for you to look up.</p>
+          <p class="muted-small" style="margin-top:6px">Your pay and other income, after a few adjustments. It is the number on line 11 of your Form 1040, the line labelled <a href="/tax-glossary/#agi">adjusted gross income, or AGI</a>. Married and filing one return together? Add both incomes. Put in the figure from <strong>before</strong> anything comes out of your pay for childcare, the tool works out the rest itself. This one number sets both your tax rate and the rate the credit pays, so there is no rate for you to look up.</p>
         </div>
 
         <div class="field">
@@ -54,7 +60,7 @@
             <option value="1">1 person (the credit counts up to $3,000 of your costs)</option>
             <option value="2" selected>2 or more (the credit counts up to $6,000 of your costs)</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">Children under 13, or a husband, wife, or other <a href="/tax-glossary/#dependent">dependent</a> who cannot look after themselves. Tax rules call them qualifying dependents. The count sets how much of your care bill the credit is allowed to count, up to $3,000 for one person or $6,000 for two or more. It does not change how much you can set aside at work.</p>
+          <p class="muted-small" style="margin-top:6px">Children under 13, or a husband, wife, or other <a href="/tax-glossary/#dependent">dependent</a> who cannot look after themselves. The count sets how much of your care bill the credit is allowed to count, up to $3,000 for one person or $6,000 for two or more. It does not change how much you can set aside at work.</p>
         </div>
 
         <div class="field">
@@ -83,12 +89,12 @@
              Answering Yes again restores "7,500" and the original figure. The note
              below must therefore NOT ask the visitor to zero the box by hand. -->
         <fieldset class="adv">
-          <legend>One more question, about your job</legend>
-          <p class="adv-hint">This is the only part that depends on your employer rather than on you. Change the answer if it does not match your job.</p>
+          <legend>A few more questions, only if they apply to you</legend>
+          <p class="adv-hint">This one starts on Yes with an example figure in it. Switch it to No if your job has nothing like this, and the tool will point you to the credit instead.</p>
 
           <fieldset class="adv-q" aria-describedby="qFsaNote">
             <legend>Does your job let you set money aside for childcare before tax comes out?</legend>
-            <p class="adv-q-note" id="qFsaNote">This is a <strong>dependent care FSA</strong>, sometimes called a dependent care assistance plan. You sign up for it through work, usually during open enrollment, and the money leaves your pay before income tax and before Social Security and Medicare. Not every employer offers one.</p>
+            <p class="adv-q-note" id="qFsaNote">A <strong>dependent care FSA</strong>, the name you will see at open enrollment. You sign up for it through work, and the money leaves your pay before income tax and before Social Security and Medicare. Not every employer offers one.</p>
             <div class="yn">
               <label class="seg"><input type="radio" name="qFsa" value="no"><span>No</span></label>
               <label class="seg"><input type="radio" name="qFsa" value="yes" checked><span>Yes</span></label>

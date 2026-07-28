@@ -26,15 +26,35 @@
 // nav link whose hash is already the current fragment fires no hashchange at
 // all, so a collapsed target would leave the visitor on a bare heading. The
 // click runs before the browser scrolls, so the section is open on arrival.
-// Both of those are visitor-initiated navigations, so they persist the forced
-// open state, exactly as the old toggle listener used to.
+//
+// A hash-forced open lasts for THIS visit only and is never written to storage.
+// Both handlers used to persist it, which meant one tap on a header nav pill
+// pinned that section open on every future visit: the homepage a visitor met
+// once as a short shop window came back three times taller forever, with no way
+// to undo it short of finding and closing the section by hand. The pre-paint
+// script in home.html already treats the hash the same way, opening the target
+// without recording anything, so these two handlers now match it. Storage is
+// written only when the visitor actually activates a section header.
 (function () {
   'use strict';
   var raf = window.requestAnimationFrame || function (fn) { return setTimeout(fn, 0); };
 
+  // "Most Popular Tools" is the only section open on a first visit, so it is the
+  // homepage's entire shop window: with it closed the page is seven headings and
+  // no tool cards. It is an ordinary <details>, so one stray tap on its header
+  // used to store tb-cat:popular=0 and empty the homepage on every future visit.
+  // It stays collapsible for the current visit, it is just never REMEMBERED as
+  // closed. Any '0' left in storage by an earlier build is cleared here too,
+  // otherwise visitors already carrying one would stay stuck forever.
+  var KEEP_OPEN = 'popular';
+
   function persist(el, open) {
     if (!el || !el.id) return;
     try {
+      if (!open && el.id === KEEP_OPEN) {
+        localStorage.removeItem('tb-cat:' + el.id);
+        return;
+      }
       localStorage.setItem('tb-cat:' + el.id, open ? '1' : '0');
     } catch (e) {}
   }
@@ -57,6 +77,18 @@
     setTimeout(function () { persist(el, el.open); }, 100);
   }
 
+  // Repair, in its own guard so a throwing localStorage (private mode on some
+  // browsers) can never stop the listeners below from being attached. A visitor
+  // who already tapped the "Most Popular Tools" header under the old build is
+  // carrying tb-cat:popular=0 and gets an empty homepage on every visit, with
+  // nothing on screen to suggest why. Dropping that key now restores the shop
+  // window on their next visit without them having to work out the fix.
+  try {
+    if (localStorage.getItem('tb-cat:' + KEEP_OPEN) === '0') {
+      localStorage.removeItem('tb-cat:' + KEEP_OPEN);
+    }
+  } catch (e) {}
+
   try {
     var cats = document.querySelectorAll('.cat');
     for (var i = 0; i < cats.length; i++) {
@@ -72,11 +104,12 @@
         });
       })(cats[i]);
     }
+    // Open for this visit only. Nothing is written: jumping to a section is a
+    // way of looking at it once, not a preference.
     window.addEventListener('hashchange', function () {
       var target = document.getElementById(location.hash.slice(1));
       if (target && target.classList.contains('cat') && !target.open) {
         target.open = true;
-        persist(target, true);
       }
     });
     document.addEventListener('click', function (e) {
@@ -88,7 +121,6 @@
       var t = document.getElementById(id);
       if (t && t.classList.contains('cat') && !t.open) {
         t.open = true;
-        persist(t, true);
       }
     });
   } catch (err) {

@@ -231,7 +231,10 @@ function injectReport(html) { return injectToolScript(html, '/assets/report-widg
 // fight over focus. See the header comment in src/assets/question-flow.js.
 const QUESTION_FLOW_PAGES = new Set([
   '/1099-threshold-checker/',
-  '/1099-vs-w2-calculator/',
+  // 1099-vs-w2-calculator is deliberately absent. It ships no [data-reveal] wrapper, so
+  // listing it here downloaded question-flow.js for a script with nothing to do. All three
+  // of its inputs are required to get any answer at all, so none of them can hide behind a
+  // question, and each carries its question in the label instead.
   '/401k-calculator/',
   '/able-account-calculator/',
   '/adoption-credit-calculator/',
@@ -251,7 +254,10 @@ const QUESTION_FLOW_PAGES = new Set([
   '/ss-wage-base-calculator/',
   '/student-loan-cap-calculator/',
   '/tips-tax-calculator/',
-  '/w2-box-decoder/',
+  // w2-box-decoder is deliberately absent. It ships no [data-reveal] wrapper, so listing it
+  // here downloaded question-flow.js for a script with nothing to do. It is a lookup rather
+  // than a calculator, so all four boxes show plainly: a blank box already says "that line
+  // is not on my form", which is the only thing a question could have asked.
   '/w4-overtime-tips-withholding-calculator/',
 ]);
 // The 51 /{state}-bonus-tax-calculator/ pages all render from the one

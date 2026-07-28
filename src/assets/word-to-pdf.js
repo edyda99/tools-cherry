@@ -89,13 +89,13 @@ fileInput.addEventListener('change', () => pickFile(fileInput.files[0]));
 ['dragenter', 'dragover'].forEach((e) =>
   drop.addEventListener(e, (ev) => {
     ev.preventDefault();
-    drop.classList.add('dragover');
+    drop.classList.add('drag');
   })
 );
 ['dragleave', 'drop'].forEach((e) =>
   drop.addEventListener(e, (ev) => {
     ev.preventDefault();
-    drop.classList.remove('dragover');
+    drop.classList.remove('drag');
   })
 );
 drop.addEventListener('drop', (ev) => {
