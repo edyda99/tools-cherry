@@ -44,49 +44,89 @@
     <section class="calc" aria-label="401(k) retirement calculator">
       <form id="retire401kForm" autocomplete="off" onsubmit="return false">
         <div class="field">
-          <label for="currentAge">Current age</label>
+          <label for="currentAge">How old are you now?</label>
           <input id="currentAge" type="number" inputmode="decimal" step="any" min="0" value="30" placeholder="30">
         </div>
 
         <div class="field">
-          <label for="retirementAge">Retirement age</label>
+          <label for="retirementAge">At what age do you want to stop working?</label>
           <input id="retirementAge" type="number" inputmode="decimal" step="any" min="0" value="65" placeholder="65">
         </div>
 
         <div class="field">
-          <label for="currentBalance">Current 401(k) balance ($)</label>
-          <input id="currentBalance" type="text" inputmode="decimal" data-money autocomplete="off" value="25000" placeholder="25000">
+          <label for="currentBalance">How much is in the account today? ($)</label>
+          <input id="currentBalance" type="text" inputmode="decimal" data-money autocomplete="off" value="25000" placeholder="25000" aria-describedby="currentBalanceNote">
+          <p class="adv-q-note" id="currentBalanceNote">The balance your 401(k) or other workplace retirement plan shows right now. Put 0 if you are starting from nothing.</p>
         </div>
 
         <div class="field">
-          <label for="annualSalary">Annual salary ($)</label>
+          <label for="annualSalary">What do you earn in a year, before tax? ($)</label>
           <input id="annualSalary" type="text" inputmode="decimal" data-money autocomplete="off" value="60000" placeholder="60000">
         </div>
 
         <div class="field">
-          <label for="employeeContrib">Your contribution (% of salary)</label>
-          <input id="employeeContrib" type="number" inputmode="decimal" step="any" min="0" value="6" placeholder="6">
+          <label for="employeeContrib">How much of your pay goes into the account? (%)</label>
+          <input id="employeeContrib" type="number" inputmode="decimal" step="any" min="0" value="6" placeholder="6" aria-describedby="employeeContribNote">
+          <p class="adv-q-note" id="employeeContribNote">Often called your contribution rate, or your salary deferral. Put 6 if 6 cents of every dollar you earn is taken out of your pay and saved.</p>
         </div>
 
         <div class="field">
-          <label for="employerMatch">Employer match (% of your contribution)</label>
-          <input id="employerMatch" type="number" inputmode="decimal" step="any" min="0" value="100" placeholder="100">
+          <label for="annualReturn">How much do you expect your savings to grow each year? (%)</label>
+          <input id="annualReturn" type="number" inputmode="decimal" step="any" min="0" value="7" placeholder="7" aria-describedby="annualReturnNote">
+          <p class="adv-q-note" id="annualReturnNote">The yearly investment return you want to assume. Nobody can know the real figure in advance, so 6 or 7 is a common, cautious guess.</p>
         </div>
 
-        <div class="field">
-          <label for="matchCap">Employer matches up to (% of salary)</label>
-          <input id="matchCap" type="number" inputmode="decimal" step="any" min="0" value="6" placeholder="6">
-        </div>
+        <!-- Two plain questions instead of three jargon-labelled boxes. Each money
+             field lives inside a [data-reveal] wrapper that ships VISIBLE in the
+             HTML; question-flow.js hides the ones whose question is answered No, so
+             JavaScript off, JavaScript broken or a crawler still sees every field.
+             The terms these questions replace (employer match, match cap, salary
+             growth) survive verbatim in the note under each question, so a visitor
+             who already knows them still recognises the field.
+             Both questions ship on Yes, matching the values the page has always
+             shipped with (a 100% match up to 6% of pay, and 2% yearly pay growth),
+             so an untouched page projects exactly what it projected before. -->
+        <fieldset class="adv">
+          <legend>A couple of questions about your plan</legend>
+          <p class="adv-hint">Both start on the answer most workplace plans use. Change either one if it does not match yours.</p>
 
-        <div class="field">
-          <label for="annualReturn">Expected annual return (%)</label>
-          <input id="annualReturn" type="number" inputmode="decimal" step="any" min="0" value="7" placeholder="7">
-        </div>
+          <fieldset class="adv-q" aria-describedby="qMatchNote">
+            <legend>Does your employer put money in as well?</legend>
+            <p class="adv-q-note" id="qMatchNote">Often called an employer match. Answer Yes if your company adds to the account whenever you pay into it.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qMatch" value="no"><span>No</span></label>
+              <label class="seg"><input type="radio" name="qMatch" value="yes" checked><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qMatch">
+              <div class="field">
+                <label for="employerMatch">For every dollar you put in, how much does your employer add? (%)</label>
+                <input id="employerMatch" type="number" inputmode="decimal" step="any" min="0" value="100" placeholder="100" aria-describedby="employerMatchNote">
+                <p class="adv-q-note" id="employerMatchNote">Put 100 if they match you dollar for dollar, or 50 if they add 50 cents for every dollar you save.</p>
+              </div>
+              <div class="field">
+                <label for="matchCap">Your employer stops adding once you have paid in this share of your pay (%)</label>
+                <input id="matchCap" type="number" inputmode="decimal" step="any" min="0" value="6" placeholder="6" aria-describedby="matchCapNote">
+                <p class="adv-q-note" id="matchCapNote">Often called the match cap, or the match limit. Put 6 if your plan matches you up to 6 percent of your pay and nothing above that.</p>
+              </div>
+            </div>
+          </fieldset>
 
-        <div class="field">
-          <label for="salaryGrowth">Annual salary growth (%)</label>
-          <input id="salaryGrowth" type="number" inputmode="decimal" step="any" min="0" value="2" placeholder="2">
-        </div>
+          <fieldset class="adv-q" aria-describedby="qGrowthNote">
+            <legend>Do you expect your pay to go up over the years?</legend>
+            <p class="adv-q-note" id="qGrowthNote">Often called salary growth. Because what you save is a share of your pay, a raise lifts both your own saving and the amount your employer adds.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qGrowth" value="no"><span>No</span></label>
+              <label class="seg"><input type="radio" name="qGrowth" value="yes" checked><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qGrowth">
+              <div class="field">
+                <label for="salaryGrowth">How much does your pay go up in a typical year? (%)</label>
+                <input id="salaryGrowth" type="number" inputmode="decimal" step="any" min="0" value="2" placeholder="2" aria-describedby="salaryGrowthNote">
+                <p class="adv-q-note" id="salaryGrowthNote">A raise that just keeps pace with rising prices is usually 2 or 3.</p>
+              </div>
+            </div>
+          </fieldset>
+        </fieldset>
       </form>
 
       <div class="results" aria-live="polite">

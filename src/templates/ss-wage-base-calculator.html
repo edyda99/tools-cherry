@@ -38,55 +38,85 @@
     <p class="lede">Social Security (OASDI) tax is <strong>6.2% of wages</strong>, but only up to an annual cap — for <strong>2026 that cap is $184,500</strong>. The moment your year-to-date Social Security wages at a job cross that line, your employer <strong>stops withholding the 6.2%</strong> for the rest of the calendar year, and your <strong>take-home pay visibly jumps</strong> by that same 6.2% of gross — starting the very next paycheck. On January 1 the cap resets to $0 and withholding starts again. Enter your numbers below to find the exact paycheck it happens on. Everything runs in your browser — nothing is uploaded.</p>
 
     <section class="calc" aria-label="Social Security wage base max-out date calculator">
+      <!-- Every label here is a plain sentence a person can answer without knowing the
+           vocabulary. The terms this page is about (Social Security wages, Box 3, the
+           wage base, OASDI) survive verbatim in the small note under the field they
+           belong to, so a visitor who already knows them still recognises what is being
+           asked and the terms stay findable.
+           The five fields everyone needs stay always-visible. The one thing only some
+           people have, a raise partway through the year, is a yes/no question whose
+           fields sit in a [data-reveal] wrapper that ships VISIBLE in the built HTML;
+           question-flow.js (this path is opted in via QUESTION_FLOW_PAGES in build.js)
+           only ever ADDS `hidden` once the page is up. Hide-on-demand, never
+           show-on-demand, so JavaScript off, JavaScript broken or a crawler all still
+           see every field.
+           LOAD-BEARING IDS, do not rename: ytdWages, asOfDate, payFrequency,
+           nextPayDate, perPeriodWages, hasRaise, raiseFields, raisePeriod, raiseAmount
+           are all read by ss-wage-base-calculator.js, and payFrequency's option VALUES
+           are passed straight to the engine. `hasRaise` is now the Yes radio rather than
+           a checkbox: the script reads only its .checked, which is true for exactly the
+           same answer as before, and ships unchecked so an untouched page computes what
+           it always computed. -->
       <form id="ssMaxoutForm" autocomplete="off" onsubmit="return false">
         <div class="field">
-          <label for="ytdWages">YTD Social Security wages at this job (W-2 Box 3)</label>
-          <input type="text" id="ytdWages" inputmode="decimal" data-money autocomplete="off" value="150000">
-          <p class="muted-small" style="margin-top:6px">Not your gross pay. For most people this is gross pay minus any pre-tax health/HSA/FSA deductions — your 401(k) does NOT reduce it, so it's still fully counted here. Check a recent pay stub's "Social Security wages" year-to-date figure. If unsure, your gross pay is a close approximation.</p>
+          <label for="ytdWages">How much have you earned at this job so far this year?</label>
+          <input type="text" id="ytdWages" inputmode="decimal" data-money autocomplete="off" value="150000" aria-describedby="ytdWagesNote">
+          <p class="adv-q-note" id="ytdWagesNote">Payroll calls this your <strong>Social Security wages</strong>, and it is <strong>Box 3</strong> on your W-2. It is close to your gross pay with one twist: money taken out of your pay for health cover, an HSA or an FSA comes off it first, but money you put into a 401(k) does not. Look for the year-to-date "Social Security wages" line on a recent pay stub. If you cannot find it, your gross pay so far this year is close enough.</p>
         </div>
 
         <div class="field">
-          <label for="asOfDate">As of this pay date</label>
-          <input type="date" id="asOfDate" value="2026-07-10">
-          <p class="muted-small" style="margin-top:6px">The most recent paycheck your YTD figure above is current through.</p>
+          <label for="asOfDate">What date is that total up to?</label>
+          <input type="date" id="asOfDate" value="2026-07-10" aria-describedby="asOfDateNote">
+          <p class="adv-q-note" id="asOfDateNote">The date of the most recent paycheck counted in the amount above.</p>
         </div>
 
         <div class="field">
-          <label for="payFrequency">How often are you paid?</label>
+          <label for="payFrequency">How often do you get paid?</label>
           <select id="payFrequency">
-            <option value="weekly">Weekly (52 paychecks a year)</option>
-            <option value="biweekly" selected>Every two weeks (26)</option>
-            <option value="semimonthly">Twice a month (24)</option>
-            <option value="monthly">Monthly (12)</option>
+            <option value="weekly">Every week (52 paychecks a year)</option>
+            <option value="biweekly" selected>Every two weeks (26 a year)</option>
+            <option value="semimonthly">Twice a month (24 a year)</option>
+            <option value="monthly">Once a month (12 a year)</option>
           </select>
         </div>
 
         <div class="field">
-          <label for="nextPayDate">Date of your next paycheck</label>
-          <input type="date" id="nextPayDate" value="2026-07-24">
-          <p class="muted-small" style="margin-top:6px">Later pay dates are estimated from this one (every 14 days for biweekly, the 15th/last-day for semimonthly, same day-of-month for monthly) — adjust it if your actual schedule differs.</p>
+          <label for="nextPayDate">When is your next payday?</label>
+          <input type="date" id="nextPayDate" value="2026-07-24" aria-describedby="nextPayDateNote">
+          <p class="adv-q-note" id="nextPayDateNote">We work the later paydays out from this one and your answer above: every 14 days if you are paid every two weeks, the 15th and the last day of the month if you are paid twice a month, and the same date each month if you are paid monthly. If your real dates differ, change this one and the rest move with it.</p>
         </div>
 
         <div class="field">
-          <label for="perPeriodWages">Typical Social Security wages per future paycheck</label>
-          <input type="text" id="perPeriodWages" inputmode="decimal" data-money autocomplete="off" value="6000">
-          <p class="muted-small" style="margin-top:6px">Roughly the same Social Security wages you expect each remaining paycheck this year (before any raise below).</p>
+          <label for="perPeriodWages">How much do you expect to earn on each paycheck from now on?</label>
+          <input type="text" id="perPeriodWages" inputmode="decimal" data-money autocomplete="off" value="6000" aria-describedby="perPeriodWagesNote">
+          <p class="adv-q-note" id="perPeriodWagesNote">Measured the same way as the amount at the top, so before tax but after anything taken out for health cover, an HSA or an FSA. If your pay goes up later in the year, put what you earn now and answer the question below.</p>
         </div>
 
-        <div class="field">
-          <label for="hasRaise"><input type="checkbox" id="hasRaise"> I'm getting a raise partway through the year</label>
-        </div>
-        <div id="raiseFields" style="display:none">
-          <div class="field">
-            <label for="raisePeriod">Which future paycheck does the raise start on?</label>
-            <input type="number" id="raisePeriod" inputmode="numeric" min="1" step="1" value="3">
-            <p class="muted-small" style="margin-top:6px">Count your NEXT paycheck as #1. A raise starting on paycheck 3 means paychecks 1 and 2 are still at the old amount.</p>
-          </div>
-          <div class="field">
-            <label for="raiseAmount">New Social Security wages per paycheck after the raise</label>
-            <input type="text" id="raiseAmount" inputmode="decimal" data-money autocomplete="off" value="9000">
-          </div>
-        </div>
+        <fieldset class="adv">
+          <legend>One more question, only if it applies to you</legend>
+          <p class="adv-hint">Leave it on No and you get exactly the same answer as before.</p>
+
+          <fieldset class="adv-q" aria-describedby="qRaiseNote">
+            <legend>Is your pay going up before the end of the year?</legend>
+            <p class="adv-q-note" id="qRaiseNote">A raise, a promotion, or any new pay rate that starts partway through the year. Earning more gets you to the yearly cap sooner, so the date your Social Security tax stops moves earlier.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qRaise" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" id="hasRaise" name="qRaise" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" id="raiseFields" data-reveal="qRaise">
+              <div class="field">
+                <label for="raisePeriod">Which paycheck is the first one at the new rate?</label>
+                <input type="number" id="raisePeriod" inputmode="numeric" min="1" step="1" value="3" data-qf-off="1" aria-describedby="raisePeriodNote">
+                <p class="adv-q-note" id="raisePeriodNote">Count your next paycheck as 1. Putting 3 here means your next two paychecks are still at the old amount and the third one is the first bigger one.</p>
+              </div>
+              <div class="field">
+                <label for="raiseAmount">How much will you earn on each paycheck after that?</label>
+                <input type="text" id="raiseAmount" inputmode="decimal" data-money autocomplete="off" value="9000" aria-describedby="raiseAmountNote">
+                <p class="adv-q-note" id="raiseAmountNote">The new amount per paycheck, measured the same way as the box above.</p>
+              </div>
+            </div>
+          </fieldset>
+        </fieldset>
       </form>
 
       <div class="obbba-out" id="out" aria-live="polite"></div>
@@ -96,25 +126,36 @@
       <div class="fica-panel">
         <h2>Had more than one employer this year? Check for excess Social Security</h2>
         <p class="muted-small">The wage base applies per employer, not per person — so if you switched or held two jobs, each employer withholds independently from $0. That can mean MORE than the annual maximum ($11,439.00 for 2026) withheld in total, even though neither employer ever "stopped."</p>
+        <!-- The number of jobs IS this panel's plain question, so it stays an
+             always-visible select rather than a yes/no question in front of a select.
+             The job 2 and job 3 boxes are revealed by ss-wage-base-calculator.js
+             (updateEmployerVisibility) off that select, not by question-flow.js, so they
+             carry no data-reveal. They now ship VISIBLE and are hidden by that script on
+             load, matching the hide-on-demand rule everywhere else on the site: a broken
+             script leaves every box on screen instead of hiding boxes nobody can reach.
+             LOAD-BEARING IDS, do not rename: numEmployers (its option VALUES 1/2/3 are
+             parsed as the job count), employer1Field, employer2Field, employer3Field,
+             employer1, employer2, employer3. -->
         <form id="ficaForm" autocomplete="off" onsubmit="return false">
           <div class="field">
-            <label for="numEmployers">Employers who withheld Social Security tax this year</label>
+            <label for="numEmployers">How many jobs took Social Security tax out of your pay this year?</label>
             <select id="numEmployers">
-              <option value="1" selected>1</option>
-              <option value="2">2</option>
-              <option value="3">3 or more</option>
+              <option value="1" selected>1 job</option>
+              <option value="2">2 jobs</option>
+              <option value="3">3 or more jobs</option>
             </select>
           </div>
           <div class="field" id="employer1Field">
-            <label for="employer1">Social Security tax withheld so far — Employer 1 ($)</label>
-            <input type="text" id="employer1" inputmode="decimal" data-money autocomplete="off" value="7440">
+            <label for="employer1">How much Social Security tax has the first job taken out so far?</label>
+            <input type="text" id="employer1" inputmode="decimal" data-money autocomplete="off" value="7440" aria-describedby="employer1Note">
+            <p class="adv-q-note" id="employer1Note">On a pay stub this is the year-to-date line marked <strong>Social Security</strong>, OASDI or FICA-SS. On a W-2 it is <strong>Box 4</strong>. It is the tax taken out, not the wages it was taken from, so it is a much smaller number than the amount at the top of the page.</p>
           </div>
-          <div class="field" id="employer2Field" style="display:none">
-            <label for="employer2">Social Security tax withheld so far — Employer 2 ($)</label>
+          <div class="field" id="employer2Field">
+            <label for="employer2">How much has the second job taken out so far?</label>
             <input type="text" id="employer2" inputmode="decimal" data-money autocomplete="off" value="6820">
           </div>
-          <div class="field" id="employer3Field" style="display:none">
-            <label for="employer3">Social Security tax withheld so far — Employer 3+ (combined) ($)</label>
+          <div class="field" id="employer3Field">
+            <label for="employer3">How much have your other jobs taken out between them?</label>
             <input type="text" id="employer3" inputmode="decimal" data-money autocomplete="off" value="0">
           </div>
         </form>

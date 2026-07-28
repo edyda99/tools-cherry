@@ -29,44 +29,67 @@
     <h1>Senior Bonus Deduction Calculator</h1>
     <section class="calc" aria-label="Senior bonus deduction calculator">
       <h2 class="sr-only">Senior deduction calculator</h2>
+      <!-- Every control here is required to get any answer at all: the year, how
+           you file, who is 65 or older, and your income. Nothing is left over as
+           optional, so this form deliberately carries no "Advanced" block and no
+           [data-reveal] wrappers, and question-flow.js (this path is opted in via
+           QUESTION_FLOW_PAGES in build.js) simply finds nothing to hide. The fix
+           here is wording, not machinery: every label is now a real question, and
+           the jargon those labels used to lean on (filing status, MAGI, the
+           phase-out) survives verbatim in the small note under its own field, so
+           a visitor who already knows the term still recognises it and a visitor
+           who does not is never blocked by it.
+           #spouseRow is shown and hidden by render() in
+           senior-deduction-calculator.js off the filing answer, which is why it
+           must never also carry data-reveal: question-flow.js sets the same
+           `hidden` property, and pointing both at one element would let the two
+           fight. The id stays on the element that gets hidden, and the note now
+           sits inside it so the explanation disappears with the question. -->
       <form id="seniorForm" autocomplete="off" onsubmit="return false">
         <div class="field">
-          <label for="year">Tax year</label>
+          <label for="year">Which tax year are you working out?</label>
           <select id="year">
             <option value="2025">2025</option>
             <option value="2026">2026</option>
             <option value="2027">2027</option>
             <option value="2028">2028</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">The deduction exists for 2025 through 2028 only.</p>
+          <p class="muted-small" style="margin-top:6px">Pick the year the tax return covers, not today's date. This deduction exists for 2025 through 2028 only.</p>
         </div>
 
         <div class="field">
-          <label for="filing">Filing status</label>
+          <label for="filing">How do you file your tax return?</label>
           <select id="filing">
-            <option value="single">Single</option>
-            <option value="married">Married filing jointly</option>
-            <option value="married_separate">Married filing separately</option>
-            <option value="head_of_household">Head of household</option>
-            <option value="qss">Qualifying surviving spouse</option>
+            <option value="single">On my own (single)</option>
+            <option value="married">Married, and we file one return together (married filing jointly)</option>
+            <option value="married_separate">Married, but we each file our own return (married filing separately)</option>
+            <option value="head_of_household">On my own, paying most of the costs of a home for a child or relative (head of household)</option>
+            <option value="qss">Widowed in the last two years, with a dependent child at home (qualifying surviving spouse)</option>
           </select>
-        </div>
-
-        <div class="field check-field">
-          <input type="checkbox" id="age65" checked>
-          <label for="age65">I will be <strong>65 or older on December 31</strong> of the tax year <span class="muted-small">(for 2025: born before January 2, 1961)</span></label>
-        </div>
-
-        <div class="field check-field" id="spouseRow" hidden>
-          <input type="checkbox" id="spouseAge65">
-          <label for="spouseAge65">My spouse will be <strong>65 or older on December 31</strong> of the tax year</label>
+          <p class="muted-small" style="margin-top:6px">This is the box you tick at the top of Form 1040, known as your filing status. It sets the income level where this deduction starts to shrink. Married couples have to file one return together to claim it, so filing separately gets $0.</p>
         </div>
 
         <div class="field">
-          <label for="magi">Your yearly income before deductions</label>
+          <div class="check-field">
+            <input type="checkbox" id="age65" checked>
+            <label for="age65">I will be <strong>65 or older on December 31</strong> of that tax year <span class="muted-small">(for the 2025 return, born before January 2, 1961)</span></label>
+          </div>
+          <p class="muted-small" style="margin-top:6px">Age is the only test. You do not have to be retired, and you do not have to be receiving Social Security, despite the "no tax on Social Security" nickname.</p>
+        </div>
+
+        <div class="field" id="spouseRow" hidden>
+          <div class="check-field">
+            <input type="checkbox" id="spouseAge65">
+            <label for="spouseAge65">My spouse will also be <strong>65 or older on December 31</strong> of that tax year</label>
+          </div>
+          <p class="muted-small" style="margin-top:6px">Each of you who is 65 or older adds another $6,000, so a couple where both qualify starts from $12,000. This question only appears when you file one return together.</p>
+        </div>
+
+        <div class="field">
+          <label for="magi">What is your yearly income?</label>
           <input type="text" id="magi" inputmode="decimal" data-money autocomplete="off" value="60000">
-          <p class="muted-small">If you filed last year, this is line 11 on your Form 1040.</p>
-          <p class="muted-small" style="margin-top:6px">The law technically uses MAGI — modified adjusted gross income, roughly your AGI — for almost everyone it's the same number. Filing jointly? Use your combined income.</p>
+          <p class="muted-small" style="margin-top:6px">Use the income figure from your tax return, line 11 on Form 1040. Filing one return with your spouse? Use the combined figure for the two of you.</p>
+          <p class="muted-small" style="margin-top:6px">The law calls this figure your modified adjusted gross income, or MAGI, but for almost everyone it is the same number as line 11. Above $75,000 on your own, or $150,000 filing jointly, the deduction shrinks by 6 cents for every extra dollar, reaching $0 at $175,000 and $250,000.</p>
         </div>
       </form>
 

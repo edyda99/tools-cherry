@@ -211,6 +211,67 @@ function injectToolScript(html, scriptPath) {
 function injectFeedback(html) { return injectToolScript(html, '/assets/feedback-widget.js'); }
 function injectReport(html) { return injectToolScript(html, '/assets/report-widget.js'); }
 
+// --- question-flow.js opt-in -------------------------------------------------
+// src/assets/question-flow.js is the generic "answer a plain question, then see
+// the field it needs" controller: it reads every [data-reveal] wrapper on the
+// page, finds the yes/no radio group named in the attribute, and hides the
+// wrapper while the answer is No. It is hide-on-demand only, so a page that
+// loads it but ships no questions is completely unaffected.
+//
+// It is opt-in BY PATH rather than by sniffing the markup for [data-reveal],
+// because a page is converted to the question flow by a template edit, and a
+// build that guessed from the markup would silently start loading a script onto
+// whatever page happened to grow a data-reveal attribute next. Listing the paths
+// here keeps "which pages run this" reviewable in one place.
+//
+// Deliberately EXCLUDED: the 51 /{state}-paycheck-calculator/ pages. app.js
+// already carries the same reveal logic there (syncAdvancedQuestions) plus the
+// engine coupling that zeroes a No-answered field's contribution. Loading this
+// file on top would double-bind the change listeners and the two copies would
+// fight over focus. See the header comment in src/assets/question-flow.js.
+const QUESTION_FLOW_PAGES = new Set([
+  '/1099-threshold-checker/',
+  '/1099-vs-w2-calculator/',
+  '/401k-calculator/',
+  '/able-account-calculator/',
+  '/adoption-credit-calculator/',
+  '/bonus-tax-calculator/',
+  '/charitable-deduction-calculator/',
+  '/dependent-care-fsa-vs-credit-calculator/',
+  '/employer-student-loan-repayment-calculator/',
+  '/overtime-tax-calculator/',
+  '/pmi-deduction-calculator/',
+  '/qcd-vs-charitable-deduction-calculator/',
+  '/roth-catchup-calculator/',
+  '/salt-cap-calculator/',
+  '/senior-deduction-calculator/',
+  '/ss-wage-base-calculator/',
+  '/student-loan-cap-calculator/',
+  '/tips-tax-calculator/',
+  '/w2-box-decoder/',
+  '/w4-overtime-tips-withholding-calculator/',
+]);
+// The 51 /{state}-bonus-tax-calculator/ pages all render from the one
+// bonus-tax-calculator-state.html template, so they opt in as a family rather
+// than as 51 literal entries above. Anchored at both ends so it can only ever
+// match that exact URL shape.
+const QUESTION_FLOW_PAGE_RE = /^\/[a-z-]+-bonus-tax-calculator\/$/;
+
+function wantsQuestionFlow(currentPath) {
+  const p = String(currentPath || '');
+  return QUESTION_FLOW_PAGES.has(p) || QUESTION_FLOW_PAGE_RE.test(p);
+}
+
+// Loaded as type="module" (matching state-flow.js): module scripts are deferred
+// by default and keep their top-level names out of the global scope, so this can
+// never collide with a tool's own /assets/<tool>.js. The path is rewritten to
+// its content-hashed name by the final rewriteHtmlAssetRefs pass. Idempotent.
+function injectQuestionFlow(html, currentPath) {
+  if (!wantsQuestionFlow(currentPath)) return html;
+  if (html.includes('/assets/question-flow.js') || !html.includes('</head>')) return html;
+  return html.replace('</head>', '<script type="module" src="/assets/question-flow.js"></script>\n</head>');
+}
+
 // Build date (YYYY-MM-DD) — used for the sitemap's per-URL lastmod default.
 const BUILD_DATE = new Date().toISOString().slice(0, 10);
 
@@ -1251,6 +1312,10 @@ function fillTool(tpl, map, currentPath) {
     out = out.replace('</h1>', `</h1>\n    ${toolUpdatedLine(currentPath)}`);
   }
   out = out.replace('<footer class="site">', `${toolSourcesBlock(currentPath)}\n${relatedToolsBlock(currentPath)}\n<footer class="site">`);
+  // Plain-question reveal controller, on the listed tax pages only (no-op on
+  // every other path). The 51 state bonus pages render through fill(), not
+  // fillTool(), so they call injectQuestionFlow directly at their write site.
+  out = injectQuestionFlow(out, currentPath);
   if (NOINDEX_TOOLS.has(currentPath)) {
     out = out.replace('</head>', '  <meta name="robots" content="noindex, follow">\n</head>');
   }
@@ -2986,13 +3051,79 @@ async function hashAssets(queue) {
   return hashMap;
 }
 
-// Final pass: walk the whole dist/ tree and rewrite every `src="/assets/X.js"`
-// (or similarly-quoted) reference to its hashed name. Run once at the very end
-// of the build instead of touching each of the ~110 template writeFile() call
-// sites individually — every HTML file (main tool pages, /embed/ pages, state
-// pages, home, static content pages) goes through this single choke point, so
-// nothing can slip through by having been written via a path this pass doesn't
-// know about.
+// Strip HTML comments from an EMITTED page. The comments stay in
+// src/templates/*.html — they are how this codebase explains itself, and the one
+// place a future editor will look before changing a block of markup. What they
+// are not is something a visitor should download: dist/ was shipping ~152 KB of
+// internal engineering rationale across 58 pages, on pages whose whole value
+// proposition is that they load fast.
+//
+// Conservative by construction. It walks the string left to right and copies,
+// rather than running a global regex, so it can only delete a run of characters
+// it has positively identified as a comment sitting in ordinary markup:
+//   - <script>, <style>, <pre> and <textarea> elements are copied through
+//     whole. Inside them "<!--" is either meaningful (the legacy JS comment
+//     form) or literal text a visitor is meant to read, and in <pre> even the
+//     whitespace is content.
+//   - IE conditional comments (<!--[if ...]> ... <![endif]-->) are kept
+//     verbatim: they are markup, not commentary.
+//   - Anything malformed — an unterminated comment, an element whose closing
+//     tag is missing — stops the pass, and the remainder of the file is copied
+//     through untouched. A page that cannot be shortened safely ships as-is.
+// When a comment sat alone on its own line, the now-blank line goes with it;
+// that is whitespace between block elements, which no renderer treats as
+// content (and <pre>, where it would, is never reached).
+function stripHtmlComments(html) {
+  if (!html.includes('<!--')) return html;
+  const lower = html.toLowerCase();
+  const GUARD = /<(script|style|pre|textarea)\b/gi;
+  let out = '';
+  let i = 0;
+  while (i < html.length) {
+    const c = html.indexOf('<!--', i);
+    if (c === -1) { out += html.slice(i); break; }
+    // If a guarded element opens before the next comment, copy that whole
+    // element across untouched and resume after it.
+    GUARD.lastIndex = i;
+    const g = GUARD.exec(html);
+    if (g && g.index < c) {
+      const close = lower.indexOf(`</${g[1].toLowerCase()}`, g.index);
+      const closeEnd = close === -1 ? -1 : html.indexOf('>', close);
+      if (closeEnd === -1) { out += html.slice(i); break; } // unbalanced: leave the rest alone
+      out += html.slice(i, closeEnd + 1);
+      i = closeEnd + 1;
+      continue;
+    }
+    const end = html.indexOf('-->', c);
+    if (end === -1) { out += html.slice(i); break; } // unterminated: leave the rest alone
+    let next = end + 3;
+    if (/^\s*\[if/i.test(html.slice(c + 4, end))) {
+      out += html.slice(i, next); // IE conditional comment: keep verbatim
+    } else {
+      let head = html.slice(i, c);
+      // Comment alone on its own line: take the line with it.
+      const lineOnly = /(^|\n)[ \t]*$/.test(head) && /^[ \t]*(\r?\n|$)/.test(html.slice(next));
+      if (lineOnly) {
+        head = head.replace(/[ \t]*$/, '');
+        const nl = /^[ \t]*\r?\n/.exec(html.slice(next));
+        if (nl) next += nl[0].length;
+      }
+      out += head;
+    }
+    i = next;
+  }
+  return out;
+}
+
+// Final pass: walk the whole dist/ tree, strip the internal HTML comments from
+// every page, and rewrite every `src="/assets/X.js"` (or similarly-quoted)
+// reference to its hashed name. Run once at the very end of the build instead of
+// touching each of the ~110 template writeFile() call sites individually — every
+// HTML file (main tool pages, /embed/ pages, state pages, home, static content
+// pages) goes through this single choke point, so nothing can slip through by
+// having been written via a path this pass doesn't know about. Comments are
+// stripped FIRST, so a commented-out asset reference is gone before the hash
+// rewrite has a chance to touch it.
 async function rewriteHtmlAssetRefs(dir, hashMap) {
   const entries = await readdir(dir, { withFileTypes: true });
   for (const entry of entries) {
@@ -3004,6 +3135,8 @@ async function rewriteHtmlAssetRefs(dir, hashMap) {
     if (!entry.name.endsWith('.html')) continue;
     let html = await read(full);
     let changed = false;
+    const stripped = stripHtmlComments(html);
+    if (stripped !== html) { html = stripped; changed = true; }
     for (const [orig, hashed] of hashMap) {
       const re = new RegExp(`(["'])/assets/${orig.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\1`, 'g');
       if (re.test(html)) {
@@ -3348,6 +3481,7 @@ async function main() {
   registerAsset('assets', 'report-widget.js'); // "Report a wrong result" inline reporter (tool pages)
   registerAsset('assets', 'what-applies-to-me.js'); // visibility-only flow controller (/what-applies-to-me/)
   registerAsset('assets', 'state-flow.js'); // hide-on-demand controller for the 4-question block on state paycheck pages
+  registerAsset('assets', 'question-flow.js'); // generic [data-reveal] question controller (opt-in per page, see QUESTION_FLOW_PAGES)
   registerAsset('assets', 'recent-tools.js'); // records visits for the Cmd/Ctrl+K palette's recents list (tool pages)
   registerAsset('assets', 'money-input.js'); // live thousands separators for $ fields (shared leaf)
   registerAsset('assets', 'state-flow.js'); // guided rule-finder flow on the 51 state paycheck pages
@@ -3679,7 +3813,9 @@ async function main() {
       bonusSizeTable(state, suppEntry, taxData, suppData),
       bonusNeighborTable(state, suppEntry, roster, builtSlugs, taxData, suppData)
     ], slug);
-    const html = fill(bonusTaxStateTpl, {
+    // injectQuestionFlow, not fillTool: these 51 pages are written through the
+    // plain fill() path, so the reveal controller has to be attached here.
+    const html = injectQuestionFlow(fill(bonusTaxStateTpl, {
       STATE_NAME: state.name,
       STATE_ABBR: state.abbr,
       STATE_SLUG: slug,
@@ -3699,7 +3835,7 @@ async function main() {
       VERIFIED: verified,
       SITE_NAME: SITE.name,
       SITE_URL: SITE.url
-    });
+    }), `/${slug}-bonus-tax-calculator/`);
     const bonusRelated = relatedLinksHtml(orderAncillary(slug, [
       { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
       { name: `${state.name} Paycheck Calculator`, path: `/${slug}-paycheck-calculator/` },

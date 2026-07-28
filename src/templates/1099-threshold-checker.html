@@ -37,62 +37,91 @@
     <p class="lede"><strong>A 1099 is a reporting trigger, not a tax trigger.</strong> Getting one just means a copy of a payment record went to the IRS — it doesn't create tax you didn't already owe, and not getting one doesn't make income tax-free. What actually changed in 2025/2026: payment <strong>apps</strong> like PayPal and Venmo now issue a 1099-K only above <strong>$20,000 AND 200 transactions</strong> (both, strictly); <strong>card</strong> processors like Stripe and Square have <strong>no minimum at all</strong> — that's a completely different rule, not a smaller version of the app rule; and a business paying you <strong>directly</strong> issues a 1099-NEC or 1099-MISC at <strong>$2,000</strong> for 2026 (it was $600 through 2025). Enter how you were paid below to see exactly which form applies. Everything runs in your browser — nothing is uploaded.</p>
 
     <section class="calc" aria-label="1099-K / 1099-NEC threshold checker">
+      <!-- The form is a plain sequence of questions in the order a person would
+           think of them: who paid, how much, then only the follow-ups that branch
+           actually needs. The three conditional wrappers (#txnField, #natureField,
+           #purposeField) are shown and hidden by updateFieldVisibility() in
+           1099-threshold-checker.js off the #payerType answer, so they
+           deliberately do NOT carry data-reveal: question-flow.js toggles
+           [hidden] and the tool script toggles style.display, and pointing both
+           at one element would let the two fight. Only the genuinely optional
+           field (the state overlay) uses the question pattern, and its wrapper
+           ships VISIBLE so a broken or absent script can never hide it from a
+           person or a crawler. Every jargon term the old labels leaned on (gross,
+           goods and services, 1099-NEC, 1099-MISC, 1099-K) survives verbatim in
+           the note under its field, so a visitor who knows the term still
+           recognises it. -->
       <form id="f1099Form" autocomplete="off" onsubmit="return false">
         <div class="field">
-          <label for="taxYear">Tax year</label>
+          <label for="payerType">How were you paid?</label>
+          <select id="payerType">
+            <option value="network" selected>Through a payment app or an online marketplace (PayPal, Venmo, Cash App for Business, Etsy, eBay, Airbnb)</option>
+            <option value="card">By card (Stripe, Square, Toast, or a card tapped or swiped in person)</option>
+            <option value="direct">Straight from a business (check, cash, bank transfer, direct deposit)</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">Start here. These three follow completely different rules, and only one of them can ever apply to the same money, so this answer decides everything below.</p>
+        </div>
+
+        <div class="field">
+          <label for="amount">How much were you paid this year, in total?</label>
+          <input type="text" id="amount" inputmode="decimal" data-money autocomplete="off" value="8000">
+          <p class="muted-small" style="margin-top:6px">Count everything this one app, card processor, or business paid you over the calendar year, before any fees or refunds came out. That full figure is often called the gross amount.</p>
+        </div>
+
+        <div class="field" id="txnField">
+          <label for="transactions">How many separate payments was that?</label>
+          <input type="number" id="transactions" inputmode="numeric" min="0" step="1" value="60">
+          <p class="muted-small" style="margin-top:6px">Payment apps and marketplaces count payments as well as dollars, so the number matters here in a way it never does for cards or for a business paying you directly. Your app usually shows this in its yearly summary.</p>
+        </div>
+
+        <div class="field" id="natureField">
+          <label for="paymentNature">What was this money for?</label>
+          <select id="paymentNature">
+            <option value="business" selected>Selling something, or being paid for work I did</option>
+            <option value="personal">Personal, like splitting a bill, a gift, or a friend paying me back</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">Apps call the first one goods and services. Money you pass back and forth with friends is not income and never triggers a form, though an app can tag it wrong by mistake.</p>
+        </div>
+
+        <div class="field" id="purposeField">
+          <label for="paymentPurpose">What did the business pay you for?</label>
+          <select id="paymentPurpose">
+            <option value="services" selected>Work I did, such as freelance, contract, or self-employed work</option>
+            <option value="rent_other">Rent, or another kind of income</option>
+          </select>
+          <p class="muted-small" style="margin-top:6px">The first leads to a form called a 1099-NEC, the second to a 1099-MISC. Both use exactly the same dollar limit, so this only changes which name is printed on the form.</p>
+        </div>
+
+        <div class="field">
+          <label for="taxYear">Which year are you checking?</label>
           <select id="taxYear">
             <option value="2025">2025</option>
             <option value="2026" selected>2026</option>
             <option value="2027">2027</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">The 1099-K app/marketplace rule ($20,000/200 transactions) is the same for 2025 and 2026. The direct-payment floor is $600 for 2025 and $2,000 for 2026+; 2027 is inflation-adjusted and shown as an estimate.</p>
+          <p class="muted-small" style="margin-top:6px">For payment apps the limit ($20,000 and more than 200 payments) is the same in 2025 and 2026. For a business paying you directly it is $600 for 2025 and $2,000 from 2026 on. The 2027 figure rises with inflation and is shown here as an estimate.</p>
         </div>
 
-        <div class="field">
-          <label for="payerType">How were you paid?</label>
-          <select id="payerType">
-            <option value="network" selected>Payment app or marketplace (PayPal, Venmo, Etsy, Cash App…)</option>
-            <option value="card">Card payment (Stripe, Square, Toast, in-person card/gift card)</option>
-            <option value="direct">A business paying me directly (check, ACH, cash, bank transfer)</option>
-          </select>
-          <p class="muted-small" style="margin-top:6px">This decides which rule and which form apply — apps, card processors, and direct payers each follow a different threshold.</p>
-        </div>
+        <fieldset class="adv">
+          <legend>One extra check, only if it applies to you</legend>
+          <p class="adv-hint">Leaving this on No gives you the federal answer, which is the one most people need.</p>
 
-        <div class="field">
-          <label for="amount">Gross amount this year ($)</label>
-          <input type="text" id="amount" inputmode="decimal" data-money autocomplete="off" value="8000">
-          <p class="muted-small" style="margin-top:6px">Total from this one platform, processor, or payer this calendar year — gross, before fees or refunds.</p>
-        </div>
-
-        <div class="field" id="txnField">
-          <label for="transactions">Number of transactions</label>
-          <input type="number" id="transactions" inputmode="numeric" min="0" step="1" value="60">
-          <p class="muted-small" style="margin-top:6px">Only payment apps/marketplaces count transactions — count matters here in a way it doesn't for cards or direct pay.</p>
-        </div>
-
-        <div class="field" id="natureField">
-          <label for="paymentNature">What was it for?</label>
-          <select id="paymentNature">
-            <option value="business" selected>Goods & services / business income</option>
-            <option value="personal">Personal (splitting a bill, a gift, a reimbursement)</option>
-          </select>
-          <p class="muted-small" style="margin-top:6px">Personal transfers aren't income and don't trigger a form — though a platform can mistakenly tag one as goods & services.</p>
-        </div>
-
-        <div class="field" id="purposeField">
-          <label for="paymentPurpose">What was the direct payment for?</label>
-          <select id="paymentPurpose">
-            <option value="services" selected>Services / freelance or contract work (1099-NEC)</option>
-            <option value="rent_other">Rent or other income (1099-MISC)</option>
-          </select>
-          <p class="muted-small" style="margin-top:6px">Both forms share the identical dollar threshold — this only decides which form name applies.</p>
-        </div>
-
-        <div class="field">
-          <label for="state">Your state (optional)</label>
-          <select id="state"><option value="">Not sure / skip</option></select>
-          <p class="muted-small" style="margin-top:6px">A few states set their own, lower 1099-K threshold. Informational only — verify with your state.</p>
-        </div>
+          <fieldset class="adv-q" aria-describedby="qStateNote">
+            <legend>Do you want to check whether your own state adds a rule of its own?</legend>
+            <p class="adv-q-note" id="qStateNote">A few states, including Massachusetts, Maryland, Virginia, Vermont, Washington D.C., Montana, and North Carolina, set a lower limit of their own for the form that apps and card processors send, the 1099-K. You can stay under the federal limit and still get one because your state asked for it. This changes nothing when a business pays you directly.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qState" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qState" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qState">
+              <div class="field">
+                <label for="state">Which state do you live in?</label>
+                <select id="state"><option value="">Not sure / skip</option></select>
+                <p class="adv-q-note">For information only. State rules change most years, so check with your own state's tax agency before you rely on this.</p>
+              </div>
+            </div>
+          </fieldset>
+        </fieldset>
       </form>
 
       <div class="obbba-out" id="out" aria-live="polite"></div>

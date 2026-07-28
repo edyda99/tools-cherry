@@ -32,74 +32,133 @@
     <p class="note" style="margin-top:0"><strong>Companion to the filing-time tools.</strong> The <a href="/overtime-tax-calculator/">no tax on overtime calculator</a> and <a href="/tips-tax-calculator/">no tax on tips calculator</a> answer "how much will this deduction save me on my return?" This one answers the other half: "how do I get that money in my paychecks now instead of as a refund?"</p>
 
     <section class="calc" aria-label="W-4 overtime and tips withholding calculator">
+      <!-- The three things everyone has to answer (how you file, what you earn,
+           how often you are paid) stay in the main flow, reworded so nobody has
+           to know a tax word to fill them in. The three conditional ones (tips,
+           overtime, filing the W-4 part-way through the year) are now plain
+           questions instead of jargon-labelled money boxes. The fields each
+           question needs live inside a [data-reveal] wrapper that ships VISIBLE
+           in the built HTML; this page opts in to question-flow.js via
+           QUESTION_FLOW_PAGES in build.js, and that script only ever ADDS
+           `hidden` once the page is up. Hide-on-demand, never show-on-demand, so
+           JavaScript off, JavaScript broken or a crawler all still see every
+           field. The jargon each question replaces (qualified tips, overtime
+           premium, time-and-a-half, modified adjusted gross income, filing
+           status) survives verbatim in the small note under it, so a visitor who
+           already knows the term still recognises the field and the words stay
+           findable.
+
+           The ids filing, income, freq, tips, otrate, othours, otpremium and
+           months, the wrappers #ot-hours and #ot-premium, and the radio group
+           named otmode with its values "hours" and "premium", are all read by
+           w4-overtime-tips-withholding-calculator.js. Do not rename any of them.
+
+           Two deliberate departures from the usual "every question starts on No".
+           qOt starts on YES because the overtime boxes have always shipped with
+           example numbers ($20 an hour, 300 hours), so an untouched page keeps
+           computing exactly what it computed before. And #months carries
+           data-qf-off="12" because question-flow's usual neutral for a number box
+           is 0, which would feed the engine "no months left" instead of a full
+           year; parking it at 12 is what "this does not apply to me" means here. -->
       <form id="w4Form" autocomplete="off" onsubmit="return false">
         <div class="field">
-          <label for="filing">Filing status</label>
-          <select id="filing">
+          <label for="filing">How do you send in your tax return?</label>
+          <select id="filing" aria-describedby="filingNote">
             <option value="single">Single</option>
             <option value="married">Married filing jointly</option>
             <option value="head_of_household">Head of household</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">Married workers must file jointly to claim these deductions — married filing separately is not eligible, so it isn't offered.</p>
+          <p class="muted-small" id="filingNote" style="margin-top:6px">Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>. Pick Single if you are not married. Pick Married filing jointly if you are married and you and your spouse send in one return together, which married couples have to do to get these breaks, so filing separately is not on the list. Pick Head of household if you are unmarried and pay most of the cost of a home for a child or another dependent.</p>
         </div>
 
         <div class="field">
-          <label for="income">Your total expected 2026 income (all sources)</label>
-          <input type="text" id="income" inputmode="decimal" data-money autocomplete="off" value="52000">
-          <p class="muted-small" style="margin-top:6px">Roughly your modified adjusted gross income. It sets your tax bracket and the income phase-out. Filing jointly? Use your combined income.</p>
+          <label for="income">How much money do you expect to make in all of 2026?</label>
+          <input type="text" id="income" inputmode="decimal" data-money autocomplete="off" value="52000" aria-describedby="incomeNote">
+          <p class="muted-small" id="incomeNote" style="margin-top:6px">Count everything you expect to be paid this year, tips and overtime included. Married and sending in one return together? Add both incomes. This figure sets your tax rate, and it is also what decides whether these breaks start to shrink. Tax forms call it your modified adjusted gross income.</p>
         </div>
 
         <div class="field">
-          <label for="freq">How often are you paid?</label>
-          <select id="freq">
+          <label for="freq">How often do you get paid?</label>
+          <select id="freq" aria-describedby="freqNote">
             <option value="weekly">Weekly (52 paychecks a year)</option>
             <option value="biweekly">Every two weeks (26)</option>
             <option value="semimonthly">Twice a month (24)</option>
             <option value="monthly">Monthly (12)</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">Sets how the yearly withholding change is split across your paychecks.</p>
+          <p class="muted-small" id="freqNote" style="margin-top:6px">This is how we split the yearly change across your paychecks.</p>
         </div>
 
-        <div class="field">
-          <label for="tips">Expected qualified tips for the year ($)</label>
-          <input type="text" id="tips" inputmode="decimal" data-money autocomplete="off" value="0">
-          <p class="muted-small" style="margin-top:6px">Cash and charged tips you expect for all of 2026, up to a $25,000 cap. Leave at 0 if you don't earn tips.</p>
-        </div>
+        <fieldset class="adv">
+          <legend>A few questions about your pay</legend>
+          <p class="adv-hint">Set each answer to match you. Anything left on No is treated as nothing to report. The overtime boxes start with example numbers, so change them to yours.</p>
 
-        <div class="field">
-          <label>Your overtime</label>
-          <div class="ot-modes" role="radiogroup" aria-label="How to enter overtime">
-            <label><input type="radio" name="otmode" value="hours" checked> Enter hours &amp; rate</label>
-            <label><input type="radio" name="otmode" value="premium"> I know my premium</label>
-          </div>
-          <div id="ot-hours">
-            <div class="ot-row">
-              <div class="field" style="margin:0">
-                <label for="otrate" class="muted-small">Regular hourly rate ($)</label>
-                <input type="text" id="otrate" inputmode="decimal" data-money autocomplete="off" value="20">
-              </div>
-              <div class="field" style="margin:0">
-                <label for="othours" class="muted-small">Overtime hours for the year</label>
-                <input type="number" id="othours" inputmode="numeric" min="0" step="10" value="300">
+          <fieldset class="adv-q" aria-describedby="qTipsNote">
+            <legend>Do you get tips at work?</legend>
+            <p class="adv-q-note" id="qTipsNote">Cash tips, tips added to a card payment, and tips shared out by your workplace all count. Tax forms call these qualified tips.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qTips" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qTips" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qTips">
+              <div class="field">
+                <label for="tips">How much do you expect to get in tips over all of 2026?</label>
+                <input type="text" id="tips" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="tipsNote">
+                <p class="adv-q-note" id="tipsNote">A rough guess is fine. Only the first $25,000 of tips counts, so anything above that will not change the answer.</p>
               </div>
             </div>
-            <p class="muted-small" style="margin-top:6px">Only the <strong>premium</strong> counts — the extra "half" of time-and-a-half. We compute it as ½ &times; your rate &times; overtime hours (so $20/hr &times; 300 hrs = $3,000 of premium).</p>
-          </div>
-          <div id="ot-premium" hidden>
-            <label for="otpremium" class="muted-small">Overtime premium for the year ($) — the "half" portion</label>
-            <input type="text" id="otpremium" inputmode="decimal" data-money autocomplete="off" value="3000">
-            <p class="muted-small" style="margin-top:6px">Read it off a pay stub or your anticipated W-2 Box 12 <span class="w4-code">TT</span>. Enter only the premium (the extra half), not your full overtime pay.</p>
-          </div>
-        </div>
+          </fieldset>
 
-        <details class="field">
-          <summary>Adjusting part-way through the year? (optional)</summary>
-          <div style="margin-top:10px">
-            <label for="months">Months left in 2026 when you file the new W-4</label>
-            <input type="number" id="months" inputmode="numeric" min="1" max="12" step="1" value="12">
-            <p class="muted-small" style="margin-top:6px">Leave at 12 for a full-year adjustment. If you file the W-4 mid-year, the full annual reduction is spread over your <em>remaining</em> paychecks, so each remaining check rises by more.</p>
-          </div>
-        </details>
+          <fieldset class="adv-q" aria-describedby="qOtNote">
+            <legend>Do you get paid extra for overtime hours?</legend>
+            <p class="adv-q-note" id="qOtNote">This means hours paid at a higher rate than your usual one, such as time and a half. Only the extra part counts, not your whole overtime pay. Tax forms call that extra part your overtime premium.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qOt" value="no"><span>No</span></label>
+              <label class="seg"><input type="radio" name="qOt" value="yes" checked><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qOt">
+              <div class="ot-modes" role="radiogroup" aria-label="How you want to give us your overtime">
+                <label><input type="radio" name="otmode" value="hours" checked> Work it out for me</label>
+                <label><input type="radio" name="otmode" value="premium"> I already know the amount</label>
+              </div>
+              <div id="ot-hours">
+                <div class="ot-row">
+                  <div class="field" style="margin:0">
+                    <label for="otrate">What do you normally earn an hour?</label>
+                    <input type="text" id="otrate" inputmode="decimal" data-money autocomplete="off" value="20" aria-describedby="otHoursNote">
+                  </div>
+                  <div class="field" style="margin:0">
+                    <label for="othours">How many overtime hours do you expect for the whole year?</label>
+                    <input type="number" id="othours" inputmode="numeric" min="0" step="10" value="300" aria-describedby="otHoursNote">
+                  </div>
+                </div>
+                <p class="adv-q-note" id="otHoursNote">We count half your usual hourly rate for every overtime hour, because that half is the extra part. So $20 an hour and 300 overtime hours comes to $3,000.</p>
+              </div>
+              <div id="ot-premium" hidden>
+                <div class="field" style="margin:0">
+                  <label for="otpremium">How much extra did overtime pay you over the year, on top of your usual rate?</label>
+                  <input type="text" id="otpremium" inputmode="decimal" data-money autocomplete="off" value="3000" aria-describedby="otPremiumNote">
+                  <p class="adv-q-note" id="otPremiumNote">Just the extra part, not your whole overtime pay. If you normally earn $20 an hour and overtime pays $30, the extra is $10 an hour. You can also read the year's total off a pay stub, or from box 12 code <span class="w4-code">TT</span> on next year's W-2.</p>
+                </div>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="adv-q" aria-describedby="qMidYearNote">
+            <legend>Are you handing in the new W-4 part-way through the year?</legend>
+            <p class="adv-q-note" id="qMidYearNote">Answer No if you are setting this up at the start of the year, or if you just want the full-year figure.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qMidYear" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qMidYear" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qMidYear">
+              <div class="field">
+                <label for="months">How many months of 2026 are left when you hand it in?</label>
+                <input type="number" id="months" inputmode="numeric" min="1" max="12" step="1" value="12" data-qf-off="12" aria-describedby="monthsNote">
+                <p class="adv-q-note" id="monthsNote">The whole year's change gets squeezed into the paychecks you have left, so each of those checks goes up by more than it would over a full year.</p>
+              </div>
+            </div>
+          </fieldset>
+        </fieldset>
       </form>
 
       <div class="obbba-out" id="out" aria-live="polite"></div>

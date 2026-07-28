@@ -31,30 +31,62 @@
       <h2 class="sr-only">Tips tax savings calculator</h2>
       <form id="tipsForm" autocomplete="off" onsubmit="return false">
         <div class="field">
-          <label for="income">Your total annual income (all wages + tips, before tax)</label>
-          <input type="text" id="income" inputmode="decimal" data-money autocomplete="off" value="45000">
+          <label for="income">How much did you earn in total this year, before anything was taken out?</label>
+          <input type="text" id="income" inputmode="decimal" data-money autocomplete="off" value="45000" aria-describedby="incomeNote">
+          <p class="muted-small" id="incomeNote" style="margin-top:6px">Everything you were paid for the whole year, your wages and your tips together. Married and sending in one return together? Add both incomes. This number is what decides whether the tip break starts shrinking, which begins at $150,000 on your own or $300,000 filing jointly. Tax forms measure that against your modified adjusted gross income, or MAGI, which for almost everyone is the same figure.</p>
         </div>
 
         <div class="field">
-          <label for="tips">Tips you received this year</label>
-          <input type="text" id="tips" inputmode="decimal" data-money autocomplete="off" value="18000">
-          <p class="muted-small" style="margin-top:6px">Cash and charged tips you reported. Up to $25,000 can be deducted.</p>
+          <label for="tips">How much of that was tips?</label>
+          <input type="text" id="tips" inputmode="decimal" data-money autocomplete="off" value="18000" aria-describedby="tipsNote">
+          <p class="muted-small" id="tipsNote" style="margin-top:6px">The tips customers chose to give you over the year, in cash or on a card, as you reported them. Up to $25,000 of them can come off your taxable income. A charge the business adds by itself, such as an automatic 18% for a large table, is not a tip and does not count. Tax forms call the ones that do count qualified tips.</p>
         </div>
 
         <div class="field">
-          <label for="filing">Filing status</label>
+          <label for="filing">How do you send in your tax return?</label>
           <select id="filing">
             <option value="single">Single</option>
             <option value="married">Married filing jointly</option>
             <option value="head_of_household">Head of household</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">Married filing separately can't claim this deduction.</p>
+          <p class="muted-small" style="margin-top:6px">Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>. Pick Single if you are not married. Pick Married filing jointly if you are married and you and your spouse send in one return together, which married couples have to do to claim this break. Pick Head of household if you are unmarried and pay most of the cost of a home for a child or another dependent. Married but sending in separate returns means you cannot claim it.</p>
         </div>
 
-        <div class="field">
-          <label for="state">Your state <span class="muted-small">(for state conformity — optional)</span></label>
-          <select id="state"><option value="">— Select a state —</option></select>
-        </div>
+        <!-- The one optional thing this page asks for is now a plain question rather
+             than a jargon-labelled box sitting in the main flow. The select it needs
+             lives inside a [data-reveal] wrapper that ships VISIBLE in the built HTML;
+             /assets/question-flow.js (opted in by path in build.js) hides it only after
+             the page loads, and parks it back at its empty value when the answer goes
+             back to No, so a state picked and then un-picked cannot keep feeding the
+             verdict panel. Script off, script broken, or a crawler all still see every
+             field. Hide-on-demand, never show-on-demand. The jargon the question
+             replaces (state conformity) survives verbatim in the small note under it,
+             so a visitor who knows the term still recognises the field.
+
+             The ids income, tips, filing and state, and the filing option values
+             single / married / head_of_household, are read by
+             /assets/tips-tax-calculator.js and must not be renamed. Every .adv-q must
+             stay inside the .adv fieldset: its legend is styled by ".adv .adv-q legend"
+             and is unstyled anywhere else. -->
+        <fieldset class="adv">
+          <legend>One more question, only if it applies to you</legend>
+          <p class="adv-hint">Leave it on No and you get exactly the same answer as before.</p>
+
+          <fieldset class="adv-q" aria-describedby="qStateNote">
+            <legend>Do you want to know whether your state taxes your tips too?</legend>
+            <p class="adv-q-note" id="qStateNote">This break is a federal one, so it lowers the tax you send to Washington. Some states copy it, some do not, and nine states do not tax wages at all. Tax people call a state copying a federal rule conformity.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qState" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qState" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qState">
+              <div class="field">
+                <label for="state">Which state do you work in?</label>
+                <select id="state"><option value="">Select a state</option></select>
+              </div>
+            </div>
+          </fieldset>
+        </fieldset>
       </form>
 
       <div class="calc-answer">
@@ -100,7 +132,7 @@
       <h2>Who can claim it</h2>
       <p>You need a Social Security number valid for employment, and if you're married you must file jointly (married filing separately is not eligible). Both employees (tips on your <a href="/tax-glossary/#w-2">W-2</a>) and self-employed workers can claim it — the self-employed are limited to their net business income, and specified service businesses are excluded. You must work in one of the occupations the Treasury lists as customarily tipped — <a href="/w2-box-decoder/#ttoc-lookup">look up your occupation and its Box 14b code here</a>.</p>
       <h2>Does your state tax tips?</h2>
-      <p>This deduction is federal. Whether it also lowers your <em>state</em> income tax depends on your state — many states do not conform, some conform only from 2026, and nine states have no wage income tax at all. Pick your state above to see its treatment, or open your state's paycheck calculator for the detail.</p>
+      <p>This deduction is federal. Whether it also lowers your <em>state</em> income tax depends on your state — many states do not conform, some conform only from 2026, and nine states have no wage income tax at all. Answer the state question in the calculator above and pick your state to see how it treats them, or open your state's paycheck calculator for the detail.</p>
     </section>
 
     <div class="ad-slot" data-ad="incontent">Advertisement</div>

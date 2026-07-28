@@ -46,61 +46,110 @@
     <p class="lede">Three things changed for ABLE accounts in 2026: eligibility expanded to disabilities that began <strong>before age 46</strong> (up from 26), the base contribution limit became <strong>$20,000</strong> — and, for the first time, it is <strong>not</strong> the gift-tax exclusion ($19,000) — and the <strong>ABLE-to-Work</strong> addition became permanent: an employed beneficiary with no workplace-retirement-plan money that year can add, on top of the base, the lesser of their pay or the one-person federal poverty line for their state — a figure that's <strong>higher in Alaska and Hawaii</strong>. Enter this year's contributions to see the exact limit, the remaining room, and any excess (with the 6% excise rule). Everything runs in your browser — nothing is uploaded.</p>
 
     <section class="calc" aria-label="ABLE account contribution limit calculator">
+      <!-- The form is a short sequence of plain questions, not a wall of
+           jargon-labelled money fields. Every technical term this page used to
+           put in a label (W-2, compensation, 401(k)/403(b)/457(b), ABLE-to-Work,
+           529 rollover) survives verbatim in the small note under its question,
+           so a knowledgeable visitor still recognises the field and the terms
+           stay findable, while nobody is blocked by one.
+
+           HIDE-ON-DEMAND, NEVER SHOW-ON-DEMAND. Both conditional blocks
+           (#employedFields and the [data-reveal] rollover wrapper) ship VISIBLE
+           in the HTML; script only ever hides them after load. JavaScript off,
+           JavaScript broken, or a crawler all still see every field. The
+           rollover wrapper is driven by question-flow.js (this path is opted in
+           via QUESTION_FLOW_PAGES in build.js); #employedFields is driven by
+           able-account-calculator.js updateVisibility(), which sets
+           style.display directly, so it must NOT ship with display:none.
+
+           Element ids and option values here are the engine's contract, read by
+           able-account-calculator.js. #state must ship with zero <option>s or
+           populateStates() bails out. -->
       <form id="ableForm" autocomplete="off" onsubmit="return false">
+        <p class="muted-small">Throughout this form, the <strong>beneficiary</strong> is the person the ABLE account is for. If you are filling this in for yourself, that is you.</p>
+
         <div class="field">
-          <label for="onsetGate">How old was the beneficiary when the disability or blindness began?</label>
-          <select id="onsetGate">
+          <label for="onsetGate">How old was the beneficiary when the disability or blindness first began?</label>
+          <select id="onsetGate" aria-describedby="onsetNote">
             <option value="before46" selected>Younger than 46</option>
             <option value="age46plus">46 or older</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">This is the only eligibility question, and it's about when the disability <em>began</em> (onset) — not the beneficiary's age today. Onset at 30, now 58? Eligible. This tool never makes a medical or benefits determination — see <a href="https://www.ssa.gov/ssi/spotlights/spot-able.html" rel="nofollow">ssa.gov</a> and your state ABLE program for the full eligibility paths.</p>
+          <p class="muted-small" id="onsetNote" style="margin-top:6px">This asks how old they were when it <em>started</em>, not how old they are now. Someone who is 58 today whose disability began at 30 answers "Younger than 46". It is the only eligibility question here. This tool never makes a medical or benefits decision, so see <a href="https://www.ssa.gov/ssi/spotlights/spot-able.html" rel="nofollow">ssa.gov</a> and your state ABLE program for the rest of the rules.</p>
         </div>
 
         <div id="calcFields">
           <div class="field">
-            <label for="state">Beneficiary's state of residence</label>
-            <select id="state"></select>
-            <p class="muted-small" style="margin-top:6px">Used only for the ABLE-to-Work poverty-line figure (Alaska and Hawaii have higher ones). Lived in more than one state this year? Pick the one the beneficiary lived in longest.</p>
+            <label for="state">Which state does the beneficiary live in?</label>
+            <select id="state" aria-describedby="stateNote"></select>
+            <p class="muted-small" id="stateNote" style="margin-top:6px">This only changes the extra room a working beneficiary can get, which is larger in Alaska and Hawaii. If they lived in more than one state this year, pick the one they lived in longest.</p>
           </div>
+
           <div class="field">
-            <label for="employed">Does the beneficiary have W-2 or self-employment income in 2026?</label>
-            <select id="employed">
-              <option value="no" selected>No</option>
-              <option value="yes">Yes</option>
-            </select>
+            <label for="others">How much has everyone else put in this year?</label>
+            <input type="text" id="others" inputmode="decimal" data-money autocomplete="off" value="10000" aria-describedby="othersNote">
+            <p class="muted-small" id="othersNote" style="margin-top:6px">Money from family, friends, trusts and anyone else, in dollars. Put 0 if nobody else has put money in.</p>
           </div>
-          <div id="employedFields" style="display:none">
-            <div class="field">
-              <label for="compensation">Beneficiary's compensation for 2026 ($)</label>
-              <input type="text" id="compensation" inputmode="decimal" data-money autocomplete="off" value="0">
-              <p class="muted-small" style="margin-top:6px">Wages, salary, tips, or net self-employment earnings included in the beneficiary's gross income.</p>
-            </div>
-            <div class="field">
-              <label for="planContribution">Will any money go into a workplace retirement plan for the beneficiary in 2026 — including employer matching or automatic contributions — such as a 401(k), 403(b), or 457(b)?</label>
-              <select id="planContribution">
-                <option value="no" selected>No</option>
-                <option value="yes">Yes</option>
-              </select>
-              <p class="muted-small" style="margin-top:6px"><em>Any</em> contribution counts — even an employer-only match the beneficiary never elected blocks the ABLE-to-Work bonus for the whole year. (A pension/defined-benefit accrual does not.)</p>
-            </div>
-          </div>
+
           <div class="field">
-            <label for="others">Contributions this year from family, friends, trusts &amp; others ($)</label>
-            <input type="text" id="others" inputmode="decimal" data-money autocomplete="off" value="10000">
+            <label for="own">How much has the beneficiary put in from their own money this year?</label>
+            <input type="text" id="own" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="ownNote">
+            <p class="muted-small" id="ownNote" style="margin-top:6px">In dollars. Only the beneficiary's own money can use the extra room the work question below can unlock.</p>
           </div>
-          <div class="field">
-            <label for="own">Contributions this year from the beneficiary themself ($)</label>
-            <input type="text" id="own" inputmode="decimal" data-money autocomplete="off" value="0">
-            <p class="muted-small" style="margin-top:6px">Only this money can use the ABLE-to-Work space above the $20,000 base.</p>
-          </div>
-          <details style="margin-top:8px">
-            <summary class="muted-small">Rolling money over from a 529 college savings plan this year?</summary>
-            <div class="field" style="margin-top:8px">
-              <label for="rollover529">529→ABLE rollover amount ($)</label>
-              <input type="text" id="rollover529" inputmode="decimal" data-money autocomplete="off" value="0">
-              <p class="muted-small" style="margin-top:6px">Counts against the $20,000 base limit (never the ABLE-to-Work space). ABLE-to-ABLE transfers do NOT count — leave them out.</p>
-            </div>
-          </details>
+
+          <fieldset class="adv">
+            <legend>Two more questions that can change the limit</legend>
+            <p class="adv-hint">Answer only the ones that apply. Leaving both on No gives the plain $20,000 limit that every beneficiary gets.</p>
+
+            <!-- #employed and #planContribution stay <select> elements on purpose:
+                 able-account-calculator.js reads their .value, so a yes/no radio
+                 pair cannot replace them without an engine change. The legend
+                 carries the question and names each select via aria-labelledby. -->
+            <fieldset class="adv-q" aria-describedby="qJobNote">
+              <legend id="qJobLegend">Did the beneficiary earn any money from work in 2026?</legend>
+              <p class="adv-q-note" id="qJobNote">Pay from a job, the kind that shows up on a W-2, or money earned working for themself. Answering Yes can let them add more of their own money on top of the $20,000, under a rule called ABLE-to-Work.</p>
+              <div class="field">
+                <select id="employed" aria-labelledby="qJobLegend">
+                  <option value="no" selected>No</option>
+                  <option value="yes">Yes</option>
+                </select>
+              </div>
+
+              <div class="adv-reveal" id="employedFields">
+                <div class="field">
+                  <label for="compensation">How much did the beneficiary earn from work in 2026?</label>
+                  <input type="text" id="compensation" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="compNote">
+                  <p class="muted-small" id="compNote" style="margin-top:6px">In dollars: wages, salary and tips, or what is left after expenses if they work for themself. Only pay that counts as taxable income.</p>
+                </div>
+
+                <fieldset class="adv-q" aria-describedby="qPlanNote">
+                  <legend id="qPlanLegend">In 2026, is any money going into a retirement plan at work for the beneficiary?</legend>
+                  <p class="adv-q-note" id="qPlanNote">Often called a 401(k), a 403(b) or a 457(b). Any amount counts, even money the employer puts in on its own that the beneficiary never asked for, and it switches off the extra room for the whole year. An old-style pension that simply builds up does not count.</p>
+                  <div class="field">
+                    <select id="planContribution" aria-labelledby="qPlanLegend">
+                      <option value="no" selected>No</option>
+                      <option value="yes">Yes</option>
+                    </select>
+                  </div>
+                </fieldset>
+              </div>
+            </fieldset>
+
+            <fieldset class="adv-q" aria-describedby="qRolloverNote">
+              <legend>Is money being moved into the ABLE account from a college savings plan this year?</legend>
+              <p class="adv-q-note" id="qRolloverNote">Often called a 529 to ABLE rollover. It comes out of the same $20,000 as everybody else's money. Moving money from one ABLE account to another is not this, so leave that out.</p>
+              <div class="yn">
+                <label class="seg"><input type="radio" name="qRollover" value="no" checked><span>No</span></label>
+                <label class="seg"><input type="radio" name="qRollover" value="yes"><span>Yes</span></label>
+              </div>
+              <div class="adv-reveal" data-reveal="qRollover">
+                <div class="field">
+                  <label for="rollover529">How much is being moved over this year?</label>
+                  <input type="text" id="rollover529" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="rolloverNote">
+                  <p class="muted-small" id="rolloverNote" style="margin-top:6px">In dollars.</p>
+                </div>
+              </div>
+            </fieldset>
+          </fieldset>
         </div>
       </form>
 

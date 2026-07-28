@@ -32,75 +32,119 @@
     <section class="calc" aria-label="PMI / mortgage insurance deduction calculator">
       <form id="mipForm" autocomplete="off" onsubmit="return false">
         <div class="field">
-          <label for="filing">Filing status</label>
+          <label for="filing">How do you file your taxes?</label>
           <select id="filing">
             <option value="single">Single</option>
             <option value="married">Married filing jointly</option>
             <option value="married_separate">Married filing separately</option>
             <option value="head_of_household">Head of household</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">Married filing jointly shares the same $100,000 starting point as single/head of household — there's no separate, higher joint threshold. Married filing separately gets its own $50,000 threshold in $500 steps.</p>
+          <p class="muted-small" style="margin-top:6px">Being married and filing one return together does not buy you a higher income limit here. A couple filing together starts losing this deduction at the same $100,000 as a single person. The only different case is a married person who files their own separate return, who starts losing it at $50,000.</p>
         </div>
 
         <div class="field">
-          <label for="agi">Your yearly income <span class="muted-small">(Form 1040 line 11)</span></label>
+          <label for="agi">How much did you make this year, before tax?</label>
           <input type="text" id="agi" inputmode="decimal" data-money autocomplete="off" value="95000">
-          <p class="muted-small" style="margin-top:6px">This is your adjusted gross income (AGI) — the statute says AGI, not modified AGI. Filing jointly? Use your combined income.</p>
+          <p class="muted-small" style="margin-top:6px">Your pay and other income after a few adjustments, the figure on line 11 of your Form 1040. Tax people call it your <a href="/tax-glossary/#agi">adjusted gross income, or AGI</a>. This deduction uses that plain figure, not the modified version some other tax breaks use. Married and filing together? Add both incomes.</p>
         </div>
 
         <div class="field">
-          <label for="miType">Mortgage insurance type</label>
+          <label for="miType">What kind of mortgage insurance do you pay?</label>
           <select id="miType">
-            <option value="monthly_pmi">Monthly PMI (conventional loan)</option>
-            <option value="fha">FHA mortgage insurance (annual MIP, optional upfront UFMIP)</option>
-            <option value="va">VA funding fee</option>
-            <option value="usda">USDA / Rural Housing Service guarantee fee</option>
+            <option value="monthly_pmi">A monthly charge on an ordinary home loan (PMI)</option>
+            <option value="fha">An FHA loan (FHA mortgage insurance, MIP)</option>
+            <option value="va">A VA loan (funding fee)</option>
+            <option value="usda">A USDA or rural home loan (guarantee fee)</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">FHA upfront premiums (UFMIP) and single-premium PMI must be spread over 84 months. VA and USDA lump-sum fees are fully deductible the year you pay them — no spreading.</p>
+          <p class="muted-small" style="margin-top:6px">PMI is private mortgage insurance, the extra charge a lender adds when you put down less than 20 percent. Your pick only changes how a one off payment at closing is handled: an FHA upfront premium, or a PMI policy paid in one go, has to be spread over 84 months, while a VA or USDA fee counts in full in the year you pay it.</p>
         </div>
 
         <div class="field">
-          <label for="recurring">Premiums paid during 2026 (recurring)</label>
+          <label for="recurring">How much mortgage insurance did you pay during 2026?</label>
           <input type="text" id="recurring" inputmode="decimal" data-money autocomplete="off" value="1800">
-          <p class="muted-small" style="margin-top:6px">Monthly PMI, FHA annual MIP, or a USDA annual fee actually paid in 2026 — see Box 5 of your Form 1098.</p>
-        </div>
-
-        <div class="field est-row" id="upfrontFields">
-          <div class="field" style="margin:0">
-            <label for="upfront">Upfront premium paid at closing ($) <span class="muted-small">(optional)</span></label>
-            <input type="text" id="upfront" inputmode="decimal" data-money autocomplete="off" value="0">
-          </div>
-          <div class="field" style="margin:0">
-            <label for="closingMonth">Closing month</label>
-            <select id="closingMonth">
-              <option value="1">January</option><option value="2">February</option><option value="3">March</option>
-              <option value="4">April</option><option value="5">May</option><option value="6" selected>June</option>
-              <option value="7">July</option><option value="8">August</option><option value="9">September</option>
-              <option value="10">October</option><option value="11">November</option><option value="12">December</option>
-            </select>
-          </div>
-        </div>
-        <div class="field" id="termField">
-          <label for="termMonths">Loan term (only matters if under 84 months)</label>
-          <select id="termMonths">
-            <option value="360" selected>30 years (360 months)</option>
-            <option value="180">15 years (180 months)</option>
-            <option value="240">20 years (240 months)</option>
-            <option value="84">84 months or less</option>
-          </select>
-        </div>
-        <p class="muted-small" id="upfrontHint" style="margin-top:-6px">FHA UFMIP or single-premium PMI: enter the lump sum and closing month — it's amortized over the shorter of your loan term or 84 months. A VA or USDA fee entered here is deducted in full, no spreading.</p>
-
-        <div class="field">
-          <label for="contract2007"><input type="checkbox" id="contract2007" checked style="width:auto;margin-right:8px"> Mortgage insurance contract issued in 2007 or later</label>
-          <p class="muted-small" style="margin-top:6px">Only contracts issued after December 31, 2006 qualify — this restriction was never repealed. Uncheck only if your policy genuinely predates 2007 (rare).</p>
+          <p class="muted-small" style="margin-top:6px">The part you pay as you go, month by month or once a year. Your lender reports the year's total in Box 5 of the Form 1098 it sends you. Leave out anything you paid as a lump sum when you closed on the loan, there is a question for that below.</p>
         </div>
 
         <div class="field">
-          <label for="other">Other itemized deductions ($)</label>
-          <input type="text" id="other" inputmode="decimal" data-money autocomplete="off" value="20000">
-          <p class="muted-small" style="margin-top:6px">Mortgage interest, <a href="/salt-cap-calculator/">SALT (after its cap)</a>, <a href="/charitable-deduction-calculator/">charitable gifts</a>, and anything else on Schedule A — used to decide whether itemizing beats your standard deduction.</p>
+          <label for="contract2007"><input type="checkbox" id="contract2007" checked style="width:auto;margin-right:8px"> My mortgage insurance policy started in 2007 or later</label>
+          <p class="muted-small" style="margin-top:6px">Almost every policy still running today did, so leave this ticked unless you know otherwise. Only policies taken out after December 31, 2006 count, and that rule was never dropped. Untick it only if yours genuinely dates from 2006 or earlier, which is rare. Unticked, the deduction is $0 whatever your income.</p>
         </div>
+
+        <!-- The two things that stop a non-expert here are the lump sum paid at
+             closing (UFMIP, funding fee, guarantee fee) and "other itemized
+             deductions". Each is now a plain question, with the technical term
+             kept in the small note underneath, so someone who knows the term
+             still recognises the field and the term stays findable. The money
+             boxes live in [data-reveal] wrappers that ship VISIBLE here;
+             question-flow.js hides them after load when the answer is No, so
+             JavaScript off, a broken script, or a crawler all still see every
+             field. Never invert this to show-on-demand.
+             The "other expenses" question ships answered YES on purpose: that
+             box has always loaded pre-filled at $20,000, so a No default would
+             change what an untouched page computes.
+             pmi-deduction-calculator.js reads #upfront, #closingMonth,
+             #termMonths and #other directly and knows nothing about these
+             questions, so those ids, and the select values under them, must not
+             change. It also rewrites #upfrontHint's text on every render and
+             toggles #termField / #closingMonth's .field wrapper by display,
+             which is why both keep their ids and their .field wrappers. -->
+        <fieldset class="adv">
+          <legend>Two more questions about your loan</legend>
+          <p class="adv-hint">Change an answer if it does not match your year, and put your own figures in place of the examples.</p>
+
+          <fieldset class="adv-q" aria-describedby="qUpfrontNote">
+            <legend>Did you pay a lump sum for mortgage insurance when you closed on the loan?</legend>
+            <p class="adv-q-note" id="qUpfrontNote">A single charge paid at closing, on top of any monthly amount. On an FHA loan it is called the upfront mortgage insurance premium, or UFMIP. On a VA loan it is the funding fee, on a USDA loan the guarantee fee, and on an ordinary loan it is a single premium PMI policy.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qUpfront" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qUpfront" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qUpfront">
+              <div class="field est-row" id="upfrontFields">
+                <div class="field" style="margin:0">
+                  <label for="upfront">How much was that lump sum?</label>
+                  <input type="text" id="upfront" inputmode="decimal" data-money autocomplete="off" value="0">
+                </div>
+                <div class="field" style="margin:0">
+                  <label for="closingMonth">Which month did you close?</label>
+                  <select id="closingMonth">
+                    <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+                    <option value="4">April</option><option value="5">May</option><option value="6" selected>June</option>
+                    <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+                    <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field" id="termField">
+                <label for="termMonths">How long does the loan run?</label>
+                <select id="termMonths" aria-describedby="termMonthsNote">
+                  <option value="360" selected>30 years</option>
+                  <option value="180">15 years</option>
+                  <option value="240">20 years</option>
+                  <option value="84">7 years or less</option>
+                </select>
+                <p class="adv-q-note" id="termMonthsNote">This only changes the answer if the loan runs less than seven years. Anything longer hits the 84 month limit first.</p>
+              </div>
+              <p class="adv-q-note" id="upfrontHint">A lump sum on an FHA loan, or a PMI policy paid in one go, is not deducted all at once. It is split evenly over 84 months, or over the length of the loan if that is shorter, and only the months falling in 2026 count this year. A VA or USDA fee is treated better, it counts in full in the year you pay it.</p>
+            </div>
+          </fieldset>
+
+          <fieldset class="adv-q" aria-describedby="qOtherNote">
+            <legend>Do you already write off other big expenses on your tax return?</legend>
+            <p class="adv-q-note" id="qOtherNote">Mainly mortgage interest and state and local taxes. Listing expenses like these one by one, instead of taking the flat amount everyone is offered, is called <a href="/tax-glossary/#itemizing">itemizing</a>. Mortgage insurance only counts if you do that, so this answer decides whether you save anything at all.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qOther" value="no"><span>No</span></label>
+              <label class="seg"><input type="radio" name="qOther" value="yes" checked><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qOther">
+              <div class="field">
+                <label for="other">How much do those other expenses add up to?</label>
+                <input type="text" id="other" inputmode="decimal" data-money autocomplete="off" value="20000" aria-describedby="otherNote">
+                <p class="adv-q-note" id="otherNote">Leave your mortgage insurance out of this box, it is counted above. Add up your mortgage interest, your state and local taxes (up to the <a href="/salt-cap-calculator/">$40,000 cap</a>), your <a href="/charitable-deduction-calculator/">charitable gifts</a>, and anything else you would list one by one. The $20,000 shown is only an example, put in your own figure.</p>
+              </div>
+            </div>
+          </fieldset>
+        </fieldset>
       </form>
 
       <div class="obbba-out" id="out" aria-live="polite"></div>

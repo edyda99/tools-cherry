@@ -33,7 +33,7 @@
       <form id="qcdForm" autocomplete="off" onsubmit="return false">
         <div class="field est-row">
           <div class="field" style="margin:0">
-            <label for="filing">Filing status</label>
+            <label for="filing">How do you file your taxes?</label>
             <select id="filing">
               <option value="single">Single</option>
               <option value="married">Married filing jointly</option>
@@ -41,60 +41,106 @@
             </select>
           </div>
           <div class="field" style="margin:0">
-            <label for="age">Your age</label>
-            <input type="number" id="age" inputmode="decimal" min="0" max="120" step="0.5" value="75">
+            <label for="age">How old are you?</label>
+            <input type="number" id="age" inputmode="decimal" min="0" max="120" step="0.5" value="75" aria-describedby="ageNote">
           </div>
         </div>
-        <p class="muted-small" style="margin-top:-6px">A QCD requires you to have <strong>attained age 70½</strong> on the distribution date — not merely turned 70 that year. That's roughly 2.5 years before Required Minimum Distributions (RMDs) begin at 73.</p>
+        <p class="muted-small" id="ageNote" style="margin-top:-6px">You can enter a half year here, for example 70.5. Sending money straight from your IRA to a charity is only allowed once you have actually reached <strong>70½</strong> on the day the money leaves the account, not simply turned 70 that year. That is about two and a half years before you are first made to take money out, which starts at 73.</p>
 
         <div class="field" id="spouseWrap">
           <label style="display:flex; align-items:center; gap:8px; font-weight:400">
             <input type="checkbox" id="spouseAge65" style="width:auto">
             My spouse is also 65 or older
           </label>
-          <p class="muted-small" style="margin-top:6px">Only affects the age-65+ addition to the <a href="/tax-glossary/#standard-deduction">standard deduction</a> on the take-and-deduct side, for married filing jointly.</p>
+          <p class="muted-small" style="margin-top:6px">People aged 65 and over get a slightly bigger flat deduction, the <a href="/tax-glossary/#standard-deduction">standard deduction</a>. This box only changes the side where you take the money as income and write the gift off, and only when the two of you file one joint return.</p>
         </div>
 
         <div class="field">
-          <label for="donation">Amount you want to give to charity ($)</label>
+          <label for="donation">How much do you want to give to charity?</label>
           <input type="text" id="donation" inputmode="decimal" data-money autocomplete="off" value="10000">
         </div>
 
         <div class="field">
-          <label for="agi">Your yearly income <span class="muted-small">(excluding this IRA distribution)</span></label>
-          <input type="text" id="agi" inputmode="decimal" data-money autocomplete="off" value="60000">
-          <p class="muted-small" style="margin-top:6px">This is your adjusted gross income (AGI) minus the gift's distribution — everything else on your return: Social Security, pensions, other IRA withdrawals, investment income. The tool adds the distribution on top for the take-and-deduct path.</p>
+          <label for="accountType">Which account would that money come out of?</label>
+          <select id="accountType" aria-describedby="accountTypeNote">
+            <option value="traditional_ira">Traditional IRA</option>
+            <option value="inactive_sep_ira">Inactive SEP IRA</option>
+            <option value="inactive_simple_ira">Inactive SIMPLE IRA</option>
+            <option value="roth_ira">Roth IRA</option>
+            <option value="401k">401(k) / 403(b) / 457</option>
+          </select>
+          <p class="muted-small" id="accountTypeNote" style="margin-top:6px">Paying a charity straight from the account only works from an <strong>IRA</strong>. It does not work from a workplace plan such as a 401(k), a 403(b) or a 457, and it does not work from a SEP or SIMPLE IRA that someone is still paying into. "Inactive" here just means nobody has added money to it this year. A Roth IRA is allowed but is almost never worth using, because that money already comes out tax-free.</p>
         </div>
 
-        <div class="field est-row">
-          <div class="field" style="margin:0">
-            <label for="other">Other itemized deductions ($) <span class="muted-small">(optional)</span></label>
-            <input type="text" id="other" inputmode="decimal" data-money autocomplete="off" value="0">
-          </div>
-          <div class="field" style="margin:0">
-            <label for="accountType">Account type</label>
-            <select id="accountType">
-              <option value="traditional_ira">Traditional IRA</option>
-              <option value="inactive_sep_ira">Inactive SEP IRA</option>
-              <option value="inactive_simple_ira">Inactive SIMPLE IRA</option>
-              <option value="roth_ira">Roth IRA</option>
-              <option value="401k">401(k) / 403(b) / 457</option>
-            </select>
-          </div>
+        <div class="field">
+          <label for="agi">How much other income will you have this year?</label>
+          <input type="text" id="agi" inputmode="decimal" data-money autocomplete="off" value="60000" aria-describedby="agiNote">
+          <p class="muted-small" id="agiNote" style="margin-top:6px">Everything else on your tax return: Social Security, a pension, other withdrawals, investment income. Leave the money for this gift out of it. The tool adds that back on its own, on the side where you take it as income first. Tax forms call this figure your <a href="/tax-glossary/#agi">adjusted gross income, or AGI</a>.</p>
         </div>
-        <p class="muted-small" style="margin-top:-6px">"Other itemized" is your non-charitable Schedule A total (state/local taxes after the <a href="/salt-cap-calculator/">SALT cap</a>, mortgage interest). A QCD only works from an IRA — an <strong>ongoing</strong> SEP/SIMPLE or a 401(k)/403(b)/457 doesn't qualify.</p>
 
-        <div class="field est-row">
-          <div class="field" style="margin:0">
-            <label for="rmd">This year's RMD amount ($) <span class="muted-small">(optional)</span></label>
-            <input type="text" id="rmd" inputmode="decimal" data-money autocomplete="off" value="0">
-          </div>
-          <div class="field" style="margin:0">
-            <label for="offset">Post-70½ deducted IRA contributions ($) <span class="muted-small">(optional, rare)</span></label>
-            <input type="text" id="offset" inputmode="decimal" data-money autocomplete="off" value="0">
-          </div>
-        </div>
-        <p class="muted-small" style="margin-top:-6px">Leave the RMD field at 0 if you're not RMD age (73+) yet or don't know it. The offset only applies if you're still working and deducting new IRA contributions after 70½ — a rare anti-abuse rule that shrinks your excludable QCD dollar-for-dollar.</p>
+        <!-- The last three inputs are the ones that stop a non-expert: "other
+             itemized deductions", "RMD", and the post-70½ contribution offset.
+             Each is now a plain question, with the technical term kept in the
+             small note underneath so someone who knows the term still recognises
+             the field. Each money box lives in a [data-reveal] wrapper that ships
+             VISIBLE here; question-flow.js (opted in for this path in
+             QUESTION_FLOW_PAGES) hides it after load when the answer is No, so
+             JavaScript off, a broken script, or a crawler all still see every
+             field. Never invert this to show-on-demand. All three boxes default
+             to 0, so every question ships answered No and an untouched page
+             computes exactly what it computed before. -->
+        <fieldset class="adv">
+          <legend>Three more questions about your year</legend>
+          <p class="adv-hint">Answer only the ones that apply to you. Leaving all three on No gives the same result as skipping this section.</p>
+
+          <fieldset class="adv-q" aria-describedby="qOtherNote">
+            <legend>Do you already write off other big expenses on your tax return?</legend>
+            <p class="adv-q-note" id="qOtherNote">Mainly state and local taxes and mortgage interest. Listing expenses like these one by one, instead of taking the flat amount everyone is offered, is called <a href="/tax-glossary/#itemizing">itemizing</a>. It is what decides whether writing this gift off is worth anything at all, so it is worth answering.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qOther" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qOther" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qOther">
+              <div class="field">
+                <label for="other">How much do those other expenses add up to?</label>
+                <input type="text" id="other" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="otherNote">
+                <p class="adv-q-note" id="otherNote">Leave this charity gift out of the box, it is already counted above. Add up your state and local taxes, up to the <a href="/salt-cap-calculator/">$40,000 cap</a>, plus your mortgage interest.</p>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="adv-q" aria-describedby="qRmdNote">
+            <legend>Do you already have to take a set amount out of your IRA every year?</legend>
+            <p class="adv-q-note" id="qRmdNote">This starts at age 73. The amount you are made to take is called a <strong>required minimum distribution</strong>, or RMD, and your IRA provider works it out and tells you each year. Answer No if you are not 73 yet, or if you do not know the figure.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qRmd" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qRmd" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qRmd">
+              <div class="field">
+                <label for="rmd">How much do you have to take out this year?</label>
+                <input type="text" id="rmd" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="rmdNote">
+                <p class="adv-q-note" id="rmdNote">Money sent straight from the IRA to a charity counts toward this amount, but only if you do it before any other withdrawal that year. Take anything else out first and that withdrawal uses up the required amount instead.</p>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="adv-q" aria-describedby="qOffsetNote">
+            <legend>Are you still working and still paying new money into a traditional IRA?</legend>
+            <p class="adv-q-note" id="qOffsetNote">This one is rare. It only counts if you are also writing those contributions off on your tax return, and only for money you put in after you turned 70½. If none of that describes you, leave this on No.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qOffset" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qOffset" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qOffset">
+              <div class="field">
+                <label for="offset">How much have you paid in and written off since you turned 70½?</label>
+                <input type="text" id="offset" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="offsetNote">
+                <p class="adv-q-note" id="offsetNote">A narrow anti-abuse rule cuts the amount you can give tax-free by this much, dollar for dollar. It exists to stop people paying money in for a write-off and pulling the same money straight back out tax-free.</p>
+              </div>
+            </div>
+          </fieldset>
+        </fieldset>
       </form>
 
       <div class="obbba-out" id="out" aria-live="polite"></div>

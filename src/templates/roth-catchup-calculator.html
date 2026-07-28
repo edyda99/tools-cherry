@@ -18,6 +18,10 @@
   .ok-flag { color:#2f6f4f; font-weight:700; }
   .check-field { display:flex; align-items:flex-start; gap:10px; }
   .check-field input[type="checkbox"] { width:20px; height:20px; margin-top:2px; flex:none; }
+  /* Inside an Advanced question the checkbox IS the answer control, so it takes
+     the same 10px gap under the question note that a .yn radio pair takes, and
+     drops its own bottom margin because .adv-q already carries one. */
+  .adv-q .check-field { margin: 10px 0 0; }
 </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Mandatory Roth Catch-Up Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Check whether the SECURE 2.0 Act §603 mandatory Roth catch-up rule (IRC §414(v)(7)) applies to you for 2026: if your prior-year Social Security (Box 3) wages exceed $150,000, your 401(k)/403(b)/457(b) catch-up must be a designated Roth contribution. Shows your catch-up band and maximum, the extra federal tax the forced-Roth treatment costs this year, and the Roth-vs-pre-tax break-even."}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Do I lose my 401(k) catch-up if I earn over $150,000?","acceptedAnswer":{"@type":"Answer","text":"No. You keep every dollar of catch-up room — the full $8,000 (ages 50–59 and 64+) or $11,250 (ages 60–63) for 2026. The only change under the SECURE 2.0 §603 rule is that the catch-up now goes in as Roth (after-tax) instead of pre-tax. You lose the upfront deduction on that portion, but the money then grows and comes out tax-free in retirement. It's a change in the timing of tax, not a lost benefit and not a new tax."}},{"@type":"Question","name":"Who is subject to the mandatory Roth catch-up rule?","acceptedAnswer":{"@type":"Answer","text":"For 2026 contributions, someone who is 50 or older and whose Social Security (FICA, W-2 Box 3) wages from the same employer that sponsors the plan were more than $150,000 in 2025. All three must be true. It applies in 401(k), 403(b), governmental 457(b) plans and the federal Thrift Savings Plan. Exactly $150,000 is not over the line, and someone with no FICA wages from the plan sponsor (a partner or sole proprietor with self-employment income only) is not subject."}},{"@type":"Question","name":"Which year's wages count for the $150,000 test?","acceptedAnswer":{"@type":"Answer","text":"The immediately preceding calendar year. For 2026 contributions the test looks at your 2025 wages — not this year's salary, not two years prior. It is specifically your Social Security (Box 3) wages from the employer that sponsors your plan, not your total or household income and not self-employment income."}},{"@type":"Question","name":"Is $150,000 or $145,000 the threshold?","acceptedAnswer":{"@type":"Answer","text":"$145,000 is the statutory base amount. Indexed for inflation, the threshold first rose to $150,000 for 2026 (per IRS Notice 2025-67). So the number that matters for 2026 contributions is $150,000."}},{"@type":"Question","name":"Does the Roth requirement apply to my whole 401(k)?","acceptedAnswer":{"@type":"Answer","text":"No. Only the catch-up portion. Your regular elective deferral — up to $24,500 in 2026 — can still be pre-tax. The Roth requirement touches only the extra catch-up contributions available to people 50 and older."}},{"@type":"Question","name":"Does forced Roth always cost me money?","acceptedAnswer":{"@type":"Answer","text":"Not necessarily. If your tax rate in retirement is at least your current rate, the Roth treatment leaves you even or ahead — you pay tax now at the same or a lower rate than you would later. You only come out behind if you expect a lower tax rate in retirement. The calculator's break-even output shows which side you are on."}},{"@type":"Question","name":"What is a catch-up contribution?","acceptedAnswer":{"@type":"Answer","text":"A catch-up contribution is an extra amount people age 50 and older can add to a workplace retirement plan on top of the normal annual limit. For 2026 it is $8,000 for most people, or $11,250 in the year you are 60, 61, 62, or 63 (a temporary 'super' catch-up), reverting to $8,000 at 64. The SECURE 2.0 rule changes only how high earners' catch-up is taxed, not how much they can contribute."}},{"@type":"Question","name":"What does 'Roth' mean here?","acceptedAnswer":{"@type":"Answer","text":"A Roth (designated Roth) contribution is made with after-tax dollars: you get no deduction the year you contribute, but qualified withdrawals of both your contributions and their earnings are tax-free in retirement. Pre-tax (traditional) contributions are the reverse — deductible now, taxed when withdrawn. The mandatory Roth catch-up rule forces high earners' catch-up into the after-tax bucket."}}]}</script>
@@ -37,37 +41,50 @@
     <p class="lede">Starting with <strong>2026</strong>, if you’re <strong>50 or older</strong> and earned <strong>more than $150,000</strong> in Social Security (Box 3) wages last year from the employer that sponsors your plan, your 401(k) <strong>catch-up</strong> can no longer go in pre-tax — it must go in as <strong>Roth (after-tax)</strong>. This is the SECURE 2.0 Act §603 rule. Enter your details to see whether it hits you, what the forced-Roth treatment costs this year, and whether that cost is actually a loss. Everything runs in your browser — nothing is uploaded.</p>
 
     <section class="calc" aria-label="Mandatory Roth catch-up calculator">
+      <!-- Every label here is a plain sentence a person can answer without knowing
+           the vocabulary. The technical terms this page is about (catch-up
+           contribution, Roth, designated Roth, Box 3 / Social Security wages, FICA,
+           marginal tax rate) survive verbatim in the small note under each field, so
+           a visitor who already knows them still recognises what is being asked and
+           the terms stay findable.
+           The five fields everyone needs stay always-visible. The three that only
+           matter if you want the long-run comparison sit inside a [data-reveal]
+           wrapper that ships VISIBLE in the HTML; question-flow.js hides it only if
+           its question is answered No, so JavaScript off, JavaScript broken or a
+           crawler still sees every field. Both questions ship on the answer the page
+           has always shipped with (a plan that offers Roth, and the break-even shown)
+           so an untouched page computes exactly what it computed before. -->
       <form id="rothForm" autocomplete="off" onsubmit="return false">
         <div class="field">
-          <label for="year">Contribution tax year</label>
-          <select id="year">
+          <label for="year">Which year are you paying into your plan for?</label>
+          <select id="year" aria-describedby="yearNote">
             <option value="2026" selected>2026</option>
             <option value="2025">2025</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">The rule is in force for 2026 (2025 was under transition relief). 2027 figures aren’t published yet.</p>
+          <p class="adv-q-note" id="yearNote">The rule is in force for 2026. For 2025 the IRS gave everyone a pass, and the 2027 figures are not published yet.</p>
         </div>
 
         <div class="field">
-          <label for="age">Your age at the end of the tax year</label>
-          <input type="number" id="age" inputmode="numeric" min="0" max="120" step="1" value="55">
-          <p class="muted-small" style="margin-top:6px">Sets your catch-up band: $8,000 at 50–59 and 64+, $11,250 at 60–63 (2026).</p>
+          <label for="age">How old will you be on the last day of that year?</label>
+          <input type="number" id="age" inputmode="numeric" min="0" max="120" step="1" value="55" aria-describedby="ageNote">
+          <p class="adv-q-note" id="ageNote">Your age sets how much extra you are allowed to add for 2026: $8,000 if you are 50 to 59, or 64 and over, and $11,250 if you are 60 to 63.</p>
         </div>
 
         <div class="field">
-          <label for="wages">Last year’s Social Security (Box 3) wages from this employer</label>
-          <input type="text" id="wages" inputmode="decimal" data-money autocomplete="off" value="180000">
-          <p class="muted-small" style="margin-top:6px">Use <strong>Box 3</strong> of last year’s <a href="/tax-glossary/#w-2">W-2</a> (Social Security wages) from the employer that sponsors your plan — <strong>not</strong> this year’s salary, not Box 1, and not your household or self-employment income. This is a <a href="/tax-glossary/#fica">FICA</a> wage test.</p>
+          <label for="wages">How much did the employer that runs your plan pay you last year?</label>
+          <input type="text" id="wages" inputmode="decimal" data-money autocomplete="off" value="180000" aria-describedby="wagesNote">
+          <p class="adv-q-note" id="wagesNote">Use <strong>Box 3</strong> of last year’s <a href="/tax-glossary/#w-2">W-2</a>, the box marked Social Security wages, from the employer that runs your retirement plan. That is a <a href="/tax-glossary/#fica">FICA</a> wage figure. It is <strong>not</strong> this year’s salary, not Box 1, and not your household or self-employment income.</p>
         </div>
 
         <div class="field">
-          <label for="catchUp">Catch-up you plan to contribute this year</label>
-          <input type="text" id="catchUp" inputmode="decimal" data-money autocomplete="off" value="8000">
-          <p class="muted-small" style="margin-top:6px">How much extra you’ll add on top of the regular limit. We cap it at your age band’s maximum. Enter 0 if you don’t plan to make a catch-up.</p>
+          <label for="catchUp">How much extra do you plan to put in this year, on top of the normal limit?</label>
+          <input type="text" id="catchUp" inputmode="decimal" data-money autocomplete="off" value="8000" aria-describedby="catchUpNote">
+          <p class="adv-q-note" id="catchUpNote">That extra amount is called a catch-up contribution, and only people 50 and over can make one. We cap it at the most your age allows. Put 0 if you do not plan to add anything extra.</p>
         </div>
 
         <div class="field">
-          <label for="rateNow">Your current federal <a href="/tax-glossary/#marginal-tax-rate">marginal tax rate</a></label>
-          <select id="rateNow">
+          <label for="rateNow">What tax rate do you pay on your next dollar of pay?</label>
+          <select id="rateNow" aria-describedby="rateNowNote">
             <option value="0.10">10%</option>
             <option value="0.12">12%</option>
             <option value="0.22">22%</option>
@@ -76,40 +93,58 @@
             <option value="0.35">35%</option>
             <option value="0.37">37%</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">The rate on your next dollar of income — it sets how much the lost upfront deduction is worth.</p>
+          <p class="adv-q-note" id="rateNowNote">Often called your <a href="/tax-glossary/#marginal-tax-rate">marginal tax rate</a>, or your tax bracket. It sets how much the up-front deduction you give up is worth.</p>
         </div>
 
-        <div class="field">
-          <label for="rateRetire">Expected federal marginal rate in retirement</label>
-          <select id="rateRetire">
-            <option value="0.10">10%</option>
-            <option value="0.12">12%</option>
-            <option value="0.22" selected>22%</option>
-            <option value="0.24">24%</option>
-            <option value="0.32">32%</option>
-            <option value="0.35">35%</option>
-            <option value="0.37">37%</option>
-          </select>
-          <p class="muted-small" style="margin-top:6px">Your best guess for the rate when you’ll withdraw. This drives the Roth-vs-pre-tax break-even.</p>
-        </div>
+        <fieldset class="adv">
+          <legend>Two more questions</legend>
+          <p class="adv-hint">Both start on the answer most people give. Change one only if it does not match you.</p>
 
-        <div class="field">
-          <label for="years">Years until you withdraw</label>
-          <input type="number" id="years" inputmode="numeric" min="0" max="60" step="1" value="10">
-        </div>
+          <fieldset class="adv-q" aria-describedby="qPlanRothNote">
+            <legend>Does your workplace plan let you put money in after tax?</legend>
+            <p class="adv-q-note" id="qPlanRothNote">Money paid in after tax is called Roth, or a designated Roth: you get no deduction now, but you pay no tax on it or its growth when you take it out. Most large plans allow it and more are adding it. Leave the box ticked unless you know yours does not, because a plan with no after-tax option is allowed to stop high earners from adding anything extra at all.</p>
+            <div class="field check-field">
+              <input type="checkbox" id="planRoth" checked>
+              <label for="planRoth">Yes, my plan lets me put money in after tax</label>
+            </div>
+          </fieldset>
 
-        <div class="field">
-          <label for="growth">Expected annual investment growth</label>
-          <div class="inline">
-            <input type="number" id="growth" inputmode="decimal" min="0" max="20" step="0.5" value="6">
-            <span class="muted-small">% / year</span>
-          </div>
-        </div>
-
-        <div class="field check-field">
-          <input type="checkbox" id="planRoth" checked>
-          <label for="planRoth">My plan <strong>offers a Roth option</strong> <span class="muted-small">(uncheck if it doesn’t — a no-Roth plan can bar high earners from catch-ups entirely)</span></label>
-        </div>
+          <fieldset class="adv-q" aria-describedby="qFutureNote">
+            <legend>Do you want to see whether this really costs you money in the end?</legend>
+            <p class="adv-q-note" id="qFutureNote">Paying the tax now instead of later only loses you money if your tax rate is lower once you retire. Answer Yes and we work out which side of that line you are on.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qFuture" value="no"><span>No</span></label>
+              <label class="seg"><input type="radio" name="qFuture" value="yes" checked><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qFuture">
+              <div class="field">
+                <label for="rateRetire">What tax rate do you expect to pay once you have retired?</label>
+                <select id="rateRetire" aria-describedby="rateRetireNote">
+                  <option value="0.10">10%</option>
+                  <option value="0.12">12%</option>
+                  <option value="0.22" selected>22%</option>
+                  <option value="0.24">24%</option>
+                  <option value="0.32">32%</option>
+                  <option value="0.35">35%</option>
+                  <option value="0.37">37%</option>
+                </select>
+                <p class="adv-q-note" id="rateRetireNote">Your best guess for the rate you will pay when you take the money out. Expecting a lower rate then makes paying tax now the worse deal, and expecting a higher one makes it the better deal.</p>
+              </div>
+              <div class="field">
+                <label for="years">How many years until you start taking the money out?</label>
+                <input type="number" id="years" inputmode="numeric" min="0" max="60" step="1" value="10">
+              </div>
+              <div class="field">
+                <label for="growth">How much do you expect your savings to grow each year?</label>
+                <div class="inline">
+                  <input type="number" id="growth" inputmode="decimal" min="0" max="20" step="0.5" value="6" aria-describedby="growthNote">
+                  <span class="muted-small">% / year</span>
+                </div>
+                <p class="adv-q-note" id="growthNote">Nobody can know the real figure in advance, so 6 or 7 is a common, cautious guess.</p>
+              </div>
+            </div>
+          </fieldset>
+        </fieldset>
       </form>
 
       <div class="obbba-out" id="out" aria-live="polite"></div>

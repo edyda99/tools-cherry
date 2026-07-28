@@ -32,38 +32,74 @@
     <section class="calc" aria-label="Charitable deduction calculator">
       <form id="charForm" autocomplete="off" onsubmit="return false">
         <div class="field">
-          <label for="filing">Filing status</label>
+          <label for="filing">How do you file your taxes?</label>
           <select id="filing">
             <option value="single">Single</option>
             <option value="married">Married filing jointly</option>
             <option value="head_of_household">Head of household</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">The non-itemizer deduction is $2,000 for married filing jointly and $1,000 for everyone else (single, head of household, or married filing separately).</p>
+          <p class="muted-small" style="margin-top:6px">This sets the size of the new break for donating: <strong>$2,000</strong> if you are married and file one return together, <strong>$1,000</strong> for everyone else. Married but filing your own separate return? Pick Single here, your break is $1,000 as well.</p>
         </div>
 
         <div class="field">
-          <label for="agi">Your yearly income <span class="muted-small">(Form 1040 line 11)</span></label>
+          <label for="agi">How much did you make this year, before tax?</label>
           <input type="text" id="agi" inputmode="decimal" data-money autocomplete="off" value="175000">
-          <p class="muted-small" style="margin-top:6px">This is your adjusted gross income (AGI). It sets the 0.5% floor, the top-bracket cap, and your effective rate — so there's no need to enter a rate separately. Filing jointly? Use your combined income.</p>
+          <p class="muted-small" style="margin-top:6px">Your pay and other income, after a few adjustments. It is the number on line 11 of your Form 1040, and tax people call it your <a href="/tax-glossary/#agi">adjusted gross income, or AGI</a>. It sets the 0.5% cut-off and your tax rate, so there is nothing else to enter. Married and filing together? Add both incomes.</p>
         </div>
 
         <div class="field">
-          <label for="cashGift">Cash donations to charities ($)</label>
+          <label for="cashGift">How much did you give to charity in cash this year?</label>
           <input type="text" id="cashGift" inputmode="decimal" data-money autocomplete="off" value="2500">
-          <p class="muted-small" style="margin-top:6px">Cash, check, or card gifts to <strong>public charities</strong> — the only kind that counts toward the $1,000 / $2,000 non-itemizer deduction. Gifts to donor-advised funds or private foundations don't qualify for that bonus.</p>
+          <p class="muted-small" style="margin-top:6px">Money you handed over by cash, check, or card to an ordinary <strong>public charity</strong>. Only this kind counts toward the $1,000 / $2,000 break. Money paid into a donor-advised fund or a private foundation does not count toward it.</p>
         </div>
 
-        <div class="field est-row">
-          <div class="field" style="margin:0">
-            <label for="nonCash">Non-cash gifts ($) <span class="muted-small">(optional)</span></label>
-            <input type="text" id="nonCash" inputmode="decimal" data-money autocomplete="off" value="0">
-          </div>
-          <div class="field" style="margin:0">
-            <label for="other">Other itemized deductions ($) <span class="muted-small">(optional)</span></label>
-            <input type="text" id="other" inputmode="decimal" data-money autocomplete="off" value="20000">
-          </div>
-        </div>
-        <p class="muted-small" style="margin-top:-6px">Non-cash gifts (goods, appreciated stock) count if you itemize but never toward the non-itemizer bonus. "Other itemized" is your non-charitable Schedule A total — state and local taxes (after the <a href="/salt-cap-calculator/">SALT cap</a>), mortgage interest — used to decide whether itemizing beats your standard deduction.</p>
+        <!-- The last two inputs are the ones that stop a non-expert: "non-cash
+             gifts" and "other itemized deductions". Each is now a plain question,
+             with the technical term kept in the small note underneath so someone
+             who knows the term still recognises the field. The money box lives in
+             a [data-reveal] wrapper that ships VISIBLE here; question-flow.js
+             hides it after load when the answer is No, so JavaScript off, a broken
+             script, or a crawler all still see every field. Never invert this.
+             The "other expenses" question ships answered YES on purpose: that box
+             has always loaded pre-filled at $20,000, so a No default would change
+             what an untouched page computes. See the itemize-vs-standard verdict
+             in charitable-deduction-calculator.js, which reads #other directly. -->
+        <fieldset class="adv">
+          <legend>Two more questions about your year</legend>
+          <p class="adv-hint">Change an answer if it does not match your year, and replace the example figures with your own.</p>
+
+          <fieldset class="adv-q" aria-describedby="qGoodsNote">
+            <legend>Did you give a charity anything other than money?</legend>
+            <p class="adv-q-note" id="qGoodsNote">Things like clothes, furniture, a car, or shares of stock. Often called non-cash gifts.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qGoods" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qGoods" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qGoods">
+              <div class="field">
+                <label for="nonCash">What were those gifts worth in total?</label>
+                <input type="text" id="nonCash" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="nonCashNote">
+                <p class="adv-q-note" id="nonCashNote">Use what the items were worth second-hand, not what you paid. These can count if you list your deductions one by one, but they never count toward the $1,000 / $2,000 break, which is cash only.</p>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="adv-q" aria-describedby="qOtherNote">
+            <legend>Do you already write off other big expenses on your tax return?</legend>
+            <p class="adv-q-note" id="qOtherNote">Mainly state and local taxes and mortgage interest. Listing expenses like these one by one, instead of taking the flat amount everyone is offered, is called <a href="/tax-glossary/#itemizing">itemizing</a>. It is what decides whether your donation is worth anything extra, so it is worth answering.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qOther" value="no"><span>No</span></label>
+              <label class="seg"><input type="radio" name="qOther" value="yes" checked><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qOther">
+              <div class="field">
+                <label for="other">How much do those other expenses add up to?</label>
+                <input type="text" id="other" inputmode="decimal" data-money autocomplete="off" value="20000" aria-describedby="otherNote">
+                <p class="adv-q-note" id="otherNote">Leave your donations out of this box, they are counted above. Add up your state and local taxes (up to the <a href="/salt-cap-calculator/">$40,000 cap</a>) and your mortgage interest. The $20,000 shown is only an example, put in your own figure.</p>
+              </div>
+            </div>
+          </fieldset>
+        </fieldset>
       </form>
 
       <div class="obbba-out" id="out" aria-live="polite"></div>

@@ -48,16 +48,16 @@
     <section class="calc" aria-label="Adoption tax credit calculator">
       <form id="adoptForm" autocomplete="off" onsubmit="return false">
         <div class="field">
-          <label for="taxYear">Tax year</label>
+          <label for="taxYear">Which tax year are you filing for?</label>
           <select id="taxYear">
             <option value="2026" selected>2026</option>
             <option value="2025">2025</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">2026 is the default. 2025 is here for extension and amended returns (the refundable cap was $5,000 and the per-child cap $17,280 in 2025).</p>
+          <p class="muted-small" style="margin-top:6px">2026 is the default. Pick 2025 if you are filing late, filing on an extension, or fixing a return you already sent in. The 2025 amounts were smaller: $17,280 per child, of which $5,000 could come back to you as a refund.</p>
         </div>
 
         <div class="field">
-          <label for="filingStatus">Filing status</label>
+          <label for="filingStatus">How are you filing this year?</label>
           <select id="filingStatus">
             <option value="single" selected>Single</option>
             <option value="mfj">Married filing jointly</option>
@@ -65,70 +65,104 @@
             <option value="qw">Qualifying surviving spouse</option>
             <option value="mfs">Married filing separately</option>
           </select>
+          <p class="muted-small" style="margin-top:6px">The same box you tick at the top of your tax return.</p>
         </div>
         <div class="field" id="mfsField" style="display:none">
-          <label for="livedApart">If married filing separately: did you live apart from your spouse for the last 6 months of the year (and the child lived in your home more than half the year, and you paid more than half the home's cost)?</label>
-          <select id="livedApart">
+          <label for="livedApart">You are filing your own return, separate from your spouse. Do all three of these describe your year?</label>
+          <p class="muted-small" id="livedApartTest" style="margin:6px 0">One, you lived apart from your spouse for the last six months of the year. Two, the child lived in your home for more than half the year. Three, you paid more than half the cost of running that home.</p>
+          <select id="livedApart" aria-describedby="livedApartTest livedApartNote">
             <option value="no" selected>No</option>
-            <option value="yes">Yes</option>
+            <option value="yes">Yes, all three</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">Married taxpayers generally must file jointly to claim the adoption credit (§23(f)); this is the only exception.</p>
+          <p class="muted-small" id="livedApartNote" style="margin-top:6px">Married couples normally have to file one joint return to claim the adoption credit. Those three conditions together are the only exception (§23(f)).</p>
         </div>
 
         <div class="field">
-          <label for="childCount">How many children are you adopting (claiming this year)?</label>
+          <label for="childCount">How many children are you claiming this year?</label>
           <select id="childCount">
             <option value="1" selected>1</option>
             <option value="2">2</option>
             <option value="3">3</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">Adopting more than three? Add the extra children's figures to the IRS Form 8839 worksheet; this tool mirrors the form's three columns.</p>
+          <p class="muted-small" style="margin-top:6px">Adopting more than three? Work the extra children out on IRS Form 8839 and add them on. This tool mirrors the form's three columns.</p>
         </div>
+
+        <p class="muted-small" style="margin:0 0 12px">For each child below, enter what the adoption cost you out of your own pocket this year: adoption and agency fees, court costs, lawyer's fees, and travel and lodging for the trip. Leave out anything an employer or a government program paid back to you, surrogacy costs, and the cost of adopting your spouse's child. Those do not count.</p>
 
         <div id="children"></div>
 
         <div class="field">
-          <label for="magi">Your yearly income <span class="muted-small">(Form 1040 line 11)</span></label>
-          <input type="text" id="magi" inputmode="decimal" data-money autocomplete="off" value="120000">
-          <p class="muted-small" style="margin-top:6px">Usually your AGI (the law technically uses MAGI — AGI plus foreign earned income / possessions exclusions from Form 2555 or 4563). The credit phases out from $265,080 to $305,080 for 2026.</p>
+          <label for="magi">What was your total income for the year?</label>
+          <input type="text" id="magi" inputmode="decimal" data-money autocomplete="off" value="120000" aria-describedby="magiNote">
+          <p class="muted-small" id="magiNote" style="margin-top:6px">Use line 11 of your Form 1040, your adjusted gross income. For 2026 the credit starts shrinking once this goes above $265,080 and is gone by $305,080. If you leave foreign income off your return (Form 2555 or 4563), add it back here first. The law calls that adjusted figure your modified AGI, or MAGI.</p>
         </div>
 
         <div class="field">
-          <label for="taxLiability">Federal income tax before this credit, after your other credits ($)</label>
-          <input type="text" id="taxLiability" inputmode="decimal" data-money autocomplete="off" value="8000">
-          <p class="muted-small" style="margin-top:6px">This limits the <em>nonrefundable</em> part only — the refundable part is paid regardless. A rough stand-in for the IRS "Credit Limit Worksheet." The refundable part is paid even if this is $0.</p>
+          <label for="taxLiability">How much federal income tax do you owe this year, before this credit?</label>
+          <input type="text" id="taxLiability" inputmode="decimal" data-money autocomplete="off" value="8000" aria-describedby="taxLiabilityNote">
+          <p class="muted-small" id="taxLiabilityNote" style="margin-top:6px">Your income tax with your other credits already taken off. This only caps the part of the adoption credit that needs tax to soak it up. The refundable part is paid to you even if you put $0 here. The IRS works this figure out on its Credit Limit Worksheet.</p>
         </div>
 
-        <details style="margin-top:8px">
-          <summary class="muted-small">Employer adoption assistance (§137)?</summary>
-          <div class="field" style="margin-top:8px">
-            <label for="hasProgram">Does your employer have a written adoption-assistance program?</label>
-            <select id="hasProgram">
-              <option value="no" selected>No</option>
-              <option value="yes">Yes</option>
-            </select>
-          </div>
-          <div id="employerFields" style="display:none">
-            <div class="field">
-              <label for="employerBenefits">Employer benefits paid/excluded for these expenses this year ($)</label>
-              <input type="text" id="employerBenefits" inputmode="decimal" data-money autocomplete="off" value="0">
-              <p class="muted-small" style="margin-top:6px">These are excluded from your wages (separate $17,670 cap) and are <em>not</em> qualified expenses for the credit — no double-dip. This tool nets them off your first child's credit expenses.</p>
-            </div>
-          </div>
-        </details>
+        <!-- These two questions replace two jargon-titled disclosure panels
+             ("Employer adoption assistance (§137)?" and "Carryforward from a prior
+             year?"). Each is now a plain question, with the technical term kept in
+             the small note underneath so anyone who knows the term still finds it.
+             Both default to No, which is what an untouched page computed before.
+             The fields a question needs ship VISIBLE inside a [data-reveal] wrapper
+             and are hidden by question-flow.js only after load, so JavaScript off,
+             a broken script, or a crawler still sees every field. Never invert this
+             to show-on-demand. Every .adv-q must stay inside this .adv fieldset:
+             its legend is styled by ".adv .adv-q legend". -->
+        <fieldset class="adv">
+          <legend>Two more questions, if they apply to you</legend>
+          <p class="adv-hint">Answer only the ones that apply to you. Leaving both on No gives the same result as before.</p>
 
-        <details style="margin-top:8px">
-          <summary class="muted-small">Carryforward from a prior year?</summary>
-          <div class="field" style="margin-top:8px">
-            <label for="cfAmount">Nonrefundable adoption credit carried into this year ($)</label>
-            <input type="text" id="cfAmount" inputmode="decimal" data-money autocomplete="off" value="0">
-          </div>
-          <div class="field">
-            <label for="cfYear">Year that carryforward first arose</label>
-            <input type="number" id="cfYear" inputmode="numeric" min="2018" max="2030" step="1" value="2025">
-            <p class="muted-small" style="margin-top:6px">Carryforward expires after the 5th year following the year it arose. Pre-2025 carryforwards stay nonrefundable forever.</p>
-          </div>
-        </details>
+          <fieldset class="adv-q" aria-describedby="qEmployerNote">
+            <legend>Did your employer put money toward your adoption costs?</legend>
+            <p class="adv-q-note" id="qEmployerNote">Some workplaces offer adoption help as a benefit. The law calls it employer adoption assistance, or a §137 program.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qEmployer" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qEmployer" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qEmployer">
+              <div class="field">
+                <label for="hasProgram">Was that help part of a written adoption-assistance plan your employer set up?</label>
+                <select id="hasProgram" aria-describedby="hasProgramNote">
+                  <option value="no" selected>No</option>
+                  <option value="yes">Yes</option>
+                </select>
+                <p class="muted-small" id="hasProgramNote" style="margin-top:6px">It has to be a written plan offered to staff generally, not a one-off payment. Your HR or benefits team can tell you. Only a written plan keeps the money out of your taxable pay.</p>
+              </div>
+              <div id="employerFields" style="display:none">
+                <div class="field">
+                  <label for="employerBenefits">How much did your employer pay toward these costs this year?</label>
+                  <input type="text" id="employerBenefits" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="employerBenefitsNote">
+                  <p class="muted-small" id="employerBenefitsNote" style="margin-top:6px">This money is kept out of your taxable pay instead, under its own separate $17,670 cap, so the same dollars cannot also count as expenses for the credit. No double dipping. This tool takes them off your first child's expenses.</p>
+                </div>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="adv-q" aria-describedby="qCarryNote">
+            <legend>Do you have adoption credit left over from an earlier year?</legend>
+            <p class="adv-q-note" id="qCarryNote">If an earlier year's credit was bigger than the tax you owed, the unused part waits for a later year. Tax forms call this a carryforward.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qCarry" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qCarry" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qCarry">
+              <div class="field">
+                <label for="cfAmount">How much is still left over?</label>
+                <input type="text" id="cfAmount" inputmode="decimal" data-money autocomplete="off" value="0">
+              </div>
+              <div class="field">
+                <label for="cfYear">Which year did that leftover credit come from?</label>
+                <input type="number" id="cfYear" inputmode="numeric" min="2018" max="2030" step="1" value="2025" aria-describedby="cfYearNote">
+                <p class="muted-small" id="cfYearNote" style="margin-top:6px">Leftover credit lasts five more years after the year it came from, then it is lost for good. Anything left over from before 2025 can only cut a tax bill, it can never be paid back to you as a refund.</p>
+              </div>
+            </div>
+          </fieldset>
+        </fieldset>
       </form>
 
       <div class="obbba-out" id="out" aria-live="polite"></div>

@@ -23,8 +23,9 @@
   .plan-panel h2 { margin-top:0; }
   .plan-panel ul { margin-bottom:0; }
   .ca-caveat { margin-top:12px; padding:11px 14px; border-left:4px solid #a1394f; border-radius:8px; background:rgba(161,57,79,.09); font-size:.95rem; }
-  details.adv { margin-top:6px; border:1px solid rgba(128,128,128,.25); border-radius:8px; padding:6px 12px; }
-  details.adv summary { cursor:pointer; font-weight:600; padding:6px 0; }
+  /* The old "details.adv" rules are gone with the <details> they styled: the
+     Advanced panel is now the shared .adv / .adv-q question fieldset from
+     styles.css, so this page adds no CSS of its own for it. */
 </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Employer Student Loan Repayment Tax Benefit Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Computes the employee and employer tax savings from an employer's IRC §127 educational-assistance / student-loan-repayment benefit, made permanent and inflation-indexed by OBBBA / P.L. 119-21 §70412. Models the $5,250 per-individual-per-year cap shared between tuition-type assistance and loan repayment, the employee's dual exclusion from federal income tax (§3401(a)(18)) and FICA (§3121(a)(18)), the employer's matching-FICA saving versus paying taxable wages, the Social Security wage-base straddle ($184,500 in 2026) that drops the FICA saving from 7.65% toward 1.45% for high earners, over-cap taxable-wage treatment, and California non-conformity. Informational arithmetic only — not tax advice."}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How much can an employer pay toward my student loans tax-free?","acceptedAnswer":{"@type":"Answer","text":"Up to $5,250 per calendar year. Under IRC §127, an employer can pay principal or interest on your qualified education loan — directly to the lender or as a reimbursement to you — and you pay no federal income tax and no 7.65% FICA on it, while the employer skips its matching 7.65% FICA. This was a temporary pandemic-era benefit set to expire on December 31, 2025; the 2025 law (OBBBA / P.L. 119-21 §70412) made it permanent for payments made after that date, with inflation indexing starting in 2027."}},{"@type":"Question","name":"Is the $5,250 shared with tuition assistance?","acceptedAnswer":{"@type":"Answer","text":"Yes. Section 127 has one $5,250 cap covering both tuition-type educational assistance and student-loan repayment combined. The IRS states the total you can exclude for loan payments and other educational assistance combined is $5,250 per calendar year. You cannot get $5,250 of tuition assistance AND another $5,250 of loan repayment in the same year — if your employer already used $3,000 on tuition, only $2,250 of loan repayment can be tax-free."}},{"@type":"Question","name":"What does the employer save?","acceptedAnswer":{"@type":"Answer","text":"The employer avoids its matching FICA — 6.2% Social Security plus 1.45% Medicare — on the excluded amount, because it isn't 'wages.' At the full $5,250 cap that's $5,250 × 7.65% = $401.63, versus paying the same $5,250 as taxable wages or a bonus. The income-tax deduction is a wash (the payment is deductible compensation either way), so the avoided payroll tax is the entire employer-side benefit. For an employee already over the $184,500 Social Security wage base, the employer saves only the 1.45% Medicare ($76.13), not the full amount. FUTA is also avoided but adds about $0 because its $7,000 wage base is already used up."}},{"@type":"Question","name":"Does the employee save FICA too, or just income tax?","acceptedAnswer":{"@type":"Answer","text":"Both. Section 127 amounts are excluded from wages for federal income-tax withholding (§3401(a)(18)) AND for FICA (§3121(a)(18)) AND for FUTA (§3306(b)(13)) — it is not one of the income-tax-only fringe benefits. A typical employee under the Social Security wage base saves their marginal income-tax rate plus 7.65% FICA. Above the $184,500 wage base the FICA portion is Medicare-only (1.45%, or 2.35% once the 0.9% Additional Medicare surtax applies)."}},{"@type":"Question","name":"Can my employer pay off my Parent PLUS loan for my child tax-free?","acceptedAnswer":{"@type":"Answer","text":"No. The §127 loan clause covers a qualified education loan 'incurred by the employee for education of the employee' — your own education only. That is narrower than the student-loan-interest deduction, which also covers a spouse or dependent. A Parent PLUS loan you took out for a child, or a loan for your spouse's education, does not qualify for the tax-free employer benefit."}},{"@type":"Question","name":"If my employer pays my student loan interest, can I still deduct it?","acceptedAnswer":{"@type":"Answer","text":"No — no double benefit. Interest paid by your employer and excluded from your income under §127 cannot also be counted toward your up-to-$2,500 student-loan-interest deduction under §221 (§127(c)(7) and §221(e)(1) both deny it). Only the interest portion would ever have been deductible anyway; principal never was."}},{"@type":"Question","name":"Is the employer student loan benefit taxable in any state?","acceptedAnswer":{"@type":"Answer","text":"In most states the federal exclusion flows through automatically, so there's no state income tax on it. California is the notable exception: its static federal-conformity date predates the clause that added student-loan repayment to §127, so employer student-loan repayment is taxable wages for California personal income tax. A conformity bill, AB 386, failed on February 2, 2026. Check your own state; this tool has a 'does your state conform?' toggle."}},{"@type":"Question","name":"Will the $5,250 cap go up?","acceptedAnswer":{"@type":"Answer","text":"Starting in 2027 the cap is inflation-indexed under §127(d): the increase over $5,250 is rounded to the nearest $50 (it can round up — unusual for a tax provision). 2025 and 2026 stay at $5,250. The exact 2027 figure doesn't exist yet — the IRS publishes it in its annual inflation-adjustment Revenue Procedure, expected in fall 2026 — so this calculator uses $5,250 until then rather than guessing."}}]}</script>
@@ -46,18 +47,13 @@
     <section class="calc" aria-label="Employer student loan repayment tax benefit calculator">
       <form id="s127Form" autocomplete="off" onsubmit="return false">
         <div class="field">
-          <label for="loanRepaymentBenefit">Annual employer student loan repayment ($)</label>
-          <input type="text" id="loanRepaymentBenefit" inputmode="decimal" data-money autocomplete="off" value="5250">
-          <p class="muted-small" style="margin-top:6px">Principal and/or interest your employer pays on your qualified education loan this year — to the lender or reimbursed to you. Must be for your <em>own</em> education (a Parent PLUS loan you took out for a child does not qualify).</p>
+          <label for="loanRepaymentBenefit">How much is your employer putting toward your student loans this year?</label>
+          <input type="text" id="loanRepaymentBenefit" inputmode="decimal" data-money autocomplete="off" value="5250" aria-describedby="loanRepaymentBenefitNote">
+          <p class="muted-small" id="loanRepaymentBenefitNote" style="margin-top:6px">Money your employer pays on your student loan this year, either straight to the lender or paid back to you. Both the balance you owe and the interest count. It has to be a loan for your own schooling, so a Parent PLUS loan you took out for your child does not count. The tax rule behind this is IRC section 127, and $5,250 a year is the most that can come to you tax-free.</p>
         </div>
         <div class="field">
-          <label for="tuitionAssistanceUsed">Tuition-type §127 assistance already used this year ($)</label>
-          <input type="text" id="tuitionAssistanceUsed" inputmode="decimal" data-money autocomplete="off" value="0">
-          <p class="muted-small" style="margin-top:6px">Tuition, fees, books, or supplies your employer already paid under the same §127 program this year. It <strong>shares the one $5,250 cap</strong> — it reduces the room available for tax-free loan repayment.</p>
-        </div>
-        <div class="field">
-          <label for="marginalFedRate">Your marginal federal income tax rate</label>
-          <select id="marginalFedRate">
+          <label for="marginalFedRate">What federal tax rate do you pay on your next dollar of income?</label>
+          <select id="marginalFedRate" aria-describedby="marginalFedRateNote">
             <option value="0.10">10%</option>
             <option value="0.12">12%</option>
             <option value="0.22" selected>22%</option>
@@ -66,37 +62,90 @@
             <option value="0.35">35%</option>
             <option value="0.37">37%</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">The rate on your next dollar of income. Because §127 is an exclusion (not an itemized deduction), you get the full rate — a 37%-bracket employee saves 37¢ per dollar.</p>
+          <p class="muted-small" id="marginalFedRateNote" style="margin-top:6px">This is your top tax bracket, the rate the next dollar you earn would be taxed at. Not sure? 22% fits most single people earning roughly $50,000 to $105,000, and most couples earning roughly $100,000 to $210,000. Because this benefit is kept out of your pay from the start rather than written off later, you save that full rate, so someone in the 37% bracket keeps 37 cents of every dollar. Tax people call it your marginal rate.</p>
         </div>
 
-        <details class="adv">
-          <summary>Advanced: wages, filing status &amp; state (for high earners and non-conforming states)</summary>
-          <div class="field" style="margin-top:10px">
-            <label for="wages">Your other wages this year, excluding the benefit ($)</label>
-            <input type="text" id="wages" inputmode="decimal" data-money autocomplete="off" value="60000">
-            <p class="muted-small" style="margin-top:6px">Used only for the FICA math. If this plus the benefit stays under the $184,500 Social Security wage base, FICA is the simple 7.65%. Above it, the 6.2% Social Security part drops off and only 1.45% Medicare is saved.</p>
-          </div>
-          <div class="field">
-            <label for="filingStatus">Filing status (Additional Medicare threshold)</label>
-            <select id="filingStatus">
-              <option value="single" selected>Single / Head of household ($200,000)</option>
-              <option value="marriedJoint">Married filing jointly ($250,000)</option>
-              <option value="marriedSeparate">Married filing separately ($125,000)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="stateConforms">Does your state conform to the §127 loan-repayment exclusion?</label>
-            <select id="stateConforms">
-              <option value="yes" selected>Yes — most states conform (flows through, no state tax)</option>
-              <option value="no">No — California (employer loan repayment is taxable state wages)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="stateMarginalRate">Your state marginal income tax rate (%)</label>
-            <input type="number" id="stateMarginalRate" inputmode="decimal" min="0" max="15" step="0.1" value="0">
-            <p class="muted-small" style="margin-top:6px">Optional. In a conforming state this is an extra saving; in a non-conforming state (California) it's a cost, because the benefit is still taxable there. California's top rate is 9.3%–13.3%.</p>
-          </div>
-        </details>
+        <!-- The four Advanced fields are now three plain questions. Each field a
+             question needs ships VISIBLE inside a [data-reveal] wrapper;
+             question-flow.js (this path is opted in via QUESTION_FLOW_PAGES in
+             build.js) only ever ADDS `hidden` after load, so JavaScript off, a
+             broken script, or a crawler still sees every field. Never invert this
+             to show-on-demand. Every .adv-q must stay inside this .adv fieldset:
+             its legend is styled by ".adv .adv-q legend".
+
+             All three default to No, which reproduces exactly what an untouched
+             page computed before: $0 of tuition assistance used, the shipped
+             $60,000 other-pay figure (well under the $184,500 Social Security
+             wage base, so the full 7.65%), single filing status, and a 0% state
+             rate. Note that #wages ships non-zero on purpose, so "No" here means
+             "not a high earner", not "zero pay". -->
+        <fieldset class="adv">
+          <legend>Three more questions, if they apply to you</legend>
+          <p class="adv-hint">Answer only the ones that apply to you. Leaving all three on No gives the same result as before.</p>
+
+          <fieldset class="adv-q" aria-describedby="qTuitionNote">
+            <legend>Has your employer also paid for classes, tuition or books for you this year?</legend>
+            <p class="adv-q-note" id="qTuitionNote">This only counts if it came out of the same workplace education benefit. It matters because tuition help and loan help share one $5,250 limit for the year, so tuition help leaves less room for tax-free loan payments. The rules call it section 127 educational assistance.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qTuition" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qTuition" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qTuition">
+              <div class="field">
+                <label for="tuitionAssistanceUsed">How much has it paid toward that so far this year?</label>
+                <input type="text" id="tuitionAssistanceUsed" inputmode="decimal" data-money autocomplete="off" value="0">
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="adv-q" aria-describedby="qHighEarnerNote">
+            <legend>Will you earn more than about $120,000 this year?</legend>
+            <p class="adv-q-note" id="qHighEarnerNote">Two payroll-tax lines only start to bite up there. Social Security tax stops once your pay for the year passes $184,500, and an extra 0.9% Medicare tax starts somewhere between $125,000 and $250,000 depending on how you file. Under roughly $120,000 neither one can change your answer, so leave this on No. That $184,500 line is called the Social Security wage base.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qHighEarner" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qHighEarner" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qHighEarner">
+              <div class="field">
+                <label for="wages">What will the rest of your pay be this year, not counting this benefit?</label>
+                <input type="text" id="wages" inputmode="decimal" data-money autocomplete="off" value="60000" aria-describedby="wagesNote">
+                <p class="muted-small" id="wagesNote" style="margin-top:6px">Used only to work out the payroll tax. If this plus the benefit stays under $184,500, the payroll-tax saving is the straight 7.65%. Above that line the 6.2% Social Security part drops away and only the 1.45% Medicare part is saved.</p>
+              </div>
+              <div class="field">
+                <label for="filingStatus">How do you file your tax return?</label>
+                <select id="filingStatus" aria-describedby="filingStatusNote">
+                  <option value="single" selected>Single, or head of household</option>
+                  <option value="marriedJoint">Married, filing together</option>
+                  <option value="marriedSeparate">Married, filing separately</option>
+                </select>
+                <p class="muted-small" id="filingStatusNote" style="margin-top:6px">This sets the pay level where the extra 0.9% Medicare tax starts: $200,000 if you file single or as head of household, $250,000 married filing together, $125,000 married filing separately. Its official name is the Additional Medicare Tax.</p>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="adv-q" aria-describedby="qStateNote">
+            <legend>Do you pay income tax to your state?</legend>
+            <p class="adv-q-note" id="qStateNote">Nine states charge no income tax at all, so people there can leave this on No. Nearly every state that does charge it follows the federal rule and leaves this benefit untaxed, which makes it an extra saving on top. California is the one that does not follow the federal rule, so there the benefit is still taxed.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qState" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qState" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qState">
+              <div class="field">
+                <label for="stateConforms">Does your state follow the federal rule and leave this benefit untaxed?</label>
+                <select id="stateConforms">
+                  <option value="yes" selected>Yes, my state does not tax it (nearly every state)</option>
+                  <option value="no">No, my state still taxes it (California)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="stateMarginalRate">What state tax rate do you pay on your next dollar of income?</label>
+                <input type="number" id="stateMarginalRate" inputmode="decimal" min="0" max="15" step="0.1" value="0" aria-describedby="stateMarginalRateNote">
+                <p class="muted-small" id="stateMarginalRateNote" style="margin-top:6px">Type it as a plain number, so 9.3 for 9.3%. Leave it at 0 to skip the state part altogether. In a state that follows the federal rule this is money you save as well. In California it is money you still owe, which eats into the federal saving. California's top rates run from 9.3% to 13.3%.</p>
+              </div>
+            </div>
+          </fieldset>
+        </fieldset>
       </form>
 
       <div class="obbba-out" id="out" aria-live="polite"></div>
@@ -110,7 +159,7 @@
       <h2>The headline, and the two things people get wrong about it</h2>
       <p><strong>What's true:</strong> $5,250 of employer student-loan repayment a year is genuinely tax-free — federal income tax <em>and</em> the 7.65% employee FICA, with the employer avoiding its 7.65% match. On the full cap that's about <strong>$1,557 saved by a 22%-bracket employee</strong> ($1,155.00 income tax + $401.63 FICA = $1,556.63) and <strong>$401.63 saved by the employer</strong>, versus paying the same $5,250 as a taxable bonus.</p>
       <p><strong>Mistake #1 — "it's a separate $5,250 on top of tuition assistance."</strong> No: tuition-type assistance and loan repayment <em>share one $5,250 cap</em>. If your employer already put $3,000 toward tuition, only $2,250 of loan repayment is tax-free this year; the rest is taxable wages.</p>
-      <p><strong>Mistake #2 — "the employer always saves ~$402 per employee."</strong> Only for employees under the $184,500 Social Security wage base. For a highly paid employee already over it, the 6.2% Social Security portion is gone and the employer saves just <strong>1.45% Medicare = $76.13</strong>. This calculator handles that straddle: enter the employee's other wages under <em>Advanced</em>.</p>
+      <p><strong>Mistake #2 — "the employer always saves ~$402 per employee."</strong> Only for employees under the $184,500 Social Security wage base. For a highly paid employee already over it, the 6.2% Social Security portion is gone and the employer saves just <strong>1.45% Medicare = $76.13</strong>. This calculator handles that straddle: answer <em>Yes</em> to the "will you earn more than about $120,000" question and enter the employee's other pay.</p>
     </section>
 
     <div class="ad-slot" data-ad="incontent">Advertisement</div>
@@ -138,7 +187,7 @@
 
     <section class="prose ca-caveat">
       <h2>California does not conform — the benefit is taxable there</h2>
-      <p>Most states start from federal income and update their conformity regularly, so the §127 exclusion flows through and there's no state income tax on the benefit. <strong>California is the exception.</strong> Its static federal-conformity date predates the CARES Act clause that added student-loan repayment to §127, so while California conforms to the traditional <em>tuition-type</em> §127 exclusion, <strong>employer student-loan repayment is taxable wages for California personal income tax</strong>. Conformity bills have repeatedly failed — most recently <strong>AB 386</strong>, which failed on <strong>February 2, 2026</strong>. If you're a California employee, switch the state toggle to "California" under <em>Advanced</em> and enter your California rate to see the state tax that offsets part of the federal saving. Other static-conformity states may also tax it — check your own state.</p>
+      <p>Most states start from federal income and update their conformity regularly, so the §127 exclusion flows through and there's no state income tax on the benefit. <strong>California is the exception.</strong> Its static federal-conformity date predates the CARES Act clause that added student-loan repayment to §127, so while California conforms to the traditional <em>tuition-type</em> §127 exclusion, <strong>employer student-loan repayment is taxable wages for California personal income tax</strong>. Conformity bills have repeatedly failed — most recently <strong>AB 386</strong>, which failed on <strong>February 2, 2026</strong>. If you're a California employee, answer <em>Yes</em> to the "do you pay income tax to your state" question, pick the California option, and enter your California rate to see the state tax that offsets part of the federal saving. Other static-conformity states may also tax it — check your own state.</p>
     </section>
 
     <section class="prose">

@@ -42,74 +42,150 @@
     <p class="lede">Since <strong>July 1, 2026</strong>, federal law caps how much graduate students, professional students, and parents can borrow from the federal government for school — amounts that used to be available up to the <em>full cost of attendance</em> through PLUS loans. <strong>Grad PLUS is gone</strong> for new borrowers. Graduate students now get <strong>$20,500/year</strong> ($100,000 aggregate), professional students <strong>$50,000/year</strong> ($200,000 shared pool), Parent PLUS <strong>$20,000/year</strong> ($65,000 per student), and everyone faces a <strong>$257,500 lifetime cap</strong>. Enter your program's numbers to see your year-by-year federal borrowing capacity, exactly which cap binds each year, and the resulting <strong>funding gap</strong> — computed straight from the statute (20 U.S.C. §1087e(a)) and ED's final rule, with citations. Everything runs in your browser — nothing is uploaded.</p>
 
     <section class="calc" aria-label="Federal student loan cap calculator">
+      <!-- The optional money boxes are plain yes/no questions, not jargon-labelled
+           fields. Every question defaults to No and pre-checked, so an untouched
+           page computes exactly what it computed before the rewrite. The field a
+           question needs ships VISIBLE inside a [data-reveal] wrapper;
+           question-flow.js (opted in by path in build.js) hides the wrapper and
+           parks its value at 0 while the answer is No, so JavaScript off, broken,
+           or a crawler still sees every field. Hide-on-demand, never show-on-demand.
+           The jargon each question replaces (cost of attendance, Direct
+           Unsubsidized, Grad PLUS, Parent PLUS, the restorable pool vs. the
+           lifetime odometer, the grandfather exception) survives verbatim in the
+           small note under each question, so a knowledgeable visitor still
+           recognises the field and the terms stay findable.
+           IDs ARE LOAD-BEARING: student-loan-cap-calculator.js toggles #mode,
+           #studentFields, #parentFields, #undergradFields, #legacyField,
+           #poolField, #everProfField and #lifetimeField by id, reads every input
+           by id, and rewrites #legacyLabel's text on every render. #poolField,
+           #everProfField and #lifetimeField now sit ON the .adv-q fieldsets
+           themselves so the script's display toggle keeps working unchanged. -->
       <form id="slcForm" autocomplete="off" onsubmit="return false">
         <div class="field">
-          <label for="mode">Who is borrowing?</label>
+          <label for="mode">Who is borrowing the money?</label>
           <select id="mode">
-            <option value="graduate" selected>Graduate student ($20,500/yr, $100,000 pool)</option>
-            <option value="professional">Professional student ($50,000/yr, $200,000 pool)</option>
-            <option value="parentPlus">Parent (Parent PLUS, $20,000/yr, $65,000 per student)</option>
-            <option value="undergradInfo">Undergraduate (own loans — limits unchanged)</option>
+            <option value="graduate" selected>A graduate student, borrowing for myself</option>
+            <option value="professional">A professional student, borrowing for myself</option>
+            <option value="parentPlus">A parent, borrowing for my child</option>
+            <option value="undergradInfo">An undergraduate student, borrowing for myself</option>
           </select>
-          <p class="muted-small" style="margin-top:6px" id="modeHelp">Whether a program counts as "professional" is currently in federal-court litigation — ED's interim list (updated July 10, 2026) recognizes 29 programs, including MSN/DNP nursing, PT, OT, and PA. This tool doesn't classify your program; pick the status your financial aid office confirms. See the note below the results.</p>
+          <p class="muted-small" style="margin-top:6px" id="modeHelp">A graduate student can borrow $20,500 a year, a professional student $50,000 a year, and a parent $20,000 a year. Undergraduate limits did not change. "Professional" means programs like medicine, law and dentistry, and exactly which programs count is being argued in federal court right now, so this tool never decides for you. The Department of Education's working list of July 10, 2026 covers 29 programs, including nursing (MSN and DNP), physical therapy, occupational therapy and physician assistant. Pick the one your financial aid office confirms, and see the note below the results.</p>
         </div>
 
         <div id="studentFields">
           <div class="field">
-            <label for="yearsRemaining">Years remaining in the program</label>
+            <label for="yearsRemaining">How many more years of this program are left?</label>
             <select id="yearsRemaining">
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4" selected>4</option>
-              <option value="5">5</option>
-              <option value="6">6</option>
+              <option value="1">1 year</option>
+              <option value="2">2 years</option>
+              <option value="3">3 years</option>
+              <option value="4" selected>4 years</option>
+              <option value="5">5 years</option>
+              <option value="6">6 years</option>
             </select>
           </div>
           <div class="field">
-            <label for="annualCoa">Cost of attendance per year ($)</label>
+            <label for="annualCoa">What does one year of this school cost in total?</label>
             <input type="text" id="annualCoa" inputmode="decimal" data-money autocomplete="off" value="60000">
-            <p class="muted-small" style="margin-top:6px">Your school's published cost of attendance (tuition, fees, living costs) for one academic year.</p>
+            <p class="muted-small" style="margin-top:6px">Tuition, fees and living costs for one school year. Your school publishes this figure and calls it the cost of attendance.</p>
           </div>
-          <div class="field">
-            <label for="annualOtherAid">Grants, scholarships &amp; other aid per year ($)</label>
-            <input type="text" id="annualOtherAid" inputmode="decimal" data-money autocomplete="off" value="0">
-            <p class="muted-small" style="margin-top:6px">Aid that doesn't have to be repaid (grants, scholarships, assistantships, employer benefits). Federal loans can never exceed cost of attendance minus this.</p>
-          </div>
-          <div class="field" id="poolField">
-            <label for="priorPoolOutstanding">Outstanding Direct Unsubsidized principal from prior graduate/professional study ($)</label>
-            <input type="text" id="priorPoolOutstanding" inputmode="decimal" data-money autocomplete="off" value="0">
-            <p class="muted-small" style="margin-top:6px">Outstanding principal, not the amount you originally borrowed — repaying restores room in the $100,000/$200,000 pool (unlike the lifetime cap). Don't include undergraduate loans or old Grad PLUS here; they don't count against this pool.</p>
-          </div>
-          <div class="field" id="everProfField">
-            <label for="everProfessional"><input type="checkbox" id="everProfessional"> I am (or have been) enrolled as a professional student too</label>
-            <p class="muted-small" style="margin-top:6px">Graduate and professional borrowing share one $200,000 pool — a graduate student who has ever been a professional student uses the shared pool instead of the $100,000 figure.</p>
-          </div>
-          <div class="field" id="lifetimeField">
-            <label for="lifetimeEverBorrowed">All federal student loans EVER borrowed for your own education ($)</label>
-            <input type="text" id="lifetimeEverBorrowed" inputmode="decimal" data-money autocomplete="off" value="0">
-            <p class="muted-small" style="margin-top:6px">Everything, ever: undergraduate + graduate + professional, Direct and FFEL, including old Grad PLUS — and including amounts you've already repaid or had forgiven. The $257,500 lifetime cap ignores repayment entirely.</p>
-          </div>
+
+          <fieldset class="adv">
+            <legend>A few questions, so the numbers match your situation</legend>
+            <p class="adv-hint">Answer only the ones that apply to you. Leaving every answer on No means no free aid and no borrowing so far, which is what this page assumes to start with.</p>
+
+            <fieldset class="adv-q" aria-describedby="qAidNote">
+              <legend>Do you get any money for school that you never have to pay back?</legend>
+              <p class="adv-q-note" id="qAidNote">Grants, scholarships, assistantships, or education money from an employer. Award letters call this other financial assistance.</p>
+              <div class="yn">
+                <label class="seg"><input type="radio" name="qAid" value="no" checked><span>No</span></label>
+                <label class="seg"><input type="radio" name="qAid" value="yes"><span>Yes</span></label>
+              </div>
+              <div class="adv-reveal" data-reveal="qAid">
+                <div class="field">
+                  <label for="annualOtherAid">How much of it do you get in one year?</label>
+                  <input type="text" id="annualOtherAid" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="annualOtherAidNote">
+                  <p class="adv-q-note" id="annualOtherAidNote">A federal loan can never be bigger than the cost of a year minus this amount.</p>
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset class="adv-q" id="poolField" aria-describedby="qPriorGradNote">
+              <legend>Have you borrowed for graduate or professional school before?</legend>
+              <p class="adv-q-note" id="qPriorGradNote">This asks only about study after a bachelor's degree, and only about Direct Unsubsidized loans. Loans from your undergraduate years and old Grad PLUS loans do not belong here, because they do not count against this particular limit.</p>
+              <div class="yn">
+                <label class="seg"><input type="radio" name="qPriorGrad" value="no" checked><span>No</span></label>
+                <label class="seg"><input type="radio" name="qPriorGrad" value="yes"><span>Yes</span></label>
+              </div>
+              <div class="adv-reveal" data-reveal="qPriorGrad">
+                <div class="field">
+                  <label for="priorPoolOutstanding">How much of that do you still owe today?</label>
+                  <input type="text" id="priorPoolOutstanding" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="priorPoolOutstandingNote">
+                  <p class="adv-q-note" id="priorPoolOutstandingNote">What you still owe, not what you first borrowed. Paying this down frees up room to borrow again, which is what makes the $100,000 and $200,000 limits different from the lifetime one.</p>
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset class="adv-q" id="everProfField" aria-describedby="qEverProfNote">
+              <legend>Have you ever been enrolled as a professional student as well?</legend>
+              <p class="adv-q-note" id="qEverProfNote">Professional programs are ones like medicine, law and dentistry. Graduate study and professional study share a single $200,000 limit, so anyone who has ever been a professional student gets that shared $200,000 rather than the $100,000 a graduate-only student gets.</p>
+              <div class="field">
+                <label for="everProfessional"><input type="checkbox" id="everProfessional"> Yes, I am now or have been a professional student</label>
+              </div>
+            </fieldset>
+
+            <fieldset class="adv-q" id="lifetimeField" aria-describedby="qLifetimeNote">
+              <legend>Have you ever borrowed any federal student loan for your own education?</legend>
+              <p class="adv-q-note" id="qLifetimeNote">Everything counts towards the $257,500 lifetime limit: undergraduate, graduate and professional, Direct and FFEL loans, old Grad PLUS included, and even the parts you have already paid off or had forgiven. Loans your parents took out for you do not count here.</p>
+              <div class="yn">
+                <label class="seg"><input type="radio" name="qLifetime" value="no" checked><span>No</span></label>
+                <label class="seg"><input type="radio" name="qLifetime" value="yes"><span>Yes</span></label>
+              </div>
+              <div class="adv-reveal" data-reveal="qLifetime">
+                <div class="field">
+                  <label for="lifetimeEverBorrowed">How much have you borrowed in total, over your whole life?</label>
+                  <input type="text" id="lifetimeEverBorrowed" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="lifetimeEverBorrowedNote">
+                  <p class="adv-q-note" id="lifetimeEverBorrowedNote">Add up everything you ever borrowed for yourself, including amounts you have paid back. StudentAid.gov shows your full loan history. This limit ignores repayment completely, so it never resets.</p>
+                </div>
+              </div>
+            </fieldset>
+          </fieldset>
         </div>
 
         <div id="parentFields" style="display:none">
-          <div class="field">
-            <label for="parentPlusEverBorrowed">Parent PLUS ever borrowed for THIS student, all parents combined ($)</label>
-            <input type="text" id="parentPlusEverBorrowed" inputmode="decimal" data-money autocomplete="off" value="0">
-            <p class="muted-small" style="margin-top:6px">The $65,000 aggregate applies per dependent student across ALL parents combined, and counts everything ever borrowed — repaying doesn't restore it.</p>
-          </div>
+          <fieldset class="adv">
+            <legend>A question about what you have already borrowed for this child</legend>
+            <p class="adv-hint">Answer No if no parent has taken out a federal parent loan for this child yet.</p>
+
+            <fieldset class="adv-q" aria-describedby="qParentPriorNote">
+              <legend>Has either parent already borrowed a federal parent loan for this child?</legend>
+              <p class="adv-q-note" id="qParentPriorNote">These are Parent PLUS loans. The $65,000 limit is counted per child and covers both parents together, and paying it back does not free up more room.</p>
+              <div class="yn">
+                <label class="seg"><input type="radio" name="qParentPrior" value="no" checked><span>No</span></label>
+                <label class="seg"><input type="radio" name="qParentPrior" value="yes"><span>Yes</span></label>
+              </div>
+              <div class="adv-reveal" data-reveal="qParentPrior">
+                <div class="field">
+                  <label for="parentPlusEverBorrowed">How much have both parents borrowed for this child so far?</label>
+                  <input type="text" id="parentPlusEverBorrowed" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="parentPlusEverBorrowedNote">
+                  <p class="adv-q-note" id="parentPlusEverBorrowedNote">Count everything ever borrowed for this child by either parent, including amounts already paid back.</p>
+                </div>
+              </div>
+            </fieldset>
+          </fieldset>
         </div>
 
         <div id="undergradFields" style="display:none">
           <div class="field">
-            <label for="ugDependency">Dependency status</label>
+            <label for="ugDependency">Do your parents' details go on your FAFSA?</label>
             <select id="ugDependency">
-              <option value="dependent" selected>Dependent undergraduate</option>
-              <option value="independent">Independent undergraduate</option>
+              <option value="dependent" selected>Yes, my parents' details go on it</option>
+              <option value="independent">No, I fill it in on my own</option>
             </select>
+            <p class="muted-small" style="margin-top:6px">Most students under 24 who are unmarried and have no children answer Yes, which the FAFSA calls a dependent student. Students who answer No can borrow more.</p>
           </div>
           <div class="field">
-            <label for="ugYear">Year of study</label>
+            <label for="ugYear">Which year of your degree are you in?</label>
             <select id="ugYear">
               <option value="1">First year</option>
               <option value="2" selected>Second year</option>
@@ -118,10 +194,17 @@
           </div>
         </div>
 
-        <div class="field" id="legacyField">
-          <label for="legacyEligible"><input type="checkbox" id="legacyEligible"> <span id="legacyLabel">I was enrolled in this program on June 30, 2026 AND a Direct Loan was made for it before July 1, 2026</span></label>
-          <p class="muted-small" style="margin-top:6px">The legacy ("grandfather") exception: if both conditions hold, the old rules — including Grad PLUS up to cost of attendance — keep applying for the lesser of 3 academic years or your remaining program length. Withdrawing cancels it. For the parent exception, a Direct Loan to the parent OR to the student qualifies.</p>
-        </div>
+        <fieldset class="adv" id="legacyField">
+          <legend>One last question, only if this program started before July 2026</legend>
+
+          <fieldset class="adv-q" aria-describedby="qLegacyNote">
+            <legend>Was this program already under way before July 1, 2026?</legend>
+            <p class="adv-q-note" id="qLegacyNote">This is the legacy exception, often called grandfathering. If the studies were already under way and a federal loan had already been made for this same program, the older and more generous rules keep applying for up to 3 more school years, or until the program ends if that comes sooner. Those older rules let Grad PLUS or Parent PLUS cover the full cost of attendance. Dropping out or stopping the studies ends it. If you are the borrowing parent, a loan made to you or to your child both count. Tick the box only if both halves of the sentence are true.</p>
+            <div class="field">
+              <label for="legacyEligible"><input type="checkbox" id="legacyEligible"> <span id="legacyLabel">I was enrolled in this program on June 30, 2026 AND a Direct Loan was made for it before July 1, 2026</span></label>
+            </div>
+          </fieldset>
+        </fieldset>
       </form>
 
       <div class="obbba-out" id="out" aria-live="polite"></div>

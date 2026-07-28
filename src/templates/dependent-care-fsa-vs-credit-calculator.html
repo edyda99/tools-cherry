@@ -32,42 +32,73 @@
     <section class="calc" aria-label="Dependent Care FSA vs. Child and Dependent Care Credit calculator">
       <form id="dcForm" autocomplete="off" onsubmit="return false">
         <div class="field">
-          <label for="filing">Filing status</label>
+          <label for="filing">How do you file your taxes?</label>
           <select id="filing">
             <option value="married">Married filing jointly</option>
             <option value="single">Single</option>
             <option value="head_of_household">Head of household</option>
             <option value="married_separate">Married filing separately</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">Married filing separately <strong>can't claim the credit</strong> (§21(e)(2) needs a joint return) and its FSA cap is <strong>$3,750</strong>, not $7,500 — the tool handles both.</p>
+          <p class="muted-small" style="margin-top:6px">Married, but each of you sends in your own separate return? Then you <strong>cannot claim the credit at all</strong>, the rules ask for one joint return, and the most you can set aside at work is <strong>$3,750</strong> instead of $7,500. The tool allows for both.</p>
         </div>
 
         <div class="field">
-          <label for="agi">Your yearly household income <span class="muted-small">(Form 1040 line 11)</span></label>
+          <label for="agi">How much does your household make in a year, before tax?</label>
           <input type="text" id="agi" inputmode="decimal" data-money autocomplete="off" value="85000">
-          <p class="muted-small" style="margin-top:6px">This is roughly your AGI, combined if filing jointly. It sets your effective rate and the credit's rate, so there's no need to enter a rate. Enter it <strong>before</strong> any FSA; the tool works out the after-FSA figure itself.</p>
+          <p class="muted-small" style="margin-top:6px">Your pay and other income, after a few adjustments. It is the number on line 11 of your Form 1040, and tax people call it your <a href="/tax-glossary/#agi">adjusted gross income, or AGI</a>. Married and filing one return together? Add both incomes. Put in the figure from <strong>before</strong> anything comes out of your pay for childcare, the tool works out the rest itself. This one number sets both your tax rate and the rate the credit pays, so there is no rate for you to look up.</p>
         </div>
 
         <div class="field">
-          <label for="kids">Number of qualifying dependents</label>
+          <label for="kids">How many people do you pay someone else to look after?</label>
           <select id="kids">
-            <option value="1">1 (expense cap $3,000)</option>
-            <option value="2" selected>2 or more (expense cap $6,000)</option>
+            <option value="1">1 person (the credit counts up to $3,000 of your costs)</option>
+            <option value="2" selected>2 or more (the credit counts up to $6,000 of your costs)</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">Children under 13, or a disabled spouse or <a href="/tax-glossary/#dependent">dependent</a>. The count sets the credit's expense cap — it does not change the $7,500 FSA limit.</p>
+          <p class="muted-small" style="margin-top:6px">Children under 13, or a husband, wife, or other <a href="/tax-glossary/#dependent">dependent</a> who cannot look after themselves. Tax rules call them qualifying dependents. The count sets how much of your care bill the credit is allowed to count, up to $3,000 for one person or $6,000 for two or more. It does not change how much you can set aside at work.</p>
         </div>
 
         <div class="field">
-          <label for="expenses">Annual dependent-care expenses ($)</label>
+          <label for="expenses">How much do you pay for that care in a year?</label>
           <input type="text" id="expenses" inputmode="decimal" data-money autocomplete="off" value="6000">
-          <p class="muted-small" style="margin-top:6px">Daycare, after-school care, day camp, a nanny — the care that lets you (and your spouse) work.</p>
+          <p class="muted-small" style="margin-top:6px">Daycare, after-school care, day camp, or a nanny. Count the care that lets you, and your husband or wife, go out to work.</p>
         </div>
 
-        <div class="field">
-          <label for="employerFsa">Max your employer's FSA allows ($)</label>
-          <input type="text" id="employerFsa" inputmode="decimal" data-money autocomplete="off" value="7500">
-          <p class="muted-small" style="margin-top:6px">Capped at $7,500 ($3,750 married filing separately). If your employer offers <strong>no</strong> dependent care FSA, set this to <strong>0</strong> and the tool recommends the credit.</p>
-        </div>
+        <!-- Exactly one field on this page is gated by jargon a non-expert cannot
+             get past: "Max your employer's FSA allows". It is now a plain yes/no
+             question, and the term "dependent care FSA" survives in the small note
+             underneath, so someone who already knows it still recognises the field.
+             The money box lives in a [data-reveal] wrapper that ships VISIBLE here;
+             question-flow.js (already switched on for this path in build.js) only
+             ever ADDS hidden to it after load when the answer is No. So JavaScript
+             off, a broken script, or a crawler all still see the field. Never
+             invert this to show-on-demand.
+             The question ships answered YES on purpose: this box has always loaded
+             pre-filled at $7,500, so a No default would change what an untouched
+             page computes. Same reasoning as qOther on the charitable page.
+             NOTE FOR THE ENGINE: dependent-care-fsa-vs-credit-calculator.js reads
+             #employerFsa unconditionally, so answering No currently hides the box
+             but still feeds $7,500 to the comparison. Until render() zeroes it on a
+             No answer, the note below keeps the "set it to 0" escape hatch. -->
+        <fieldset class="adv">
+          <legend>One more question, about your job</legend>
+          <p class="adv-hint">This is the only part that depends on your employer rather than on you. Change the answer if it does not match your job.</p>
+
+          <fieldset class="adv-q" aria-describedby="qFsaNote">
+            <legend>Does your job let you set money aside for childcare before tax comes out?</legend>
+            <p class="adv-q-note" id="qFsaNote">This is a <strong>dependent care FSA</strong>, sometimes called a dependent care assistance plan. You sign up for it through work, usually during open enrollment, and the money leaves your pay before income tax and before Social Security and Medicare. Not every employer offers one.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qFsa" value="no"><span>No</span></label>
+              <label class="seg"><input type="radio" name="qFsa" value="yes" checked><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qFsa">
+              <div class="field">
+                <label for="employerFsa">What is the most your job lets you set aside in a year?</label>
+                <input type="text" id="employerFsa" inputmode="decimal" data-money autocomplete="off" value="7500" aria-describedby="employerFsaNote">
+                <p class="adv-q-note" id="employerFsaNote">The law caps this at <strong>$7,500</strong>, or <strong>$3,750</strong> if you are married and send in your own separate return. Most plans allow the full amount, so $7,500 is filled in for you. If yours allows less, put that smaller figure in instead. No plan at your job at all? Set this box to <strong>0</strong> first, then answer No above, and the tool will point you to the credit.</p>
+              </div>
+            </div>
+          </fieldset>
+        </fieldset>
       </form>
 
       <div class="obbba-out" id="out" aria-live="polite"></div>
