@@ -1212,6 +1212,15 @@ footer.site a:hover { color: var(--text); }
    styled by `.field input, .field select, .field textarea` above. Two rules for
    a .wc-input that no template ever shipped used to sit here and matched
    nothing. */
+/* The time card's own copy control. Deliberately NOT .wc-toolbar, which belongs to
+   word-counter: borrowing it would mean any tap-target or colour fix made for the
+   time card silently restyled a page nobody had opened. Two pages is a small blast
+   radius but it is still the wrong kind of coupling. min-height meets the 44px
+   pointer-target floor, which .wc-toolbar's 8px padding does not (it renders 35px). */
+.tc-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+.tc-actions .btn-secondary { width: auto; min-height: 44px; padding: 10px 18px; flex: 0 0 auto; }
+.tc-actions .btn-secondary.copied { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
 .wc-toolbar { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
 .wc-toolbar .btn-secondary { width: auto; padding: 8px 16px; flex: 0 0 auto; }
 .wc-toolbar .btn-secondary.copied { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }

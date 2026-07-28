@@ -3614,6 +3614,7 @@ async function main() {
   registerAsset('engine', 'text-stats.js');
   registerAsset('assets', 'hours-calculator.js');
   registerAsset('engine', 'timecard.js');
+  registerAsset('engine', 'timecard-export.js'); // time-card -> tab-separated clipboard text (hours-calculator.html only)
   registerAsset('assets', 'text-case-converter.js');
   registerAsset('assets', 'bionic-reading-converter.js');
   registerAsset('assets', 'roman-numeral-converter.js');

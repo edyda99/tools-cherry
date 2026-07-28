@@ -61,6 +61,27 @@
         <div class="line" id="otPayLine" hidden><span class="lbl">Overtime pay</span><span id="otPay">—</span></div>
         <div class="line total" id="payLine" hidden><span class="lbl">Estimated gross pay</span><span id="grossPay">—</span></div>
       </div>
+
+      <!-- .tc-actions, not .wc-toolbar: that class belongs to word-counter and its
+           8px padding renders a 35px control, under the 44px pointer-target floor.
+           The label says "all days as a table" because the report widget injects its
+           own generic "Copy result" button just above this one, which copies the
+           summary block only. Two buttons both starting "Copy" need to differ on
+           WHAT they copy, not on a synonym for "result". -->
+      <div class="tc-actions">
+        <button type="button" id="copyCard" class="btn-secondary" aria-describedby="copyCardHint">Copy all days as a table</button>
+      </div>
+      <p class="muted-small" id="copyCardHint">Copies every day, the totals and any pay estimate as tab separated text, ready to paste into a spreadsheet.</p>
+      <!-- The copy outcome's only announcement. Kept OUTSIDE .results on purpose:
+           that block is a live region the report widget also anchors on, so putting
+           the button or its status inside it would re-announce the whole result
+           panel on every keystroke. role="status" carries an implicit polite live
+           region without the aria-live attribute, so this never becomes a second
+           anchor candidate for the report widget. Same single-announcer pattern as
+           #outStatus on the state and tax pages. It swaps sr-only for
+           .muted-small.error when a copy actually fails, so a failure is both
+           spoken and seen. -->
+      <p id="copyStatus" role="status" class="sr-only"></p>
     </section>
 
     <div class="ad-slot" data-ad="leaderboard">Advertisement</div>

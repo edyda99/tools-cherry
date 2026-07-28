@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import {
   parseTime,
+  breakMinutes,
   shiftMinutes,
   totalMinutes,
   minutesToDecimal,
@@ -32,6 +33,11 @@ t('parseTime: blank is NaN', () => assert.ok(Number.isNaN(parseTime(''))));
 t('parseTime: 25:00 out of range is NaN', () => assert.ok(Number.isNaN(parseTime('25:00'))));
 t('parseTime: 12:60 out of range is NaN', () => assert.ok(Number.isNaN(parseTime('12:60'))));
 t('parseTime: garbage is NaN', () => assert.ok(Number.isNaN(parseTime('abc'))));
+
+// --- breakMinutes ------------------------------------------------------------
+t('breakMinutes: "30" -> 30', () => assert.equal(breakMinutes('30'), 30));
+t('breakMinutes: "-30" clamps to 0', () => assert.equal(breakMinutes('-30'), 0));
+t('breakMinutes: blank -> 0', () => assert.equal(breakMinutes(''), 0));
 
 // --- shiftMinutes ------------------------------------------------------------
 t('shiftMinutes: 09:00->17:00 with 30m break = 7.5h', () => {

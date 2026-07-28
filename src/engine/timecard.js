@@ -21,7 +21,7 @@ export function parseTime(str) {
 }
 
 // Clamp a break value to a finite, non-negative number of minutes.
-function breakMinutes(v) {
+export function breakMinutes(v) {
   const n = typeof v === 'number' ? v : parseFloat(v);
   return Number.isFinite(n) && n > 0 ? n : 0;
 }

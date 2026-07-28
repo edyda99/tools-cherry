@@ -10,6 +10,7 @@ import {
   overtimeSplit,
   grossPayOvertime
 } from '/assets/timecard.js';
+import { buildTimecardText, effectiveThreshold, effectiveMultiplier } from '/assets/timecard-export.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
@@ -51,6 +52,7 @@ function nextDayLabel() {
 function readRows() {
   return [...document.querySelectorAll('#rows .tc-row')].map((row) => ({
     el: row,
+    label: row.querySelector('.lbl-in').value,
     start: row.querySelector('.start').value,
     end: row.querySelector('.end').value,
     breakMin: row.querySelector('.brk').value
@@ -78,8 +80,13 @@ function render() {
 
   // Overtime split (hours) — shown whenever the toggle is on, even before a rate.
   const otOn = $('otOn').checked;
-  const otThreshold = parseFloat($('otThreshold').value) || 40;
-  const otMult = parseFloat($('otMult').value) || 1.5;
+  // `parseFloat(v) || 40` treated a deliberate 0 as missing, so a visitor who typed
+  // 0 (meaning every hour counts as overtime) silently got 40, and the copied card
+  // then stated 40 while the field on screen still read 0. These two helpers are the
+  // same rules overtimeSplit and grossPayOvertime apply internally, so the number
+  // here is provably the number the engine uses, and the label can quote it.
+  const otThreshold = effectiveThreshold($('otThreshold').value);
+  const otMult = effectiveMultiplier(parseFloat($('otMult').value));
   const split = otOn ? overtimeSplit(totHours, otThreshold) : { regular: totHours, overtime: 0 };
   const showOT = otOn && split.overtime > 0;
   $('otFields').hidden = !otOn;
@@ -118,6 +125,137 @@ function render() {
   }
 }
 
+// --- copy to clipboard -------------------------------------------------------
+// Local calendar date, never toISOString(): a US evening visitor would otherwise
+// see tomorrow's date stamped on their own time card.
+function localToday() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// A line exists in the export if and only if the matching element is visible on
+// screen right now. render() runs first so the .hidden flags read below are the
+// ones the page is currently showing; nothing here re-derives showOT or the
+// rate test, and no number is scraped from textContent (which carries $ and
+// thousands separators).
+function timecardText() {
+  render();
+  return buildTimecardText({
+    rows: readRows().map((r) => ({
+      label: r.label, start: r.start, end: r.end, breakMin: r.breakMin
+    })),
+    show: {
+      otHours: !$('regLine').hidden,
+      pay: !$('payLine').hidden,
+      otPay: !$('regPayLine').hidden
+    },
+    otOn: $('otOn').checked,
+    otThreshold: effectiveThreshold($('otThreshold').value),
+    otMult: effectiveMultiplier(parseFloat($('otMult').value)),
+    rate: moneyValue($('rate')),   // comma-safe: parseFloat("1,250") would give 1
+    today: localToday()
+  });
+}
+
+// The transient "Copied!" label. `idleLabel` is captured ONLY while no reset is
+// pending, i.e. only while the button is showing its real text, so a second
+// click inside the window can never capture "Copied!" and restore that forever,
+// which is what a plain `const old = btn.textContent` did. Re-read on every idle
+// click rather than frozen at module load, so a future translated or re-rendered
+// label still restores correctly. The pending timer is always cancelled first,
+// so any number of clicks in any rhythm ends on the real label.
+const COPIED_MS = 1400;
+let labelTimer = null;
+let idleLabel = null;
+
+function restoreLabel(btn) {
+  if (labelTimer !== null) { clearTimeout(labelTimer); labelTimer = null; }
+  if (idleLabel !== null) { btn.textContent = idleLabel; idleLabel = null; }
+  btn.classList.remove('copied');
+}
+
+function flashCopied(btn) {
+  if (labelTimer !== null) clearTimeout(labelTimer);
+  else idleLabel = btn.textContent;
+  btn.textContent = 'Copied!';
+  btn.classList.add('copied');
+  labelTimer = setTimeout(() => { restoreLabel(btn); }, COPIED_MS);
+}
+
+// One announcer for the copy outcome (#copyStatus, role="status", sr-only).
+// A polite live region only speaks when its text CHANGES, so the same message
+// twice in a row would be silent: clear it, then write on a later task.
+// On failure the same element also becomes visible via the site's
+// .muted-small.error convention, so the bad news is seen as well as spoken.
+let statusTimer = null;
+function setCopyStatus(msg, isError) {
+  const el = $('copyStatus');
+  if (!el) return;
+  el.className = isError ? 'muted-small error' : 'sr-only';
+  el.textContent = '';
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => { el.textContent = msg; }, 60);
+}
+
+const COPY_OK = 'Time card copied to the clipboard: every day, the totals and any pay estimate.';
+const COPY_FAIL = 'Nothing was copied. Your browser blocked clipboard access, so select the times on this page and copy them yourself.';
+
+function copyOutcome(btn, ok) {
+  if (ok) {
+    flashCopied(btn);
+    setCopyStatus(COPY_OK, false);
+  } else {
+    // Never leave a stale "Copied!" standing over a failure.
+    restoreLabel(btn);
+    setCopyStatus(COPY_FAIL, true);
+  }
+}
+
+function copyCard() {
+  const btn = $('copyCard');
+  if (!btn) return;
+  const text = timecardText();
+
+  // document.execCommand('copy') returns false WITHOUT throwing when the copy is
+  // refused, so the old unconditional success call told the visitor "Copied!"
+  // over an empty clipboard. Take the return value as the answer, and remove the
+  // textarea in a finally so a throw can't strand it in the DOM.
+  const fallback = () => {
+    let ok = false;
+    const ta = document.createElement('textarea');
+    try {
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '0';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      ok = document.execCommand('copy') === true;
+    } catch (_) {
+      ok = false;
+    } finally {
+      if (ta.parentNode) ta.parentNode.removeChild(ta);
+    }
+    copyOutcome(btn, ok);
+  };
+
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      // Two-arg then, not .then().catch(): with a trailing .catch, a throw inside
+      // the success handler would be mistaken for a clipboard rejection and would
+      // run the fallback after we had already reported success.
+      navigator.clipboard.writeText(text).then(() => copyOutcome(btn, true), fallback);
+      return;
+    }
+  } catch (_) {
+    /* fall through */
+  }
+  fallback();
+}
+
 // --- init --------------------------------------------------------------------
 function init() {
   initMoneyInputs();
@@ -137,6 +275,7 @@ function init() {
   $('otOn').addEventListener('change', render);
   $('otThreshold').addEventListener('input', render);
   $('otMult').addEventListener('input', render);
+  $('copyCard').addEventListener('click', copyCard);
   render();
 }
 
