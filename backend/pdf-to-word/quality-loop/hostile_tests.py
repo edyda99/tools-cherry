@@ -282,5 +282,233 @@ r, out = run_pass(d)
 check(not has_numpr(r.paragraphs[0]) and full_text(r) == "See 2. something",
       "P: mid-paragraph marker after hyperlink converted")
 
+# === header/footer pass ======================================================
+import fitz
+
+
+def make_pdf(pages):
+    """pages: list of [(y, text), ...] on A4."""
+    pdf = fitz.open()
+    for lines in pages:
+        pg = pdf.new_page(width=595, height=842)
+        for y, t in lines:
+            pg.insert_text((72, y), t, fontsize=9)
+    return pdf
+
+
+def run_hf(doc, pdf):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.header_footer_parts(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+def hf_part_text(docx_bytes, which):
+    z = zipfile.ZipFile(io.BytesIO(docx_bytes))
+    texts = []
+    for n in z.namelist():
+        if n.startswith(f"word/{which}"):
+            import xml.etree.ElementTree as ET
+            root = ET.fromstring(z.read(n))
+            texts.extend(t.text or "" for t in root.iter(
+                "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t"))
+    return "".join(texts)
+
+
+# HF1: repeated band furniture moves into real parts
+pdf = make_pdf([[(30, "Acme Internal"), (400, "content one"), (820, "Confidential")],
+                [(30, "Acme Internal"), (400, "content two"), (820, "Confidential")]])
+d = Document()
+for t in ["Acme Internal", "content one", "Confidential",
+          "Acme Internal", "content two", "Confidential"]:
+    d.add_paragraph(t)
+r, out = run_hf(d, pdf)
+body = [p.text for p in r.paragraphs if p.text.strip()]
+check(body == ["content one", "content two"], "HF1: body not cleaned: %s" % body)
+check("Acme Internal" in hf_part_text(out, "header"), "HF1: header part missing text")
+check("Confidential" in hf_part_text(out, "footer"), "HF1: footer part missing text")
+
+# HF2: varying page numbers stay (no exact repeat)
+pdf = make_pdf([[(400, "content one"), (820, "1")], [(400, "content two"), (820, "2")]])
+d = Document()
+for t in ["content one", "1", "content two", "2"]:
+    d.add_paragraph(t)
+r, out = run_hf(d, pdf)
+check([p.text for p in r.paragraphs] == ["content one", "1", "content two", "2"],
+      "HF2: varying page numbers touched")
+
+# HF3: repeated text mid-page is content, not furniture
+pdf = make_pdf([[(400, "Same refrain"), (500, "other a")], [(400, "Same refrain"), (500, "other b")]])
+d = Document()
+for t in ["Same refrain", "other a", "Same refrain", "other b"]:
+    d.add_paragraph(t)
+r, out = run_hf(d, pdf)
+check(sum(1 for p in r.paragraphs if p.text == "Same refrain") == 2,
+      "HF3: mid-page repeat treated as furniture")
+
+# HF4: single page never converts
+pdf = make_pdf([[(30, "Lone header"), (400, "content")]])
+d = Document()
+for t in ["Lone header", "content"]:
+    d.add_paragraph(t)
+r, out = run_hf(d, pdf)
+check([p.text for p in r.paragraphs] == ["Lone header", "content"], "HF4: 1-page doc touched")
+
+# HF5: more body matches than pages => ambiguous, skip
+pdf = make_pdf([[(30, "Motto"), (400, "a")], [(30, "Motto"), (400, "b")]])
+d = Document()
+for t in ["Motto", "a", "Motto", "b", "Motto", "Motto"]:
+    d.add_paragraph(t)
+r, out = run_hf(d, pdf)
+check(sum(1 for p in r.paragraphs if p.text == "Motto") == 4, "HF5: over-matched text removed")
+
+# HF6: a match carrying a section break is never removed
+pdf = make_pdf([[(30, "Banner"), (400, "a")], [(30, "Banner"), (400, "b")]])
+d = Document()
+d.add_paragraph("Banner")
+d.add_paragraph("a")
+p2 = d.add_paragraph("Banner")
+p2._p.get_or_add_pPr().append(parse_xml(f"<w:sectPr {nsdecls('w')}/>"))
+d.add_paragraph("b")
+r, out = run_hf(d, pdf)
+check(sum(1 for p in r.paragraphs if p.text == "Banner") == 2, "HF6: sectPr paragraph removed")
+
+# HF7: furniture must cover EVERY page — 2 of 3 declines, 3 of 3 converts
+pdf = make_pdf([[(400, "x"), (820, "Draft")], [(400, "y"), (820, "Draft")], [(400, "z")]])
+d = Document()
+for t in ["x", "Draft", "y", "Draft", "z"]:
+    d.add_paragraph(t)
+r, out = run_hf(d, pdf)
+check(sum(1 for p in r.paragraphs if p.text == "Draft") == 2 and
+      "Draft" not in hf_part_text(out, "footer"), "HF7a: partial-coverage footer converted")
+pdf = make_pdf([[(400, "x"), (820, "Draft")], [(400, "y"), (820, "Draft")], [(400, "z"), (820, "Draft")]])
+d = Document()
+for t in ["x", "Draft", "y", "Draft", "z", "Draft"]:
+    d.add_paragraph(t)
+r, out = run_hf(d, pdf)
+check("Draft" in hf_part_text(out, "footer") and
+      all(p.text != "Draft" for p in r.paragraphs), "HF7b: full-coverage footer not converted")
+
+# HF8: cover-title collision — header on pages 2-6 only, title on page 1 => decline
+pdf = make_pdf([[(300, "Quarterly Report")]] +
+               [[(30, "Quarterly Report"), (400, f"body {i}")] for i in range(5)])
+d = Document()
+d.add_paragraph("Quarterly Report")
+for i in range(5):
+    d.add_paragraph("Quarterly Report")
+    d.add_paragraph(f"body {i}")
+r, out = run_hf(d, pdf)
+check(sum(1 for p in r.paragraphs if p.text == "Quarterly Report") == 6,
+      "HF8: cover title deleted with running headers")
+
+# HF9: under-match (one occurrence merged/missing) => decline, no half-removal
+pdf = make_pdf([[(30, "ACME Holdings"), (400, "a")], [(30, "ACME Holdings"), (400, "b")],
+                [(30, "ACME Holdings"), (400, "c")]])
+d = Document()
+for t in ["ACME Holdings", "a", "ACME Holdings", "b", "ACME Holdings and page text", "c"]:
+    d.add_paragraph(t)
+r, out = run_hf(d, pdf)
+check(sum(1 for p in r.paragraphs if "ACME Holdings" in p.text) == 3,
+      "HF9: half-removal on merged occurrence")
+check("ACME" not in hf_part_text(out, "header"), "HF9: header installed despite mismatch")
+
+# HF10: text also inside a table cell => decline
+pdf = make_pdf([[(30, "Classified"), (400, "a")], [(30, "Classified"), (400, "b")]])
+d = Document()
+d.add_paragraph("Classified")
+d.add_paragraph("a")
+tbl = d.add_table(rows=1, cols=1)
+tbl.rows[0].cells[0].text = "Classified"
+d.add_paragraph("Classified")
+d.add_paragraph("b")
+r, out = run_hf(d, pdf)
+check(sum(1 for p in r.paragraphs if p.text == "Classified") == 2,
+      "HF10: cell-shadowed furniture removed")
+
+# HF11: same text qualifying in both bands => decline
+pdf = make_pdf([[(30, "Everywhere"), (820, "Everywhere"), (400, "a")],
+                [(30, "Everywhere"), (820, "Everywhere"), (400, "b")]])
+d = Document()
+for t in ["Everywhere", "a", "Everywhere", "Everywhere", "b", "Everywhere"]:
+    d.add_paragraph(t)
+r, out = run_hf(d, pdf)
+check(sum(1 for p in r.paragraphs if p.text == "Everywhere") == 4,
+      "HF11: both-band text swept")
+
+# HF12: bookmark/footnote-bearing furniture => decline (range pairs stay whole)
+pdf = make_pdf([[(30, "Marked"), (400, "a")], [(30, "Marked"), (400, "b")]])
+d = Document()
+pm = d.add_paragraph("Marked")
+pm._p.insert(0, parse_xml(f'<w:bookmarkStart {nsdecls("w")} w:id="7" w:name="top"/>'))
+d.add_paragraph("a")
+d.add_paragraph("Marked")
+d.add_paragraph("b")
+r, out = run_hf(d, pdf)
+check(sum(1 for p in r.paragraphs if p.text == "Marked") == 2, "HF12: bookmark furniture moved")
+
+pdf = make_pdf([[(30, "Noted"), (400, "a")], [(30, "Noted"), (400, "b")]])
+d = Document()
+pn = d.add_paragraph("Noted")
+pn._p.append(parse_xml(f'<w:r {nsdecls("w")}><w:footnoteReference w:id="2"/></w:r>'))
+d.add_paragraph("a")
+d.add_paragraph("Noted")
+d.add_paragraph("b")
+r, out = run_hf(d, pdf)
+check("Noted" not in hf_part_text(out, "header"), "HF12b: footnote ref moved into header")
+
+# HF13: existing header part => decline entirely; and the pass is idempotent
+pdf = make_pdf([[(30, "Fresh"), (400, "a")], [(30, "Fresh"), (400, "b")]])
+d = Document()
+sec = d.sections[0]
+sec.header.is_linked_to_previous = False
+sec.header.paragraphs[0].text = "COMPANY LETTERHEAD - keep me"
+for t in ["Fresh", "a", "Fresh", "b"]:
+    d.add_paragraph(t)
+r, out = run_hf(d, pdf)
+check(sum(1 for p in r.paragraphs if p.text == "Fresh") == 2 and
+      "keep me" in hf_part_text(out, "header"), "HF13: existing header not respected")
+
+d = Document()
+for t in ["Fresh", "a", "Fresh", "b"]:
+    d.add_paragraph(t)
+buf = io.BytesIO()
+d.save(buf)
+once = de.header_footer_parts(buf.getvalue(), pdf)
+twice = de.header_footer_parts(once, pdf)
+check(once == twice, "HF13b: pass not idempotent")
+
+# HF14: titlePg set => decline (default header would skip page 1)
+pdf = make_pdf([[(30, "Banner"), (400, "a")], [(30, "Banner"), (400, "b")]])
+d = Document()
+d.sections[0]._sectPr.append(parse_xml(f'<w:titlePg {nsdecls("w")}/>'))
+for t in ["Banner", "a", "Banner", "b"]:
+    d.add_paragraph(t)
+r, out = run_hf(d, pdf)
+check(sum(1 for p in r.paragraphs if p.text == "Banner") == 2, "HF14: titlePg doc converted")
+
+# HF15: restarting ordered lists made adjacent still convert, separately
+d = Document()
+for t in ["1. alpha", "2. beta", "3. gamma", "1. delta", "2. epsilon", "3. zeta"]:
+    d.add_paragraph(t)
+r, out = run_pass(d)
+check(all(has_numpr(pp) for pp in r.paragraphs), "HF15: adjacent restarting lists dropped")
+check(numid_of(r.paragraphs[0]) != numid_of(r.paragraphs[3]),
+      "HF15: restart shares a numId (would renumber 4,5,6)")
+
+# HF16: small outline docs keep their headings (share-bail exemption)
+d = Document()
+for t in ["First Heading", "Second Heading", "Third Heading",
+          "a single body paragraph long enough that the body size vote lands on "
+          "eleven points, the way a real short outline document reads"]:
+    pp = d.add_paragraph()
+    run = pp.add_run(t)
+    run.bold = "Heading" in t
+    run.font.size = Pt(16 if "Heading" in t else 11)
+buf = io.BytesIO()
+d.save(buf)
+res = Document(io.BytesIO(de.heading_styles(buf.getvalue())))
+styled = [p.text for p in res.paragraphs if (p.style.name or "").startswith("Heading")]
+check(len(styled) == 3, "HF16: small-doc headings bailed: %s" % styled)
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)

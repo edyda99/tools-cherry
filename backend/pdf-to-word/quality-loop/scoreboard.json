@@ -2,16 +2,16 @@
  "docs": {
   "header_footer": {
    "text_recall": 1.0,
-   "text_precision": 0.9129,
-   "order": 0.9545,
+   "text_precision": 1.0,
+   "order": 1.0,
    "headings": 1.0,
    "lists": null,
    "tables": null,
-   "header_footer": 0.25,
+   "header_footer": 1.0,
    "links": null,
    "styles": null,
-   "reflow": 0.7319,
-   "composite": 0.8435
+   "reflow": 1.0,
+   "composite": 1.0
   },
   "headings": {
    "text_recall": 1.0,
@@ -144,6 +144,6 @@
    "composite": 0.9692
   }
  },
- "mean_composite": 0.9741,
+ "mean_composite": 0.9883,
  "weights_version": 1
 }

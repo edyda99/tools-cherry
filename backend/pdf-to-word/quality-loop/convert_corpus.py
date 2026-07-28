@@ -62,7 +62,7 @@ def convert_one(pdf_path, out_path):
     data = out_path.read_bytes()
     if stenciled:
         data = stencil_ocr.postprocess_docx(data)
-    pdf_doc = fitz.open(pdf_path)
+    pdf_doc = fitz.open(src)  # the file pdf2docx actually converted (OCR'd for stencils)
     try:
         data = docx_enhance.enhance(data, pdf_doc)
     finally:

@@ -169,7 +169,9 @@ def heading_styles(data, pdf_doc=None):
         return data
     nonempty = sum(1 for p in body_paras if "".join(
         _run_text(r) for r in p.findall(qn("w:r"))).strip())
-    if len(found) > HEAD_MAX_ABS or (nonempty and len(found) / nonempty > HEAD_MAX_SHARE):
+    # the share bail targets poster/cover shapes; tiny documents (a few
+    # headings over little prose) are legitimate outlines, not posters
+    if len(found) > HEAD_MAX_ABS or (nonempty >= 8 and len(found) / nonempty > HEAD_MAX_SHARE):
         return data
 
     distinct = sorted({round(sz * 2) / 2 for _, sz in found}, reverse=True)
@@ -418,12 +420,27 @@ def list_numbering(data, pdf_doc=None):
                     j += 1
                 seq = block[i:j]
                 printed = [int(e[3].group(1)) for e in seq]
-                if printed == list(range(1, len(seq) + 1)):
-                    # one stretch = one level: per-item indent jitter must never
-                    # split a printed 1..n sequence across Word counters
-                    ilvl = Counter(levels[round(e[4], 1)] for e in seq).most_common(1)[0][0]
-                    nid = _add_num(numbering, "ord")
-                    convert.extend((e, nid, ilvl) for e in seq)
+                # split at each printed "1": adjacent restarting lists (natural,
+                # or made adjacent by furniture removal) convert per segment;
+                # every segment must itself read 1..k or the stretch declines
+                starts = [k for k, v in enumerate(printed) if v == 1]
+                ok = bool(starts) and starts[0] == 0
+                segments = []
+                if ok:
+                    bounds = starts + [len(seq)]
+                    for a, b in zip(bounds, bounds[1:]):
+                        if printed[a:b] != list(range(1, b - a + 1)):
+                            ok = False
+                            break
+                        segments.append(seq[a:b])
+                if ok:
+                    for seg in segments:
+                        # one segment = one level: per-item indent jitter must
+                        # never split a printed 1..k sequence across counters
+                        ilvl = Counter(levels[round(e[4], 1)]
+                                       for e in seg).most_common(1)[0][0]
+                        nid = _add_num(numbering, "ord")
+                        convert.extend((e, nid, ilvl) for e in seg)
                 i = j
             else:
                 if bullet_nid is None:
@@ -443,7 +460,152 @@ def list_numbering(data, pdf_doc=None):
     return buf.getvalue()
 
 
-PASSES = (heading_styles, list_numbering)
+# --- header / footer parts --------------------------------------------------
+# pdf2docx writes page furniture (running headers, footers) into the body once
+# per page, because a .docx has no page boundaries to hang it on. This pass uses
+# the source PDF's geometry to move that furniture into real header/footer
+# parts.
+#
+# Safety model (each rule earned by a reproduced corruption in review):
+# - A text is furniture only when it sits in the top/bottom band on EVERY page
+#   and matches EXACTLY page-count body paragraphs. Anything else declines:
+#   cover pages, per-chapter headers, occurrences pdf2docx merged into a body
+#   paragraph or a table would otherwise cause deleted content or half-removal.
+# - A text qualifying in both bands declines (the header sweep would steal the
+#   footer's occurrences).
+# - Matched paragraphs must be plain text (pPr + text runs only): bookmarks,
+#   fields, notes, links, drawings, numbering and section breaks never move
+#   into a part or get deleted with one.
+# - Documents already carrying header/footer machinery (a section owning a
+#   header/footerReference, titlePg, evenAndOddHeaders) decline entirely —
+#   which also makes the pass idempotent.
+
+HF_BAND_FRAC = 0.12
+HF_MIN_PAGES = 2
+
+
+def _norm_furniture(s):
+    return re.sub(r"\s+", " ", s or "").strip()
+
+
+def _band_lines(pdf_doc):
+    head, foot = {}, {}
+    for page in pdf_doc:
+        r = page.rect
+        top = r.y0 + r.height * HF_BAND_FRAC
+        bot = r.y1 - r.height * HF_BAND_FRAC
+        for block in page.get_text("dict").get("blocks", []):
+            if block.get("type") != 0:
+                continue
+            for line in block.get("lines", []):
+                x0, y0, x1, y1 = line["bbox"]
+                text = _norm_furniture("".join(s.get("text", "") for s in line.get("spans", [])))
+                if not text:
+                    continue
+                if y1 <= top:
+                    target = head
+                elif y0 >= bot:
+                    target = foot
+                else:
+                    continue
+                e = target.setdefault(text, {"pages": set(), "y": y0})
+                e["pages"].add(page.number)
+                e["y"] = min(e["y"], y0)
+    return head, foot
+
+
+def _plain_furniture_para(p):
+    """True when the paragraph is plain text: safe to delete and to clone into
+    a header/footer part. Anything beyond pPr + text runs (bookmarks, fields,
+    notes, links, drawings, numbering, section breaks) declines."""
+    for c in p:
+        if c.tag == qn("w:pPr"):
+            if c.find(qn("w:sectPr")) is not None or c.find(qn("w:numPr")) is not None:
+                return False
+        elif c.tag == qn("w:r"):
+            for rc in c:
+                if rc.tag != qn("w:rPr") and rc.tag not in _TEXTLIKE:
+                    return False
+        else:
+            return False
+    return True
+
+
+def _cell_texts(doc):
+    out = set()
+    for tc in doc.element.body.iter(qn("w:tc")):
+        for p in tc.iter(qn("w:p")):
+            text = _norm_furniture("".join(t.text or "" for t in p.iter(qn("w:t"))))
+            if text:
+                out.add(text)
+    return out
+
+
+def _hf_blocked(doc, kind):
+    ref = qn(f"w:{kind}Reference")
+    for sp in doc.element.body.iter(qn("w:sectPr")):
+        if sp.find(ref) is not None or sp.find(qn("w:titlePg")) is not None:
+            return True
+    try:
+        if doc.settings.element.find(qn("w:evenAndOddHeaders")) is not None:
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def header_footer_parts(data, pdf_doc=None):
+    """Move repeated page furniture into real Word header/footer parts."""
+    if pdf_doc is None or pdf_doc.page_count < HF_MIN_PAGES:
+        return data
+    pages = pdf_doc.page_count
+    head, foot = _band_lines(pdf_doc)
+    hdr_all = {t: i for t, i in head.items() if len(i["pages"]) == pages}
+    ftr_all = {t: i for t, i in foot.items() if len(i["pages"]) == pages}
+    overlap = set(hdr_all) & set(ftr_all)
+    wanted = {
+        "header": sorted((i["y"], t) for t, i in hdr_all.items() if t not in overlap),
+        "footer": sorted((i["y"], t) for t, i in ftr_all.items() if t not in overlap),
+    }
+    if not wanted["header"] and not wanted["footer"]:
+        return data
+
+    doc = Document(io.BytesIO(data))
+    cells = _cell_texts(doc)
+    moved = {"header": [], "footer": []}
+    for kind in ("header", "footer"):
+        if not wanted[kind] or _hf_blocked(doc, kind):
+            continue
+        for y, text in wanted[kind]:
+            matches = [p for p in doc.paragraphs if _norm_furniture(p.text) == text]
+            if len(matches) != pages or text in cells:
+                continue
+            if not all(_plain_furniture_para(p._p) for p in matches):
+                continue
+            exemplar = copy.deepcopy(matches[0]._p)
+            for p in matches:
+                p._p.getparent().remove(p._p)
+            moved[kind].append(exemplar)
+
+    if not moved["header"] and not moved["footer"]:
+        return data
+    section = doc.sections[0]
+    for kind, part in (("header", section.header), ("footer", section.footer)):
+        if not moved[kind]:
+            continue
+        part.is_linked_to_previous = False  # fresh part: exactly one empty paragraph
+        default_p = part.paragraphs[0]._p
+        for exemplar in moved[kind]:
+            default_p.addprevious(exemplar)
+        if not "".join(t.text or "" for t in default_p.iter(qn("w:t"))).strip():
+            default_p.getparent().remove(default_p)
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+PASSES = (header_footer_parts, heading_styles, list_numbering)
 
 
 def enhance(docx_bytes, pdf_doc=None):
