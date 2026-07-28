@@ -1,0 +1,80 @@
+{
+ "headings": [
+  {
+   "level": 1,
+   "text": "Regional Performance Summary"
+  }
+ ],
+ "paragraphs": [
+  "Figures are quarterly, in thousands, before intercompany elimination.",
+  "Middle East growth reflects the two distributor agreements signed in the spring."
+ ],
+ "list_items": [],
+ "tables": [
+  {
+   "rows": [
+    [
+     "Region",
+     "Revenue",
+     "Growth",
+     "Accounts"
+    ],
+    [
+     "North America",
+     "1,240",
+     "8.5%",
+     "312"
+    ],
+    [
+     "Europe",
+     "980",
+     "6.1%",
+     "247"
+    ],
+    [
+     "Middle East",
+     "415",
+     "12.3%",
+     "88"
+    ],
+    [
+     "Asia Pacific",
+     "660",
+     "9.9%",
+     "154"
+    ]
+   ],
+   "borders": true
+  }
+ ],
+ "links": [],
+ "bold": [],
+ "italic": [],
+ "flow": [
+  "Regional Performance Summary",
+  "Figures are quarterly, in thousands, before intercompany elimination.",
+  "Region",
+  "Revenue",
+  "Growth",
+  "Accounts",
+  "North America",
+  "1,240",
+  "8.5%",
+  "312",
+  "Europe",
+  "980",
+  "6.1%",
+  "247",
+  "Middle East",
+  "415",
+  "12.3%",
+  "88",
+  "Asia Pacific",
+  "660",
+  "9.9%",
+  "154",
+  "Middle East growth reflects the two distributor agreements signed in the spring."
+ ],
+ "header": null,
+ "footer": null
+}

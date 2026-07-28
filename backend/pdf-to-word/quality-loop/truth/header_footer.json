@@ -1,0 +1,54 @@
+{
+ "headings": [
+  {
+   "level": 1,
+   "text": "Quarterly Operating Review"
+  },
+  {
+   "level": 2,
+   "text": "Delivery and Platform"
+  },
+  {
+   "level": 2,
+   "text": "Outlook"
+  }
+ ],
+ "paragraphs": [
+  "The quarter closed ahead of the revised forecast, driven by renewals rather than new logos. Retention owes more to the support rota changes than to any pricing move.",
+  "Hiring stayed deliberately slow. Two backend roles remain open, and the design contractor engagement was extended by eight weeks to cover the referral programme.",
+  "Infrastructure spend fell for the third consecutive quarter after the storage migration, and the finance review flagged no new vendor risk this cycle.",
+  "The mobile release slipped by two weeks to absorb the payment provider's API deprecation. No customer-facing regression was reported after rollout.",
+  "Churn analysis shows the cancellations concentrate in accounts that never completed onboarding. The lifecycle email experiment targets exactly that cohort next quarter.",
+  "Legal completed the data-processing addendum refresh, and the security questionnaire backlog is now empty for the first time since the enterprise push began.",
+  "The partnerships pipeline added three integrators, one of which brings a regulated market we could not previously serve directly.",
+  "Documentation rewrites reduced ticket volume in the two categories they targeted, confirming the hypothesis from the spring support audit.",
+  "Internally, the platform team shipped the queue consolidation, retiring two services and simplifying the on-call rotation from five pagers to three.",
+  "Next quarter's plan concentrates investment on the self-serve funnel, holding enterprise features steady while the new pricing page is tested.",
+  "The board asked for a deeper view of expansion revenue; the data team will split expansion from renewal in the next reporting cycle.",
+  "Overall, the company enters the next quarter with a longer runway than planned and a narrower focus than last year, which is precisely the combination we wanted."
+ ],
+ "list_items": [],
+ "tables": [],
+ "links": [],
+ "bold": [],
+ "italic": [],
+ "flow": [
+  "Quarterly Operating Review",
+  "The quarter closed ahead of the revised forecast, driven by renewals rather than new logos. Retention owes more to the support rota changes than to any pricing move.",
+  "Hiring stayed deliberately slow. Two backend roles remain open, and the design contractor engagement was extended by eight weeks to cover the referral programme.",
+  "Infrastructure spend fell for the third consecutive quarter after the storage migration, and the finance review flagged no new vendor risk this cycle.",
+  "The mobile release slipped by two weeks to absorb the payment provider's API deprecation. No customer-facing regression was reported after rollout.",
+  "Delivery and Platform",
+  "Churn analysis shows the cancellations concentrate in accounts that never completed onboarding. The lifecycle email experiment targets exactly that cohort next quarter.",
+  "Legal completed the data-processing addendum refresh, and the security questionnaire backlog is now empty for the first time since the enterprise push began.",
+  "The partnerships pipeline added three integrators, one of which brings a regulated market we could not previously serve directly.",
+  "Documentation rewrites reduced ticket volume in the two categories they targeted, confirming the hypothesis from the spring support audit.",
+  "Outlook",
+  "Internally, the platform team shipped the queue consolidation, retiring two services and simplifying the on-call rotation from five pagers to three.",
+  "Next quarter's plan concentrates investment on the self-serve funnel, holding enterprise features steady while the new pricing page is tested.",
+  "The board asked for a deeper view of expansion revenue; the data team will split expansion from renewal in the next reporting cycle.",
+  "Overall, the company enters the next quarter with a longer runway than planned and a narrower focus than last year, which is precisely the combination we wanted."
+ ],
+ "header": "ACME Quarterly Review \u2014 Internal",
+ "footer": "Confidential draft, do not distribute"
+}

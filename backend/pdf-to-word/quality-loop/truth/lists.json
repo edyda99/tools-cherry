@@ -1,0 +1,122 @@
+{
+ "headings": [
+  {
+   "level": 1,
+   "text": "Expedition Packing Checklist"
+  },
+  {
+   "level": 2,
+   "text": "Safety Essentials"
+  },
+  {
+   "level": 2,
+   "text": "Camp Routine"
+  },
+  {
+   "level": 2,
+   "text": "Group Kit"
+  }
+ ],
+ "paragraphs": [
+  "Two lists govern every trip: what keeps you alive, and what keeps you pleasant to travel with."
+ ],
+ "list_items": [
+  {
+   "text": "Map and compass, carried where rain cannot reach them",
+   "ordered": false,
+   "level": 0
+  },
+  {
+   "text": "Headlamp with a spare battery taped to its strap",
+   "ordered": false,
+   "level": 0
+  },
+  {
+   "text": "First aid kit restocked after every single outing",
+   "ordered": false,
+   "level": 0
+  },
+  {
+   "text": "Emergency bivvy weighing less than a sandwich",
+   "ordered": false,
+   "level": 0
+  },
+  {
+   "text": "Pitch the shelter before admiring the view",
+   "ordered": true,
+   "level": 0
+  },
+  {
+   "text": "Filter water while daylight makes the source visible",
+   "ordered": true,
+   "level": 0
+  },
+  {
+   "text": "Cook away from the sleeping area",
+   "ordered": true,
+   "level": 0
+  },
+  {
+   "text": "Pack tomorrow's breakfast at tonight's dinner",
+   "ordered": true,
+   "level": 0
+  },
+  {
+   "text": "Shared shelter components",
+   "ordered": false,
+   "level": 0
+  },
+  {
+   "text": "Poles and pegs split by weight",
+   "ordered": false,
+   "level": 1
+  },
+  {
+   "text": "Repair sleeve in the lid pocket",
+   "ordered": false,
+   "level": 1
+  },
+  {
+   "text": "Shared cooking system",
+   "ordered": false,
+   "level": 0
+  },
+  {
+   "text": "One stove per three people",
+   "ordered": false,
+   "level": 1
+  },
+  {
+   "text": "Fuel counted in breakfasts, not grams",
+   "ordered": false,
+   "level": 1
+  }
+ ],
+ "tables": [],
+ "links": [],
+ "bold": [],
+ "italic": [],
+ "flow": [
+  "Expedition Packing Checklist",
+  "Two lists govern every trip: what keeps you alive, and what keeps you pleasant to travel with.",
+  "Safety Essentials",
+  "Map and compass, carried where rain cannot reach them",
+  "Headlamp with a spare battery taped to its strap",
+  "First aid kit restocked after every single outing",
+  "Emergency bivvy weighing less than a sandwich",
+  "Camp Routine",
+  "Pitch the shelter before admiring the view",
+  "Filter water while daylight makes the source visible",
+  "Cook away from the sleeping area",
+  "Pack tomorrow's breakfast at tonight's dinner",
+  "Group Kit",
+  "Shared shelter components",
+  "Poles and pegs split by weight",
+  "Repair sleeve in the lid pocket",
+  "Shared cooking system",
+  "One stove per three people",
+  "Fuel counted in breakfasts, not grams"
+ ],
+ "header": null,
+ "footer": null
+}

@@ -1,0 +1,37 @@
+{
+ "headings": [
+  {
+   "level": 1,
+   "text": "Further Reading"
+  }
+ ],
+ "paragraphs": [
+  "The converter's homepage at tools-berry.com lists every utility, while the PDF to Word tool documents the in-browser path in detail.",
+  "Standards references live at the OOXML specification, which defines every element a .docx file may contain."
+ ],
+ "list_items": [],
+ "tables": [],
+ "links": [
+  {
+   "text": "tools-berry.com",
+   "href": "https://tools-berry.com/"
+  },
+  {
+   "text": "PDF to Word tool",
+   "href": "https://tools-berry.com/pdf-to-word/"
+  },
+  {
+   "text": "OOXML specification",
+   "href": "https://www.ecma-international.org/publications-and-standards/standards/ecma-376/"
+  }
+ ],
+ "bold": [],
+ "italic": [],
+ "flow": [
+  "Further Reading",
+  "The converter's homepage at tools-berry.com lists every utility, while the PDF to Word tool documents the in-browser path in detail.",
+  "Standards references live at the OOXML specification, which defines every element a .docx file may contain."
+ ],
+ "header": null,
+ "footer": null
+}

@@ -1,0 +1,96 @@
+{
+ "headings": [
+  {
+   "level": 1,
+   "text": "Harbour Bridge Inspection Report"
+  },
+  {
+   "level": 2,
+   "text": "Findings"
+  },
+  {
+   "level": 2,
+   "text": "Load Ratings"
+  }
+ ],
+ "paragraphs": [
+  "Prepared by the structures team following the winter storm cycle. Severity uses the national bridge index conventions.",
+  "The south approach remains serviceable but moves to a six-month inspection interval until the bearing work is complete."
+ ],
+ "list_items": [
+  {
+   "text": "Expansion joints show normal seasonal movement",
+   "ordered": false,
+   "level": 0
+  },
+  {
+   "text": "Two bearing plates require regreasing within ninety days",
+   "ordered": false,
+   "level": 0
+  },
+  {
+   "text": "Deck drainage cleared and functioning at all test points",
+   "ordered": false,
+   "level": 0
+  }
+ ],
+ "tables": [
+  {
+   "rows": [
+    [
+     "Span",
+     "Rating",
+     "Status"
+    ],
+    [
+     "Main",
+     "94%",
+     "Pass"
+    ],
+    [
+     "North approach",
+     "88%",
+     "Pass"
+    ],
+    [
+     "South approach",
+     "71%",
+     "Monitor"
+    ]
+   ],
+   "borders": true
+  }
+ ],
+ "links": [],
+ "bold": [
+  "structures team",
+  "serviceable"
+ ],
+ "italic": [
+  "national bridge index"
+ ],
+ "flow": [
+  "Harbour Bridge Inspection Report",
+  "Prepared by the structures team following the winter storm cycle. Severity uses the national bridge index conventions.",
+  "Findings",
+  "Expansion joints show normal seasonal movement",
+  "Two bearing plates require regreasing within ninety days",
+  "Deck drainage cleared and functioning at all test points",
+  "Load Ratings",
+  "Span",
+  "Rating",
+  "Status",
+  "Main",
+  "94%",
+  "Pass",
+  "North approach",
+  "88%",
+  "Pass",
+  "South approach",
+  "71%",
+  "Monitor",
+  "The south approach remains serviceable but moves to a six-month inspection interval until the bearing work is complete."
+ ],
+ "header": null,
+ "footer": null
+}

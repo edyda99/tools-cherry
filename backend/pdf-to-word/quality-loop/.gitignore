@@ -1,0 +1,5 @@
+venv/
+out/
+corpus-inbox/
+__pycache__/
+*.ocr.pdf
