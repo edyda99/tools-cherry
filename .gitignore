@@ -17,3 +17,4 @@ backend/pdf-to-word/.invoker-key.json
 aws-credentials*
 .aws/
 backend/pdf-to-word/vendor/
+__pycache__/

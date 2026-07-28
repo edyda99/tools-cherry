@@ -4,133 +4,133 @@
    "text_recall": 1.0,
    "text_precision": 0.9129,
    "order": 0.9545,
-   "headings": 0.15,
+   "headings": 1.0,
    "lists": null,
    "tables": null,
    "header_footer": 0.25,
    "links": null,
    "styles": null,
    "reflow": 0.7319,
-   "composite": 0.7302
+   "composite": 0.8435
   },
   "headings": {
    "text_recall": 1.0,
    "text_precision": 1.0,
    "order": 1.0,
-   "headings": 0.15,
+   "headings": 1.0,
    "lists": null,
    "tables": null,
    "header_footer": null,
    "links": null,
    "styles": null,
    "reflow": 1.0,
-   "composite": 0.8692
+   "composite": 1.0
   },
   "inline_styles": {
    "text_recall": 1.0,
    "text_precision": 1.0,
    "order": 1.0,
-   "headings": 0.0,
+   "headings": 1.0,
    "lists": null,
    "tables": null,
    "header_footer": null,
    "links": null,
    "styles": 1.0,
-   "reflow": 0.9483,
-   "composite": 0.8549
+   "reflow": 1.0,
+   "composite": 1.0
   },
   "links": {
    "text_recall": 1.0,
    "text_precision": 1.0,
    "order": 1.0,
-   "headings": 0.15,
+   "headings": 1.0,
    "lists": null,
    "tables": null,
    "header_footer": null,
    "links": 1.0,
    "styles": null,
    "reflow": 1.0,
-   "composite": 0.8828
+   "composite": 1.0
   },
   "lists": {
    "text_recall": 1.0,
    "text_precision": 0.9669,
    "order": 0.9832,
-   "headings": 0.15,
+   "headings": 1.0,
    "lists": 0.15,
    "tables": null,
    "header_footer": null,
    "links": null,
    "styles": null,
    "reflow": 1.0,
-   "composite": 0.7656
+   "composite": 0.8789
   },
   "mixed_report": {
    "text_recall": 1.0,
    "text_precision": 1.0,
    "order": 1.0,
-   "headings": 0.15,
+   "headings": 1.0,
    "lists": 0.15,
    "tables": 1.0,
    "header_footer": null,
    "links": null,
    "styles": 1.0,
    "reflow": 0.6111,
-   "composite": 0.7858
+   "composite": 0.8729
   },
   "prose": {
    "text_recall": 0.9947,
    "text_precision": 0.9894,
    "order": 0.992,
-   "headings": 0.15,
+   "headings": 1.0,
    "lists": null,
    "tables": null,
    "header_footer": null,
    "links": null,
    "styles": null,
    "reflow": 0.9946,
-   "composite": 0.8633
+   "composite": 0.9941
   },
   "table_bordered": {
    "text_recall": 1.0,
    "text_precision": 1.0,
    "order": 1.0,
-   "headings": 0.0,
+   "headings": 1.0,
    "lists": null,
    "tables": 1.0,
    "header_footer": null,
    "links": null,
    "styles": null,
    "reflow": null,
-   "composite": 0.8571
+   "composite": 1.0
   },
   "table_borderless": {
    "text_recall": 1.0,
    "text_precision": 1.0,
    "order": 1.0,
-   "headings": 0.0,
+   "headings": 1.0,
    "lists": null,
    "tables": 1.0,
    "header_footer": null,
    "links": null,
    "styles": null,
-   "reflow": 0.9333,
-   "composite": 0.8667
+   "reflow": 0.8333,
+   "composite": 0.9792
   },
   "two_column": {
    "text_recall": 1.0,
    "text_precision": 1.0,
    "order": 1.0,
-   "headings": 0.15,
+   "headings": 1.0,
    "lists": null,
    "tables": null,
    "header_footer": null,
    "links": null,
    "styles": null,
    "reflow": 0.8,
-   "composite": 0.8385
+   "composite": 0.9692
   }
  },
- "mean_composite": 0.8314,
+ "mean_composite": 0.9538,
  "weights_version": 1
 }
