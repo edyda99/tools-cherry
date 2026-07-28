@@ -7,7 +7,10 @@
 <title>{{STATE_TITLE}}</title>
 <meta name="description" content="{{STATE_META_DESC}}">
 <link rel="canonical" href="{{SITE_URL}}/{{STATE_SLUG}}-paycheck-calculator/">
-<meta property="og:title" content="{{STATE_NAME}} Paycheck &amp; Payroll Calculator {{YEAR}} ({{STATE_ABBR}})">
+<!-- No og:title here on purpose. injectSeo copies the page <title> into og:title
+     and twitter:title when the template does not declare one, so the social
+     title can never drift from the real title the way the old hardcoded
+     "Paycheck and Payroll Calculator" line did. -->
 <meta property="og:description" content="Estimate your {{STATE_NAME}} take-home pay after taxes for {{YEAR}}.">
 <meta property="og:type" content="website">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">

@@ -1502,18 +1502,32 @@ function stateRateFigure(state) {
   return { title: `${lo}–${hi}`, desc: `graduated from ${lo} to ${hi}` };
 }
 
-// <title> per state. For NEAR_PAGE_1 target states, lead with the paycheck
-// calculator identity (the page IS a calculator, not a rate table) and surface
-// the rate figure as a trailing clause; the "{state} income tax rate {year}"
-// query is still carried by the meta description, H1 and body sentence. Kept
-// ≤60 chars so the compactor never strips the "Paycheck Calculator" identity.
-// Every other state keeps the original paycheck-calculator title verbatim.
+// <title> per state. The phrase people actually type is "{state} paycheck
+// calculator", so it now opens every title UNBROKEN. The old title split that
+// phrase down the middle with "and Payroll", which no searcher writes.
+// "Take-home pay" was the site's own body/meta vocabulary and appeared in no
+// title at all, so it rides in the clause after the colon.
+//
+// The variants are tried longest-first and the first one inside the 60-char SERP
+// budget wins, so long state names shed a word by DESIGN here rather than having
+// compactTitleStr silently peel the whole clause off later. The last fallback is
+// the bare base, which is 45 chars even for District of Columbia, so a state can
+// never lose the phrase or the year.
+//
+// NEAR_PAGE_1 target states keep their rate figure in the title instead of the
+// take-home clause (both together blow the budget): it serves the
+// "{state} income tax rate {year}" query they already rank near page 1 for, and
+// their take-home framing still sits in the meta description and the lead
+// paragraph under the H1.
 function stateTitle(state, year) {
+  const base = `${state.name} Paycheck Calculator ${year}`;
+  const variants = [];
   if (TARGET_STATES.has(state.slug)) {
     const fig = stateRateFigure(state);
-    if (fig) return `${state.name} Paycheck Calculator ${year} (${state.abbr}) — Tax ${fig.title}`;
+    if (fig) variants.push(`${base}: ${fig.title} Income Tax`);
   }
-  return `${state.name} Paycheck &amp; Payroll Calculator ${year} (${state.abbr}) — Take-Home Pay After Taxes`;
+  variants.push(`${base}: Take-Home Pay After Taxes`, `${base}: Take-Home Pay`, base);
+  return variants.find((t) => decodedLen(t) <= 60) || base;
 }
 
 // Answer-first meta descriptions (≤155 chars) for the highest-traffic paycheck
@@ -3766,9 +3780,12 @@ async function main() {
       STATE_NAME: state.name,
       STATE_TITLE: stateTitle(state, year),
       STATE_META_DESC: stateMetaDesc(state, year),
-      STATE_H1: TARGET_STATES.has(slug)
-        ? `${state.name} Paycheck, Payroll &amp; Income Tax Calculator`
-        : `${state.name} Paycheck &amp; Payroll Calculator`,
+      // Short, human, and the exact phrase a searcher types, with nothing wedged
+      // into the middle of it. The take-home framing lives in the answer-lead
+      // paragraph directly beneath, which already states this state's take-home
+      // figure, and the "payroll" / "income tax calculator" vocabulary the old
+      // H1 carried is still on the page in the lede, the body H2s and the meta.
+      STATE_H1: `${state.name} Paycheck Calculator`,
       STATE_SLUG: slug,
       STATE_ABBR: state.abbr,
       STATE_TAX_PHRASE: state.hasIncomeTax ? `, and ${state.name} state income tax` : '',
