@@ -3134,8 +3134,17 @@ function stripHtmlComments(html) {
     const end = html.indexOf('-->', c);
     if (end === -1) { out += html.slice(i); break; } // unterminated: leave the rest alone
     let next = end + 3;
-    if (/^\s*\[if/i.test(html.slice(c + 4, end))) {
-      out += html.slice(i, next); // IE conditional comment: keep verbatim
+    const body = html.slice(c + 4, end);
+    // Not every HTML comment is a note to a developer. Some are instructions to a
+    // machine that reads the served page, and deleting one silently changes
+    // behaviour with nothing on screen to show for it. Cloudflare's
+    // <!--email_off--> is the live example: it wraps the contact address on
+    // /about/, /contact/, /corrections/, /privacy/ and /terms/ and switches
+    // Cloudflare's email obfuscation OFF for that link. Stripping it does not
+    // remove a comment, it reverses a decision someone made on purpose. Keep the
+    // known directives, and the IE conditional, and strip everything else.
+    if (/^\s*\[if/i.test(body) || /^\s*\/?(email_off|noindex|googleoff|googleon|htmlmin:\w+)\b/i.test(body)) {
+      out += html.slice(i, next);
     } else {
       let head = html.slice(i, c);
       // Comment alone on its own line: take the line with it.
