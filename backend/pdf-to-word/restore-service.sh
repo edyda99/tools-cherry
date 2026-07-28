@@ -2,6 +2,13 @@
 #
 # restore-service.sh — re-enable the PDF→Word converter after the kill-switch tripped.
 #
+# ONLY needed for a mid-day manual recovery. Since 2026-07-28 the pdf-to-word-daily-restore
+# Lambda reopens the converter by itself at 00:05 UTC, once the daily alarm's window has
+# rolled over. Run this by hand when you do not want to wait for that, or after an
+# auto-restore held off because month-to-date compute was already at 90% of the free tier
+# (it will keep holding off until the month rolls over, so a manual reopen there is a
+# decision to accept paid usage).
+#
 # The kill-switch (pdf-to-word-budget-killswitch) zeroes the converter's reserved
 # concurrency. This re-enables it: reserved 2 if the account allows reservations,
 # otherwise it removes the cap (this account forbids positive reservations, so the

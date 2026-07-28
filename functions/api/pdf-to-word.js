@@ -43,6 +43,17 @@ const TIMEOUT_MSG =
   'That PDF was too heavy for the server converter — it ran out of time (image-heavy or ' +
   'very complex pages are the usual cause). The in-browser converter above has no time limit.';
 
+// A 429 from AWS on that hop is the one failure that says nothing about the file: the
+// request was turned away before the converter ever saw it (it answers 400/405/413/415/500
+// only). Two different things arrive as that same bare 429 and we cannot tell them apart:
+// the budget guard has zeroed the converter's concurrency for the day, or all 10 of the
+// account's concurrent slots are busy this minute. So the message names neither, and
+// promises no return time - "come back tomorrow" would be a lie on the common case.
+const THROTTLED_MSG =
+  'The server converter is not accepting requests at the moment. It is either busy or has hit ' +
+  'its daily budget, so nothing is wrong with your PDF. Try again in a few minutes, or use the ' +
+  'in-browser converter above, which is always free and unlimited.';
+
 const isTimeout = (e) => !!e && (e.name === 'TimeoutError' || e.name === 'AbortError');
 
 const json = (status, error, extraHeaders) =>
@@ -140,6 +151,12 @@ export async function onRequestPost(context) {
         : json(502, 'The server converter is unavailable right now. Please use the in-browser converter.', setCookie);
     }
     if (!resp.ok) {
+      // Throttled: AWS refused the invoke, so the fallback below would blame the file for
+      // something it did not do. Pass the throttle through as a throttle.
+      if (resp.status === 429) {
+        context.waitUntil(env.PDF_BUCKET.delete(key));
+        return json(429, THROTTLED_MSG, setCookie);
+      }
       let msg = 'The server converter could not handle that file. Try the in-browser converter.';
       try { const j = await resp.json(); if (j && j.error) msg = j.error; } catch (_) {}
       context.waitUntil(env.PDF_BUCKET.delete(key));
@@ -188,6 +205,8 @@ export async function onRequestPost(context) {
       : json(502, 'The server converter is unavailable right now. Please use the in-browser converter.', setCookie);
   }
   if (!resp.ok) {
+    // Same throttle case as the R2 branch.
+    if (resp.status === 429) return json(429, THROTTLED_MSG, setCookie);
     // Surface the Lambda's own message (page-count limit, too-large-after-recompress,
     // not-a-PDF, etc.) rather than a generic guess; fall back if it isn't JSON.
     let msg = 'The server converter could not handle that file. Try the in-browser converter.';
