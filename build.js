@@ -3077,6 +3077,30 @@ async function hashAssets(queue) {
 // When a comment sat alone on its own line, the now-blank line goes with it;
 // that is whitespace between block elements, which no renderer treats as
 // content (and <pre>, where it would, is never reached).
+// stripHtmlComments deliberately leaves <style> bodies alone, because "<!--" inside
+// one can be literal content. That exemption had a side effect: the same internal
+// rationale we stopped shipping in HTML comments kept shipping as CSS comments in
+// the per-page <style> blocks, roughly 4 KB of it, including measured contrast
+// ratios and notes written for whoever maintains the file next. None of that is for
+// a visitor. This removes /* */ from inline <style> only.
+//
+// Safe here because no inline <style> in src/templates contains a quoted string
+// holding "/*" or "*/", which is the one case a non-parsing strip would corrupt.
+// That is checked, not assumed; if that ever stops being true this needs a real
+// tokeniser. The linked stylesheet is untouched, it is already minified.
+function stripInlineStyleComments(html) {
+  if (!html.includes('<style')) return html;
+  return html.replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi, (m, open, body, close) => {
+    if (!body.includes('/*')) return m;
+    if (/(["'])(?:\\.|(?!\1).)*\1/.test(body) &&
+        (body.match(/(["'])(?:\\.|(?!\1).)*\1/g) || []).some((q) => q.includes('/*') || q.includes('*/'))) {
+      return m; // a quoted string holds comment syntax, leave the whole block alone
+    }
+    const cleaned = body.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\n{3,}/g, '\n\n');
+    return open + cleaned + close;
+  });
+}
+
 function stripHtmlComments(html) {
   if (!html.includes('<!--')) return html;
   const lower = html.toLowerCase();
@@ -3139,7 +3163,7 @@ async function rewriteHtmlAssetRefs(dir, hashMap) {
     if (!entry.name.endsWith('.html')) continue;
     let html = await read(full);
     let changed = false;
-    const stripped = stripHtmlComments(html);
+    const stripped = stripInlineStyleComments(stripHtmlComments(html));
     if (stripped !== html) { html = stripped; changed = true; }
     for (const [orig, hashed] of hashMap) {
       const re = new RegExp(`(["'])/assets/${orig.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\1`, 'g');
