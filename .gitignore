@@ -3,6 +3,8 @@ dist/
 .wrangler/
 .DS_Store
 *.log
+graphify-out/
+oss/
 
 # Local-only / never publish
 .claude/

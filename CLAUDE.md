@@ -31,6 +31,12 @@ memory dir (`MEMORY.md` index loads each session).
   so wrangler, which auto-loads `.env`, can't grab it — it falls through to OAuth). cf-metrics /
   tb-metrics read the renamed var. The ship pipeline for a feature (branch → merge to `main`
   → push `origin main` → deploy) is pre-authorized for this repo.
+- **Indexing is part of shipping, owned by the orchestrator — no standing cron for it.** Whenever a
+  new tool/page ships, the orchestrator (whoever runs the deploy) submits it to Google Search
+  Console (URL Inspection → Request Indexing if not already indexed) as the last step of that same
+  ship pass, right after deploy — not queued for a separate daily agent. (Retired 2026-07-18: the
+  `gsc-indexing` cron + `gsc-indexing-queue.md` backlog mechanism. See
+  `memory/feedback_url_inspection_async_queue.md` for why.)
 - **Never deploy the pdf-to-word AWS Lambda backend** without explicit approval (git-committing its
   source is fine; uploading to AWS is not).
 - No `Co-Authored-By` lines; commit messages are title-only.
