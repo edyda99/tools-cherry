@@ -367,6 +367,23 @@
    "publisher": "ETSI / 3GPP"
   }
  ],
+ "what-applies-to-me": [
+  {
+   "title": "One Big Beautiful Bill Act: tax deductions for working Americans and seniors",
+   "url": "https://www.irs.gov/newsroom/one-big-beautiful-bill-act-tax-deductions-for-working-americans-and-seniors",
+   "publisher": "Internal Revenue Service"
+  },
+  {
+   "title": "Treasury, IRS issue final regulations listing occupations where workers customarily and regularly receive tips",
+   "url": "https://www.irs.gov/newsroom/treasury-irs-issue-final-regulations-listing-occupations-where-workers-customarily-and-regularly-receive-tips-under-the-one-big-beautiful-bill",
+   "publisher": "Internal Revenue Service"
+  },
+  {
+   "title": "Publication 15 (Circular E), Employer's Tax Guide: supplemental wages",
+   "url": "https://www.irs.gov/publications/p15",
+   "publisher": "Internal Revenue Service"
+  }
+ ],
  "word-to-pdf": [
   {
    "title": "ISO 32000-1:2008 — Document management — Portable document format — Part 1: PDF 1.7",

@@ -2,16 +2,11 @@
 // directly under the calculator on each /{state}-paycheck-calculator/ page.
 //
 // WHY THIS FILE EXISTS
-// A state page already knows the answer to the hardest question a rule-finder can
-// ask (which state), so this emits FOUR questions, the four the state page carries
-// real per-state data for, answered inline from that page's own data.
-//
-// NO DEEP LINK. This block used to end with "See every 2026 rule that matches your
-// answers in <State>", pointing at /what-applies-to-me/?state=<slug>. That page is
-// not wired into build.js and is absent from dist, so the link was 51 internal
-// links to a 404 on the site's highest-value cluster. It comes back the day the
-// destination is built and shipped, not before. src/assets/state-flow.js already
-// guards on `if (deep)`, so it is unaffected by the anchor's absence.
+// The full six-question flow lives at /what-applies-to-me/. A state page already
+// knows the answer to the flow's hardest question (which state), so repeating the
+// whole flow here would be a copy that drifts. Instead this emits FOUR questions,
+// the four the state page carries real per-state data for, and a deep link that
+// hands the visitor's answers to the full flow with the state pre-selected.
 //
 // HARD RULES ENFORCED HERE
 // 1. Every pointer line is rendered visible in the HTML at build time. The client
@@ -20,7 +15,7 @@
 // 2. Nothing is invented. Tips and overtime verdicts come from the OBBBA
 //    conformity data, the bonus line from the state supplemental data, and the
 //    turning-65 line from the state's own income-tax structure.
-// 3. Exactly FOUR anchors per page, on every state, so the site-wide anchor count
+// 3. Exactly FIVE anchors per page, on every state, so the site-wide anchor count
 //    moves by a known constant rather than by something that varies per state.
 // 4. No em dashes in copy written here, and no more than seven consecutive
 //    state-invariant words before a data-keyed token (near-duplicate budget).
@@ -168,5 +163,6 @@ export function buildStateApplies({ state, obbbaEntry, suppEntry, notaxAngle, pi
       <div class="applies-lines" id="appliesLines">
         ${lines}
       </div>
+      <p class="applies-more"><a id="appliesDeep" href="/what-applies-to-me/?state=${state.slug}">See every 2026 rule that matches your answers in ${name}</a></p>
     </section>`;
 }

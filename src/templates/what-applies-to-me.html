@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>What Tax Rules Apply to Me? A 2026 Check for All 50 States and DC</title>
+<title>What Tax Rules Apply to Me? 2026, All 50 States and DC</title>
 <meta name="description" content="Answer six plain questions and see which 2026 tax rules match your answers: your state's tips and overtime verdict, local wage taxes, employee-paid programs, and the federal tips, overtime, senior, car loan, charity, SALT and mortgage insurance rules. We list the rules and link the calculator that does the math.">
 <link rel="canonical" href="{{SITE_URL}}/what-applies-to-me/">
 <meta property="og:title" content="What tax rules should I check?">
@@ -251,7 +251,7 @@
       <p class="muted-small">A rule shown here matched one of your answers. Every rule has conditions we cannot check for you, so it appearing does not mean it is yours.</p>
       <p class="muted-small g" data-has="none">These are the situations we can check. Tax has plenty of others, so an empty list here does not mean nothing applies to you.</p>
 
-      <section aria-labelledby="wamBandAH">
+      <section class="g" data-hide-if-empty aria-labelledby="wamBandAH">
         <h2 id="wamBandAH">Things people usually miss</h2>
         <ul id="bandA" class="wam-list">
           {{BAND_A_ITEMS}}
@@ -281,7 +281,7 @@
         {{FICA_CARD}}
       </section>
 
-      <section aria-labelledby="wamSec2H">
+      <section class="g" data-hide-if-empty aria-labelledby="wamSec2H">
         <h2 id="wamSec2H">When you file</h2>
         <p>A deduction lowers the amount of your income that gets taxed. It is not money handed back to you, and it is not the same as a credit. Roughly, what a deduction is worth to you is the deduction amount multiplied by the rate your top dollars are taxed at.</p>
         <fieldset>
@@ -294,7 +294,7 @@
         {{FEDERAL_CARDS}}
       </section>
 
-      <section aria-labelledby="wamSec3H">
+      <section class="g" data-hide-if-empty aria-labelledby="wamSec3H">
         <h2 id="wamSec3H">Things we do not work out for you<span class="wam-jsonly-i"> (<span id="wamGapCount">{{GAP_COUNTS}}</span>)</span></h2>
         <p class="muted-small">These are listed in no order of importance. Every one of them is the same kind of gap, and none of them is smaller than the others.</p>
         {{SEC3_INLINE}}
@@ -302,7 +302,7 @@
           <h4>You moved this year</h4>
           <p>Everything above assumes a full year in one state. We do not split a year between two states.</p>
         </article>
-        <details class="wam-more">
+        <details class="wam-more g" data-hide-if-empty>
           <summary>Other things we leave out<span class="wam-jsonly-i"> (<span id="wamMoreCount">{{MORE_COUNTS}}</span>)</span></summary>
           {{SEC3_MORE}}
           <article class="wam-gap gap g" data-has="age">

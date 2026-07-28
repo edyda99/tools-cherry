@@ -44,12 +44,6 @@
           <label class="seg"><input type="radio" name="view" value="annual"><span>Annual</span></label>
         </div>
       </div>
-      <!-- The prior-year notice qualifies the figure directly above it, so it sits
-           with that figure rather than 400px higher up the page. Kept OUTSIDE the
-           band's live region: a screen reader should not re-read the whole notice
-           on every keystroke. Only California and Oklahoma render anything here. -->
-      {{FIGURE_BANNER}}
-
       <form id="paycheckForm" autocomplete="off" onsubmit="return false">
         <div class="field">
           <label for="amount">Gross pay (before taxes)</label>
@@ -90,31 +84,103 @@
           <label class="seg"><input type="radio" name="mode" value="advanced"><span>Advanced</span></label>
         </div>
 
+        <!-- Advanced is a short sequence of plain questions about the person, not a
+             wall of jargon-labelled money fields. Each money input lives inside a
+             [data-reveal] wrapper that ships VISIBLE in the HTML; app.js hides the
+             ones whose question is answered No. Hide-on-demand, never show-on-demand,
+             so a broken or absent script can never leave a question unanswerable.
+             The jargon each question replaces (401(k), 403(b), HSA, FSA, W-4 Step 3,
+             extra withholding, post-tax deductions) survives verbatim in the small
+             note under each question, so a knowledgeable visitor still recognises the
+             field and the terms stay findable. -->
         <fieldset id="advancedFields" class="adv" hidden>
-          <legend>Advanced — deductions &amp; W-4</legend>
-          <p class="adv-hint">Enter annual amounts. Leave at 0 if they don't apply.</p>
-          <div class="field">
-            <label for="retirement401k">401(k) / 403(b) contribution (per year)</label>
-            <input id="retirement401k" type="text" inputmode="decimal" data-money autocomplete="off" value="0">
-          </div>
-          <div class="field">
-            <label for="cafeteria125">Health savings / flexible spending accounts and health premiums (per year)</label>
-            <input id="cafeteria125" type="text" inputmode="decimal" data-money autocomplete="off" value="0">
-            <p class="muted-small">Money taken out before tax for an HSA, an FSA, or your share of health insurance.</p>
-          </div>
-          <div class="field">
-            <label for="dependentsCredit">Child and dependent credits from your W-4, Step 3 (per year)</label>
-            <input id="dependentsCredit" type="text" inputmode="decimal" data-money autocomplete="off" value="0" placeholder="e.g. 2000 per child">
-            <p class="muted-small">The dollar total you claimed on your W-4 form for children and other dependents. Leave at 0 if you did not fill that in.</p>
-          </div>
-          <div class="field">
-            <label for="extraWithholding">Extra federal withholding (per year)</label>
-            <input id="extraWithholding" type="text" inputmode="decimal" data-money autocomplete="off" value="0">
-          </div>
-          <div class="field">
-            <label for="postTax">Post-tax deductions (per year)</label>
-            <input id="postTax" type="text" inputmode="decimal" data-money autocomplete="off" value="0">
-          </div>
+          <legend>Advanced: a few questions about your pay</legend>
+          <p class="adv-hint">Answer only the ones that apply to you. Leaving every answer on No gives the same result as Simple mode.</p>
+
+          <fieldset class="adv-q" aria-describedby="qRetireNote">
+            <legend>Do you put part of your pay into a retirement plan at work?</legend>
+            <p class="adv-q-note" id="qRetireNote">Often called a 401(k) or a 403(b).</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qRetire" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qRetire" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qRetire">
+              <div class="field">
+                <label for="retirement401k">How much goes in over a full year?</label>
+                <input id="retirement401k" type="text" inputmode="decimal" data-money autocomplete="off" value="0">
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="adv-q" aria-describedby="qHealthNote">
+            <legend>Does money come out of your pay for health insurance or a health account?</legend>
+            <p class="adv-q-note" id="qHealthNote">This is your health premiums plus any HSA or FSA.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qHealth" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qHealth" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qHealth">
+              <div class="field">
+                <label for="cafeteria125">How much comes out over a full year?</label>
+                <input id="cafeteria125" type="text" inputmode="decimal" data-money autocomplete="off" value="0">
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="adv-q" aria-describedby="qDepsNote">
+            <legend>Do you claim any children or other dependents?</legend>
+            <p class="adv-q-note" id="qDepsNote">This is Step 3 of your W-4, the dependent tax credits.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qDeps" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qDeps" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qDeps">
+              <div class="field">
+                <div class="inline">
+                  <div class="field">
+                    <label for="depChildren">Children under 17</label>
+                    <input id="depChildren" type="number" inputmode="numeric" min="0" max="20" step="1" value="0">
+                  </div>
+                  <div class="field">
+                    <label for="depOther">Other dependents</label>
+                    <input id="depOther" type="number" inputmode="numeric" min="0" max="20" step="1" value="0">
+                  </div>
+                </div>
+                <p class="adv-derived">That is <b id="depCredit">$0</b> of dependent credit for the year. A W-4 counts $2,000 for each child under 17 and $500 for each other dependent.</p>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="adv-q" aria-describedby="qExtraNote">
+            <legend>Did you ask your employer to take extra tax out of each paycheck?</legend>
+            <p class="adv-q-note" id="qExtraNote">Often called extra withholding, Step 4(c) on your W-4.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qExtra" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qExtra" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qExtra">
+              <div class="field">
+                <label for="extraWithholding">How much extra over a full year?</label>
+                <input id="extraWithholding" type="text" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="extraWithholdingNote">
+                <p class="adv-q-note" id="extraWithholdingNote">If your W-4 shows a per-paycheck amount, multiply it by the number of paychecks you get in a year.</p>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="adv-q" aria-describedby="qPostNote">
+            <legend>Is anything else taken out of your pay after tax?</legend>
+            <p class="adv-q-note" id="qPostNote">Often called post-tax deductions, for example union dues or a wage garnishment.</p>
+            <div class="yn">
+              <label class="seg"><input type="radio" name="qPost" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qPost" value="yes"><span>Yes</span></label>
+            </div>
+            <div class="adv-reveal" data-reveal="qPost">
+              <div class="field">
+                <label for="postTax">How much over a full year?</label>
+                <input id="postTax" type="text" inputmode="decimal" data-money autocomplete="off" value="0">
+              </div>
+            </div>
+          </fieldset>
         </fieldset>
       </form>
 
@@ -182,6 +248,16 @@
       <p id="outStatus" role="status" class="sr-only"></p>
     </section>
 
+    <!-- The prior-year notice qualifies the headline figure in the card above, so
+         it sits directly under that card rather than 400px higher up the page or
+         below an ad slot. It used to be a full-width row INSIDE .calc, between the
+         answer band and the form, where it pushed the salary input 172px down the
+         page (its own height plus one grid gap) on the two states that render it.
+         Kept OUTSIDE the band's live region either way: a screen reader should not
+         re-read the whole notice on every keystroke. Only California and Oklahoma
+         render anything here. -->
+    {{FIGURE_BANNER}}
+
     {{APPLIES_BLOCK}}
 
     <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
@@ -190,6 +266,11 @@
       {{TARGET_INTRO}}
       <p class="lede">{{STATE_LEDE}}</p>
       {{ANSWER_TAIL}}
+      <!-- Target states only (5 of 51): the "{state} income tax rate {year}" H2 and
+           its one-sentence answer, relocated out of the lead paragraph above the
+           calculator. Sits directly above the long-form section on the same
+           brackets, so the short extractable answer leads into its explanation. -->
+      {{RATE_BLOCK}}
       <h2>{{STATE_BODY_H2}}</h2>
       {{STATE_BODY}}
 

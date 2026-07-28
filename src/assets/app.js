@@ -45,6 +45,60 @@ function currentMode() {
   return checked ? checked.value : 'simple';
 }
 
+// --- Advanced: plain questions instead of jargon-labelled money fields -------
+// Each question is a yes/no radio group; the money input it needs sits in a
+// [data-reveal] wrapper that ships visible in the HTML and is hidden here when
+// the answer is No. Answering No zeroes that field's contribution even if a
+// number is still sitting in it, so flipping back to No always restores the
+// Simple-mode result.
+const ADV_QUESTIONS = ['qRetire', 'qHealth', 'qDeps', 'qExtra', 'qPost'];
+
+// W-4 Step 3 arithmetic, UI layer only: the engine still receives one annual
+// dollar figure in adv.dependentsCredit, exactly as before.
+const CREDIT_PER_CHILD = 2000;
+const CREDIT_PER_OTHER = 500;
+
+// True when the question is answered Yes. A page that does not carry the
+// question UI at all (no radios by that name) falls back to true, so the raw
+// money field keeps working on its own.
+function answeredYes(name) {
+  const group = document.querySelectorAll(`input[name="${name}"]`);
+  if (!group.length) return true;
+  return Array.prototype.some.call(group, (el) => el.checked && el.value === 'yes');
+}
+
+const advMoney = (question, id) => (answeredYes(question) ? num(id) : 0);
+
+const countValue = (id) => {
+  const el = $(id);
+  if (!el) return 0;
+  const v = Math.floor(parseFloat(el.value));
+  return Number.isFinite(v) && v > 0 ? v : 0;
+};
+
+// Dollar credit derived from the two dependent counts. Falls back to a plain
+// dollar field if a page still ships one instead of the counts.
+function dependentsCreditValue() {
+  if (!$('depChildren') && !$('depOther')) return num('dependentsCredit');
+  return countValue('depChildren') * CREDIT_PER_CHILD + countValue('depOther') * CREDIT_PER_OTHER;
+}
+
+function syncAdvancedQuestions() {
+  for (const name of ADV_QUESTIONS) {
+    const host = document.querySelector(`[data-reveal="${name}"]`);
+    if (!host) continue;
+    const show = answeredYes(name);
+    // Never strand the keyboard inside a wrapper that is about to disappear.
+    if (!show && host.contains(document.activeElement)) {
+      const picked = document.querySelector(`input[name="${name}"]:checked`);
+      if (picked) picked.focus();
+    }
+    host.hidden = !show;
+  }
+  const derived = $('depCredit');
+  if (derived) derived.textContent = usd(dependentsCreditValue());
+}
+
 function currentView() {
   const checked = document.querySelector('input[name="view"]:checked');
   return checked ? checked.value : 'period';
@@ -62,11 +116,11 @@ function readForm() {
   };
   if (currentMode() === 'advanced') {
     input.adv = {
-      retirement401k: num('retirement401k'),
-      cafeteria125: num('cafeteria125'),
-      dependentsCredit: num('dependentsCredit'),
-      extraWithholding: num('extraWithholding'),
-      postTax: num('postTax')
+      retirement401k: advMoney('qRetire', 'retirement401k'),
+      cafeteria125: advMoney('qHealth', 'cafeteria125'),
+      dependentsCredit: answeredYes('qDeps') ? dependentsCreditValue() : 0,
+      extraWithholding: advMoney('qExtra', 'extraWithholding'),
+      postTax: advMoney('qPost', 'postTax')
     };
   }
   return input;
@@ -326,11 +380,19 @@ function init() {
   }
 
   ['wageType', 'amount', 'hours', 'filingStatus', 'payFrequency',
-   'retirement401k', 'cafeteria125', 'dependentsCredit', 'extraWithholding', 'postTax']
+   'retirement401k', 'cafeteria125', 'dependentsCredit', 'extraWithholding', 'postTax',
+   'depChildren', 'depOther']
     .forEach((id) => {
       const el = $(id);
-      if (el) el.addEventListener('input', render);
+      if (el) el.addEventListener('input', id === 'depChildren' || id === 'depOther'
+        ? () => { syncAdvancedQuestions(); render(); }
+        : render);
     });
+  ADV_QUESTIONS.forEach((name) => {
+    document.querySelectorAll(`input[name="${name}"]`).forEach((el) =>
+      el.addEventListener('change', () => { syncAdvancedQuestions(); render(); }));
+  });
+  syncAdvancedQuestions();
   document.querySelectorAll('input[name="mode"]').forEach((el) =>
     el.addEventListener('change', applyMode));
   document.querySelectorAll('input[name="view"]').forEach((el) =>
