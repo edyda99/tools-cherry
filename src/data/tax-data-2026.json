@@ -696,6 +696,13 @@
           "wageBase": 184500,
           "_fullName": "Paid Family & Medical Leave worker share (71.43% of the 1.13% total premium)",
           "_source": "https://esd.wa.gov/about-us/news-release/2025/paid-family-medical-leave-premium-rate-increases-113-2026"
+        },
+        {
+          "label": "WA Cares",
+          "rate": 0.0058,
+          "_matches": ["WA Cares Fund (long-term care), fully employee-paid"],
+          "_fullName": "WA Cares Fund long-term care premium, fully employee-paid; no wage cap and no Social Security cap, so it applies to every dollar of gross wages (RCW 50B.04.080)",
+          "_source": "https://paidleave.wa.gov/employer-roles-responsibilities/"
         }
       ],
       "hasIncomeTax": false,
@@ -753,6 +760,15 @@
       "name": "Alaska",
       "abbr": "AK",
       "slug": "alaska",
+      "employeePrograms": [
+        {
+          "label": "AK SUI (employee)",
+          "rate": 0.005,
+          "wageBase": 54200,
+          "_fullName": "Unemployment Insurance employee share, withheld by the employer; 2026 taxable wage base $54,200, so at most $271.00 a year. Employees of reimbursable nonprofit, political-subdivision and tribal employers do not contribute.",
+          "_source": "https://labor.alaska.gov/estax/2026-experience-rates.html"
+        }
+      ],
       "hasIncomeTax": false,
       "tax": {
         "type": "none"
@@ -775,6 +791,15 @@
       "name": "Pennsylvania",
       "abbr": "PA",
       "slug": "pennsylvania",
+      "employeePrograms": [
+        {
+          "label": "PA UC",
+          "rate": 0.0007,
+          "_matches": ["Unemployment Compensation (employee withholding)"],
+          "_fullName": "Unemployment Compensation employee withholding, set at 0.07% for calendar year 2026; based on total gross wages in covered employment and not limited to the employer taxable wage base, so there is no cap",
+          "_source": "https://www.pa.gov/agencies/dli/resources/for-employers-and-educators/how-to-file/uc-tax/calculating-contributions--penalties-and-interest"
+        }
+      ],
       "hasIncomeTax": true,
       "figureYear": 2026,
       "tax": {
@@ -1188,18 +1213,32 @@
       "slug": "new-jersey",
       "employeePrograms": [
         {
+          "label": "NJ UI",
+          "rate": 0.003825,
+          "wageBase": 44800,
+          "_fullName": "Unemployment Insurance worker share, calendar year 2026; shares the $44,800 UI wage base with WF/SWF, so at most $171.36 a year. Employees of governmental reimbursable employers pay a lower 0.0825% rate.",
+          "_source": "https://www.nj.gov/labor/ea/employer-services/rate-info/"
+        },
+        {
+          "label": "NJ WF/SWF",
+          "rate": 0.000425,
+          "wageBase": 44800,
+          "_fullName": "Workforce Development and Supplemental Workforce Funds worker share, calendar year 2026; same $44,800 wage base as UI, so at most $19.04 a year",
+          "_source": "https://www.nj.gov/labor/ea/employer-services/rate-info/"
+        },
+        {
           "label": "NJ TDI",
           "rate": 0.0019,
           "wageBase": 171100,
-          "_fullName": "Temporary Disability Insurance worker share (2026 worker wage base $171,100)",
-          "_source": "https://www.nj.gov/labor/lwdhome/press/2025/20251229_newbenefitrates2026.shtml"
+          "_fullName": "Temporary Disability Insurance worker share (2026 worker wage base $171,100, so at most $325.09 a year)",
+          "_source": "https://www.nj.gov/labor/ea/employer-services/rate-info/"
         },
         {
           "label": "NJ FLI",
           "rate": 0.0023,
           "wageBase": 171100,
-          "_fullName": "Family Leave Insurance (employee-funded)",
-          "_source": "https://www.nj.gov/labor/lwdhome/press/2025/20251229_newbenefitrates2026.shtml"
+          "_fullName": "Family Leave Insurance, employee-funded (2026 worker wage base $171,100, so at most $393.53 a year)",
+          "_source": "https://www.nj.gov/labor/ea/employer-services/rate-info/"
         }
       ],
       "hasIncomeTax": true,
@@ -1517,6 +1556,15 @@
       "name": "Minnesota",
       "abbr": "MN",
       "slug": "minnesota",
+      "employeePrograms": [
+        {
+          "label": "MN Paid Leave",
+          "rate": 0.0044,
+          "wageBase": 184500,
+          "_fullName": "Minnesota Paid Leave employee share, up to half of the 0.88% total premium; your employer must pay at least half and may choose to pay more, so your own line can be smaller or zero. Wages subject to the premium stop at the 2026 Social Security maximum of $184,500, so at most $811.80 a year.",
+          "_source": "https://pl.mn.gov/resources/calculators/premium-rate-and-contributions"
+        }
+      ],
       "hasIncomeTax": true,
       "figureYear": 2026,
       "tax": {

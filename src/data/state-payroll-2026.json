@@ -262,8 +262,8 @@
    "payrollContributions": [
     {
      "name": "Delaware Paid Leave (PFML) — employee share",
-     "employeeRate2026": "Up to 0.4% of wages (employee may be required to pay up to 50% of the 0.8% total premium)",
-     "wageBaseOrCap": "$184,500 (Social Security wage cap); max employee cost ~$738/yr",
+     "employeeRate2026": "Depends on how many Delaware employees your employer has: fewer than 10, exempt, so 0%; 10 to 24, parental leave only (0.32% premium), so up to 0.16%; 25 or more, full coverage (0.8% premium), so up to 0.4%. The employer may require the employee to pay up to 50% of the premium and may choose to pay more of it. Federal government employees and seasonal operations that shut down for a month or more are exempt.",
+     "wageBaseOrCap": "$184,500 (2026 Social Security wage cap), counting only FICA wages earned in Delaware; max employee cost ~$738/yr at full coverage, ~$295/yr at parental-leave-only coverage",
      "source": "https://labor.delaware.gov/delaware-paid-leave/"
     }
    ],
@@ -288,8 +288,8 @@
      "source": "https://taxfoundation.org/location/delaware/"
     },
     {
-     "fact": "Delaware's Paid Leave (PFML) program took full effect Jan 1, 2026 — the first year workers can file claims — with a new employee payroll deduction of up to 0.4% of wages (half of the 0.8% premium) appearing on paychecks.",
-     "source": "https://www.ebglaw.com/insights/publications/delawares-paid-family-medical-leave-program-to-commence-in-2026"
+     "fact": "Delaware's Paid Leave (PFML) payroll deduction began Jan 1, 2025, not 2026; Jan 1, 2026 is when the program took full effect and workers could first file claims. The deduction is up to 0.4% of wages, half of the 0.8% premium, and only at employers with 25 or more Delaware employees.",
+     "source": "https://labor.delaware.gov/delaware-paid-leave/"
     }
    ],
    "confidence": "high"
@@ -790,7 +790,7 @@
      "name": "Unemployment Compensation (employee withholding)",
      "employeeRate2026": "0.07%",
      "wageBaseOrCap": "No wage cap — applies to all gross wages (70 cents per $1,000)",
-     "source": "https://www.pa.gov/agencies/dli/resources/for-employers-and-educators/how-to-file/uc-tax/uc-tax-rates"
+     "source": "https://www.pa.gov/agencies/dli/resources/for-employers-and-educators/how-to-file/uc-tax/calculating-contributions--penalties-and-interest"
     }
    ],
    "salesTax": {
@@ -817,7 +817,7 @@
    "distinctiveFacts": [
     {
      "fact": "Pennsylvania is one of the only states that withholds an employee-side unemployment tax: 0.07% of ALL gross wages with no wage cap, taken from every paycheck on top of state and local income tax.",
-     "source": "https://www.pa.gov/agencies/dli/resources/for-employers-and-educators/how-to-file/uc-tax/uc-tax-rates"
+     "source": "https://www.pa.gov/agencies/dli/resources/for-employers-and-educators/how-to-file/uc-tax/employee-withholding"
     },
     {
      "fact": "PA's 3.07% state rate is flat with no standard deduction or personal exemption, so it applies from the first dollar of taxable compensation — and a Philadelphia resident also pays the 3.74% city Wage Tax, for a combined ~6.81% wage tax before federal.",

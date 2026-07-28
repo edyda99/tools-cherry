@@ -105,6 +105,18 @@ export function buildWamParts(deps) {
   // ── the employeePrograms vs payrollContributions diff, computed, not listed ──
   // A program the state documents as employee-paid but that our paycheck estimate
   // does not subtract has to be surfaced, or the page contradicts its own calculator.
+  //
+  // The word match below is deliberately strict, because a FALSE match is the
+  // dangerous one: it would silently drop a genuinely unmodelled program from the
+  // page. Two real labels cannot be matched by any safe rule, so they opt in by
+  // name instead of by loosening the rule for all 51 states:
+  //   "WA Cares" -> the only distinctive word is "Cares", a short ordinary word
+  //                 the generic-phrase guard rejects on purpose.
+  //   "PA UC"    -> "UC" is a two-letter acronym, under the acronym length floor,
+  //                 and the payroll file spells it out as "Unemployment Compensation".
+  // A program carrying `_matches` names the payrollContributions rows it already
+  // covers. Comparison is on the normalized form, so punctuation and dash style on
+  // either side are irrelevant.
   const normalize = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   function unmatchedContributions(slug) {
     const td = taxData.states[slug] || {};
@@ -113,7 +125,9 @@ export function buildWamParts(deps) {
     const pcs = pd.payrollContributions || [];
     if (!pcs.length) return [];
     const keys = [];
+    const explicit = new Set();
     for (const ep of eps) {
+      for (const m of ep._matches || []) explicit.add(normalize(m));
       const label = String(ep.label || '');
       // Drop a leading state abbreviation ("WA PFML" -> "PFML") so the phrase match
       // works against the payroll file's longer, differently-worded names.
@@ -126,6 +140,7 @@ export function buildWamParts(deps) {
     }
     return pcs.filter((pc) => {
       const n = normalize(pc.name);
+      if (explicit.has(n)) return false;
       const words = new Set(n.split(' '));
       return !keys.some((k) => (k.includes(' ') ? n.includes(k) : words.has(k)));
     });
