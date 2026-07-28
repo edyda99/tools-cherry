@@ -120,17 +120,57 @@ into the Lambda env, and the two billing tripwires above saved. The flip ran as:
 
 1. **Account concurrency ceiling = 10** (AWS new-account throttle; default would be 1000). This is the *hard* burst cap — worst-case 6-min flood before any guard ≈ **$0.12**. Quota `L-B99A9384`, `Adjustable: True`, **no increase request on file**.
    - **Reserved concurrency is currently UNSETTABLE**: the account's min-unreserved floor (10) == ceiling (10), so any positive reservation is rejected. Only `0` (the kill-switch) is allowed.
-   - **TRIGGER:** when the ceiling later rises above ~20 (AWS auto-raises new accounts gradually, or you request it), **set `reserved=10`** to preserve this blast radius — and update `restore-service.sh` to restore to 10 instead of removing the cap.
-2. **Kill-switch** (`pdf-to-word-budget-killswitch`): `put_function_concurrency(Reserved=0)` → stops the converter cold for any entry path. Recover with `restore-service.sh`.
+   - **TRIGGER:** when the ceiling later rises above ~20 (AWS auto-raises new accounts gradually, or you request it), **set `reserved=10`** to preserve this blast radius — and update `restore-service.sh` to restore to 10 instead of removing the cap. **Three things change that day, not two:** the daily auto-restore below calls `delete_function_concurrency`, which would strip that deliberate 10 every night, so it has to become `put_function_concurrency(10)` and its role has to be granted `lambda:PutFunctionConcurrency` again (both live in `budget-guardrails.sh` step [9]).
+2. **Kill-switch** (`pdf-to-word-budget-killswitch`): `put_function_concurrency(Reserved=0)` → stops the converter cold for any entry path. Recover with `restore-service.sh`, or wait for the auto-restore below.
 3. **CloudWatch rate alarms → SNS** (fast, minutes; catch bursts/leaked-key floods the gate can't see):
-   - `pdf-to-word-invocation-spike`: Invocations Sum > 150 / 5 min.
-   - `pdf-to-word-gbsec-15min`: metric-math GB-sec (`Duration_sum/1000*2`) > 4000 / 15 min.
+   - `pdf-to-word-gbsec-burst`: metric-math GB-sec (`Duration_sum/1000*2`) > 8000 / 5 min.
+   - `pdf-to-word-gbsec-daily`: same metric math > 10,000 / day.
    - These are **rate tripwires with no monthly memory** — they reset every window.
+   - The daily one is **not** an abuse-only signal: `GLOBAL_DAILY_CAP = 100` and a post-OCR conversion costs ~260 GB-s, so a fully booked legitimate day (~26,000 GB-s) trips it. That is what makes the auto-restore below load-bearing rather than a nicety.
 4. **$1 cost budget** (`pdf-to-word-freetier-guard`) → SNS at ACTUAL > 100% (`$1`). Slow (~hours refresh). Account-wide cost (no Lambda cost filter) — the account also runs the `pdf-to-word` ECR repo (container-image Lambda deploy, `deploy.sh`), which accrues a small legitimate storage cost independent of converter usage.
    - **2026-07-18:** originally had a second trip at ACTUAL > 1% (`$0.01`). That trip false-positived on ECR image storage cost alone (not converter abuse) and killed the service. Removed the 1% notification; the $1 trip is the only cost guard now. If ECR storage cost trends up on its own, consider a lifecycle policy to prune old image tags rather than re-adding a low-cost trip.
 5. **95% free-tier USAGE budget** (`pdf-to-word-freetier-gbsec-guard`, added 2026-06-22) → SNS at ACTUAL > 95% of 400,000 GB-sec = **380,000 GB-sec**. Tracks gross `USE1-Lambda-GB-Second`; resets monthly. Stops the converter **before any charge at all** ($0 bill). **A 95% trip is a HARD MONTHLY STOP** — cumulative usage stays ≥95% until month rollover, so `restore-service.sh` gets re-killed at the next budget eval; to bring the path back early you must accept paid use (then the $1 budget guards) or temporarily raise/remove this budget.
 
 All five route through the one SNS topic → email (`edydaherz@gmail.com`) + kill-switch. SNS topic policy already allows `budgets.amazonaws.com` to publish.
+
+**`pdf-to-word-budget-alerts` is a control channel, not a mailing list.** The kill-switch is a `protocol=lambda` subscriber with no filter policy, and it ignores the message body, so *anything* published to that topic by anyone throttles the converter within a second. Notifications that must not have that effect go to `pdf-to-word-restore-notices` (email only).
+
+## Auto-restore (added 2026-07-28)
+
+A kill-switch trip used to be permanent until a human ran `restore-service.sh`, so a daily-alarm
+trip at 09:00 cost 15 hours of service even though the alarm's window was clean again at midnight.
+`budget-guardrails.sh` step [9]/[10] now provisions the recovery half of the switch:
+
+| Thing | Value |
+|---|---|
+| Restore fn | `pdf-to-word-daily-restore` (python3.12, 30 s) |
+| Role | `pdf-to-word-daily-restore-role`: `lambda:DeleteFunctionConcurrency` on the converter only, `cloudwatch:GetMetricStatistics`, `sns:Publish` on the **notices** topic, plus basic logging |
+| Notices topic | `pdf-to-word-restore-notices` → email only. **Never the alerts topic**: the kill-switch subscribes there, so a "reopened" mail sent to it would come straight back as `put_function_concurrency(0)` and re-throttle the converter it had just freed |
+| Schedule | EventBridge rule `pdf-to-word-daily-restore`, `cron(5 0 * * ? *)` UTC |
+| Failure alarm | `pdf-to-word-daily-restore-errors`: any `Errors` datapoint → notices topic. Without it a broken handler leaves the converter throttled and says nothing, which is worse than having no auto-restore |
+
+What it does each run: reads month-to-date `AWS/Lambda` `Duration` Sum for `pdf-to-word` from the
+1st of the current UTC month, converts with the alarms' own `sum_ms/1000*2`, then either
+
+- **month-to-date ≥ 360,000 GB-s** (90% of the always-free pool): does **nothing**, publishes a
+  notice that reopening means paid usage and a human must decide. This is the case that matters: a
+  fresh daily window is not evidence the **month** is affordable.
+- **otherwise**: `delete_function_concurrency` on the converter (this account rejects positive
+  reservations, so removing the cap is the restore) and publishes a short "reopened" notice.
+
+The 360,000 sits below the usage budget's 380,000 on purpose. This figure counts the converter's
+own compute while the budget bills gross account-wide `USE1-Lambda-GB-Second`, which is always the
+larger number, and this check runs once per day, so it must stop early enough that the day it opens
+cannot sail past the budget's line. Reopening at a number the budget has already passed just makes
+the two guards hand the month back and forth.
+
+Safe on an untripped day: deleting an absent reservation is a no-op. It is deliberately **not**
+wired to an alarm OK action, which would fire seconds after a burst trip and reopen straight into
+the flood. It also cannot see a flood that is in progress when it runs; the burst alarm re-kills
+within ~6 minutes in that case, which bounds the loss to ~9,600 GB-s.
+
+**`restore-service.sh` is now only for a mid-day manual recovery**: reopening sooner than the next
+00:05 UTC, or reopening after a month-stop once paid use is accepted.
 
 ## Lambda free-tier facts
 

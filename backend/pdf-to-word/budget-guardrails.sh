@@ -6,12 +6,20 @@
 #         + SNS→Lambda wiring + SNS topic policy for Budgets + a $1 COST budget
 #         with two ACTUAL notifications (>1% and >100%) both targeting the SNS topic
 #         + a USAGE budget on Lambda GB-seconds that trips the kill-switch at 95%
-#         of the monthly free tier (stops the converter BEFORE any charge — $0 bill).
+#         of the monthly free tier (stops the converter BEFORE any charge — $0 bill)
+#         + a daily auto-restore Lambda + its role + a 00:05 UTC EventBridge schedule
+#         + a second, notify-only SNS topic the auto-restore reports on.
 #
 # When usage spikes (CloudWatch alarm, minutes) or charges appear (budget, slow),
 # an alert publishes to SNS, which (a) emails the owner and (b) invokes the
-# kill-switch Lambda, which zeroes the converter's reserved concurrency. Use
-# restore-service.sh to bring the converter back after a trip.
+# kill-switch Lambda, which zeroes the converter's reserved concurrency. Anything
+# published to that topic therefore KILLS the converter; it is a control channel,
+# not a mailing list. Notifications that must not kill go to the notices topic.
+#
+# The converter then reopens itself at 00:05 UTC, once the daily alarm's window has
+# rolled over, unless month-to-date compute is already at 90% of the free tier - in
+# which case it stays off and the notices topic asks a human to decide.
+# restore-service.sh is now only for reopening sooner than the next UTC midnight.
 #
 # Safe to re-run: every step checks for existing resources first.
 set -euo pipefail
@@ -21,16 +29,24 @@ REGION="us-east-1"
 ACCOUNT_ID="560904638428"
 CONVERTER_FN="pdf-to-word"
 TOPIC_NAME="pdf-to-word-budget-alerts"
+NOTICE_TOPIC_NAME="pdf-to-word-restore-notices"
 KS_FN="pdf-to-word-budget-killswitch"
 KS_ROLE="pdf-to-word-killswitch-role"
+RESTORE_FN="pdf-to-word-daily-restore"
+RESTORE_ROLE="pdf-to-word-daily-restore-role"
+RESTORE_RULE="pdf-to-word-daily-restore"
 BUDGET_NAME="pdf-to-word-freetier-guard"
 USAGE_BUDGET_NAME="pdf-to-word-freetier-gbsec-guard"
 EMAIL="edydaherz@gmail.com"
 
 AWS="aws --profile $PROFILE --region $REGION"
 TOPIC_ARN="arn:aws:sns:${REGION}:${ACCOUNT_ID}:${TOPIC_NAME}"
+NOTICE_TOPIC_ARN="arn:aws:sns:${REGION}:${ACCOUNT_ID}:${NOTICE_TOPIC_NAME}"
 KS_ARN="arn:aws:lambda:${REGION}:${ACCOUNT_ID}:function:${KS_FN}"
 ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${KS_ROLE}"
+RESTORE_ARN="arn:aws:lambda:${REGION}:${ACCOUNT_ID}:function:${RESTORE_FN}"
+RESTORE_ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${RESTORE_ROLE}"
+RULE_ARN="arn:aws:events:${REGION}:${ACCOUNT_ID}:rule/${RESTORE_RULE}"
 
 echo "==> [1] SNS topic"
 $AWS sns create-topic --name "$TOPIC_NAME" >/dev/null
@@ -158,36 +174,64 @@ rm -f "$BUD" "$NOTIFS"
 echo "==> [7] CloudWatch usage alarms -> SNS (fast trip: minutes, not the budget's hours)"
 # Spike guard: >150 invocations in any 5 min. The gate caps legit at 100/day, so any
 # 5-min window above that is abuse (e.g. a leaked invoker key doing short jobs).
-$AWS cloudwatch put-metric-alarm --alarm-name "pdf-to-word-invocation-spike" \
-  --namespace AWS/Lambda --metric-name Invocations --statistic Sum \
-  --dimensions Name=FunctionName,Value="$CONVERTER_FN" \
-  --period 300 --evaluation-periods 1 --threshold 150 \
+# Both alarms measure the same thing - GB-seconds, = Sum(Duration ms)/1000 * 2 (2 GB fn)
+# - over two horizons, because OCR made a conversion ~260 GB-s (130s x 2 GB) instead of
+# the ~20 GB-s it was. The old pair no longer worked: the invocation-count alarm needed
+# 150 invocations/5min, which the concurrency ceiling of 10 makes physically impossible
+# at 130-180s per run (~16 completions/5min), and 4000 GB-s/15min had become just 15
+# conversions, so an ordinary busy quarter-hour would have killed the service.
+#
+# [a] BURST - the fast one. 8000 GB-s in 5 minutes is more than the gate can physically
+# pass in that window (concurrency 10 at ~130s = ~23 conversions = ~6000 GB-s), so it
+# fires only on traffic that did NOT come through the gate: a leaked invoke credential.
+# 5 minutes is the metric's native granularity; detection lands ~6 min in, capping the
+# burn at ~9600 GB-s (about $0.13 once the free tier is gone).
+$AWS cloudwatch put-metric-alarm --alarm-name "pdf-to-word-gbsec-burst" \
+  --metrics '[{"Id":"d","MetricStat":{"Metric":{"Namespace":"AWS/Lambda","MetricName":"Duration","Dimensions":[{"Name":"FunctionName","Value":"'"$CONVERTER_FN"'"}]},"Period":300,"Stat":"Sum"},"ReturnData":false},{"Id":"gbsec","Expression":"d/1000*2","Label":"GBsecPer5min","ReturnData":true}]' \
+  --evaluation-periods 1 --threshold 8000 \
   --comparison-operator GreaterThanThreshold --treat-missing-data notBreaching \
   --alarm-actions "$TOPIC_ARN" >/dev/null
-echo "    spike alarm set (>150 invocations / 5 min)"
-# Free-tier guard: estimated GB-seconds per 15 min ~= Sum(Duration ms)/1000 * 2 (2 GB fn).
-# Evaluated every 15 min so a leaked-key flood the gate can't see trips fast. 4000
-# GB-s/15min sits well above realistic legit bursts and well below an abusive rate.
-$AWS cloudwatch put-metric-alarm --alarm-name "pdf-to-word-gbsec-15min" \
-  --metrics '[{"Id":"d","MetricStat":{"Metric":{"Namespace":"AWS/Lambda","MetricName":"Duration","Dimensions":[{"Name":"FunctionName","Value":"'"$CONVERTER_FN"'"}]},"Period":900,"Stat":"Sum"},"ReturnData":false},{"Id":"gbsec","Expression":"d/1000*2","Label":"GBsecPer15min","ReturnData":true}]' \
-  --evaluation-periods 1 --threshold 4000 \
+echo "    burst alarm set (>8000 GB-s / 5 min)"
+# [b] DAILY - the free-tier budget. 10000 GB-s/day x 31 = 310,000, inside the 400,000
+# always-free monthly pool with room to spare. Catches what [a] cannot: a slow drip that
+# stays under the burst threshold but still accumulates. A 1-day period is the longest
+# CloudWatch allows and evaluates about once per period, so treat this as the backstop,
+# not the fast guard. It is NOT an abuse-only signal: GLOBAL_DAILY_CAP is 100 (wrangler.toml)
+# and OCR made a conversion ~260 GB-s, so a fully booked legitimate day reaches ~26000 GB-s and
+# trips this. That is tolerable only because the auto-restore in [9] reopens the converter at
+# 00:05 instead of leaving it off until someone notices; lower the gate cap to ~35/day if this
+# alarm should mean abuse rather than a busy day.
+$AWS cloudwatch put-metric-alarm --alarm-name "pdf-to-word-gbsec-daily" \
+  --metrics '[{"Id":"d","MetricStat":{"Metric":{"Namespace":"AWS/Lambda","MetricName":"Duration","Dimensions":[{"Name":"FunctionName","Value":"'"$CONVERTER_FN"'"}]},"Period":86400,"Stat":"Sum"},"ReturnData":false},{"Id":"gbsec","Expression":"d/1000*2","Label":"GBsecPerDay","ReturnData":true}]' \
+  --evaluation-periods 1 --threshold 10000 \
   --comparison-operator GreaterThanThreshold --treat-missing-data notBreaching \
   --alarm-actions "$TOPIC_ARN" >/dev/null
-echo "    GB-seconds alarm set (>4000 / 15 min)"
+echo "    daily alarm set (>10000 GB-s / day)"
+# Retired 2026-07-28: pdf-to-word-invocation-spike (unreachable) and pdf-to-word-gbsec-15min
+# (superseded by the pair above). Delete them if an older run of this script created them.
+$AWS cloudwatch delete-alarms --alarm-names "pdf-to-word-invocation-spike" "pdf-to-word-gbsec-15min" 2>/dev/null || true
 
 echo "==> [8] USAGE budget — free-tier GB-second guard (kill at 95% of 400k, before any charge)"
 # Cumulative monthly guard the rate alarms can't provide: tracks gross Lambda compute
-# (UsageType USE1-Lambda-GB-Second, us-east-1) against the 400,000 GB-sec/mo free tier
-# and fires the SAME SNS topic (-> email + kill-switch) at 95% = 380,000 GB-sec, i.e.
-# BEFORE the first cent of paid usage. Auto-resets monthly. Limit unit is "seconds"
-# (the GB-second usage type's reported unit). NOTE: a 95% trip is a HARD monthly stop —
-# usage stays >=95% until month rollover, so restore-service.sh will be re-killed at the
-# next budget eval; bring the server path back only after accepting paid use or by
-# temporarily raising/removing this budget. If a non-us-east-1 region is ever added,
-# extend CostFilters.UsageType with that region's "<PREFIX>-Lambda-GB-Second".
+# against the 400,000 GB-sec/mo free tier and fires the SAME SNS topic (-> email +
+# kill-switch) at 95% = 380,000 GB-sec, i.e. BEFORE the first cent of paid usage.
+# Auto-resets monthly. Limit unit is "seconds" (the GB-second usage type's reported unit).
+#
+# The usage types are BOTH architectures and carry NO region prefix. This filter said
+# "USE1-Lambda-GB-Second" until 2026-07-28 and therefore matched nothing: the budget sat at
+# 0.0 while Cost Explorer reported 1,438.7 GB-s of real Lambda-GB-Second-ARM for the month,
+# so the guard had been silently dead since it was created. Verify with
+# `aws ce get-cost-and-usage --group-by Type=DIMENSION,Key=USAGE_TYPE` before trusting any
+# edit here, and re-check after a region is added - the strings are what the account
+# actually emits, not what the pricing docs suggest.
+#
+# NOTE: a 95% trip is a HARD monthly stop — usage stays >=95% until month rollover, so both
+# restore-service.sh and the nightly auto-restore will be re-killed at the next budget eval
+# (the auto-restore holds at 90% by design and says so); bring the server path back only
+# after accepting paid use or by temporarily raising/removing this budget.
 UBUD=$(mktemp); UNOTIFS=$(mktemp)
 cat > "$UBUD" <<JSON
-{"BudgetName":"${USAGE_BUDGET_NAME}","BudgetLimit":{"Amount":"400000","Unit":"seconds"},"TimeUnit":"MONTHLY","BudgetType":"USAGE","CostFilters":{"UsageType":["USE1-Lambda-GB-Second"]}}
+{"BudgetName":"${USAGE_BUDGET_NAME}","BudgetLimit":{"Amount":"400000","Unit":"seconds"},"TimeUnit":"MONTHLY","BudgetType":"USAGE","CostFilters":{"UsageType":["Lambda-GB-Second","Lambda-GB-Second-ARM"]}}
 JSON
 cat > "$UNOTIFS" <<JSON
 [
@@ -204,9 +248,197 @@ else
 fi
 rm -f "$UBUD" "$UNOTIFS"
 
+echo "==> [9] Notices topic + IAM role + daily auto-restore Lambda"
+# The daily alarm measures one UTC day, so a trip on it costs a whole day of service:
+# the window is clean again at midnight but nothing reopens the converter, and until
+# 2026-07-28 the only way back was a human running restore-service.sh. This function is
+# that human on a timer. It is deliberately NOT wired to the alarm's OK action: an OK
+# transition says the last window was quiet, which is true seconds after a burst trip and
+# would reopen straight into whatever caused it.
+#
+# Everything this function says goes to its own topic and never to $TOPIC_ARN, because the
+# kill-switch subscribes to that one with no filter: a "reopened" mail published there would
+# be delivered straight back as put_function_concurrency(0), re-throttling the converter
+# within a second of it being freed. Same reason the restore's own error alarm points here.
+$AWS sns create-topic --name "$NOTICE_TOPIC_NAME" >/dev/null
+if ! $AWS sns list-subscriptions-by-topic --topic-arn "$NOTICE_TOPIC_ARN" \
+      --query "Subscriptions[?Endpoint=='$EMAIL'&&Protocol=='email']" --output text | grep -q .; then
+  $AWS sns subscribe --topic-arn "$NOTICE_TOPIC_ARN" --protocol email \
+    --notification-endpoint "$EMAIL" >/dev/null
+  echo "    notices topic created, email subscribed (pending confirmation)"
+else
+  echo "    notices topic email subscription already present"
+fi
+
+if ! $AWS iam get-role --role-name "$RESTORE_ROLE" >/dev/null 2>&1; then
+  RTRUST=$(mktemp)
+  cat > "$RTRUST" <<'JSON'
+{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"lambda.amazonaws.com"},"Action":"sts:AssumeRole"}]}
+JSON
+  $AWS iam create-role --role-name "$RESTORE_ROLE" --assume-role-policy-document "file://$RTRUST" >/dev/null
+  rm -f "$RTRUST"
+  echo "    role created"
+else
+  echo "    role exists"
+fi
+
+$AWS iam attach-role-policy --role-name "$RESTORE_ROLE" \
+  --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole >/dev/null 2>&1 || true
+
+# Delete only, no PutFunctionConcurrency: a role that runs unattended every night should not
+# also carry the ability to throttle the converter. The day the account ceiling rises past ~20
+# and the restore becomes reserved=10 (see the trigger in AWS-ARCHITECTURE.md), re-running this
+# script grants it, which is one command on a day that already needs a code edit here.
+# GetMetricStatistics takes no resource-level condition, so "*" is the only form AWS accepts.
+RINLINE=$(mktemp)
+cat > "$RINLINE" <<JSON
+{"Version":"2012-10-17","Statement":[
+ {"Sid":"ClearConcurrency","Effect":"Allow","Action":"lambda:DeleteFunctionConcurrency","Resource":"arn:aws:lambda:${REGION}:${ACCOUNT_ID}:function:${CONVERTER_FN}"},
+ {"Sid":"ReadCompute","Effect":"Allow","Action":"cloudwatch:GetMetricStatistics","Resource":"*"},
+ {"Sid":"PublishNotice","Effect":"Allow","Action":"sns:Publish","Resource":"${NOTICE_TOPIC_ARN}"}
+]}
+JSON
+$AWS iam put-role-policy --role-name "$RESTORE_ROLE" --policy-name daily-restore-inline \
+  --policy-document "file://$RINLINE" >/dev/null
+rm -f "$RINLINE"
+
+RBUILD=$(mktemp -d)
+cat > "$RBUILD/index.py" <<PYEOF
+import datetime, boto3
+REGION="${REGION}"; FUNCTION="${CONVERTER_FN}"; TOPIC="${NOTICE_TOPIC_ARN}"
+# 90% of the 400,000 GB-s always-free pool, deliberately below the usage budget's 95%
+# trip rather than level with it. Two reasons for the gap: this reads the converter's own
+# compute while the budget bills gross account-wide Lambda GB-s, which is always the larger
+# number, and this check runs once every 24 h, so it has to stop early enough that the day
+# it opens cannot carry usage past the point the budget would kill anyway. Reopening at a
+# figure the budget has already passed just hands the day back and forth.
+MONTH_STOP_GBSEC=360000
+
+def month_to_date_gbsec():
+    # Duration Sum is milliseconds of execution; the alarms turn that into GB-seconds
+    # with sum/1000*2 for the 2 GB function, and month-to-date uses the same arithmetic so
+    # this guard and the alarms cannot disagree. It counts this function only, so it reads
+    # slightly under the account-wide usage the budget measures - see MONTH_STOP_GBSEC.
+    now=datetime.datetime.now(datetime.timezone.utc)
+    start=now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    stats=boto3.client("cloudwatch", region_name=REGION).get_metric_statistics(
+        Namespace="AWS/Lambda", MetricName="Duration",
+        Dimensions=[{"Name":"FunctionName","Value":FUNCTION}],
+        StartTime=start, EndTime=now, Period=86400, Statistics=["Sum"])
+    return sum(point["Sum"] for point in stats["Datapoints"]) / 1000 * 2
+
+def handler(event, context):
+    sns=boto3.client("sns", region_name=REGION)
+    try:
+        used=month_to_date_gbsec()
+        if used >= MONTH_STOP_GBSEC:
+            # A fresh daily window is no evidence the MONTH is affordable. Past this line the
+            # next conversion is billed, so the decision to spend stops being automatable.
+            sns.publish(TopicArn=TOPIC,
+                Subject="pdf-to-word not reopened: monthly free tier nearly spent",
+                Message="Month-to-date compute for the converter is %d GB-s of the 400000 always-free pool, so the daily auto-restore did not clear its reserved concurrency. Reopening means paid usage. Decide, then run backend/pdf-to-word/restore-service.sh to reopen by hand." % used)
+            print("Restore held: %d GB-s month-to-date." % used)
+            return {"status":"held","gbsec":used}
+        # Removing the reservation rather than setting a positive one is not a shortcut: this
+        # account's min-unreserved floor equals its ceiling, so any positive value is rejected
+        # (restore-service.sh hit the same wall). Deleting an absent reservation is a no-op,
+        # which is what makes running this on an untripped day harmless.
+        boto3.client("lambda", region_name=REGION).delete_function_concurrency(FunctionName=FUNCTION)
+        sns.publish(TopicArn=TOPIC,
+            Subject="pdf-to-word reopened for the new UTC day",
+            Message="Reserved concurrency cleared, the converter accepts requests again. Month-to-date compute for the converter is %d GB-s of the 400000 always-free pool." % used)
+        print("Restore done: %d GB-s month-to-date." % used)
+        return {"status":"restored","gbsec":used}
+    except Exception as failure:
+        # Dying quietly is the one outcome worse than having no auto-restore at all: the
+        # converter stays throttled for the whole day and the human who used to do this by
+        # hand has been told not to. Re-raise so the Errors alarm still speaks if the publish
+        # below is itself what failed, and so EventBridge records the failed invocation.
+        sns.publish(TopicArn=TOPIC,
+            Subject="pdf-to-word auto-restore FAILED",
+            Message="The daily auto-restore did not finish, so the converter may still be throttled: %r. Run backend/pdf-to-word/restore-service.sh to reopen it by hand." % failure)
+        raise
+PYEOF
+( cd "$RBUILD" && zip -q restore.zip index.py )
+
+if $AWS lambda get-function --function-name "$RESTORE_FN" >/dev/null 2>&1; then
+  $AWS lambda update-function-code --function-name "$RESTORE_FN" \
+    --zip-file "fileb://$RBUILD/restore.zip" >/dev/null
+  echo "    daily-restore code updated"
+else
+  RESTORE_CREATED=""
+  for i in 1 2 3 4 5; do
+    if $AWS lambda create-function --function-name "$RESTORE_FN" --runtime python3.12 \
+        --role "$RESTORE_ROLE_ARN" --handler index.handler --timeout 30 \
+        --zip-file "fileb://$RBUILD/restore.zip" >/dev/null 2>&1; then
+      echo "    daily-restore created"; RESTORE_CREATED=1; break
+    fi
+    echo "    create attempt $i failed (role propagation?), retrying..."; sleep 8
+  done
+  # Stop here rather than fall into the wait below, which would abort on "function not
+  # found" and hide the five create failures that are the thing actually worth reading.
+  if [ -z "$RESTORE_CREATED" ]; then
+    echo "    ERROR: could not create $RESTORE_FN after 5 attempts" >&2
+    rm -rf "$RBUILD"
+    exit 1
+  fi
+fi
+rm -rf "$RBUILD"
+$AWS lambda wait function-active --function-name "$RESTORE_FN"
+
+echo "==> [10] Wire EventBridge -> daily restore (00:05 UTC)"
+# 00:05 and not 00:00: the daily alarm's period IS the UTC day, so five past midnight is
+# the earliest moment the new window is unambiguously the new one, with a few minutes of
+# slack for CloudWatch to publish the closing datapoint of the old one.
+# An operator who disables the rule during an incident is holding the converter shut on
+# purpose; a re-run of this script must not quietly hand the night back to the timer.
+RULE_STATE="ENABLED"
+if EXISTING_STATE=$($AWS events describe-rule --name "$RESTORE_RULE" --query State --output text 2>/dev/null); then
+  RULE_STATE="$EXISTING_STATE"
+  if [ "$RULE_STATE" = "DISABLED" ]; then
+    echo "    rule exists and is DISABLED, leaving it off"
+  fi
+fi
+$AWS events put-rule --name "$RESTORE_RULE" --schedule-expression "cron(5 0 * * ? *)" \
+  --description "Reopen the pdf-to-word converter at the start of each UTC day" \
+  --state "$RULE_STATE" >/dev/null
+$AWS lambda add-permission --function-name "$RESTORE_FN" --statement-id events-invoke \
+  --action lambda:InvokeFunction --principal events.amazonaws.com \
+  --source-arn "$RULE_ARN" >/dev/null 2>&1 || true
+# add-permission fails identically for "already there" and for a call that genuinely did not
+# land (IAM propagation on a fresh account), and a rule that cannot invoke its target is a
+# schedule that silently never runs, so read the policy back instead of trusting the exit code.
+if ! $AWS lambda get-policy --function-name "$RESTORE_FN" --query Policy --output text 2>/dev/null \
+     | grep -q "events-invoke"; then
+  echo "    ERROR: events-invoke permission is not on $RESTORE_FN; the schedule could never fire" >&2
+  exit 1
+fi
+# put-targets answers 200 even when it attached nothing; the failure count is in the body.
+FAILED_TARGETS=$($AWS events put-targets --rule "$RESTORE_RULE" \
+  --targets "Id=daily-restore,Arn=$RESTORE_ARN" --query FailedEntryCount --output text)
+if [ "$FAILED_TARGETS" != "0" ]; then
+  echo "    ERROR: put-targets reported $FAILED_TARGETS failed entries" >&2
+  exit 1
+fi
+echo "    schedule set (cron(5 0 * * ? *) UTC, state $RULE_STATE)"
+
+# The restore is now the only thing that reopens the converter, so its own failures have to
+# be loud: without this, a broken handler leaves the service throttled and says nothing.
+# Points at the notices topic, never the alerts one - routing it there would answer a
+# restore bug by killing the converter it was trying to revive.
+$AWS cloudwatch put-metric-alarm --alarm-name "pdf-to-word-daily-restore-errors" \
+  --namespace AWS/Lambda --metric-name Errors --statistic Sum \
+  --dimensions Name=FunctionName,Value="$RESTORE_FN" \
+  --period 3600 --evaluation-periods 1 --threshold 0 \
+  --comparison-operator GreaterThanThreshold --treat-missing-data notBreaching \
+  --alarm-actions "$NOTICE_TOPIC_ARN" >/dev/null
+echo "    restore-error alarm set (any Errors datapoint -> notices topic)"
+
 echo
-echo "Done. Confirm the SNS email subscription via the link sent to $EMAIL."
-echo "Topic:        $TOPIC_ARN"
+echo "Done. Confirm BOTH SNS email subscriptions via the links sent to $EMAIL."
+echo "Topic:        $TOPIC_ARN (publishing here kills the converter)"
+echo "Notices:      $NOTICE_TOPIC_ARN (email only)"
 echo "Kill-switch:  $KS_ARN"
+echo "Auto-restore: $RESTORE_ARN (cron(5 0 * * ? *) UTC, held at 90% of the monthly pool)"
 echo "Cost budget:  $BUDGET_NAME       (\$1/mo — auto-kills a penny into paid)"
 echo "Usage budget: $USAGE_BUDGET_NAME (95% of 400k GB-sec — kills before any charge)"
