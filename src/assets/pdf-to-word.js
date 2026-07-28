@@ -197,11 +197,13 @@ async function pdfToDocxBlob(arrayBuffer, onPage) {
   const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const children = [];
   let anyText = false;
+  let charCount = 0;
 
   for (let p = 1; p <= pdf.numPages; p++) {
     if (onPage) onPage(p, pdf.numPages);
     const page = await pdf.getPage(p);
     const content = await page.getTextContent();
+    for (const it of content.items) charCount += (it.str || '').length;
     const lines = buildLines(content.items);
 
     if (lines.length) {
@@ -224,7 +226,9 @@ async function pdfToDocxBlob(arrayBuffer, onPage) {
 
   if (!anyText) return { blob: null, empty: true };
   const doc = new D.Document({ sections: [{ properties: {}, children }] });
-  return { blob: await D.Packer.toBlob(doc), empty: false };
+  // sparse = the text layer holds far less than the pages visibly show — the
+  // "text" is drawn as images (stencils/scans) that only the server can read
+  return { blob: await D.Packer.toBlob(doc), empty: false, sparse: charCount / pdf.numPages < 120 };
 }
 
 convertBtn.addEventListener('click', async () => {
@@ -239,7 +243,7 @@ convertBtn.addEventListener('click', async () => {
       throw new Error('Converter libraries failed to load — please refresh and try again.');
     }
     const buf = await selected.arrayBuffer();
-    const { blob, empty } = await pdfToDocxBlob(buf, (p, n) => setStatus(`Converting… page ${p} of ${n}`));
+    const { blob, empty, sparse } = await pdfToDocxBlob(buf, (p, n) => setStatus(`Converting… page ${p} of ${n}`));
 
     if (empty) {
       setStatus(
@@ -256,7 +260,17 @@ convertBtn.addEventListener('click', async () => {
     download.hidden = false;
     download.style.display = '';
     download.textContent = `Download ${outName}`;
-    setStatus('Done — your Word document is ready.', 'success');
+    if (sparse) {
+      // an honest warning beats a confidently empty document
+      setStatus(
+        'Heads up: most of this PDF’s text is stored as images, which the in-browser ' +
+        'converter can’t read — the Word file will be missing most of the content. ' +
+        'The server converter below reads text out of images (OCR) and will do far better here.',
+        'error'
+      );
+    } else {
+      setStatus('Done — your Word document is ready.', 'success');
+    }
   } catch (err) {
     let msg = err && err.message;
     if (err && err.name === 'PasswordException') {

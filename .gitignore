@@ -16,3 +16,4 @@ backend/pdf-to-word/.invoker-key.json
 *.pem
 aws-credentials*
 .aws/
+backend/pdf-to-word/vendor/

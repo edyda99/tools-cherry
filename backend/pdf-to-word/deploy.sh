@@ -48,6 +48,20 @@ echo "==> Building + pushing image ($ARCH)"
 podman build --platform "linux/${ARCH}" -t "$IMAGE" .
 podman push "$IMAGE"
 
+# Pushing :latest leaves the previous image behind UNTAGGED, and nothing else ever
+# removes it. Nine of them had piled up by 2026-07-28 (~3.8 GB stored against a
+# 0.5 GB always-free tier) making ECR the only line on the bill. Prune every push.
+echo "==> Pruning untagged images from ECR"
+UNTAGGED="$(aws ecr list-images --repository-name "$REPO" --filter tagStatus=UNTAGGED \
+  --profile "$PROFILE" --region "$REGION" --query 'imageIds' --output json)"
+if [ "$(echo "$UNTAGGED" | tr -d '[:space:]')" != "[]" ]; then
+  aws ecr batch-delete-image --repository-name "$REPO" --image-ids "$UNTAGGED" \
+    --profile "$PROFILE" --region "$REGION" --query 'length(imageIds)' --output text \
+    | xargs -I{} echo "   deleted {} untagged image(s)"
+else
+  echo "   none"
+fi
+
 echo "==> Ensuring IAM execution role"
 if ! aws iam get-role --role-name "$ROLE" --profile "$PROFILE" >/dev/null 2>&1; then
   aws iam create-role --role-name "$ROLE" --profile "$PROFILE" \
