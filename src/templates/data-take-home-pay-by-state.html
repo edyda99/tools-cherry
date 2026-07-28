@@ -53,6 +53,49 @@
   /* The employee payroll premium, on its own line under the income tax it sits
      beside, so the pair reads as one "what the state took" figure. */
   table.study td.tax .sub { display:block; font-size:.78rem; font-weight:400; color:var(--muted); white-space:normal; }
+  /* A row whose tax figures are not on this page's year. Emitted from the data's
+     own figureYear, so it disappears by itself once the state publishes. */
+  table.study td.st .fy-flag { display:block; font-size:.78rem; font-weight:400; color:var(--muted); white-space:normal; margin-top:2px; }
+  /* Phones. A wide table is only usable if the reader can still tell which row
+     and which column they are looking at, so two things change here:
+     1. The rank and state columns are pinned to the left edge, which keeps the
+        state name beside its own figures however far right the reader scrolls.
+     2. .table-scroll gets a height. position:sticky resolves against the nearest
+        scrollport, and overflow-x:auto computes overflow-y to auto, so the
+        headings were already sticking to a box that could never scroll
+        vertically. Giving that box a height is what makes them actually pin. */
+  @media (max-width: 760px) {
+    .table-scroll { max-height:72vh; overflow:auto; overscroll-behavior-x:contain; }
+    table.study { font-size:.82rem; }
+    table.study.wide { min-width:600px; }
+    table.study:not(.wide) { min-width:520px; }
+    table.study th, table.study td { padding:7px 7px; }
+    /* Headings wrap on a phone. Held on one line they set the column width, and
+       "Avg. combined sales tax" alone was wider than a third of the screen. */
+    table.study thead th { z-index:2; white-space:normal; }
+    /* The premium line keeps its dollar figure and drops the category name: at
+       this column width "disability insurance, paid family leave and other state
+       programs" wrapped to five lines and made one row taller than a third of the
+       screen. The caption under the table says what the smaller line is. */
+    table.study td.tax .sub { font-size:.72rem; }
+    table.study td.tax .sub .k { display:none; }
+    table.study.wide th:nth-child(1), table.study.wide td:nth-child(1) {
+      position:sticky; left:0; z-index:1; background:var(--surface);
+      width:34px; min-width:34px; max-width:34px; padding-left:5px; padding-right:4px;
+    }
+    table.study.wide th:nth-child(2), table.study.wide td:nth-child(2) {
+      position:sticky; left:34px; z-index:1; background:var(--surface);
+      width:104px; min-width:104px; max-width:104px; white-space:normal;
+      box-shadow:1px 0 0 var(--border-strong);
+    }
+    table.study.wide thead th:nth-child(1), table.study.wide thead th:nth-child(2) { z-index:4; }
+    table.study:not(.wide) th:nth-child(1), table.study:not(.wide) td:nth-child(1) {
+      position:sticky; left:0; z-index:1; background:var(--surface);
+      width:104px; min-width:104px; max-width:104px; white-space:normal;
+      box-shadow:1px 0 0 var(--border-strong);
+    }
+    table.study:not(.wide) thead th:nth-child(1) { z-index:4; }
+  }
   .muted-small { color:var(--muted); font-size:.86rem; }
   .method dt { font-weight:600; margin-top:10px; }
   .method dd { margin:2px 0 0; color:var(--muted); font-size:.92rem; }
@@ -89,7 +132,7 @@
       <span>·</span>
       <span>Updated {{PUB_DATE}}</span>
       <span>·</span>
-      <span>All 50 states + DC · every figure computed from published {{TAX_YEAR}} tax tables</span>
+      <span>All 50 states + DC · {{FIGURE_BASIS}}</span>
     </div>
 
     <p class="lede">A job offer is not the same offer everywhere. We ran two identical salaries, {{BASE_SALARY}} and {{HIGH_SALARY}}, through the {{TAX_YEAR}} tax rules of all 50 states and the District of Columbia, for a single filer taking the standard deduction and no other deductions. On {{BASE_SALARY}} the modelled annual take-home pay runs from <strong>{{BASE_TOP_NET}}</strong> down to <strong>{{BASE_BOTTOM_NET}}</strong>, a <strong>{{BASE_SPREAD}}</strong> gap on the same gross pay. On {{HIGH_SALARY}} the same gap widens to <strong>{{HIGH_SPREAD}}</strong>. Both salaries sit side by side in one table below, so you can read your own state at either level without leaving its row.</p>
