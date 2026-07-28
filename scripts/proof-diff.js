@@ -1,4 +1,4 @@
-// proof-diff.js — diffs two proof-51-states.js snapshots and prints a table.
+// proof-diff.js , diffs two proof-51-states.js snapshots and prints a table.
 // Fails loudly (exit 1) if any state outside the approved list moves at all.
 import { readFile } from 'node:fs/promises';
 

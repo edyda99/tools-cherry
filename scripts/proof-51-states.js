@@ -1,4 +1,4 @@
-// proof-51-states.js — one-off proof harness for the authority-moves data pass.
+// proof-51-states.js , one-off proof harness for the authority-moves data pass.
 // Computes annual take-home for all 51 jurisdictions at $100,000, single,
 // biweekly, and writes a JSON snapshot. Run once on the clean baseline and once
 // after the data edit, then diff, so an unapproved state moving by a cent is
