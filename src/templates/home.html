@@ -379,8 +379,8 @@
         </a>
         <a class="tool-card" href="/data/take-home-pay-by-state/">
           <span class="ic" aria-hidden="true">📊</span>
-          <span class="t-name">Take-Home Pay on $75,000 by State ({{YEAR}})</span>
-          <span class="t-desc">Our data study: the same $75,000 salary, run through all 50 states + DC. See the full ranking and the gap between best and worst.</span>
+          <span class="t-name">Take-Home Pay by State on {{STUDY_SALARIES}} ({{YEAR}})</span>
+          <span class="t-desc">Our data study: the same salary at {{STUDY_SALARIES}}, run through all 50 states + DC. See the full ranking and the gap between best and worst.</span>
         </a>
         <a class="tool-card" href="/data/overtime-tax-by-state/">
           <span class="ic" aria-hidden="true">🗺️</span>
@@ -603,7 +603,7 @@
     <details class="cat" id="paycheck" open>
       <summary class="cat-summary" aria-describedby="sub-paycheck"><h2>{{YEAR}} Paycheck Calculators by State</h2><span class="cat-meta"><span class="cat-count">{{ROW_COUNT_STATES}} tools</span><svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></span><span class="cat-sub" id="sub-paycheck" aria-hidden="true">Federal tax, FICA, state tax</span></summary>
       <div class="state-grid">{{STATE_LINKS}}</div>
-      <p class="popular-states">Compare all {{ROW_COUNT_STATES}} jurisdictions side by side: <a href="/data/take-home-pay-by-state/">take-home pay on a $75,000 salary in every state ({{YEAR}})</a>.</p>
+      <p class="popular-states">Compare all {{ROW_COUNT_STATES}} jurisdictions side by side: <a href="/data/take-home-pay-by-state/">take-home pay on {{STUDY_SALARIES}} in every state ({{YEAR}})</a>.</p>
       <p class="popular-states">Popular state tax pages:
         <a href="/pennsylvania-paycheck-calculator/">Pennsylvania income tax rate {{YEAR}}</a> ·
         <a href="/california-paycheck-calculator/">California income tax rate {{YEAR}}</a> ·
