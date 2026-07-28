@@ -515,3 +515,126 @@ stamp, and no evidence of change found. Never present a "not contradicted" row a
 9. Federal preemption bills (S.1443 Mobile Workforce Act, 119th Congress) could not be verified
    as unenacted; congress.gov returned 403. Note that the Mobile Workforce Act targets days
    worked *in* a state and would not by itself end convenience rules.
+
+---
+
+## 8. The nonresident-deduction gate, first wave
+
+**Prepared:** 2026-07-28. **Answers the gate row in section 4.2 and the phase 1 blocker in
+section 5.5.** Nothing above this section was altered.
+
+*(This section replaces an earlier draft that reported only 7 of 21 states and said fourteen
+were never checked. That draft was wrong: the synthesising agent was handed a truncated copy
+of the results and honestly reported what it could see. All 21 states were researched and 21
+were adversarially re-checked. The table below is rebuilt from the run journal.)*
+
+### 8.1 The plain answer
+
+**On the arithmetic this calculator actually performs, all 21 first-wave work states are
+clear, for a single filer with wages and nothing else.** Every one computes a nonresident's
+tax from the same rate schedule and the same standard deduction a resident gets, and every
+proration is by source-over-total income, which is a no-op when the ratio is 1.0.
+
+Two things qualify that, and the second one is a real blocker.
+
+### 8.2 Result for all 21 states
+
+Every state's first pass answered "yes, same". Each was then attacked by a second agent whose
+brief was to refute it, because a wrong yes ships a wrong tax number while a wrong no only
+costs a missing feature.
+
+| State | Method | Adversarial verdict | Diverges on |
+|---|---|---|---|
+| AL | direct, prorated deductions | holds | nothing found |
+| AR | as-if-resident x ratio | holds | nothing found |
+| AZ | direct, prorated deductions | holds | nothing found |
+| CA | as-if-resident x ratio | holds | renter's credit (residency-gated) |
+| CO | as-if-resident x ratio | holds | nothing found |
+| GA | direct, prorated deductions | holds | low income credit, unverified edge |
+| ID | direct, prorated deductions | **overturned** | Food Tax Credit $155/person, refundable, resident-only |
+| KY | direct, prorated deductions | holds | nothing found |
+| LA | direct, prorated deductions | holds | nothing found |
+| MA | direct, prorated deductions | **overturned** | EITC barred to full-year nonresidents by statute |
+| ME | as-if-resident x ratio | holds | nothing found |
+| MN | as-if-resident x ratio | holds | nothing found |
+| MO | as-if-resident x ratio | holds | nothing found |
+| MS | direct, prorated deductions | holds | nothing found |
+| MT | as-if-resident x ratio | **overturned** | resident-only credit carve-out |
+| NC | as-if-resident x ratio | holds | nothing found |
+| NE | as-if-resident x ratio | **overturned** | wage-driven credits denied to nonresidents |
+| OR | direct, prorated deductions | holds | nothing found |
+| UT | as-if-resident x ratio | holds | nothing found |
+| VA | direct, prorated deductions | **overturned** | Spouse Tax Adjustment, joint filers only, up to $259 |
+| VT | as-if-resident x ratio | **overturned** | three refundable credits denied; 3% minimum tax on federal AGI over $150,000 |
+
+**15 held, 6 were overturned.** A quarter of well-sourced first-pass answers were wrong, which
+is the argument for keeping an adversarial pass on anything that ships a number.
+
+### 8.3 Why five of the six overturns do not block this calculator
+
+Every overturn except Virginia's is **credit-only**. In each case the refuting agent confirmed
+the deduction and rate mechanics were correct and that the **pre-credit tax is identical** at a
+1.0 source ratio; the divergence appears when a resident claims a credit a nonresident cannot.
+
+`stateIncomeTax()` in `src/engine/paycheck-engine.js` applies brackets to income after the
+standard deduction and stops. Every occurrence of `credit`, `eitc` and `refundable` in
+`src/data/tax-data-2026.json` sits in a prose or `_source` field, never in a computed one.
+**The engine models no state credit for anybody**, resident or nonresident, so a credit-only
+divergence cannot move a figure it produces.
+
+That is a defensible position only because it is symmetric: the resident page ignores the
+resident's credits too. It should still be disclosed, because for a low-wage cross-border
+worker the real gap is wider than the site would show. Idaho is the clearest case: identical
+computed tax, but a resident is $155 per person better off, refundable beyond liability.
+
+### 8.4 The actual blocker: the ratio is only 1.0 for a single filer with nothing else
+
+Eleven states raised this independently, 25 caveats in total. The equality rests entirely on
+the source ratio being **exactly** 1.0, and the denominator is total income from all sources,
+usually federal AGI, not wages.
+
+So the ratio drops below 1.0, and the standard deduction shrinks proportionally, whenever
+there is:
+- a spouse with home-state income on a joint return
+- any interest, dividend or rental income at all
+- in some states, above-the-line federal adjustments
+
+The common cross-border household is exactly the broken case: a Washington couple where one
+spouse commutes to Portland and the other works in Vancouver. Oregon states it plainly, only
+model the equality for a single filer with wages and nothing else.
+
+Virginia is worse than a shrunken deduction. Resident Form 760 carries a Spouse Tax Adjustment
+worth up to $259 that nonresident Form 763 has no equivalent for, so Virginia joint filers
+diverge on the deduction limb, not just on credits.
+
+Vermont adds a second non-credit divergence: a 3% minimum tax on **federal** AGI above
+$150,000, so a high earner with any outside income diverges regardless of filing status.
+
+### 8.5 What is shippable
+
+| Scope | Verdict |
+|---|---|
+| Single filer, wages only, 100% work-state sourced, any of the 21 states | **Ship.** Computed tax is identical, verified twice |
+| Married filing jointly, both spouses working in the same work state | Ship, ratio is still 1.0 |
+| Married filing jointly, one spouse working in the home state | **Do not ship.** Deduction shrinks by the ratio, and we do not ask for the spouse's income |
+| Any filer with meaningful non-wage income | **Do not ship a number.** Answer in words |
+| Virginia, joint | **Do not ship**, Spouse Tax Adjustment has no nonresident equivalent |
+| Vermont, federal AGI over $150,000 | **Do not ship**, minimum tax keyed to federal AGI |
+
+The highest-value pairs from section 2.1, for a single filer: **WA to OR** (site overstates
+take-home by $15,281 at $175,000), **NV to CA** ($7,068 at $120,000), **NH to MA** ($4,530 at
+$95,000), **FL or TN to GA** ($3,992 at $95,000), **TX to LA** ($2,164 at $85,000). All five
+work states are clear on the computed arithmetic.
+
+### 8.6 Confidence
+
+- Every state was checked against its own nonresident return and instructions, or its statute.
+- **Most states' 2026 forms do not exist yet.** States publish them around September. Oregon,
+  Idaho and others are verified on 2025 forms plus 2026-effective withholding publications or
+  statute. The mechanisms are statutory and stable, but this is a 2025 verification carried
+  forward for several states, not a 2026 one.
+- Idaho's own IP range is unreachable from this machine; its documents were retrieved through
+  archived captures of the exact Idaho PDFs. The first attempt at Idaho died on that network
+  failure and was re-run.
+- Not checked: nonresident-specific limits on state credits beyond those named, and the
+  20 remaining taxing states outside the first wave.
