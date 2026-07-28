@@ -157,7 +157,15 @@
               </div>
               <div class="field">
                 <label for="cfYear">Which year did that leftover credit come from?</label>
-                <input type="number" id="cfYear" inputmode="numeric" min="2018" max="2030" step="1" value="2025" aria-describedby="cfYearNote">
+                <!-- data-qf-off: question-flow parks a hidden field at its neutral value,
+                     and for anything numeric that neutral is 0. Year 0 is not a neutral
+                     year, it is an expired one: the engine reads yearArose and drops a
+                     carryforward that is more than five years old, so a cfYear left at 0
+                     silently deletes the visitor's leftover credit. Harmless while
+                     cfAmount is 0 (the engine never reads the year then), but the moment
+                     any path shows this field without restoring it first the answer is
+                     wrong by the full carryforward. Park it at the default year instead. -->
+                <input type="number" id="cfYear" inputmode="numeric" min="2018" max="2030" step="1" value="2025" data-qf-off="2025" aria-describedby="cfYearNote">
                 <p class="muted-small" id="cfYearNote" style="margin-top:6px">Leftover credit lasts five more years after the year it came from, then it is lost for good. Anything left over from before 2025 can only cut a tax bill, it can never be paid back to you as a refund.</p>
               </div>
             </div>

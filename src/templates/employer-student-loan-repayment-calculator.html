@@ -23,9 +23,6 @@
   .plan-panel h2 { margin-top:0; }
   .plan-panel ul { margin-bottom:0; }
   .ca-caveat { margin-top:12px; padding:11px 14px; border-left:4px solid #a1394f; border-radius:8px; background:rgba(161,57,79,.09); font-size:.95rem; }
-  /* The old "details.adv" rules are gone with the <details> they styled: the
-     Advanced panel is now the shared .adv / .adv-q question fieldset from
-     styles.css, so this page adds no CSS of its own for it. */
 </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Employer Student Loan Repayment Tax Benefit Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Computes the employee and employer tax savings from an employer's IRC §127 educational-assistance / student-loan-repayment benefit, made permanent and inflation-indexed by OBBBA / P.L. 119-21 §70412. Models the $5,250 per-individual-per-year cap shared between tuition-type assistance and loan repayment, the employee's dual exclusion from federal income tax (§3401(a)(18)) and FICA (§3121(a)(18)), the employer's matching-FICA saving versus paying taxable wages, the Social Security wage-base straddle ($184,500 in 2026) that drops the FICA saving from 7.65% toward 1.45% for high earners, over-cap taxable-wage treatment, and California non-conformity. Informational arithmetic only — not tax advice."}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How much can an employer pay toward my student loans tax-free?","acceptedAnswer":{"@type":"Answer","text":"Up to $5,250 per calendar year. Under IRC §127, an employer can pay principal or interest on your qualified education loan — directly to the lender or as a reimbursement to you — and you pay no federal income tax and no 7.65% FICA on it, while the employer skips its matching 7.65% FICA. This was a temporary pandemic-era benefit set to expire on December 31, 2025; the 2025 law (OBBBA / P.L. 119-21 §70412) made it permanent for payments made after that date, with inflation indexing starting in 2027."}},{"@type":"Question","name":"Is the $5,250 shared with tuition assistance?","acceptedAnswer":{"@type":"Answer","text":"Yes. Section 127 has one $5,250 cap covering both tuition-type educational assistance and student-loan repayment combined. The IRS states the total you can exclude for loan payments and other educational assistance combined is $5,250 per calendar year. You cannot get $5,250 of tuition assistance AND another $5,250 of loan repayment in the same year — if your employer already used $3,000 on tuition, only $2,250 of loan repayment can be tax-free."}},{"@type":"Question","name":"What does the employer save?","acceptedAnswer":{"@type":"Answer","text":"The employer avoids its matching FICA — 6.2% Social Security plus 1.45% Medicare — on the excluded amount, because it isn't 'wages.' At the full $5,250 cap that's $5,250 × 7.65% = $401.63, versus paying the same $5,250 as taxable wages or a bonus. The income-tax deduction is a wash (the payment is deductible compensation either way), so the avoided payroll tax is the entire employer-side benefit. For an employee already over the $184,500 Social Security wage base, the employer saves only the 1.45% Medicare ($76.13), not the full amount. FUTA is also avoided but adds about $0 because its $7,000 wage base is already used up."}},{"@type":"Question","name":"Does the employee save FICA too, or just income tax?","acceptedAnswer":{"@type":"Answer","text":"Both. Section 127 amounts are excluded from wages for federal income-tax withholding (§3401(a)(18)) AND for FICA (§3121(a)(18)) AND for FUTA (§3306(b)(13)) — it is not one of the income-tax-only fringe benefits. A typical employee under the Social Security wage base saves their marginal income-tax rate plus 7.65% FICA. Above the $184,500 wage base the FICA portion is Medicare-only (1.45%, or 2.35% once the 0.9% Additional Medicare surtax applies)."}},{"@type":"Question","name":"Can my employer pay off my Parent PLUS loan for my child tax-free?","acceptedAnswer":{"@type":"Answer","text":"No. The §127 loan clause covers a qualified education loan 'incurred by the employee for education of the employee' — your own education only. That is narrower than the student-loan-interest deduction, which also covers a spouse or dependent. A Parent PLUS loan you took out for a child, or a loan for your spouse's education, does not qualify for the tax-free employer benefit."}},{"@type":"Question","name":"If my employer pays my student loan interest, can I still deduct it?","acceptedAnswer":{"@type":"Answer","text":"No — no double benefit. Interest paid by your employer and excluded from your income under §127 cannot also be counted toward your up-to-$2,500 student-loan-interest deduction under §221 (§127(c)(7) and §221(e)(1) both deny it). Only the interest portion would ever have been deductible anyway; principal never was."}},{"@type":"Question","name":"Is the employer student loan benefit taxable in any state?","acceptedAnswer":{"@type":"Answer","text":"In most states the federal exclusion flows through automatically, so there's no state income tax on it. California is the notable exception: its static federal-conformity date predates the clause that added student-loan repayment to §127, so employer student-loan repayment is taxable wages for California personal income tax. A conformity bill, AB 386, failed on February 2, 2026. Check your own state; this tool has a 'does your state conform?' toggle."}},{"@type":"Question","name":"Will the $5,250 cap go up?","acceptedAnswer":{"@type":"Answer","text":"Starting in 2027 the cap is inflation-indexed under §127(d): the increase over $5,250 is rounded to the nearest $50 (it can round up — unusual for a tax provision). 2025 and 2026 stay at $5,250. The exact 2027 figure doesn't exist yet — the IRS publishes it in its annual inflation-adjustment Revenue Procedure, expected in fall 2026 — so this calculator uses $5,250 until then rather than guessing."}}]}</script>
@@ -71,17 +68,30 @@
              build.js) only ever ADDS `hidden` after load, so JavaScript off, a
              broken script, or a crawler still sees every field. Never invert this
              to show-on-demand. Every .adv-q must stay inside this .adv fieldset:
-             its legend is styled by ".adv .adv-q legend".
+             its legend is styled by ".adv .adv-q legend". The old details.adv
+             rules were dropped from the style block above along with the
+             details element they styled; .adv / .adv-q / .yn / .adv-reveal all
+             come from styles.css now, so this page adds no CSS of its own for
+             them.
 
-             All three default to No, which reproduces exactly what an untouched
-             page computed before: $0 of tuition assistance used, the shipped
-             $60,000 other-pay figure (well under the $184,500 Social Security
-             wage base, so the full 7.65%), single filing status, and a 0% state
-             rate. Note that #wages ships non-zero on purpose, so "No" here means
-             "not a high earner", not "zero pay". -->
+             All three default to No, and an untouched page still returns exactly
+             what it returned before the questions existed: $1,556.63 for the
+             employee and $401.63 for the employer, on the shipped $5,250 at 22%.
+
+             Read this before changing any default in here. question-flow.js does
+             NOT merely hide a wrapper whose question is answered No, it also
+             parks that wrapper's fields at a neutral value, so while the answer
+             is No the engine reads 0 from #wages, not the 60000 in the markup.
+             The 60000 is the figure a visitor sees the moment they answer Yes,
+             and the two agree on the default only because 0 and 60000 both sit
+             under the $184,500 Social Security wage base AND under the $200,000
+             Additional Medicare threshold. Any future default for #wages must
+             stay under both of those lines, or a visitor who touches nothing
+             would get a different headline number depending on whether
+             question-flow.js loaded. -->
         <fieldset class="adv">
           <legend>Three more questions, if they apply to you</legend>
-          <p class="adv-hint">Answer only the ones that apply to you. Leaving all three on No gives the same result as before.</p>
+          <p class="adv-hint">Answer only the ones that apply to you. If none of them do, leave all three on No.</p>
 
           <fieldset class="adv-q" aria-describedby="qTuitionNote">
             <legend>Has your employer also paid for classes, tuition or books for you this year?</legend>

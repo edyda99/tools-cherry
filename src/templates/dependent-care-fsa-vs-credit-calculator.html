@@ -75,10 +75,13 @@
              The question ships answered YES on purpose: this box has always loaded
              pre-filled at $7,500, so a No default would change what an untouched
              page computes. Same reasoning as qOther on the charitable page.
-             NOTE FOR THE ENGINE: dependent-care-fsa-vs-credit-calculator.js reads
-             #employerFsa unconditionally, so answering No currently hides the box
-             but still feeds $7,500 to the comparison. Until render() zeroes it on a
-             No answer, the note below keeps the "set it to 0" escape hatch. -->
+             ENGINE INTERACTION (verified in a headless browser, 2026-07-28):
+             answering No is self-sufficient. question-flow.js parks the hidden
+             field, meaning it stashes "7,500", writes the neutral "0", and fires
+             input + change. dependent-care-fsa-vs-credit-calculator.js binds both
+             events on #employerFsa, so it re-runs and returns "Take the credit".
+             Answering Yes again restores "7,500" and the original figure. The note
+             below must therefore NOT ask the visitor to zero the box by hand. -->
         <fieldset class="adv">
           <legend>One more question, about your job</legend>
           <p class="adv-hint">This is the only part that depends on your employer rather than on you. Change the answer if it does not match your job.</p>
@@ -94,7 +97,7 @@
               <div class="field">
                 <label for="employerFsa">What is the most your job lets you set aside in a year?</label>
                 <input type="text" id="employerFsa" inputmode="decimal" data-money autocomplete="off" value="7500" aria-describedby="employerFsaNote">
-                <p class="adv-q-note" id="employerFsaNote">The law caps this at <strong>$7,500</strong>, or <strong>$3,750</strong> if you are married and send in your own separate return. Most plans allow the full amount, so $7,500 is filled in for you. If yours allows less, put that smaller figure in instead. No plan at your job at all? Set this box to <strong>0</strong> first, then answer No above, and the tool will point you to the credit.</p>
+                <p class="adv-q-note" id="employerFsaNote">The law caps this at <strong>$7,500</strong>, or <strong>$3,750</strong> if you are married and send in your own separate return. Most plans allow the full amount, so $7,500 is filled in for you. If yours allows less, put that smaller figure in instead. If your job has no plan at all, just answer No above and the tool will point you to the credit.</p>
               </div>
             </div>
           </fieldset>

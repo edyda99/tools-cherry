@@ -364,7 +364,11 @@ html.js .applies-line[data-hidden] { display: none; }
    three-line sentence to 42.9px/135px tall on tool pages that were never part
    of this work. */
 #netBig.net-big { font-size: clamp(38px, 11vw, 56px); line-height: 1.05; }
-.net-sub { color: var(--muted); font-size: 14px; margin: 6px 0 20px; }
+/* Bare .net-sub is shared by 100 built pages, only 53 of which are calculators
+   anyone has worked on. The extra top margin this rule briefly carried bought
+   nothing in scope, because the 51 state pages take .answer-band .net-sub above,
+   and moved 47 pages nobody had opened. Left at the original spacing. */
+.net-sub { color: var(--muted); font-size: 14px; margin: 3px 0 20px; }
 /* gap guarantees a minimum label-to-value separation: without it, space-between
    only pads leftover width, so a short label ("RGB") next to a wide value+button
    pair could end up glued together ("RGBrgb(30, 144, 255)") on a narrow screen. */

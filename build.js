@@ -268,7 +268,11 @@ function wantsQuestionFlow(currentPath) {
 // its content-hashed name by the final rewriteHtmlAssetRefs pass. Idempotent.
 function injectQuestionFlow(html, currentPath) {
   if (!wantsQuestionFlow(currentPath)) return html;
-  if (html.includes('/assets/question-flow.js') || !html.includes('</head>')) return html;
+  // Match the injected TAG, not the bare path: a template comment that merely
+  // mentions /assets/question-flow.js used to satisfy this guard and silently
+  // suppress the injection (tips-tax-calculator shipped its [data-reveal] field
+  // permanently visible because of exactly that).
+  if (html.includes('src="/assets/question-flow.js"') || !html.includes('</head>')) return html;
   return html.replace('</head>', '<script type="module" src="/assets/question-flow.js"></script>\n</head>');
 }
 
