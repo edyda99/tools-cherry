@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>What Tax Rules Apply to Me? A 2026 Check for All 50 States and DC</title>
+<meta name="description" content="Answer six plain questions and see which 2026 tax rules match your answers: your state's tips and overtime verdict, local wage taxes, employee-paid programs, and the federal tips, overtime, senior, car loan, charity, SALT and mortgage insurance rules. We list the rules and link the calculator that does the math.">
+<link rel="canonical" href="{{SITE_URL}}/what-applies-to-me/">
+<meta property="og:title" content="What tax rules should I check?">
+<meta property="og:description" content="Six plain questions, then a sourced list of the 2026 tax rules that match your answers, for all 50 states and DC. We never work out what you owe.">
+<meta property="og:type" content="website">
+<meta name="author" content="Edmond Daher">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script>document.documentElement.className += ' js';</script>
+<style>
+  /* Visibility-only gating. With JavaScript OFF nothing below applies, so every
+     question and every rule for all 51 jurisdictions is visible and readable. */
+  html.js .g { display: none; }
+  html.js .g[data-shown] { display: block; }
+  html.js li.g[data-shown] { display: list-item; }
+  html.js span.g[data-shown] { display: inline; }
+  html.js .wam-nojs { display: none; }
+  html.js .wam-screen { display: none; }
+  html.js .wam-screen[data-shown] { display: block; }
+  html.js #wamResult { display: none; }
+  html.js #wamResult[data-shown] { display: block; }
+  html.js .wam-allstates-note { display: none; }
+  /* Three things on this page exist only as one pre-rendered variant per possible
+     answer: the step counter, the echo of what you answered, and the running
+     counts. The script reveals exactly one of each. With JavaScript off there is
+     no script and no answer, so every variant would print at once and the page
+     would read as a run of numbers and contradictory sentences. These two classes
+     drop all three, including the brackets around a count, when the script is not
+     there. Two classes because one wrapper is a block and the others sit inside a
+     line of text. */
+  .wam-jsonly, .wam-jsonly-i { display: none; }
+  html.js .wam-jsonly { display: block; }
+  html.js .wam-jsonly-i { display: inline; }
+
+  .wam-nojs { border-left: 4px solid var(--brand); background: var(--brand-soft); border-radius: 0 var(--radius) var(--radius) 0; padding: 12px 16px; margin: 16px 0; }
+  .wam-status { font-size: .85rem; color: var(--muted); margin: 0 0 10px; min-height: 1.2em; }
+  .wam-screen { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 18px 18px 6px; margin: 0 0 18px; }
+  .wam-screen h2 { margin-top: 0; font-size: 1.25rem; }
+  .wam-screen fieldset { border: 0; padding: 0; margin: 0 0 10px; }
+  .wam-screen legend { font-weight: 700; font-size: 1.05rem; padding: 0; margin: 0 0 8px; }
+  .wam-opt { display: flex; gap: 10px; align-items: flex-start; padding: 8px 4px; border-bottom: 1px solid var(--border); }
+  .wam-opt:last-child { border-bottom: 0; }
+  .wam-opt input { margin-top: 3px; flex: 0 0 auto; width: 18px; height: 18px; }
+  .wam-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 14px; }
+  .wam-actions button { width: auto; }
+  .wam-index { columns: 2; column-gap: 24px; list-style: none; padding: 0; margin: 8px 0 14px; font-size: .92rem; }
+  .wam-index li { break-inside: avoid; padding: 1px 0; }
+
+  .wam-result h2 { margin-top: 26px; }
+  .wam-count { font-size: 1.05rem; font-weight: 700; margin: 10px 0 4px; }
+  .wam-echo { color: var(--muted); margin: 4px 0 10px; }
+  .wam-card, .wam-gap { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 14px 16px; margin: 12px 0; }
+  .wam-gap { border: 1px solid var(--border); border-left: 4px solid var(--border-strong); background: transparent; }
+  .wam-gap::before { content: "Not covered"; display: inline-block; font-size: .74rem; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .wam-card h4, .wam-gap h4 { margin: 0 0 8px; font-size: 1.05rem; }
+  .wam-label { display: block; font-size: .8rem; font-weight: 500; color: var(--muted); }
+  .wam-list { margin: 8px 0; padding-left: 20px; }
+  .wam-list li { margin: 4px 0; }
+  .wam-sub { color: var(--muted); font-size: .88rem; }
+  .wam-verbatim { border-left: 3px solid var(--brand); padding: 6px 12px; margin: 8px 0; background: var(--brand-soft); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+  .wam-detail-h { font-weight: 700; margin: 10px 0 0; }
+  .wam-asof, .wam-src, .wam-note, .wam-band { font-size: .86rem; color: var(--muted); margin: 4px 0 0; }
+  .wam-band { border-top: 1px dashed var(--border); padding-top: 6px; margin-top: 10px; }
+  .wam-cta { margin: 12px 0 2px; }
+  .wam-cta a { display: inline-block; padding: 9px 16px; border-radius: var(--radius); text-decoration: none; }
+  .wam-chipline { margin: 6px 0; }
+  .chip { display: inline-block; padding: 2px 9px; border-radius: var(--radius-pill); font-size: .82rem; font-weight: 600; white-space: nowrap; }
+  .chip.v-no { background: #fdecea; color: #b42318; }
+  .chip.v-yes { background: var(--accent-soft); color: var(--accent); }
+  .chip.v-partial { background: #fff3e0; color: #b26b00; }
+  .chip.v-unclear { background: rgba(128,128,128,.14); color: var(--muted); }
+  .chip.v-na { background: #eaf1ff; color: #1d4ed8; }
+  .wam-chip-note { font-size: .8rem; color: var(--muted); }
+  .wam-panel { border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 14px 16px; margin: 14px 0; background: var(--surface); }
+  .st-block { margin: 0 0 8px; }
+  .st-block h3, .wam-result h3 { font-size: 1.15rem; margin: 20px 0 6px; }
+  details.wam-more { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; margin: 12px 0; }
+  details.wam-more summary { cursor: pointer; font-weight: 600; }
+  @media (prefers-reduced-motion: no-preference) {
+    .wam-screen[data-shown], #wamResult[data-shown] { animation: wamFade .18s ease-out; }
+    @keyframes wamFade { from { opacity: .4; } to { opacity: 1; } }
+  }
+</style>
+<script type="application/ld+json">{{ARTICLE_LD}}</script>
+<script type="application/ld+json">{{DATASET_LD}}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>What tax rules should I check?</h1>
+    <p class="lede">Answer a few plain questions about your pay and your household. We will show you the rules that match what you tell us, where each one comes from, and the calculator that does the math. We do not work out what you owe.</p>
+
+    <p class="wam-nojs">JavaScript is off, so every question and every rule for all 51 states is already shown below. Use the state list to jump to yours.</p>
+
+    <form id="wamFlow" autocomplete="off" onsubmit="return false">
+      <p class="wam-status wam-jsonly" aria-live="polite">{{STATUS_SPANS}}</p>
+
+      <section class="wam-screen" data-screen="1" aria-labelledby="wamH1">
+        <h2 id="wamH1" tabindex="-1">Which state do you live in?</h2>
+        <div class="field">
+          <label for="liveState">Which state do you live in?</label>
+          <select id="liveState">
+            <option value="">Choose a state</option>
+            {{STATE_OPTIONS}}
+          </select>
+        </div>
+        <p class="muted-small">If more than two states are involved, or you live outside the United States, this page will not cover your case.</p>
+        <div class="wam-actions"><button type="button" class="btn-primary" data-next>Continue</button></div>
+        <p>Or jump straight to a state:</p>
+        <ul class="wam-index">{{STATE_INDEX_LINKS}}</ul>
+      </section>
+
+      <section class="wam-screen" data-screen="2" aria-labelledby="wamH2">
+        <h2 id="wamH2" tabindex="-1">Where you live and where you work</h2>
+        <fieldset>
+          <legend>Which of these is true about where you live and where you work? Check anything that applies.</legend>
+          <label class="wam-opt"><input type="checkbox" id="w-same" value="same"> <span>I live and work in the same state, and I have all year</span></label>
+          <label class="wam-opt"><input type="checkbox" id="w-travel" value="travel"> <span>I travel to another state for work</span></label>
+          <label class="wam-opt"><input type="checkbox" id="w-remote" value="remote"> <span>I work from home for an employer based in another state</span></label>
+          <label class="wam-opt"><input type="checkbox" id="w-moved" value="moved"> <span>I moved to a different state this year</span></label>
+        </fieldset>
+        <div class="wam-actions">
+          <button type="button" class="btn-secondary" data-back>Back</button>
+          <button type="button" class="btn-primary" data-next>Continue</button>
+        </div>
+      </section>
+
+      <section class="wam-screen" data-screen="3" aria-labelledby="wamH3">
+        <h2 id="wamH3" tabindex="-1">The other state</h2>
+        <div class="field g" data-w="travel remote">
+          <label for="workState">Which state do you work in?</label>
+          <select id="workState">
+            <option value="">Choose a state</option>
+            {{STATE_OPTIONS}}
+          </select>
+        </div>
+        <div class="field g" data-w="moved">
+          <label for="movedState">Which state did you move from?</label>
+          <select id="movedState">
+            <option value="">Choose a state</option>
+            {{STATE_OPTIONS}}
+          </select>
+        </div>
+        <p class="muted-small">If more than two states are involved, or you live outside the United States, this page will not cover your case.</p>
+        <div class="wam-actions">
+          <button type="button" class="btn-secondary" data-back>Back</button>
+          <button type="button" class="btn-primary" data-next>Continue</button>
+        </div>
+      </section>
+
+      <section class="wam-screen" data-screen="4" aria-labelledby="wamH4">
+        <h2 id="wamH4" tabindex="-1">Your pay and your household</h2>
+        <p class="muted-small">Answer for the tax year you are interested in. The return you file in early 2026 is your 2025 return.</p>
+        <fieldset>
+          <legend>Check anything that was true for you this year.</legend>
+          <label class="wam-opt"><input type="checkbox" id="h-tips" value="tips"> <span>Customers tip me</span></label>
+          <label class="wam-opt"><input type="checkbox" id="h-ot" value="ot"> <span>I get paid extra for working extra hours</span></label>
+          <label class="wam-opt"><input type="checkbox" id="h-bonus" value="bonus"> <span>I get a bonus or commission</span></label>
+          <label class="wam-opt"><input type="checkbox" id="h-age" value="age"> <span>I turn 65 at any point this year, or my husband or wife does</span></label>
+          <label class="wam-opt"><input type="checkbox" id="h-car" value="car"> <span>I bought a new car with a loan</span></label>
+          <label class="wam-opt"><input type="checkbox" id="h-give" value="give"> <span>I give money to charity or a place of worship</span></label>
+          <label class="wam-opt"><input type="checkbox" id="h-home" value="home"> <span>I own the home I live in</span></label>
+          <label class="wam-opt"><input type="checkbox" id="h-none" value="none"> <span>None of these, I just get a regular paycheck</span></label>
+        </fieldset>
+        <div class="wam-actions">
+          <button type="button" class="btn-secondary" data-back>Back</button>
+          <button type="button" class="btn-primary" data-next>Continue</button>
+        </div>
+      </section>
+
+      <section class="wam-screen" data-screen="4b" aria-labelledby="wamH4b">
+        <h2 id="wamH4b" tabindex="-1">Who is 65 or older?</h2>
+        <fieldset>
+          <legend>Who is 65 or older?</legend>
+          <label class="wam-opt"><input type="radio" name="wamWho" value="me"> <span>Me</span></label>
+          <label class="wam-opt"><input type="radio" name="wamWho" value="spouse"> <span>My husband or wife</span></label>
+          <label class="wam-opt"><input type="radio" name="wamWho" value="both"> <span>Both of us</span></label>
+          <label class="wam-opt"><input type="radio" name="wamWho" value="skip"> <span>Rather not say</span></label>
+        </fieldset>
+        <p class="muted-small">The test is turning 65 on or before the last day of the tax year. Someone who is 64 today and turns 65 in December still counts.</p>
+        <div class="wam-actions">
+          <button type="button" class="btn-secondary" data-back>Back</button>
+          <button type="button" class="btn-primary" data-next>Continue</button>
+        </div>
+      </section>
+
+      <section class="wam-screen" data-screen="5" aria-labelledby="wamH5">
+        <h2 id="wamH5" tabindex="-1">Are you married?</h2>
+        <fieldset>
+          <legend>Are you married?</legend>
+          <label class="wam-opt"><input type="radio" name="wamMarried" value="no"> <span>No</span></label>
+          <label class="wam-opt"><input type="radio" name="wamMarried" value="yes"> <span>Yes</span></label>
+          <label class="wam-opt"><input type="radio" name="wamMarried" value="unsure"> <span>Rather not say</span></label>
+        </fieldset>
+        <div class="wam-actions">
+          <button type="button" class="btn-secondary" data-back>Back</button>
+          <button type="button" class="btn-primary" data-next>Continue</button>
+        </div>
+      </section>
+
+      <section class="wam-screen" data-screen="6" aria-labelledby="wamH6">
+        <h2 id="wamH6" tabindex="-1">Your income, roughly</h2>
+        <fieldset>
+          <legend>Roughly what will be on line 11 of your federal return, your adjusted gross income?</legend>
+          <p class="muted-small">That is your pay after pre-tax items like a 401(k) or health premiums, not your gross salary. If you are married and file together, use the figure for both of you. This only decides which limits we point out, and you can skip it.</p>
+          <p class="muted-small">These limits use modified adjusted gross income, which is not the same as salary, household pay, or the figure on your pay stub.</p>
+          <label class="wam-opt"><input type="radio" name="wamBand" value="a"> <span>Under $75,000</span></label>
+          <label class="wam-opt"><input type="radio" name="wamBand" value="b"> <span>$75,000 to $100,000</span></label>
+          <label class="wam-opt"><input type="radio" name="wamBand" value="c"> <span>$100,000 to $150,000</span></label>
+          <label class="wam-opt"><input type="radio" name="wamBand" value="d"> <span>$150,000 to $300,000</span></label>
+          <label class="wam-opt"><input type="radio" name="wamBand" value="e"> <span>Over $300,000</span></label>
+          <label class="wam-opt"><input type="radio" name="wamBand" value="skip"> <span>Skip this</span></label>
+        </fieldset>
+        <div class="wam-actions">
+          <button type="button" class="btn-secondary" data-back>Back</button>
+          <button type="button" class="btn-primary" data-finish>See what applies</button>
+        </div>
+      </section>
+    </form>
+
+    <article id="wamResult" class="wam-result">
+      <h2 id="wamResultH" tabindex="-1">Here is what to look into.</h2>
+      <p>This is a list of rules, not a tax bill. We do not add up a number here. Every rule links to the calculator that does that math.</p>
+      <p>This is general information, not tax advice. If you are unsure, check with a tax preparer or your state revenue department.</p>
+
+      <p class="wam-allstates-note">Every state is shown below, in alphabetical order, because this page carries all 51 jurisdictions in full.</p>
+
+      <p class="wam-echo wam-jsonly">{{ECHO_STATE}}
+        <span class="g" data-w="travel remote">You work in {{ECHO_CROSS}}.</span>
+        <span class="g" data-w="moved">You moved from {{ECHO_MOVED}}.</span>
+        {{ECHO_TRIGGERS}}
+        {{ECHO_MARRIED}}
+      </p>
+
+      <p class="wam-count wam-jsonly" aria-live="polite"><span id="wamRuleCount">{{RULE_COUNTS}}</span> rules match your answers. Each one has conditions only you can check.</p>
+      <p class="muted-small">A rule shown here matched one of your answers. Every rule has conditions we cannot check for you, so it appearing does not mean it is yours.</p>
+      <p class="muted-small g" data-has="none">These are the situations we can check. Tax has plenty of others, so an empty list here does not mean nothing applies to you.</p>
+
+      <section aria-labelledby="wamBandAH">
+        <h2 id="wamBandAH">Things people usually miss</h2>
+        <ul id="bandA" class="wam-list">
+          {{BAND_A_ITEMS}}
+        </ul>
+        <p class="muted-small">This list is drawn only from what you answered, and it stops at five. A rule that is not listed here is not a rule we have ruled out.</p>
+      </section>
+
+      <section class="wam-panel g" data-w="travel remote" aria-labelledby="wamCrossH">
+        <h2 id="wamCrossH">Two states are in play</h2>
+        <p>Two states are in play here. We hold no data on how two states divide the tax on the same wages, so we cannot tell you which one taxes this money, and nothing below settles it. Read everything below as your home state's own rules, not as your answer.</p>
+        <p class="g" data-w="remote">Working from home for an out-of-state employer can change which state taxes your pay. We hold no data on that at all, for any state, so we cannot tell you what your two states do. Check both states' revenue departments.</p>
+        <ul class="wam-list">{{CROSS_NODES}}</ul>
+        <p>We cannot tell you which state you file in, and nothing on this page decides that.</p>
+      </section>
+
+      <section class="wam-panel g" data-w="moved" aria-labelledby="wamMovedH">
+        <h2 id="wamMovedH">You moved states this year</h2>
+        <p>You moved states this year. Everything below assumes a full year in one state. A part-year move is a different question and we do not cover it. Check both states' revenue departments for how to split the year.</p>
+        <ul class="wam-list">{{MOVED_NODES}}</ul>
+      </section>
+
+      <section aria-labelledby="wamSec1H">
+        <h2 id="wamSec1H">Your paycheck right now</h2>
+        <div id="stateBlocks">
+          {{STATE_BLOCKS}}
+        </div>
+        {{FICA_CARD}}
+      </section>
+
+      <section aria-labelledby="wamSec2H">
+        <h2 id="wamSec2H">When you file</h2>
+        <p>A deduction lowers the amount of your income that gets taxed. It is not money handed back to you, and it is not the same as a credit. Roughly, what a deduction is worth to you is the deduction amount multiplied by the rate your top dollars are taxed at.</p>
+        <fieldset>
+          <legend>Which tax year are you asking about?</legend>
+          <label class="wam-opt"><input type="radio" name="wamYear" value="2025"> <span>2025</span></label>
+          <label class="wam-opt"><input type="radio" name="wamYear" value="2026" checked> <span>2026</span></label>
+        </fieldset>
+        <p class="muted-small">Not sure which to pick? The return you file in early 2026 is your 2025 return.</p>
+        {{VERDICT_BLOCKS}}
+        {{FEDERAL_CARDS}}
+      </section>
+
+      <section aria-labelledby="wamSec3H">
+        <h2 id="wamSec3H">Things we do not work out for you<span class="wam-jsonly-i"> (<span id="wamGapCount">{{GAP_COUNTS}}</span>)</span></h2>
+        <p class="muted-small">These are listed in no order of importance. Every one of them is the same kind of gap, and none of them is smaller than the others.</p>
+        {{SEC3_INLINE}}
+        <article class="wam-gap gap g" data-w="moved">
+          <h4>You moved this year</h4>
+          <p>Everything above assumes a full year in one state. We do not split a year between two states.</p>
+        </article>
+        <details class="wam-more">
+          <summary>Other things we leave out<span class="wam-jsonly-i"> (<span id="wamMoreCount">{{MORE_COUNTS}}</span>)</span></summary>
+          {{SEC3_MORE}}
+          <article class="wam-gap gap g" data-has="age">
+            <h4>Retirement income</h4>
+            <p>Many states leave pension and retirement income out of state tax. We do not include any of that.</p>
+          </article>
+        </details>
+      </section>
+
+      <section aria-labelledby="wamSec4H">
+        <h2 id="wamSec4H">What this does not cover</h2>
+        <ul class="wam-list">
+          <li>We do not include state credits or personal exemptions.</li>
+          <li>We do not include how a state treats retirement, pension or Social Security income.</li>
+          <li>Our state data covers tips and overtime only. Do not assume a state treats the senior, SALT, car loan, charity or mortgage insurance rules the same way. We have no data on that.</li>
+          <li>If you lived in the state for only part of the year, or you pay tax there without living there, our numbers do not fit your situation.</li>
+          <li>Our state data stops at {{TAX_YEAR}}, so 2027 and 2028 are not covered.</li>
+          <li>Figures are as of the date each file was checked, not as of today. Our payroll and local tax figures were checked on {{PAY_DATE}}, and our state tips and overtime figures on {{OB_DATE}}. Some states change rates part way through a year.</li>
+          <li>This is general information, not tax advice. If you are unsure, check with a tax preparer or your state revenue department.</li>
+        </ul>
+        <h3>Where the federal figures come from</h3>
+        <ul class="wam-list">
+          {{SOURCE_LIST}}
+        </ul>
+        <p class="muted-small">Every state figure on this page links its own source on the card it appears in.</p>
+      </section>
+
+      <div class="wam-actions">
+        <button type="button" class="btn-secondary" id="wamCopy">Copy link</button>
+        <button type="button" class="btn-secondary" id="wamPrint">Print</button>
+        <button type="button" class="btn-secondary" id="wamRestart">Start again</button>
+      </div>
+      <p class="muted-small">This link includes the answers you gave, including your income range. Only share it with someone you want to see that. Nothing you answer is sent to us. It all stays in your browser.</p>
+    </article>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a> · <a href="/embed/">Embed our calculators</a> · <a href="/corrections/">Corrections log</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/what-applies-to-me.js"></script>
+</body>
+</html>

@@ -439,12 +439,16 @@ html.js .applies-line[data-hidden] { display: none; }
 /* Two-up money fields (SALT income tax / property tax, overtime hrs/rate) */
 .est-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 /* Side by side these leave each input about 150px on a 390px phone, too narrow
-   for a labelled dollar amount, so they stack. This override MUST stay below
-   the base rule above: both selectors are one class (0,1,0) and a media query
-   adds no specificity, so source order is the only thing that decides — the
-   same override sitting higher up in the file silently lost. Not written as
+   for a labelled dollar amount, so they stack. Scoped with the same
+   `:root:has(.answer-band, .calc-answer)` hook as the other shared-rule
+   overrides in this pass: ten built pages carry .est-row and only two of them,
+   overtime-tax-calculator and salt-cap-calculator, are in this pass's scope.
+   Unscoped it added 39-231px of document height to the other eight, including
+   two embeds published at a fixed iframe height. Not written as
    `.field.est-row` because overtime-tax-calculator's row has no .field class. */
-@media (max-width: 480px) { .est-row { grid-template-columns: 1fr; } }
+@media (max-width: 480px) {
+  :root:has(.answer-band, .calc-answer) .est-row { grid-template-columns: 1fr; }
+}
 
 /* Equal-weight tile pairs — two results that are both "the answer" and
    neither should read as primary/secondary (e.g. weighted vs unweighted
@@ -721,15 +725,22 @@ ul.breakdown { list-style: none; padding: 0; }
 .tool-card:focus-visible { box-shadow: var(--ring), var(--shadow-sm); }
 /* A promoted card keeps its inset accent marker while focused. */
 .tool-card--hot:focus-visible { box-shadow: var(--ring), 0 0 0 1px var(--accent) inset, var(--shadow-sm); }
-/* A tinted chip on all 26 cards made none of them stand out. The tint is now a
-   mark of something: the promoted cards, and whichever card is under the
-   pointer. Everything else gets the neutral surface. */
+/* Every chip keeps the accent tint by default. */
 .tool-card .ic {
   width: 44px; height: 44px; border-radius: var(--radius-sm); margin-bottom: 8px;
   display: flex; align-items: center; justify-content: center;
-  background: var(--surface-2); font-size: 22px;
+  background: var(--accent-soft); color: var(--accent); font-size: 22px;
 }
-.tool-card--hot .ic, .tool-card:hover .ic { background: var(--accent-soft); }
+/* A tinted chip on all 26 HOMEPAGE cards made none of them stand out, so there
+   the tint becomes a mark of something: the promoted cards, and whichever card
+   is under the pointer. Scoped to .tool-grid, which only dist/index.html uses.
+   Unscoped this also stripped the brand colour from /pdf-tools/'s six cards,
+   which sit in a plain .grid and are none of them --hot, so on a touch device
+   they could never earn the tint back. */
+.tool-grid .tool-card .ic { background: var(--surface-2); color: var(--text); }
+.tool-grid .tool-card--hot .ic, .tool-grid .tool-card:hover .ic {
+  background: var(--accent-soft); color: var(--accent);
+}
 .tool-card .t-name { font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
 .tool-card .t-desc { color: var(--muted); font-size: 14px; line-height: 1.5; }
 

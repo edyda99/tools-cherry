@@ -29,12 +29,13 @@
     {{ANSWER_LEAD}}
 
     <section class="calc" aria-label="Paycheck calculator">
-      <!-- role="status" is an implicit polite live region, so the headline figure
-           is announced as it changes, but it deliberately does NOT carry a literal
-           aria-live attribute: report-widget.js anchors its "Copy result" /
-           "Report a wrong result" controls to [aria-live="polite"], and those
-           belong under the full breakdown at the bottom, not above the form. -->
-      <div class="answer-band" role="status">
+      <!-- NOT a live region. It used to carry role="status", an implicit polite
+           region, which re-announced the headline, its caption AND the two
+           view-toggle labels inside it on every keystroke — and the results block
+           below announced the whole table at the same time, so every edit spoke
+           twice. Announcing is now one debounced sentence into #outStatus, the
+           same single-announcer pattern the six tool pages use. -->
+      <div class="answer-band">
         <p class="net-label" id="netLabel">{{NET_LABEL}}</p>
         <p class="net-big" id="netBig">{{NET_BIG}}</p>
         <p class="net-sub" id="netSub">{{NET_SUB}}</p>
@@ -117,13 +118,14 @@
         </fieldset>
       </form>
 
-      <!-- data-tb-result is the explicit anchor for report-widget.js. Without it the
-           widget falls back to sniffing [aria-live="polite"], and this page has two of
-           them, so the narrowing can resolve to the wrong node or to none at all — which
-           is how the "Report a wrong result" and "Copy result" controls silently vanished
-           from all 51 state pages once before. Keep the attribute even though the
-           fallback usually works. -->
-      <div class="results" data-tb-result aria-live="polite">
+      <!-- data-tb-result is the explicit anchor for report-widget.js, and now the ONLY
+           one: the live-region attribute that used to sit here is gone, because reading
+           the entire tax table aloud on every keystroke is not an announcement, and
+           #outStatus below says the same thing in one sentence. The widget's old
+           fallback was to sniff for a polite live region, which is exactly how the
+           "Report a wrong result" and "Copy result" controls silently vanished from
+           all 51 state pages once before. Keep this attribute. -->
+      <div class="results" data-tb-result>
         <div class="breakdown" id="breakdown" aria-hidden="true">
           <div class="bar">
             <span class="seg-net" id="segNet" style="width:0%"></span>
@@ -172,6 +174,12 @@
           <div id="cmpResult" class="cmp-result"></div>
         </details>
       </div>
+      <!-- The page's one live region. announceResult() writes a single debounced
+           sentence here and skips the boot render, so a screen reader hears the
+           new take-home figure once per pause instead of the whole table per
+           keystroke. Same element, same id and same placement as the six tool
+           templates use. -->
+      <p id="outStatus" role="status" class="sr-only"></p>
     </section>
 
     {{APPLIES_BLOCK}}

@@ -126,7 +126,15 @@ function render() {
   const annualView = currentView() === 'annual';
   const p = annualView ? r.annual : r.perPaycheck;
 
+  // "No pay entered yet", the state the three rate rows below decline to answer
+  // in. Written as !(x > 0) rather than x <= 0 so a NaN gross — an unparseable
+  // field — counts as no pay rather than as a real zero.
+  const isZero = !(r.annual.gross > 0);
+
   $('netBig').textContent = usd2(p.net);
+  // The headline drops to body colour while there is nothing to report, so the
+  // accent is spent on a real answer. announceResult() reads the same class.
+  $('netBig').classList.toggle('is-zero', isZero);
   $('netSub').textContent = annualView
     ? `take-home per year · ${usd2(r.perPaycheck.net)} ${PERIOD_LABEL[r.payFrequency]}`
     : `take-home ${PERIOD_LABEL[r.payFrequency]} · ${usd(r.annual.net)}/yr`;
