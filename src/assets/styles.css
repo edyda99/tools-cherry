@@ -688,6 +688,12 @@ ul.breakdown { list-style: none; padding: 0; }
 /* In-progress status line: full-strength text, not muted, so "working on it" reads
    as loudly as the result that replaces it. */
 .muted-small.busy { color: var(--text); font-weight: 700; }
+/* The matching success state. pdf-to-word.js has been setting kind 'success' for the
+   one line that says the document is ready, and no rule existed, so the payoff
+   rendered in the same 12.5px grey as the idle "Choose a PDF to begin" placeholder.
+   Failure got red, in-progress got bold, success got nothing. Nothing on the site
+   currently ships this class pair, so this adds a state rather than changing one. */
+.muted-small.success { color: var(--accent); font-weight: 700; }
 
 /* ---- Unit toggle (imperial / metric) -------------------------------- */
 .unit-toggle { display: flex; gap: 8px; margin: 0 0 16px; }

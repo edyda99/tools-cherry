@@ -244,7 +244,10 @@ const QUESTION_FLOW_PAGES = new Set([
   '/qcd-vs-charitable-deduction-calculator/',
   '/roth-catchup-calculator/',
   '/salt-cap-calculator/',
-  '/senior-deduction-calculator/',
+  // senior-deduction is deliberately absent. It ships no [data-reveal] wrapper, so
+  // listing it here downloaded question-flow.js for a script with nothing to do. Its
+  // one conditional row is derived from an answer the visitor already gave, and asking
+  // again would be worse than simply showing it.
   '/ss-wage-base-calculator/',
   '/student-loan-cap-calculator/',
   '/tips-tax-calculator/',
