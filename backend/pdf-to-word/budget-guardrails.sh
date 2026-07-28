@@ -7,7 +7,7 @@
 #         with two ACTUAL notifications (>1% and >100%) both targeting the SNS topic
 #         + a USAGE budget on Lambda GB-seconds that trips the kill-switch at 95%
 #         of the monthly free tier (stops the converter BEFORE any charge — $0 bill)
-#         + a daily auto-restore Lambda + its role + a 00:05 UTC EventBridge schedule
+#         + an auto-restore Lambda + its role + an hourly EventBridge schedule
 #         + a second, notify-only SNS topic the auto-restore reports on.
 #
 # When usage spikes (CloudWatch alarm, minutes) or charges appear (budget, slow),
@@ -16,10 +16,10 @@
 # published to that topic therefore KILLS the converter; it is a control channel,
 # not a mailing list. Notifications that must not kill go to the notices topic.
 #
-# The converter then reopens itself at 00:05 UTC, once the daily alarm's window has
-# rolled over, unless month-to-date compute is already at 90% of the free tier - in
-# which case it stays off and the notices topic asks a human to decide.
-# restore-service.sh is now only for reopening sooner than the next UTC midnight.
+# The converter then reopens itself on the next hourly check, unless the day has already
+# spent its 10,000 GB-s budget (in which case it waits for the UTC rollover) or
+# month-to-date is at 90% of the free tier (in which case it stays off and the notices
+# topic asks a human to decide). restore-service.sh is now only for reopening immediately.
 #
 # Safe to re-run: every step checks for existing resources first.
 set -euo pipefail
@@ -293,7 +293,7 @@ $AWS iam attach-role-policy --role-name "$RESTORE_ROLE" \
 RINLINE=$(mktemp)
 cat > "$RINLINE" <<JSON
 {"Version":"2012-10-17","Statement":[
- {"Sid":"ClearConcurrency","Effect":"Allow","Action":"lambda:DeleteFunctionConcurrency","Resource":"arn:aws:lambda:${REGION}:${ACCOUNT_ID}:function:${CONVERTER_FN}"},
+ {"Sid":"ClearConcurrency","Effect":"Allow","Action":["lambda:DeleteFunctionConcurrency","lambda:GetFunctionConcurrency"],"Resource":"arn:aws:lambda:${REGION}:${ACCOUNT_ID}:function:${CONVERTER_FN}"},
  {"Sid":"ReadCompute","Effect":"Allow","Action":"cloudwatch:GetMetricStatistics","Resource":"*"},
  {"Sid":"PublishNotice","Effect":"Allow","Action":"sns:Publish","Resource":"${NOTICE_TOPIC_ARN}"}
 ]}
@@ -309,46 +309,66 @@ REGION="${REGION}"; FUNCTION="${CONVERTER_FN}"; TOPIC="${NOTICE_TOPIC_ARN}"
 # 90% of the 400,000 GB-s always-free pool, deliberately below the usage budget's 95%
 # trip rather than level with it. Two reasons for the gap: this reads the converter's own
 # compute while the budget bills gross account-wide Lambda GB-s, which is always the larger
-# number, and this check runs once every 24 h, so it has to stop early enough that the day
-# it opens cannot carry usage past the point the budget would kill anyway. Reopening at a
-# figure the budget has already passed just hands the day back and forth.
+# number, and reopening at a figure the budget has already passed just hands the day back
+# and forth.
 MONTH_STOP_GBSEC=360000
+# Today's own budget, the same number the daily alarm fires on. It is what makes running
+# this HOURLY safe: a burst trip is a leaked credential, which stops the moment the kill
+# switch bites and costs about 9,600 GB-s, so reopening an hour later is right. A daily-
+# budget trip means the day is genuinely spent, and reopening would just spend it again -
+# so the two cases are told apart by how much the day has already cost, not by the clock.
+# One burst cycle puts the day within a whisker of this line, so a second one holds the
+# converter shut until midnight without needing the daily alarm to have evaluated yet.
+DAY_STOP_GBSEC=10000
 
-def month_to_date_gbsec():
-    # Duration Sum is milliseconds of execution; the alarms turn that into GB-seconds
-    # with sum/1000*2 for the 2 GB function, and month-to-date uses the same arithmetic so
+def gbsec_since(start, now):
+    # Duration Sum is milliseconds of execution; the alarms turn that into GB-seconds with
+    # sum/1000*2 for the 2 GB function, and both windows here use the same arithmetic so
     # this guard and the alarms cannot disagree. It counts this function only, so it reads
     # slightly under the account-wide usage the budget measures - see MONTH_STOP_GBSEC.
-    now=datetime.datetime.now(datetime.timezone.utc)
-    start=now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     stats=boto3.client("cloudwatch", region_name=REGION).get_metric_statistics(
         Namespace="AWS/Lambda", MetricName="Duration",
         Dimensions=[{"Name":"FunctionName","Value":FUNCTION}],
-        StartTime=start, EndTime=now, Period=86400, Statistics=["Sum"])
+        StartTime=start, EndTime=now, Period=3600, Statistics=["Sum"])
     return sum(point["Sum"] for point in stats["Datapoints"]) / 1000 * 2
 
 def handler(event, context):
     sns=boto3.client("sns", region_name=REGION)
+    lam=boto3.client("lambda", region_name=REGION)
     try:
-        used=month_to_date_gbsec()
+        # Nothing to reopen is the normal hourly outcome, and it must stay SILENT: a notice
+        # every hour would train the reader to ignore the channel that carries the one
+        # message that matters.
+        if "ReservedConcurrentExecutions" not in lam.get_function_concurrency(FunctionName=FUNCTION):
+            print("Converter is not throttled, nothing to do.")
+            return {"status":"open"}
+        now=datetime.datetime.now(datetime.timezone.utc)
+        used=gbsec_since(now.replace(day=1, hour=0, minute=0, second=0, microsecond=0), now)
+        today=gbsec_since(now.replace(hour=0, minute=0, second=0, microsecond=0), now)
         if used >= MONTH_STOP_GBSEC:
-            # A fresh daily window is no evidence the MONTH is affordable. Past this line the
-            # next conversion is billed, so the decision to spend stops being automatable.
-            sns.publish(TopicArn=TOPIC,
-                Subject="pdf-to-word not reopened: monthly free tier nearly spent",
-                Message="Month-to-date compute for the converter is %d GB-s of the 400000 always-free pool, so the daily auto-restore did not clear its reserved concurrency. Reopening means paid usage. Decide, then run backend/pdf-to-word/restore-service.sh to reopen by hand." % used)
-            print("Restore held: %d GB-s month-to-date." % used)
-            return {"status":"held","gbsec":used}
+            # A fresh window is no evidence the MONTH is affordable. Past this line the next
+            # conversion is billed, so the decision to spend stops being automatable. Said
+            # once a day rather than hourly, at the first run after midnight.
+            if now.hour == 0:
+                sns.publish(TopicArn=TOPIC,
+                    Subject="pdf-to-word not reopened: monthly free tier nearly spent",
+                    Message="Month-to-date compute for the converter is %d GB-s of the 400000 always-free pool, so the auto-restore is leaving it throttled. Reopening means paid usage. Decide, then run backend/pdf-to-word/restore-service.sh to reopen by hand." % used)
+            print("Held: %d GB-s month-to-date." % used)
+            return {"status":"held-month","gbsec":used}
+        if today >= DAY_STOP_GBSEC:
+            # Expected behaviour on a day that spent its budget, not an incident: it clears
+            # itself at midnight UTC, so it is logged and not mailed.
+            print("Held: %d GB-s today, budget is %d." % (today, DAY_STOP_GBSEC))
+            return {"status":"held-today","gbsec":today}
         # Removing the reservation rather than setting a positive one is not a shortcut: this
         # account's min-unreserved floor equals its ceiling, so any positive value is rejected
-        # (restore-service.sh hit the same wall). Deleting an absent reservation is a no-op,
-        # which is what makes running this on an untripped day harmless.
-        boto3.client("lambda", region_name=REGION).delete_function_concurrency(FunctionName=FUNCTION)
+        # (restore-service.sh hit the same wall).
+        lam.delete_function_concurrency(FunctionName=FUNCTION)
         sns.publish(TopicArn=TOPIC,
-            Subject="pdf-to-word reopened for the new UTC day",
-            Message="Reserved concurrency cleared, the converter accepts requests again. Month-to-date compute for the converter is %d GB-s of the 400000 always-free pool." % used)
-        print("Restore done: %d GB-s month-to-date." % used)
-        return {"status":"restored","gbsec":used}
+            Subject="pdf-to-word reopened",
+            Message="Reserved concurrency cleared, the converter accepts requests again. It has used %d GB-s today and %d GB-s month-to-date, against a 10000 daily budget and the 400000 always-free monthly pool." % (today, used))
+        print("Reopened: %d GB-s today, %d GB-s month-to-date." % (today, used))
+        return {"status":"restored","today":today,"gbsec":used}
     except Exception as failure:
         # Dying quietly is the one outcome worse than having no auto-restore at all: the
         # converter stays throttled for the whole day and the human who used to do this by
@@ -386,10 +406,14 @@ fi
 rm -rf "$RBUILD"
 $AWS lambda wait function-active --function-name "$RESTORE_FN"
 
-echo "==> [10] Wire EventBridge -> daily restore (00:05 UTC)"
-# 00:05 and not 00:00: the daily alarm's period IS the UTC day, so five past midnight is
-# the earliest moment the new window is unambiguously the new one, with a few minutes of
-# slack for CloudWatch to publish the closing datapoint of the old one.
+echo "==> [10] Wire EventBridge -> restore check (hourly, :05)"
+# Hourly at :05, not nightly. A burst trip is a leaked credential that stops the second the
+# kill switch bites, and holding the converter shut until the next midnight for it costs up
+# to fifteen hours of service for a threat that lasted minutes. The function decides which
+# case it is from how much the day has already spent, so the schedule can be frequent
+# without weakening the daily budget. :05 rather than :00 leaves CloudWatch a few minutes to
+# publish the closing datapoint of the hour, and the run at 00:05 is still the one that acts
+# on a day whose budget has just reset.
 # An operator who disables the rule during an incident is holding the converter shut on
 # purpose; a re-run of this script must not quietly hand the night back to the timer.
 RULE_STATE="ENABLED"
@@ -399,8 +423,8 @@ if EXISTING_STATE=$($AWS events describe-rule --name "$RESTORE_RULE" --query Sta
     echo "    rule exists and is DISABLED, leaving it off"
   fi
 fi
-$AWS events put-rule --name "$RESTORE_RULE" --schedule-expression "cron(5 0 * * ? *)" \
-  --description "Reopen the pdf-to-word converter at the start of each UTC day" \
+$AWS events put-rule --name "$RESTORE_RULE" --schedule-expression "cron(5 * * * ? *)" \
+  --description "Reopen the pdf-to-word converter once its budget allows" \
   --state "$RULE_STATE" >/dev/null
 $AWS lambda add-permission --function-name "$RESTORE_FN" --statement-id events-invoke \
   --action lambda:InvokeFunction --principal events.amazonaws.com \
@@ -420,7 +444,7 @@ if [ "$FAILED_TARGETS" != "0" ]; then
   echo "    ERROR: put-targets reported $FAILED_TARGETS failed entries" >&2
   exit 1
 fi
-echo "    schedule set (cron(5 0 * * ? *) UTC, state $RULE_STATE)"
+echo "    schedule set (cron(5 * * * ? *) UTC, state $RULE_STATE)"
 
 # The restore is now the only thing that reopens the converter, so its own failures have to
 # be loud: without this, a broken handler leaves the service throttled and says nothing.
@@ -439,6 +463,6 @@ echo "Done. Confirm BOTH SNS email subscriptions via the links sent to $EMAIL."
 echo "Topic:        $TOPIC_ARN (publishing here kills the converter)"
 echo "Notices:      $NOTICE_TOPIC_ARN (email only)"
 echo "Kill-switch:  $KS_ARN"
-echo "Auto-restore: $RESTORE_ARN (cron(5 0 * * ? *) UTC, held at 90% of the monthly pool)"
+echo "Auto-restore: $RESTORE_ARN (hourly at :05, held on the day's 10000 GB-s budget or 90% of the monthly pool)"
 echo "Cost budget:  $BUDGET_NAME       (\$1/mo — auto-kills a penny into paid)"
 echo "Usage budget: $USAGE_BUDGET_NAME (95% of 400k GB-sec — kills before any charge)"
