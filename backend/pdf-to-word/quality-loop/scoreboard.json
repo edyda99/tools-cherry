@@ -54,29 +54,42 @@
   },
   "lists": {
    "text_recall": 1.0,
-   "text_precision": 0.9669,
-   "order": 0.9832,
+   "text_precision": 1.0,
+   "order": 1.0,
    "headings": 1.0,
-   "lists": 0.15,
+   "lists": 1.0,
    "tables": null,
    "header_footer": null,
    "links": null,
    "styles": null,
    "reflow": 1.0,
-   "composite": 0.8789
+   "composite": 1.0
+  },
+  "lists_hard": {
+   "text_recall": 0.9718,
+   "text_precision": 0.9857,
+   "order": 0.9787,
+   "headings": 1.0,
+   "lists": 0.875,
+   "tables": null,
+   "header_footer": null,
+   "links": 1.0,
+   "styles": null,
+   "reflow": null,
+   "composite": 0.9686
   },
   "mixed_report": {
    "text_recall": 1.0,
    "text_precision": 1.0,
    "order": 1.0,
    "headings": 1.0,
-   "lists": 0.15,
+   "lists": 1.0,
    "tables": 1.0,
    "header_footer": null,
    "links": null,
    "styles": 1.0,
    "reflow": 0.6111,
-   "composite": 0.8729
+   "composite": 0.9601
   },
   "prose": {
    "text_recall": 0.9947,
@@ -131,6 +144,6 @@
    "composite": 0.9692
   }
  },
- "mean_composite": 0.9538,
+ "mean_composite": 0.9741,
  "weights_version": 1
 }

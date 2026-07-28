@@ -5,7 +5,8 @@ Scoreboard now: mean composite 0.9538 (after iter 1).
 | # | Item | Evidence | Status |
 |---|------|----------|--------|
 | 1 | heading-styles: split heading runs fused into body paragraphs (run-size boundary), then map size clusters to real Heading 1/2/3 styles with outlineLvl | headings 0.15 avg; 0.00 on inline_styles/table_bordered/table_borderless (h1 fused into next paragraph); fused paras also drag mixed_report reflow to 0.611 | **DONE iter 1** |
-| 2 | lists-numpr: replace frozen marker glyphs with real w:numPr numbering (bullet + decimal, nested ilvl) | lists 0.150 on lists + mixed_report | TODO |
+| 2 | lists-numpr: replace frozen marker glyphs with real w:numPr numbering (bullet + decimal, nested ilvl) | lists 0.150 on lists + mixed_report | **DONE iter 2** |
+| 7 | span-boundary space loss: pdf2docx drops the space where a styled/hyperlink span meets plain text inside list items ("with thedeployment checklist") | lists_hard text_recall 0.972 / order 0.979; links doc unaffected | TODO |
 | 3 | header-footer-parts: detect page furniture repeated at the same band across pages, move it into real header/footer parts | header_footer 0.250; body precision 0.913 from 3x repeated furniture | TODO |
 | 4 | paragraph-reflow + dehyphenation across page breaks | header_footer reflow 0.732 (page-break splits), two_column 0.800, prose recall 0.995 (hyphenation) | TODO |
 | 5 | harder corpus: ragged borderless table, merged cells, deeper nesting, longer docs | current borderless case already scores 1.0 — need a real target before converter work | TODO |
@@ -27,3 +28,20 @@ Dropped: hyperlink preservation — pdf2docx already keeps links live (links 1.0
   Guards: bail if styled share >60% or >40 paras; spurious-style penalty stayed 0.
   Verified: nav outline exact on `headings`, fused split intact on `table_bordered`,
   text recall 1.000 everywhere, worst per-doc delta 0.000. Commit 181a0dc.
+- **iter 2 (2026-07-29, ACCEPT +0.0208 → 0.9741 on the grown corpus):**
+  `list_numbering` pass — frozen markers → real w:numPr; per-block indent
+  clustering for ilvl; ordered stretches convert only when printed numbers read
+  1..n. A 2-agent adversarial fan-out (opus) returned UNSAFE with reproduced
+  corruption: the empty-run purge deleted hyperlink-wrapper/drawing/footnote
+  runs, the run.text setter cleared non-text children, para.text-vs-para.runs
+  stream misalignment ate body characters, and nested/jittered ordered lists
+  renumbered "1. 2. 3." as "a. b. c."; plus numPr/w:num schema-order breaks.
+  Fixes: one shared character stream (_stream_text/_consume_prefix over direct
+  text-like elements only, no run.text setter, remove only self-emptied
+  elements), first-content-is-run + marker-only guards, one ilvl per ordered
+  stretch with all-decimal lvlText, printed bullet glyph reused as lvlText,
+  CT_PPr-ordered numPr, numIdMacAtCleanup-aware insertion, @w:start fallback,
+  heading pass no longer sweeps content-only runs into a split. Permanent
+  hostile_tests.py (A-P) now runs every iteration. Corpus grew to 11 docs
+  (lists_hard: link-in-bullet, ordered-under-bullet, dash markers) and exposed
+  backlog #7 (span-boundary space loss, pdf2docx's own defect).

@@ -1,0 +1,78 @@
+{
+ "headings": [
+  {
+   "level": 1,
+   "text": "Deployment Notes"
+  }
+ ],
+ "paragraphs": [
+  "Collected from the last three rollouts; every item cost someone an evening.",
+  "Two habits that survived every retrospective:"
+ ],
+ "list_items": [
+  {
+   "text": "Start with the deployment checklist before touching production.",
+   "ordered": false,
+   "level": 0
+  },
+  {
+   "text": "Review the changelog with the on-call engineer",
+   "ordered": false,
+   "level": 0
+  },
+  {
+   "text": "Before you begin",
+   "ordered": false,
+   "level": 0
+  },
+  {
+   "text": "Install the vendor driver",
+   "ordered": true,
+   "level": 1
+  },
+  {
+   "text": "Reboot the machine",
+   "ordered": true,
+   "level": 1
+  },
+  {
+   "text": "Run the self-test",
+   "ordered": true,
+   "level": 1
+  },
+  {
+   "text": "Keep the cable ties with the spares, not the toolbox",
+   "ordered": false,
+   "level": 0
+  },
+  {
+   "text": "Label both ends of every run before it leaves the bench",
+   "ordered": false,
+   "level": 0
+  }
+ ],
+ "tables": [],
+ "links": [
+  {
+   "text": "deployment checklist",
+   "href": "https://tools-berry.com/"
+  }
+ ],
+ "bold": [],
+ "italic": [],
+ "flow": [
+  "Deployment Notes",
+  "Collected from the last three rollouts; every item cost someone an evening.",
+  "Start with the deployment checklist before touching production.",
+  "Review the changelog with the on-call engineer",
+  "Before you begin",
+  "Install the vendor driver",
+  "Reboot the machine",
+  "Run the self-test",
+  "Two habits that survived every retrospective:",
+  "Keep the cable ties with the spares, not the toolbox",
+  "Label both ends of every run before it leaves the bench"
+ ],
+ "header": null,
+ "footer": null
+}

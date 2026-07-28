@@ -44,6 +44,8 @@ install pdf2docx==0.5.8 PyMuPDF==1.25.5 Pillow numpy python-docx`.
    repair cannot reach). A pass must be a no-op on documents where its precondition
    does not hold.
 3. `venv/bin/python convert_corpus.py out/iterN && venv/bin/python score.py out/iterN`
+   and `venv/bin/python hostile_tests.py` (must stay ALL PASS; add cases for any
+   defect an adversarial review reproduces).
 4. `venv/bin/python score.py --compare scoreboard.json out/iterN/scores.json`
    - Gate: mean composite +0.002 or better AND no doc drops more than 0.010.
 5. **ACCEPT** → `cp out/iterN/scores.json scoreboard.json`, log the iteration in

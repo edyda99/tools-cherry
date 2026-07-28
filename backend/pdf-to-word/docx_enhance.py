@@ -15,6 +15,7 @@ import copy
 import io
 import json
 import re
+from collections import Counter
 
 from docx import Document
 from docx.oxml import parse_xml
@@ -90,8 +91,8 @@ def _leading_heading_chunks(p, body):
     chunks = [c for c in p if c.tag in (qn("w:r"), qn("w:hyperlink"))]
     head, sizes = [], []
     for i, c in enumerate(chunks):
-        if c.tag != qn("w:r"):
-            break
+        if c.tag != qn("w:r") or _has_nontext_content(c):
+            break  # hyperlinks, drawings, field chars: never part of a heading split
         t = _run_text(c)
         if not t.strip():
             head.append(c)
@@ -185,7 +186,264 @@ def heading_styles(data, pdf_doc=None):
     return buf.getvalue()
 
 
-PASSES = (heading_styles,)
+# --- list numbering ---------------------------------------------------------
+# pdf2docx keeps list markers as literal text ("• ", "1. ") so Word sees plain
+# paragraphs: no renumbering on edit, no continuation, no outline. This pass
+# strips the frozen marker and attaches real w:numPr numbering.
+#
+# Safety model (each rule earned by a reproduced corruption in review):
+# - Detection and stripping share ONE character stream: the text-like elements
+#   of DIRECT w:r children. para.text is never used — it includes w:hyperlink
+#   text the stripper cannot reach, which misaligns the two streams.
+# - Only elements the stripper itself fully consumed are removed; a run is
+#   removed only when the stripper emptied it AND nothing but rPr remains.
+#   Runs carrying drawings, nested hyperlinks, field chars etc. are never
+#   touched, and the python-docx run.text setter (which clears such children)
+#   is never used.
+# - Ordered stretches convert only when their printed numbers already read
+#   1..n, every ordered level renders decimal "%N.", and one stretch gets one
+#   shared ilvl — so Word can never show different numbers than the PDF did.
+# - Bullet levels reuse the printed marker glyph as the level's lvlText.
+
+BULLET_CHARS = "•●◦○▪·∙‣"
+_BULLET_RE = re.compile(r"^\s*([" + BULLET_CHARS + r"\-–*])\s+")
+_ORD_RE = re.compile(r"^\s*(\d{1,3})[.)]\s+")
+LIST_LEVEL_GAP_PT = 12.0
+LIST_MAX_LEVELS = 3
+_BULLET_LVLTEXT = ("•", "◦", "▪")
+_ORD_LVLS = (("decimal", "%1."), ("decimal", "%2."), ("decimal", "%3."))
+
+
+def _indent_pt(para):
+    ppr = para._p.find(qn("w:pPr"))
+    if ppr is None:
+        return 0.0
+    ind = ppr.find(qn("w:ind"))
+    if ind is None:
+        return 0.0
+    try:
+        return float(ind.get(qn("w:left")) or ind.get(qn("w:start"))) / 20.0
+    except (TypeError, ValueError):
+        return 0.0
+
+
+_TEXTLIKE = (qn("w:t"), qn("w:tab"), qn("w:br"), qn("w:cr"), qn("w:noBreakHyphen"))
+
+
+def _char_of(el):
+    if el.tag == qn("w:t"):
+        return el.text or ""
+    if el.tag == qn("w:tab"):
+        return "\t"
+    if el.tag in (qn("w:br"), qn("w:cr")):
+        return "\n"
+    return "-"  # noBreakHyphen
+
+
+def _has_nontext_content(r):
+    return any(c.tag != qn("w:rPr") and c.tag not in _TEXTLIKE for c in r)
+
+
+def _first_content_is_run(p):
+    skip = {qn("w:pPr"), qn("w:proofErr"), qn("w:bookmarkStart"), qn("w:bookmarkEnd"),
+            qn("w:commentRangeStart"), qn("w:commentRangeEnd")}
+    for c in p:
+        if c.tag in skip:
+            continue
+        return c.tag == qn("w:r")
+    return False
+
+
+def _stream_text(p):
+    """The exact character stream _consume_prefix can edit: text-like elements
+    of DIRECT w:r children only (hyperlink/sdt content deliberately excluded)."""
+    out = []
+    for r in p.findall(qn("w:r")):
+        for el in r:
+            if el.tag in _TEXTLIKE:
+                out.append(_char_of(el))
+    return "".join(out)
+
+
+def _consume_prefix(p, n):
+    """Delete the first n stream characters. Touches only text-like elements,
+    removes only elements it fully consumed, and removes a run only when it
+    emptied it itself and nothing but rPr remains."""
+    for r in list(p.findall(qn("w:r"))):
+        if n <= 0:
+            break
+        touched = False
+        for el in list(r):
+            if n <= 0:
+                break
+            if el.tag == qn("w:t"):
+                t = el.text or ""
+                take = min(len(t), n)
+                if not take:
+                    continue
+                n -= take
+                touched = True
+                rest = t[take:]
+                if rest:
+                    el.text = rest
+                    el.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+                else:
+                    r.remove(el)
+            elif el.tag in _TEXTLIKE:
+                n -= 1
+                touched = True
+                r.remove(el)
+        if touched and not any(c.tag != qn("w:rPr") for c in r):
+            p.remove(r)
+
+
+def _numbering_root(doc):
+    from docx.opc.constants import RELATIONSHIP_TYPE as RT
+    try:
+        return doc.part.part_related_by(RT.NUMBERING).element
+    except KeyError:
+        return None
+
+
+def _add_num(numbering, kind, bullet_chars=None):
+    abs_ids = [int(a.get(qn("w:abstractNumId")) or 0)
+               for a in numbering.findall(qn("w:abstractNum"))]
+    num_ids = [int(n.get(qn("w:numId")) or 0) for n in numbering.findall(qn("w:num"))]
+    aid, nid = max(abs_ids, default=0) + 1, max(num_ids, default=0) + 1
+    lvls = []
+    for ilvl in range(LIST_MAX_LEVELS):
+        if kind == "bul":
+            fmt = "bullet"
+            txt = (bullet_chars or {}).get(ilvl) or _BULLET_LVLTEXT[ilvl]
+        else:
+            fmt, txt = _ORD_LVLS[ilvl]
+        lvls.append(f'<w:lvl w:ilvl="{ilvl}"><w:start w:val="1"/><w:numFmt w:val="{fmt}"/>'
+                    f'<w:lvlText w:val="{txt}"/><w:lvlJc w:val="left"/></w:lvl>')
+    abs_el = parse_xml(f'<w:abstractNum {nsdecls("w")} w:abstractNumId="{aid}">'
+                       f'<w:multiLevelType w:val="hybridMultilevel"/>{"".join(lvls)}</w:abstractNum>')
+    num_el = parse_xml(f'<w:num {nsdecls("w")} w:numId="{nid}">'
+                       f'<w:abstractNumId w:val="{aid}"/></w:num>')
+    # CT_Numbering sequence: numPicBullet*, abstractNum*, num*, numIdMacAtCleanup?
+    cleanup = numbering.find(qn("w:numIdMacAtCleanup"))
+    nums = numbering.findall(qn("w:num"))
+    abs_anchor = nums[0] if nums else cleanup
+    if abs_anchor is not None:
+        abs_anchor.addprevious(abs_el)
+    else:
+        numbering.append(abs_el)
+    if cleanup is not None:
+        cleanup.addprevious(num_el)
+    else:
+        numbering.append(num_el)
+    return nid
+
+
+def _set_numpr(para, ilvl, numid):
+    # python-docx's CT_PPr accessors place numPr per the schema sequence
+    ppr = para._p.get_or_add_pPr()
+    numpr = ppr.get_or_add_numPr()
+    numpr.get_or_add_ilvl().set(qn("w:val"), str(ilvl))
+    numpr.get_or_add_numId().set(qn("w:val"), str(numid))
+
+
+def _block_levels(indents):
+    order = sorted({round(i, 1) for i in indents})
+    levels, lvl, prev = {}, 0, None
+    for ind in order:
+        if prev is not None and ind - prev > LIST_LEVEL_GAP_PT:
+            lvl += 1
+        levels[ind] = min(lvl, LIST_MAX_LEVELS - 1)
+        prev = ind
+    return levels
+
+
+def list_numbering(data, pdf_doc=None):
+    """Turn frozen marker glyphs into real Word list numbering."""
+    doc = Document(io.BytesIO(data))
+    items = []  # (paragraph_index, para, kind, match, indent_pt)
+    for i, para in enumerate(doc.paragraphs):
+        if not _first_content_is_run(para._p):
+            continue  # marker inside a hyperlink/sdt: not ours to edit
+        text = _stream_text(para._p)
+        m = _ORD_RE.match(text) or _BULLET_RE.match(text)
+        if m is None or not text[m.end():].strip():
+            continue  # no marker, or marker-only paragraph
+        kind = "ord" if m.re is _ORD_RE else "bul"
+        items.append((i, para, kind, m, _indent_pt(para)))
+    if not items:
+        return data
+
+    # dash/asterisk "bullets" are ambiguous with prose; keep one only when an
+    # adjacent paragraph is also a dash/asterisk bullet
+    ambiguous = "-–*"
+    by_idx = {it[0]: it for it in items}
+    items = [it for it in items
+             if not (it[2] == "bul" and it[3].group(1) in ambiguous)
+             or any(n in by_idx and by_idx[n][2] == "bul"
+                    and by_idx[n][3].group(1) in ambiguous
+                    for n in (it[0] - 1, it[0] + 1))]
+    if not items:
+        return data
+
+    blocks, cur = [], [items[0]]
+    for it in items[1:]:
+        if it[0] == cur[-1][0] + 1:
+            cur.append(it)
+        else:
+            blocks.append(cur)
+            cur = [it]
+    blocks.append(cur)
+
+    numbering = _numbering_root(doc)
+    if numbering is None:
+        return data
+
+    convert = []  # (item, numid, ilvl)
+    for block in blocks:
+        levels = _block_levels([it[4] for it in block])
+        bullet_nid = None
+        bullets = [it for it in block if it[2] == "bul"]
+        if bullets:
+            # keep the printed glyph per level so the look doesn't change
+            per_level = {}
+            for it in bullets:
+                per_level.setdefault(levels[round(it[4], 1)], []).append(it[3].group(1))
+            glyphs = {lvl: Counter(chars).most_common(1)[0][0]
+                      for lvl, chars in per_level.items()}
+        i = 0
+        while i < len(block):
+            if block[i][2] == "ord":
+                j = i
+                while j < len(block) and block[j][2] == "ord":
+                    j += 1
+                seq = block[i:j]
+                printed = [int(e[3].group(1)) for e in seq]
+                if printed == list(range(1, len(seq) + 1)):
+                    # one stretch = one level: per-item indent jitter must never
+                    # split a printed 1..n sequence across Word counters
+                    ilvl = Counter(levels[round(e[4], 1)] for e in seq).most_common(1)[0][0]
+                    nid = _add_num(numbering, "ord")
+                    convert.extend((e, nid, ilvl) for e in seq)
+                i = j
+            else:
+                if bullet_nid is None:
+                    bullet_nid = _add_num(numbering, "bul", glyphs)
+                it = block[i]
+                convert.append((it, bullet_nid, levels[round(it[4], 1)]))
+                i += 1
+
+    if not convert:
+        return data
+    for (idx, para, kind, m, ind), nid, ilvl in convert:
+        _consume_prefix(para._p, m.end())
+        _set_numpr(para, ilvl, nid)
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+PASSES = (heading_styles, list_numbering)
 
 
 def enhance(docx_bytes, pdf_doc=None):

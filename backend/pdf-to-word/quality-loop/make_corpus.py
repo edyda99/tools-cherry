@@ -212,6 +212,22 @@ DOCS = {
                               "bearing work is complete.")]},
         ],
     },
+    "lists_hard": {
+        "blocks": [
+            {"h": 1, "text": "Deployment Notes"},
+            {"p": "Collected from the last three rollouts; every item cost someone an evening."},
+            {"ul": [{"rich": [("t", "Start with the "),
+                              ("a", "deployment checklist", "https://tools-berry.com/"),
+                              ("t", " before touching production.")]},
+                    "Review the changelog with the on-call engineer",
+                    {"text": "Before you begin", "sub_ol": ["Install the vendor driver",
+                                                            "Reboot the machine",
+                                                            "Run the self-test"]}]},
+            {"p": "Two habits that survived every retrospective:"},
+            {"dashlist": ["Keep the cable ties with the spares, not the toolbox",
+                          "Label both ends of every run before it leaves the bench"]},
+        ],
+    },
     "links": {
         "blocks": [
             {"h": 1, "text": "Further Reading"},
@@ -251,14 +267,20 @@ def _block_html(b):
         return f"<p>{b['p']}</p>"
     if "p_rich" in b:
         return "<p>" + "".join(_run_html(r) for r in b["p_rich"]) + "</p>"
+    if "dashlist" in b:
+        return "".join(f"<p>- {t}</p>" for t in b["dashlist"])
     if "ul" in b or "ol" in b:
         tag = "ul" if "ul" in b else "ol"
         out = [f"<{tag}>"]
         for it in b.get("ul", b.get("ol")):
-            if isinstance(it, dict):
-                out.append(f"<li>{it['text']}<ul>")
-                out.extend(f"<li>{s}</li>" for s in it["sub"])
-                out.append("</ul></li>")
+            if isinstance(it, dict) and "rich" in it:
+                out.append("<li>" + "".join(_run_html(r) for r in it["rich"]) + "</li>")
+            elif isinstance(it, dict):
+                sub_tag = "ol" if "sub_ol" in it else "ul"
+                subs = it.get("sub", it.get("sub_ol"))
+                out.append(f"<li>{it['text']}<{sub_tag}>")
+                out.extend(f"<li>{s}</li>" for s in subs)
+                out.append(f"</{sub_tag}></li>")
             else:
                 out.append(f"<li>{it}</li>")
         out.append(f"</{tag}>")
@@ -296,14 +318,28 @@ def _truth(doc):
                     t["italic"].append(r[1])
                 if r[0] == "a":
                     t["links"].append({"text": r[1], "href": r[2]})
+        elif "dashlist" in b:
+            for s in b["dashlist"]:
+                t["list_items"].append({"text": s, "ordered": False, "level": 0})
+                t["flow"].append(s)
         elif "ul" in b or "ol" in b:
             ordered = "ol" in b
             for it in b.get("ul", b.get("ol")):
-                if isinstance(it, dict):
+                if isinstance(it, dict) and "rich" in it:
+                    text = _rich_text(it["rich"])
+                    t["list_items"].append({"text": text, "ordered": ordered, "level": 0})
+                    t["flow"].append(text)
+                    for run in it["rich"]:
+                        if run[0] == "a":
+                            t["links"].append({"text": run[1], "href": run[2]})
+                        if run[0] in ("b", "bi"):
+                            t["bold"].append(run[1])
+                elif isinstance(it, dict):
                     t["list_items"].append({"text": it["text"], "ordered": ordered, "level": 0})
                     t["flow"].append(it["text"])
-                    for s in it["sub"]:
-                        t["list_items"].append({"text": s, "ordered": False, "level": 1})
+                    sub_ordered = "sub_ol" in it
+                    for s in it.get("sub", it.get("sub_ol")):
+                        t["list_items"].append({"text": s, "ordered": sub_ordered, "level": 1})
                         t["flow"].append(s)
                 else:
                     t["list_items"].append({"text": it, "ordered": ordered, "level": 0})
