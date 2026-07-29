@@ -1334,6 +1334,16 @@ const NOINDEX_TOOLS = new Set([
 // this build works to avoid. Every URL was fetched and content-checked when added.
 let TOOL_SOURCES = {};
 
+// The date we last checked the tax figures against their primary sources, read from
+// tax-data-2026.json's _meta.lastSourced once the file loads. It exists because the
+// bonus-page sources block used to hard-code "verified 2026-06-16" as a string
+// literal, so no amount of correcting the underlying data could ever move it. That
+// is a factual claim to a reader about when we checked, and a literal cannot keep
+// it true: on 2026-07-29 six states' brackets were rewritten and every page still
+// said the figures were verified in June. Assigned in buildStatePages alongside
+// taxData, same pattern as TOOL_SOURCES above.
+let LAST_SOURCED = '';
+
 function toolSourcesBlock(currentPath) {
   const slug = String(currentPath || '').replace(/^\/|\/$/g, '');
   const items = TOOL_SOURCES[slug];
@@ -3589,7 +3599,7 @@ function bonusSourcesBlock(state, supp) {
   if (supp._sourceUrl) {
     lis.push(`<li>${state.name} supplemental rate: <a href="${escHtml(supp._sourceUrl)}" rel="nofollow noopener" target="_blank">${escHtml(supp.source || 'state source')}</a></li>`);
   } else if (supp.method === 'regular' || supp.method === 'none') {
-    lis.push(`<li>${state.name} income-tax status &amp; rate: see the <a href="/${state.slug}-paycheck-calculator/">${state.name} paycheck calculator</a> sources (state DOR, verified 2026-06-16).</li>`);
+    lis.push(`<li>${state.name} income-tax status &amp; rate: see the <a href="/${state.slug}-paycheck-calculator/">${state.name} paycheck calculator</a> sources (state DOR${LAST_SOURCED ? `, verified ${LAST_SOURCED}` : ''}).</li>`);
   }
   if (supp.singleSourced) {
     lis.push(`<li><em>${state.name}'s supplemental rate is sourced from a payroll-industry reference; verify with the ${state.name} Department of Revenue for the current year.</em></li>`);
@@ -3879,6 +3889,7 @@ async function rewriteHtmlAssetRefs(dir, hashMap) {
 
 async function main() {
   const taxData = await readJSON(join(SRC, 'data', 'tax-data-2026.json'));
+  LAST_SOURCED = (taxData._meta && taxData._meta.lastSourced) || '';
   const roster = await readJSON(join(SRC, 'data', 'states.json'));
   TOOL_SOURCES = await readJSON(join(SRC, 'data', 'tool-sources.json'));
   const payrollData = await readJSON(join(SRC, 'data', 'state-payroll-2026.json'));
