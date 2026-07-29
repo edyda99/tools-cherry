@@ -1349,7 +1349,7 @@ function toolSourcesBlock(currentPath) {
   const items = TOOL_SOURCES[slug];
   if (!items || !items.length) return '';
   const lis = items.map((s) => (
-    `<li><a href="${escHtml(s.url)}" rel="nofollow noopener" target="_blank">${escHtml(s.title)}</a>`
+    `<li><a href="${escHtml(s.url)}" rel="noopener" target="_blank">${escHtml(s.title)}</a>`
     + ` — ${escHtml(s.publisher)}</li>`
   )).join('');
   return `<section class="sources"><h2>Sources</h2><ul>${lis}</ul></section>`;
@@ -2657,7 +2657,7 @@ function obbbaConformityBlock(state, obbba, year) {
     `<li><strong>${label}:</strong> 2025 — ${verdict(d.y2025)}; 2026–2028 — ${verdict(d.y2026)}.</li>`;
   const srcHost = (() => { try { return new URL(e.source).hostname.replace(/^www\./, ''); } catch (_) { return ''; } })();
   const srcLink = e.source && srcHost
-    ? ` <span class="muted-small">(source: <a href="${escHtml(e.source)}" rel="nofollow noopener" target="_blank">${escHtml(srcHost)}</a>)</span>`
+    ? ` <span class="muted-small">(source: <a href="${escHtml(e.source)}" rel="noopener" target="_blank">${escHtml(srcHost)}</a>)</span>`
     : '';
 
   return `<section class="prose"><h2>${h2}</h2>${fed}` +
@@ -2687,7 +2687,7 @@ function sourcesBlock(state, p, meta) {
   // repeated identical entries) — keep the first URL seen for each.
   const byHost = new Map();
   for (const u of urls) { const h = hostOf(u); if (!byHost.has(h)) byHost.set(h, u); }
-  const lis = [...byHost.entries()].map(([h, u]) => `<li><a href="${escHtml(u)}" rel="nofollow noopener" target="_blank">${escHtml(h)}</a></li>`).join('');
+  const lis = [...byHost.entries()].map(([h, u]) => `<li><a href="${escHtml(u)}" rel="noopener" target="_blank">${escHtml(h)}</a></li>`).join('');
   return `<section class="sources"><h2>Sources</h2><ul>${lis}</ul></section>`;
 }
 
@@ -3595,9 +3595,9 @@ function bonusFaqBlock(state, entries) {
 
 function bonusSourcesBlock(state, supp) {
   const lis = [];
-  lis.push(`<li><a href="https://www.irs.gov/publications/p15" rel="nofollow noopener" target="_blank">IRS Publication 15 (2026) — Supplemental Wages</a> (flat 22% / 37% above $1M)</li>`);
+  lis.push(`<li><a href="https://www.irs.gov/publications/p15" rel="noopener" target="_blank">IRS Publication 15 (2026) — Supplemental Wages</a> (flat 22% / 37% above $1M)</li>`);
   if (supp._sourceUrl) {
-    lis.push(`<li>${state.name} supplemental rate: <a href="${escHtml(supp._sourceUrl)}" rel="nofollow noopener" target="_blank">${escHtml(supp.source || 'state source')}</a></li>`);
+    lis.push(`<li>${state.name} supplemental rate: <a href="${escHtml(supp._sourceUrl)}" rel="noopener" target="_blank">${escHtml(supp.source || 'state source')}</a></li>`);
   } else if (supp.method === 'regular' || supp.method === 'none') {
     lis.push(`<li>${state.name} income-tax status &amp; rate: see the <a href="/${state.slug}-paycheck-calculator/">${state.name} paycheck calculator</a> sources (state DOR${LAST_SOURCED ? `, verified ${LAST_SOURCED}` : ''}).</li>`);
   }
@@ -5597,7 +5597,7 @@ async function main() {
       const changed = (ot.y2025 && ot26 && ot.y2025 !== ot26)
         ? ' <span class="changed">changed from 2025</span>' : '';
       const src = s.source
-        ? `<a href="${esc(s.source)}" rel="nofollow noopener" target="_blank">source</a>` : '';
+        ? `<a href="${esc(s.source)}" rel="noopener" target="_blank">source</a>` : '';
       const note = [s.note ? esc(s.note) : '', src].filter(Boolean).join(' ');
       return `<tr id="state-${slug}"><td><a href="/${slug}-paycheck-calculator/">${esc(s.name)}</a></td>` +
         `<td data-rank="${otC.rank}">${otC.html}${changed}</td>` +
@@ -5708,7 +5708,7 @@ async function main() {
       const changed = (tp.y2025 && tp26 && tp.y2025 !== tp26)
         ? ' <span class="changed">changed from 2025</span>' : '';
       const src = s.source
-        ? `<a href="${esc(s.source)}" rel="nofollow noopener" target="_blank">source</a>` : '';
+        ? `<a href="${esc(s.source)}" rel="noopener" target="_blank">source</a>` : '';
       const note = [s.note ? esc(s.note) : '', src].filter(Boolean).join(' ');
       return `<tr id="state-${slug}"><td><a href="/${slug}-paycheck-calculator/">${esc(s.name)}</a></td>` +
         `<td data-rank="${tpC.rank}">${tpC.html}${changed}</td>` +
@@ -6305,7 +6305,7 @@ async function main() {
     const srcSeen = new Set();
     const sourceRows = Object.entries(metaSources)
       .filter(([, u]) => /^https?:\/\//.test(u) && !srcSeen.has(u) && srcSeen.add(u))
-      .map(([k, u]) => `<li><a href="${esc(u)}" rel="nofollow noopener" target="_blank">` +
+      .map(([k, u]) => `<li><a href="${esc(u)}" rel="noopener" target="_blank">` +
         `${esc(SOURCE_TITLES[k] || k.replace(/_/g, ' '))}</a></li>`)
       .join('');
 
@@ -6694,7 +6694,7 @@ async function main() {
         const rv = rateVal(s);
         const noteBits = [];
         if (s.note) noteBits.push(esc(s.note));
-        if (s._sourceUrl) noteBits.push(`<a href="${esc(s._sourceUrl)}" rel="nofollow noopener" target="_blank">source</a>`);
+        if (s._sourceUrl) noteBits.push(`<a href="${esc(s._sourceUrl)}" rel="noopener" target="_blank">source</a>`);
         return `<tr><td><strong>${esc(s.name)}</strong> (${esc(s.abbr)})</td>` +
           `<td><span class="chip m-${s.method}">${METHOD_LABEL[s.method] || esc(s.method)}</span></td>` +
           `<td class="rate" data-val="${rv === '' ? '' : rv}">${esc(rateText(s))}</td>` +

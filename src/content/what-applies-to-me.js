@@ -84,7 +84,7 @@ export function buildWamParts(deps) {
     if (!u) return '';
     let host = u;
     try { host = new URL(u).hostname.replace(/^www\./, ''); } catch (_) { /* keep raw */ }
-    return `<p class="wam-src"><a href="${esc(u)}" rel="nofollow noopener" target="_blank">`
+    return `<p class="wam-src"><a href="${esc(u)}" rel="noopener" target="_blank">`
       + `${esc(label || 'Source')}: ${esc(host)}</a></p>`;
   };
 
@@ -173,7 +173,7 @@ export function buildWamParts(deps) {
     echoCross.push(`<span class="g" data-cross="${esc(slug)}">${esc(name)}</span>`);
     echoMoved.push(`<span class="g" data-mfrom="${esc(slug)}">${esc(name)}</span>`);
     const nodeBody = `${esc(name)}: <a href="#state-${esc(slug)}">what we hold on ${esc(name)}</a>`
-      + (obSrc ? ` and <a href="${esc(obSrc)}" rel="nofollow noopener" target="_blank">our source for ${esc(name)}</a>` : '')
+      + (obSrc ? ` and <a href="${esc(obSrc)}" rel="noopener" target="_blank">our source for ${esc(name)}</a>` : '')
       + `.`;
     crossNodes.push(`<li class="g" data-cross="${esc(slug)}">${nodeBody}</li>`);
     movedNodes.push(`<li class="g" data-mfrom="${esc(slug)}">${nodeBody}</li>`);
@@ -217,7 +217,7 @@ export function buildWamParts(deps) {
         rows.push(
           `<li><strong>${esc(ep.label)}</strong>: ${esc(pct(ep.rate))} of pay${esc(cap)}.`
           + (ep._fullName ? ` <span class="wam-sub">${esc(ep._fullName)}</span>` : '')
-          + (ep._source ? ` <a href="${esc(ep._source)}" rel="nofollow noopener" target="_blank">source</a>` : '')
+          + (ep._source ? ` <a href="${esc(ep._source)}" rel="noopener" target="_blank">source</a>` : '')
           + `</li>`
         );
       }
@@ -226,7 +226,7 @@ export function buildWamParts(deps) {
           `<li><strong>${esc(pc.name)}</strong>: ${esc(pc.employeeRate2026)}`
           + (pc.wageBaseOrCap ? `, ${esc(pc.wageBaseOrCap)}` : '') + `. `
           + `<em>Not in our take-home estimate.</em>`
-          + (pc.source ? ` <a href="${esc(pc.source)}" rel="nofollow noopener" target="_blank">source</a>` : '')
+          + (pc.source ? ` <a href="${esc(pc.source)}" rel="noopener" target="_blank">source</a>` : '')
           + `</li>`
         );
       }
@@ -382,7 +382,7 @@ export function buildWamParts(deps) {
         + unmatched.map((pc) =>
           `<li><strong>${esc(pc.name)}</strong>: ${esc(pc.employeeRate2026)}`
           + (pc.wageBaseOrCap ? `, ${esc(pc.wageBaseOrCap)}` : '') + `.`
-          + (pc.source ? ` <a href="${esc(pc.source)}" rel="nofollow noopener" target="_blank">source</a>` : '')
+          + (pc.source ? ` <a href="${esc(pc.source)}" rel="noopener" target="_blank">source</a>` : '')
           + `</li>`).join('')
         + `</ul>`
         + `<p>Our paycheck calculator does not subtract these, so the take-home pay it shows you is bigger than the amount that will actually land in your account.</p>`
@@ -444,7 +444,7 @@ export function buildWamParts(deps) {
     if (local.exists && local.notes) {
       bandA.i2.push(
         `<li class="g" data-st="${esc(slug)}"><span class="wam-verbatim">${esc(local.notes)}</span>`
-        + (local.source ? ` <a href="${esc(local.source)}" rel="nofollow noopener" target="_blank">source</a>` : '')
+        + (local.source ? ` <a href="${esc(local.source)}" rel="noopener" target="_blank">source</a>` : '')
         + `</li>`
       );
     }
@@ -720,7 +720,7 @@ export function buildWamParts(deps) {
     `<span class="g" data-married="${v}">${v === 'yes' ? 'You are married.' : 'You are not married.'}</span>`).join('\n');
 
   const sourceList = federalSources
-    .map((s) => `<li><a href="${esc(s.url)}" rel="nofollow noopener" target="_blank">${esc(s.label)}</a></li>`)
+    .map((s) => `<li><a href="${esc(s.url)}" rel="noopener" target="_blank">${esc(s.label)}</a></li>`)
     .join('\n');
 
   return {
