@@ -1482,7 +1482,12 @@
         }
       },
       "_source": "Idaho taxes income at a flat 5.3%, and only on taxable income above a zero-rate threshold. Idaho Code 63-3024(2) sets that rate and provides that a head of household return is treated as a joint return, so heads of household use the same threshold as married couples filing jointly (https://legislature.idaho.gov/statutesrules/idstat/Title63/T63CH30/SECT63-3024/). The threshold amounts used here, $4,811 for single filers and $9,622 for joint filers and heads of household, are the 2025 indexed amounts published by the Idaho State Tax Commission (https://tax.idaho.gov/taxes/income-tax/individual-income/individual-income-tax-rate-schedule/), which had not yet published a 2026 schedule. Idaho's standard deduction is the federal standard deduction, because Idaho conforms to the Internal Revenue Code as in effect on January 1, 2026 under House Bill 559 of the 2026 session, Session Law Chapter 1.",
-      "notes": "Flat 5.3% on taxable income above a zero-rate threshold: $4,811 for a single filer and $9,622 for a married couple filing jointly or a head of household. Idaho treats a head of household return as a joint return, so both use the same threshold."
+      "notes": "Flat 5.3% on taxable income above a zero-rate threshold: $4,811 for a single filer and $9,622 for a married couple filing jointly or a head of household. Idaho treats a head of household return as a joint return, so both use the same threshold.",
+      "disclaimer": [
+        "Local income taxes are not included.",
+        "The zero-rate thresholds used here are Idaho's 2025 inflation-adjusted amounts, because the Idaho State Tax Commission had not published a 2026 rate schedule. Idaho re-indexes them each year, so the 2026 thresholds will be slightly higher and your tax slightly lower than shown.",
+        "Idaho charges a $10 Permanent Building Fund tax per return, which this calculator does not include."
+      ]
     },
     "massachusetts": {
       "name": "Massachusetts",

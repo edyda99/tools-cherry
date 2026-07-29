@@ -109,11 +109,15 @@ t('every prior-year state is expected AND discloses it to the reader', () => {
       `${slug} is on ${year} figures but has no valid figureYearScope. The banner would then ` +
       'claim its brackets are prior-year, which may be false. Set "brackets" or "standardDeduction".',
     );
-    const prose = [].concat(st.disclaimer || [], st.notes || '', st._source || '').join(' ');
+    // Only disclaimer and notes count. `_source` is removed by stripInternal() before
+    // dist/data/tax-data-2026.json is published, so a year disclosed ONLY there is invisible to
+    // anyone consuming the feed. Idaho shipped exactly that on 2026-07-30 and this test passed it,
+    // which is why the accepted fields are now narrowed to the published ones.
+    const prose = [].concat(st.disclaimer || [], st.notes || '').join(' ');
     assert.ok(
       prose.includes(year),
-      `${slug} is on ${year} figures but never says so in its disclaimer, notes or _source. ` +
-      'A reader is told nothing, which is the whole defect this guards.',
+      `${slug} is on ${year} figures but says so only in _source, which is stripped from the ` +
+      'published JSON. Put the year in disclaimer or notes so feed consumers see it too.',
     );
   }
 });
