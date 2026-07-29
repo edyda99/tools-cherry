@@ -63,9 +63,35 @@ t('Texas has no state income tax', () => assert.equal(stateTax('texas', 75000), 
 
 // --- prior-year fallback states are labeled (figureYear 2025, not 2026) ------
 // Nebraska moved to official 2026 figures (1040N-ES, Rev. 11-2025) on 2026-07-21.
-t('California/Oklahoma carry figureYear 2025 (fallback); Nebraska is 2026', () => {
-  for (const s of ['california', 'oklahoma']) assert.equal(tax.states[s].figureYear, 2025, `${s} should be 2025-fallback`);
-  assert.equal(tax.states.nebraska.figureYear, 2026, 'nebraska should carry official 2026 figures');
+// Oklahoma moved to 2026 on 2026-07-29: HB2764 (approved 2025-05-28) supplies the
+// statutory schedule and OTC Packet OW-2 Rev 11-2025 corroborates it, so the old
+// "not published in verifiable form yet" premise was simply false.
+t('California is the only figureYear 2025 fallback; Nebraska and Oklahoma are 2026', () => {
+  assert.equal(tax.states.california.figureYear, 2025, 'california should be 2025-fallback');
+  for (const s of ['nebraska', 'oklahoma']) {
+    assert.equal(tax.states[s].figureYear, 2026, `${s} should carry official 2026 figures`);
+  }
+  const fallbacks = Object.entries(tax.states)
+    .filter(([, s]) => s.figureYear && s.figureYear !== 2026)
+    .map(([slug]) => slug);
+  assert.deepEqual(fallbacks, ['california'], 'exactly one state should still be on prior-year figures');
+});
+
+// --- Oklahoma 2026, HB2764 -------------------------------------------------
+// Guards the specific wrong numbers this repo published: a six-bracket
+// 0.25%-4.75% schedule (repealed, applied only to 2024 and 2025) and a
+// think-tank claim of "three brackets, 0.50% to 4.50%". 0.50% has never been an
+// Oklahoma rate in any year.
+t('Oklahoma 2026 is four bands at 0/2.5/3.5/4.5 percent', () => {
+  const b = tax.states.oklahoma.tax.brackets;
+  assert.equal(b.single.length, 4, 'single should have four bands');
+  assert.deepEqual(b.single.map((r) => r.rate), [0, 0.025, 0.035, 0.045]);
+  assert.deepEqual(b.single.map((r) => r.upTo), [3750, 4900, 7200, null]);
+  assert.deepEqual(b.married.map((r) => r.upTo), [7500, 9800, 14400, null]);
+  assert.deepEqual(b.head_of_household, b.married, 'HoH shares the married schedule');
+  const rates = JSON.stringify(b);
+  assert.ok(!rates.includes('0.005'), '0.50% is not an Oklahoma rate in any year');
+  assert.ok(!rates.includes('0.0475'), '4.75% applied only to 2024 and 2025');
 });
 
 // --- baseAmount: the opt-in flat step, Ohio only -----------------------------
