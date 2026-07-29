@@ -77,7 +77,9 @@ MAX_PAGES = 50  # bound per-invocation work so a crafted PDF can't max the 180s 
 #
 # The performance story is unchanged and still correct. pdf2docx's ImagesExtractor
 # collects every image occurrence, groups them by pairwise intersection (quadratic),
-# then RE-RENDERS the page region for each group at 3x. Hundreds of adjacent stencils
+# then RE-RENDERS the page region for each group at 4x (converter.py:101,
+# 'clip_image_res_ratio': 4.0; the 3.0 in ImagesExtractor's signature is a dead default
+# the Converter never passes). Hundreds of adjacent stencils
 # all intersect, so the report timed out at 60s and again at 180s. Profiling put the
 # time in ImagesExtractor.extract_images -> Collection.group.
 #
