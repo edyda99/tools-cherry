@@ -252,26 +252,35 @@ def _score_styles(truth, dx):
 
 
 def _score_reflow(truth, dx):
-    gt_long = [len(tokens(p)) for p in truth["paragraphs"] if len(tokens(p)) >= 15]
+    """Span-cover reflow: each ground-truth paragraph (>=15 tokens) should live in
+    exactly ONE docx paragraph. Split across k paragraphs scores 1/k; found only
+    inside a paragraph bloated far beyond it (overmerge) caps at 0.6; not found
+    contiguously at all (e.g. broken by hyphenation) scores 0."""
+    gt_long = [tokens(p) for p in truth["paragraphs"] if len(tokens(p)) >= 15]
     if not gt_long:
         return None
-    # exclude structural paragraphs (headings, list items) from the docx side —
-    # they are legitimately short and would read as false fragmentation
-    structural = {tuple(tokens(h["text"])) for h in truth["headings"]}
-    structural |= {tuple(tokens(it["text"])) for it in truth["list_items"]}
-    dx_lens = []
-    for p in dx["paras"]:
-        tk = tokens(p["text"])
-        if len(tk) < 4 or tuple(tk) in structural:
-            continue
-        stripped = re.sub(r"^\s*(?:[•●▪·o\-\*]|\(?\d{1,2}[.)])\s+", "", p["text"])
-        if tuple(tokens(stripped)) in structural:
-            continue
-        dx_lens.append(len(tk))
-    if not dx_lens:
-        return 0.0
-    m = (sum(dx_lens) / len(dx_lens)) / (sum(gt_long) / len(gt_long))
-    return round(min(m, 1.0 / m), 4) if m > 0 else 0.0
+    dx_tok = [tokens(p["text"]) for p in dx["paras"]]
+    scores = []
+    for gt in gt_long:
+        needle = " " + " ".join(gt) + " "
+        best = 0.0
+        for i, start in enumerate(dx_tok):
+            if not start or gt[0] not in start:
+                continue
+            cover, spans, j = list(start), 1, i
+            while needle not in " " + " ".join(cover) + " " and spans < 6 and j + 1 < len(dx_tok):
+                j += 1
+                cover.extend(dx_tok[j])
+                spans += 1
+            if needle in " " + " ".join(cover) + " ":
+                s = 1.0 / spans
+                if len(cover) > len(gt) * 1.3 + 10:
+                    s = min(s, 0.6)
+                best = max(best, s)
+                if best == 1.0:
+                    break
+        scores.append(best)
+    return round(sum(scores) / len(scores), 4)
 
 
 def score_doc(truth, docx_path):
@@ -316,7 +325,7 @@ def run_scores(outdir):
     comps = [d["composite"] for d in docs.values() if "composite" in d]
     result = {"docs": docs,
               "mean_composite": round(sum(comps) / len(comps), 4) if comps else 0.0,
-              "weights_version": 1}
+              "weights_version": 2}
     (outdir / "scores.json").write_text(json.dumps(result, indent=1))
 
     cols = ["text_recall", "text_precision", "order", "headings", "lists", "tables",

@@ -1,6 +1,6 @@
 # Enhancement backlog (evidence-ordered from the iteration-0 baseline)
 
-Scoreboard now: mean composite 0.9538 (after iter 1).
+Scoreboard now: mean composite 0.9948 (after iter 4, metric v2).
 
 | # | Item | Evidence | Status |
 |---|------|----------|--------|
@@ -8,7 +8,8 @@ Scoreboard now: mean composite 0.9538 (after iter 1).
 | 2 | lists-numpr: replace frozen marker glyphs with real w:numPr numbering (bullet + decimal, nested ilvl) | lists 0.150 on lists + mixed_report | **DONE iter 2** |
 | 7 | span-boundary space loss: pdf2docx drops the space where a styled/hyperlink span meets plain text inside list items ("with thedeployment checklist") | lists_hard text_recall 0.972 / order 0.979; links doc unaffected | TODO |
 | 3 | header-footer-parts: detect page furniture repeated at the same band across pages, move it into real header/footer parts | header_footer 0.250; body precision 0.913 from 3x repeated furniture | **DONE iter 3** |
-| 4 | paragraph-reflow + dehyphenation across page breaks | header_footer reflow 0.732 (page-break splits), two_column 0.800, prose recall 0.995 (hyphenation) | TODO |
+| 4 | paragraph-reflow + dehyphenation across page breaks | header_footer reflow 0.732 (page-break splits), two_column 0.800, prose recall 0.995 (hyphenation) | **DONE iter 4** |
+| 8 | remove intra-paragraph w:br wrap artifacts (pdf2docx emits one per wrapped line, so Word never reflows text; also blocks the U+2010 healer since hyphens sit in their own runs) — same intra-block evidence framework as reflow | discovered in iter-4 review; invisible to current metrics (scorer ignores w:br) — needs a metric first | TODO |
 | 5 | harder corpus: ragged borderless table, merged cells, deeper nesting, longer docs | current borderless case already scores 1.0 — need a real target before converter work | TODO |
 | 6 | borderless/ragged table detection | blocked on #5 producing a failing case | TODO |
 
@@ -62,3 +63,24 @@ Dropped: hyperlink preservation — pdf2docx already keeps links live (links 1.0
   HF1-HF16. Confirmed-safe by review: NBSP/whitespace matching, dash-mismatch
   no-ops, table preservation, cross-tree exemplar moves, enhance() idempotence.
   Commit 6813c73.
+- **iter 4 (2026-07-29, ACCEPT +0.0079 → 0.9948; metric v2):** `paragraph_reflow`
+  — merges pdf2docx's paragraph fragments back and heals hyphenation, plus the
+  reflow metric v2 (span-cover, weights_version 2; re-baselined 0.9869). Three
+  adversarial rounds shaped it: round 1 (UNSAFE) killed blind intra-block
+  joining (book layouts collapsed), Latin-only tokens (Cyrillic paragraphs
+  deleted as "spacers"), the spacer sweep eating images/page breaks, and
+  document-global dehyph (re-sign→resign); round 2 (UNSAFE) proved the
+  remaining cross-block geometry gate could not tell a paragraph break from a
+  line break (config-paragraph welds, page-boundary glue) and that ASCII-hyphen
+  fusion is dictionary-hard (re-form→reform); round 3 (SAFE) validated the
+  final shape: merges only inside one MuPDF block from blocks ≥140pt, guarded
+  by fullness (70%/90pt), first-line-indent and terminal+capital segmentation
+  (incl. CJK terminators), a forward-only locality cursor, XML-blank-only
+  spacers (pPr whitelist, NBSP=content), and typographic-hyphen-only (U+2010/
+  U+00AD) fusion gated by mid-line interior evidence. Round-3 audit: zero OOXML
+  violations introduced (removes 2 pre-existing), zero token deltas across a
+  27-doc sweep; corpus wins mixed_report 0.949→1.000, prose 0.964→1.000.
+  two_column 0.833 is the honest ceiling (fragments straddle a pdf2docx column
+  sectPr). Known lost-repair (not corruption): narrow (<140pt) columns and
+  hanging-indent layouts stay fragmented; U+2010 healing inert on pdf2docx's
+  isolated-hyphen runs (folds into #8). hostile_tests grew to R1-R22.

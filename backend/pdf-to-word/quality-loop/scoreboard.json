@@ -88,21 +88,21 @@
    "header_footer": null,
    "links": null,
    "styles": 1.0,
-   "reflow": 0.6111,
-   "composite": 0.9601
+   "reflow": 1.0,
+   "composite": 1.0
   },
   "prose": {
-   "text_recall": 0.9947,
-   "text_precision": 0.9894,
-   "order": 0.992,
+   "text_recall": 1.0,
+   "text_precision": 1.0,
+   "order": 1.0,
    "headings": 1.0,
    "lists": null,
    "tables": null,
    "header_footer": null,
    "links": null,
    "styles": null,
-   "reflow": 0.9946,
-   "composite": 0.9941
+   "reflow": 1.0,
+   "composite": 1.0
   },
   "table_bordered": {
    "text_recall": 1.0,
@@ -127,8 +127,8 @@
    "header_footer": null,
    "links": null,
    "styles": null,
-   "reflow": 0.8333,
-   "composite": 0.9792
+   "reflow": 1.0,
+   "composite": 1.0
   },
   "two_column": {
    "text_recall": 1.0,
@@ -140,10 +140,10 @@
    "header_footer": null,
    "links": null,
    "styles": null,
-   "reflow": 0.8,
-   "composite": 0.9692
+   "reflow": 0.8333,
+   "composite": 0.9744
   }
  },
- "mean_composite": 0.9883,
- "weights_version": 1
+ "mean_composite": 0.9948,
+ "weights_version": 2
 }

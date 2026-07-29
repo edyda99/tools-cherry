@@ -287,12 +287,14 @@ import fitz
 
 
 def make_pdf(pages):
-    """pages: list of [(y, text), ...] on A4."""
+    """pages: list of [(y, text) or (y, text, x), ...] on A4."""
     pdf = fitz.open()
     for lines in pages:
         pg = pdf.new_page(width=595, height=842)
-        for y, t in lines:
-            pg.insert_text((72, y), t, fontsize=9)
+        for entry in lines:
+            y, t = entry[0], entry[1]
+            x = entry[2] if len(entry) > 2 else 72
+            pg.insert_text((x, y), t, fontsize=9)
     return pdf
 
 
@@ -509,6 +511,247 @@ d.save(buf)
 res = Document(io.BytesIO(de.heading_styles(buf.getvalue())))
 styled = [p.text for p in res.paragraphs if (p.style.name or "").startswith("Heading")]
 check(len(styled) == 3, "HF16: small-doc headings bailed: %s" % styled)
+
+# === paragraph reflow pass ===================================================
+
+def run_reflow(doc, pdf):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.paragraph_reflow(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+# R1: fragments of one PDF block merge (lines 12pt apart share a block)
+pdf = make_pdf([[(100, "the quick brown fox jumps across the sleeping meadow and"),
+                 (112, "over the lazy dog.")]])
+d = Document()
+d.add_paragraph("the quick brown fox jumps across the sleeping meadow and")
+d.add_paragraph("over the lazy dog.")
+r, out = run_reflow(d, pdf)
+texts = [p.text for p in r.paragraphs if p.text.strip()]
+check(texts == ["the quick brown fox jumps across the sleeping meadow and over the lazy dog."],
+      "R1: same-block fragments not merged: %s" % texts)
+
+# R2: separate PDF blocks stay separate paragraphs
+pdf = make_pdf([[(100, "the quick brown fox jumps"), (400, "over the lazy dog.")]])
+d = Document()
+d.add_paragraph("the quick brown fox jumps")
+d.add_paragraph("over the lazy dog.")
+r, out = run_reflow(d, pdf)
+check(len([p for p in r.paragraphs if p.text.strip()]) == 2, "R2: separate blocks merged")
+
+# R3: styled / numbered / section-break paragraphs never merge
+pdf = make_pdf([[(100, "alpha beta gamma"), (112, "delta epsilon.")]])
+d = Document()
+d.add_paragraph("alpha beta gamma")
+pb = d.add_paragraph("delta epsilon.")
+pb._p.get_or_add_pPr().append(parse_xml(f"<w:sectPr {nsdecls('w')}/>"))
+r, out = run_reflow(d, pdf)
+check(len([p for p in r.paragraphs if p.text.strip()]) == 2, "R3: sectPr paragraph merged")
+
+# R4: typographic (U+2010) line-break hyphens heal; ASCII ones never do
+pdf = fitz.open()
+pg = pdf.new_page(width=595, height=842)
+pg.insert_font(fontname="hv", fontfile="/System/Library/Fonts/Helvetica.ttc")
+pg.insert_text((72, 100), "the grand equip‐", fontsize=9, fontname="hv")
+pg.insert_text((72, 112), "ment failed early on the very first day of trials.",
+               fontsize=9, fontname="hv")
+d = Document()
+d.add_paragraph("the grand equip‐ment failed early on the very first day of trials.")
+r, out = run_reflow(d, pdf)
+check(r.paragraphs[0].text == "the grand equipment failed early on the very first day of trials.",
+      "R4: typographic hyphen not healed: %r" % r.paragraphs[0].text)
+pdf = make_pdf([[(100, "the grand equip-"), (112, "ment failed early."),
+                 (400, "equipment budgets grew.")]])
+d = Document()
+d.add_paragraph("the grand equip-ment failed early.")
+d.add_paragraph("equipment budgets grew.")
+r, out = run_reflow(d, pdf)
+check("equip-ment" in r.paragraphs[0].text, "R4b: ASCII hyphen fused")
+
+# R11: a compound word broken on its own hyphen at a line end stays hyphenated
+pdf = make_pdf([[(100, "that fact is well-"), (112, "known to every reader.")]])
+d = Document()
+d.add_paragraph("that fact is well-known to every reader.")
+r, out = run_reflow(d, pdf)
+check(r.paragraphs[0].text == "that fact is well-known to every reader.",
+      "R11: compound hyphen fused: %r" % r.paragraphs[0].text)
+
+# R5: a real hyphen with no line-break evidence stays
+pdf = make_pdf([[(100, "a well- known fact stands.")]])
+d = Document()
+d.add_paragraph("a well- known fact stands.")
+r, out = run_reflow(d, pdf)
+check(r.paragraphs[0].text == "a well- known fact stands.", "R5: legit hyphen removed")
+
+# R6: a table between paragraphs breaks adjacency
+pdf = make_pdf([[(100, "alpha beta gamma"), (112, "delta epsilon.")]])
+d = Document()
+d.add_paragraph("alpha beta gamma")
+d.add_table(rows=1, cols=1).rows[0].cells[0].text = "cell"
+d.add_paragraph("delta epsilon.")
+r, out = run_reflow(d, pdf)
+check(len([p for p in r.paragraphs if p.text.strip()]) == 2, "R6: merged across a table")
+
+# R7: idempotent on bytes
+pdf = make_pdf([[(100, "the quick brown fox jumps"), (112, "over the lazy dog.")]])
+d = Document()
+d.add_paragraph("the quick brown fox jumps")
+d.add_paragraph("over the lazy dog.")
+buf = io.BytesIO()
+d.save(buf)
+once = de.paragraph_reflow(buf.getvalue(), pdf)
+twice = de.paragraph_reflow(once, pdf)
+check(once == twice, "R7: reflow not idempotent")
+
+# R8: no joining across page breaks (glued page-boundary text corrupted docs)
+pdf = make_pdf([[(800, "the meeting ran long and")], [(50, "nobody minded at all.")]])
+d = Document()
+d.add_paragraph("the meeting ran long and")
+d.add_paragraph("nobody minded at all.")
+r, out = run_reflow(d, pdf)
+check(len([p.text for p in r.paragraphs if p.text.strip()]) == 2,
+      "R8: merged across a page break")
+
+# R21: a compound broken once at a line end never fuses, even with the fused
+# word used elsewhere ("re-form" vs "reform" inverts meaning)
+pdf = make_pdf([[(100, "the panel would have to re-"),
+                 (112, "form before the review could restart in earnest."),
+                 (300, "the reform of the charter is complete.")]])
+d = Document()
+d.add_paragraph("the panel would have to re-form before the review could restart in earnest.")
+d.add_paragraph("the reform of the charter is complete.")
+r, out = run_reflow(d, pdf)
+check("re-form" in r.paragraphs[0].text, "R21: compound fused into its homograph")
+
+# R22: lowercase unterminated paragraphs in separate blocks never weld
+pdf = make_pdf([[(100, "max_retries the number of attempts made before the call fails and"),
+                 (112, "an error is returned to the caller"),
+                 (127, "timeout the number of seconds the client waits before closing"),
+                 (139, "the socket entirely"),
+                 (154, "verify_tls whether the certificate chain is validated at all")]])
+d = Document()
+d.add_paragraph("max_retries the number of attempts made before the call fails and an error is returned to the caller")
+d.add_paragraph("timeout the number of seconds the client waits before closing the socket entirely")
+d.add_paragraph("verify_tls whether the certificate chain is validated at all")
+r, out = run_reflow(d, pdf)
+check(len([p for p in r.paragraphs if p.text.strip()]) == 3,
+      "R22: config paragraphs welded: %d" % len([p for p in r.paragraphs if p.text.strip()]))
+
+# R9: a paragraph that already equals a full PDF paragraph absorbs nothing
+pdf = make_pdf([[(100, "first sentence stands alone"), (400, "second one also complete.")]])
+d = Document()
+d.add_paragraph("first sentence stands alone")
+d.add_paragraph("second one also complete.")
+r, out = run_reflow(d, pdf)
+check(len([p for p in r.paragraphs if p.text.strip()]) == 2, "R9: complete para absorbed next")
+
+# R10: empty spacer between fragments rides along; a sectPr spacer blocks
+pdf = make_pdf([[(100, "columns split this long sentence apart without any real warning"),
+                 (112, "into two ragged pieces.")]])
+d = Document()
+d.add_paragraph("columns split this long sentence apart without any real warning")
+d.add_paragraph("")
+d.add_paragraph("into two ragged pieces.")
+r, out = run_reflow(d, pdf)
+check([p.text for p in r.paragraphs if p.text.strip()] ==
+      ["columns split this long sentence apart without any real warning into two ragged pieces."],
+      "R10: spacer merge missed")
+d = Document()
+d.add_paragraph("columns split this long sentence apart without any real warning")
+ps = d.add_paragraph("")
+ps._p.get_or_add_pPr().append(parse_xml(f"<w:sectPr {nsdecls('w')}/>"))
+d.add_paragraph("into two ragged pieces.")
+r, out = run_reflow(d, pdf)
+check(len([p for p in r.paragraphs if p.text.strip()]) == 2, "R10b: merged across sectPr spacer")
+
+# R12: two sentences single-spaced in one block stay two paragraphs
+pdf = make_pdf([[(100, "The first policy took effect in March."),
+                 (112, "Employees must file the new form.")]])
+d = Document()
+d.add_paragraph("The first policy took effect in March.")
+d.add_paragraph("Employees must file the new form.")
+r, out = run_reflow(d, pdf)
+check(len([p for p in r.paragraphs if p.text.strip()]) == 2, "R12: sentence pair merged")
+
+# R13: a lowercase word list is not a wrapped paragraph
+pdf = make_pdf([[(100, "apples"), (114, "bananas"), (128, "cherries"), (142, "dates")]])
+d = Document()
+for t in ["apples", "bananas", "cherries", "dates"]:
+    d.add_paragraph(t)
+r, out = run_reflow(d, pdf)
+check(len([p for p in r.paragraphs if p.text.strip()]) == 4, "R13: word list merged")
+
+# R14: a non-Latin paragraph between Latin ones survives and blocks merging
+pdf = make_pdf([[(100, "the reading room stays open"), (400, "until the last train leaves.")]])
+d = Document()
+d.add_paragraph("the reading room stays open")
+d.add_paragraph("читальный зал открыт")
+d.add_paragraph("until the last train leaves.")
+r, out = run_reflow(d, pdf)
+texts = [p.text for p in r.paragraphs if p.text.strip()]
+check(len(texts) == 3 and "читальный зал открыт" in texts, "R14: non-Latin paragraph lost: %s" % texts)
+
+# R15/R16: image-only and page-break paragraphs are content, never spacers
+pdf = make_pdf([[(100, "the report continues past the small inline"),
+                 (112, "figure and finishes on this line.")]])
+d = Document()
+d.add_paragraph("the report continues past the small inline")
+pimg = d.add_paragraph()
+pimg._p.append(parse_xml(f'<w:r {nsdecls("w")}><w:drawing/></w:r>'))
+d.add_paragraph("figure and finishes on this line.")
+r, out = run_reflow(d, pdf)
+check(count_tag(out, "w:drawing") == 1, "R15: image paragraph swept")
+check(len([p for p in r.paragraphs]) == 3, "R15b: merged across image paragraph")
+d = Document()
+d.add_paragraph("the report continues past the small inline")
+pbr = d.add_paragraph()
+pbr._p.append(parse_xml(f'<w:r {nsdecls("w")}><w:br w:type="page"/></w:r>'))
+d.add_paragraph("figure and finishes on this line.")
+r, out = run_reflow(d, pdf)
+check('w:type="page"' in zipfile.ZipFile(io.BytesIO(out)).read("word/document.xml").decode(),
+      "R16: page break swept")
+
+# R17: a form the document also hyphenates mid-line is spelling, never fused
+pdf = make_pdf([[(100, "contractors are asked to re-"),
+                 (112, "sign the schedule every season and the"),
+                 (124, "manager may also re-sign the cover page.")]])
+d = Document()
+d.add_paragraph("contractors are asked to re-sign the schedule every season and the "
+                "manager may also re-sign the cover page.")
+r, out = run_reflow(d, pdf)
+check(r.paragraphs[0].text.count("re-sign") == 2,
+      "R17: interior-evidenced hyphen fused: %r" % r.paragraphs[0].text)
+
+# R18/R19: joiner space carries no underline and never doubles whitespace
+pdf = make_pdf([[(100, "the final section of the annual report was written and"),
+                 (112, "was revised again last week.")]])
+d = Document()
+pa = d.add_paragraph()
+run = pa.add_run("the final section of the annual report was written and")
+run.underline = True
+d.add_paragraph("was revised again last week.")
+r, out = run_reflow(d, pdf)
+merged = r.paragraphs[0]
+check(merged.text == "the final section of the annual report was written and was revised again last week.",
+      "R18: merge text wrong: %r" % merged.text)
+check(not any(run.text == " " and run.underline for run in merged.runs),
+      "R18b: joiner space underlined")
+d = Document()
+d.add_paragraph("the final section of the annual report was written and ")
+d.add_paragraph("was revised again last week.")
+r, out = run_reflow(d, pdf)
+check("and  was" not in r.paragraphs[0].text, "R19: doubled joiner space")
+
+# R20: a first-line indent inside one block separates paragraphs
+pdf = make_pdf([[(100, "the committee met for hours on the budget and"),
+                 (112, "the debate ran long without a formal close"),
+                 (124, "next quarter brought entirely new rules", 90)]])
+d = Document()
+d.add_paragraph("the committee met for hours on the budget and the debate ran long without a formal close")
+d.add_paragraph("next quarter brought entirely new rules")
+r, out = run_reflow(d, pdf)
+check(len([p for p in r.paragraphs if p.text.strip()]) == 2, "R20: merged across indent")
 
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)

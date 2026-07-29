@@ -605,7 +605,314 @@ def header_footer_parts(data, pdf_doc=None):
     return buf.getvalue()
 
 
-PASSES = (header_footer_parts, heading_styles, list_numbering)
+# --- paragraph reflow --------------------------------------------------------
+# pdf2docx fragments logical paragraphs wherever its block detection breaks:
+# styled-run line boundaries, column jumps, page breaks. It also carries the
+# PDF's end-of-line hyphenation into the text ("equip‐ment"). This pass merges
+# fragments back and removes hyphenation — but ONLY where the source PDF
+# testifies: two docx paragraphs merge only when their combined token stream is
+# contiguous inside one PDF-derived logical paragraph, and a hyphen is removed
+# only when the fused word appears at a PDF line break. Merging moves content,
+# never deletes it; ambiguity is always a no-op.
+
+HYPHENS = "-‐­"
+_TERMINALS = ".!?:;。．！？"  # incl. fullwidth/CJK — pdf2docx splits blocks on these
+
+
+def _tok(s):
+    # unicode-aware: Cyrillic/Arabic/CJK text must be visible to the oracle,
+    # or paragraphs carrying it would look empty and get merged over
+    return re.findall(r"[^\W_]+", (s or "").lower())
+
+
+def _pdf_logical_paras(pdf_doc):
+    """Reading-order logical paragraphs + words fused across hyphenated line
+    breaks. Lines inside a MuPDF block are segmented, not blindly joined: a
+    line continues its paragraph only when the previous line is nearly full
+    width, does not end a sentence into a capital, and the new line is not
+    first-line indented. Segments then join across blocks/columns/pages under
+    the same linguistic rules plus tight geometry. Every rule here exists
+    because blind joining collapsed book layouts, poems, signature blocks and
+    heading-only pages in adversarial review."""
+    segs = []  # (page_no, bbox, text, font_size, page_y0, page_h, last_line_full)
+    fuse_candidates = []  # (fused_word, hyphen_char)
+    interior = set()  # hyphenated forms seen mid-line: NOT hyphenation artifacts
+
+    def note_fuse(a_text, b_text):
+        a_text = a_text.rstrip()
+        w1 = re.findall(r"[A-Za-z]+", a_text[-24:])
+        w2 = re.findall(r"[A-Za-z]+", b_text[:24])
+        if w1 and w2:
+            fuse_candidates.append(((w1[-1] + w2[0]).lower(), a_text[-1]))
+
+    def continues(prev_text, prev_full, cur_text, cur_indented):
+        a_last = prev_text.rstrip()[-1:]
+        b_first = cur_text.lstrip()[:1]
+        if not a_last or not b_first or not prev_full or cur_indented:
+            return False
+        if a_last in _TERMINALS:
+            return False
+        return b_first.islower() or (a_last in HYPHENS and b_first.isalpha())
+
+    for page in pdf_doc:
+        for b in page.get_text("dict").get("blocks", []):
+            if b.get("type") != 0:
+                continue
+            lines = []  # (text, bbox, size)
+            for ln in b.get("lines", []):
+                t = "".join(s.get("text", "") for s in ln.get("spans", [])).strip()
+                if t:
+                    size = max((s.get("size", 10.0) for s in ln.get("spans", [])), default=10.0)
+                    lines.append((t, ln["bbox"], size))
+            if not lines:
+                continue
+            for (a, _, _), (nxt, _, _) in zip(lines, lines[1:]):
+                if a[-1:] in tuple(HYPHENS) and nxt[:1].islower():
+                    note_fuse(a, nxt)
+            for t, _, _ in lines:
+                for m in re.finditer(r"([A-Za-z]+)[" + HYPHENS + r"]([A-Za-z]+)", t):
+                    interior.add((m.group(1) + m.group(2)).lower())
+            bx0 = min(l[1][0] for l in lines)
+            bx1 = max(l[1][2] for l in lines)
+            bw = max(bx1 - bx0, 1.0)
+            cur_lines, cur_size = [lines[0]], lines[0][2]
+            for prev_l, cur_l in zip(lines, lines[1:]):
+                # a continuation implies the previous line broke at the column
+                # edge: it must fill its block AND the block must be a real
+                # text column, not a stack of short standalone lines
+                pw = prev_l[1][2] - prev_l[1][0]
+                prev_full = pw >= 0.70 * bw and pw >= 90.0
+                indented = cur_l[1][0] > bx0 + 0.5 * cur_l[2]
+                if continues(prev_l[0], prev_full, cur_l[0], indented):
+                    cur_lines.append(cur_l)
+                else:
+                    segs.append(_seg_of(page, cur_lines, bw, bx0))
+                    cur_lines = [cur_l]
+            segs.append(_seg_of(page, cur_lines, bw, bx0))
+
+    # No joining ACROSS blocks: two adversarial reviews proved the geometry
+    # gate cannot tell a paragraph break from a line break there (lowercase
+    # unterminated paragraphs weld; page-boundary text glues to furniture).
+    # A logical paragraph is exactly an intra-block segment, and only segments
+    # from real text columns (>=140pt wide) may authorise a merge.
+    paras = [seg[2] for seg in segs]
+    eligible = [seg[8] for seg in segs]
+
+    # Only typographic hyphens (U+2010 / soft hyphen) mark automatic line
+    # breaks; an ASCII "-" at a line end is indistinguishable from a compound
+    # broken on its own hyphen ("re-\nform" vs "reform") and never fuses. A
+    # form the document also hyphenates mid-line is spelling, never an
+    # artifact — meaning must not flip.
+    fused = {w for w, h in fuse_candidates if h in "‐­" and w not in interior}
+
+    logical = []
+    for p in paras:
+        toks = _tok(p)
+        # apply the fuses the paragraph itself testified to
+        out, k = [], 0
+        while k < len(toks):
+            if k + 1 < len(toks) and toks[k] + toks[k + 1] in fused:
+                out.append(toks[k] + toks[k + 1])
+                k += 2
+            else:
+                out.append(toks[k])
+                k += 1
+        logical.append(" ".join(out))
+    return logical, fused, eligible
+
+
+def _seg_of(page, lines, block_width, block_x0):
+    x0 = min(l[1][0] for l in lines)
+    y0 = min(l[1][1] for l in lines)
+    x1 = max(l[1][2] for l in lines)
+    y1 = max(l[1][3] for l in lines)
+    lw = lines[-1][1][2] - lines[-1][1][0]
+    last_full = lw >= 0.60 * block_width and lw >= 90.0
+    starts_indented = lines[0][1][0] > block_x0 + 0.5 * lines[0][2]
+    merge_ok = block_width >= 140.0
+    return (page.number, (x0, y0, x1, y1), " ".join(l[0] for l in lines),
+            lines[-1][2], page.rect.y0, page.rect.height, last_full, starts_indented,
+            merge_ok)
+
+
+def _reflow_mergeable(p):
+    ppr = p.find(qn("w:pPr"))
+    if ppr is None:
+        return True
+    return (ppr.find(qn("w:pStyle")) is None and ppr.find(qn("w:numPr")) is None
+            and ppr.find(qn("w:sectPr")) is None)
+
+
+_SPACER_PPR_OK = None  # built lazily: qn() needs the docx namespace map loaded
+
+
+def _is_blank_spacer(p):
+    """A spacer may be swept with a merge ONLY when it carries nothing at all:
+    no visible text in any script, no drawings, breaks, bookmarks or fields —
+    and no pPr machinery beyond cosmetic spacing (a pStyle, pageBreakBefore or
+    framePr changes layout and must survive)."""
+    global _SPACER_PPR_OK
+    if _SPACER_PPR_OK is None:
+        _SPACER_PPR_OK = {qn("w:rPr"), qn("w:spacing"), qn("w:jc"), qn("w:ind")}
+    for c in p:
+        if c.tag == qn("w:pPr"):
+            if any(g.tag not in _SPACER_PPR_OK for g in c):
+                return False
+            continue
+        if c.tag != qn("w:r"):
+            return False
+        for rc in c:
+            if rc.tag == qn("w:rPr"):
+                continue
+            # ascii-whitespace strip only: an NBSP is content, not blankness
+            if rc.tag != qn("w:t") or (rc.text or "").strip(" \t\r\n"):
+                return False
+    return True
+
+
+def _strip_trailing_hyphen(p):
+    ts = [t for t in p.iter(qn("w:t")) if t.text and t.text.rstrip()]
+    if ts:
+        txt = ts[-1].text.rstrip()
+        if txt[-1:] in tuple(HYPHENS):
+            ts[-1].text = txt[:-1]
+
+
+def _dehyph_within(doc, fused):
+    # no optional space: the interior guard sees no spaced forms, so the fuser
+    # must not rewrite them either
+    pat = re.compile(r"([A-Za-z]{2,})[" + HYPHENS + r"]([A-Za-z]{2,})")
+    changed = False
+    for para in doc.paragraphs:
+        if not _reflow_mergeable(para._p):
+            continue  # headings, list items, section paragraphs keep their spelling
+        runs = para._p.findall(qn("w:r"))
+        for r in runs:
+            for t in r.findall(qn("w:t")):
+                if t.text and any(h in t.text for h in HYPHENS):
+                    new = pat.sub(
+                        lambda m: m.group(1) + m.group(2)
+                        if (m.group(1) + m.group(2)).lower() in fused else m.group(0),
+                        t.text)
+                    if new != t.text:
+                        t.text = new
+                        changed = True
+        # hyphen at a run boundary: "…equip‐" + "ment…"
+        for ra, rb in zip(runs, runs[1:]):
+            ta = [t for t in ra.findall(qn("w:t")) if t.text and t.text.rstrip()]
+            tb = [t for t in rb.findall(qn("w:t")) if t.text and t.text.strip()]
+            if not ta or not tb:
+                continue
+            atxt, btxt = ta[-1].text.rstrip(), tb[0].text.lstrip()
+            if atxt[-1:] in tuple(HYPHENS):
+                w1 = re.findall(r"[A-Za-z]+", atxt[-24:])
+                w2 = re.findall(r"[A-Za-z]+", btxt[:24])
+                if w1 and w2 and (w1[-1] + w2[0]).lower() in fused:
+                    ta[-1].text = atxt[:-1]
+                    tb[0].text = tb[0].text.lstrip()
+                    changed = True
+    return changed
+
+
+def paragraph_reflow(data, pdf_doc=None):
+    """Merge paragraph fragments back together, guided by the source PDF."""
+    if pdf_doc is None:
+        return data
+    logical, fused, eligible = _pdf_logical_paras(pdf_doc)
+    if not logical:
+        return data
+    wrapped = [" " + lp + " " for lp in logical]
+    full = set(logical)
+
+    doc = Document(io.BytesIO(data))
+    changed = False
+    cursor = 0  # logical paragraphs are consumed in document order:
+    i = 0       # a fragment pair may never match an earlier region's text
+    while True:
+        paras = doc.paragraphs
+        if i >= len(paras):
+            break
+        A = paras[i]
+        la = _tok(A.text)
+        if not la:
+            i += 1
+            continue
+        # next content paragraph; only paragraphs carrying NOTHING (no text in
+        # any script, no drawings/breaks/bookmarks) count as sweepable spacers
+        spacers, B, j = [], None, i + 1
+        while j < len(paras):
+            if _is_blank_spacer(paras[j]._p):
+                spacers.append(paras[j])
+                j += 1
+                continue
+            B = paras[j]
+            break
+        if B is None:
+            break
+        sa = " ".join(la)
+        if sa in full:
+            for k in range(cursor, len(logical)):
+                if logical[k] == sa:
+                    cursor = k + 1
+                    break
+            i = j
+            continue
+        chain = [A._p] + [s._p for s in spacers] + [B._p]
+        if (not all(chain[k].getnext() is chain[k + 1] for k in range(len(chain) - 1))
+                or not (_reflow_mergeable(A._p) and _reflow_mergeable(B._p))):
+            i = j
+            continue
+        lb = _tok(B.text)
+        if not lb:
+            i = j
+            continue
+        variants = [" " + " ".join(la + lb) + " "]
+        a_end = A.text.rstrip()[-1:]
+        dehyph = a_end in HYPHENS and (la[-1] + lb[0]) in fused
+        if dehyph:
+            variants.insert(0, " " + " ".join(la[:-1] + [la[-1] + lb[0]] + lb[1:]) + " ")
+        hit = next((v for v in variants
+                    if any(v in wrapped[k] for k in range(cursor, len(logical))
+                           if eligible[k])), None)
+        if hit is None:
+            i = j
+            continue
+        if dehyph and hit is variants[0]:
+            _strip_trailing_hyphen(A._p)
+        else:
+            stream_a = _stream_text(A._p)
+            if not stream_a.endswith((" ", "\t", "\n")) and not B.text[:1].isspace():
+                joiner = parse_xml(f'<w:r {nsdecls("w")}><w:t xml:space="preserve"> </w:t></w:r>')
+                last_run = A._p.findall(qn("w:r"))
+                if last_run:
+                    rpr = last_run[-1].find(qn("w:rPr"))
+                    if rpr is not None:
+                        rpr = copy.deepcopy(rpr)
+                        for deco in ("w:u", "w:strike", "w:dstrike", "w:shd",
+                                     "w:highlight", "w:em", "w:bdr", "w:vertAlign"):
+                            el = rpr.find(qn(deco))
+                            if el is not None:
+                                rpr.remove(el)
+                        joiner.insert(0, rpr)
+                A._p.append(joiner)
+        for c in list(B._p):
+            if c.tag != qn("w:pPr"):
+                A._p.append(c)
+        B._p.getparent().remove(B._p)
+        for s in spacers:
+            s._p.getparent().remove(s._p)
+        changed = True
+        # stay on A: it may continue absorbing the next fragment
+
+    changed = _dehyph_within(doc, fused) or changed
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+PASSES = (header_footer_parts, heading_styles, list_numbering, paragraph_reflow)
 
 
 def enhance(docx_bytes, pdf_doc=None):
