@@ -434,7 +434,8 @@
       "abbr": "VT",
       "slug": "vermont",
       "hasIncomeTax": true,
-      "figureYear": 2026,
+      "figureYear": 2025,
+      "figureYearScope": "standardDeduction",
       "tax": {
         "type": "bracket",
         "standardDeduction": {
@@ -2920,6 +2921,22 @@
           "married": 30000,
           "head_of_household": 22500
         },
+        "standardDeductionPhaseout": {
+          "_statute": "S.C. Code 12-6-1140(15)(b)-(c), added by Act 110 of 2026 (H.4216)",
+          "roundReductionDownTo": 10,
+          "single": {
+            "over": 40000,
+            "denominator": 55000
+          },
+          "married": {
+            "over": 80000,
+            "denominator": 110000
+          },
+          "head_of_household": {
+            "over": 60000,
+            "denominator": 82500
+          }
+        },
         "brackets": {
           "single": [
             {
@@ -2955,7 +2972,7 @@
       },
       "_source": "South Carolina individual income tax — OFFICIAL South Carolina Dept. of Revenue guidance on H.4216 (Act 110, signed March 30, 2026), EFFECTIVE for tax year 2026 (returns due April 15, 2027). H.4216 REPLACES SC's old 0%/3%/6% three-bracket system entirely for TY2026 with a two-rate schedule on federal-AGI-based taxable income: 'the tax rate for income less than $30,000 is 1.99%' and 'the tax rate for income from $30,000 and above is 5.21%, minus $966.' The '5.21% minus $966' form is mathematically identical to a marginal two-bracket schedule (verified continuity at $30,000: 1.99% x 30000 = $597 = 5.21% x 30000 - 966), so modeled as marginal brackets: 1.99% to $30,000, 5.21% above — SAME rates for all filing statuses. SCDOR also created the new SC Income-Adjusted Deduction (SCIAD) replacing the federal standard/itemized deduction: $15,000 single/MFS, $22,500 head of household, $30,000 MFJ/surviving spouse (modeled as the standardDeduction). RESOLVED A GENUINE SOURCE CONFLICT: the Tax Foundation 2026 dataset still lists SC's OLD 0%/3%/6% system (top reverting to 6.2% on 7/1/2026) and federal std deduction $8,350/$16,700 — it predates H.4216, which was signed only March 30, 2026. The official SCDOR H.4216 page (ranked first per loop procedure) overrides the stale secondary, and PolicyEngine + ITEP corroborate the 1.99%/5.21% + SCIAD structure. figureYear=2026 (genuine official 2026 data, no prior-year fallback). Hand-verified single $75k -> $2,160.00 (taxable = 75000-15000 = 60000; = 1.99% x 30000 + 5.21% x 30000 = 597 + 1563). https://dor.sc.gov/news/information-about-h-4216 ; https://www.policyengine.org/us/south-carolina-2026-tax-changes",
       "disclaimer": [
-        "South Carolina rewrote its income tax for 2026 (H. 4216, Act 110): 1.99% on taxable income below $30,000 and 5.21% from $30,000 up, with a new South Carolina Income Adjusted Deduction (SCIAD) replacing the federal standard deduction. The SCIAD starts at $15,000 for single or married filing separately, $22,500 for head of household, and $30,000 for married filing jointly or a surviving spouse, but S.C. Code Section 12-6-1140(15)(b) shrinks it as federal adjusted gross income rises and allows no deduction at all once income is high enough. This estimate applies the full SCIAD and does not model that phase-down, so a higher earner's real South Carolina tax can exceed the figure shown by as much as 5.21% of the full deduction.",
+        "South Carolina rewrote its income tax for 2026 (H. 4216, Act 110): 1.99% on taxable income below $30,000 and 5.21% above, with the South Carolina Income Adjusted Deduction (SCIAD) replacing the federal standard deduction. The SCIAD starts at $15,000 for single or married filing separately, $22,500 for head of household and $30,000 for married filing jointly, and shrinks as income rises until it reaches zero at $95,000, $142,500 and $190,000 respectively. This calculator now applies that reduction. The statute measures it against your federal adjusted gross income; we use your wages less pre-tax deductions, so if you have income or adjustments outside your paycheck your real deduction may be smaller than shown.",
         "South Carolina starts from federal AGI; this estimate approximates taxable income as wages minus the SCIAD and does not model federal-AGI adjustments, the capped state EITC ($200), or other SC credits.",
         "South Carolina has no local/city income tax on wages.",
         "Under H.4216 the top rate may be reduced further in future years if state revenue triggers are met; figures shown are the enacted 2026 rates.",

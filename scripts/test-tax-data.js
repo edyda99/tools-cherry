@@ -80,7 +80,12 @@ t('Texas has no state income tax', () => assert.equal(stateTax('texas', 75000), 
 // 2025 CPI-indexed amounts. Idaho Code 63-3024(3) re-indexes annually and the published series
 // moves about 3% a year, so a 2026 figure exists but the Tax Commission had not published its 2026
 // schedule. The record claimed figureYear 2026 while shipping 2025 thresholds.
-const EXPECTED_FALLBACKS = ['arizona', 'california', 'district-of-columbia', 'idaho'];
+// vermont joined 2026-07-30, LAST, and it was the guard's own blind spot. Its brackets were
+// corrected to genuine 2026 indexed thresholds but its standard deduction is the TY2025 amount, and
+// when it shipped there was no figureYearScope field, so moving figureYear would have mislabelled
+// the brackets. A verification pass caught that it was serving 2025 figures under figureYear 2026,
+// invisible to this very test.
+const EXPECTED_FALLBACKS = ['arizona', 'california', 'district-of-columbia', 'idaho', 'vermont'];
 
 t('every prior-year state is expected AND discloses it to the reader', () => {
   for (const s of ['nebraska', 'oklahoma']) {
@@ -172,6 +177,52 @@ t('arizona and DC standard deductions are their own, not federal', () => {
   const az = tax.states.arizona.tax.standardDeduction;
   assert.ok(az.head_of_household > az.single && az.head_of_household < az.married,
     'arizona HoH must sit strictly between single and married');
+});
+
+// --- South Carolina SCIAD phase-down, S.C. Code 12-6-1140(15)(b)-(c) --------
+// Act 110 of 2026 replaced the federal standard deduction with an income-tested one. Two details
+// in the statute are easy to invert and both change the answer, so both are pinned:
+//   (c) rounds the REDUCTION down to a multiple of ten, NOT the resulting deduction. At single
+//       AGI 40,100 the statute gives reduction 20 and deduction 14,980; rounding the deduction
+//       instead yields 14,970, a $10 error in the wrong direction. That case is the tripwire.
+//   (b)(iv) the deduction is "not allowed" once the fraction reaches one, so the phase-out
+//       completes exactly at over + denominator: 95,000 / 142,500 / 190,000.
+// Every expected value below was derived from the enacted bill text and independently reproduced by
+// two reviewers before being written here. NOTE the codified S.C. Code page is stale and still ends
+// 12-6-1140 at item (14); the enacted act text governs.
+t('South Carolina SCIAD phases down, rounding the reduction not the deduction', () => {
+  const cases = [
+    [35000, 'single', 398.00, 'below the phase-down, full 15,000 deduction'],
+    [40100, 'single', 499.89, 'ROUNDING TRIPWIRE: reduction floors to 20, deduction 14,980'],
+    [60000, 'single', 1662.44, 'mid-range, deduction 9,550'],
+    [75000, 'single', 2657.03, 'headline case, deduction 5,460'],
+    [95000, 'single', 3983.50, 'boundary: fully phased out, deduction 0'],
+    [100000, 'head_of_household', 3639.64, 'exercises the 60,000/82,500 row'],
+    [142500, 'head_of_household', 6458.25, 'HoH boundary, deduction 0'],
+    [120000, 'married', 4290.89, 'exercises the 80,000/110,000 row'],
+    [190000, 'married', 8933.00, 'MFJ boundary, deduction 0'],
+  ];
+  for (const [gross, fs, want, why] of cases) {
+    approx(stateTax('south-carolina', gross, fs), want, 0.02);
+  }
+  // The deduction must never be negative, and must be exactly zero past the boundary rather than
+  // going negative and adding tax back.
+  for (const gross of [200000, 500000]) {
+    const atBoundary = stateTax('south-carolina', 190000, 'married');
+    assert.ok(stateTax('south-carolina', gross, 'married') > atBoundary,
+      'past the boundary tax must keep rising, not jump from a negative deduction');
+  }
+  // Structural: the phase-down is opt-in and South Carolina is its only user, so a stray copy into
+  // another state would silently change that state's tax.
+  const users = Object.entries(tax.states)
+    .filter(([, s]) => s.tax && s.tax.standardDeductionPhaseout)
+    .map(([slug]) => slug);
+  assert.deepEqual(users, ['south-carolina'], 'standardDeductionPhaseout must be South Carolina only');
+  const cfg = tax.states['south-carolina'].tax.standardDeductionPhaseout;
+  assert.equal(cfg.roundReductionDownTo, 10, 'statute rounds to ten dollars');
+  assert.deepEqual(cfg.single, { over: 40000, denominator: 55000 });
+  assert.deepEqual(cfg.head_of_household, { over: 60000, denominator: 82500 });
+  assert.deepEqual(cfg.married, { over: 80000, denominator: 110000 });
 });
 
 // --- Oklahoma 2026, HB2764 -------------------------------------------------
