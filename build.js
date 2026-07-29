@@ -6401,7 +6401,11 @@ async function main() {
     // the same way the cache blocks unset Cache-Control. Safe to frame: the
     // embed pages carry no auth input, no cookie or localStorage use, no
     // external form action and no ad slot, so there is nothing to clickjack.
-    `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: DENY\n  Cache-Control: public, max-age=0, must-revalidate\n\n/embed/*\n  ! X-Frame-Options\n  Content-Security-Policy: frame-ancestors *\n\n/assets/*\n  ! Cache-Control\n  Cache-Control: public, max-age=300, must-revalidate\n\n/assets/*.js\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n\n/assets/*.css\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n`
+    // `/embed/` itself is deliberately put back under DENY afterwards. It is
+    // the gallery listing, not a widget, and unlike the widgets it does carry
+    // the AdSense loader. A framable ad-bearing page invites invisible-iframe
+    // impression fraud, so the wildcard must not be allowed to cover it.
+    `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: DENY\n  Cache-Control: public, max-age=0, must-revalidate\n\n/embed/*\n  ! X-Frame-Options\n  Content-Security-Policy: frame-ancestors *\n\n/embed/\n  ! Content-Security-Policy\n  X-Frame-Options: DENY\n\n/assets/*\n  ! Cache-Control\n  Cache-Control: public, max-age=300, must-revalidate\n\n/assets/*.js\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n\n/assets/*.css\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n`
   );
 
   // robots + sitemap
