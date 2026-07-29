@@ -76,7 +76,11 @@ t('Texas has no state income tax', () => assert.equal(stateTax('texas', 75000), 
 // CHANGE in the list, not the thing that actually harms a reader: a state quietly sitting on
 // prior-year figures without telling anyone. So it now asserts both, and the second assertion
 // is the one with teeth.
-const EXPECTED_FALLBACKS = ['arizona', 'california', 'district-of-columbia'];
+// idaho joined 2026-07-30: its zero-rate thresholds (4,811 single / 9,622 joint and HoH) are the
+// 2025 CPI-indexed amounts. Idaho Code 63-3024(3) re-indexes annually and the published series
+// moves about 3% a year, so a 2026 figure exists but the Tax Commission had not published its 2026
+// schedule. The record claimed figureYear 2026 while shipping 2025 thresholds.
+const EXPECTED_FALLBACKS = ['arizona', 'california', 'district-of-columbia', 'idaho'];
 
 t('every prior-year state is expected AND discloses it to the reader', () => {
   for (const s of ['nebraska', 'oklahoma']) {
@@ -112,6 +116,58 @@ t('every prior-year state is expected AND discloses it to the reader', () => {
       'A reader is told nothing, which is the whole defect this guards.',
     );
   }
+});
+
+// --- head-of-household ladders, the defect class a single-filer sweep cannot see ---
+// Five states shipped HoH thresholds copied from the SINGLE column when the statute puts head of
+// household on the MARRIED ladder (or gives it its own). Every one computed a correct single-filer
+// figure, so nothing caught them: a 2026-07-29 coverage scan found these states in ZERO test files,
+// which means ten money corrections would have gone equally green had they been wrong. These pins
+// are per-status on purpose.
+t('head-of-household ladders are not the single ladder', () => {
+  const b = (slug) => tax.states[slug].tax.brackets;
+  // idaho: 63-3024(2)(b) treats a HoH return as a joint return, so HoH == married exactly.
+  assert.deepEqual(b('idaho').head_of_household, b('idaho').married, 'idaho HoH must equal married');
+  assert.equal(b('idaho').head_of_household[0].upTo, 9622, 'idaho HoH zero-band');
+  assert.equal(b('idaho').single[0].upTo, 4811, 'idaho single zero-band (half of HoH)');
+  // new-mexico: NMSA 7-2-7 puts HoH on the married table.
+  assert.deepEqual(b('new-mexico').head_of_household, b('new-mexico').married, 'NM HoH must equal married');
+  // vermont and north-dakota publish a DISTINCT HoH ladder, between single and married.
+  for (const slug of ['vermont', 'north-dakota']) {
+    const hoh = b(slug).head_of_household[0].upTo;
+    assert.ok(hoh > b(slug).single[0].upTo, `${slug} HoH first threshold must exceed single`);
+    assert.ok(hoh < b(slug).married[0].upTo, `${slug} HoH first threshold must be below married`);
+  }
+  assert.equal(b('vermont').head_of_household[0].upTo, 68000, 'vermont HoH first threshold');
+  assert.equal(b('north-dakota').head_of_household[0].upTo, 66400, 'north-dakota HoH first threshold');
+  // montana: HoH is 1.5x single, distinct from both.
+  assert.equal(b('montana').head_of_household[0].upTo, 71250, 'montana HoH threshold');
+  assert.equal(b('montana').single[0].upTo, 47500, 'montana single threshold');
+});
+
+// --- the rate cuts corrected 2026-07-29, none of which had a pin ------------
+t('west-virginia and arkansas carry their post-cut 2026 rates', () => {
+  const wv = tax.states['west-virginia'].tax.brackets.single.map((r) => r.rate);
+  assert.deepEqual(wv, [0.0211, 0.0281, 0.0316, 0.0422, 0.0458], 'WV SB 392 rates');
+  const ar = tax.states.arkansas.tax.brackets.single;
+  assert.equal(ar[ar.length - 1].rate, 0.037, 'arkansas top rate after Act 1 of 2026');
+});
+
+// --- arizona and DC standard deductions corrected 2026-07-30 ----------------
+t('arizona and DC standard deductions are their own, not federal', () => {
+  assert.deepEqual(tax.states.arizona.tax.standardDeduction,
+    { single: 15750, married: 31500, head_of_household: 23625 }, 'arizona 2025 published amounts');
+  assert.deepEqual(tax.states['district-of-columbia'].tax.standardDeduction,
+    { single: 15000, married: 30000, head_of_household: 22500 }, 'DC decoupled amounts');
+  // The federal set must NOT reappear in either: that was the original defect for DC.
+  const fed = tax.federal.standardDeduction;
+  for (const slug of ['arizona', 'district-of-columbia']) {
+    assert.notDeepEqual(tax.states[slug].tax.standardDeduction, fed, `${slug} must not use federal`);
+  }
+  // arizona previously collapsed HoH onto married. Under every candidate HoH sits strictly between.
+  const az = tax.states.arizona.tax.standardDeduction;
+  assert.ok(az.head_of_household > az.single && az.head_of_household < az.married,
+    'arizona HoH must sit strictly between single and married');
 });
 
 // --- Oklahoma 2026, HB2764 -------------------------------------------------
