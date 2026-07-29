@@ -66,15 +66,52 @@ t('Texas has no state income tax', () => assert.equal(stateTax('texas', 75000), 
 // Oklahoma moved to 2026 on 2026-07-29: HB2764 (approved 2025-05-28) supplies the
 // statutory schedule and OTC Packet OW-2 Rev 11-2025 corroborates it, so the old
 // "not published in verifiable form yet" premise was simply false.
-t('California is the only figureYear 2025 fallback; Nebraska and Oklahoma are 2026', () => {
-  assert.equal(tax.states.california.figureYear, 2025, 'california should be 2025-fallback');
+// 2026-07-30: arizona and district-of-columbia joined california on prior-year figures, both
+// deliberately. Arizona's shipped 8350/16700/16700 matched no published year and collapsed
+// head-of-household onto married; DC shipped the FEDERAL amounts while D.C. Code 47-1801.04(3A)
+// decouples. In both cases the correct 2026 figure is unpublished, so the 2025 statutory amount
+// is the honest floor.
+//
+// This test used to assert the fallback list was exactly ['california']. That only caught a
+// CHANGE in the list, not the thing that actually harms a reader: a state quietly sitting on
+// prior-year figures without telling anyone. So it now asserts both, and the second assertion
+// is the one with teeth.
+const EXPECTED_FALLBACKS = ['arizona', 'california', 'district-of-columbia'];
+
+t('every prior-year state is expected AND discloses it to the reader', () => {
   for (const s of ['nebraska', 'oklahoma']) {
     assert.equal(tax.states[s].figureYear, 2026, `${s} should carry official 2026 figures`);
   }
   const fallbacks = Object.entries(tax.states)
     .filter(([, s]) => s.figureYear && s.figureYear !== 2026)
-    .map(([slug]) => slug);
-  assert.deepEqual(fallbacks, ['california'], 'exactly one state should still be on prior-year figures');
+    .map(([slug]) => slug)
+    .sort();
+  assert.deepEqual(
+    fallbacks, EXPECTED_FALLBACKS,
+    'the set of prior-year states changed. If that is intended, update EXPECTED_FALLBACKS and ' +
+    'make sure the new state discloses the prior year in its disclaimer.',
+  );
+  // The assertion that matters: a fallback the reader is not told about is the defect. Every
+  // one of these renders its disclaimer on the live page, so require the year to appear there.
+  for (const slug of fallbacks) {
+    const st = tax.states[slug];
+    const year = String(st.figureYear);
+    // figureYearScope decides which sentence the on-page banner prints. Without it the banner
+    // defaults to claiming the BRACKETS are prior-year, which was false for arizona and DC
+    // (their rates are current, only the standard deduction lags). A fallback state with no
+    // scope therefore publishes a false statement, so require it explicitly.
+    assert.ok(
+      ['brackets', 'standardDeduction'].includes(st.figureYearScope),
+      `${slug} is on ${year} figures but has no valid figureYearScope. The banner would then ` +
+      'claim its brackets are prior-year, which may be false. Set "brackets" or "standardDeduction".',
+    );
+    const prose = [].concat(st.disclaimer || [], st.notes || '', st._source || '').join(' ');
+    assert.ok(
+      prose.includes(year),
+      `${slug} is on ${year} figures but never says so in its disclaimer, notes or _source. ` +
+      'A reader is told nothing, which is the whole defect this guards.',
+    );
+  }
 });
 
 // --- Oklahoma 2026, HB2764 -------------------------------------------------

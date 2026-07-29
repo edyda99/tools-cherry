@@ -217,13 +217,14 @@
       "abbr": "DC",
       "slug": "district-of-columbia",
       "hasIncomeTax": true,
-      "figureYear": 2026,
+      "figureYear": 2025,
+      "figureYearScope": "standardDeduction",
       "tax": {
         "type": "bracket",
         "standardDeduction": {
-          "single": 16100,
-          "married": 32200,
-          "head_of_household": 24150
+          "single": 15000,
+          "married": 30000,
+          "head_of_household": 22500
         },
         "brackets": {
           "single": [
@@ -318,9 +319,10 @@
           ]
         }
       },
-      "_source": "DC 2026 7-bracket schedule (4/6/6.5/8.5/9.25/9.75/10.75%), same thresholds for all filing statuses; Tax Foundation as-of Jan 1 2026; cross-check DC Office of Tax and Revenue (otr.cfo.dc.gov). Federal-conformed standard deduction $16,100/$32,200/$24,150. https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/",
+      "_source": "Rates are the District's schedule of seven brackets, 4% to 10.75%, with the same thresholds for every filing status, set by D.C. Code 47-1806.03(a)(11). The District does not use the federal standard deduction. It sets its own: $15,000 for a single filer or married filing separately, $22,500 for head of household, and $30,000 for a married couple filing jointly, under D.C. Code 47-1801.04(3A). Those are the tax year 2025 amounts. The same figures carry into 2026 subject to a cost-of-living adjustment the District has not published yet, so the 2025 amounts are shown. Filers aged 65 or older or blind may claim an additional standard deduction, which this calculator does not include. Sources: https://code.dccouncil.gov/us/dc/council/code/sections/47-1801.04 and https://code.dccouncil.gov/us/dc/council/code/sections/47-1806.03",
       "disclaimer": [
-        "District income tax. DC uses the same bracket thresholds for all filing statuses."
+        "District income tax. DC uses the same bracket thresholds for all filing statuses.",
+        "The District sets its own standard deduction and does not follow the federal amount. The figures used here are the District's tax year 2025 amounts, because DC has not yet published its inflation-adjusted 2026 amounts."
       ],
       "notes": "Graduated 4%–10.75% (2026)."
     },
@@ -1231,19 +1233,21 @@
       "abbr": "AZ",
       "slug": "arizona",
       "hasIncomeTax": true,
-      "figureYear": 2026,
+      "figureYear": 2025,
+      "figureYearScope": "standardDeduction",
       "tax": {
         "type": "flat",
         "rate": 0.025,
         "standardDeduction": {
-          "single": 8350,
-          "married": 16700,
-          "head_of_household": 16700
+          "single": 15750,
+          "married": 31500,
+          "head_of_household": 23625
         }
       },
-      "_source": "AZ flat 2.5%; standard deduction $8,350 single / $16,700 MFJ & HoH (Tax Foundation 2026; AZ DOR inflation-adjusts annually). https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/",
+      "_source": "Arizona taxes income at a flat 2.5% (A.R.S. 43-1011). The standard deduction shown is Arizona's published tax year 2025 amount: $15,750 for a single filer or a married person filing separately, $31,500 for a married couple filing jointly, and $23,625 for head of household, read from the Arizona Department of Revenue's 2025 Form 140 instructions. Although A.R.S. 43-1041 states Arizona's own base amounts and indexes them by the federal method, the amounts the Department actually publishes have matched the federal standard deduction, and these three figures are the federal 2025 amounts. Arizona had not published a 2026 standard deduction as of 30 July 2026. Sources: Arizona Department of Revenue 2025 Form 140 instructions, https://azdor.gov/sites/default/files/document/FORMS_INDIVIDUAL_2025_140i.pdf , and A.R.S. 43-1041, https://www.azleg.gov/ars/43/01041.htm",
       "disclaimer": [
-        "Standard-deduction figures are the Tax Foundation 2026 values; confirm against the Arizona DOR final 2026 release before launch."
+        "The standard deduction used here is Arizona's published 2025 amount. Arizona releases each year's amount alongside that year's Form 140, and the 2026 amount had not been published as of 30 July 2026.",
+        "Arizona also allows an extra standard deduction for charitable contributions if you do not itemize. This calculator does not include it, so your Arizona tax may be slightly lower than shown."
       ],
       "notes": "Flat 2.5% after the AZ standard deduction."
     },
@@ -2271,6 +2275,7 @@
       ],
       "hasIncomeTax": true,
       "figureYear": 2025,
+      "figureYearScope": "brackets",
       "tax": {
         "type": "bracket",
         "standardDeduction": {

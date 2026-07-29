@@ -1401,14 +1401,37 @@ function stripInternal(value) {
 // Do not reintroduce the word "official" either. Some supplemental rates carry
 // singleSourced: false and cite a payroll vendor rather than the state, so
 // "official" would be a second false claim on the same line.
+// 2026-07-30: this used to hard-code "brackets" as the thing on prior-year figures, which was
+// true only for California. Arizona and DC joined the fallback list that day with the OPPOSITE
+// shape: their rates and bracket tables are current and only the STANDARD DEDUCTION is a prior
+// year. The banner was therefore telling readers "Arizona has not published its 2026 income tax
+// brackets yet" when Arizona's flat 2.5% is current statute, and telling DC readers the same
+// about a 2026 bracket table that is operative under D.C. Code 47-1806.03(a)(11). So the scope
+// is now read from the data instead of assumed. `figureYearScope` is required on any state whose
+// figureYear is not the build year, enforced in scripts/test-tax-data.js.
+const FIGURE_YEAR_SCOPE = {
+  brackets: {
+    label: (fy) => `${fy} brackets`,
+    body: (name, fy, yr) =>
+      `${name} has not published its ${yr} income tax brackets yet, so figures worked out from ` +
+      `those brackets use its ${fy} ones.`,
+  },
+  standardDeduction: {
+    label: (fy) => `${fy} standard deduction`,
+    body: (name, fy, yr) =>
+      `${name}'s tax rates for ${yr} are current, but it has not published its ${yr} standard ` +
+      `deduction yet, so this page subtracts its ${fy} amount.`,
+  },
+};
+
 function figureYearBanner(state, year) {
   const fy = Number(state.figureYear);
   const yr = Number(year);
   if (!fy || fy === yr) return '';
+  const scope = FIGURE_YEAR_SCOPE[state.figureYearScope] || FIGURE_YEAR_SCOPE.brackets;
   return `<p class="year-fallback" role="note">` +
-    `<strong>${fy} brackets (${yr} pending).</strong> ` +
-    `${state.name} has not published its ${yr} income tax brackets yet, so figures worked out ` +
-    `from those brackets use its ${fy} ones. We update this page when the state publishes.` +
+    `<strong>${scope.label(fy)} (${yr} pending).</strong> ` +
+    `${scope.body(state.name, fy, yr)} We update this page when the state publishes.` +
     `</p>`;
 }
 
