@@ -4185,6 +4185,31 @@ async function main() {
       `Update to ${nowYear} before relying on this deploy. (npm test will fail on this.)\n`);
   }
 
+  // `verified` is rendered to every state and bonus page as "verified <date>", which is
+  // a factual claim about when a human last checked. It goes stale the moment the figures
+  // it describes are edited, and the year check above cannot see that: on 2026-07-29 six
+  // states' brackets were rewritten while this date still read 2026-06-16. Surfaced here
+  // as well as in check-freshness.js because the build is what runs on every deploy.
+  if (verified) {
+    try {
+      const { execFileSync } = await import('node:child_process');
+      const lastDataCommit = execFileSync(
+        'git', ['log', '-1', '--format=%cs', '--', 'src/data/tax-data-2026.json'],
+        { cwd: __dirname, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+      ).trim();
+      if (lastDataCommit && lastDataCommit > verified) {
+        console.warn(`\n⚠  VERIFIED-DATE STALE: tax data last changed ${lastDataCommit}, but pages ` +
+          `will render "verified ${verified}". Re-check the figures, then set _meta.lastSourced ` +
+          `to the date you actually checked. Do not bump it without checking.\n`);
+      }
+    } catch (err) {
+      // Not a git checkout, or git is unavailable. Say so rather than swallowing it:
+      // a silent catch here is how this guard would quietly stop guarding. The
+      // check-freshness.js copy still runs in `npm test`.
+      console.warn(`⚠  verified-date check skipped: ${err.message}`);
+    }
+  }
+
   const builtSlugs = new Set(Object.keys(taxData.states));
   const homeLinks = stateLinks(roster, builtSlugs, null);
   // Computed once over the jurisdictions the study actually ranks, then written
