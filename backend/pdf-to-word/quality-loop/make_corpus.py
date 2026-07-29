@@ -28,6 +28,8 @@ td, th { padding: 4pt 8pt; font-size: 10.5pt; text-align: left; }
 .bordered td, .bordered th { border: 1pt solid #444; }
 .cols { column-count: 2; column-gap: 24px; }
 .justify p { text-align: justify; hyphens: auto; }
+.narrow { width: 190pt; }
+.narrow p { text-align: left; hyphens: auto; }
 a { color: #0645ad; text-decoration: underline; }
 """
 
@@ -73,6 +75,23 @@ P_LONG = [
     "Finally, log everything for a fortnight. The notebook, not the tongue, reveals that "
     "Tuesday's remarkable shot followed a recalibration you had already forgotten by "
     "Thursday, and that repeatability was the ingredient you were actually missing.",
+]
+
+P_WRAP = [
+    "The overnight maintenance window exposed a reproducibility problem in the "
+    "calibration bench: identical measurement sequences returned inconsistent "
+    "phosphorescence readings whenever the humidity compensation module restarted "
+    "between runs.",
+    "Responsibility for the recalibration procedure now sits with the instrumentation "
+    "group, whose documentation emphasises uninterruptible power and a demagnetised "
+    "workbench before any characterisation begins.",
+    "Interdepartmental communication remains the uncomfortable bottleneck. The "
+    "questionnaire circulated after the incident demonstrated that administrators "
+    "misunderstood the notification thresholds and postponed acknowledgement until "
+    "the following morning.",
+    "A representative subcommittee will standardise the troubleshooting terminology, "
+    "publish an authoritative checklist, and schedule quarterly demonstrations so the "
+    "accumulated understanding survives personnel rotation.",
 ]
 
 P_COLUMN = [
@@ -173,6 +192,10 @@ DOCS = {
             {"table": TABLE_ROWS, "borders": False},
             {"p": "Whitespace carries the structure here; the numbers have not changed."},
         ],
+    },
+    "wrap_hard": {
+        "wrap_class": "narrow",
+        "blocks": [{"h": 1, "text": "Maintenance Bulletin"}] + [{"p": t} for t in P_WRAP],
     },
     "two_column": {
         "wrap_class": "cols",

@@ -153,8 +153,22 @@
    "reflow": 0.8333,
    "wrap": 0.75,
    "composite": 0.9511
+  },
+  "wrap_hard": {
+   "text_recall": 0.902,
+   "text_precision": 0.8214,
+   "order": 0.8598,
+   "headings": 1.0,
+   "lists": null,
+   "tables": null,
+   "header_footer": null,
+   "links": null,
+   "styles": null,
+   "reflow": 0.0,
+   "wrap": 0.0,
+   "composite": 0.6779
   }
  },
- "mean_composite": 0.9956,
+ "mean_composite": 0.9691,
  "weights_version": 4
 }

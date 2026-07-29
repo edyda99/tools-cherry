@@ -1,6 +1,6 @@
 # Enhancement backlog (evidence-ordered from the iteration-0 baseline)
 
-Scoreboard now: mean composite 0.9956 (weights_version 3 re-baseline of the iter-5 output; the 0.0021 drop is the new wrap metric exposing two_column, not a regression). SEASON 2 IN PROGRESS since 2026-07-30.
+Scoreboard now: mean composite 0.9691 (12-doc corpus after wrap_hard joined in iter 7; the drop IS the exposed w:br/hyphen defect, the iter-8 target). SEASON 2 IN PROGRESS since 2026-07-30.
 
 | # | Item | Evidence | Status |
 |---|------|----------|--------|
@@ -154,3 +154,17 @@ Dropped: hyperlink preservation — pdf2docx already keeps links live (links 1.0
   for non-Word consumers beats a missed-reflow artifact. Links metric must be
   hardened in the same iteration (count only paragraph-level hyperlinks as
   live; weights_version 4 re-baseline).
+
+- **iter 7 (2026-07-30, corpus growth, re-baseline 0.9956 -> 0.9691 on 12 docs):**
+  added `wrap_hard` — a 190pt ragged-right hyphenating column (weasyprint
+  pyphen) of four flowing paragraphs. Conversion produces exactly the target
+  disease: 24 w:br wrap artifacts (one per wrapped line, even inside the h1),
+  10 hyphen runs with real mid-word U+2010 splits ("pro-cedure", "re-mains")
+  that corrupt the token stream (text_recall 0.902, precision 0.821), wrap
+  0.000, reflow 0.000, composite 0.678. Visual verdict: content complete, the
+  DOCX mirrors the PDF's frozen line breaks (QL composite read; that frozen
+  layout is the defect, not a rendering fault). Hostile suite ALL PASS.
+  Iter 8 = the healing pass: remove intra-paragraph wrap w:br + heal the
+  hyphen splits under the same intra-block continues() evidence as reflow;
+  poems/short-line blocks must no-op (fullness gate), heading paragraphs
+  included; three measurable wins available (wrap, reflow, text recall).
