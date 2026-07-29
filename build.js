@@ -3048,16 +3048,22 @@ function bonusProgramNote(state, { detail = false } = {}) {
 }
 
 function bonusLede(state, supp, year) {
+  const wp = withholdingProfile(state);
+  // (a) WHAT THIS STATE STILL TAKES that the bonus engine does not model. Keyed
+  // to the state's own employeePrograms and to nothing else. It used to be
+  // reachable only from inside the no-income-tax branch below, which is why the
+  // twelve income-tax states that run a real premium said nothing about it.
+  const progDisclosure = bonusProgramNote(state);
   let stateBit;
   if (supp.method === 'none') {
     const angle = NOTAX_ANGLE[state.slug];
     const angleBit = angle ? ` (it runs on ${angle})` : '';
-    const wp = withholdingProfile(state);
     if (!wp.federalOnly) {
-      // Same note as the rest of the page, from the same helper, so the lede
-      // cannot be the one paragraph that still claims the premium does, or does
-      // not, come out of a bonus.
-      stateBit = `${state.name} takes <strong>no state income tax</strong>${angleBit}, so the flat <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a> come out of the bonus.${bonusProgramNote(state)}`;
+      // `federalOnly` is the only licence for the exclusivity frames below
+      // ("only ... come out", "nothing goes to the state"), so a state with
+      // programs takes this non-exclusive sentence instead. The premium itself
+      // is named by progDisclosure, appended once at the end for every state.
+      stateBit = `${state.name} takes <strong>no state income tax</strong>${angleBit}, so the flat <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a> come out of the bonus.`;
     } else stateBit = pickFrame(state.slug, 'btledeNo', [
       `${state.name} takes <strong>no state income tax</strong>${angleBit}, so only the flat <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a> come out.`,
       `With <strong>no ${state.name} income tax</strong>${angleBit}, the only bites are the flat <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a>.`,
@@ -3084,18 +3090,24 @@ function bonusLede(state, supp, year) {
     `Type in your salary and bonus below and the tool lines up today's withholding against your true tax, with the refund or balance due.`,
     `Drop your figures in to watch the payday deduction sit next to the real filing cost, plus whatever you get back or owe.`
   ]);
-  return `${open} ${stateBit} ${close} Everything runs in your browser.`;
+  return `${open} ${stateBit}${progDisclosure} ${close} Everything runs in your browser.`;
 }
 
 function bonusAnswerBlock(state, supp) {
   let stateClause;
-  // "nothing for the state" is false where the state has employee-paid programs,
-  // so those states get a clause scoped to income tax and a closing note naming
-  // what does still come out.
-  // Keyed to the state's programs, not to its supplemental method: what the
-  // estimate leaves out is the same whether or not the state sets a bonus rate.
-  const progNote = withholdingProfile(state).hasIncomeTax ? '' : bonusProgramNote(state);
-  if (supp.method === 'none') stateClause = progNote
+  const wp = withholdingProfile(state);
+  // TWO QUESTIONS, TWO VARIABLES. They used to be one, and the single variable
+  // was read as both.
+  //   (a) progDisclosure, what the state still withholds that this estimate
+  //       leaves out. Keyed to employeePrograms only, so it reaches the twelve
+  //       income-tax states that run a premium as well as the two that do not.
+  //   (b) noStateIncomeTax, whether the state levies a wage income tax, from
+  //       withholdingProfile rather than a raw field. This, and only this, may
+  //       select the "$0 in X income tax" phrasing: keying that phrasing to (a)
+  //       would let a state with a premium be told it pays no income tax.
+  const progDisclosure = bonusProgramNote(state);
+  const noStateIncomeTax = !wp.hasIncomeTax;
+  if (supp.method === 'none') stateClause = (noStateIncomeTax && progDisclosure)
     ? `<strong>$0</strong> in ${state.name} income tax`
     : pickFrame(state.slug, 'btansState', [
       `<strong>0%</strong> for state tax (${state.name} has no income tax)`,
@@ -3119,7 +3131,7 @@ function bonusAnswerBlock(state, supp) {
     `<strong>Short version:</strong> in ${state.name}, a bonus paid on its own is <a href="/tax-glossary/#withholding">withheld</a> at the flat federal <strong>22%</strong>, ${stateClause}, and <strong>7.65%</strong> FICA.`,
     `<strong>The quick take:</strong> a stand-alone ${state.name} bonus has a flat <strong>22%</strong> federal tax <a href="/tax-glossary/#withholding">withheld</a>, ${stateClause}, plus <strong>7.65%</strong> FICA.`
   ]);
-  return `<section class="prose"><p>${lead} ${tail}${progNote}</p></section>`;
+  return `<section class="prose"><p>${lead} ${tail}${progDisclosure}</p></section>`;
 }
 
 function bonusMythBust(state, supp, ex) {
@@ -3218,11 +3230,14 @@ function bonusFicaPara(state) {
 
 function bonusHowItWorks(state, supp, year) {
   const src = bonusSourceName(state, supp);
+  // (a) again, hoisted out of the no-income-tax branch it used to live in. The
+  // explainer section is the one place that carries the long form, and every
+  // state that runs an employee-paid program gets it, whether or not the state
+  // also taxes income.
+  const progNote = bonusProgramNote(state, { detail: true });
   let st;
   if (supp.method === 'none') {
     const fact = NOTAX_FACTS[state.slug] ? ` ${NOTAX_FACTS[state.slug]}` : '';
-    // The explainer section is the one place that carries the long form.
-    const progNote = bonusProgramNote(state, { detail: true });
     if (progNote) {
       // Every frame below calls the federal 22% and FICA the only withholding,
       // which is not true of a state that also runs employee-paid programs.
@@ -3246,7 +3261,12 @@ function bonusHowItWorks(state, supp, year) {
       `<p><strong>${state.name} keeps it simple: ${pctStr(supp.rate)}.</strong> A separately paid bonus is subject to one flat state rate in ${state.name}, <strong>${pctStr(supp.rate)}</strong> (${src}).${extra}</p>`
     ]);
   } else if (supp.special === 'ca_dual') {
-    st = `<p><strong>California: two rates.</strong> California withholds <strong>10.23%</strong> on bonuses and stock options, and <strong>6.6%</strong> on other supplemental wages (${src}). SDI is also withheld but is not an income tax.</p>`;
+    // The old closing sentence here, "SDI is also withheld but is not an income
+    // tax", was the only mention of a premium on any income-tax state's bonus
+    // page, and it told a Californian the premium exists without telling them
+    // the figures on this page do not include it. The shared note below says
+    // both, in the same words every other state gets.
+    st = `<p><strong>California: two rates.</strong> California withholds <strong>10.23%</strong> on bonuses and stock options, and <strong>6.6%</strong> on other supplemental wages (${src}).</p>`;
   } else if (supp.special === 'pct_of_federal') {
     st = `<p><strong>Vermont: 30% of the federal amount.</strong> Vermont's supplemental withholding is <strong>30% of the federal income tax withheld</strong> on the bonus, not a percent of the bonus — about 6.6% of the bonus on the flat 22% federal (6% for nonqualified deferred comp), per ${src}.</p>`;
   } else if (supp.special === 'wi_banded') {
@@ -3266,6 +3286,11 @@ function bonusHowItWorks(state, supp, year) {
       st = st.replace('</p>', ` ${state.name}'s income tax is graduated across ${numWord(b.length)} ${state.name} brackets topping out at ${pctStr(topRate)}, so an aggregated bonus is withheld somewhere along that schedule.</p>`);
     }
   }
+  // Appended inside the state paragraph, after every branch above has finished
+  // rewriting it, so the note lands last rather than in front of a sentence the
+  // regular-method branch splices in. The no-income-tax branch already placed it
+  // ahead of its NOTAX_FACTS tail, so it is excluded here rather than doubled.
+  if (supp.method !== 'none' && progNote) st = st.replace(/<\/p>\s*$/, `${progNote}</p>`);
   const heading = pickFrame(state.slug, 'bthowH', [
     `How a ${state.name} bonus is withheld: 22% federal + ${bonusRateWord(supp)}`,
     `What comes out of a ${state.name} bonus in ${year}`,
@@ -3468,8 +3493,16 @@ function bonusFaqEntries(state, supp, year) {
   // own data. This answer is emitted as FAQPage JSON-LD, so an exclusivity claim
   // here ("only the 22% and FICA") is a structured-data claim: it is allowed on a
   // federal-only state and on no other.
-  const progTail = wp.hasIncomeTax ? '' : bonusProgramNote(state);
-  if (progTail) {
+  // The most dangerous of the four slots, and the reason (a) and (b) cannot
+  // share a variable. The branch below opens "X has no state income tax, so $0
+  // is withheld", and it used to be entered on the strength of the note alone.
+  // Widening the note to the twelve income-tax program states without splitting
+  // the variable would publish "New Jersey has no state income tax" as FAQPage
+  // JSON-LD on twelve pages, California's among them. Count the states here from
+  // the data, not from this comment, if you touch it.
+  const progTail = bonusProgramNote(state);
+  const noStateIncomeTax = !wp.hasIncomeTax;
+  if (noStateIncomeTax && progTail) {
     e.push({
       q: `How much is withheld from a bonus in ${state.name}?`,
       a: `${state.name} has no state income tax, so $0 is withheld for state income tax. Federally, a separately paid bonus is withheld at a flat 22% (37% above $1,000,000/yr), plus 7.65% FICA, which is a prepayment rather than your final tax.${progTail}`,
@@ -3488,7 +3521,7 @@ function bonusFaqEntries(state, supp, year) {
         html: `State <a href="/tax-glossary/#withholding">withholding</a> is zero because ${state.name} taxes no wage income. The only deductions are the flat <strong>22%</strong> federal (37% on bonus dollars above $1,000,000/yr) and 7.65% <a href="/tax-glossary/#fica">FICA</a>, and the 22% is refundable if your real rate is lower.` }
     ]));
   } else {
-    e.push(pickFrame(state.slug, 'btfaq1s', [
+    const frame = pickFrame(state.slug, 'btfaq1s', [
       { q: `What is the ${state.name} bonus tax rate in ${year}?`,
         a: `${state.name} withholds ${rateStrPlain} on a separately paid bonus, on top of the flat 22% federal rate (37% above $1,000,000/yr) and 7.65% FICA. That is withholding, not your final tax.`,
         html: `${state.name} withholds <strong>${rateStrPlain}</strong> on a separately paid bonus, on top of the flat <strong>22%</strong> federal rate (37% above $1,000,000/yr) and 7.65% <a href="/tax-glossary/#fica">FICA</a>. That's <a href="/tax-glossary/#withholding">withholding</a>, not your final tax.` },
@@ -3498,7 +3531,12 @@ function bonusFaqEntries(state, supp, year) {
       { q: `What rate does ${state.name} withhold on a bonus in ${year}?`,
         a: `${state.name}'s supplemental withholding is ${rateStrPlain}, added to the flat 22% federal prepayment (37% on bonus pay over $1,000,000/yr) and 7.65% FICA. Only the income-tax portion is a prepayment; it trues up at your real rate.`,
         html: `${state.name}'s supplemental <a href="/tax-glossary/#withholding">withholding</a> is <strong>${rateStrPlain}</strong>, added to the flat <strong>22%</strong> federal prepayment (37% on bonus pay over $1,000,000/yr) and 7.65% <a href="/tax-glossary/#fica">FICA</a>. Only the income-tax portion is a prepayment; it trues up at your real rate.` }
-    ]));
+    ]);
+    // Spread, not mutate: pickFrame hands back the literal out of the array
+    // above, and this answer is republished as FAQPage JSON-LD, so writing
+    // through the reference would append the note again on the next state that
+    // draws the same frame.
+    e.push(progTail ? { ...frame, a: `${frame.a}${progTail}`, html: `${frame.html}${progTail}` } : frame);
   }
   e.push(pickFrame(state.slug, 'btfaq2', [
     { q: `Are bonuses taxed at a higher rate in ${state.name}?`, a: `No. A bonus is ordinary income taxed at your normal marginal rate when you file; the flat 22% withheld is a prepayment, not a tax rate.`,
@@ -4538,6 +4576,11 @@ async function main() {
       STATE_H1: `${state.name} Bonus Tax Calculator`,
       STATE_LEDE: bonusLede(state, suppEntry, year),
       BONUS_INTRO: bonusAnswerBlock(state, suppEntry),
+      // Derived from the state's own figureYear, never from a list of slugs, so
+      // California and Oklahoma stop being labelled the moment their data moves
+      // to 2026 and any state that falls behind starts being labelled without a
+      // code change. Same helper the paycheck cluster uses.
+      FIGURE_BANNER: figureYearBanner(state, year),
       SECTIONS_A: secs.a,
       SECTIONS_B: secs.b,
       STATE_FAQ: bonusFaqBlock(state, faqEntries),

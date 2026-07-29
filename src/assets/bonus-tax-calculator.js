@@ -34,6 +34,27 @@ function currentState() {
   return sel ? sel.value : null;
 }
 
+// A state whose figures are a prior-year fallback has to say so wherever those
+// figures are shown, not only on its own cluster page. The 51 state pages get
+// this server-rendered by figureYearBanner() in build.js; the hub and the embed
+// choose their state at runtime, so the same notice is rebuilt here from the
+// same two fields the server reads, the state's figureYear against the data's
+// taxYear. No slug list on either side: California and Oklahoma stop being
+// labelled the moment their 2026 tables land in the data, and a state that falls
+// behind starts being labelled with no code change. Returns '' on a fixed-state
+// page so the server-rendered banner is not repeated inside the answer.
+function figureYearNote(slug, stateName) {
+  if (FIXED_STATE) return '';
+  const st = taxData.states && taxData.states[slug];
+  const fy = st && Number(st.figureYear);
+  const yr = Number(taxData.taxYear);
+  if (!fy || !yr || fy === yr) return '';
+  return `<p class="year-fallback" role="note"><strong>${fy} rates (${yr} pending).</strong> ` +
+    `These use ${stateName}'s official ${fy} state tax figures. ` +
+    `${fy < yr ? `The state has not published ${yr} brackets yet` : `Figures are from ${fy}`}, ` +
+    `and we update this once it does.</p>`;
+}
+
 function methodLabel(m) {
   if (m === 'none') return 'no state income tax';
   if (m === 'regular') return 'regular (aggregate) method';
@@ -59,6 +80,7 @@ function render() {
   if (ptRow) ptRow.style.display = (supp.special === 'ca_dual') ? '' : 'none';
 
   const out = $('out');
+  const fyNote = figureYearNote(slug, stateName);
 
   if (bonus <= 0) {
     out.innerHTML =
@@ -66,7 +88,7 @@ function render() {
         `<p class="stat-kicker">Take-home from your bonus</p>` +
         `<p class="stat-value is-zero">$0</p>` +
         `<p class="stat-sub">Enter your bonus amount above to see what you'd take home in ${stateName}.</p>` +
-      `</div>`;
+      `</div>` + fyNote;
     return;
   }
 
@@ -136,7 +158,7 @@ function render() {
   const prevDetails = out.querySelector('details.derivation');
   const wasOpen = prevDetails ? prevDetails.open : false;
 
-  out.innerHTML = statCard + headlineCaveat + derivation;
+  out.innerHTML = statCard + fyNote + headlineCaveat + derivation;
 
   const newDetails = out.querySelector('details.derivation');
   if (newDetails) newDetails.open = wasOpen;
