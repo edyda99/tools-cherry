@@ -1382,13 +1382,23 @@ function stripInternal(value) {
 // A prominent, user-visible banner when a state's figures are from a prior year
 // (prior-year fallback policy) — e.g. California shows 2025 rates while 2026 is pending.
 // Returns '' when figureYear matches the site tax year.
+// Scope matters here. figureYear governs ONLY the state's bracket table. A bonus
+// page's headline number comes from the separate supplemental rate in
+// state-supplemental-2026.json, which is current, so a blanket "this page shows
+// <prior year> figures" is false for the number the page is named after. Say
+// which figures are affected instead of labelling the whole page.
+//
+// Do not reintroduce the word "official" either. Some supplemental rates carry
+// singleSourced: false and cite a payroll vendor rather than the state, so
+// "official" would be a second false claim on the same line.
 function figureYearBanner(state, year) {
   const fy = Number(state.figureYear);
   const yr = Number(year);
   if (!fy || fy === yr) return '';
   return `<p class="year-fallback" role="note">` +
-    `<strong>${fy} rates (${yr} pending).</strong> ` +
-    `Showing ${state.name}'s official ${fy} tax figures. ${fy < yr ? 'The state has not published ' + yr + ' brackets yet' : 'Figures are from ' + fy}, and we update this page once it does.` +
+    `<strong>${fy} brackets (${yr} pending).</strong> ` +
+    `${state.name} has not published its ${yr} income tax brackets yet, so figures worked out ` +
+    `from those brackets use its ${fy} ones. We update this page when the state publishes.` +
     `</p>`;
 }
 
