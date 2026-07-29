@@ -216,10 +216,11 @@
     "maryland": {
       "name": "Maryland",
       "abbr": "MD",
-      "method": "regular",
+      "method": "flat",
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate flat supplemental rate; aggregate method. County piggyback income taxes apply on top and are not modeled."
+      "source": "Maryland Comptroller, 2026 Employer Withholding Guide: highest state rate of 6.5% on a lump sum annual bonus.",
+      "note": "Maryland withholds a lump sum annual bonus at the highest state rate of 6.5%, plus the local income tax rate of the county where the employee lives. This estimate shows the 6.5% state portion only. The county piggyback rate, which runs from 2.25% to 3.30% in 2026, is withheld on top and is not included here.",
+      "rate": 0.065
     },
     "massachusetts": {
       "name": "Massachusetts",
@@ -263,7 +264,7 @@
       "rate": 0.047,
       "verified": true,
       "singleSourced": false,
-      "source": "Missouri DOR Employer's Tax Guide Form 4282 (rev. 03-2026): flat 4.7%; corroborated by OnPay",
+      "source": "Missouri Department of Revenue Employer's Tax Guide, Form 4282 (Revised 12-2025), Section 7A: withhold a flat 4.7 percent on supplemental wages paid separately from regular wages. The same flat 4.7 percent option appears in the 2026 Missouri Withholding Tax Formula.",
       "_sourceUrl": "https://dor.mo.gov/forms/4282_2026.pdf"
     },
     "montana": {
@@ -381,8 +382,8 @@
       "rate": 0.08,
       "verified": true,
       "singleSourced": false,
-      "source": "EY 2026 supplemental-rate chart",
-      "_sourceUrl": "https://taxnews.ey.com/news/2026-0153-2026-state-supplemental-flat-tax-and-highest-income-tax-withholding-rates-with-hyperlinks-to-the-latest-withholding-tables-instructions"
+      "source": "Oregon Department of Revenue, 2026 Withholding Tax Formulas (150-206-436), effective January 1, 2026: employers may use an 8 percent flat rate on supplemental wages such as bonuses, overtime, and commissions paid at a different time than regular payday.",
+      "_sourceUrl": "https://www.oregon.gov/dor/forms/FormsPubs/withholding-tax-formulas_206-436_2026.pdf"
     },
     "pennsylvania": {
       "name": "Pennsylvania",

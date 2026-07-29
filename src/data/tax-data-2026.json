@@ -165,11 +165,11 @@
           "single": [
             {
               "rate": 0,
-              "upTo": 48475
+              "upTo": 49575
             },
             {
               "rate": 0.0195,
-              "upTo": 244825
+              "upTo": 250400
             },
             {
               "rate": 0.025,
@@ -179,11 +179,11 @@
           "married": [
             {
               "rate": 0,
-              "upTo": 80975
+              "upTo": 82800
             },
             {
               "rate": 0.0195,
-              "upTo": 298075
+              "upTo": 304850
             },
             {
               "rate": 0.025,
@@ -193,11 +193,11 @@
           "head_of_household": [
             {
               "rate": 0,
-              "upTo": 48475
+              "upTo": 66400
             },
             {
               "rate": 0.0195,
-              "upTo": 244825
+              "upTo": 277600
             },
             {
               "rate": 0.025,
@@ -206,10 +206,9 @@
           ]
         }
       },
-      "_source": "ND 2026 low-rate schedule post-2023 reform: 0% up to $48,475 single / $80,975 MFJ, then 1.95% and 2.5%; inflation-indexed, Tax Foundation as-of Jan 1 2026; cross-check ND Office of State Tax Commissioner (tax.nd.gov). Federal-conformed standard deduction $16,100/$32,200/$24,150. https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/",
+      "_source": "North Dakota Office of State Tax Commissioner, 2026 Form ND-1ES (SFN 28709, revised 12-2025), '2026 Forms ND-1 and ND-EZ Tax Rate Schedules': no tax on North Dakota taxable income up to $49,575 single, $82,800 married filing jointly, $66,400 head of household, then 1.95%, then 2.50% above $250,400 single, $304,850 married filing jointly, $277,600 head of household. North Dakota starts from federal taxable income, so the deduction is the 2026 federal standard deduction of $16,100 single, $32,200 married filing jointly, $24,150 head of household (IRS Revenue Procedure 2025-32). https://www.tax.nd.gov/sites/www/files/documents/forms/individual/2025-iit/28709-form-nd-1es-2026.pdf",
       "disclaimer": [
-        "Local income taxes are not included.",
-        "Head-of-household bracket thresholds are approximated with the single schedule (ND's HoH schedule differs slightly)."
+        "Local income taxes are not included."
       ],
       "notes": "0% / 1.95% / 2.5% (2026); large 0% bracket."
     },
@@ -394,23 +393,23 @@
           "head_of_household": [
             {
               "rate": 0.015,
-              "upTo": 5500
+              "upTo": 8000
             },
             {
               "rate": 0.032,
-              "upTo": 16500
+              "upTo": 25000
             },
             {
               "rate": 0.043,
-              "upTo": 33500
+              "upTo": 50000
             },
             {
               "rate": 0.047,
-              "upTo": 66500
+              "upTo": 100000
             },
             {
               "rate": 0.049,
-              "upTo": 210000
+              "upTo": 315000
             },
             {
               "rate": 0.059,
@@ -419,11 +418,11 @@
           ]
         }
       },
-      "_source": "NM 2026 6-bracket schedule (1.5/3.2/4.3/4.7/4.9/5.9%) per HB 252 (2024) restructuring; Tax Foundation as-of Jan 1 2026; cross-check NM Taxation & Revenue (tax.newmexico.gov). Federal-conformed standard deduction $16,100/$32,200/$24,150. https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/",
+      "_source": "New Mexico's 2026 income tax rates come from NMSA 1978, Section 7-2-7, as amended by House Bill 252 (2024 regular session), which sets these six brackets for tax years beginning on or after January 1, 2025. Under that section, head of household filers use the same rate table as married couples filing jointly and surviving spouses, not the single table. Standard deduction amounts follow the federal figures for 2026 published by the IRS in Revenue Procedure 2025-32. Statute text: https://www.nmlegis.gov/Sessions/24%20Regular/final/HB0252.pdf",
       "disclaimer": [
         "Local income taxes are not included.",
         "New Mexico's $4,000-per-dependent deduction and low/middle-income exemptions are not modeled.",
-        "Head-of-household bracket thresholds are approximated with the single schedule (NM's HoH schedule differs slightly)."
+        "Married filing separately has its own rate table under Section 7-2-7 NMSA 1978 and is not modeled separately."
       ],
       "notes": "Graduated 1.5%–5.9% (2026, HB 252 structure)."
     },
@@ -438,21 +437,21 @@
         "standardDeduction": {
           "single": 7650,
           "married": 15300,
-          "head_of_household": 7650
+          "head_of_household": 11450
         },
         "brackets": {
           "single": [
             {
               "rate": 0.0335,
-              "upTo": 49400
+              "upTo": 50750
             },
             {
               "rate": 0.066,
-              "upTo": 119700
+              "upTo": 122850
             },
             {
               "rate": 0.076,
-              "upTo": 249700
+              "upTo": 256300
             },
             {
               "rate": 0.0875,
@@ -462,15 +461,15 @@
           "married": [
             {
               "rate": 0.0335,
-              "upTo": 82500
+              "upTo": 84700
             },
             {
               "rate": 0.066,
-              "upTo": 199450
+              "upTo": 204750
             },
             {
               "rate": 0.076,
-              "upTo": 304000
+              "upTo": 312050
             },
             {
               "rate": 0.0875,
@@ -480,15 +479,15 @@
           "head_of_household": [
             {
               "rate": 0.0335,
-              "upTo": 49400
+              "upTo": 68000
             },
             {
               "rate": 0.066,
-              "upTo": 119700
+              "upTo": 175500
             },
             {
               "rate": 0.076,
-              "upTo": 249700
+              "upTo": 284150
             },
             {
               "rate": 0.0875,
@@ -500,8 +499,8 @@
       "_source": "VT 2026 inflation-indexed schedule (4 rates 3.35/6.6/7.6/8.75%), Tax Foundation as-of Jan 1 2026; cross-check VT Dept. of Taxes (tax.vermont.gov). Std deduction $7,650 single / $15,300 MFJ. https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/",
       "disclaimer": [
         "Local income taxes are not included.",
-        "Vermont's $5,300-per-person personal exemption is NOT modeled — estimates run slightly high.",
-        "Head-of-household bracket thresholds are approximated with the single schedule (VT's HoH schedule differs slightly)."
+        "Vermont's per-person personal exemption is not modeled, so this estimate runs slightly high.",
+        "The standard deduction shown is Vermont's tax year 2025 amount, because the Department of Taxes has not yet published a tax year 2026 standard deduction."
       ],
       "notes": "Graduated 3.35%–8.75% (2026)."
     },
@@ -521,67 +520,67 @@
         "brackets": {
           "single": [
             {
-              "rate": 0.0222,
+              "rate": 0.0211,
               "upTo": 10000
             },
             {
-              "rate": 0.0296,
+              "rate": 0.0281,
               "upTo": 25000
             },
             {
-              "rate": 0.0333,
+              "rate": 0.0316,
               "upTo": 40000
             },
             {
-              "rate": 0.0444,
+              "rate": 0.0422,
               "upTo": 60000
             },
             {
-              "rate": 0.0482,
+              "rate": 0.0458,
               "upTo": null
             }
           ],
           "married": [
             {
-              "rate": 0.0222,
+              "rate": 0.0211,
               "upTo": 10000
             },
             {
-              "rate": 0.0296,
+              "rate": 0.0281,
               "upTo": 25000
             },
             {
-              "rate": 0.0333,
+              "rate": 0.0316,
               "upTo": 40000
             },
             {
-              "rate": 0.0444,
+              "rate": 0.0422,
               "upTo": 60000
             },
             {
-              "rate": 0.0482,
+              "rate": 0.0458,
               "upTo": null
             }
           ],
           "head_of_household": [
             {
-              "rate": 0.0222,
+              "rate": 0.0211,
               "upTo": 10000
             },
             {
-              "rate": 0.0296,
+              "rate": 0.0281,
               "upTo": 25000
             },
             {
-              "rate": 0.0333,
+              "rate": 0.0316,
               "upTo": 40000
             },
             {
-              "rate": 0.0444,
+              "rate": 0.0422,
               "upTo": 60000
             },
             {
-              "rate": 0.0482,
+              "rate": 0.0458,
               "upTo": null
             }
           ]
@@ -592,7 +591,7 @@
         "Local income taxes are not included. WV municipal service/city fees are not income taxes and are not modeled.",
         "WV has no standard deduction; we model one $2,000 personal exemption ($4,000 MFJ). Each dependent adds another $2,000 not modeled — estimates run slightly high for filers with dependents."
       ],
-      "notes": "Graduated 2.22%–4.82% (2026, post rate-cut); same brackets for all filing statuses."
+      "notes": "Graduated 2.11% to 4.58% for 2026 after the Senate Bill 392 rate cut, with the same brackets for single, joint and head of household filers."
     },
     "montana": {
       "name": "Montana",
@@ -631,7 +630,7 @@
           "head_of_household": [
             {
               "rate": 0.047,
-              "upTo": 47500
+              "upTo": 71250
             },
             {
               "rate": 0.0565,
@@ -640,11 +639,10 @@
           ]
         }
       },
-      "_source": "MT 2026 two-rate schedule (4.70% / 5.65%), Tax Foundation as-of Jan 1 2026; cross-check MT Dept. of Revenue (mtrevenue.gov). MT conforms to the federal standard deduction ($16,100 single / $32,200 MFJ / $24,150 HoH). https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/",
+      "_source": "Montana Department of Revenue, 2026 Montana Publication 1, 2026 Tax Tables: 4.7% on the first $47,500 of ordinary income for single filers, $95,000 for married filing jointly, and $71,250 for head of household, then 5.65% above those amounts. Montana starts from federal taxable income, so the standard deduction is the federal amount; the Montana Employer and Information Agent Guide annual withholding tables show it as $16,100 single, $32,200 married filing jointly, and $24,150 head of household. Statute: MCA 15-30-2103. https://revenuefiles.mt.gov/files/Forms/Publication-1/Publication-1-2026.pdf",
       "disclaimer": [
         "Local income taxes are not included.",
-        "Montana taxes net long-term capital gains at lower rates and has credits not modeled here.",
-        "Head-of-household bracket threshold is approximated with the single schedule (MT's HoH threshold differs slightly)."
+        "Montana taxes net long-term capital gains at lower rates and has credits not modeled here."
       ],
       "notes": "Two rates 4.70% / 5.65% (2026)."
     },
@@ -2523,11 +2521,11 @@
           ]
         }
       },
-      "_source": "Missouri tax year 2026 individual income tax bracket schedule and standard deduction per the OFFICIAL Missouri Dept. of Revenue 2026 Withholding Tax Formula (effective Jan 1, 2026). Missouri's eight-rate graduated schedule (0% / 2.0% / 2.5% / 3.0% / 3.5% / 4.0% / 4.5% / 4.7%) is inflation-indexed annually; the 2026 percentage-method brackets begin the top 4.70% band over $9,436 (taxable income after standard deduction). The 4.70% top rate is unchanged for 2026 (SB3 revenue-trigger phase-down holds at 4.7% in TY2026; the next 0.10% cut to 4.6% is gated to a later year, not 2026). Standard deduction conforms to the FEDERAL amounts: $16,100 single/MFS, $32,200 married, $24,150 head of household. The same bracket schedule applies to all filing statuses; only the standard deduction differs. NOTE: Missouri's former deduction for a portion of federal income tax paid is ELIMINATED for 2026 (no longer reduces state taxable income). The official dor.mo.gov Withholding Formula PDF is Incapsula/WAF-blocked to automated fetch (HTTP 403); the identical official 2026 schedule was obtained from the U.S. government USDA/NFC payroll bulletin which publishes Missouri's withholding formula verbatim, and validated vs halfpricesoft (identical brackets) and Bloomberg Tax (standard deductions + top rate). This resolves the earlier flag (prior-year competitor disagreement was a 2025-mislabeled-as-2026 trap; the genuine TY2026 schedule is confirmed here). https://help.nfc.usda.gov/bulletins/2026/1773783048.htm ; https://dor.mo.gov/forms/Withholding%20Formula_2026.pdf",
+      "_source": "Tax year 2026 Missouri brackets and standard deduction come from the Missouri Department of Revenue's 2026 Missouri Withholding Tax Formula and are confirmed by the tax rate chart on the 2026 Form MO-1040ES. Missouri applies one graduated schedule to every filing status: no tax on the first $1,348 of Missouri taxable income, then 2.0%, 2.5%, 3.0%, 3.5%, 4.0% and 4.5% in $1,348 steps, with the top rate of 4.7% on income over $9,436. Only the standard deduction changes with filing status, and for 2026 it matches the federal amounts: $16,100 single or married filing separate, $32,200 married when the spouse does not work, and $24,150 head of household. Separately from withholding, Section 143.171 RSMo still allows Missouri filers to deduct part of their federal income tax on the annual return. The deduction is a percentage of federal income tax liability set by Missouri adjusted gross income (35% at $25,000 or less, 25% from $25,001 to $50,000, 15% from $50,001 to $100,000, 5% from $100,001 to $125,000, 0% at $125,001 or more), capped at $5,000 per return or $10,000 on a married filing combined return, and it is claimed on Form MO-1040. Missouri's withholding formula does not apply it, so it does not affect your paycheck, and this paycheck estimate follows the withholding formula. Sources: https://dor.mo.gov/forms/Withholding%20Formula_2026.pdf , https://dor.mo.gov/forms/MO-1040ES_2026.pdf , https://revisor.mo.gov/main/OneSection.aspx?section=143.171",
       "disclaimer": [
         "Local income taxes are not included. Missouri cities of Kansas City and St. Louis levy a separate 1% local earnings tax on wages, which is not included in this estimate.",
-        "Missouri's standard deduction conforms to the federal standard deduction; the additional standard deduction for taxpayers age 65+ or blind, personal/dependent exemptions, and Missouri credits are not modeled.",
-        "For 2026 Missouri eliminated the deduction for a portion of federal income tax paid, so it is not modeled (and would not apply for 2026 in any case)."
+        "Missouri's standard deduction conforms to the federal standard deduction. Not modeled here: the additional standard deduction for taxpayers age 65 or older or blind, the $1,400 additional exemption Missouri gives head of household and qualifying widow(er) filers on the annual return, and Missouri tax credits.",
+        "Missouri still lets you deduct part of your federal income tax when you file your annual return, under Section 143.171 RSMo. The deduction is a percentage of your federal income tax liability set by your Missouri adjusted gross income: 35% at $25,000 or less, 25% from $25,001 to $50,000, 15% from $50,001 to $100,000, 5% from $100,001 to $125,000, and 0% at $125,001 or more. It is capped at $5,000 per return, or $10,000 on a married filing combined return. Missouri's withholding formula does not apply this deduction, so it does not change your paycheck and this estimate leaves it out. Claim it on Form MO-1040 when you file."
       ],
       "notes": "Progressive 0%-4.70% (official 2026 inflation-indexed brackets, top band over $9,436 of taxable income). Federal-conformed standard deduction. Separate 1% local earnings tax in Kansas City and St. Louis not included."
     },
@@ -2771,7 +2769,7 @@
               "upTo": 26399
             },
             {
-              "rate": 0.039,
+              "rate": 0.037,
               "upTo": null
             }
           ],
@@ -2793,7 +2791,7 @@
               "upTo": 26399
             },
             {
-              "rate": 0.039,
+              "rate": 0.037,
               "upTo": null
             }
           ],
@@ -2815,19 +2813,20 @@
               "upTo": 26399
             },
             {
-              "rate": 0.039,
+              "rate": 0.037,
               "upTo": null
             }
           ]
         }
       },
-      "_source": "Arkansas individual income tax — OFFICIAL Arkansas Dept. of Finance and Administration 2026 Withholding Tax Formula (whformula_2026.pdf, Effective 01/01/2026), parsed locally with pdftotext (WebFetch could not read the binary PDF). This is genuine 2026 data (figureYear=2026, no prior-year fallback): the DFA increased the 2026 standard deduction to $2,470 (from $2,410) and the top rate remains 3.9%. The published 'percentage minus adjustment' table for net taxable income up to $94,700 is mathematically identical to a marginal-bracket schedule (verified: each band's minus-adjustment reconciles to continuity at the breakpoint), so it is modeled exactly as marginal brackets: 0% to $5,599, 2% to $11,199, 3% to $15,999, 3.4% to $26,399, 3.9% above. Arkansas applies the SAME rate schedule to all filing statuses; only the standard deduction differs ($2,470 per taxpayer single/MFS/HoH, $4,940 for two-earner MFJ, per Ark. Code 26-51-430). Validated vs Tax Foundation 2026 (which shows the compressed high-income 2-bracket form, top 3.9%, std ded $2,470/$4,940) and halfpricesoft 2026 (identical 0%/2%/3%/3.4%/3.9% bracket table + std ded $2,470). Hand-verified single $75k -> $2,408.71, which equals the official formula 3.9% x (75000-2470) - $419.96 exactly. https://www.dfa.arkansas.gov/wp-content/uploads/whformula_2026.pdf ; https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/",
+      "_source": "Arkansas individual income tax for tax year 2026. The rates come from Act 1 of the First Extraordinary Session, 2026 (House Bill 1001, approved 5/6/2026), which amended Arkansas Code 26-51-201(a)(4) and lowered the top rate from 3.9% to 3.7% for tax years beginning on or after January 1, 2026. The statutory schedule is 0% up to $5,599, 2% to $11,199, 3% to $15,999, 3.4% to $26,399, and 3.7% from $26,400 to $94,700, and Arkansas applies the same schedule to every filing status. An identical companion measure, Act 2 of the same session (Senate Bill 1), was approved the same day. The standard deduction of $2,470 per taxpayer comes from the Arkansas Department of Finance and Administration Withholding Tax Formula Method, Tax Year 2026, effective 01/01/2026. Because the rate cut was signed in May 2026, that withholding booklet still prints the older 3.9% rate; the figures shown here follow the statute. Sources: Act 1 at https://www.arkleg.state.ar.us/Home/FTPDocument?path=%2FACTS%2F2026S1%2FPublic%2FACT1.pdf and the DFA 2026 withholding formula at https://www.dfa.arkansas.gov/wp-content/uploads/whformula_2026.pdf",
       "disclaimer": [
-        "Arkansas has no local/city income tax on wages.",
-        "Arkansas's $29-per-exemption personal tax CREDIT and dependent credits are not modeled, so estimates run slightly high for most filers.",
-        "For high earners (net taxable income above ~$94,700) Arkansas phases out the benefit of the lower brackets via a 'bracket adjustment' so the effective rate approaches a flat 3.9% on all income; this taper is not modeled, so estimates for incomes above ~$95k run modestly LOW."
+        "Arkansas has no local or city income tax on wages.",
+        "Arkansas gives a $29 personal tax credit for each withholding exemption claimed on Form AR4EC, plus dependent credits. Those are not modeled here, so estimates run slightly high for most filers.",
+        "Once net taxable income passes $94,700, Arkansas phases out the benefit of the lower brackets, so the effective rate moves toward a flat 3.7% on all income. That taper is not modeled, so estimates above roughly $95,000 run modestly low.",
+        "Arkansas lowered its top rate to 3.7% in May 2026, backdated to January 1, 2026. Withholding tables printed before the cut still use 3.9%, so the tax actually taken out of your paycheck may be a little higher than shown here until your employer updates its tables."
       ],
-      "notes": "Progressive 0%-3.9% (official 2026 DFA schedule), top 3.9% rate begins at $26,400 net taxable income. Same brackets for all filing statuses; standard deduction $2,470 per taxpayer. No local income tax."
+      "notes": "Progressive 0% to 3.7% for tax year 2026. The top 3.7% rate begins at $26,400 of net taxable income. Arkansas uses the same rate schedule for every filing status; the standard deduction is $2,470 per taxpayer. No local or city income tax."
     },
     "alabama": {
       "name": "Alabama",
@@ -2944,10 +2943,11 @@
       },
       "_source": "South Carolina individual income tax — OFFICIAL South Carolina Dept. of Revenue guidance on H.4216 (Act 110, signed March 30, 2026), EFFECTIVE for tax year 2026 (returns due April 15, 2027). H.4216 REPLACES SC's old 0%/3%/6% three-bracket system entirely for TY2026 with a two-rate schedule on federal-AGI-based taxable income: 'the tax rate for income less than $30,000 is 1.99%' and 'the tax rate for income from $30,000 and above is 5.21%, minus $966.' The '5.21% minus $966' form is mathematically identical to a marginal two-bracket schedule (verified continuity at $30,000: 1.99% x 30000 = $597 = 5.21% x 30000 - 966), so modeled as marginal brackets: 1.99% to $30,000, 5.21% above — SAME rates for all filing statuses. SCDOR also created the new SC Income-Adjusted Deduction (SCIAD) replacing the federal standard/itemized deduction: $15,000 single/MFS, $22,500 head of household, $30,000 MFJ/surviving spouse (modeled as the standardDeduction). RESOLVED A GENUINE SOURCE CONFLICT: the Tax Foundation 2026 dataset still lists SC's OLD 0%/3%/6% system (top reverting to 6.2% on 7/1/2026) and federal std deduction $8,350/$16,700 — it predates H.4216, which was signed only March 30, 2026. The official SCDOR H.4216 page (ranked first per loop procedure) overrides the stale secondary, and PolicyEngine + ITEP corroborate the 1.99%/5.21% + SCIAD structure. figureYear=2026 (genuine official 2026 data, no prior-year fallback). Hand-verified single $75k -> $2,160.00 (taxable = 75000-15000 = 60000; = 1.99% x 30000 + 5.21% x 30000 = 597 + 1563). https://dor.sc.gov/news/information-about-h-4216 ; https://www.policyengine.org/us/south-carolina-2026-tax-changes",
       "disclaimer": [
-        "South Carolina overhauled its income tax for 2026 (H.4216 / Act 110): a two-rate 1.99% / 5.21% schedule with a new SC Income-Adjusted Deduction (SCIAD) replacing the federal standard deduction. The SCIAD ($15,000 single / $22,500 head of household / $30,000 married) PHASES DOWN at higher incomes; this estimate applies the full SCIAD, so for higher incomes the actual tax can be slightly HIGHER than shown.",
+        "South Carolina rewrote its income tax for 2026 (H. 4216, Act 110): 1.99% on taxable income below $30,000 and 5.21% from $30,000 up, with a new South Carolina Income Adjusted Deduction (SCIAD) replacing the federal standard deduction. The SCIAD starts at $15,000 for single or married filing separately, $22,500 for head of household, and $30,000 for married filing jointly or a surviving spouse, but S.C. Code Section 12-6-1140(15)(b) shrinks it as federal adjusted gross income rises and allows no deduction at all once income is high enough. This estimate applies the full SCIAD and does not model that phase-down, so a higher earner's real South Carolina tax can exceed the figure shown by as much as 5.21% of the full deduction.",
         "South Carolina starts from federal AGI; this estimate approximates taxable income as wages minus the SCIAD and does not model federal-AGI adjustments, the capped state EITC ($200), or other SC credits.",
         "South Carolina has no local/city income tax on wages.",
-        "Under H.4216 the top rate may be reduced further in future years if state revenue triggers are met; figures shown are the enacted 2026 rates."
+        "Under H.4216 the top rate may be reduced further in future years if state revenue triggers are met; figures shown are the enacted 2026 rates.",
+        "Paycheck withholding is a separate calculation from the yearly tax. The 2026 SC Withholding Tax Formula the SC Department of Revenue currently publishes (form WH-1603F, Rev. 11/4/25) was issued before H. 4216 was signed and still withholds at the older 0%, 3% and 6% rates using a $5,000 personal allowance. Until the SCDOR reissues it, the South Carolina tax withheld on a 2026 paystub may not match the yearly estimate shown here."
       ],
       "notes": "Two-rate 1.99% / 5.21% (H.4216 / Act 110, new for tax year 2026), 5.21% begins above $30,000 taxable income. New SC Income-Adjusted Deduction (SCIAD) replaces the federal standard deduction; it phases down with income. No local income tax."
     },
