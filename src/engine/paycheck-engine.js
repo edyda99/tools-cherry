@@ -116,7 +116,16 @@ export function stateIncomeTax(grossAnnual, filingStatus, stateData, preTax = 0)
   }
   if (t.type === 'bracket') {
     const brackets = t.brackets[filingStatus] ?? t.brackets.single;
-    return applyBrackets(taxable, brackets);
+    let tax = applyBrackets(taxable, brackets);
+    // Opt-in flat amount added once taxable income passes a threshold. Ohio is
+    // the only user: ORC 5747.02(A)(3)(c) reads "$332.00 plus 2.75% of the
+    // amount in excess of $26,050". applyBrackets is continuous by
+    // construction, it sums slice times rate, so it can never produce that
+    // step. The comparison is strictly greater than: at exactly the threshold
+    // the statute charges nothing, and using >= would bill $332 to a filer
+    // Ohio exempts.
+    if (t.baseAmount && taxable > t.baseAmount.over) tax += t.baseAmount.amount;
+    return tax;
   }
   return 0;
 }

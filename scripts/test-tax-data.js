@@ -68,4 +68,45 @@ t('California/Oklahoma carry figureYear 2025 (fallback); Nebraska is 2026', () =
   assert.equal(tax.states.nebraska.figureYear, 2026, 'nebraska should carry official 2026 figures');
 });
 
+// --- baseAmount: the opt-in flat step, Ohio only -----------------------------
+// ORC 5747.02(A)(3)(c): "For taxable years beginning in 2026 and thereafter,
+// $332.00 plus 2.75% of the amount in excess of $26,050." A marginal bracket
+// table cannot express that step, so it lives in its own field. These tests
+// exist so nobody re-derives it from the withholding tables, which are an
+// administrative approximation and print entirely different numbers.
+t('Ohio 2026 carries the statutory $332 base over $26,050', () => {
+  const b = tax.states.ohio.tax.baseAmount;
+  assert.ok(b, 'ohio.tax.baseAmount is missing');
+  assert.equal(b.over, 26050);
+  assert.equal(b.amount, 332.0);
+});
+
+t('baseAmount is opt-in: Ohio is the only state that carries it', () => {
+  const carriers = Object.entries(tax.states)
+    .filter(([, s]) => s.tax && s.tax.baseAmount)
+    .map(([slug]) => slug);
+  assert.deepEqual(carriers, ['ohio']);
+});
+
+t('every baseAmount is well formed and sits on a bracket state', () => {
+  let checked = 0;
+  for (const [slug, s] of Object.entries(tax.states)) {
+    const b = s.tax && s.tax.baseAmount;
+    if (!b) continue;
+    checked++;
+    assert.equal(s.tax.type, 'bracket', `${slug}: baseAmount needs a bracket schedule`);
+    assert.ok(b.over > 0 && b.amount > 0, `${slug}: over and amount must be positive`);
+    const zeroBand = s.tax.brackets.single.find((r) => r.rate === 0);
+    assert.ok(zeroBand && zeroBand.upTo === b.over,
+      `${slug}: baseAmount.over must equal the top of the 0% band`);
+  }
+  assert.ok(checked > 0, 'measured nothing, refusing to pass');
+});
+
+t('Ohio steps at the threshold, strictly above it', () => {
+  assert.equal(stateTax('ohio', 26050), 0);
+  approx(stateTax('ohio', 26051), 332.03, 0.01);
+  approx(stateTax('ohio', 75000), 1678.13, 0.01);
+});
+
 console.log(`\n${pass} passing`);

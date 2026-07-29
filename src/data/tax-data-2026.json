@@ -1362,6 +1362,7 @@
       "figureYear": 2026,
       "tax": {
         "type": "bracket",
+      "baseAmount": { "over": 26050, "amount": 332.00 },
         "brackets": {
           "single": [
             {
