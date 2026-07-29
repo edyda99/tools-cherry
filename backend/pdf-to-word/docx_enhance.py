@@ -1000,12 +1000,134 @@ def span_space_repair(data, pdf_doc=None):
     return buf.getvalue()
 
 
-# Order is load-bearing and enhance() is single-shot: span_space_repair must
-# see the document BEFORE reflow's dehyphenation (a healed word looks like a
-# lost-space seam to a second run). The pipeline calls enhance() exactly once
-# per conversion; never chain it.
-PASSES = (span_space_repair, header_footer_parts, heading_styles, list_numbering,
-          paragraph_reflow)
+_HYPERLINK_STYLE_XML = (
+    '<w:style %s w:type="character" w:styleId="Hyperlink">'
+    '<w:name w:val="Hyperlink"/><w:basedOn w:val="DefaultParagraphFont"/>'
+    '<w:rPr><w:color w:val="0563C1"/><w:u w:val="single"/></w:rPr></w:style>'
+)
+
+
+def _link_key(h):
+    return (h.get(qn("r:id")), h.get(qn("w:anchor")))
+
+
+_RPR_ORDER = ("rStyle", "rFonts", "b", "bCs", "i", "iCs", "caps", "smallCaps", "strike",
+              "dstrike", "outline", "shadow", "emboss", "imprint", "noProof", "snapToGrid",
+              "vanish", "webHidden", "color", "spacing", "w", "kern", "position", "sz",
+              "szCs", "highlight", "u", "effect", "bdr", "shd", "fitText", "vertAlign",
+              "rtl", "cs", "em", "lang", "eastAsianLayout", "specVanish", "oMath")
+_RPR_IDX = {qn("w:%s" % t): i for i, t in enumerate(_RPR_ORDER)}
+
+
+def _rpr_insert(rpr, el):
+    my = _RPR_IDX.get(el.tag, len(_RPR_IDX))
+    for child in rpr:
+        if _RPR_IDX.get(child.tag, len(_RPR_IDX)) > my:
+            child.addprevious(el)
+            return
+    rpr.append(el)
+
+
+def _merge_wrapper_rpr(wrapper_rpr, inner_run):
+    """Give an inner run the wrapper run's direct formatting. pdf2docx puts the
+    visible underline/color on the wrapper and only rStyle on the inner run, so
+    on the (never observed) tag conflict the WRAPPER's value wins — it is what
+    Word was rendering. Inner-only properties are inserted at their CT_RPr
+    schema position."""
+    if wrapper_rpr is None:
+        return
+    merged = copy.deepcopy(wrapper_rpr)
+    old = inner_run.find(qn("w:rPr"))
+    if old is not None:
+        for child in old:
+            if merged.find(child.tag) is None:
+                _rpr_insert(merged, copy.deepcopy(child))
+        inner_run.remove(old)
+    inner_run.insert(0, merged)
+
+
+def hyperlink_unnest(data, pdf_doc=None):
+    """Lift w:hyperlink elements that pdf2docx nests INSIDE w:r up to their
+    schema-valid position as siblings of the run. Word tolerates the invalid
+    nesting, but schema-strict consumers (LibreOffice, QuickLook, and other
+    non-Word apps) drop the whole subtree, deleting the link text on screen.
+
+    Only moves nodes within their own container in document order — the
+    character stream is unchanged. Also merges directly-adjacent fragments of
+    the same link and defines the referenced Hyperlink character style, which
+    pdf2docx names but never defines."""
+    doc = Document(io.BytesIO(data))
+    changed = False
+
+    work = [h for h in doc.element.body.xpath(".//w:hyperlink")
+            if h.getparent().tag == qn("w:r")]
+    while work:
+        link = work.pop(0)
+        run = link.getparent()
+        if run is None or run.tag != qn("w:r"):
+            continue
+        changed = True
+        container = run.getparent()
+        wrapper_rpr = run.find(qn("w:rPr"))
+
+        kids = list(run)
+        at = kids.index(link)
+        tail = [k for k in kids[at + 1:]]
+
+        run.remove(link)
+        container.insert(list(container).index(run) + 1, link)
+        for inner in link.findall(qn("w:r")):
+            _merge_wrapper_rpr(wrapper_rpr, inner)
+        if tail:
+            tail_run = parse_xml("<w:r %s/>" % nsdecls("w"))
+            if wrapper_rpr is not None:
+                tail_run.append(copy.deepcopy(wrapper_rpr))
+            for k in tail:
+                run.remove(k)
+                tail_run.append(k)
+            container.insert(list(container).index(link) + 1, tail_run)
+            work[:0] = [h for h in tail_run.iter(qn("w:hyperlink"))
+                        if h.getparent().tag == qn("w:r")]
+        if not [k for k in run if k.tag != qn("w:rPr")]:
+            container.remove(run)
+        if container.tag == qn("w:r"):
+            work.append(link)
+
+    if changed:
+        for link in doc.element.body.xpath(".//w:hyperlink"):
+            prev = link.getprevious()
+            while (prev is not None and prev.tag == qn("w:hyperlink")
+                   and _link_key(prev) == _link_key(link) and _link_key(link) != (None, None)):
+                for k in list(link):
+                    prev.append(k)
+                parent = link.getparent()
+                parent.remove(link)
+                link = prev
+                prev = link.getprevious()
+
+    has_links = bool(doc.element.body.xpath(".//w:hyperlink"))
+    if has_links:
+        styles_el = doc.styles.element
+        defined = any(s.get(qn("w:styleId")) == "Hyperlink"
+                      for s in styles_el.findall(qn("w:style")))
+        if not defined:
+            styles_el.append(parse_xml(_HYPERLINK_STYLE_XML % nsdecls("w")))
+            changed = True
+
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+# Order is load-bearing and enhance() is single-shot: hyperlink_unnest runs
+# first so every later pass sees schema-valid hyperlink positions, and
+# span_space_repair must see the document BEFORE reflow's dehyphenation (a
+# healed word looks like a lost-space seam to a second run). The pipeline
+# calls enhance() exactly once per conversion; never chain it.
+PASSES = (hyperlink_unnest, span_space_repair, header_footer_parts, heading_styles,
+          list_numbering, paragraph_reflow)
 
 
 def enhance(docx_bytes, pdf_doc=None):

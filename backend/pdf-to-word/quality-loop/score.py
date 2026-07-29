@@ -48,12 +48,22 @@ def _flag_on(rpr, tag):
 
 
 def _para_info(p):
+    """link_ids = hyperlinks at their VALID position (direct child of the
+    paragraph) that contain text. pdf2docx nests hyperlinks inside runs, which
+    schema-strict renderers (LibreOffice, QuickLook) drop entirely — those are
+    collected in nested_link_ids and must not count as live."""
     text_parts, bold_toks, ital_toks, link_ids = [], [], [], []
-    for node in p.iter():
-        if node.tag == W + "hyperlink":
-            rid = node.get(RNS + "id")
-            if rid:
-                link_ids.append(rid)
+    nested_link_ids = []
+    direct = {id(c) for c in p if c.tag == W + "hyperlink"}
+    for node in p.iter(W + "hyperlink"):
+        rid = node.get(RNS + "id")
+        if not rid:
+            continue
+        has_text = any((t.text or "").strip() for t in node.iter(W + "t"))
+        if id(node) in direct and has_text:
+            link_ids.append(rid)
+        else:
+            nested_link_ids.append(rid)
     for r in p.iter(W + "r"):
         rpr = r.find(W + "rPr")
         t = "".join((tnode.text or "") for tnode in r.findall(W + "t"))
@@ -76,7 +86,8 @@ def _para_info(p):
             ilvl = np.find(W + "ilvl")
             numpr_ilvl = int(ilvl.get(W + "val", "0")) if ilvl is not None else 0
     return {"text": "".join(text_parts), "style": style, "numpr_ilvl": numpr_ilvl,
-            "bold": bold_toks, "italic": ital_toks, "links": link_ids}
+            "bold": bold_toks, "italic": ital_toks, "links": link_ids,
+            "nested_links": nested_link_ids}
 
 
 def load_docx(path):
@@ -351,7 +362,7 @@ def run_scores(outdir):
     comps = [d["composite"] for d in docs.values() if "composite" in d]
     result = {"docs": docs,
               "mean_composite": round(sum(comps) / len(comps), 4) if comps else 0.0,
-              "weights_version": 3}
+              "weights_version": 4}
     (outdir / "scores.json").write_text(json.dumps(result, indent=1))
 
     cols = ["text_recall", "text_precision", "order", "headings", "lists", "tables",

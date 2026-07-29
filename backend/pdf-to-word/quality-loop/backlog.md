@@ -9,7 +9,7 @@ Scoreboard now: mean composite 0.9956 (weights_version 3 re-baseline of the iter
 | 7 | span-boundary space loss: pdf2docx drops the space where a styled/hyperlink span meets plain text inside list items ("with thedeployment checklist") | lists_hard text_recall 0.972 / order 0.979; links doc unaffected | **DONE iter 5** |
 | 3 | header-footer-parts: detect page furniture repeated at the same band across pages, move it into real header/footer parts | header_footer 0.250; body precision 0.913 from 3x repeated furniture | **DONE iter 3** |
 | 4 | paragraph-reflow + dehyphenation across page breaks | header_footer reflow 0.732 (page-break splits), two_column 0.800, prose recall 0.995 (hyphenation) | **DONE iter 4** |
-| 9 | **hyperlink_unnest**: pdf2docx nests w:hyperlink INSIDE w:r (invalid OOXML) — Word tolerates it, but LibreOffice + QuickLook (and likely other strict consumers) DROP the subtree: link text is invisible outside Word. Fix = lift hyperlink to paragraph level (splitting the wrapper run), merge wrapper rPr into inner runs, merge adjacent same-rid fragments, ensure Hyperlink style defined | found 2026-07-30 by the NEW VISUAL GATE on iter5 (QL and LO independently render links/lists_hard with link text missing; withstyle/nostyle variants ruled out styling; XML shows w:r > w:hyperlink nesting) — season-1 links metric scored 1.000 because it checked existence, not position validity | **TOP — iter 6** |
+| 9 | **hyperlink_unnest**: pdf2docx nests w:hyperlink INSIDE w:r (invalid OOXML) — Word tolerates it, but LibreOffice + QuickLook (and likely other strict consumers) DROP the subtree: link text is invisible outside Word. Fix = lift hyperlink to paragraph level (splitting the wrapper run), merge wrapper rPr into inner runs, merge adjacent same-rid fragments, ensure Hyperlink style defined | found 2026-07-30 by the NEW VISUAL GATE on iter5 (QL and LO independently render links/lists_hard with link text missing; withstyle/nostyle variants ruled out styling; XML shows w:r > w:hyperlink nesting) — season-1 links metric scored 1.000 because it checked existence, not position validity | **DONE iter 6** |
 | 8 | remove intra-paragraph w:br wrap artifacts (pdf2docx emits one per wrapped line, so Word never reflows text; also blocks the U+2010 healer since hyphens sit in their own runs) — same intra-block evidence framework as reflow | discovered in iter-4 review; invisible to current metrics (scorer ignores w:br) — needs a metric first | TODO |
 | 5 | harder corpus: ragged borderless table, merged cells, deeper nesting, longer docs | current borderless case already scores 1.0 — need a real target before converter work | TODO |
 | 6 | borderless/ragged table detection | blocked on #5 producing a failing case | TODO |
@@ -132,6 +132,22 @@ Dropped: hyperlink preservation — pdf2docx already keeps links live (links 1.0
   writes <w:r><w:rPr>(underline+color)</w:rPr><w:hyperlink r:id=..>
   <w:r><w:rStyle Hyperlink/>text</w:r></w:hyperlink></w:r> - hyperlink
   nested INSIDE a run, invalid per schema; strict engines drop the subtree.
+- **iter 6 (2026-07-30, ACCEPT +0.0090 -> 0.9956 on the v4 baseline):**
+  `hyperlink_unnest` — lifts pdf2docx's run-nested hyperlinks to paragraph
+  level (wrapper run split around the link, wrapper rPr merged into inner runs
+  at CT_RPr schema positions, wrapper-wins on conflict), merges directly
+  adjacent same-(r:id,anchor) fragments, defines the missing Hyperlink style.
+  Runs FIRST in PASSES. links + lists_hard hit 1.000 on the hardened links
+  metric; visual gate green in QuickLook AND LibreOffice (link text paints,
+  "OOXML specification" healed into one link). Opus refuter: 102 attacks
+  across 12 families incl. 400-doc fuzz (3,644 lifts) — verdict SAFE; its two
+  real catches were fixed and re-verified (rPr-order inversion from two
+  ordered inputs -> _rpr_insert; then MY O(n) worklist rewrite regressed
+  run-inside-run termination, caught only by re-running the refuter's suite ->
+  re-queue when the lift lands inside an outer run). Bonus refuter finding:
+  the pass RECOVERS tail text after nested links that Apple's docx reader was
+  silently dropping ("See t-b.com" -> "See t-b.com for details."). Suite grew
+  L1-L3. Perf: single-sweep worklist, no quadratic rescan.
   Also: styles.xml never defines the referenced Hyperlink style, and the
   visible blue "n" is a split plain run carrying pdf2docx's direct color.
   Backlog #9 filed and takes priority over wrap_hard (#8): actual text loss

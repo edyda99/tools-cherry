@@ -907,5 +907,75 @@ box = doc_xml.find(f".//{W_NS}txbxContent")
 box_ts = [t.text for t in box.iter(f"{W_NS}t")]
 check(box_ts == ["on", "call duty"], "S10: text-box seam edited: %s" % box_ts)
 
+# ---- hyperlink_unnest cases (L) --------------------------------------------
+
+W_MAIN = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+
+
+def run_unnest(doc):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.hyperlink_unnest(buf.getvalue())
+    return Document(io.BytesIO(out)), out
+
+
+def _hyperlinks(out_bytes):
+    root = _ET.fromstring(zipfile.ZipFile(io.BytesIO(out_bytes)).read("word/document.xml"))
+    return root, root.findall(f".//{W_MAIN}hyperlink")
+
+
+# L1: nested hyperlink lifts to paragraph level; stream order and the tail text
+# after the link (which strict readers were dropping) both survive; idempotent.
+d = Document()
+p = d.add_paragraph()
+p._p.append(parse_xml(
+    f'<w:r {nsdecls("w", "r")}><w:rPr><w:u w:val="single"/><w:color w:val="0645AD"/></w:rPr>'
+    f'<w:t xml:space="preserve">See </w:t>'
+    f'<w:hyperlink r:id="rId99" w:history="1"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr>'
+    f'<w:t>the site</w:t></w:r></w:hyperlink>'
+    f'<w:t xml:space="preserve"> for details.</w:t></w:r>'))
+r1, out1 = run_unnest(d)
+check(r1.paragraphs[0].text == "See the site for details.",
+      "L1: stream changed: %r" % r1.paragraphs[0].text)
+root1, links1 = _hyperlinks(out1)
+check(len(links1) == 1, "L1: expected 1 hyperlink, got %d" % len(links1))
+para1 = root1.find(f".//{W_MAIN}p")
+check(any(child is links1[0] for child in para1),
+      "L1: hyperlink is not a direct child of the paragraph")
+out1b = de.hyperlink_unnest(out1)
+check(out1b == out1, "L1: not idempotent")
+
+# L2: directly adjacent same-rid fragments merge into one link; a different-rid
+# neighbour stays separate.
+d = Document()
+p = d.add_paragraph()
+for rid, txt in (("rId7", "speci"), ("rId7", "fication"), ("rId8", "elsewhere")):
+    p._p.append(parse_xml(
+        f'<w:r {nsdecls("w", "r")}><w:rPr><w:u w:val="single"/></w:rPr>'
+        f'<w:hyperlink r:id="{rid}"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/></w:rPr>'
+        f'<w:t>{txt}</w:t></w:r></w:hyperlink></w:r>'))
+r2, out2 = run_unnest(d)
+root2, links2 = _hyperlinks(out2)
+check(len(links2) == 2, "L2: expected 2 hyperlinks after merge, got %d" % len(links2))
+first_text = "".join(t.text or "" for t in links2[0].iter(f"{W_MAIN}t"))
+check(first_text == "specification", "L2: merged link text %r" % first_text)
+check(r2.paragraphs[0].text == "specificationelsewhere", "L2: stream changed")
+
+# L3: rPr merge emits schema order even from two ordered inputs — wrapper
+# [rFonts,color,u] + inner [rStyle,b,sz] must come out canonically ordered.
+d = Document()
+p = d.add_paragraph()
+p._p.append(parse_xml(
+    f'<w:r {nsdecls("w", "r")}><w:rPr><w:rFonts w:ascii="X"/><w:color w:val="FF0000"/>'
+    f'<w:u w:val="single"/></w:rPr>'
+    f'<w:hyperlink r:id="rId5"><w:r><w:rPr><w:rStyle w:val="Hyperlink"/>'
+    f'<w:b/><w:sz w:val="28"/></w:rPr><w:t>x</w:t></w:r></w:hyperlink></w:r>'))
+r3, out3 = run_unnest(d)
+root3, links3 = _hyperlinks(out3)
+inner_rpr = links3[0].find(f"{W_MAIN}r/{W_MAIN}rPr")
+tags = [c.tag.split('}')[1] for c in inner_rpr]
+check(tags == ["rStyle", "rFonts", "b", "color", "sz", "u"],
+      "L3: merged rPr order %s" % tags)
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)
