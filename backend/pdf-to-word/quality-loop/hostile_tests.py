@@ -753,5 +753,159 @@ d.add_paragraph("next quarter brought entirely new rules")
 r, out = run_reflow(d, pdf)
 check(len([p for p in r.paragraphs if p.text.strip()]) == 2, "R20: merged across indent")
 
+# === span-boundary space repair ==============================================
+
+def run_space(doc, pdf):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.span_space_repair(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+# S1: evidenced lost space at a run boundary is restored
+pdf = make_pdf([[(100, "Start with the deployment checklist before touching anything.")]])
+d = Document()
+p = d.add_paragraph()
+p.add_run("Start with the")
+p.add_run("deployment checklist before touching anything.")
+r, out = run_space(d, pdf)
+check(r.paragraphs[0].text == "Start with the deployment checklist before touching anything.",
+      "S1: lost space not restored: %r" % r.paragraphs[0].text)
+
+# S2: a word split across styled runs is never broken apart
+pdf = make_pdf([[(100, "an unbelievable outcome was reported by everyone involved.")]])
+d = Document()
+p = d.add_paragraph()
+p.add_run("an un")
+p.add_run("believable outcome was reported by everyone involved.")
+r, out = run_space(d, pdf)
+check("un believable" not in r.paragraphs[0].text, "S2: intra-word split spaced")
+
+# S3: fused form that is also a real PDF word stays untouched
+pdf = make_pdf([[(100, "a round of talks began, and around the corner more waited.")]])
+d = Document()
+p = d.add_paragraph()
+p.add_run("a")
+p.add_run("round of talks began, and around the corner more waited.")
+r, out = run_space(d, pdf)
+check(r.paragraphs[0].text.startswith("around of talks"), "S3: ambiguous fusion modified")
+
+# S4: already-spaced seams and seams across breaks stay untouched
+pdf = make_pdf([[(100, "plain text with the deployment checklist ready.")]])
+d = Document()
+p = d.add_paragraph()
+p.add_run("plain text with the ")
+p.add_run("deployment checklist ready.")
+buf = io.BytesIO()
+d.save(buf)
+check(de.span_space_repair(buf.getvalue(), pdf) == buf.getvalue(), "S4: spaced seam modified")
+
+# S5: the pdf2docx hyperlink-wrapper shape is repaired through the nesting
+pdf = make_pdf([[(100, "Start with the deployment checklist before touching production.")]])
+d = Document()
+p = d.add_paragraph()
+p.add_run("Start with the")
+p._p.append(parse_xml(
+    f'<w:r {nsdecls("w")}><w:rPr/><w:hyperlink {nsdecls("w")} w:anchor="x">'
+    f'<w:r><w:t>deployment checklist</w:t></w:r></w:hyperlink></w:r>'))
+p._p.append(parse_xml(f'<w:r {nsdecls("w")}><w:t xml:space="preserve"> before touching production.</w:t></w:r>'))
+r, out = run_space(d, pdf)
+check(count_tag(out, "w:hyperlink") == 1 and
+      full_text(r) == "Start with the deployment checklist before touching production.",
+      "S5: hyperlink seam not repaired: %r" % full_text(r))
+
+# S6: idempotent
+r2out = de.span_space_repair(out, pdf)
+check(r2out == out, "S6: span repair not idempotent")
+
+# S7: punctuation at the seam always declines, even with a tempting bigram
+pdf = make_pdf([[(100, "Escalations go to the on-call engineer first thing."),
+                 (114, "Every engineer takes a turn on call each quarter.")]])
+d = Document()
+p = d.add_paragraph()
+p.add_run("Escalations go to the on")
+p.add_run("-call engineer first thing.")
+r, out = run_space(d, pdf)
+check("on -call" not in r.paragraphs[0].text and "on-call" in r.paragraphs[0].text,
+      "S7: hyphen seam spaced: %r" % r.paragraphs[0].text)
+
+# S8: standards ids, ranges and apostrophe names decline
+pdf = make_pdf([[(100, "Certified to ISO-9001 since 2018 and the ISO 9001 audit is annual."),
+                 (114, "Coverage 2019-2024 inclusive; years 2019 2024 compared."),
+                 (128, "O'Brien and O Brien both signed the register.")]])
+d = Document()
+p1 = d.add_paragraph()
+p1.add_run("Certified to ISO")
+p1.add_run("-9001 since 2018.")
+p2 = d.add_paragraph()
+p2.add_run("Coverage 2019")
+p2.add_run("-2024 inclusive.")
+p3 = d.add_paragraph()
+p3.add_run("O'")
+p3.add_run("Brien signed.")
+r, out = run_space(d, pdf)
+check("ISO-9001" in r.paragraphs[0].text, "S8a: ISO id spaced")
+check("2019-2024" in r.paragraphs[1].text, "S8b: year range spaced")
+check("O'Brien" in r.paragraphs[2].text, "S8c: apostrophe name spaced")
+
+# S9: CJK line-wrap seams never receive a space
+pdf = fitz.open()
+pg = pdf.new_page(width=595, height=842)
+pg.insert_font(fontname="cjk", fontfile="/System/Library/Fonts/Hiragino Sans GB.ttc")
+pg.insert_text((72, 100), "日本語のテキス", fontsize=9, fontname="cjk")
+pg.insert_text((72, 114), "トです", fontsize=9, fontname="cjk")
+d = Document()
+p = d.add_paragraph()
+p.add_run("日本語のテキス")
+p.add_run("トです")
+buf = io.BytesIO()
+d.save(buf)
+check(de.span_space_repair(buf.getvalue(), pdf) == buf.getvalue(), "S9: CJK seam spaced")
+
+# S11: a seam word with an interior hyphen is never probed as its substring
+pdf = make_pdf([[(100, "The X-Rayscanner model 7 shipped this week to the lab."),
+                 (114, "Each ray scanner was recalibrated on site by the crew.")]])
+d = Document()
+p = d.add_paragraph()
+p.add_run("The X-Ray")
+p.add_run("scanner model 7 shipped this week to the lab.")
+r, out = run_space(d, pdf)
+check("X-Rayscanner" in r.paragraphs[0].text,
+      "S11: hyphen-interior token split: %r" % r.paragraphs[0].text)
+
+# S12: accented seam words are whole tokens too, never their ASCII substrings
+pdf = fitz.open()
+pg = pdf.new_page(width=595, height=842)
+pg.insert_font(fontname="hv", fontfile="/System/Library/Fonts/Helvetica.ttc")
+pg.insert_text((72, 100), "Zürichbank AG posted quarterly results this morning.",
+               fontsize=9, fontname="hv")
+pg.insert_text((72, 114), "It is a rich bank with deep reserves and long history.",
+               fontsize=9, fontname="hv")
+d = Document()
+p = d.add_paragraph()
+p.add_run("Zürich")
+p.add_run("bank AG posted quarterly results this morning.")
+r, out = run_space(d, pdf)
+check("Zürichbank" in r.paragraphs[0].text,
+      "S12: accented token split: %r" % r.paragraphs[0].text)
+
+# S10: drawing/text-box content is out of scope
+pdf = make_pdf([[(100, "Charton call duty roster for the on call rotation.")]])
+d = Document()
+p = d.add_paragraph("Body text mentioning Charton")
+p._p.append(parse_xml(
+    f'<w:r {nsdecls("w")}><w:drawing><wps:txbx xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape">'
+    f'<w:txbxContent><w:p><w:r><w:t>on</w:t></w:r><w:r><w:t>call duty</w:t></w:r></w:p>'
+    f'</w:txbxContent></wps:txbx></w:drawing></w:r>'))
+buf = io.BytesIO()
+d.save(buf)
+out2 = de.span_space_repair(buf.getvalue(), pdf)
+import xml.etree.ElementTree as _ET
+doc_xml = _ET.fromstring(zipfile.ZipFile(io.BytesIO(out2)).read("word/document.xml"))
+W_NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+box = doc_xml.find(f".//{W_NS}txbxContent")
+box_ts = [t.text for t in box.iter(f"{W_NS}t")]
+check(box_ts == ["on", "call duty"], "S10: text-box seam edited: %s" % box_ts)
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)

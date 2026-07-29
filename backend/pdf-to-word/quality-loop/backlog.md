@@ -1,12 +1,12 @@
 # Enhancement backlog (evidence-ordered from the iteration-0 baseline)
 
-Scoreboard now: mean composite 0.9948 (after iter 4, metric v2).
+Scoreboard now: mean composite 0.9977 (after iter 5). SEASON 1 COMPLETE — loop wrapped 2026-07-29; remaining items are season-2 candidates.
 
 | # | Item | Evidence | Status |
 |---|------|----------|--------|
 | 1 | heading-styles: split heading runs fused into body paragraphs (run-size boundary), then map size clusters to real Heading 1/2/3 styles with outlineLvl | headings 0.15 avg; 0.00 on inline_styles/table_bordered/table_borderless (h1 fused into next paragraph); fused paras also drag mixed_report reflow to 0.611 | **DONE iter 1** |
 | 2 | lists-numpr: replace frozen marker glyphs with real w:numPr numbering (bullet + decimal, nested ilvl) | lists 0.150 on lists + mixed_report | **DONE iter 2** |
-| 7 | span-boundary space loss: pdf2docx drops the space where a styled/hyperlink span meets plain text inside list items ("with thedeployment checklist") | lists_hard text_recall 0.972 / order 0.979; links doc unaffected | TODO |
+| 7 | span-boundary space loss: pdf2docx drops the space where a styled/hyperlink span meets plain text inside list items ("with thedeployment checklist") | lists_hard text_recall 0.972 / order 0.979; links doc unaffected | **DONE iter 5** |
 | 3 | header-footer-parts: detect page furniture repeated at the same band across pages, move it into real header/footer parts | header_footer 0.250; body precision 0.913 from 3x repeated furniture | **DONE iter 3** |
 | 4 | paragraph-reflow + dehyphenation across page breaks | header_footer reflow 0.732 (page-break splits), two_column 0.800, prose recall 0.995 (hyphenation) | **DONE iter 4** |
 | 8 | remove intra-paragraph w:br wrap artifacts (pdf2docx emits one per wrapped line, so Word never reflows text; also blocks the U+2010 healer since hyphens sit in their own runs) — same intra-block evidence framework as reflow | discovered in iter-4 review; invisible to current metrics (scorer ignores w:br) — needs a metric first | TODO |
@@ -84,3 +84,19 @@ Dropped: hyperlink preservation — pdf2docx already keeps links live (links 1.0
   sectPr). Known lost-repair (not corruption): narrow (<140pt) columns and
   hanging-indent layouts stay fragmented; U+2010 healing inert on pdf2docx's
   isolated-hyphen runs (folds into #8). hostile_tests grew to R1-R22.
+- **iter 5 (2026-07-29, ACCEPT +0.0029 → 0.9977):** `span_space_repair` —
+  restores the inter-word space pdf2docx drops at styled/hyperlink span
+  boundaries, under double PDF evidence (fused form absent from the word
+  stream, halves adjacent as separate words). Three single-refuter rounds:
+  round 1 UNSAFE (edge-punct stripping made the guard test "oncall" while the
+  seam said "on-call"; content-stream bigram order; CJK seams; text-box
+  descent) → fixed with ASCII letter-against-letter seams, sort=True words,
+  drawing-subtree skip; round 2 UNSAFE (interior hyphen/accents truncate the
+  fragment: X-Ray+scanner, Zürich+bank probed as substrings) → fixed with the
+  whole-token equality rule; round 3 SAFE — every prior corruption dead, new
+  attack classes (edge punct, digit mixes, homoglyphs/zero-width, forced
+  seams) all declined, 60-point divergence sweep confirms pure-ASCII tokens
+  cannot be solid-in-docx yet absent-from-PDF. lists_hard now 1.000 on every
+  metric. Residuals: table cells out of scope (missed repair, not corruption);
+  seams whose PDF token carries punctuation stay unrepaired by design; pass
+  order is load-bearing (enhance() is single-shot). Suite grew to S1-S12.

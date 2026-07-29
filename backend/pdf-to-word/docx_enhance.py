@@ -912,7 +912,100 @@ def paragraph_reflow(data, pdf_doc=None):
     return buf.getvalue()
 
 
-PASSES = (header_footer_parts, heading_styles, list_numbering, paragraph_reflow)
+# --- span-boundary space repair ----------------------------------------------
+# pdf2docx drops the inter-word space where a styled or hyperlink span meets
+# plain text ("with thedeployment checklist"). A space is restored at a run
+# boundary only under double evidence from the PDF's own word stream: the
+# fused form is NOT a word the PDF contains, AND the two halves DO appear
+# adjacent as separate words. Insertion-only; ambiguity is a no-op.
+
+_EDGE_PUNCT = re.compile(r"^[^\w]+|[^\w]+$")
+# ASCII letters/digits only: the seam string tested MUST be the seam string
+# edited. Punctuation at a seam ("on"+"-call", "O'"+"Brien", "ISO"+"-9001")
+# always declines — stripping it first made the guard test a different string
+# than the document contains. CJK seams decline too (no inter-word spaces).
+_TAIL_WORD = re.compile(r"[A-Za-z0-9]+$")
+_HEAD_WORD = re.compile(r"^[A-Za-z0-9]+")
+
+
+def _pdf_word_evidence(pdf_doc):
+    words, bigrams = set(), set()
+    for page in pdf_doc:
+        seq = [w for w in (_EDGE_PUNCT.sub("", t[4]).lower()
+                           for t in page.get_text("words", sort=True)) if w]
+        words.update(seq)
+        bigrams.update(zip(seq, seq[1:]))
+    return words, bigrams
+
+
+def _seam_stream(p):
+    """Text-like elements of a paragraph in document order, without descending
+    into drawings/text boxes/fallback content — their text is not body text."""
+    skip = {qn("w:drawing"), qn("w:object"), qn("w:pict")}
+    out = []
+
+    def walk(el):
+        for c in el:
+            if c.tag in skip:
+                continue
+            if c.tag in _TEXTLIKE:
+                out.append(c)
+            else:
+                walk(c)
+
+    walk(p)
+    return out
+
+
+def span_space_repair(data, pdf_doc=None):
+    """Restore inter-word spaces pdf2docx loses at span boundaries."""
+    if pdf_doc is None:
+        return data
+    words, bigrams = _pdf_word_evidence(pdf_doc)
+    if not bigrams:
+        return data
+    doc = Document(io.BytesIO(data))
+    changed = False
+    for para in doc.paragraphs:
+        stream = _seam_stream(para._p)
+        for a, b in zip(stream, stream[1:]):
+            if a.tag != qn("w:t") or b.tag != qn("w:t"):
+                continue
+            ta, tb = a.text or "", b.text or ""
+            if not ta or not tb:
+                continue
+            if not (ta[-1].isalnum() and tb[0].isalnum()):
+                continue  # only letter-against-letter seams can be lost spaces
+            m1, m2 = _TAIL_WORD.search(ta), _HEAD_WORD.search(tb)
+            if not m1 or not m2:
+                continue
+            f1, f2 = m1.group().lower(), m2.group().lower()
+            # the WHOLE seam token must be the tested fragment: an interior
+            # hyphen or non-ASCII letter ("X-Ray"+"scanner", "Zürich"+"bank")
+            # would make the veto probe a substring of a token the PDF holds
+            # solid, and corrupt it
+            full_tail = re.search(r"\S+$", ta).group()
+            full_head = re.search(r"^\S+", tb).group()
+            if (_EDGE_PUNCT.sub("", full_tail).lower() != f1
+                    or _EDGE_PUNCT.sub("", full_head).lower() != f2):
+                continue
+            if (f1 + f2) not in words and (f1, f2) in bigrams:
+                a.text = ta + " "
+                a.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+                changed = True
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+# Order is load-bearing and enhance() is single-shot: span_space_repair must
+# see the document BEFORE reflow's dehyphenation (a healed word looks like a
+# lost-space seam to a second run). The pipeline calls enhance() exactly once
+# per conversion; never chain it.
+PASSES = (span_space_repair, header_footer_parts, heading_styles, list_numbering,
+          paragraph_reflow)
 
 
 def enhance(docx_bytes, pdf_doc=None):
