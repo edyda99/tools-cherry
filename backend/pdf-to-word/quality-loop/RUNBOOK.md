@@ -69,7 +69,10 @@ install pdf2docx==0.5.8 PyMuPDF==1.25.5 Pillow numpy python-docx`.
    `--renderer word` via `render_word.sh` through the Terminal relay
    (`vpn-exec.sh`; Apple-events grant is Terminal→Word; NEVER reference
    `active document` — the script is by-name and aborts on name conflicts), or
-   `--renderer soffice` (first-ever run needs ~10+ min font-cache warmup).
+   `--renderer soffice` (works, paints links/footers/all pages, but EVERY launch
+   burns ~5-7 min at 100% CPU on this machine before converting — kick it off
+   in the background at iteration start and read its full-page composites when
+   it finishes; QL gives instant page-1 composites meanwhile).
 7. Schedule the next wakeup (3600s after a clean iteration, 1800s mid-task). Stop
    when the backlog is done or two consecutive items are blocked → final report,
    sample docx files to Edmond, deploy decision his.
