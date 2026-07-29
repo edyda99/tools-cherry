@@ -6394,7 +6394,14 @@ async function main() {
   // `/*` are left alone and simply carry through.
   await writeFile(
     join(DIST, '_headers'),
-    `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: DENY\n  Cache-Control: public, max-age=0, must-revalidate\n\n/assets/*\n  ! Cache-Control\n  Cache-Control: public, max-age=300, must-revalidate\n\n/assets/*.js\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n\n/assets/*.css\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n`
+    // `/embed/*` is the one exception. Those pages exist to be put in someone
+    // else's iframe, which is exactly what the inherited `X-Frame-Options: DENY`
+    // forbids, so every embed we have ever pitched would have rendered as a
+    // blank box for the partner and failed silently on our side. Unset it there,
+    // the same way the cache blocks unset Cache-Control. Safe to frame: the
+    // embed pages carry no auth input, no cookie or localStorage use, no
+    // external form action and no ad slot, so there is nothing to clickjack.
+    `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: DENY\n  Cache-Control: public, max-age=0, must-revalidate\n\n/embed/*\n  ! X-Frame-Options\n  Content-Security-Policy: frame-ancestors *\n\n/assets/*\n  ! Cache-Control\n  Cache-Control: public, max-age=300, must-revalidate\n\n/assets/*.js\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n\n/assets/*.css\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n`
   );
 
   // robots + sitemap
