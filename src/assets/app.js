@@ -300,7 +300,16 @@ function render() {
   $('rFederal').textContent = '−' + usd2(p.federal);
   $('rSS').textContent = '−' + usd2(p.socialSecurity);
   $('rMedicare').textContent = '−' + usd2(p.medicare);
-  $('rState').textContent = '−' + usd2(p.state);
+  // Optional element. On the nine states with no income tax the build omits this
+  // row from the HTML entirely rather than serving "Texas income tax −$0.00",
+  // which is a withholding line that does not exist being asserted to every
+  // crawler and search snippet that never runs this file. The row was always
+  // display:none there once this function ran, so nothing visible changes; what
+  // changes is what a reader of the served HTML is told. Guarded, not assumed:
+  // build.js only permits an element to be missing when every use of it here is
+  // null-checked.
+  const rStateEl = $('rState');
+  if (rStateEl) rStateEl.textContent = '−' + usd2(p.state);
   $('rNet').textContent = usd2(p.net);
 
   $('rEff').textContent = isZero ? NO_PAY_YET : pct(r.annual.effectiveRate);
@@ -315,9 +324,13 @@ function render() {
   renderBrackets(bb);
 
   // hide state row when the state has no income tax, and in the zero state,
-  // where showResultRows() has already hidden its neighbours
-  $('stateLine').style.display =
-    (!isZero && taxData.states[stateSlug]?.hasIncomeTax) ? '' : 'none';
+  // where showResultRows() has already hidden its neighbours. Absent on the
+  // no-income-tax pages, where the build ships no such row at all.
+  const stateLineEl = $('stateLine');
+  if (stateLineEl) {
+    stateLineEl.style.display =
+      (!isZero && taxData.states[stateSlug]?.hasIncomeTax) ? '' : 'none';
+  }
 
   // state disability / paid-leave employee contributions — one labeled line each,
   // e.g. "CA SDI (1.3%)". Rebuilt from the current view (per-period vs annual).

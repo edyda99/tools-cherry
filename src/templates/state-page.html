@@ -215,7 +215,7 @@
                five sit one to two screens below the answer band on a phone, so without
                this an answer changes something the visitor cannot see and the panel
                feels inert. Not an .adv-q, it is not a question. -->
-          <p class="adv-echo" id="advEcho"></p>
+          <p class="adv-echo" id="advEcho">{{ADV_ECHO}}</p>
         </fieldset>
       </form>
 
@@ -229,36 +229,45 @@
       <div class="results" data-tb-result>
         <div class="breakdown" id="breakdown" aria-hidden="true">
           <div class="bar">
-            <span class="seg-net" id="segNet" style="width:0%"></span>
-            <span class="seg-tax" id="segTax" style="width:0%"></span>
-            <span class="seg-ded" id="segDed" style="width:0%"></span>
+            <span class="seg-net" id="segNet" style="width:{{SEG_NET}}"></span>
+            <span class="seg-tax" id="segTax" style="width:{{SEG_TAX}}"></span>
+            <span class="seg-ded" id="segDed" style="width:{{SEG_DED}}"></span>
           </div>
           <div class="legend">
-            <span><i class="k-net"></i>Take-home <b id="lgNet">0%</b></span>
-            <span><i class="k-tax"></i>Taxes <b id="lgTax">0%</b></span>
-            <span class="lg-ded" id="lgDedWrap"><i class="k-ded"></i>Deductions <b id="lgDed">0%</b></span>
+            <span><i class="k-net"></i>Take-home <b id="lgNet">{{LG_NET}}</b></span>
+            <span><i class="k-tax"></i>Taxes <b id="lgTax">{{LG_TAX}}</b></span>
+            <span class="lg-ded" id="lgDedWrap"{{LG_DED_STYLE}}><i class="k-ded"></i>Deductions <b id="lgDed">{{LG_DED}}</b></span>
           </div>
         </div>
 
         <!-- Pre-rendered at build time for the form's own defaults: $75,000
              salary, single, biweekly, "Per paycheck". app.js's first render
              writes these same strings back, character for character, so
-             hydration changes nothing visible. The two deduction rows below stay
-             $0.00 because they genuinely are zero on those defaults, and their
-             rows are hidden until a visitor enters a deduction. -->
+             hydration changes nothing visible.
+
+             Every row app.js writes is filled here, not just the tax lines: the
+             state disability / paid-leave rows in {{PROGRAM_LINES}} are part of
+             the subtraction, and leaving that container empty while Net pay had
+             those amounts already taken out shipped a breakdown that did not add
+             up on the 14 states that carry such a program. The visible rows sum
+             to Net pay, and build.js asserts that per state.
+
+             The two deduction rows below stay $0.00 because they genuinely are
+             zero on those defaults, and their rows are hidden until a visitor
+             enters a deduction. -->
         <div class="line"><span class="lbl">Gross</span><span id="rGross">{{ROW_GROSS}}</span></div>
         <div class="line"><span class="lbl">Federal income tax</span><span id="rFederal">{{ROW_FEDERAL}}</span></div>
         <div class="line"><span class="lbl">Social Security</span><span id="rSS">{{ROW_SS}}</span></div>
         <div class="line"><span class="lbl">Medicare</span><span id="rMedicare">{{ROW_MEDICARE}}</span></div>
-        <div class="line" id="stateLine"><span class="lbl">{{STATE_NAME}} income tax</span><span id="rState">{{ROW_STATE}}</span></div>
-        <div id="programLines"></div>
+        {{STATE_TAX_ROW}}
+        <div id="programLines">{{PROGRAM_LINES}}</div>
         <div class="line" id="preTaxLine" hidden><span class="lbl">Pre-tax deductions</span><span id="rPreTax">$0.00</span></div>
         <div class="line" id="postTaxLine" hidden><span class="lbl">Post-tax deductions</span><span id="rPostTax">$0.00</span></div>
         <div class="line total"><span class="lbl">Net pay</span><span id="rNet">{{ROW_NET}}</span></div>
         <div class="rate-row">
-          <span>Federal marginal rate: <strong id="rMarginal">0%</strong></span>
-          <span>Effective tax rate: <strong id="rEff">0%</strong></span>
-          <span>Take-home: <strong id="rTake">0%</strong></span>
+          <span>Federal marginal rate: <strong id="rMarginal">{{RATE_MARGINAL}}</strong></span>
+          <span>Effective tax rate: <strong id="rEff">{{RATE_EFF}}</strong></span>
+          <span>Take-home: <strong id="rTake">{{RATE_TAKE}}</strong></span>
         </div>
 
         <details class="brackets" id="bracketPanel">
@@ -266,10 +275,10 @@
           <div class="table-scroll">
             <table class="bracket-table">
               <thead><tr><th>Bracket</th><th>Income taxed here</th><th>Tax</th></tr></thead>
-              <tbody id="bracketBody"></tbody>
+              <tbody id="bracketBody">{{BRACKET_BODY}}</tbody>
             </table>
           </div>
-          <p class="muted-small" id="bracketNote"></p>
+          <p class="muted-small" id="bracketNote">{{BRACKET_NOTE}}</p>
         </details>
 
         <details class="brackets" id="comparePanel">
