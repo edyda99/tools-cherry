@@ -1753,8 +1753,46 @@ function stateNet75(state, taxData) {
       taxData
     );
     if (!Number.isFinite(r.annual.net) || !Number.isFinite(r.perPaycheck.net)) return null;
-    return { annualNet: r.annual.net, biweeklyNet: r.perPaycheck.net };
+    // The same call also carries the per-paycheck breakdown the results table
+    // shows on the page defaults (biweekly, single, $75,000, "Per paycheck"
+    // view), so the table, the headline figure and the answer sentence are three
+    // readings of one computation and cannot drift apart.
+    const pp = r.perPaycheck;
+    const perPaycheck = {
+      gross: pp.gross,
+      federal: pp.federal,
+      socialSecurity: pp.socialSecurity,
+      medicare: pp.medicare,
+      state: pp.state,
+      net: pp.net
+    };
+    if (Object.values(perPaycheck).some((v) => !Number.isFinite(v))) return null;
+    return { annualNet: r.annual.net, biweeklyNet: pp.net, perPaycheck };
   } catch (_) { return null; }
+}
+
+// The six figures app.js writes into the results table on its first render
+// (app.js lines 299-304), as the exact strings it writes: usd2, and a U+2212
+// minus sign in front of every withheld line. One definition feeds both the
+// template tokens and the parity assertion below, so the thing asserted is the
+// thing shipped.
+const APP_MINUS = '−';
+function stateBreakdownRows(net75) {
+  if (!net75 || !net75.perPaycheck) {
+    return { ROW_GROSS: '$0.00', ROW_FEDERAL: '$0.00', ROW_SS: '$0.00', ROW_MEDICARE: '$0.00', ROW_STATE: '$0.00', ROW_NET: '$0.00' };
+  }
+  const p = net75.perPaycheck;
+  return {
+    ROW_GROSS: usd2App(p.gross),
+    ROW_FEDERAL: APP_MINUS + usd2App(p.federal),
+    ROW_SS: APP_MINUS + usd2App(p.socialSecurity),
+    ROW_MEDICARE: APP_MINUS + usd2App(p.medicare),
+    // A state with no income tax computes a genuine zero here, so this renders
+    // the minus sign followed by $0.00, which is exactly the string app.js
+    // writes into this span before it hides the row.
+    ROW_STATE: APP_MINUS + usd2App(p.state),
+    ROW_NET: usd2App(p.net)
+  };
 }
 
 // Byte-for-byte copies of app.js's two currency formatters (app.js lines 11-14),
@@ -1766,6 +1804,17 @@ const usdApp = (n) =>
 const usd2App = (n) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+// Second, independently written two-decimal formatter, the usd0 of the cents
+// world: plain number grouping with the dollar sign glued on, rather than Intl's
+// currency style. Only exists to disagree with usd2App if Intl's currency output
+// ever shifts (a stray non-breaking space, a "US$" prefix, a rounding change).
+const usd2Ref = (n) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// The six pre-rendered breakdown rows, in the order they appear in the table.
+// Named here so the parity loop below can state its denominator and fail if it
+// ever finds fewer than six figures to check.
+const PRERENDER_ROW_FIELDS = ['gross', 'federal', 'socialSecurity', 'medicare', 'state', 'net'];
+
 // Fails the build if a future currency/rounding tweak makes the pre-rendered
 // figures disagree with what app.js will write on first paint.
 function assertFormatterParity(state, net75) {
@@ -1775,6 +1824,34 @@ function assertFormatterParity(state, net75) {
       `formatter parity broken for ${state.slug}: build usd0 "${usd0(net75.annualNet)}" ` +
       `vs app.js usd "${usdApp(net75.annualNet)}" — the pre-rendered take-home would flicker on hydration.`
     );
+  }
+  // Same assertion for the six figures pre-rendered into the results table. A
+  // net75 that reached this point must carry all six, so a missing breakdown is
+  // a build failure, not a silently skipped check: a loop over nothing would
+  // pass while shipping "$0.00" rows to every crawler.
+  const p = net75.perPaycheck;
+  if (!p) {
+    throw new Error(
+      `pre-rendered breakdown missing for ${state.slug}: stateNet75 returned a take-home but no ` +
+      `per-paycheck rows, so the results table would ship six "$0.00" figures unchecked.`
+    );
+  }
+  let checked = 0;
+  for (const field of PRERENDER_ROW_FIELDS) {
+    const v = p[field];
+    if (!Number.isFinite(v)) {
+      throw new Error(`pre-rendered breakdown field "${field}" is not a finite number for ${state.slug}.`);
+    }
+    if (usd2Ref(v) !== usd2App(v)) {
+      throw new Error(
+        `formatter parity broken for ${state.slug} row "${field}": build usd2Ref "${usd2Ref(v)}" ` +
+        `vs app.js usd2 "${usd2App(v)}", so that row would flicker on hydration.`
+      );
+    }
+    checked++;
+  }
+  if (checked !== PRERENDER_ROW_FIELDS.length) {
+    throw new Error(`formatter parity checked ${checked} of ${PRERENDER_ROW_FIELDS.length} rows for ${state.slug}.`);
   }
 }
 
@@ -4008,6 +4085,11 @@ async function main() {
       NET_LABEL: net75 ? stateNetLabel(state) : '',
       NET_BIG: net75 ? usd2App(net75.biweeklyNet) : '$0.00',
       NET_SUB: net75 ? `take-home per 2 weeks · ${usd0(net75.annualNet)}/yr` : '',
+      // The results table, pre-rendered on the same page defaults the form ships
+      // with. Without these six the served HTML said "Net pay $0.00" directly
+      // under a sentence quoting the real figure, which is what a crawler that
+      // does not run JavaScript read.
+      ...stateBreakdownRows(net75),
       BRACKET_SUMMARY: bracketSummary(state),
       COMPARE_SUMMARY: compareSummary(roster, builtSlugs, slug),
       APPLIES_BLOCK: buildStateApplies({
