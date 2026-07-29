@@ -25,6 +25,7 @@ RNS = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 HYPERLINK_TYPE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"
 
 WEIGHTS = {"text_recall": 2.0, "text_precision": 1.0, "order": 1.5, "headings": 1.0,
+           "wrap": 0.75,
            "lists": 1.0, "tables": 1.5, "header_footer": 1.0, "links": 0.75,
            "styles": 0.75, "reflow": 1.0}
 GATE_MEAN_MIN_GAIN = 0.002
@@ -283,6 +284,30 @@ def _score_reflow(truth, dx):
     return round(sum(scores) / len(scores), 4)
 
 
+def _score_wrap(dx, docx_path):
+    """Wrap-artifact freedom: pdf2docx writes a hard w:br per wrapped source
+    line, so converted paragraphs never re-wrap when edited in Word. For every
+    long body paragraph (>=15 tokens), score 1 if it contains no wrap break
+    (w:br with no type or type="textWrapping"), else 0. Page/column breaks are
+    legitimate and ignored. Truth-independent by design."""
+    z = zipfile.ZipFile(docx_path)
+    doc = ET.fromstring(z.read("word/document.xml"))
+    body = doc.find(W + "body")
+    vals = []
+    for child in body:
+        if child.tag != W + "p":
+            continue
+        toks = tokens("".join(t.text or "" for t in child.iter(W + "t")))
+        if len(toks) < 15:
+            continue
+        wraps = [br for br in child.iter(W + "br")
+                 if br.get(W + "type") in (None, "textWrapping")]
+        vals.append(0.0 if wraps else 1.0)
+    if not vals:
+        return None
+    return sum(vals) / len(vals)
+
+
 def score_doc(truth, docx_path):
     dx = load_docx(docx_path)
     gt_seq = [t for text in truth["flow"] for t in tokens(text)]
@@ -300,6 +325,7 @@ def score_doc(truth, docx_path):
         "links": _score_links(truth, dx),
         "styles": _score_styles(truth, dx),
         "reflow": _score_reflow(truth, dx),
+        "wrap": _score_wrap(dx, docx_path),
     }
     m = {k: (round(v, 4) if v is not None else None) for k, v in m.items()}
     num = sum(WEIGHTS[k] * v for k, v in m.items() if v is not None)
@@ -325,11 +351,11 @@ def run_scores(outdir):
     comps = [d["composite"] for d in docs.values() if "composite" in d]
     result = {"docs": docs,
               "mean_composite": round(sum(comps) / len(comps), 4) if comps else 0.0,
-              "weights_version": 2}
+              "weights_version": 3}
     (outdir / "scores.json").write_text(json.dumps(result, indent=1))
 
     cols = ["text_recall", "text_precision", "order", "headings", "lists", "tables",
-            "header_footer", "links", "styles", "reflow", "composite"]
+            "header_footer", "links", "styles", "reflow", "wrap", "composite"]
     print(f"{'doc':<17}" + "".join(f"{c[:7]:>9}" for c in cols))
     for name, d in docs.items():
         if "error" in d:

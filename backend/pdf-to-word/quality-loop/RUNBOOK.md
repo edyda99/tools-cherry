@@ -55,15 +55,21 @@ install pdf2docx==0.5.8 PyMuPDF==1.25.5 Pillow numpy python-docx`.
    adversarial check — try to construct a document class the pass corrupts; add that
    document to the corpus if it finds one.
 6b. **Visual gate** (Edmond, 2026-07-29: both methods run in the loop):
-   `venv/bin/python visual_check.py out/iterN` renders every corpus PDF page
-   beside the Word-rendered converted page (`out/iterN/visual/*.png`). The
-   operator Reads EVERY composite and logs a one-line verdict per doc in the
-   iteration log; any visual regression (missing/misplaced/reordered content,
-   broken table, wrong page furniture) blocks acceptance exactly like the score
-   gate. Judge content and block placement, not exact line breaks (two layout
-   engines). Needs: unsandboxed shell + a one-time macOS Automation grant
-   (host app → Microsoft Word); LibreOffice headless hangs on this machine —
-   do not retry it.
+   `venv/bin/python visual_check.py out/iterN` (unsandboxed shell) renders each
+   corpus PDF page beside the converted page and the operator Reads EVERY
+   composite, logging a one-line verdict per doc in the iteration log; any
+   visual regression (missing/misplaced/reordered content, broken table, wrong
+   furniture) blocks acceptance exactly like the score gate. Judge content and
+   block placement, not exact line breaks (different layout engines).
+   Default renderer is QuickLook (`--renderer ql`): zero permissions, true
+   layout, but KNOWN BLIND SPOTS — renders page 1 only, does not paint
+   hyperlink-wrapped runs (links look deleted; trust the links metric),
+   does not paint footer parts, and draws a small box glyph at section/page
+   breaks. For full-fidelity or multipage checks escalate to
+   `--renderer word` via `render_word.sh` through the Terminal relay
+   (`vpn-exec.sh`; Apple-events grant is Terminal→Word; NEVER reference
+   `active document` — the script is by-name and aborts on name conflicts), or
+   `--renderer soffice` (first-ever run needs ~10+ min font-cache warmup).
 7. Schedule the next wakeup (3600s after a clean iteration, 1800s mid-task). Stop
    when the backlog is done or two consecutive items are blocked → final report,
    sample docx files to Edmond, deploy decision his.
@@ -82,11 +88,11 @@ Dockerfile copies `docx_enhance.py`, and get Edmond's explicit deploy approval.
   pass scores worse than doing nothing.
 - `reflow` excludes ground-truth headings/list items from the docx side; min(m, 1/m)
   punishes over-merging as much as fragmentation.
-- Known blind spots: no visual render gate (LibreOffice hangs on this host; Word.app
-  automation available but disruptive — reserved for the final manual check), no
-  merged-cell/colspan case yet, no generic-scan class (scanned PDFs never reach the
-  OCR path in prod either — `is_stencil_pdf` only detects chip stencils; product gap
-  noted for Edmond, out of loop scope).
+- Known blind spots: visual gate is QuickLook-first-page by default (see 6b for its
+  blind spots and the word/soffice escalation), no merged-cell/colspan case yet, no
+  generic-scan class (scanned PDFs never reach the OCR path in prod either —
+  `is_stencil_pdf` only detects chip stencils; product gap noted for Edmond, out of
+  loop scope).
 - Changing score.py weights/metrics invalidates scoreboard.json — re-run the baseline
   scoring in the same iteration and bump `weights_version`.
 

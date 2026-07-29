@@ -1,6 +1,6 @@
 # Enhancement backlog (evidence-ordered from the iteration-0 baseline)
 
-Scoreboard now: mean composite 0.9977 (after iter 5). SEASON 1 COMPLETE — loop wrapped 2026-07-29; remaining items are season-2 candidates.
+Scoreboard now: mean composite 0.9956 (weights_version 3 re-baseline of the iter-5 output; the 0.0021 drop is the new wrap metric exposing two_column, not a regression). SEASON 2 IN PROGRESS since 2026-07-30.
 
 | # | Item | Evidence | Status |
 |---|------|----------|--------|
@@ -100,3 +100,25 @@ Dropped: hyperlink preservation — pdf2docx already keeps links live (links 1.0
   metric. Residuals: table cells out of scope (missed repair, not corruption);
   seams whose PDF token carries punctuation stay unrepaired by design; pass
   order is load-bearing (enhance() is single-shot). Suite grew to S1-S12.
+
+- **season 2 kickoff (2026-07-30):** visual gate added per Edmond ("both methods
+  in the loop"). visual_check.py composites (PDF page vs re-rendered DOCX) +
+  mandatory operator Read of every image; renderer = QuickLook by default
+  (Word AppleScript blocked repeatedly: python3 host denied Apple events,
+  /private/tmp and container staging dialog-hang or silently no-op, and an
+  `active document` reference once raced Edmond's live Word session and
+  exported HIS open document — render_word.sh is now by-name + abort-on-
+  conflict, Word render only via Terminal relay). FIRST FULL VISUAL PASS on
+  the season-1 output: 11/11 OK — furniture in real header, tables cell-
+  perfect, nesting/numbering correct, hyphenation healed, two_column at its
+  known ceiling; zero corruption. QL blind spots catalogued in RUNBOOK 6b.
+  Also added the `wrap` metric (weights v3, weight 0.75): share of long body
+  paragraphs free of w:br wrap artifacts; scoreboard re-baselined 0.9956.
+  EVIDENCE CORRECTION on #8: corpus audit shows pdf2docx already space-joins
+  justified prose (0 w:br in prose/table docs); artifacts concentrate in
+  narrow/ragged columns (two_column: 1), poem-style short lines (5 — but those
+  breaks are INTENTIONAL, removal would corrupt), and hyphenated line-splits
+  (dehyph fixtures: 2, the shapes that block the U+2010 healer). #8 rescoped:
+  first grow the corpus with a wrap_hard doc class (narrow ragged column of
+  flowing sentences + hyphenated splits), then a narrowly-gated br-healing
+  pass reusing reflow's continues() evidence; poems must stay untouched.

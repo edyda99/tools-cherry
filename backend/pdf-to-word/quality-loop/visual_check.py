@@ -48,6 +48,42 @@ end run
 '''
 
 
+def ql_convert(docx_paths, render_dir):
+    """First-page renders via the QuickLook thumbnail engine (true layout,
+    no permissions needed, instant). Only page 1 per docx — multipage tails
+    need --renderer soffice/word."""
+    render_dir.mkdir(parents=True, exist_ok=True)
+    cmd = ["qlmanage", "-t", "-s", "1600", "-o", str(render_dir)] + [str(p) for p in docx_paths]
+    subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    missing = []
+    for p in docx_paths:
+        raw = render_dir / f"{p.name}.png"
+        if raw.exists():
+            raw.replace(render_dir / f"{p.stem}.png")
+        elif not (render_dir / f"{p.stem}.png").exists():
+            missing.append(p.stem)
+    if missing:
+        sys.exit(f"qlmanage produced no thumbnail for {missing}")
+
+
+def soffice_convert(docx_paths, render_dir):
+    """Convert docx to PDF with headless LibreOffice using the warmed profile.
+
+    First-ever run on a machine takes ~10 min building font caches (looks like
+    a 99%-CPU hang; it is not); after that it is seconds. Needs an
+    unsandboxed shell. Profile lives in quality-loop/.lo_profile.
+    """
+    render_dir.mkdir(parents=True, exist_ok=True)
+    profile = HERE / ".lo_profile"
+    cmd = ["/Applications/LibreOffice.app/Contents/MacOS/soffice", "--headless",
+           "--norestore", f"-env:UserInstallation={profile.as_uri()}",
+           "--convert-to", "pdf", "--outdir", str(render_dir)] + [str(p) for p in docx_paths]
+    res = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
+    missing = [p.stem for p in docx_paths if not (render_dir / f"{p.stem}.pdf").exists()]
+    if missing:
+        sys.exit(f"soffice failed for {missing}\nstdout: {res.stdout}\nstderr: {res.stderr}")
+
+
 def word_convert(docx_paths, render_dir):
     """Convert docx files to PDF by scripting Microsoft Word (one launch)."""
     render_dir.mkdir(parents=True, exist_ok=True)
@@ -100,12 +136,12 @@ def compose(name, page_no, left, right, out_path):
     lw = left.width if left else (right.width if right else 800)
     rw = right.width if right else lw
     left = left or blank_panel(lw, "no such page in source PDF")
-    right = right or blank_panel(rw, "no such page in converted DOCX")
+    right = right or blank_panel(rw, "no render for this page (QL renders page 1 only)")
     W = left.width + GUTTER + right.width
     canvas = Image.new("RGB", (W, HEADER_H + PANEL_H), (250, 250, 250))
     d = ImageDraw.Draw(canvas)
     d.text((6, 9), f"{name} p{page_no} | PDF source", fill=(0, 0, 0))
-    d.text((left.width + GUTTER + 6, 9), "DOCX (Word render)", fill=(0, 0, 0))
+    d.text((left.width + GUTTER + 6, 9), "DOCX (converted, re-rendered)", fill=(0, 0, 0))
     canvas.paste(left, (0, HEADER_H))
     canvas.paste(right, (left.width + GUTTER, HEADER_H))
     d.rectangle(
@@ -120,6 +156,9 @@ def main():
     ap.add_argument("out_dir")
     ap.add_argument("--docs", help="comma-separated doc names (default: all)")
     ap.add_argument("--dpi", type=int, default=110)
+    ap.add_argument("--renderer", choices=["ql", "soffice", "word", "skip"], default="ql",
+                    help="ql = QuickLook first-page thumbnails (default; no permissions); "
+                         "skip = renders already in <out>/visual/render")
     args = ap.parse_args()
 
     out_dir = Path(args.out_dir)
@@ -133,13 +172,30 @@ def main():
 
     visual_dir = out_dir / "visual"
     visual_dir.mkdir(exist_ok=True)
-    word_convert(docx_paths, visual_dir / "render")
+    if args.renderer == "word":
+        word_convert(docx_paths, visual_dir / "render")
+    elif args.renderer == "soffice":
+        soffice_convert(docx_paths, visual_dir / "render")
+    elif args.renderer == "ql":
+        ql_convert(docx_paths, visual_dir / "render")
+    else:
+        missing = [p.stem for p in docx_paths
+                   if not (visual_dir / "render" / f"{p.stem}.pdf").exists()]
+        if missing:
+            sys.exit(f"--renderer skip but no rendered pdf for {missing}")
 
     manifest = {}
     for docx in docx_paths:
         name = docx.stem
         src_pages = [scaled(p) for p in render_pages(CORPUS / f"{name}.pdf", args.dpi)]
-        conv_pages = [scaled(p) for p in render_pages(visual_dir / "render" / f"{name}.pdf", args.dpi)]
+        conv_pdf = visual_dir / "render" / f"{name}.pdf"
+        conv_png = visual_dir / "render" / f"{name}.png"
+        if conv_pdf.exists():
+            conv_pages = [scaled(p) for p in render_pages(conv_pdf, args.dpi)]
+        elif conv_png.exists():
+            conv_pages = [scaled(Image.open(conv_png).convert("RGB"))]
+        else:
+            conv_pages = []
         images = []
         for i in range(max(len(src_pages), len(conv_pages))):
             out_path = visual_dir / f"{name}-p{i + 1}.png"
@@ -155,6 +211,7 @@ def main():
             "docx_pages": len(conv_pages),
             "page_drift": len(conv_pages) - len(src_pages),
             "images": images,
+            "renderer": args.renderer,
         }
         drift = manifest[name]["page_drift"]
         flag = "" if drift == 0 else f"  <-- page drift {drift:+d}"

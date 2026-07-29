@@ -11,6 +11,7 @@
    "links": null,
    "styles": null,
    "reflow": 1.0,
+   "wrap": 1.0,
    "composite": 1.0
   },
   "headings": {
@@ -24,6 +25,7 @@
    "links": null,
    "styles": null,
    "reflow": 1.0,
+   "wrap": 1.0,
    "composite": 1.0
   },
   "inline_styles": {
@@ -37,6 +39,7 @@
    "links": null,
    "styles": 1.0,
    "reflow": 1.0,
+   "wrap": 1.0,
    "composite": 1.0
   },
   "links": {
@@ -50,6 +53,7 @@
    "links": 1.0,
    "styles": null,
    "reflow": 1.0,
+   "wrap": 1.0,
    "composite": 1.0
   },
   "lists": {
@@ -63,6 +67,7 @@
    "links": null,
    "styles": null,
    "reflow": 1.0,
+   "wrap": 1.0,
    "composite": 1.0
   },
   "lists_hard": {
@@ -76,6 +81,7 @@
    "links": 1.0,
    "styles": null,
    "reflow": null,
+   "wrap": null,
    "composite": 1.0
   },
   "mixed_report": {
@@ -89,6 +95,7 @@
    "links": null,
    "styles": 1.0,
    "reflow": 1.0,
+   "wrap": 1.0,
    "composite": 1.0
   },
   "prose": {
@@ -102,6 +109,7 @@
    "links": null,
    "styles": null,
    "reflow": 1.0,
+   "wrap": 1.0,
    "composite": 1.0
   },
   "table_bordered": {
@@ -115,6 +123,7 @@
    "links": null,
    "styles": null,
    "reflow": null,
+   "wrap": null,
    "composite": 1.0
   },
   "table_borderless": {
@@ -128,6 +137,7 @@
    "links": null,
    "styles": null,
    "reflow": 1.0,
+   "wrap": 1.0,
    "composite": 1.0
   },
   "two_column": {
@@ -141,9 +151,10 @@
    "links": null,
    "styles": null,
    "reflow": 0.8333,
-   "composite": 0.9744
+   "wrap": 0.75,
+   "composite": 0.9511
   }
  },
- "mean_composite": 0.9977,
- "weights_version": 2
+ "mean_composite": 0.9956,
+ "weights_version": 3
 }
