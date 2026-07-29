@@ -15,10 +15,17 @@
 // 2. Nothing is invented. Tips and overtime verdicts come from the OBBBA
 //    conformity data, the bonus line from the state supplemental data, and the
 //    turning-65 line from the state's own income-tax structure.
+// 2b. Any claim about what a paycheck loses comes from withholdingProfile(state)
+//    in ./withholding-profile.js, the same helper build.js uses. This file is the
+//    one that got missed the last time that claim was corrected, and the result
+//    was a page telling an Alaskan their premium was both already subtracted and
+//    not withheld at all.
 // 3. Exactly FIVE anchors per page, on every state, so the site-wide anchor count
 //    moves by a known constant rather than by something that varies per state.
 // 4. No em dashes in copy written here, and no more than seven consecutive
 //    state-invariant words before a data-keyed token (near-duplicate budget).
+
+import { withholdingProfile } from './withholding-profile.js';
 
 const esc = (s) =>
   String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -59,15 +66,36 @@ function conformityLine(name, verdict, what, angle) {
   return `federally deductible; ${name} treatment varies`;
 }
 
-// Bonuses: keyed to how this state actually withholds supplemental wages.
-function bonusLine(name, supp, slug, pickFrame) {
+// Bonuses: keyed to how this state actually withholds supplemental wages AND to
+// what else it takes out of pay. The three frames below used to say a bonus met
+// "only federal withholding" / "nothing else", which is a claim about every
+// deduction, not just the supplemental rate. On Alaska and Washington that
+// contradicted the same page's own take-home figure, which already subtracts an
+// employee-paid premium. An exclusivity claim is now emitted only where the
+// profile says the state withholds nothing of its own.
+function bonusLine(name, supp, slug, pickFrame, wp) {
   const m = supp && supp.method;
   if (!m || m === 'none') {
-    return pickFrame(slug, 'appliesbonus', [
-      `there is no ${name} supplemental rate to apply, so only federal withholding touches the extra pay`,
-      `${name} publishes no supplemental rate, which leaves federal withholding as the only bite out of a bonus`,
-      `a bonus meets federal withholding and nothing else, because ${name} has no supplemental rate`
-    ]);
+    // Only a state that withholds nothing of its own may say "nothing else".
+    if (wp.federalOnly) {
+      return pickFrame(slug, 'appliesbonus', [
+        `there is no ${name} supplemental rate to apply, so only federal withholding touches the extra pay`,
+        `${name} publishes no supplemental rate, which leaves federal withholding as the only bite out of a bonus`,
+        `a bonus meets federal withholding and nothing else, because ${name} has no supplemental rate`
+      ]);
+    }
+    if (!wp.hasIncomeTax) {
+      // Both frames are certain. The state taxes no wage income, so a state line
+      // on a bonus can only be the premium. Whether that premium is charged on a
+      // separately paid bonus is not in the source for it, which is the whole
+      // difference between "carries" and "could carry" here.
+      return wp.bonusEvidence === 'confirmed'
+        ? `${name} sets no income tax on wages, so its ${wp.bonusPhrase} contributions are the only ${name} deduction a bonus carries`
+        : `${name} sets no income tax on wages, so its ${wp.programPhrase} contributions are the only ${name} deduction a bonus could carry`;
+    }
+    // Taxes wages but publishes no supplemental rate: same treatment as the
+    // 'regular' states below, and no claim about what else comes out.
+    return `${name} publishes no supplemental rate, so a bonus is withheld on the ordinary ${name} tables`;
   }
   if (m === 'flat' && typeof supp.rate === 'number') {
     return `${name} withholds a flat ${pct(supp.rate)} on supplemental pay, separately from your regular wages`;
@@ -91,9 +119,15 @@ function bonusLine(name, supp, slug, pickFrame) {
 
 // Turning 65: the federal deduction is the same everywhere, so this line is keyed
 // to what the state does to the same wages.
-function seniorLine(state, pickFrame) {
+function seniorLine(state, pickFrame, wp) {
   const t = state.tax;
-  if (!state.hasIncomeTax || !t) {
+  if (!wp.hasIncomeTax) {
+    // "The whole story" and "all there is to claim" are exclusivity claims about
+    // the deduction side of the check, so they are for federal-only states. A
+    // state that runs an employee-paid premium gets a line scoped to the tax.
+    if (!wp.federalOnly) {
+      return `the $6,000 federal senior deduction is the only one to claim, because ${state.name} taxes no wages, and it does not reduce ${state.name}'s ${wp.programPhrase} contributions either`;
+    }
     return pickFrame(state.slug, 'appliessenior', [
       `the $6,000 federal senior deduction is the whole story here, because ${state.name} does not tax wages`,
       `only the $6,000 federal senior deduction is in play, since there is no ${state.name} wage tax to reduce`,
@@ -120,6 +154,8 @@ function seniorLine(state, pickFrame) {
  */
 export function buildStateApplies({ state, obbbaEntry, suppEntry, notaxAngle, pickFrame }) {
   if (!state) return '';
+  // The one place this file is allowed to learn what leaves a paycheck here.
+  const wp = withholdingProfile(state);
   const name = esc(state.name);
   const otV = obbbaEntry && obbbaEntry.overtime && obbbaEntry.overtime.y2026;
   const tipV = obbbaEntry && obbbaEntry.tips && obbbaEntry.tips.y2026;
@@ -147,9 +183,9 @@ export function buildStateApplies({ state, obbbaEntry, suppEntry, notaxAngle, pi
       `<a href="/tips-tax-calculator/">Work out the tip deduction</a></p>`,
     `<p class="applies-line" data-line="ot"><strong>Overtime:</strong> ${conformityLine(name, otV, 'overtime premium pay', '')}. ` +
       `<a href="/overtime-tax-calculator/">Work out the overtime deduction</a></p>`,
-    `<p class="applies-line" data-line="bonus"><strong>Bonuses:</strong> ${bonusLine(name, suppEntry, state.slug, pickFrame)}. ` +
+    `<p class="applies-line" data-line="bonus"><strong>Bonuses:</strong> ${bonusLine(name, suppEntry, state.slug, pickFrame, wp)}. ` +
       `<a href="/${state.slug}-bonus-tax-calculator/">Estimate the tax on a bonus in ${name}</a></p>`,
-    `<p class="applies-line" data-line="age"><strong>Turning 65:</strong> ${seniorLine(state, pickFrame)}. ` +
+    `<p class="applies-line" data-line="age"><strong>Turning 65:</strong> ${seniorLine(state, pickFrame, wp)}. ` +
       `<a href="/senior-deduction-calculator/">Check the senior deduction</a></p>`
   ].join('\n        ');
 

@@ -11,6 +11,7 @@ import { transform as esbuildTransform } from 'esbuild';
 import { STATIC_PAGES } from './src/content/static-pages.js';
 import { buildWamParts } from './src/content/what-applies-to-me.js';
 import { buildStateApplies } from './src/content/state-applies.js';
+import { withholdingProfile, programKindsOf } from './src/content/withholding-profile.js';
 import { computePaycheck } from './src/engine/paycheck-engine.js';
 import { computeBonus } from './src/engine/bonus-tax.js';
 import { verifyDist, reportFailures } from './scripts/verify-dist.js';
@@ -1391,6 +1392,42 @@ function figureYearBanner(state, year) {
     `</p>`;
 }
 
+// Jurisdictions whose figures are not on this build's tax year, read from the
+// data's own figureYear. Same test the study's byline and its in-table marker
+// use, so one state publishing its tables clears every one of them at once.
+function priorYearJurisdictions(states, year) {
+  return states.filter((s) => {
+    const fy = Number(s && s.figureYear);
+    return fy && fy !== Number(year);
+  });
+}
+
+// The take-home study's COVERAGE claim, in one place. "the 2026 rules of every
+// state and DC" is false while any jurisdiction sits on prior-year tables, and
+// it was written out longhand in the study's own lede and again in the study
+// cross-link on all 51 state pages. Both now call this, so the sentence corrects
+// itself the moment California and Oklahoma publish.
+// `scope` is the coverage wording the calling sentence needs, since one says
+// "every state and DC" and the other "all 50 states and the District of Columbia".
+function studyRulesPhrase(states, year, scope) {
+  const base = `the ${year} rules of ${scope}`;
+  // Sorted by name so the callers, one iterating the data file and one iterating
+  // a table ranked by take-home pay, still print the same sentence.
+  const prior = priorYearJurisdictions(states, year)
+    .slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  if (!prior.length) return base;
+  const years = [...new Set(prior.map((s) => Number(s.figureYear)))];
+  const andList = (arr) => (arr.length === 1
+    ? arr[0]
+    : arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1]);
+  const one = prior.length === 1;
+  // One shared fallback year is the normal case and reads far better than a year
+  // in brackets after every name; the mixed case still names each one's year.
+  return years.length === 1
+    ? `${base}, except ${andList(prior.map((s) => s.name))}, still on ${one ? 'its' : 'their'} ${years[0]} tables`
+    : `${base}, except ${andList(prior.map((s) => `${s.name} (${s.figureYear})`))}, still on ${one ? 'its' : 'their'} most recent published tables`;
+}
+
 // Rate formatter. Rounds to 3 decimal places of a percent and drops trailing
 // zeros via Number coercion, so 0.05525 prints "5.525%" rather than the old
 // two-decimal "5.53%" (which misstated New Jersey's real bracket rate).
@@ -1510,50 +1547,14 @@ const TARGET_STATES = new Set(['pennsylvania', 'california', 'colorado', 'massac
 // Some states run employee-funded payroll programs (unemployment insurance,
 // paid family leave, disability, long-term care). Alaska and Washington run one
 // or more of those AND levy no income tax, so any sentence claiming a no-tax
-// state's paycheck loses "only federal tax and FICA" is false there. Every such
-// sentence is built from the state's own employeePrograms array, never from a
-// list of state names, so a state that starts or stops a program rewrites its
-// own copy on the next build.
-const PROGRAM_KIND_RULES = [
-  [/\bSDI\b|\bTDI\b|\bDBL\b|disabilit/i, 'disability insurance'],
-  [/PFML|\bPFL\b|\bFLI\b|FAMLI|\bTCI\b|paid leave|paid family/i, 'paid family leave'],
-  [/\bcares\b|long[- ]term care/i, 'long-term care'],
-  [/\bUI\b|\bUC\b|\bSUI\b|unemploy/i, 'unemployment insurance'],
-  [/WF\/SWF|workforce/i, 'workforce development'],
-];
-// Declaration order above is also display order, so a state's programs read in
-// the same order everywhere they are named.
-const programKindIndex = (k) => {
-  const i = PROGRAM_KIND_RULES.findIndex(([, name]) => name === k);
-  return i < 0 ? PROGRAM_KIND_RULES.length : i;
-};
-// Every rule is tested against every label, not just the first that matches,
-// because one label can cover two things (RI TDI/TCI). An unrecognised label
-// falls back to a true-but-vague phrase rather than being dropped or mislabelled.
-function programKindsOf(progs) {
-  const out = [];
-  for (const p of progs || []) {
-    const label = String(p.label || '');
-    const hits = PROGRAM_KIND_RULES.filter(([re]) => re.test(label)).map(([, name]) => name);
-    for (const name of (hits.length ? hits : ['state payroll programs'])) {
-      if (!out.includes(name)) out.push(name);
-    }
-  }
-  return out.sort((a, b) => programKindIndex(a) - programKindIndex(b));
-}
-function listAndWords(arr) {
-  return arr.length <= 1
-    ? (arr[0] || '')
-    : arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1];
-}
-// Plain-language name for what this state withholds from employees on top of
-// income tax, e.g. "unemployment insurance" or "paid family leave and long-term
-// care". Empty string when the state withholds nothing of its own, so callers
-// branch on it rather than on a state name.
-function employeeProgramPhrase(state) {
-  const progs = (state && Array.isArray(state.employeePrograms)) ? state.employeePrograms : [];
-  return progs.length ? listAndWords(programKindsOf(progs)) : '';
-}
+// state's paycheck loses "only federal tax and FICA" is false there.
+//
+// The rules, the category names and the "may this page claim exclusivity"
+// verdict all live in src/content/withholding-profile.js, which build.js and
+// state-applies.js both import, because keeping a second copy here is what let
+// one page contradict itself. Every sentence of this class is built from
+// withholdingProfile(state), never from a list of state names, so a state that
+// starts or stops a program rewrites its own copy on the next build.
 
 // One extractable sentence stating the state's 2026 income-tax rate, derived from
 // the already-sourced tax data (never hardcoded). Serves the informational
@@ -1633,25 +1634,19 @@ function noTaxMetaDesc(state, year) {
   // no-income-tax states get the same answer-first shape instead of a generic
   // opener that the 155-char clamp cut off before it said anything.
   const tail = NOTAX_META_TAIL[state.slug] || `Free ${state.name} paycheck calculator for your take-home pay.`;
-  const prog = employeeProgramPhrase(state);
-  return prog
-    ? `${state.name} has no state income tax, but ${prog} contributions still come out of your ${year} pay. ${tail}`
-    : `${state.name} has no state income tax, so your ${year} paycheck is cut only by federal tax and FICA. ${tail}`;
+  const wp = withholdingProfile(state);
+  return wp.federalOnly
+    ? `${state.name} has no state income tax, so your ${year} paycheck is cut only by federal tax and FICA. ${tail}`
+    : `${state.name} has no state income tax, but ${wp.programPhrase} contributions still come out of your ${year} pay. ${tail}`;
 }
-// Trailing meta clause for a state with no income tax, and the matching on-page
-// note. Both name the state's own employee-paid contributions where it has them,
-// so neither implies federal figures are the only thing the tool has to show.
+// Trailing meta clause for a state with no income tax. It names the state's own
+// employee-paid contributions where it has them, so it never implies federal
+// figures are the only thing the tool has to show.
 function noTaxMetaNote(state) {
-  const prog = employeeProgramPhrase(state);
-  return prog
-    ? `. ${state.name} has no state income tax, and this tool still counts its ${prog} contributions`
-    : `. ${state.name} has no state income tax, so it doubles as a federal income tax calculator`;
-}
-function noTaxToolNote(state) {
-  const prog = employeeProgramPhrase(state);
-  return prog
-    ? ` ${state.name} has no state income tax, though its ${prog} contributions still come off your pay, and this tool subtracts them.`
-    : ` ${state.name} has no state income tax, so this tool shows your federal income tax and take-home pay.`;
+  const wp = withholdingProfile(state);
+  return wp.federalOnly
+    ? `. ${state.name} has no state income tax, so it doubles as a federal income tax calculator`
+    : `. ${state.name} has no state income tax, and this tool still counts its ${wp.programPhrase} contributions`;
 }
 
 // Meta description per state. Answer-first overrides win for the top paycheck
@@ -1659,7 +1654,8 @@ function noTaxToolNote(state) {
 // first ~150 chars; all others keep the original description verbatim.
 function stateMetaDesc(state, year) {
   if (STATE_META_OVERRIDE[state.slug]) return STATE_META_OVERRIDE[state.slug];
-  if (!state.hasIncomeTax) {
+  const wp = withholdingProfile(state);
+  if (!wp.hasIncomeTax) {
     const nt = noTaxMetaDesc(state, year);
     if (nt) return nt;
   }
@@ -1667,8 +1663,8 @@ function stateMetaDesc(state, year) {
     const fig = stateRateFigure(state);
     if (fig) return `${state.name} income tax rate ${year}: ${fig.desc}. Free ${state.name} paycheck and take-home pay calculator — enter your salary or hourly wage to see your ${year} take-home after federal tax, FICA and ${state.name} state income tax.`;
   }
-  const taxPhrase = state.hasIncomeTax ? `, and ${state.name} state income tax` : '';
-  const metaTaxNote = state.hasIncomeTax
+  const taxPhrase = wp.hasIncomeTax ? `, and ${state.name} state income tax` : '';
+  const metaTaxNote = wp.hasIncomeTax
     ? ` — also works as a ${state.name} income tax calculator`
     : noTaxMetaNote(state);
   return `Free ${year} ${state.name} (${state.abbr}) paycheck and payroll calculator. Enter your salary or hourly wage to see your take-home pay after federal tax, Social Security, Medicare${taxPhrase}${metaTaxNote}. Supports weekly, biweekly, monthly and more.`;
@@ -1684,19 +1680,19 @@ const numWord = (n) => NUM_WORDS[n] || String(n);
 // (flat rate / bracket count + range / no tax) instead of a shared template
 // sentence, so the 51 ledes differ because the FACTS differ.
 function stateLede(state, year) {
-  const kw = state.hasIncomeTax
+  const wp = withholdingProfile(state);
+  const kw = wp.hasIncomeTax
     ? 'paycheck, payroll and income tax calculator'
     : 'paycheck and payroll calculator';
   const open = `Use this free ${state.name} (${state.abbr}) ${kw} to estimate your ${year} take-home pay`;
   const t = state.tax;
-  if (!state.hasIncomeTax || !t) {
+  if (!wp.hasIncomeTax) {
     const angle = NOTAX_ANGLE[state.slug] || 'other taxes';
     // The closing clause is data-keyed: a no-income-tax state that runs its own
     // employee-paid programs cannot say "just federal tax and FICA come out".
-    const prog = employeeProgramPhrase(state);
-    return prog
-      ? `${open}. ${state.name} runs on ${angle}, not a wage tax, so what comes out is federal tax, FICA and ${state.name}'s ${prog} contributions.`
-      : `${open}. ${state.name} runs on ${angle}, not a wage tax, so just federal tax and FICA come out.`;
+    return wp.federalOnly
+      ? `${open}. ${state.name} runs on ${angle}, not a wage tax, so just federal tax and FICA come out.`
+      : `${open}. ${state.name} runs on ${angle}, not a wage tax, so what comes out is federal tax, FICA and ${state.name}'s ${wp.programPhrase} contributions.`;
   }
   if (t.type === 'flat') {
     return `${open} after federal income tax, Social Security, Medicare, and ${state.name}'s flat ${pctStr(t.rate)} state income tax.`;
@@ -1796,19 +1792,19 @@ function assertFormatterParity(state, net75) {
 function stateAnswerParts(state, year, net75) {
   if (!net75) return { lead: '', rate: '', tail: '' };
   const net = net75.annualNet;
-  const stateClause = state.hasIncomeTax ? `, and ${state.name} state income tax` : '';
+  const wp = withholdingProfile(state);
+  const stateClause = wp.hasIncomeTax ? `, and ${state.name} state income tax` : '';
   // When this state's disability / paid-leave employee contributions are modeled,
   // the net above already nets them out — say so, so the enumerated list matches
   // the figure.
   // Named from the state's own programs, because "disability / paid-leave" was
   // wrong for a state whose employee premium is unemployment insurance.
-  const prog = employeeProgramPhrase(state);
-  const progClause = prog
-    ? `${stateClause ? ' and' : ', plus'} ${state.abbr} ${prog} contributions`
+  const progClause = wp.programPhrase
+    ? `${stateClause ? ' and' : ', plus'} ${state.abbr} ${wp.programPhrase} contributions`
     : '';
   const lead = pickFrame(state.slug, 'answer', [
     `In ${state.name} for ${year}, a $75,000 salary takes home about ${usd0(net)} per year after federal income tax and FICA (Social Security and Medicare)${stateClause}${progClause}.`,
-    `A $75,000 salary in ${state.name} nets roughly ${usd0(net)} a year in ${year}, once federal income tax, Social Security and Medicare${state.hasIncomeTax ? ` and ${state.name} state tax` : ''}${progClause} are withheld.`,
+    `A $75,000 salary in ${state.name} nets roughly ${usd0(net)} a year in ${year}, once federal income tax, Social Security and Medicare${wp.hasIncomeTax ? ` and ${state.name} state tax` : ''}${progClause} are withheld.`,
     `Earning $75,000 in ${state.name}? Your estimated ${year} take-home is about ${usd0(net)} after federal tax and FICA${stateClause}${progClause}.`
   ]);
   // Wording is direction-neutral ("in the calculator", not "below") because the
@@ -1881,14 +1877,24 @@ const BASELINE_DISCLAIMER =
   'your pay stub is the authority on those.';
 
 // The no-income-tax pages need one extra line: "no income tax" is routinely
-// misread as "nothing comes out for the state".
-const NOTAX_DISCLAIMER =
-  'No state income tax does not mean no state payroll deductions. ' +
-  'Check your stub for state-run leave or disability contributions.';
+// misread as "nothing comes out for the state". WHICH line is a function of the
+// state's own programs, not of a constant: on Alaska and Washington the premiums
+// are already inside the take-home figure at the top of the page, and the old
+// constant sent those readers hunting on their stub for a deduction this page
+// had already subtracted, on the same page that said so.
+function notaxDisclaimer(state, wp) {
+  const open = 'No state income tax does not mean no state payroll deductions.';
+  return wp.federalOnly
+    ? `${open} Check your stub for state-run leave or disability contributions.`
+    : `${open} ${state.name} withholds ${wp.programPhrase} contributions from wages, and the ` +
+      `take-home figure above already subtracts those, so your stub is the check on anything ` +
+      `else your employer takes out.`;
+}
 
 // Prose body per state — branches on whether the state levies income tax.
 function stateBody(state, year, taxData) {
-  const noTax = !state.hasIncomeTax;
+  const wp = withholdingProfile(state);
+  const noTax = !wp.hasIncomeTax;
   let body;
   if (noTax) {
     const fact = NOTAX_FACTS[state.slug] ? ` ${NOTAX_FACTS[state.slug]}` : '';
@@ -1896,8 +1902,8 @@ function stateBody(state, year, taxData) {
     // opener: the "reduced only by federal withholding and FICA" frames below are
     // false there, and the take-home figure at the top of the page already
     // subtracts those contributions, so the prose has to name them.
-    const prog = employeeProgramPhrase(state);
-    const opener = prog ? pickFrame(state.slug, 'notaxprog', [
+    const prog = wp.programPhrase;
+    const opener = !wp.federalOnly ? pickFrame(state.slug, 'notaxprog', [
       `${state.name} is one of the U.S. states with <strong>no state income tax</strong>, so there is no ${state.name} income tax line on your ${year} check. What still comes off is federal income tax, FICA (Social Security and Medicare), and the ${prog} contributions ${state.name} collects from employee wages, which the take-home figure above already subtracts.`,
       `Because <strong>${state.name} levies no state income tax</strong>, nothing on your ${year} check goes to a state income tax line. Your pay is still reduced by federal withholding, FICA, and the ${prog} contributions ${state.name} takes from employee wages, and all of those are in the estimate above.`,
       `${state.name} workers pay <strong>no state income tax</strong> in ${year}. The deductions that remain are federal income tax, FICA (Social Security and Medicare), and the ${prog} contributions ${state.name} takes straight from employee wages, so no income tax here does not mean nothing is withheld for the state.`
@@ -1964,7 +1970,7 @@ function stateBody(state, year, taxData) {
 function stateDisclaimerNote(state, noTax) {
   const disclaimers = (state.disclaimer || []).slice();
   disclaimers.push(BASELINE_DISCLAIMER);
-  if (noTax) disclaimers.push(NOTAX_DISCLAIMER);
+  if (noTax) disclaimers.push(notaxDisclaimer(state, withholdingProfile(state)));
   return `<p class="note"><strong>What this estimate doesn't include:</strong> ` +
     disclaimers.join(' ') + `</p>`;
 }
@@ -2046,7 +2052,7 @@ function payrollDeductionsBlock(state, p) {
   // figure at the top of the page. Any other rows in this table (unemployment,
   // long-term-care, etc.) are not modeled, so say so plainly — this is the fix
   // for the "documents SDI but never subtracts it" criticism.
-  const modeled = Array.isArray(state.employeePrograms) ? state.employeePrograms : [];
+  const modeled = withholdingProfile(state).programs;
   let statusNote;
   if (modeled.length) {
     const labels = modeled.map((pr) => escHtml(pr.label)).join(', ');
@@ -2591,15 +2597,31 @@ function bonusSourceName(state, supp) {
   return `the ${state.name} Department of Revenue`;
 }
 
-// The bonus engine models income tax and FICA only. On a state with no income
-// tax that still runs employee-paid programs, the page therefore says those come
-// out of a bonus too and sit outside this estimate, rather than presenting the
-// federal 22% and FICA as the whole story. Empty for every other state.
-function bonusProgramNote(state) {
-  const prog = employeeProgramPhrase(state);
-  return prog
-    ? ` ${state.name} still takes its ${prog} contributions out of a bonus as well, and those sit outside this estimate.`
-    : '';
+// The bonus engine models income tax and FICA only. A state that runs
+// employee-paid programs therefore cannot present the federal 22% and FICA as
+// the whole story. What the note may CLAIM is set by the data: a program record
+// that states it is charged on supplemental pay gets a flat assertion, and one
+// that is silent gets a sentence that asserts neither direction, because
+// "Alaska withholds unemployment insurance from bonus pay" was written on one
+// page while another said a bonus "meets federal withholding and nothing else",
+// and no source in this repo settled which was right. Empty when the state has
+// no employee-paid programs at all.
+// `detail` adds the sentence explaining WHY the note stops where it does. The
+// note lands in four places on a bonus page, so only the explainer section takes
+// the long form and the rest take the clause.
+function bonusProgramNote(state, { detail = false } = {}) {
+  const wp = withholdingProfile(state);
+  const many = wp.programs.length > 1;
+  if (wp.bonusEvidence === 'confirmed') {
+    return ` ${state.name} also takes its ${wp.bonusPhrase} contributions out of a bonus, and ${many ? 'those sit' : 'that sits'} outside this estimate.`;
+  }
+  if (wp.bonusEvidence === 'unknown') {
+    const short = ` ${state.name} also withholds ${wp.programPhrase} contributions from wages, which this estimate does not model.`;
+    return detail
+      ? `${short} The published ${many ? 'rates do' : 'rate does'} not say whether a separately paid bonus carries ${many ? 'them' : 'it'}, so your pay stub is the authority there.`
+      : short;
+  }
+  return '';
 }
 
 function bonusLede(state, supp, year) {
@@ -2607,9 +2629,12 @@ function bonusLede(state, supp, year) {
   if (supp.method === 'none') {
     const angle = NOTAX_ANGLE[state.slug];
     const angleBit = angle ? ` (it runs on ${angle})` : '';
-    const prog = employeeProgramPhrase(state);
-    if (prog) {
-      stateBit = `${state.name} takes <strong>no state income tax</strong>${angleBit}, so the flat <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a> come out, plus ${state.name}'s ${prog} contributions, which sit outside the estimate below.`;
+    const wp = withholdingProfile(state);
+    if (!wp.federalOnly) {
+      // Same note as the rest of the page, from the same helper, so the lede
+      // cannot be the one paragraph that still claims the premium does, or does
+      // not, come out of a bonus.
+      stateBit = `${state.name} takes <strong>no state income tax</strong>${angleBit}, so the flat <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a> come out of the bonus.${bonusProgramNote(state)}`;
     } else stateBit = pickFrame(state.slug, 'btledeNo', [
       `${state.name} takes <strong>no state income tax</strong>${angleBit}, so only the flat <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a> come out.`,
       `With <strong>no ${state.name} income tax</strong>${angleBit}, the only bites are the flat <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a>.`,
@@ -2644,7 +2669,9 @@ function bonusAnswerBlock(state, supp) {
   // "nothing for the state" is false where the state has employee-paid programs,
   // so those states get a clause scoped to income tax and a closing note naming
   // what does still come out.
-  const progNote = supp.method === 'none' ? bonusProgramNote(state) : '';
+  // Keyed to the state's programs, not to its supplemental method: what the
+  // estimate leaves out is the same whether or not the state sets a bonus rate.
+  const progNote = withholdingProfile(state).hasIncomeTax ? '' : bonusProgramNote(state);
   if (supp.method === 'none') stateClause = progNote
     ? `<strong>$0</strong> in ${state.name} income tax`
     : pickFrame(state.slug, 'btansState', [
@@ -2771,7 +2798,8 @@ function bonusHowItWorks(state, supp, year) {
   let st;
   if (supp.method === 'none') {
     const fact = NOTAX_FACTS[state.slug] ? ` ${NOTAX_FACTS[state.slug]}` : '';
-    const progNote = bonusProgramNote(state);
+    // The explainer section is the one place that carries the long form.
+    const progNote = bonusProgramNote(state, { detail: true });
     if (progNote) {
       // Every frame below calls the federal 22% and FICA the only withholding,
       // which is not true of a state that also runs employee-paid programs.
@@ -3012,15 +3040,17 @@ function bonusFaqEntries(state, supp, year) {
     : supp.special === 'wi_banded' ? '3.54%–7.65% by income band'
     : supp.incomeRate ? `about ${pctStr(supp.incomeRate)} (aggregate method)` : 'the aggregate method';
   const e = [];
-  const noTaxProg = supp.method === 'none' ? employeeProgramPhrase(state) : '';
-  if (noTaxProg) {
-    // Each frame below says the federal 22% and FICA are the only deductions.
-    // Where the state runs employee-paid programs that is wrong, and this answer
-    // is emitted as FAQPage JSON-LD, so it has to be right.
+  const wp = withholdingProfile(state);
+  // The programs clause, and whether there is one at all, comes from the state's
+  // own data. This answer is emitted as FAQPage JSON-LD, so an exclusivity claim
+  // here ("only the 22% and FICA") is a structured-data claim: it is allowed on a
+  // federal-only state and on no other.
+  const progTail = wp.hasIncomeTax ? '' : bonusProgramNote(state);
+  if (progTail) {
     e.push({
       q: `How much is withheld from a bonus in ${state.name}?`,
-      a: `${state.name} has no state income tax, so $0 is withheld for state income tax. Federally, a separately paid bonus is withheld at a flat 22% (37% above $1,000,000/yr), plus 7.65% FICA, which is a prepayment rather than your final tax. ${state.name} also takes its ${noTaxProg} contributions out of a bonus, and those are not part of this estimate.`,
-      html: `${state.name} has no state income tax, so <strong>$0</strong> is withheld for state income tax. Federally, a separately paid bonus is <a href="/tax-glossary/#withholding">withheld</a> at a flat <strong>22%</strong> (37% above $1,000,000/yr), plus 7.65% <a href="/tax-glossary/#fica">FICA</a>, which is a prepayment rather than your final tax. ${state.name} also takes its ${noTaxProg} contributions out of a bonus, and those are not part of this estimate.`
+      a: `${state.name} has no state income tax, so $0 is withheld for state income tax. Federally, a separately paid bonus is withheld at a flat 22% (37% above $1,000,000/yr), plus 7.65% FICA, which is a prepayment rather than your final tax.${progTail}`,
+      html: `${state.name} has no state income tax, so <strong>$0</strong> is withheld for state income tax. Federally, a separately paid bonus is <a href="/tax-glossary/#withholding">withheld</a> at a flat <strong>22%</strong> (37% above $1,000,000/yr), plus 7.65% <a href="/tax-glossary/#fica">FICA</a>, which is a prepayment rather than your final tax.${progTail}`
     });
   } else if (supp.method === 'none') {
     e.push(pickFrame(state.slug, 'btfaq1n', [
@@ -3072,7 +3102,7 @@ function bonusFaqEntries(state, supp, year) {
   else if (supp.special === 'ca_dual') e.push({ q: `Does California withhold a different rate on stock options?`, a: `California uses 10.23% for bonuses and stock options, and 6.6% for other supplemental wages. Pick the payment type in the calculator to switch.` });
   else if (state.slug === 'north-carolina') e.push({ q: `Is North Carolina's 4.09% bonus rate the same as its income tax rate?`, a: `No. The flat income tax is 3.99%, but the supplemental withholding rate is a distinct 4.09% (NC-30, 2026).` });
   else if (supp.method === 'regular') e.push({ q: `Does ${state.name} have a separate bonus withholding rate?`, a: `No. ${state.name} has no separate supplemental rate, so a bonus is withheld with the aggregate method — as if it were part of your regular wages${supp.incomeRate ? `, effectively near ${pctStr(supp.incomeRate)}` : ''}.` });
-  else if (supp.method === 'none') e.push({ q: `Does ${state.name} tax my bonus at all?`, a: `${state.name} charges no state income tax on it. You still owe federal income tax (a flat 22% is withheld, trued up at filing) and FICA on the bonus.${noTaxProg ? ` ${state.name} also withholds its ${noTaxProg} contributions from bonus pay.` : ''}` });
+  else if (supp.method === 'none') e.push({ q: `Does ${state.name} tax my bonus at all?`, a: `${state.name} charges no state income tax on it. You still owe federal income tax (a flat 22% is withheld, trued up at filing) and FICA on the bonus.${progTail}` });
   else e.push({ q: `Does a bonus push my ${state.name} income into a higher bracket?`, a: `No. Brackets are marginal — only the dollars above each threshold are taxed higher. A bonus never re-taxes income you already earned.` });
   return orderAncillary(state.slug, e);
 }
@@ -3668,6 +3698,10 @@ async function main() {
 
   const builtSlugs = new Set(Object.keys(taxData.states));
   const homeLinks = stateLinks(roster, builtSlugs, null);
+  // Computed once over the jurisdictions the study actually ranks, then written
+  // into all 51 state pages, so no page can claim a coverage the data denies.
+  const studyRulesText = studyRulesPhrase(
+    [...builtSlugs].map((s) => taxData.states[s]), year, 'every state and DC');
 
   // fresh dist
   await rm(DIST, { recursive: true, force: true });
@@ -3956,14 +3990,11 @@ async function main() {
       STATE_H1: `${state.name} Paycheck Calculator`,
       STATE_SLUG: slug,
       STATE_ABBR: state.abbr,
-      STATE_TAX_PHRASE: state.hasIncomeTax ? `, and ${state.name} state income tax` : '',
-      STATE_KEYWORD_PHRASE: state.hasIncomeTax
-        ? 'paycheck, payroll and income tax calculator'
-        : 'paycheck and payroll calculator',
-      STATE_NOTAX_NOTE: state.hasIncomeTax ? '' : noTaxToolNote(state),
-      STATE_META_TAX_NOTE: state.hasIncomeTax
-        ? ` — also works as a ${state.name} income tax calculator`
-        : noTaxMetaNote(state),
+      // STATE_TAX_PHRASE / STATE_KEYWORD_PHRASE / STATE_NOTAX_NOTE /
+      // STATE_META_TAX_NOTE were removed here: no template has referenced them
+      // since the state page was restructured, and four unread copies of the
+      // "what comes out of your pay" claim are four more places for it to drift.
+      // The live versions are inside stateMetaDesc() and stateLede().
       FIGURE_BANNER: figureYearBanner(state, year),
       ANSWER_LEAD: answer.lead,
       ANSWER_TAIL: answer.tail,
@@ -4004,6 +4035,10 @@ async function main() {
       // Read from the module constant that study is built on, so the sentence can
       // never quote a level the study no longer computes.
       STUDY_SALARIES: STUDY_SALARY_TEXT,
+      // Same sentence's coverage claim, from the same helper the study's own lede
+      // uses. It used to read "the 2026 rules of every state and DC" on all 51
+      // pages, which is not true while any jurisdiction is on prior-year tables.
+      STUDY_RULES: studyRulesText,
       FAQ_JSONLD: faqJsonLd(faqEntries),
       TAX_DATA_JSON: JSON.stringify(payload),
       YEAR: year,
@@ -5416,7 +5451,7 @@ async function main() {
     // of its cells. Ranking by dollars instead made New Jersey say "paid family
     // leave, unemployment insurance" in one column and "paid family leave,
     // disability insurance" in the next, which looks like a data error and is not.
-    // The rules themselves live at module scope (PROGRAM_KIND_RULES), because the
+    // The rules themselves live in src/content/withholding-profile.js, because the
     // state and bonus pages now name the same programs in prose and the two must
     // never drift apart. "WA Cares" is long-term care and matches no other rule,
     // so ordering cannot mislabel it.
@@ -5813,6 +5848,8 @@ async function main() {
       fillTool(thpTpl, {
         SITE_NAME: SITE.name, SITE_URL: SITE.url,
         TAX_YEAR: String(year), ROW_COUNT: String(rowCount),
+        // The lede's coverage claim, from the same figureYear the byline reads.
+        RULES_BASIS: esc(studyRulesPhrase(thpRows, year, 'all 50 states and the District of Columbia')),
         BASE_SALARY: usd0(base.salary), HIGH_SALARY: usd0(high.salary),
         SALARY_LIST: salaryList,
         PUB_DATE: STUDY_DATE_HUMAN,

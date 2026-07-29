@@ -262,8 +262,8 @@
    "payrollContributions": [
     {
      "name": "Delaware Paid Leave (PFML) — employee share",
-     "employeeRate2026": "Depends on how many Delaware employees your employer has: fewer than 10, exempt, so 0%; 10 to 24, parental leave only (0.32% premium), so up to 0.16%; 25 or more, full coverage (0.8% premium), so up to 0.4%. The employer may require the employee to pay up to 50% of the premium and may choose to pay more of it. Federal government employees and seasonal operations that shut down for a month or more are exempt.",
-     "wageBaseOrCap": "$184,500 (2026 Social Security wage cap), counting only FICA wages earned in Delaware; max employee cost ~$738/yr at full coverage, ~$295/yr at parental-leave-only coverage",
+     "employeeRate2026": "Up to 0.4% of wages at employers with 25 or more Delaware employees, being the employee's half of the 0.8% full-coverage premium and the most an employer may pass on; up to 0.16% at employers with 10 to 24 employees, where coverage is parental leave only on a 0.32% premium; and 0% at employers with fewer than 10 employees, at the federal government, and at seasonal operations that shut down for a month or more, all of which are exempt",
+     "wageBaseOrCap": "charged on wages up to $184,500 (the 2026 Social Security wage cap), counting only FICA wages earned in Delaware; max employee cost ~$738/yr at full coverage, ~$295/yr at parental-leave-only coverage",
      "source": "https://labor.delaware.gov/delaware-paid-leave/"
     }
    ],
