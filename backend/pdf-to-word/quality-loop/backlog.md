@@ -9,6 +9,7 @@ Scoreboard now: mean composite 0.9956 (weights_version 3 re-baseline of the iter
 | 7 | span-boundary space loss: pdf2docx drops the space where a styled/hyperlink span meets plain text inside list items ("with thedeployment checklist") | lists_hard text_recall 0.972 / order 0.979; links doc unaffected | **DONE iter 5** |
 | 3 | header-footer-parts: detect page furniture repeated at the same band across pages, move it into real header/footer parts | header_footer 0.250; body precision 0.913 from 3x repeated furniture | **DONE iter 3** |
 | 4 | paragraph-reflow + dehyphenation across page breaks | header_footer reflow 0.732 (page-break splits), two_column 0.800, prose recall 0.995 (hyphenation) | **DONE iter 4** |
+| 9 | **hyperlink_unnest**: pdf2docx nests w:hyperlink INSIDE w:r (invalid OOXML) — Word tolerates it, but LibreOffice + QuickLook (and likely other strict consumers) DROP the subtree: link text is invisible outside Word. Fix = lift hyperlink to paragraph level (splitting the wrapper run), merge wrapper rPr into inner runs, merge adjacent same-rid fragments, ensure Hyperlink style defined | found 2026-07-30 by the NEW VISUAL GATE on iter5 (QL and LO independently render links/lists_hard with link text missing; withstyle/nostyle variants ruled out styling; XML shows w:r > w:hyperlink nesting) — season-1 links metric scored 1.000 because it checked existence, not position validity | **TOP — iter 6** |
 | 8 | remove intra-paragraph w:br wrap artifacts (pdf2docx emits one per wrapped line, so Word never reflows text; also blocks the U+2010 healer since hyphens sit in their own runs) — same intra-block evidence framework as reflow | discovered in iter-4 review; invisible to current metrics (scorer ignores w:br) — needs a metric first | TODO |
 | 5 | harder corpus: ragged borderless table, merged cells, deeper nesting, longer docs | current borderless case already scores 1.0 — need a real target before converter work | TODO |
 | 6 | borderless/ragged table detection | blocked on #5 producing a failing case | TODO |
@@ -122,3 +123,18 @@ Dropped: hyperlink preservation — pdf2docx already keeps links live (links 1.0
   first grow the corpus with a wrap_hard doc class (narrow ragged column of
   flowing sentences + hyphenated splits), then a narrowly-gated br-healing
   pass reusing reflow's continues() evidence; poems must stay untouched.
+
+- **iter 6 discovery (2026-07-30):** LO full-page render (works after ~6-min
+  per-launch warmup; every launch costs that) closed the QL blind spots:
+  footers paint, all pages covered, header_footer/two_column page drift is
+  layout-engine font metrics, not content loss. But BOTH renderers
+  independently hide hyperlink text -> not a renderer quirk. XML: pdf2docx
+  writes <w:r><w:rPr>(underline+color)</w:rPr><w:hyperlink r:id=..>
+  <w:r><w:rStyle Hyperlink/>text</w:r></w:hyperlink></w:r> - hyperlink
+  nested INSIDE a run, invalid per schema; strict engines drop the subtree.
+  Also: styles.xml never defines the referenced Hyperlink style, and the
+  visible blue "n" is a split plain run carrying pdf2docx's direct color.
+  Backlog #9 filed and takes priority over wrap_hard (#8): actual text loss
+  for non-Word consumers beats a missed-reflow artifact. Links metric must be
+  hardened in the same iteration (count only paragraph-level hyperlinks as
+  live; weights_version 4 re-baseline).
