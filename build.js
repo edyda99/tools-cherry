@@ -12,7 +12,7 @@ import { STATIC_PAGES } from './src/content/static-pages.js';
 import { buildWamParts } from './src/content/what-applies-to-me.js';
 import { buildStateApplies } from './src/content/state-applies.js';
 import { withholdingProfile, programKindsOf } from './src/content/withholding-profile.js';
-import { computePaycheck } from './src/engine/paycheck-engine.js';
+import { computePaycheck, federalBracketBreakdown } from './src/engine/paycheck-engine.js';
 import { computeBonus } from './src/engine/bonus-tax.js';
 import { verifyDist, reportFailures } from './scripts/verify-dist.js';
 
@@ -1753,27 +1753,450 @@ function stateNet75(state, taxData) {
       taxData
     );
     if (!Number.isFinite(r.annual.net) || !Number.isFinite(r.perPaycheck.net)) return null;
-    return { annualNet: r.annual.net, biweeklyNet: r.perPaycheck.net };
+    // The same call also carries the per-paycheck breakdown the results table
+    // shows on the page defaults (biweekly, single, $75,000, "Per paycheck"
+    // view), so the table, the headline figure and the answer sentence are three
+    // readings of one computation and cannot drift apart.
+    const pp = r.perPaycheck;
+    const perPaycheck = {
+      gross: pp.gross,
+      federal: pp.federal,
+      socialSecurity: pp.socialSecurity,
+      medicare: pp.medicare,
+      state: pp.state,
+      net: pp.net
+    };
+    if (Object.values(perPaycheck).some((v) => !Number.isFinite(v))) return null;
+    // The whole result rides along too. The results panel is not six numbers, it
+    // is the annual figures behind the donut and the rate row as well, and every
+    // one of them has to come out of this single call for the panel to be
+    // internally consistent.
+    return { annualNet: r.annual.net, biweeklyNet: pp.net, perPaycheck, result: r };
   } catch (_) { return null; }
 }
 
-// Byte-for-byte copies of app.js's two currency formatters (app.js lines 11-14),
-// so a build-rendered figure and the figure the browser writes over it on the
-// first render are the same string and hydration is a visual no-op. The build
-// asserts parity per state below (assertFormatterParity) rather than trusting it.
+// Byte-for-byte copies of every formatter app.js renders the results panel with
+// (app.js lines 11-17), so a build-rendered figure and the figure the browser
+// writes over it on the first render are the same string and hydration is a
+// visual no-op. Parity is asserted per state below rather than trusted.
 const usdApp = (n) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const usd2App = (n) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const pctApp = (n) => (n * 100).toFixed(1) + '%';
+const ratePctApp = (n) => (+(n * 100).toFixed(3)).toString() + '%';
+const escLblApp = (s) => String(s == null ? '' : s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+// The U+2212 minus app.js puts in front of every withheld line. Not a hyphen.
+const APP_MINUS = '−';
 
-// Fails the build if a future currency/rounding tweak makes the pre-rendered
-// figures disagree with what app.js will write on first paint.
-function assertFormatterParity(state, net75) {
-  if (!net75) return;
+// Second, independently written two-decimal formatter, the usd0 of the cents
+// world: plain number grouping with the dollar sign glued on, rather than Intl's
+// currency style. Only exists to disagree with usd2App if Intl's currency output
+// ever shifts (a stray non-breaking space, a "US$" prefix, a rounding change).
+const usd2Ref = (n) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// ---------------------------------------------------------------------------
+// The guard's denominator, DERIVED from src/assets/app.js.
+//
+// The previous version of this check iterated a hand-written list of six field
+// names. #programLines was not on that list, so the one element that shipped
+// empty sat structurally outside the denominator: the check could not have
+// failed on the defect it existed to catch, and it reported a confident pass
+// while 14 states served a subtraction that was wrong by the size of their
+// disability premium. A denominator maintained by hand always drifts behind the
+// code it guards, so it is now read out of app.js on every build.
+//
+// What is derived: the set of element ids that a function reachable from app.js's
+// own boot entry (init) assigns to .textContent or .innerHTML. That is exactly
+// the class of write that decides what a crawler, a search snippet and a
+// JavaScript-off reader see, which is the class of defect this guards. Adding a
+// new one to app.js puts it in the set automatically, and the build then fails
+// until build.js has a pre-rendered value for it.
+
+// Split app.js into its top-level function bodies by brace matching. Covers
+// `function name(...) {` and `const name = (...) => {` declared at column 0,
+// which between them is every function in that module.
+function appTopLevelFunctions(src) {
+  const fns = new Map();
+  const decl = /^(?:(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{|(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s+)?\([^)]*\)\s*=>\s*\{)/gm;
+  let m;
+  while ((m = decl.exec(src)) !== null) {
+    const name = m[1] || m[2];
+    let depth = 0;
+    let end = -1;
+    for (let i = m.index + m[0].length - 1; i < src.length; i++) {
+      const c = src[i];
+      if (c === '{') depth++;
+      else if (c === '}') { depth--; if (depth === 0) { end = i; break; } }
+    }
+    if (end === -1) continue;
+    fns.set(name, src.slice(m.index, end + 1));
+  }
+  return fns;
+}
+
+// Everything init can reach. Deliberately over-inclusive: a bare mention of a
+// function name counts as a call, because `addEventListener('input', render)`
+// and `.then(renderCompare)` are calls too. Over-inclusion can only widen the
+// set of elements the build is made responsible for, never narrow it.
+function appReachableFrom(fns, root) {
+  const seen = new Set();
+  const queue = [root];
+  while (queue.length) {
+    const name = queue.shift();
+    if (seen.has(name) || !fns.has(name)) continue;
+    seen.add(name);
+    const body = fns.get(name);
+    let m;
+    const ident = /\b([A-Za-z_$][\w$]*)\b/g;
+    while ((m = ident.exec(body)) !== null) {
+      if (fns.has(m[1]) && !seen.has(m[1])) queue.push(m[1]);
+    }
+  }
+  return seen;
+}
+
+// Every element id a body touches, split by whether the touch is null-guarded
+// and by whether it writes the element's content. `$('id').textContent = x` is
+// an unguarded content write; `const el = $('id'); if (el) el.innerHTML = x` is
+// a guarded one. Only a guarded id is allowed to be missing from the HTML.
+function appElementTouches(body) {
+  const touches = [];
+  const aliases = new Map();
+  let m;
+  const aliasRe = /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*\$\(\s*(['"])([\w-]+)\2\s*\)/g;
+  while ((m = aliasRe.exec(body)) !== null) aliases.set(m[1], m[3]);
+
+  const directRe = /\$\(\s*(['"])([\w-]+)\1\s*\)\s*\.\s*([A-Za-z_$][\w$]*)/g;
+  while ((m = directRe.exec(body)) !== null) {
+    const rest = body.slice(m.index + m[0].length);
+    const content = /^(?:textContent|innerHTML)$/.test(m[3]) && /^\s*=[^=]/.test(rest);
+    touches.push({ id: m[2], guarded: false, content });
+  }
+  for (const [alias, id] of aliases) {
+    const a = alias.replace(/[$]/g, '\\$');
+    const used = new RegExp(`\\b${a}\\s*[.)\\]]`).test(body);
+    if (!used) continue;
+    const guarded =
+      new RegExp(`!\\s*${a}\\b`).test(body) ||
+      new RegExp(`\\bif\\s*\\(\\s*${a}\\s*[)&]`).test(body) ||
+      new RegExp(`\\b${a}\\s*&&`).test(body);
+    const content = new RegExp(`\\b${a}\\s*\\.\\s*(?:textContent|innerHTML)\\s*=[^=]`).test(body);
+    touches.push({ id, guarded, content });
+  }
+  return touches;
+}
+
+// One scan per build. Returns the two derived sets the page guard runs on.
+function scanAppFirstRender(src) {
+  const fns = appTopLevelFunctions(src);
+  // init is the only boot path: __bootInit() calls init() and nothing else.
+  if (!fns.has('init') || !fns.has('render')) {
+    throw new Error(
+      'app.js scan failed: could not extract init()/render() from src/assets/app.js, so the ' +
+      'pre-render guard has no denominator. Refusing to build a results panel it cannot check.'
+    );
+  }
+  const reachable = appReachableFrom(fns, 'init');
+  if (!reachable.has('render')) {
+    throw new Error('app.js scan failed: render() is not reachable from init(); the extraction is wrong.');
+  }
+  const contentIds = new Set();
+  const mayBeAbsent = new Map(); // id -> true only while every touch of it is guarded
+  for (const name of reachable) {
+    for (const t of appElementTouches(fns.get(name))) {
+      if (t.content) contentIds.add(t.id);
+      const prior = mayBeAbsent.has(t.id) ? mayBeAbsent.get(t.id) : true;
+      mayBeAbsent.set(t.id, prior && t.guarded);
+    }
+  }
+  if (contentIds.size === 0) {
+    throw new Error(
+      'app.js scan found zero elements whose content the first render writes. That cannot be true ' +
+      'of this module, so the scan is broken and the guard would pass over nothing.'
+    );
+  }
+  return { contentIds, mayBeAbsent, reachable: reachable.size, functions: fns.size };
+}
+
+// Pull an element's exact inner HTML out of a rendered page by id, by matching
+// the opening tag and then walking forward with a depth count on that tag name.
+// Returns null when no element carries the id.
+function innerHtmlById(html, id) {
+  const at = html.indexOf(`id="${id}"`);
+  if (at === -1) return null;
+  const open = html.lastIndexOf('<', at);
+  const tag = /^<([A-Za-z][\w-]*)/.exec(html.slice(open));
+  if (!tag) return null;
+  const name = tag[1];
+  const gt = html.indexOf('>', at);
+  if (gt === -1) return null;
+  const openRe = new RegExp(`<${name}[\\s>]`, 'g');
+  const closeRe = new RegExp(`</${name}>`, 'g');
+  let depth = 1;
+  let i = gt + 1;
+  while (i < html.length) {
+    openRe.lastIndex = i;
+    closeRe.lastIndex = i;
+    const o = openRe.exec(html);
+    const c = closeRe.exec(html);
+    if (!c) return null;
+    if (o && o.index < c.index) { depth++; i = o.index + o[0].length; continue; }
+    depth--;
+    if (depth === 0) return html.slice(gt + 1, c.index);
+    i = c.index + c[0].length;
+  }
+  return null;
+}
+
+// Everything app.js's first render puts on the page for the form's own shipped
+// defaults: $75,000 salary, single, biweekly, "Per paycheck", Simple mode, no
+// advanced deductions. Each value is produced by the same formatter app.js uses,
+// from the same computePaycheck call the headline figure and the answer sentence
+// come from, so the served panel is one reading of one computation.
+function statePanel(state, taxData, net75) {
+  const r = net75.result;
+  const a = r.annual;
+  const p = r.perPaycheck;
+  const g = a.gross;
+  // app.js renderBreakdown()'s own width formatter: two decimals, annual basis.
+  const w = (v) => (v / g * 100).toFixed(2) + '%';
+  const ded = a.preTax + a.postTax + (a.statePrograms || 0);
+  const bb = federalBracketBreakdown(g, 'single', taxData.federal, 0);
+
+  const programLines = (p.programs || []).map((pr) =>
+    `<div class="line"><span class="lbl">${escLblApp(pr.label)} (${ratePctApp(pr.rate)})</span><span>${APP_MINUS}${usd2App(pr.amount)}</span></div>`
+  ).join('');
+
+  // app.js keys this row on hasIncomeTax alone, so on the nine states without an
+  // income tax the row is display:none from the first render onward and the only
+  // thing the served HTML did with it was tell a crawler "Texas income tax
+  // −$0.00". A withholding line that does not exist is not worth a row, so those
+  // pages ship none. app.js null-checks both #stateLine and #rState, and the
+  // guard below refuses to accept an absent element whose uses are not guarded.
+  const stateTaxRow = state.hasIncomeTax
+    ? `<div class="line" id="stateLine"><span class="lbl">${escLblApp(state.name)} income tax</span><span id="rState">${APP_MINUS}${usd2App(p.state)}</span></div>`
+    : '';
+
+  let bracketBody, bracketNote;
+  if (!bb.bands.length || bb.taxable <= 0) {
+    bracketBody = '<tr><td colspan="3">No federal income tax, taxable income is $0 after the standard deduction.</td></tr>';
+    bracketNote = '';
+  } else {
+    bracketBody = bb.bands.map((b) => {
+      const range = b.upper === Infinity ? `over ${usdApp(b.lower)}` : `${usdApp(b.lower)} – ${usdApp(b.upper)}`;
+      return `<tr><td>${ratePctApp(b.rate)} <span class="bk-range">(${range})</span></td><td>${usdApp(b.amount)}</td><td>${usdApp(b.tax)}</td></tr>`;
+    }).join('');
+    bracketNote =
+      `Taxable income ${usdApp(bb.taxable)} after the ${usdApp(bb.stdDed)} standard deduction. ` +
+      `Your federal marginal rate is ${ratePctApp(bb.marginalRate)}, the federal tax on your next dollar earned.`;
+  }
+
+  const tokens = {
+    ROW_GROSS: usd2App(p.gross),
+    ROW_FEDERAL: APP_MINUS + usd2App(p.federal),
+    ROW_SS: APP_MINUS + usd2App(p.socialSecurity),
+    ROW_MEDICARE: APP_MINUS + usd2App(p.medicare),
+    ROW_NET: usd2App(p.net),
+    STATE_TAX_ROW: stateTaxRow,
+    PROGRAM_LINES: programLines,
+    RATE_MARGINAL: ratePctApp(bb.marginalRate),
+    RATE_EFF: pctApp(a.effectiveRate),
+    RATE_TAKE: pctApp(a.takeHomeRate),
+    SEG_NET: w(a.net),
+    SEG_TAX: w(a.totalTax),
+    SEG_DED: w(ded),
+    LG_NET: pctApp(a.net / g),
+    LG_TAX: pctApp(a.totalTax / g),
+    LG_DED: pctApp(ded / g),
+    // renderBreakdown() hides the deductions key when there is nothing deducted.
+    LG_DED_STYLE: ded > 0 ? '' : ' style="display:none"',
+    BRACKET_BODY: bracketBody,
+    BRACKET_NOTE: bracketNote,
+    ADV_ECHO: `Take-home now: ${usd2App(p.net)} per 2 weeks`
+  };
+
+  // id -> what the served HTML must contain, checked against the emitted page.
+  // `absent` is only accepted for an id every one of whose uses in app.js is
+  // null-guarded; the scan above decides that, not this table.
+  const expected = {
+    netBig: { expect: usd2App(p.net) },
+    netSub: { expect: `take-home per 2 weeks · ${usd0(a.net)}/yr` },
+    netLabel: { expect: stateNetLabel(state) },
+    advEcho: { expect: tokens.ADV_ECHO },
+    rGross: { expect: tokens.ROW_GROSS },
+    rFederal: { expect: tokens.ROW_FEDERAL },
+    rSS: { expect: tokens.ROW_SS },
+    rMedicare: { expect: tokens.ROW_MEDICARE },
+    rState: state.hasIncomeTax
+      ? { expect: APP_MINUS + usd2App(p.state) }
+      : { absent: `${state.name} has no state income tax, so no such withholding row is served` },
+    rNet: { expect: tokens.ROW_NET },
+    programLines: { expect: programLines },
+    rMarginal: { expect: tokens.RATE_MARGINAL },
+    rEff: { expect: tokens.RATE_EFF },
+    rTake: { expect: tokens.RATE_TAKE },
+    lgNet: { expect: tokens.LG_NET },
+    lgTax: { expect: tokens.LG_TAX },
+    lgDed: { expect: tokens.LG_DED },
+    bracketBody: { expect: bracketBody },
+    bracketNote: { expect: bracketNote },
+    // Written on first render only when the visitor has a deduction to show, and
+    // on the shipped defaults they are genuinely zero. The rows are hidden, so
+    // the served figure is never read, but it still has to be the true one.
+    rPreTax: { expect: usd2App(p.preTax) },
+    rPostTax: { expect: usd2App(p.postTax) },
+    // syncAdvancedQuestions() writes usd(0) here before the first render.
+    depCredit: { expect: usdApp(0) },
+    // renderCompare() clears this until a state is picked, and populateCompare()
+    // only runs when the visitor opens the panel.
+    cmpResult: { expect: '' },
+    // announceResult() returns before the boot render (booted is still false),
+    // so the live region ships and stays empty until the visitor edits something.
+    outStatus: { expect: '' },
+    // No state page carries this element: the "example" kicker lives on other
+    // templates. app.js null-checks it, and it is written only after the visitor
+    // first touches the form, never on the boot render.
+    netKicker: { absent: 'no state page ships a #netKicker; written only after the first visitor edit' }
+  };
+
+  return { tokens, expected, breakdown: { p, programs: p.programs || [] } };
+}
+
+// Fails the build if the served results panel is not what app.js's first render
+// will produce: a missing pre-render, a figure that would flicker on hydration,
+// a row app.js writes that build.js has never heard of, or a breakdown whose
+// visible rows do not add up to the Net pay printed under them.
+function assertPanelParity(state, net75, panel, html, scan) {
+  if (!net75 || !net75.result) {
+    throw new Error(
+      `pre-rendered results panel missing for ${state.slug}: no $75,000 computation, so the page ` +
+      `would ship a table of zeroes under a sentence quoting a real take-home figure.`
+    );
+  }
   if (usd0(net75.annualNet) !== usdApp(net75.annualNet)) {
     throw new Error(
       `formatter parity broken for ${state.slug}: build usd0 "${usd0(net75.annualNet)}" ` +
-      `vs app.js usd "${usdApp(net75.annualNet)}" — the pre-rendered take-home would flicker on hydration.`
+      `vs app.js usd "${usdApp(net75.annualNet)}", the pre-rendered take-home would flicker on hydration.`
+    );
+  }
+
+  const { expected } = panel;
+  const derived = scan.contentIds;
+
+  // 1. Denominator, both directions. Every element app.js writes must have a
+  //    pre-rendered value here, and every entry here must still be something
+  //    app.js writes, so a deleted render line cannot leave a stale check behind.
+  for (const id of derived) {
+    if (!(id in expected)) {
+      throw new Error(
+        `app.js writes #${id} on its first render but build.js has no pre-rendered value for it. ` +
+        `${state.slug} would serve whatever the template happens to contain there while the rest ` +
+        `of the panel is real. Add it to statePanel().`
+      );
+    }
+  }
+  for (const id of Object.keys(expected)) {
+    if (!derived.has(id)) {
+      throw new Error(
+        `build.js pre-renders #${id} but app.js's first render no longer writes it. The check is ` +
+        `stale: remove it, or restore the write.`
+      );
+    }
+  }
+
+  // 2. Every derived id, against the page that was actually emitted.
+  let checked = 0;
+  for (const id of derived) {
+    const e = expected[id];
+    const got = innerHtmlById(html, id);
+    if (e.absent) {
+      if (scan.mayBeAbsent.get(id) !== true) {
+        throw new Error(
+          `#${id} is declared absent for ${state.slug} (${e.absent}) but app.js uses it without a ` +
+          `null check, so the first render would throw and the calculator would not run at all.`
+        );
+      }
+      if (got !== null) {
+        throw new Error(`#${id} is declared absent for ${state.slug} but the emitted page still carries it.`);
+      }
+      checked++;
+      continue;
+    }
+    if (got === null) {
+      throw new Error(
+        `#${id} is missing from the emitted ${state.slug} page, but app.js writes it unconditionally ` +
+        `on first render. Expected "${e.expect}".`
+      );
+    }
+    if (got !== e.expect) {
+      throw new Error(
+        `pre-render mismatch for ${state.slug} #${id}: served "${got}" but app.js's first render ` +
+        `writes "${e.expect}". Hydration would visibly change the page.`
+      );
+    }
+    checked++;
+  }
+  if (checked !== derived.size) {
+    throw new Error(`pre-render guard checked ${checked} of ${derived.size} derived elements for ${state.slug}.`);
+  }
+
+  // 3. Independent formatter cross-check on the money figures, so an Intl change
+  //    that moved both the build and app.js the same wrong way still trips.
+  const p = panel.breakdown.p;
+  for (const [field, v] of Object.entries({
+    gross: p.gross, federal: p.federal, socialSecurity: p.socialSecurity,
+    medicare: p.medicare, state: p.state, net: p.net
+  })) {
+    if (!Number.isFinite(v)) throw new Error(`pre-rendered field "${field}" is not finite for ${state.slug}.`);
+    if (usd2Ref(v) !== usd2App(v)) {
+      throw new Error(
+        `formatter parity broken for ${state.slug} row "${field}": build usd2Ref "${usd2Ref(v)}" ` +
+        `vs app.js usd2 "${usd2App(v)}", so that row would flicker on hydration.`
+      );
+    }
+  }
+
+  // 4. The arithmetic a reader can do with their eyes. This is the check the old
+  //    guard could not express, and the one the shipped defect would have failed:
+  //    the visible rows, INCLUDING the state disability / paid-leave rows, must
+  //    subtract to the Net pay printed beneath them.
+  const rows = [
+    ['Gross', p.gross, +1],
+    ['Federal income tax', p.federal, -1],
+    ['Social Security', p.socialSecurity, -1],
+    ['Medicare', p.medicare, -1]
+  ];
+  if (state.hasIncomeTax) rows.push([`${state.name} income tax`, p.state, -1]);
+  for (const pr of panel.breakdown.programs) rows.push([pr.label, pr.amount, -1]);
+
+  // 4a. The exact identity, before any rounding. Nothing may leave the paycheck
+  //     that does not have a row of its own.
+  const exact = rows.reduce((t, [, v, sign]) => t + sign * v, 0);
+  if (Math.abs(exact - p.net) > 1e-6) {
+    throw new Error(
+      `${state.slug} breakdown is incomplete: the rows served (` +
+      rows.map(([l, , sign]) => `${sign < 0 ? '-' : '+'}${l}`).join(' ') +
+      `) come to ${exact.toFixed(6)} but Net pay is ${p.net.toFixed(6)}. Something is being taken ` +
+      `out of the paycheck without a row telling the reader about it.`
+    );
+  }
+
+  // 4b. The identity as printed. Every row and the total round to cents
+  //     independently, so the printed figures can legitimately disagree by up to
+  //     half a cent each: with n rows plus the total that is floor((n+1)/2)
+  //     whole cents, and no more. Wider than that is not rounding.
+  const cents = (v) => Math.round(parseFloat(usd2App(v).replace(/[^0-9.]/g, '')) * 100);
+  const sum = rows.reduce((t, [, v, sign]) => t + sign * cents(v), 0);
+  const netCents = cents(p.net);
+  const slack = Math.floor((rows.length + 1) / 2);
+  if (Math.abs(sum - netCents) > slack) {
+    throw new Error(
+      `${state.slug} breakdown does not add up: the served rows (` +
+      rows.map(([l, v, sign]) => `${sign < 0 ? '-' : ''}${l} ${usd2App(v)}`).join(', ') +
+      `) sum to ${(sum / 100).toFixed(2)} but Net pay is printed as ${usd2App(p.net)}, a gap of ` +
+      `${Math.abs(sum - netCents)} cents against a per-row rounding budget of ${slack}. ` +
+      `A reader and a crawler both see a wrong subtraction.`
     );
   }
 }
@@ -3413,6 +3836,13 @@ async function main() {
   const payrollData = await readJSON(join(SRC, 'data', 'state-payroll-2026.json'));
   const payroll = (payrollData && payrollData.states) || {};
   const stateTpl = await read(join(SRC, 'templates', 'state-page.html'));
+  // The pre-render guard's denominator, read out of app.js itself once per build
+  // rather than maintained by hand next to it. See scanAppFirstRender().
+  const appScan = scanAppFirstRender(await read(join(SRC, 'assets', 'app.js')));
+  console.log(
+    `   pre-render guard: ${appScan.contentIds.size} elements derived from app.js ` +
+    `(${appScan.reachable} of ${appScan.functions} functions reachable from init)`
+  );
   const homeTpl = await read(join(SRC, 'templates', 'home.html'));
   const pageTpl = await read(join(SRC, 'templates', 'page.html'));
   const invoiceTpl = await read(join(SRC, 'templates', 'invoice-generator.html'));
@@ -3976,7 +4406,13 @@ async function main() {
     // One take-home computation for this state, shared by the extractable answer
     // sentence and by the pre-rendered figures in the calculator's answer band.
     const net75 = stateNet75(state, taxData);
-    assertFormatterParity(state, net75);
+    if (!net75) {
+      throw new Error(
+        `no $75,000 computation for ${slug}: the page would serve an empty results panel and an ` +
+        `answer sentence with no figure in it. Fix the state's tax data rather than shipping zeroes.`
+      );
+    }
+    const panel = statePanel(state, taxData, net75);
     const answer = stateAnswerParts(state, year, net75);
     const html = fill(stateTpl, {
       STATE_NAME: state.name,
@@ -4005,9 +4441,17 @@ async function main() {
       // JavaScript off, and right to a crawler that never executes anything.
       // app.js's first render reproduces these strings exactly (parity asserted
       // above), so hydration is a visual no-op.
-      NET_LABEL: net75 ? stateNetLabel(state) : '',
-      NET_BIG: net75 ? usd2App(net75.biweeklyNet) : '$0.00',
-      NET_SUB: net75 ? `take-home per 2 weeks · ${usd0(net75.annualNet)}/yr` : '',
+      NET_LABEL: stateNetLabel(state),
+      NET_BIG: usd2App(net75.biweeklyNet),
+      NET_SUB: `take-home per 2 weeks · ${usd0(net75.annualNet)}/yr`,
+      // The whole results panel, pre-rendered on the same page defaults the form
+      // ships with: the withholding rows, the state program rows, the rate row
+      // and the donut. Without them the served HTML said "Net pay $0.00" under a
+      // sentence quoting the real figure, and then, once six of them were filled
+      // but the program rows were not, said a subtraction that was wrong by the
+      // size of the state premium. That is what a crawler that never executes
+      // anything read.
+      ...panel.tokens,
       BRACKET_SUMMARY: bracketSummary(state),
       COMPARE_SUMMARY: compareSummary(roster, builtSlugs, slug),
       APPLIES_BLOCK: buildStateApplies({
@@ -4048,10 +4492,11 @@ async function main() {
     });
     const dir = join(DIST, `${slug}-paycheck-calculator`);
     await mkdir(dir, { recursive: true });
-    await writeFile(
-      join(dir, 'index.html'),
-      html.replace('<footer class="site">', `${stateRelated}\n<footer class="site">`)
-    );
+    const pageHtml = html.replace('<footer class="site">', `${stateRelated}\n<footer class="site">`);
+    // Checked against the bytes about to be written, not against the token map
+    // that produced them, so a template that stops using a token is caught too.
+    assertPanelParity(state, net75, panel, pageHtml, appScan);
+    await writeFile(join(dir, 'index.html'), pageHtml);
     urls.push(`${SITE.url}/${slug}-paycheck-calculator/`);
   }
 
