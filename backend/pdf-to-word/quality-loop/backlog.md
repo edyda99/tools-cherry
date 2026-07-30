@@ -11,7 +11,7 @@ Scoreboard now: mean composite 0.9691 (12-doc corpus; wrap_hard's 0.678 document
 | 4 | paragraph-reflow + dehyphenation across page breaks | header_footer reflow 0.732 (page-break splits), two_column 0.800, prose recall 0.995 (hyphenation) | **DONE iter 4** |
 | 9 | **hyperlink_unnest**: pdf2docx nests w:hyperlink INSIDE w:r (invalid OOXML) — Word tolerates it, but LibreOffice + QuickLook (and likely other strict consumers) DROP the subtree: link text is invisible outside Word. Fix = lift hyperlink to paragraph level (splitting the wrapper run), merge wrapper rPr into inner runs, merge adjacent same-rid fragments, ensure Hyperlink style defined | found 2026-07-30 by the NEW VISUAL GATE on iter5 (QL and LO independently render links/lists_hard with link text missing; withstyle/nostyle variants ruled out styling; XML shows w:r > w:hyperlink nesting) — season-1 links metric scored 1.000 because it checked existence, not position validity | **DONE iter 6** |
 | 10 | **reflow dehyph singleton-compound flip**: port iter-8 decline guards into reflow's fuse machinery | out/adv_iter8a A1.22 + attribution note | **DONE iter 9** |
-| 8 | remove intra-paragraph w:br wrap artifacts (pdf2docx emits one per wrapped line, so Word never reflows text; also blocks the U+2010 healer since hyphens sit in their own runs) — same intra-block evidence framework as reflow | discovered in iter-4 review; invisible to current metrics (scorer ignores w:br) — needs a metric first | TODO |
+| 8 | **BLOCKED (2 dead ends, 2026-07-30)** — remove intra-paragraph w:br wrap artifacts (pdf2docx emits one per wrapped line, so Word never reflows text; also blocks the U+2010 healer since hyphens sit in their own runs) — same intra-block evidence framework as reflow | discovered in iter-4 review; invisible to current metrics (scorer ignores w:br) — needs a metric first | TODO |
 | 5 | harder corpus: ragged borderless table, merged cells, deeper nesting, longer docs | current borderless case already scores 1.0 — need a real target before converter work | TODO |
 | 6 | borderless/ragged table detection | blocked on #5 producing a failing case | TODO |
 
@@ -234,3 +234,32 @@ Dropped: hyperlink preservation — pdf2docx already keeps links live (links 1.0
   fan-out (cannot corrupt; corpus proves no regression). Score gate reads
   REJECT on the +0.002 rule — not applicable to a defect fix whose targets
   live outside the corpus; accepted on reproduction evidence. Suite grew R23.
+
+- **iter 10 (2026-07-30, REVERT — dead end 2 of 2, #8 BLOCKED):**
+  wrap_break_heal v2 (no fusion; unique-match binding; prose-flow evidence —
+  >=3 lines, terminals, >=40% lowercase starts; true-fill + forced-wrap G6;
+  monospace/digit-tail/CJK/RTL declines) passed corpus (+0.0021, two_column
+  healed, wrap_hard 24->11 brs), hostile, visual, AND both preserved iter-8
+  refuter suites run fresh (8b intent batteries 0/48 corrupted; 8a mismatches
+  = stale v1 expectations, observed==raw). A FRESH evidence-layer refuter then
+  reproduced 10 intent-destructions (8 surviving full enhance()): sentence-
+  case lyric sheet fused (HIGH plausibility — near-equal verse lines make
+  every break read "forced" because remaining space is measured against the
+  block's own longest line); lettered contract clauses healed when a run-on
+  prose tail in the SAME block supplies the lowercase votes the clause lines
+  fail (HIGH); G6 avg-char-width lies (caps/large-font previous line inflates
+  the estimate charged to the next word, and the verdict flips with the next
+  word's length — property bug); cross-page block binding (paragraph that
+  never aligns to its own source binds to a look-alike elsewhere); CMTT10
+  shell transcript (mono regex misses 16/26 real mono faces); numbered
+  clauses have no digit tails. REOPENING BLUEPRINT measured by the refuter
+  (out/adv_iter10/guards.json): true rendered word width + >=5 block lines +
+  never heal into a list-marker line = 18/21 author breaks blocked at 0/14
+  corpus cost; + last-line fill < 0.90 = 21/21 at 3/14 cost; + document-order
+  block cursor closes cross-page binding free; invert mono/CJK checks to
+  allowlists (uniform advance width; script wraps without spaces). Not
+  pursued: three rounds showed each guard set empties the current attack set
+  and a fresh refuter finds new holes, while the pass's whole measured value
+  is ~14 healed line breaks on this corpus. Pipeline reverted to 6 passes;
+  scoreboard stays 0.9691; wrap_hard's 0.678 remains the honest record of
+  pdf2docx's frozen-wrap output. NEXT: #5/#6 harder tables.

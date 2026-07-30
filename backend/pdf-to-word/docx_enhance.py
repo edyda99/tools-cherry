@@ -1015,24 +1015,33 @@ def span_space_repair(data, pdf_doc=None):
     return buf.getvalue()
 
 
-# --- wrap_break_heal: remove pdf2docx's per-wrapped-line hard breaks ----------
+# --- wrap_break_heal (v2): remove pdf2docx's per-wrapped-line hard breaks ----
 # pdf2docx writes a w:br for every wrapped source line it does not space-join,
-# so the converted paragraph never re-wraps when edited, and end-of-line
-# hyphenations stay frozen mid-word. Each break is healed only when the source
-# PDF testifies the boundary is a line WRAP: the previous line fills its block
-# (>=70% of block width AND >=90pt) and the block is wide (>=140pt). Poems,
-# addresses and other intentional short lines fail the fullness gate and are
-# kept. Edits are element-local: a br becomes a single space (or is deleted
-# when whitespace already surrounds it), and a typographic line-break hyphen
-# (U+2010/U+00AD) fuses its halves unless the same hyphenated form also occurs
-# mid-line in the source (then it is a real compound and the break is kept).
+# so the converted paragraph never re-wraps when edited. v1 healed on line
+# fullness alone and was reverted: adversarial review proved the blocks that
+# carry such breaks are usually shaped by the author's own deliberate lines
+# (verse, addresses, signatures, code, logs, TOCs), so fullness-vs-own-block
+# holds by construction. v2 heals only under COMBINED evidence:
+#   per block: unique paragraph<->block match; >=3 lines; contains a real
+#     sentence terminal; >=40% of continuation lines start lowercase (wrapped
+#     prose reads that way, deliberate lines rarely do); no monospace font
+#     (code/logs); no digit-tailed lines (TOCs); no CJK/RTL content.
+#   per boundary: previous line TRUE width >=70% of block and >=90pt; the next
+#     line's first word would NOT have fit in the remaining space (the wrap
+#     was forced, not chosen); no tab at the seam; no hyphen at the seam —
+#     there is NO fusion branch: hyphen line-ends always keep their break
+#     (meaning-flips like re-sign -> resign are reachable otherwise).
+# A br that heals becomes a single space (or nothing when whitespace already
+# borders it). Ambiguity anywhere = keep the break.
 
 _WRAP_FULL_SHARE = 0.70
 _WRAP_FULL_MIN_PT = 90.0
 _WRAP_BLOCK_MIN_PT = 140.0
-_SOFT_HYPHENS = "‐­"
+_SOFT_HYPHENS = "\u2010\u00ad"
 _SKIP_SUBTREES = (qn("w:drawing"), qn("w:object"), qn("w:pict"), qn("w:hyperlink"),
                   "{http://schemas.openxmlformats.org/markup-compatibility/2006}AlternateContent")
+_MONO_RE = re.compile(r"mono|courier|consolas|menlo|andale|code", re.I)
+_TERMINAL_RE = re.compile(r"[.!?\u2026](\s|$)")
 
 
 def _wb_blocks(pdf_doc):
@@ -1041,43 +1050,57 @@ def _wb_blocks(pdf_doc):
         for b in page.get_text("dict")["blocks"]:
             if b.get("type") != 0:
                 continue
-            lines = []
+            lines, fonts = [], set()
             for ln in b.get("lines", []):
                 t = "".join(s["text"] for s in ln["spans"])
                 if t.strip():
                     lines.append({"text": t, "x0": ln["bbox"][0], "x1": ln["bbox"][2]})
+                    fonts.update(s.get("font", "") for s in ln["spans"])
             if lines:
-                blocks.append({"lines": lines,
+                blocks.append({"lines": lines, "fonts": fonts,
                                "x0": min(l["x0"] for l in lines),
                                "x1": max(l["x1"] for l in lines)})
     return blocks
 
 
-def _wb_interior_forms(blocks):
-    """(left, right) pairs of hyphenated forms seen MID-line: real compounds
-    the fusion path must never join."""
-    forms = set()
-    for b in blocks:
-        for ln in b["lines"]:
-            text = ln["text"]
-            for m in re.finditer(r"([A-Za-z]+)[-‐­]([A-Za-z]+)", text):
-                if m.end() < len(text.rstrip()):
-                    forms.add((m.group(1).lower(), m.group(2).lower()))
-    return forms
+def _wb_cjk_or_rtl(text):
+    for ch in text:
+        o = ord(ch)
+        if (0x3000 <= o <= 0x30FF or 0x3400 <= o <= 0x9FFF or 0xF900 <= o <= 0xFAFF
+                or 0xFF00 <= o <= 0xFFEF or 0xAC00 <= o <= 0xD7AF
+                or 0x0590 <= o <= 0x08FF or 0xFB1D <= o <= 0xFEFC):
+            return True
+    return False
 
 
-_CJK_RANGES = ((0x3000, 0x30FF), (0x3400, 0x4DBF), (0x4E00, 0x9FFF),
-               (0xF900, 0xFAFF), (0xFF00, 0xFFEF), (0xAC00, 0xD7AF))
-
-
-def _wb_cjk(ch):
-    return any(a <= ord(ch) <= b for a, b in _CJK_RANGES)
+def _wb_block_prose(block):
+    """Block-level evidence that this is wrapped flowing prose. Every decline
+    here is a named class from adversarial review."""
+    lines = block["lines"]
+    if len(lines) < 3:
+        return False  # addresses, signatures, two-line fragments
+    if (block["x1"] - block["x0"]) < _WRAP_BLOCK_MIN_PT:
+        return False
+    joined = "\n".join(l["text"] for l in lines)
+    if _wb_cjk_or_rtl(joined):
+        return False
+    if any(_MONO_RE.search(f) for f in block["fonts"]):
+        return False  # code / log listings
+    if sum(1 for l in lines if re.search(r"\d\s*$", l["text"])) >= 2:
+        return False  # tables of contents / numbered columns
+    if not _TERMINAL_RE.search(joined):
+        return False  # no sentence ever ends: not prose
+    cont = lines[1:]
+    lower = sum(1 for l in cont if l["text"].lstrip()[:1].islower())
+    if lower < max(1, round(0.4 * len(cont))):
+        return False  # deliberate lines are capitalised units; wraps are not
+    return True
 
 
 def _wb_items(p):
-    """Text-like elements of the paragraph in stream order, with their parent
-    run — skipping drawing/object/pict/hyperlink/AlternateContent subtrees so
-    nothing inside them is ever counted or edited."""
+    """Text-like elements of the paragraph in stream order — skipping
+    drawing/object/pict/hyperlink/AlternateContent subtrees so nothing inside
+    them is ever counted or edited."""
     items = []
 
     def walk(el):
@@ -1094,10 +1117,8 @@ def _wb_items(p):
 
 
 def _wb_segments(items):
-    """Split the item stream at wrap w:br elements. Returns (segments, brs):
-    segments is a list of lists of w:t/w:tab/... elements, brs the separating
-    br elements (len(segments) == len(brs) + 1). None if the paragraph has any
-    br the pass must not touch (page/column breaks)."""
+    """Split the item stream at wrap w:br elements. None when the paragraph
+    carries any break the pass must not touch (page/column breaks, w:cr)."""
     segments, brs, cur = [], [], []
     for el in items:
         if el.tag == qn("w:br"):
@@ -1118,23 +1139,19 @@ def _wb_text(seg):
     return "".join(_char_of(el) for el in seg)
 
 
-def _wb_tokens(s):
-    return s.split()
-
-
 def _wb_align(segments, block):
-    """Greedily map each segment to one or more consecutive block lines by
-    exact token equality. Returns the index of the LAST line of each segment,
-    or None when the paragraph does not line up with this block."""
+    """Greedily map segments to consecutive block lines by exact token
+    equality; the paragraph must consume the whole block. Returns last-line
+    indices per segment or None."""
     ends, li = [], 0
     lines = block["lines"]
     for seg in segments:
-        want = _wb_tokens(_wb_text(seg))
+        want = _wb_text(seg).split()
         if not want:
             return None
         got, start = [], li
         while li < len(lines) and len(got) < len(want):
-            got.extend(_wb_tokens(lines[li]["text"]))
+            got.extend(lines[li]["text"].split())
             li += 1
         if got != want or li == start:
             return None
@@ -1151,44 +1168,6 @@ def _wb_drop_empty(el):
         run.getparent().remove(run)
 
 
-def _wb_strip_trailing(seg, chars):
-    """Remove trailing whitespace plus one char of `chars` from the segment's
-    element stream (fusion must leave no stray space: 'pro ‐' + 'cedure' has to
-    become 'procedure'). Whitespace-only w:t elements passed on the way are
-    deleted; self-emptied elements and runs are removed."""
-    trailing_ws = []
-    for el in reversed(seg):
-        if el.tag != qn("w:t"):
-            if el.tag == qn("w:tab"):
-                return False
-            continue
-        txt = el.text or ""
-        if not txt.strip():
-            trailing_ws.append(el)
-            continue
-        stripped = txt.rstrip()
-        if stripped[-1] not in chars:
-            return False
-        el.text = stripped[:-1].rstrip()
-        if not el.text:
-            _wb_drop_empty(el)
-        for ws in trailing_ws:
-            _wb_drop_empty(ws)
-        return True
-    return False
-
-
-def _wb_strip_leading_ws(seg):
-    for el in seg:
-        if el.tag != qn("w:t"):
-            return
-        txt = el.text or ""
-        if txt.strip():
-            el.text = txt.lstrip()
-            return
-        _wb_drop_empty(el)
-
-
 def _wb_remove_br(br, replace_with_space):
     run = br.getparent()
     if replace_with_space:
@@ -1200,13 +1179,28 @@ def _wb_remove_br(br, replace_with_space):
         run.getparent().remove(run)
 
 
+def _wb_forced(prev, nxt, block):
+    """The wrap was FORCED: the next line's first word could not have fit in
+    the space left on the previous line (estimated with the previous line's
+    own average character width). A break with room to spare was chosen by
+    the author and is kept."""
+    word = nxt["text"].split()[0] if nxt["text"].split() else ""
+    if not word:
+        return False
+    prev_w = prev["x1"] - prev["x0"]
+    if not prev["text"]:
+        return False
+    avg = prev_w / max(1, len(prev["text"]))
+    remaining = block["x1"] - prev["x1"]
+    return remaining < (len(word) + 1) * avg
+
+
 def wrap_break_heal(data, pdf_doc=None):
     if pdf_doc is None:
         return data
     blocks = _wb_blocks(pdf_doc)
     if not blocks:
         return data
-    interior = _wb_interior_forms(blocks)
     doc = Document(io.BytesIO(data))
     body = doc.element.body
     changed = False
@@ -1218,24 +1212,29 @@ def wrap_break_heal(data, pdf_doc=None):
         segments, brs = _wb_segments(items)
         if not brs:
             continue
-        seg_texts = [_wb_text(s) for s in segments]
-        match = None
+        matches = []
         for block in blocks:
             ends = _wb_align(segments, block)
             if ends is not None:
-                match = (block, ends)
-                break
-        if match is None:
-            continue
-        block, ends = match
-        if (block["x1"] - block["x0"]) < _WRAP_BLOCK_MIN_PT:
+                matches.append((block, ends))
+                if len(matches) > 1:
+                    break
+        if len(matches) != 1:
+            continue  # ambiguous or absent evidence (unique-match binding)
+        block, ends = matches[0]
+        if not _wb_block_prose(block):
             continue
 
+        seg_texts = [_wb_text(s) for s in segments]
         for i, br in enumerate(brs):
             prev = block["lines"][ends[i]]
-            full = ((prev["x1"] - block["x0"]) >= _WRAP_FULL_SHARE * (block["x1"] - block["x0"])
-                    and (prev["x1"] - prev["x0"]) >= _WRAP_FULL_MIN_PT)
-            if not full:
+            if ends[i] + 1 >= len(block["lines"]):
+                continue
+            nxt = block["lines"][ends[i] + 1]
+            prev_w = prev["x1"] - prev["x0"]
+            if prev_w < _WRAP_FULL_MIN_PT or prev_w < _WRAP_FULL_SHARE * (block["x1"] - block["x0"]):
+                continue
+            if not _wb_forced(prev, nxt, block):
                 continue
             left = seg_texts[i].rstrip()
             right = seg_texts[i + 1].lstrip()
@@ -1243,35 +1242,13 @@ def wrap_break_heal(data, pdf_doc=None):
                 continue
             if (seg_texts[i].rstrip(" ").endswith("\t")
                     or seg_texts[i + 1].lstrip(" ").startswith("\t")):
-                continue  # a tab at the seam is structure, not a wrap
-            if left[-1] in _SOFT_HYPHENS:
-                m1 = re.search(r"([A-Za-z]+)[‐­]$", left)
-                m2 = re.match(r"([A-Za-z]+)", right)
-                if not m1 or not m2:
-                    continue
-                if (m1.group(1).lower(), m2.group(1).lower()) in interior:
-                    continue
-                right_word = re.match(r"\S+", right).group(0)
-                left_word = re.search(r"\S+$", left).group(0)
-                # a hyphen inside the continuation word, or a chain of them on
-                # the left, marks a real typographic compound (state-of-the-art)
-                if (any(h in right_word for h in "‐­-")
-                        or left_word.count("‐") + left_word.count("­") >= 2):
-                    continue
-                if not _wb_strip_trailing(segments[i], _SOFT_HYPHENS):
-                    continue
-                _wb_strip_leading_ws(segments[i + 1])
-                _wb_remove_br(br, replace_with_space=False)
-                changed = True
-            elif left[-1] == "-":
-                _wb_remove_br(br, replace_with_space=False)
-                changed = True
-            else:
-                needs_space = (not seg_texts[i][-1:].isspace()
-                               and not seg_texts[i + 1][:1].isspace()
-                               and not _wb_cjk(left[-1]) and not _wb_cjk(right[0]))
-                _wb_remove_br(br, replace_with_space=needs_space)
-                changed = True
+                continue
+            if left[-1] in _SOFT_HYPHENS or left[-1] == "-":
+                continue  # no fusion branch, ever
+            needs_space = (not seg_texts[i][-1:].isspace()
+                           and not seg_texts[i + 1][:1].isspace())
+            _wb_remove_br(br, replace_with_space=needs_space)
+            changed = True
 
     if not changed:
         return data
@@ -1406,10 +1383,10 @@ def hyperlink_unnest(data, pdf_doc=None):
 # span_space_repair must see the document BEFORE reflow's dehyphenation (a
 # healed word looks like a lost-space seam to a second run). The pipeline
 # calls enhance() exactly once per conversion; never chain it.
-# wrap_break_heal is NOT enabled: adversarial review (iter 8) proved geometric
-# evidence cannot separate line wraps from deliberate lines (addresses,
-# signatures, code, logs, TOCs, verse-only pages) — see backlog #8 dead end 1
-# and out/adv_iter8b. The machinery stays for a combined-evidence attempt #2.
+# wrap_break_heal (v2) is NOT enabled — backlog #8 is BLOCKED after two dead
+# ends: even combined geometric+content evidence leaks on real shapes (lyric
+# sheets, contract clauses, block-vote dilution, estimator lies — see
+# out/adv_iter10). Its reopening blueprint (guard-cost table) is in backlog.md.
 PASSES = (hyperlink_unnest, span_space_repair, header_footer_parts, heading_styles,
           list_numbering, paragraph_reflow)
 
