@@ -1,6 +1,6 @@
 # Enhancement backlog (evidence-ordered from the iteration-0 baseline)
 
-Scoreboard now: mean composite 0.9691 (12-doc corpus after wrap_hard joined in iter 7; the drop IS the exposed w:br/hyphen defect, the iter-8 target). SEASON 2 IN PROGRESS since 2026-07-30.
+Scoreboard now: mean composite 0.9691 (12-doc corpus; wrap_hard's 0.678 documents the OPEN w:br/hyphen gap — iter-8's healing pass was REVERTED as unsafe, dead end 1 of 2). SEASON 2 IN PROGRESS since 2026-07-30.
 
 | # | Item | Evidence | Status |
 |---|------|----------|--------|
@@ -168,3 +168,35 @@ Dropped: hyperlink preservation — pdf2docx already keeps links live (links 1.0
   hyphen splits under the same intra-block continues() evidence as reflow;
   poems/short-line blocks must no-op (fullness gate), heading paragraphs
   included; three measurable wins available (wrap, reflow, text recall).
+
+- **iter 8 (2026-07-30, REVERT — dead end 1 on #8):** `wrap_break_heal` (built,
+  fully green on corpus 0.9691->0.9981 / hostile / visual in both renderers)
+  was killed by the adversarial fan-out. Refuter A (corruption lens, 73
+  attacks + 200-doc fuzz) found 4 real classes — tab-seam fusion leaving
+  "pro\tcedure", author-typed U+2010 compounds fused at their own hyphen
+  (state-of-the-art), CJK wraps gaining U+0020 between ideographs, fuzz
+  fallout of the tab class — all fixed with decline guards (tab seams,
+  continuation-word hyphens, chains, CJK-aware spacing) and re-verified by
+  standalone repro (its run_all rerun replays stale module state; re-run
+  attacks fresh at attempt #2). Refuter B (intent lens, 60 attacks vs real
+  weasyprint+pdf2docx) reproduced 30 intent-destructions and the structural
+  root cause: pdf2docx emits w:br only when a line leaves >10% of its block
+  free, so healable breaks live almost exclusively in blocks whose extent is
+  set by the author's own longest deliberate line — fullness-vs-own-block is
+  then satisfied BY CONSTRUCTION for verse, addresses, right-aligned
+  signatures, code, logs, TOCs, CJK/RTL verse (RTL pins x1 so share=1.000).
+  Its guard simulation: best geometric combo (true-fill G4 + block-consistent
+  next-word-fit G6) keeps all 24 genuine wrap heals but still falsely heals
+  16 author-break classes; U+2010 meaning-flips (re-sign->resign, re-lease->
+  release, co-operative->cooperative...) are reachable in real narrow layouts,
+  and typed ASCII hyphens can extract as U+00AD through embedded fonts, so
+  the fusion branch is unsalvageable by codepoint. VERDICT: ambiguity is not
+  a no-op here -> pass disabled (machinery + out/adv_iter8a/b suites kept).
+  ATTEMPT #2 design (the one remaining angle before blocked): geometry G4+G6
+  as the floor, plus positive prose-flow evidence (block must read as wrapped
+  flowing text: mid-block sentence terminals, lowercase line starts) and
+  named declines for the irreducibles — monospace fonts (code/logs), short
+  no-terminal blocks (addresses/signatures), digit-tailed lines (TOCs),
+  CJK/RTL scripts; NO fusion branch (hyphen splits stay; only wrap 0.000 ->
+  partial recovery is on the table, reflow/recall stay imperfect on
+  hyphenating layouts).
