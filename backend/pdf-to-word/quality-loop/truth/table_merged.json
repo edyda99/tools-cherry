@@ -1,0 +1,76 @@
+{
+ "headings": [
+  {
+   "level": 1,
+   "text": "Regional Audit Summary"
+  }
+ ],
+ "paragraphs": [
+  "Counts aggregate the spring cycle; merged rows share one region office."
+ ],
+ "list_items": [],
+ "tables": [
+  {
+   "rows": [
+    [
+     "Region and office",
+     "Audits",
+     "Failures"
+    ],
+    [
+     "North region",
+     "Harbour office",
+     "18",
+     "2"
+    ],
+    [
+     "South region combined",
+     "Coastal office",
+     "12",
+     "1"
+    ],
+    [
+     "",
+     "Inland office",
+     "4",
+     "0"
+    ],
+    [
+     "West region",
+     "Plateau office",
+     "9",
+     "3"
+    ]
+   ],
+   "borders": true
+  }
+ ],
+ "links": [],
+ "bold": [],
+ "italic": [],
+ "flow": [
+  "Regional Audit Summary",
+  "Counts aggregate the spring cycle; merged rows share one region office.",
+  "Region and office",
+  "Audits",
+  "Failures",
+  "North region",
+  "Harbour office",
+  "18",
+  "2",
+  "South region combined",
+  "Coastal office",
+  "12",
+  "1",
+  "",
+  "Inland office",
+  "4",
+  "0",
+  "West region",
+  "Plateau office",
+  "9",
+  "3"
+ ],
+ "header": null,
+ "footer": null
+}

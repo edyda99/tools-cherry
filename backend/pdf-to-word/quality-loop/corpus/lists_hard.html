@@ -13,5 +13,8 @@ td, th { padding: 4pt 8pt; font-size: 10.5pt; text-align: left; }
 .justify p { text-align: justify; hyphens: auto; }
 .narrow { width: 190pt; }
 .narrow p { text-align: left; hyphens: auto; }
+.ragged td, .ragged th { padding: 3pt 16pt 3pt 0; }
+.ragged td:nth-child(2), .ragged th:nth-child(2),
+.ragged td:nth-child(4), .ragged th:nth-child(4) { text-align: right; }
 a { color: #0645ad; text-decoration: underline; }
 </style></head><body><h1>Deployment Notes</h1><p>Collected from the last three rollouts; every item cost someone an evening.</p><ul><li>Start with the <a href="https://tools-berry.com/">deployment checklist</a> before touching production.</li><li>Review the changelog with the on-call engineer</li><li>Before you begin<ol><li>Install the vendor driver</li><li>Reboot the machine</li><li>Run the self-test</li></ol></li></ul><p>Two habits that survived every retrospective:</p><p>- Keep the cable ties with the spares, not the toolbox</p><p>- Label both ends of every run before it leaves the bench</p></body></html>

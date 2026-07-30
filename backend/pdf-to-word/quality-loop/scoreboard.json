@@ -140,6 +140,34 @@
    "wrap": 1.0,
    "composite": 1.0
   },
+  "table_merged": {
+   "text_recall": 1.0,
+   "text_precision": 1.0,
+   "order": 1.0,
+   "headings": 1.0,
+   "lists": null,
+   "tables": 1.0,
+   "header_footer": null,
+   "links": null,
+   "styles": null,
+   "reflow": null,
+   "wrap": null,
+   "composite": 1.0
+  },
+  "table_ragged": {
+   "text_recall": 1.0,
+   "text_precision": 1.0,
+   "order": 1.0,
+   "headings": 1.0,
+   "lists": null,
+   "tables": 1.0,
+   "header_footer": null,
+   "links": null,
+   "styles": null,
+   "reflow": 1.0,
+   "wrap": 1.0,
+   "composite": 1.0
+  },
   "two_column": {
    "text_recall": 1.0,
    "text_precision": 1.0,
@@ -169,6 +197,6 @@
    "composite": 0.6779
   }
  },
- "mean_composite": 0.9691,
+ "mean_composite": 0.9735,
  "weights_version": 4
 }

@@ -30,6 +30,9 @@ td, th { padding: 4pt 8pt; font-size: 10.5pt; text-align: left; }
 .justify p { text-align: justify; hyphens: auto; }
 .narrow { width: 190pt; }
 .narrow p { text-align: left; hyphens: auto; }
+.ragged td, .ragged th { padding: 3pt 16pt 3pt 0; }
+.ragged td:nth-child(2), .ragged th:nth-child(2),
+.ragged td:nth-child(4), .ragged th:nth-child(4) { text-align: right; }
 a { color: #0645ad; text-decoration: underline; }
 """
 
@@ -193,6 +196,33 @@ DOCS = {
             {"p": "Whitespace carries the structure here; the numbers have not changed."},
         ],
     },
+    "table_ragged": {
+        "blocks": [
+            {"h": 1, "text": "Calibration Register"},
+            {"p": "Instruments are listed with their most recent verification; drift over "
+                  "one percent triggers a recheck before the next production run."},
+            {"table": [
+                ["Instrument", "Serial", "Last calibration", "Drift"],
+                ["Spectrometer, bench 2", "SN-88231", "12 March", "0.4%"],
+                ["Micro-balance", "SN-7", "9 February", "1.85%"],
+                ["Humidity probe (backup unit)", "SN-100442", "28 January", "0.02%"],
+                ["Thermocouple array", "SN-51", "3 March", "12.5%"],
+            ], "ragged": True},
+        ],
+    },
+    "table_merged": {
+        "blocks": [
+            {"h": 1, "text": "Regional Audit Summary"},
+            {"p": "Counts aggregate the spring cycle; merged rows share one region office."},
+            {"table": [
+                [("Region and office", 2, 1), "Audits", "Failures"],
+                ["North region", "Harbour office", "18", "2"],
+                [("South region combined", 1, 2), "Coastal office", "12", "1"],
+                ["Inland office", "4", "0"],
+                ["West region", "Plateau office", "9", "3"],
+            ], "borders": True},
+        ],
+    },
     "wrap_hard": {
         "wrap_class": "narrow",
         "blocks": [{"h": 1, "text": "Maintenance Bulletin"}] + [{"p": t} for t in P_WRAP],
@@ -309,11 +339,22 @@ def _block_html(b):
         out.append(f"</{tag}>")
         return "".join(out)
     if "table" in b:
-        cls = ' class="bordered"' if b.get("borders") else ""
+        classes = [c for c in (("bordered" if b.get("borders") else ""),
+                               ("ragged" if b.get("ragged") else "")) if c]
+        cls = f' class="{" ".join(classes)}"' if classes else ""
         out = [f"<table{cls}>"]
+
+        def cell_html(c, tag):
+            if isinstance(c, tuple):
+                text, cs, rs = c
+                attrs = ((f' colspan="{cs}"' if cs > 1 else "")
+                         + (f' rowspan="{rs}"' if rs > 1 else ""))
+                return f"<{tag}{attrs}>{text}</{tag}>"
+            return f"<{tag}>{c}</{tag}>"
+
         for i, row in enumerate(b["table"]):
             cell = "th" if i == 0 else "td"
-            out.append("<tr>" + "".join(f"<{cell}>{c}</{cell}>" for c in row) + "</tr>")
+            out.append("<tr>" + "".join(cell_html(c, cell) for c in row) + "</tr>")
         out.append("</table>")
         return "".join(out)
     raise ValueError(b)
@@ -368,8 +409,35 @@ def _truth(doc):
                     t["list_items"].append({"text": it, "ordered": ordered, "level": 0})
                     t["flow"].append(it)
         elif "table" in b:
-            t["tables"].append({"rows": b["table"], "borders": bool(b.get("borders"))})
+            # mirror Word's tc lists: a colspan cell is ONE cell, but each
+            # rowspan continuation row carries an empty vMerge cell at the
+            # covered grid column
+            rows, active = [], {}
             for row in b["table"]:
+                out, col = [], 0
+                cells = list(row)
+                while cells or any(active.get(c, 0) for c in range(col, col + 8)):
+                    if active.get(col, 0):
+                        active[col] -= 1
+                        out.append("")
+                        col += 1
+                        continue
+                    if not cells:
+                        break
+                    c = cells.pop(0)
+                    if isinstance(c, tuple):
+                        text, cs, rs = c
+                        out.append(text)
+                        if rs > 1:
+                            for k in range(col, col + cs):
+                                active[k] = rs - 1
+                        col += cs
+                    else:
+                        out.append(c)
+                        col += 1
+                rows.append(out)
+            t["tables"].append({"rows": rows, "borders": bool(b.get("borders"))})
+            for row in rows:
                 t["flow"].extend(row)
     return t
 

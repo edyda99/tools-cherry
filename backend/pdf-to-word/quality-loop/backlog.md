@@ -1,6 +1,6 @@
 # Enhancement backlog (evidence-ordered from the iteration-0 baseline)
 
-Scoreboard now: mean composite 0.9691 (12-doc corpus; wrap_hard's 0.678 documents the OPEN w:br/hyphen gap — iter-8's healing pass was REVERTED as unsafe, dead end 1 of 2). SEASON 2 IN PROGRESS since 2026-07-30.
+Scoreboard now: mean composite 0.9735 on the 14-doc corpus (wrap_hard's 0.678 is the honest record of pdf2docx's frozen-wrap output; #8 blocked). SEASON 2 COMPLETE — loop wrapped 2026-07-30.
 
 | # | Item | Evidence | Status |
 |---|------|----------|--------|
@@ -12,8 +12,8 @@ Scoreboard now: mean composite 0.9691 (12-doc corpus; wrap_hard's 0.678 document
 | 9 | **hyperlink_unnest**: pdf2docx nests w:hyperlink INSIDE w:r (invalid OOXML) — Word tolerates it, but LibreOffice + QuickLook (and likely other strict consumers) DROP the subtree: link text is invisible outside Word. Fix = lift hyperlink to paragraph level (splitting the wrapper run), merge wrapper rPr into inner runs, merge adjacent same-rid fragments, ensure Hyperlink style defined | found 2026-07-30 by the NEW VISUAL GATE on iter5 (QL and LO independently render links/lists_hard with link text missing; withstyle/nostyle variants ruled out styling; XML shows w:r > w:hyperlink nesting) — season-1 links metric scored 1.000 because it checked existence, not position validity | **DONE iter 6** |
 | 10 | **reflow dehyph singleton-compound flip**: port iter-8 decline guards into reflow's fuse machinery | out/adv_iter8a A1.22 + attribution note | **DONE iter 9** |
 | 8 | **BLOCKED (2 dead ends, 2026-07-30)** — remove intra-paragraph w:br wrap artifacts (pdf2docx emits one per wrapped line, so Word never reflows text; also blocks the U+2010 healer since hyphens sit in their own runs) — same intra-block evidence framework as reflow | discovered in iter-4 review; invisible to current metrics (scorer ignores w:br) — needs a metric first | TODO |
-| 5 | harder corpus: ragged borderless table, merged cells, deeper nesting, longer docs | current borderless case already scores 1.0 — need a real target before converter work | TODO |
-| 6 | borderless/ragged table detection | blocked on #5 producing a failing case | TODO |
+| 5 | harder corpus: ragged borderless table, merged cells | **CLOSED NO-TARGET iter 11**: table_ragged (borderless, uneven columns, right-aligned numerics) and table_merged (gridSpan + vMerge) both convert at 1.000 | DONE |
+| 6 | borderless/ragged table detection | #5 produced no failing case — pdf2docx already emits correct table structure incl. real gridSpan/vMerge | CLOSED NO-TARGET |
 
 Dropped: hyperlink preservation — pdf2docx already keeps links live (links 1.000).
 
@@ -263,3 +263,14 @@ Dropped: hyperlink preservation — pdf2docx already keeps links live (links 1.0
   is ~14 healed line breaks on this corpus. Pipeline reverted to 6 passes;
   scoreboard stays 0.9691; wrap_hard's 0.678 remains the honest record of
   pdf2docx's frozen-wrap output. NEXT: #5/#6 harder tables.
+
+- **iter 11 (2026-07-30, corpus growth + backlog close-out):** added
+  table_ragged (borderless, uneven column starts, right-aligned numeric
+  columns) and table_merged (colspan header via gridSpan + rowspan pair via
+  vMerge). pdf2docx converts BOTH at 1.000 on every metric — the initial
+  0.900 on table_merged was the truth file's representation gap (anchor rows
+  vs Word's vMerge-continuation cells), fixed with a grid-occupancy expander
+  in make_corpus. Visual: merged cells render as real merges, borderless
+  stays borderless. No failing target exists -> #5 and #6 CLOSED NO-TARGET.
+  Scoreboard re-baselined to the 14-doc corpus: 0.9735. BACKLOG EXHAUSTED
+  (#1-4,7,9,10 done; #5/#6 no-target; #8 blocked) -> SEASON 2 COMPLETE.
