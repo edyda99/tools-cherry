@@ -977,5 +977,42 @@ tags = [c.tag.split('}')[1] for c in inner_rpr]
 check(tags == ["rStyle", "rFonts", "b", "color", "sz", "u"],
       "L3: merged rPr order %s" % tags)
 
+# R23: a U+2010 compound broken at its own hyphen across a merge boundary is
+# reconstructed exactly (no fuse, no injected space), while genuine
+# hyphenation in the same document still heals. (iter-9; embedded font so the
+# PDF text layer really carries U+2010.)
+def _pdf_u2010(lines):
+    pdf = fitz.open()
+    pg = pdf.new_page(width=595, height=842)
+    y = 80
+    for t in lines:
+        pg.insert_text((72, y), t, fontsize=11,
+                       fontname="helv2", fontfile="/System/Library/Fonts/Helvetica.ttc")
+        y += 15
+    return pdf
+
+
+CH1 = "The lab replaced all of its ageing equipment with modern state‐"
+CH2 = "of‐the‐art spectrometers for the quarterly contamination analysis."
+pdf = _pdf_u2010([CH1, CH2])
+d = Document()
+d.add_paragraph(CH1)
+d.add_paragraph(CH2)
+r, out = run_reflow(d, pdf)
+body = " ".join(p.text for p in r.paragraphs if p.text)
+check("state‐of‐the‐art" in body, "R23: compound chain not reconstructed: %r" % body[:90])
+check("stateof" not in body.replace("‐", "").replace(" ", "")[:40] or "state‐of" in body,
+      "R23: compound fused")
+
+G1 = "A consistent grind and a level bed remove most of the equip‐"
+G2 = "ment variability that beginners blame on the machine itself."
+pdf = _pdf_u2010([G1, G2])
+d = Document()
+d.add_paragraph(G1)
+d.add_paragraph(G2)
+r, out = run_reflow(d, pdf)
+body = " ".join(p.text for p in r.paragraphs if p.text)
+check("equipment" in body, "R23b: genuine hyphenation no longer heals: %r" % body[:90])
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)

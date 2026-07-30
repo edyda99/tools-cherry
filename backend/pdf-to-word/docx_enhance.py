@@ -642,8 +642,18 @@ def _pdf_logical_paras(pdf_doc):
         a_text = a_text.rstrip()
         w1 = re.findall(r"[A-Za-z]+", a_text[-24:])
         w2 = re.findall(r"[A-Za-z]+", b_text[:24])
-        if w1 and w2:
-            fuse_candidates.append(((w1[-1] + w2[0]).lower(), a_text[-1]))
+        if not w1 or not w2:
+            return
+        # a hyphen inside the continuation word, or a chain of them behind the
+        # boundary, marks a typographic compound broken at its own hyphen
+        # (state-of-the-art) — never a hyphenation artifact (iter-9 guard)
+        right_word = re.match(r"\S+", b_text.lstrip())
+        left_word = re.search(r"\S+$", a_text)
+        if right_word and any(h in right_word.group(0) for h in HYPHENS):
+            return
+        if left_word and sum(left_word.group(0).count(h) for h in "‐­") >= 2:
+            return
+        fuse_candidates.append(((w1[-1] + w2[0]).lower(), a_text[-1]))
 
     def continues(prev_text, prev_full, cur_text, cur_indented):
         a_last = prev_text.rstrip()[-1:]
@@ -881,7 +891,12 @@ def paragraph_reflow(data, pdf_doc=None):
             _strip_trailing_hyphen(A._p)
         else:
             stream_a = _stream_text(A._p)
-            if not stream_a.endswith((" ", "\t", "\n")) and not B.text[:1].isspace():
+            # a word-attached hyphen at the seam joins directly: the compound
+            # keeps its printed form (state-of-the-art, well-known) instead of
+            # gaining a space after the hyphen (iter-9)
+            hyphen_join = bool(re.search(r"[A-Za-z][-‐­]$", stream_a)) and B.text[:1].isalpha()
+            if (not hyphen_join and not stream_a.endswith((" ", "\t", "\n"))
+                    and not B.text[:1].isspace()):
                 joiner = parse_xml(f'<w:r {nsdecls("w")}><w:t xml:space="preserve"> </w:t></w:r>')
                 last_run = A._p.findall(qn("w:r"))
                 if last_run:
