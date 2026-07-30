@@ -10,6 +10,7 @@ Scoreboard now: mean composite 0.9691 (12-doc corpus; wrap_hard's 0.678 document
 | 3 | header-footer-parts: detect page furniture repeated at the same band across pages, move it into real header/footer parts | header_footer 0.250; body precision 0.913 from 3x repeated furniture | **DONE iter 3** |
 | 4 | paragraph-reflow + dehyphenation across page breaks | header_footer reflow 0.732 (page-break splits), two_column 0.800, prose recall 0.995 (hyphenation) | **DONE iter 4** |
 | 9 | **hyperlink_unnest**: pdf2docx nests w:hyperlink INSIDE w:r (invalid OOXML) — Word tolerates it, but LibreOffice + QuickLook (and likely other strict consumers) DROP the subtree: link text is invisible outside Word. Fix = lift hyperlink to paragraph level (splitting the wrapper run), merge wrapper rPr into inner runs, merge adjacent same-rid fragments, ensure Hyperlink style defined | found 2026-07-30 by the NEW VISUAL GATE on iter5 (QL and LO independently render links/lists_hard with link text missing; withstyle/nostyle variants ruled out styling; XML shows w:r > w:hyperlink nesting) — season-1 links metric scored 1.000 because it checked existence, not position validity | **DONE iter 6** |
+| 10 | **reflow dehyph singleton-compound flip**: refuter A proved `paragraph_reflow._dehyph_within` fuses author-typed U+2010 compounds with no mid-line interior form exactly like the reverted iter-8 fusion branch (re-sign -> resign), reachable at page-break/column merge boundaries; port the iter-8 decline guards (continuation-word-contains-hyphen, left chain) into _dehyph_within — pure added declines, small and safe | out/adv_iter8a A1.22 + attribution note in its final report | TODO — next small iteration |
 | 8 | remove intra-paragraph w:br wrap artifacts (pdf2docx emits one per wrapped line, so Word never reflows text; also blocks the U+2010 healer since hyphens sit in their own runs) — same intra-block evidence framework as reflow | discovered in iter-4 review; invisible to current metrics (scorer ignores w:br) — needs a metric first | TODO |
 | 5 | harder corpus: ragged borderless table, merged cells, deeper nesting, longer docs | current borderless case already scores 1.0 — need a real target before converter work | TODO |
 | 6 | borderless/ragged table detection | blocked on #5 producing a failing case | TODO |
@@ -200,3 +201,18 @@ Dropped: hyperlink preservation — pdf2docx already keeps links live (links 1.0
   CJK/RTL scripts; NO fusion branch (hyphen splits stay; only wrap 0.000 ->
   partial recovery is on the table, reflow/recall stay imperfect on
   hyphenating layouts).
+
+- **iter 8 addendum (refuter A final report, post-revert):** fresh rerun against
+  the current file: 0 of 77 attacks reproduce (its earlier in-place rerun had
+  replayed stale module state, as suspected). Two carry-overs recorded: (a)
+  A1.22 re-sign->resign is NOT this pass's — `paragraph_reflow._dehyph_within`
+  (SHIPPED, iter 4) does the identical fusion on singleton U+2010 compounds ->
+  filed as backlog #10 (port the iter-8 decline guards; added-declines only);
+  (b) two fidelity holes for attempt #2's spec: A3.2 wrong-block authorisation
+  (a wide look-alike block with an identical token stream can authorise heals
+  in a narrow paragraph -> attempt #2 must require a UNIQUE block match and
+  bind geometry, declining on multi-match) and A3.10 full-width address blocks
+  merging (falls under the irreducible class; named decline required). Also
+  noted: chained enhance() re-splitting is out of contract (single-shot) and
+  pre-exists the pass; guard cost measured at ~10% fewer heals (declines, not
+  repairs).
