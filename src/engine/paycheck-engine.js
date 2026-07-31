@@ -137,10 +137,19 @@ export function ficaTax(grossAnnual, filingStatus, fed, preTaxFica = 0) {
 function phaseOutStandardDeduction(base, agi, filingStatus, cfg) {
   const row = cfg[filingStatus] ?? cfg.single;
   if (!row || !row.denominator) return base;
-  const fraction = Math.max(0, agi - row.over) / row.denominator;
-  if (fraction >= 1) return 0;
+  const excess = Math.max(0, agi - row.over);
+  if (excess >= row.denominator) return 0;
   const step = cfg.roundReductionDownTo || 1;
-  const reduction = Math.floor((base * fraction) / step) * step;
+  // Divide ONCE, at the end. Computing the fraction first and then multiplying
+  // rounds twice, and the second rounding lands just under a $10 boundary often
+  // enough to matter: at head-of-household AGI 62,970 the exact reduction is 810,
+  // but 22500 * (2970/82500) evaluates to 809.9999999999999 in IEEE-754, so the
+  // floor drops a whole $10 step and hands the filer $10 too much deduction.
+  // 45 head-of-household AGIs between 62,970 and 118,080 hit that edge; single
+  // and married never do. Multiplying first keeps the numerator an exact integer
+  // (well under 2^53 for every SCIAD base and denominator), so the single divide
+  // is the only place rounding can happen and it rounds the way the statute says.
+  const reduction = Math.floor((base * excess) / (row.denominator * step)) * step;
   return Math.max(0, base - reduction);
 }
 

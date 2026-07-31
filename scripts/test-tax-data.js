@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { computePaycheck } from '../src/engine/paycheck-engine.js';
+import { computePaycheck, stateIncomeTax } from '../src/engine/paycheck-engine.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const tax = JSON.parse(await readFile(join(__dirname, '..', 'src', 'data', 'tax-data-2026.json'), 'utf8'));
@@ -223,6 +223,45 @@ t('South Carolina SCIAD phases down, rounding the reduction not the deduction', 
   assert.deepEqual(cfg.single, { over: 40000, denominator: 55000 });
   assert.deepEqual(cfg.head_of_household, { over: 60000, denominator: 82500 });
   assert.deepEqual(cfg.married, { over: 80000, denominator: 110000 });
+});
+
+// The reduction has to be computed with ONE division, at the end. Working out the fraction first
+// and multiplying by the base rounds twice, and the second rounding lands a hair under a ten-dollar
+// boundary often enough to matter: 22500 * (2970/82500) is 809.9999999999999 in IEEE-754, so the
+// floor drops a whole step and the filer keeps $10 of deduction the statute does not allow. It only
+// bites head-of-household, at 45 separate incomes between 62,970 and 118,080, which is exactly why
+// the nine cases above all passed while the bug was live. This sweep is the guard: BigInt is exact,
+// so it decides the right answer without borrowing the engine's arithmetic.
+t('South Carolina SCIAD reduction survives the floating-point boundary', () => {
+  const cfg = tax.states['south-carolina'].tax.standardDeductionPhaseout;
+  const bases = { single: 15000, head_of_household: 22500, married: 30000 };
+  const step = BigInt(cfg.roundReductionDownTo);
+  const sc = tax.states['south-carolina'];
+  // SC is two flat bands, 1.99% up to 30,000 then 5.21%, so the deduction is recoverable from the
+  // tax. Both bands matter: at the bottom of each phase-down the taxable income is still under
+  // 30,000, and inverting with the top rate alone would misread every one of those.
+  const deductionFromTax = (gross, taxDue) => {
+    const firstBand = 30000 * 0.0199;
+    const taxable = taxDue <= firstBand ? taxDue / 0.0199 : 30000 + (taxDue - firstBand) / 0.0521;
+    return gross - taxable;
+  };
+  let checked = 0;
+  for (const [fs, base] of Object.entries(bases)) {
+    const { over, denominator } = cfg[fs];
+    for (let agi = over; agi < over + denominator; agi += 1) {
+      const exact = Number((BigInt(base) * BigInt(agi - over)) / (BigInt(denominator) * step)) * Number(step);
+      const want = base - exact;
+      const got = deductionFromTax(agi, stateIncomeTax(agi, fs, sc));
+      assert.ok(Math.abs(got - want) < 0.01,
+        `${fs} AGI ${agi}: deduction ${got.toFixed(2)}, statute says ${want}`);
+      checked++;
+    }
+  }
+  assert.ok(checked > 240000, `sweep should cover every AGI in all three phase-downs, covered ${checked}`);
+  // The three that used to be wrong, named, so a regression says which case broke.
+  approx(stateTax('south-carolina', 62970, 'head_of_household'), 1184.69, 0.02);
+  approx(stateTax('south-carolina', 85300, 'head_of_household'), 2665.37, 0.02);
+  approx(stateTax('south-carolina', 110600, 'head_of_household'), 4342.99, 0.02);
 });
 
 // --- Oklahoma 2026, HB2764 -------------------------------------------------
