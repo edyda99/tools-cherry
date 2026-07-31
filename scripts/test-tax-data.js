@@ -85,7 +85,15 @@ t('Texas has no state income tax', () => assert.equal(stateTax('texas', 75000), 
 // when it shipped there was no figureYearScope field, so moving figureYear would have mislabelled
 // the brackets. A verification pass caught that it was serving 2025 figures under figureYear 2026,
 // invisible to this very test.
-const EXPECTED_FALLBACKS = ['arizona', 'california', 'district-of-columbia', 'idaho', 'vermont'];
+// maryland joined 2026-07-31 after the $3,400 question was reopened and settled the other way. The
+// Budget Reconciliation and Financing Act of 2025 really did repeal the old 15%-of-AGI structure,
+// but that never mattered to the answer: the flat statute it left behind gives $3,350 to a single
+// filer and $6,700 to a joint one, while the 2026 withholding guide prints ONE $3,400 for every
+// filing status. A status-blind figure cannot be a status-differentiated statutory amount. So the
+// $3,350/$6,700 stay, and what was actually wrong was the label: they are the TY2025 figures and
+// the record claimed figureYear 2026. Maryland's cost-of-living adjustment first applies to tax
+// years after 2025 and the 2026 amount has not been announced.
+const EXPECTED_FALLBACKS = ['arizona', 'california', 'district-of-columbia', 'idaho', 'maryland', 'vermont'];
 
 t('every prior-year state is expected AND discloses it to the reader', () => {
   for (const s of ['nebraska', 'oklahoma']) {
@@ -177,6 +185,25 @@ t('arizona and DC standard deductions are their own, not federal', () => {
   const az = tax.states.arizona.tax.standardDeduction;
   assert.ok(az.head_of_household > az.single && az.head_of_household < az.married,
     'arizona HoH must sit strictly between single and married');
+});
+
+// Pins the number the withholding guide keeps trying to pull us to. $3,400 is the percentage-method
+// input an employer uses, printed once for every filing status; the statute is status-differentiated
+// and says $3,350 / $6,700. Two separate proposals have tried to publish $3,400 as the single-filer
+// amount, so the value is pinned here with the reason attached rather than left to a code comment.
+t('Maryland standard deduction is the statutory 3350/6700, not the withholding 3400', () => {
+  const sd = tax.states.maryland.tax.standardDeduction;
+  assert.deepEqual(sd, { single: 3350, married: 6700, head_of_household: 6700 });
+  assert.notEqual(sd.single, 3400,
+    '3400 is the 2026 withholding percentage-method figure, printed status-blind for every filer. ' +
+    'Md. Tax-General 10-217 gives 3350 single and 6700 joint, so one figure cannot be both.');
+  // The old 15%-of-AGI structure is genuinely repealed. Nothing in Maryland's reader-facing copy
+  // may describe it, or we would be explaining a rule that no longer exists.
+  const prose = [tax.states.maryland._source, ...(tax.states.maryland.disclaimer || []),
+    tax.states.maryland.notes || ''].join(' ');
+  assert.ok(!/15%\s*of\s*(the\s*)?(individual'?s\s*)?Maryland adjusted gross/i.test(prose)
+    || /repealed/i.test(prose),
+    'Maryland copy may only mention the 15%-of-AGI rule to say it was repealed.');
 });
 
 // --- South Carolina SCIAD phase-down, S.C. Code 12-6-1140(15)(b)-(c) --------
