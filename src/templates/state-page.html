@@ -327,8 +327,11 @@
            calculator. Sits directly above the long-form section on the same
            brackets, so the short extractable answer leads into its explanation. -->
       {{RATE_BLOCK}}
-      <h2>{{STATE_BODY_H2}}</h2>
+      <!-- The long-form explainer folds to its heading like every other
+           below-calculator section; the short answer copy above it stays. -->
+      <details class="prose-fold"><summary><h2>{{STATE_BODY_H2}}</h2></summary>
       {{STATE_BODY}}
+      </details>
 
       <p class="note">Estimates only, not tax advice. The section "What this estimate doesn't include" above lists what's left out; see also our <a href="/terms/">terms</a> and the <a href="/corrections/">corrections log</a>.</p>
     </section>

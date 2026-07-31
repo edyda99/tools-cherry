@@ -3444,6 +3444,14 @@ function foldProse(html) {
   return `${m[1]}${m[2]}<details class="prose-fold"><summary>${m[3]}</summary>${m[4]}</details>${m[5]}`;
 }
 
+// Multi-section variant for strings that concatenate several prose sections
+// (state-page ancillary/payroll/bracket blocks). Sections without an h2, and
+// anything not shaped <section class="prose...">, pass through untouched.
+function foldProseAll(html) {
+  if (!html) return html;
+  return html.replace(/<section class="prose[^"]*"[^>]*>[\s\S]*?<\/section>/g, (sec) => foldProse(sec));
+}
+
 function bonusSections(sections, slug) {
   const ordered = orderAncillary(slug, sections).filter(Boolean).map(foldProse);
   const half = Math.ceil(ordered.length / 2);
@@ -4597,12 +4605,17 @@ async function main() {
       STATE_LEDE: stateLede(state, year),
       STATE_BODY_H2: stateBodyH2(state, year),
       STATE_BODY: stateBody(state, year, taxData),
-      BRACKET_TABLE: bracketTableBlock(state, year),
-      STATE_PAYROLL: payrollDeductionsBlock(state, p),
-      ANCILLARY_A: ancillary.slice(0, ancSplit).join('\n'),
-      ANCILLARY_B: ancillary.slice(ancSplit).join('\n'),
+      // The explainer sections below the calculator fold to their headings
+      // (foldProseAll), the paycheck-page half of the same treatment the bonus
+      // pages got: the words stay in the DOM for the AI-citation channel, the
+      // visitor stops scrolling a tax class. The applies block (interactive),
+      // the FAQ, the neighbor/link section and Sources deliberately stay open.
+      BRACKET_TABLE: foldProseAll(bracketTableBlock(state, year)),
+      STATE_PAYROLL: foldProseAll(payrollDeductionsBlock(state, p)),
+      ANCILLARY_A: foldProseAll(ancillary.slice(0, ancSplit).join('\n')),
+      ANCILLARY_B: foldProseAll(ancillary.slice(ancSplit).join('\n')),
       STATE_FAQ: stateFaqBlock(state, faqEntries),
-      OBBBA_CONFORMITY: obbbaConformityBlock(state, obbba, year),
+      OBBBA_CONFORMITY: foldProseAll(obbbaConformityBlock(state, obbba, year)),
       SOURCES: sourcesBlock(state, p, taxData._meta),
       STATE_LINKS: stateLinks(roster, builtSlugs, slug),
       NEIGHBOR_H2: neighborHeading(roster, builtSlugs, slug),
