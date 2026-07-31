@@ -219,6 +219,11 @@
       "hasIncomeTax": true,
       "figureYear": 2025,
       "figureYearScope": "standardDeduction",
+      "_watch": {
+        "until": "2026-09-25",
+        "what": "DC's decoupled standard deduction rests on temporary D.C. Law 26-89, scheduled to lapse 2026-09-25, disapproved by Congress (Pub. L. 119-78), with the DC attorney general's opinion scoped to the 2025 filing season. Re-verify: did the act lapse, get made permanent, or did a court rule? If it lapsed, standardDeduction moves to the federal 2026 set and the disclaimers change.",
+        "decided": "Edmond 2026-07-31: keep the decoupled amounts until then."
+      },
       "tax": {
         "type": "bracket",
         "standardDeduction": {

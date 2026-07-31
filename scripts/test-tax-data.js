@@ -349,4 +349,26 @@ t('Ohio steps at the threshold, strictly above it', () => {
   approx(stateTax('ohio', 75000), 1678.13, 0.01);
 });
 
+
+// --- legal-status watch: dated tripwires -------------------------------------
+// A figure can match its source today and still rest on law with an expiry date,
+// a revenue trigger, or an active dispute: DC's standard deduction sits on a
+// temporary act Congress voted to disapprove. A freshness diff cannot see that,
+// and a diary note in memory can be forgotten. `_watch.until` cannot: once the
+// date passes, this fails until someone re-verifies the legal status and moves
+// or clears the entry with the new evidence.
+t('legal-status watches: well-formed, none expired', () => {
+  const today = new Date().toISOString().slice(0, 10);
+  let n = 0;
+  for (const [slug, s] of Object.entries(tax.states)) {
+    if (!s._watch) continue;
+    n++;
+    assert.match(s._watch.until || '', /^\d{4}-\d{2}-\d{2}$/, `${slug} _watch.until must be YYYY-MM-DD`);
+    assert.ok(s._watch.what, `${slug} _watch must say what to re-verify`);
+    assert.ok(s._watch.until >= today,
+      `${slug} legal-status watch EXPIRED on ${s._watch.until}. ${s._watch.what}`);
+  }
+  assert.ok(n > 0, 'no _watch entries found; DC should carry one until its law is permanent');
+});
+
 console.log(`\n${pass} passing`);

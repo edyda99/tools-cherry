@@ -4233,6 +4233,18 @@ async function main() {
     }
   }
 
+  // A `_watch` entry is a dated legal-status tripwire (temporary act, revenue
+  // trigger, active dispute). Unlike the warnings above it hard-fails the build:
+  // an expired watch means pages may be computing on law that no longer exists,
+  // and the date exists precisely so it cannot be ignored. npm test carries the
+  // same check; this copy runs on every deploy.
+  const watchToday = new Date().toISOString().slice(0, 10);
+  for (const [wSlug, wSt] of Object.entries(taxData.states)) {
+    if (wSt._watch && wSt._watch.until && wSt._watch.until < watchToday) {
+      throw new Error(`legal-status watch EXPIRED for ${wSlug} on ${wSt._watch.until}: ${wSt._watch.what}`);
+    }
+  }
+
   const builtSlugs = new Set(Object.keys(taxData.states));
   const homeLinks = stateLinks(roster, builtSlugs, null);
   // Computed once over the jurisdictions the study actually ranks, then written
