@@ -184,6 +184,13 @@ function init() {
     el.addEventListener('input', render);
     el.addEventListener('change', render);
   });
+  // Same example handling as the tips/overtime tools: the load render shows
+  // example figures, so the note stays until the visitor edits a field, and a
+  // tap on a prefilled field selects the whole value for replacement.
+  const form = document.getElementById('bonusForm');
+  ['input', 'change'].forEach((evt) =>
+    form?.addEventListener(evt, () => document.querySelector('.calc-example')?.remove(), { once: true }));
+  ['bonus', 'regIncome'].forEach((id) => $(id)?.addEventListener('focus', (ev) => ev.target.select()));
   render();
 }
 

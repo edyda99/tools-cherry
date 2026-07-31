@@ -65,7 +65,13 @@ function renderState() {
   const box = $('stateVerdict');
   const slug = $('state').value;
   const e = STATES[slug];
-  if (!slug || !e) { box.hidden = true; return; }
+  // Same invitation pattern as the tips page: an empty box that hides leaves
+  // the visitor's state question unanswered and the select unexplained.
+  if (!slug || !e) {
+    box.hidden = false;
+    box.innerHTML = '<span class="muted-small">Pick your state above to see whether it still taxes your overtime.</span>';
+    return;
+  }
   box.hidden = false;
   if (!e.hasWageTax) {
     box.innerHTML = `<strong>${e.name}:</strong> no state income tax — your federal saving is the whole benefit.`;
@@ -185,6 +191,9 @@ function init() {
     $(id).addEventListener('input', render);
     $(id).addEventListener('change', render);
   });
+  // A tap on a prefilled example field selects the whole value, so typing
+  // replaces the example instead of appending digits to it.
+  ['income', 'premium'].forEach((id) => $(id).addEventListener('focus', (ev) => ev.target.select()));
   const form = $('otForm');
   ['input', 'change'].forEach((evt) => form?.addEventListener(evt, clearExampleNote, { once: true }));
   render();

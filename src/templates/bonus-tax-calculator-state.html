@@ -90,10 +90,12 @@
              above the control. Every .adv-q must stay inside the .adv fieldset: its
              legend is styled by ".adv .adv-q legend" and is unstyled anywhere else.
              This block is kept character-for-character identical to the hub template
-             at src/templates/bonus-tax-calculator.html; change one, change both. -->
+             at src/templates/bonus-tax-calculator.html; change one, change both.
+             The whole fieldset sits closed inside <details class="adv-more">: the
+             rare-case questions cost one summary line until opened. -->
+        <details class="adv-more">
+          <summary>A few more questions, only if they apply to you</summary>
         <fieldset class="adv">
-          <legend>A few more questions, only if they apply to you</legend>
-          <p class="adv-hint">Leave these alone and your figures stay exactly as they are. Change an answer only if it applies to you.</p>
 
           <fieldset class="adv-q" aria-describedby="qYtdNote">
             <legend>Have you already been paid other bonuses this year?</legend>
@@ -122,6 +124,7 @@
             </div>
           </fieldset>
         </fieldset>
+        </details>
       </form>
 
       <div class="calc-answer">

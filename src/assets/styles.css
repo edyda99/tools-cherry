@@ -676,6 +676,13 @@ details.estimator summary { cursor: pointer; font-size: .92rem; opacity: .9; }
 .nowrap { white-space: nowrap; }
 
 /* ---- Advanced fieldset ---------------------------------------------- */
+/* Bonus pages park the whole .adv fieldset behind this closed disclosure: the
+   questions only matter past $1,000,000 of bonuses or an unusual pay method,
+   so they cost one line until opened. Same clothing as the .brackets summary. */
+.adv-more { grid-column: 1 / -1; margin: 4px 0 0; }
+.adv-more > summary { cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--link); }
+.adv-more > summary:hover { text-decoration: underline; }
+.adv-more > .adv { margin-top: 10px; }
 .adv { grid-column: 1 / -1; margin: 4px 0 0; border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px 2px; background: var(--surface-2); }
 /* The panel heading is floated out of the fieldset's legend notch rather than sitting
    in it. In the notch it fits on one line at desktop but wraps to two on a phone, and

@@ -58,7 +58,14 @@ function renderState() {
   const box = $('stateVerdict');
   const slug = $('state').value;
   const e = STATES[slug];
-  if (!slug || !e) { box.hidden = true; return; }
+  // An empty verdict box used to hide; personas skipped the unlabelled select
+  // and left still asking "does my state tax tips?". The box now holds the
+  // invitation in the very spot the answer will appear.
+  if (!slug || !e) {
+    box.hidden = false;
+    box.innerHTML = '<span class="muted-small">Pick your state above to see whether it still taxes your tips.</span>';
+    return;
+  }
   box.hidden = false;
   if (!e.hasWageTax) {
     box.innerHTML = `<strong>${e.name}:</strong> no state income tax — your federal saving is the whole benefit.`;
@@ -171,6 +178,9 @@ function init() {
     $(id).addEventListener('input', render);
     $(id).addEventListener('change', render);
   });
+  // A tap on a prefilled example field selects the whole value, so typing
+  // replaces the example instead of appending digits to it.
+  ['income', 'tips'].forEach((id) => $(id).addEventListener('focus', (ev) => ev.target.select()));
   const form = $('tipsForm');
   ['input', 'change'].forEach((evt) => form?.addEventListener(evt, clearExampleNote, { once: true }));
   render();
