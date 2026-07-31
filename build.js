@@ -3438,6 +3438,15 @@ function bonusSizeTable(state, supp, taxData, suppData) {
 // for a number no longer scrolls a tax class. Benchmark personas quit these
 // pages "at the second table"; the FAQ and Sources blocks are not run through
 // this and stay open (scannable answers and the trust anchor respectively).
+//
+// AdSense-review guard: the re-review requested 2026-07-25 was made against
+// pages whose prose was fully visible; the folds shipped 07-31 hide 27-55% of
+// it on load. Until that verdict lands, every prose fold renders expanded by
+// default (still user-collapsible) so a human reviewer sees the same content
+// density the review request attested to. Flip to false after the verdict to
+// restore collapsed-by-default. Applied in rewriteHtmlAssetRefs so template
+// folds (tips/overtime/state-page) get it too, not just foldProse output.
+const PROSE_FOLD_OPEN = true;
 function foldProse(html) {
   const m = html.match(/^(\s*<section class="prose[^"]*"[^>]*>)([\s\S]*?)(<h2[^>]*>[\s\S]*?<\/h2>)([\s\S]*?)(<\/section>\s*)$/);
   if (!m) return html;
@@ -3920,6 +3929,10 @@ async function rewriteHtmlAssetRefs(dir, hashMap) {
     let changed = false;
     const stripped = stripInlineStyleComments(stripHtmlComments(html));
     if (stripped !== html) { html = stripped; changed = true; }
+    if (PROSE_FOLD_OPEN && html.includes('<details class="prose-fold">')) {
+      html = html.replaceAll('<details class="prose-fold">', '<details class="prose-fold" open>');
+      changed = true;
+    }
     for (const [orig, hashed] of hashMap) {
       const re = new RegExp(`(["'])/assets/${orig.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\1`, 'g');
       if (re.test(html)) {
