@@ -33,13 +33,19 @@
         <div class="field">
           <label for="income">How much do you earn in a year, before anything is taken out?</label>
           <input type="text" id="income" inputmode="decimal" data-money autocomplete="off" value="60000" aria-describedby="incomeNote">
-          <p class="muted-small" id="incomeNote" style="margin-top:6px">Your pay for the whole year, overtime included. Married and sending in one return together? Add both incomes. This number is what decides whether the deduction starts shrinking, which begins at $150,000 on your own or $300,000 filing jointly. Tax forms measure that against your modified adjusted gross income, or MAGI, which for almost everyone is the same figure.</p>
+          <details class="derivation field-help" id="incomeNote" style="margin-top:6px">
+            <summary>Your pay for the whole year, overtime included.</summary>
+            <p class="muted-small">Married and sending in one return together? Add both incomes. This number is what decides whether the deduction starts shrinking, which begins at $150,000 on your own or $300,000 filing jointly. Tax forms measure that against your modified adjusted gross income, or MAGI, which for almost everyone is the same figure.</p>
+          </details>
         </div>
 
         <div class="field">
           <label for="premium">How much extra were you paid for overtime hours, on top of your normal rate?</label>
           <input type="text" id="premium" inputmode="decimal" data-money autocomplete="off" value="5000" aria-describedby="premiumNote">
-          <p class="muted-small" id="premiumNote" style="margin-top:6px">Only the extra part counts, not your whole overtime pay. If you normally earn $20 an hour and overtime pays $30, the extra is $10 an hour, so 300 overtime hours comes to $3,000. Tax forms call that extra part your overtime premium, the "half" in time-and-a-half. Not sure of your total? Answer Yes to the first question below and we will work it out for you.</p>
+          <details class="derivation field-help" id="premiumNote" style="margin-top:6px">
+            <summary>Only the extra part counts, not your whole overtime pay.</summary>
+            <p class="muted-small">If you normally earn $20 an hour and overtime pays $30, the extra is $10 an hour, so 300 overtime hours comes to $3,000. Tax forms call that extra part your overtime premium, the "half" in time-and-a-half. Not sure of your total? Answer Yes to the first question below and we will work it out for you.</p>
+          </details>
         </div>
 
         <div class="field">
@@ -49,11 +55,19 @@
             <option value="married">Married filing jointly</option>
             <option value="head_of_household">Head of household</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>. Pick Single if you are not married. Pick Married filing jointly if you are married and you and your spouse send in one return together, which married couples have to do to claim this deduction. Pick Head of household if you are unmarried and pay most of the cost of a home for a child or another dependent.</p>
+          <details class="derivation field-help" style="margin-top:6px">
+            <summary>Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>.</summary>
+            <p class="muted-small">Pick Single if you are not married. Pick Married filing jointly if you are married and you and your spouse send in one return together, which married couples have to do to claim this deduction. Pick Head of household if you are unmarried and pay most of the cost of a home for a child or another dependent.</p>
+          </details>
         </div>
 
-        <!-- The two optional things this page asks for are plain questions rather
-             than jargon-labelled boxes sitting in the main flow. The fields each
+        <div class="field">
+          <label for="state">Which state do you work in? (optional)</label>
+          <select id="state"><option value="">Select a state</option></select>
+        </div>
+
+        <!-- The one optional thing this page asks for is a plain question rather
+             than a jargon-labelled box sitting in the main flow. The fields that
              question needs live inside a [data-reveal] wrapper that ships VISIBLE in
              the built HTML; question-flow.js (this page opts in via QUESTION_FLOW_PAGES
              in build.js) only ever ADDS `hidden` once the page is up. Hide-on-demand,
@@ -62,15 +76,15 @@
              POLARITY: Yes always means "this applies to me, show me the fields". A
              question phrased so that Yes means "I do not know" leaves No meaning two
              opposite things at once, so never invert one.
-             #stateVerdict lives INSIDE the qState reveal on purpose: it is the answer to
-             that question, so it can never be stranded on screen once the select that
-             produced it is hidden. The ids regRate, otHours, state and stateVerdict are
-             read by overtime-tax-calculator.js and must not be renamed. Keep .est-row
-             without a .field class: the mobile stacking rule in styles.css is written as
-             a bare `.est-row` on that assumption. -->
+             The state select is NOT behind a question any more: it is a plain field in
+             the main flow above, and #stateVerdict renders inside the result panel with
+             the rest of the answer, so neither one can be stranded on screen by a hidden
+             wrapper. The ids regRate, otHours, state and stateVerdict are read by
+             overtime-tax-calculator.js and must not be renamed. Keep .est-row without a
+             .field class: the mobile stacking rule in styles.css is written as a bare
+             `.est-row` on that assumption. -->
         <fieldset class="adv">
-          <legend>A few more questions, only if they apply to you</legend>
-          <p class="adv-hint">Both start on No. If neither applies to you, leave them alone and your answer above is already complete.</p>
+          <legend>A question, only if it applies to you</legend>
 
           <fieldset class="adv-q" aria-describedby="qEstimateNote">
             <legend>Do you want us to work out the extra part of your overtime for you?</legend>
@@ -93,28 +107,13 @@
               <p class="adv-q-note" id="qEstimateHelp">Fill in both and the overtime box above updates on its own. The sum is half your normal hourly rate, multiplied by your overtime hours.</p>
             </div>
           </fieldset>
-
-          <fieldset class="adv-q" aria-describedby="qStateNote">
-            <legend>Do you want to know whether your state taxes your overtime too?</legend>
-            <p class="adv-q-note" id="qStateNote">This break is a federal one. Some states copy it, some do not, and nine states do not tax wages at all.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qState" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qState" value="yes"><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qState">
-              <div class="field">
-                <label for="state">Which state do you work in?</label>
-                <select id="state"><option value="">Select a state</option></select>
-              </div>
-              <div class="state-verdict" id="stateVerdict" hidden></div>
-            </div>
-          </fieldset>
         </fieldset>
       </form>
 
       <div class="calc-answer">
         <p class="calc-example">These are example numbers. Type yours to see your own.</p>
         <div class="obbba-out" id="out" data-tb-result></div>
+        <div class="state-verdict" id="stateVerdict" hidden></div>
       </div>
       <p id="outStatus" role="status" class="sr-only"></p>
     </section>
@@ -155,7 +154,7 @@
       <h2>Who can claim it</h2>
       <p>You need a Social Security number valid for employment, and if you're married you must file jointly (married filing separately is not eligible). It's available to both employees (overtime reported on your <a href="/tax-glossary/#w-2">W-2</a>) and, in limited cases, others whose FLSA-required overtime is reported on a payee statement. For tax year 2025, employers weren't required to break out qualified overtime separately, so you may need to total it from your pay stubs; from 2026 it appears in a dedicated box on the W-2, Box 12 code TT, explained in the <a href="/w2-box-decoder/">W-2 box decoder</a>.</p>
       <h2>Does your state tax overtime?</h2>
-      <p>This deduction is federal. Whether it also lowers your <em>state</em> income tax depends on your state: many states do not conform, some conform only from 2026, and nine states have no wage income tax at all. Answer Yes to the state question above to see how your own state treats it, or open your state's paycheck calculator for the detail.</p>
+      <p>This deduction is federal. Whether it also lowers your <em>state</em> income tax depends on your state: many states do not conform, some conform only from 2026, and nine states have no wage income tax at all. Pick your state above to see how your own state treats it, or open your state's paycheck calculator for the detail.</p>
     </section>
 
     <div class="ad-slot" data-ad="incontent">Advertisement</div>

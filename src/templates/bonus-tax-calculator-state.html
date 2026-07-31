@@ -27,8 +27,6 @@
   <div class="wrap">
     <h1>{{STATE_H1}}</h1>
     <p class="updated">Data compiled and maintained by <a href="/data/overtime-tax-by-state/#author">Edmond Daher</a> · Updated {{VERIFIED}}</p>
-    <p class="lede">{{STATE_LEDE}}</p>
-    {{BONUS_INTRO}}
 
     <section class="calc" aria-label="{{STATE_NAME}} bonus tax calculator">
       <form id="bonusForm" autocomplete="off" onsubmit="return false">
@@ -40,7 +38,10 @@
         <div class="field">
           <label for="regIncome">What do you earn in a year, not counting this bonus?</label>
           <input id="regIncome" type="text" inputmode="decimal" data-money autocomplete="off" value="70000" placeholder="70000">
-          <p class="muted-small" style="margin-top:6px">Your normal salary or wages for the year. This sets the rate your bonus is really taxed at, your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>, and whether you have already hit the Social Security cap.</p>
+          <details class="derivation field-help">
+            <summary>Your normal salary or wages for the year.</summary>
+            <p class="muted-small" style="margin-top:6px">This sets the rate your bonus is really taxed at, your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>, and whether you have already hit the Social Security cap.</p>
+          </details>
         </div>
         <div class="field">
           <label for="filingStatus">How do you file your tax return?</label>
@@ -49,7 +50,10 @@
             <option value="married">Married, filing together (jointly)</option>
             <option value="head_of_household">Head of household</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>. Head of household is for someone unmarried who pays most of the cost of a home for a child or another dependent.</p>
+          <details class="derivation field-help">
+            <summary>Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>.</summary>
+            <p class="muted-small" style="margin-top:6px">Head of household is for someone unmarried who pays most of the cost of a home for a child or another dependent.</p>
+          </details>
         </div>
         <!-- paymentTypeRow's visibility belongs to bonus-tax-calculator.js, which sets
              this element's style.display directly, and only on the California page (the
@@ -134,6 +138,9 @@
          Outside the answer's live region so a screen reader does not re-read it
          on every keystroke. -->
     {{FIGURE_BANNER}}
+
+    <p class="lede">{{STATE_LEDE}}</p>
+    {{BONUS_INTRO}}
 
     <p class="note">Estimate only, not tax advice — <a href="/terms/">terms</a>.</p>
 

@@ -254,7 +254,9 @@ const QUESTION_FLOW_PAGES = new Set([
   // again would be worse than simply showing it.
   '/ss-wage-base-calculator/',
   '/student-loan-cap-calculator/',
-  '/tips-tax-calculator/',
+  // tips-tax-calculator is deliberately absent. Its one optional input, the state picker,
+  // is a plain field in the form now, so the page ships no [data-reveal] wrapper and has no
+  // adv question left to gate.
   // w2-box-decoder is deliberately absent. It ships no [data-reveal] wrapper, so listing it
   // here downloaded question-flow.js for a script with nothing to do. It is a lookup rather
   // than a calculator, so all four boxes show plainly: a blank box already says "that line
@@ -3128,9 +3130,9 @@ function bonusLede(state, supp, year) {
   ]);
   const close = pickFrame(state.slug, 'btledeC', [
     `Enter your numbers to see what's held back now beside what the bonus will really cost when you file, and your refund or amount owed.`,
-    `Put in your figures below to compare what's withheld now with your real tax at filing — and the refund or shortfall.`,
+    `Put in your figures above to compare what's withheld now with your real tax at filing — and the refund or shortfall.`,
     `Run your numbers to see the "now" withholding next to the "at tax time" total, and how much comes back or is still owed.`,
-    `Type in your salary and bonus below and the tool lines up today's withholding against your true tax, with the refund or balance due.`,
+    `Type in your salary and bonus above and the tool lines up today's withholding against your true tax, with the refund or balance due.`,
     `Drop your figures in to watch the payday deduction sit next to the real filing cost, plus whatever you get back or owe.`
   ]);
   return `${open} ${stateBit}${progDisclosure} ${close} Everything runs in your browser.`;
@@ -3163,11 +3165,11 @@ function bonusAnswerBlock(state, supp) {
   else if (supp.special === 'wi_banded') stateClause = `a <strong>graduated Wisconsin rate (3.54%–7.65%)</strong> by income`;
   else stateClause = `no separate ${state.name} rate — it's withheld as ordinary wages${supp.incomeRate ? ` (about <strong>${pctStr(supp.incomeRate)}</strong>)` : ''}`;
   const tail = pickFrame(state.slug, 'btans', [
-    `That's a prepayment, not your final tax — the bonus is really taxed at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> when you file, and the calculator below shows the refund or amount you'll owe.`,
-    `Those are <a href="/tax-glossary/#withholding">withholding</a> rates, not the tax itself; your bonus settles at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> on your return — the tool below shows by how much.`,
+    `That's a prepayment, not your final tax — the bonus is really taxed at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> when you file, and the calculator above shows the refund or amount you'll owe.`,
+    `Those are <a href="/tax-glossary/#withholding">withholding</a> rates, not the tax itself; your bonus settles at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> on your return — the tool above shows by how much.`,
     `But that's only <a href="/tax-glossary/#withholding">withholding</a>. Your real bill is your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> at filing; run the calculator to see the refund or shortfall.`,
-    `None of that is the final number — a bonus is taxed at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> once you file, so the calculator below estimates what comes back or is still due.`,
-    `Treat it as money on account. The real tax is your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>, reconciled on your return; the tool below shows the gap either way.`
+    `None of that is the final number — a bonus is taxed at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> once you file, so the calculator above estimates what comes back or is still due.`,
+    `Treat it as money on account. The real tax is your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>, reconciled on your return; the tool above shows the gap either way.`
   ]);
   const lead = pickFrame(state.slug, 'btansLead', [
     `<strong>Quick answer:</strong> a separately paid bonus in ${state.name} is <a href="/tax-glossary/#withholding">withheld</a> at a flat <strong>22%</strong> for federal income tax plus ${stateClause}, plus <strong>7.65%</strong> FICA.`,

@@ -1,0 +1,145 @@
+// test-ux-structure.js, the structural CI guard for the calm tool-page layout.
+//
+// Why this exists when 70-odd engine tests already run: the changes it protects
+// are position-only. No number, no sentence and no engine behaviour moves when
+// the state select is lifted back out of a question, when #stateVerdict is
+// re-parented below the result, or when a page's lede is moved under the
+// calculator. Every other test in this repo therefore passes just as happily
+// before the change as after it, and a later edit that quietly puts the old
+// shape back would ship green. The only artifact that records the intent is the
+// ORDER of a handful of strings in the built HTML, so that order is what this
+// file pins.
+//
+// It asserts by string index only, never by parsing. This repo ships marked and
+// esbuild and nothing else, so there is no DOM parser to reach for, and every
+// pin below is a question about relative position that indexOf answers directly.
+// It reads dist/ rather than src/templates/ because the shapes being pinned are
+// assembled by build.js (placeholders, the question-flow injection, the asset
+// hash rewrite), and a template that looks right can still build wrong.
+//
+// This file renders nothing and is never served.
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const DIST = path.join(ROOT, 'dist');
+
+if (!fs.existsSync(DIST)) {
+  // Loudly skipped, never silently passed. `npm test` runs in trees that have
+  // never been built, and a missing dist/ is a gap in coverage, not a pass.
+  console.log('test-ux-structure: SKIPPED, no built site at ' + DIST);
+  console.log('  Run `npm run build` first. This leaves the tool-page structure unchecked.');
+  process.exit(0);
+}
+
+// build.js content-hashes every /assets file, so the built pages reference
+// /assets/question-flow.<hash>.js. Matching on the path without the extension is
+// what makes this pin survive the hash rewrite.
+const QUESTION_FLOW = '/assets/question-flow';
+
+const at = (html, needle) => html.indexOf(needle);
+
+// Each pin is [name, fn]; fn returns null when the pin holds, or the reason it
+// did not. Keeping the reason in the pin means a failure names the actual gap
+// rather than just the assertion that tripped.
+const contains = (needle) => (html) =>
+  at(html, needle) === -1 ? 'expected to find ' + needle + ', it is not on the page' : null;
+
+const absent = (needle) => (html) =>
+  at(html, needle) === -1 ? null : 'found ' + needle + ' at index ' + at(html, needle) + ', it must not be on the page';
+
+// The control must sit in the form's own flow, not behind a question or after
+// the form has closed.
+const insideForm = (formId, needle) => (html) => {
+  const open = at(html, formId);
+  if (open === -1) return 'no ' + formId + ' on the page';
+  const close = html.indexOf('</form>', open);
+  if (close === -1) return formId + ' is never closed';
+  const target = at(html, needle);
+  if (target === -1) return 'no ' + needle + ' on the page';
+  if (target < open || target > close)
+    return needle + ' is at index ' + target + ', outside ' + formId + ' (' + open + ' to ' + close + ')';
+  return null;
+};
+
+const before = (first, second) => (html) => {
+  const a = at(html, first);
+  const b = at(html, second);
+  if (a === -1) return 'no ' + first + ' on the page';
+  if (b === -1) return 'no ' + second + ' on the page';
+  return a < b ? null : first + ' is at index ' + a + ', which is not before ' + second + ' at ' + b;
+};
+
+const PAGES = [
+  {
+    file: 'tips-tax-calculator/index.html',
+    pins: [
+      // The state select is a plain field on this page, not something a visitor
+      // has to answer a question to reach, which is why the qState group is gone
+      // and question-flow.js is no longer downloaded here.
+      ['state-select-is-a-plain-field', insideForm('id="tipsForm"', 'id="state"')],
+      ['no-qState-question', absent('name="qState"')],
+      ['verdict-follows-the-result', before('data-tb-result', 'id="stateVerdict"')],
+      ['no-question-flow-script', absent(QUESTION_FLOW)],
+    ],
+  },
+  {
+    file: 'overtime-tax-calculator/index.html',
+    pins: [
+      ['state-select-is-a-plain-field', insideForm('id="otForm"', 'id="state"')],
+      // Unlike tips, this page keeps one real question (work the overtime out
+      // from rate and hours), so question-flow.js is still required here.
+      ['qEstimate-question-kept', contains('name="qEstimate"')],
+      ['verdict-follows-the-result', before('data-tb-result', 'id="stateVerdict"')],
+      ['question-flow-script-kept', contains(QUESTION_FLOW)],
+    ],
+  },
+  // The 51 state bonus pages all render from one template, so three of them
+  // stand in for the family: a no-income-tax state, the one state with a second
+  // rate, and an ordinary graduated state.
+  {
+    file: 'texas-bonus-tax-calculator/index.html',
+    pins: [['calculator-precedes-the-lede', before('class="calc"', 'class="lede"')]],
+  },
+  {
+    file: 'california-bonus-tax-calculator/index.html',
+    pins: [
+      ['calculator-precedes-the-lede', before('class="calc"', 'class="lede"')],
+      // California is the only state that asks which kind of extra pay this is,
+      // and that row is addressed by id from bonus-tax-calculator.js.
+      ['paymentTypeRow-kept', contains('id="paymentTypeRow"')],
+    ],
+  },
+  {
+    file: 'missouri-bonus-tax-calculator/index.html',
+    pins: [['calculator-precedes-the-lede', before('class="calc"', 'class="lede"')]],
+  },
+];
+
+let passed = 0;
+const failures = [];
+
+for (const page of PAGES) {
+  const full = path.join(DIST, page.file);
+  let html;
+  try {
+    html = fs.readFileSync(full, 'utf8');
+  } catch (e) {
+    // dist/ exists but this page does not, so the build dropped a page these
+    // pins cover. That is a failure, not a skip.
+    failures.push('  FAIL  ' + page.file + '  [unreadable]: ' + e.message);
+    continue;
+  }
+  for (const [name, pin] of page.pins) {
+    const reason = pin(html);
+    if (reason) failures.push('  FAIL  ' + page.file + '  ' + name + ': ' + reason);
+    else passed++;
+  }
+}
+
+const total = PAGES.reduce((n, p) => n + p.pins.length, 0);
+for (const f of failures) console.log(f);
+console.log('test-ux-structure: ' + passed + '/' + total + ' passed');
+process.exit(failures.length ? 1 : 0);

@@ -118,7 +118,7 @@ function render() {
     : zeroBenefitNote(r); // the "why" stays visible, never hidden in details
   const statCard =
     `<div class="stat-card">` +
-      `<p class="stat-kicker">Federal tax saved on your overtime premium</p>` +
+      `<p class="stat-kicker">Federal tax saved on your overtime</p>` +
       `<p class="stat-value${benefits ? '' : ' is-zero'}">${statValue}</p>` +
       `<p class="stat-sub">${statSub}</p>` +
     `</div>`;
@@ -144,6 +144,9 @@ function render() {
   // as your headline marginal rate; it's really the effective rate the
   // deduction was taxed at (it can straddle a bracket line). Matches SALT's
   // calculator wording.
+  // The closing paycheck note used to be the tail of the .takeaway line below.
+  // It is the same "nothing changes now" caveat as the FICA note above it, so it
+  // reads as one thought here and leaves the takeaway a single sentence.
   const derivation =
     `<details class="derivation"><summary>See how this was calculated</summary>` +
       `<div class="line"><span>Your overtime premium</span><span class="num">${usd(r.eligibleAmount)}${capNote}</span></div>` +
@@ -152,6 +155,7 @@ function render() {
       `<div class="line big"><span>Estimated federal tax saved</span><span class="num">${usd(r.taxSaved)}</span></div>` +
       `<div class="line"><span>Effective federal rate on this deduction</span><span class="num">${pct(r.marginalRate)}</span></div>` +
       `<div class="obbba-note">Social Security and Medicare (FICA) still apply to this overtime — the deduction lowers federal income tax only, claimed when you file.</div>` +
+      `<div class="obbba-note">Your weekly paycheck and its withholding don't change now.</div>` +
     `</details>`;
 
   // Preserve the user's open/closed choice across re-renders (default closed).
@@ -164,7 +168,7 @@ function render() {
     compareBars +
     headlineCaveat +
     derivation +
-    `<div class="takeaway">In plain terms: this lands as a bigger refund (or a smaller bill) when you file next year — your weekly paycheck and its withholding don't change now.</div>`;
+    `<div class="takeaway">In plain terms: this lands as a bigger refund (or a smaller bill) when you file next year.</div>`;
 
   const newDetails = out.querySelector('details.derivation');
   if (newDetails) newDetails.open = wasOpen;

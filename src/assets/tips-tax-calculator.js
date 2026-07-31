@@ -100,7 +100,7 @@ function render() {
   const benefits = r.taxSaved > 0;
   const statValue = benefits ? usd(r.taxSaved) : '$0';
   const statSub = benefits
-    ? `Your deductible tips are ${usd(r.deduction)} of the ${usd(r.eligibleAmount)} you reported.`
+    ? `${usd(r.deduction)} of your tips come off the income you are taxed on.`
     : zeroBenefitNote(r); // the "why" stays visible, never hidden in details
   const statCard =
     `<div class="stat-card">` +
@@ -138,6 +138,10 @@ function render() {
       `<div class="line big"><span>Estimated federal tax saved</span><span class="num">${usd(r.taxSaved)}</span></div>` +
       `<div class="line"><span>Effective federal rate on this deduction</span><span class="num">${pct(r.marginalRate)}</span></div>` +
       `<div class="obbba-note">Social Security and Medicare (FICA) still apply to your tips — the deduction lowers federal income tax only, claimed when you file. You must work in a customarily-tipped occupation.</div>` +
+      // Moved verbatim off the end of the .takeaway below: it answers "so when do I
+      // see this?", which is a second question, and the takeaway only has room for
+      // the first one.
+      `<div class="obbba-note">Your paychecks and their withholding don't change now.</div>` +
     `</details>`;
 
   // Preserve the user's open/closed choice across re-renders (default closed).
@@ -150,7 +154,7 @@ function render() {
     compareBars +
     headlineCaveat +
     derivation +
-    `<div class="takeaway">In plain terms: this lands as a bigger refund (or a smaller bill) when you file next year — your paychecks and their withholding don't change now.</div>`;
+    `<div class="takeaway">In plain terms: this lands as a bigger refund (or a smaller bill) when you file next year.</div>`;
 
   const newDetails = out.querySelector('details.derivation');
   if (newDetails) newDetails.open = wasOpen;
