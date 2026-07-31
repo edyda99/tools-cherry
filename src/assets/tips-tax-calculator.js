@@ -59,11 +59,12 @@ function renderState() {
   const slug = $('state').value;
   const e = STATES[slug];
   // An empty verdict box used to hide; personas skipped the unlabelled select
-  // and left still asking "does my state tax tips?". The box now holds the
-  // invitation in the very spot the answer will appear.
+  // and left still asking "does my state tax tips?". The box now carries the
+  // honest general answer (moved verbatim from the prose below) in the very
+  // spot the specific one will appear once a state is picked.
   if (!slug || !e) {
     box.hidden = false;
-    box.innerHTML = '<span class="muted-small">Pick your state above to see whether it still taxes your tips.</span>';
+    box.innerHTML = '<span class="muted-small">This deduction is federal. Whether it also lowers your <em>state</em> income tax depends on your state — many states do not conform, some conform only from 2026, and nine states have no wage income tax at all. Pick your state above to see how it treats them.</span>';
     return;
   }
   box.hidden = false;
@@ -144,12 +145,17 @@ function render() {
       `<div class="line"><span>Deductible amount</span><span class="num">${usd(r.deduction)}</span></div>` +
       `<div class="line big"><span>Estimated federal tax saved</span><span class="num">${usd(r.taxSaved)}</span></div>` +
       `<div class="line"><span>Effective federal rate on this deduction</span><span class="num">${pct(r.marginalRate)}</span></div>` +
-      `<div class="obbba-note">Social Security and Medicare (FICA) still apply to your tips — the deduction lowers federal income tax only, claimed when you file. You must work in a customarily-tipped occupation.</div>` +
       // Moved verbatim off the end of the .takeaway below: it answers "so when do I
       // see this?", which is a second question, and the takeaway only has room for
       // the first one.
       `<div class="obbba-note">Your paychecks and their withholding don't change now.</div>` +
     `</details>`;
+
+  // Out of the collapsed panel on purpose: both benchmark personas said that
+  // with this sentence hidden they'd have left believing tips were tax-free
+  // outright. It rides beside the good news, not behind a tap.
+  const ficaNote =
+    `<div class="obbba-note">Social Security and Medicare (FICA) still apply to your tips — the deduction lowers federal income tax only, claimed when you file. You must work in a customarily-tipped occupation.</div>`;
 
   // Preserve the user's open/closed choice across re-renders (default closed).
   const out = $('out');
@@ -160,6 +166,7 @@ function render() {
     statCard +
     compareBars +
     headlineCaveat +
+    ficaNote +
     derivation +
     `<div class="takeaway">In plain terms: this lands as a bigger refund (or a smaller bill) when you file next year.</div>`;
 

@@ -128,28 +128,32 @@ function render() {
       `<p class="stat-sub">${usd2(w.total)} was withheld from this bonus up front in ${stateName} (see below for the refund or amount owed).</p>` +
     `</div>`;
 
-  // ---- Full derivation, moved VERBATIM into a collapsed panel -----------
+  // ---- Withheld-now breakdown, inline. Benchmark personas could not get the
+  // line-by-line split (the thing they said they'd screenshot) without opening
+  // a panel, and the paycheck page's always-visible list is what beat
+  // SmartAsset. The h3 and the prepayment note travel with it: they are what
+  // keep this take-home figure from colliding with the filing-time one above.
+  const withheldNow =
+    `<div class="bt-now">` +
+      `<h3>Withheld from your check now</h3>` +
+      `<div class="line"><span>Federal (flat 22%${w.federal > bonus * 0.22 + 1 ? ' / 37%' : ''})</span><span class="num">${usd2(w.federal)}</span></div>` +
+      stateWLine +
+      `<div class="line"><span>FICA (Social Security + Medicare)</span><span class="num">${usd2(w.fica)}</span></div>` +
+      `<div class="line big"><span>Total withheld</span><span class="num">${usd2(w.total)}</span></div>` +
+      `<div class="line"><span>Take-home now</span><span class="num">${usd2(w.keep)}</span></div>` +
+      `<div class="obbba-note">That's <strong>${pct1(w.pctOfBonus)}</strong> of your bonus held back — the "where did half my bonus go?" number. Most of the income-tax part is a prepayment, not your final tax.</div>` +
+    `</div>`;
+
+  // The at-tax-time half stays collapsed; its old h3 is now the summary.
   const derivation =
-    `<details class="derivation"><summary>See how this was calculated</summary>` +
-      `<div class="bt-cols">` +
-        `<div class="bt-col">` +
-          `<h3>Withheld from your check now</h3>` +
-          `<div class="line"><span>Federal (flat 22%${w.federal > bonus * 0.22 + 1 ? ' / 37%' : ''})</span><span class="num">${usd2(w.federal)}</span></div>` +
-          stateWLine +
-          `<div class="line"><span>FICA (Social Security + Medicare)</span><span class="num">${usd2(w.fica)}</span></div>` +
-          `<div class="line big"><span>Total withheld</span><span class="num">${usd2(w.total)}</span></div>` +
-          `<div class="line"><span>Take-home now</span><span class="num ok-flag">${usd2(w.keep)}</span></div>` +
-          `<div class="obbba-note">That's <strong>${pct1(w.pctOfBonus)}</strong> of your bonus held back — the "where did half my bonus go?" number. Most of the income-tax part is a prepayment, not your final tax.</div>` +
-        `</div>` +
-        `<div class="bt-col">` +
-          `<h3>What it'll actually cost at tax time</h3>` +
-          `<div class="line"><span>Federal income tax on the bonus</span><span class="num">${usd2(t.federal)}</span></div>` +
-          trueStateLine +
-          `<div class="line"><span>FICA (same — a real tax, not a prepayment)</span><span class="num">${usd2(t.fica)}</span></div>` +
-          `<div class="line big"><span>True tax on the bonus</span><span class="num">${usd2(t.total)}</span></div>` +
-          `<div class="line"><span>What you actually keep</span><span class="num ok-flag">${usd2(t.keep)}</span></div>` +
-          `<div class="obbba-note">The bonus is ordinary income taxed at your <strong>marginal rate</strong> once your whole year runs through the brackets — this is the number that sticks.</div>` +
-        `</div>` +
+    `<details class="derivation"><summary>What it'll actually cost at tax time</summary>` +
+      `<div class="bt-col">` +
+        `<div class="line"><span>Federal income tax on the bonus</span><span class="num">${usd2(t.federal)}</span></div>` +
+        trueStateLine +
+        `<div class="line"><span>FICA (same — a real tax, not a prepayment)</span><span class="num">${usd2(t.fica)}</span></div>` +
+        `<div class="line big"><span>True tax on the bonus</span><span class="num">${usd2(t.total)}</span></div>` +
+        `<div class="line"><span>What you actually keep</span><span class="num ok-flag">${usd2(t.keep)}</span></div>` +
+        `<div class="obbba-note">The bonus is ordinary income taxed at your <strong>marginal rate</strong> once your whole year runs through the brackets — this is the number that sticks.</div>` +
       `</div>` +
       `<div class="obbba-note muted-small">${stateName} uses ${methodLabel(supp.method)}${supp.method === 'flat' ? ` (${pct1(supp.rate)})` : ''}${supp.special === 'pct_of_federal' ? ' — 30% of the federal withholding, not of the bonus' : ''}${supp.special === 'wi_banded' ? ' — a graduated rate by annual income' : ''}. FICA (7.65%) is a true tax and is the same in both columns. Estimate only, not tax advice.</div>` +
     `</details>`;
@@ -158,7 +162,7 @@ function render() {
   const prevDetails = out.querySelector('details.derivation');
   const wasOpen = prevDetails ? prevDetails.open : false;
 
-  out.innerHTML = statCard + fyNote + headlineCaveat + derivation;
+  out.innerHTML = statCard + fyNote + headlineCaveat + withheldNow + derivation;
 
   const newDetails = out.querySelector('details.derivation');
   if (newDetails) newDetails.open = wasOpen;

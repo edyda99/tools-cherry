@@ -491,6 +491,9 @@ function init() {
     exampleLive = false;
     const kicker = $('netKicker');
     if (kicker) kicker.textContent = 'Your estimated take-home pay';
+    const big = $('netBig');
+    if (big) big.classList.remove('is-example');
+    document.querySelector('.calc-example')?.remove();
   };
   if (form) {
     form.addEventListener('input', dropExampleLabel, { once: true });

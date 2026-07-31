@@ -3433,8 +3433,19 @@ function bonusSizeTable(state, supp, taxData, suppData) {
     `<p class="muted-small">${foot}</p></section>`;
 }
 
+// Each ancillary section folds to its own h2: the body stays in the DOM (the
+// AI-citation channel reads HTML, not rendered state) but the visitor who came
+// for a number no longer scrolls a tax class. Benchmark personas quit these
+// pages "at the second table"; the FAQ and Sources blocks are not run through
+// this and stay open (scannable answers and the trust anchor respectively).
+function foldProse(html) {
+  const m = html.match(/^(\s*<section class="prose[^"]*"[^>]*>)([\s\S]*?)(<h2[^>]*>[\s\S]*?<\/h2>)([\s\S]*?)(<\/section>\s*)$/);
+  if (!m) return html;
+  return `${m[1]}${m[2]}<details class="prose-fold"><summary>${m[3]}</summary>${m[4]}</details>${m[5]}`;
+}
+
 function bonusSections(sections, slug) {
-  const ordered = orderAncillary(slug, sections).filter(Boolean);
+  const ordered = orderAncillary(slug, sections).filter(Boolean).map(foldProse);
   const half = Math.ceil(ordered.length / 2);
   return { a: ordered.slice(0, half).join('\n'), b: ordered.slice(half).join('\n') };
 }

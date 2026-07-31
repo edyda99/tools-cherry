@@ -39,8 +39,14 @@
            twice. Announcing is now one debounced sentence into #outStatus, the
            same single-announcer pattern the six tool pages use. -->
       <div class="answer-band">
+        <!-- The headline is an example until the visitor edits something: the
+             caption names it and the is-example class mutes the accent, both
+             dropped by dropExampleLabel() in app.js on first form input. Four
+             of four benchmark personas read the unlabelled figure as their own
+             answer; two said they'd have walked away with the wrong number. -->
+        <p class="calc-example">These are example numbers. Type yours to see your own.</p>
         <p class="net-label" id="netLabel">{{NET_LABEL}}</p>
-        <p class="net-big" id="netBig">{{NET_BIG}}</p>
+        <p class="net-big is-example" id="netBig">{{NET_BIG}}</p>
         <p class="net-sub" id="netSub">{{NET_SUB}}</p>
         <div class="mode-row view-toggle" role="radiogroup" aria-label="Show amounts as">
           <label class="seg"><input type="radio" name="view" value="period" checked><span>Per paycheck</span></label>

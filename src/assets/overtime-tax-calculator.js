@@ -65,11 +65,11 @@ function renderState() {
   const box = $('stateVerdict');
   const slug = $('state').value;
   const e = STATES[slug];
-  // Same invitation pattern as the tips page: an empty box that hides leaves
-  // the visitor's state question unanswered and the select unexplained.
+  // Same pattern as the tips page: the empty box carries the honest general
+  // answer (moved verbatim from the prose below) until a state is picked.
   if (!slug || !e) {
     box.hidden = false;
-    box.innerHTML = '<span class="muted-small">Pick your state above to see whether it still taxes your overtime.</span>';
+    box.innerHTML = '<span class="muted-small">This deduction is federal. Whether it also lowers your <em>state</em> income tax depends on your state: many states do not conform, some conform only from 2026, and nine states have no wage income tax at all. Pick your state above to see how your own state treats it.</span>';
     return;
   }
   box.hidden = false;

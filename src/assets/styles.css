@@ -440,6 +440,11 @@ html.js .applies-line[data-hidden] { display: none; }
 .net-big { font-size: clamp(32px, 8vw, 40px); font-weight: 800; letter-spacing: -.02em; color: var(--accent); font-variant-numeric: tabular-nums; margin: 0; }
 /* A zero/placeholder answer is not a positive result, so it drops the green. */
 .net-big.is-zero { color: var(--text); }
+/* Example state: until the visitor edits the form, the headline is somebody
+   else's $75,000 and must not wear the confirmed-answer accent. Id-scoped on
+   purpose: .net-big is shared by 96 pages and only the 51 state paycheck
+   pages carry the prefilled example (see the in-scope hook above). */
+#netBig.is-example { color: var(--muted); }
 /* Money set as money: the take-home figure is the one thing a paycheck page
    exists to say, so it outranks the page title, and tight leading keeps a
    wrapped figure reading as one number. Scoped to #netBig, which exists only
@@ -620,6 +625,18 @@ details.estimator summary { cursor: pointer; font-size: .92rem; opacity: .9; }
 .bt-headline.even { border-left: 4px solid #4a6785; background: rgba(74,103,133,.10); }
 .bt-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 6px; }
 .bt-col h3 { margin: 0 0 6px; font-size: 1rem; }
+/* The withheld-now half of the bonus derivation renders inline (personas
+   could not screenshot the split without opening a panel); only the
+   at-tax-time half stays behind the details. */
+.bt-now { margin-top: 12px; }
+.bt-now h3 { margin: 0 0 6px; font-size: 1rem; }
+/* Prose sections below the calculators fold to their heading: the body stays
+   in the DOM for crawlers and for anyone who taps, but the visitor who came
+   for a number no longer scrolls a tax class. Summary keeps the real h2. */
+.prose-fold > summary { cursor: pointer; }
+.prose-fold > summary > h2 { display: inline; margin: 0; }
+.prose-fold > summary:hover > h2 { text-decoration: underline; }
+.prose-fold[open] > summary { margin-bottom: 8px; display: block; }
 @media (max-width: 640px) { .bt-cols { grid-template-columns: 1fr; } }
 
 /* ---- QR colour pickers + scannability warning ----------------------- */
