@@ -192,13 +192,17 @@ export function buildStateApplies({ state, obbbaEntry, suppEntry, notaxAngle, pi
   return `<section class="prose applies" id="applies" aria-labelledby="appliesH">
       <h2 id="appliesH">${h2}</h2>
       <p>${intro}</p>
+      <div class="applies-panel">
       <fieldset class="applies-chips">
         <legend>Tick anything that is true for you.</legend>
+        <div class="applies-opts">
         ${chips}
+        </div>
       </fieldset>
       <div class="applies-lines" id="appliesLines">
         ${lines}
       </div>
       <p class="applies-more"><a id="appliesDeep" href="/what-applies-to-me/?state=${state.slug}">See every 2026 rule that matches your answers in ${name}</a></p>
+      </div>
     </section>`;
 }
