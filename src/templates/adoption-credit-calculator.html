@@ -43,140 +43,335 @@
 <main id="main">
   <div class="wrap">
     <h1>Adoption Tax Credit Calculator (2026)</h1>
-    <p class="lede">The 2025 tax law changed the adoption credit in a way most pages get wrong: part of it is now <strong>refundable</strong> — paid to you even if you owe no tax. For 2026 the credit is your qualified adoption expenses up to <strong>$17,670 per child</strong>, phased out between <strong>$265,080 and $305,080</strong> of income, and up to <strong>$5,120 of it per child</strong> is refundable. That refundable slice is <strong>per child, not per return</strong>, so two children can bring more than $5,120 back as a refund. Enter your expenses to see the refundable amount, the nonrefundable amount, and any 5-year carryforward. Everything runs in your browser — nothing is uploaded.</p>
+    <!-- THE WIZARD (rewritten 2026-08-01, a conversion onto wizard-core.js).
+         This calculator used to be one long form: a year box, a filing box, a
+         child-count box that GENERATED the per-child expense fields in
+         JavaScript, two money boxes and two yes/no disclosure panels, all on
+         screen at once. The approved replacement, proven on
+         /overtime-tax-calculator/ and /tips-tax-calculator/, asks ONE question
+         per card and ends with the answer written out as a story rather than as
+         a stat card over a collapsed derivation.
 
-    <section class="calc" aria-label="Adoption tax credit calculator">
-      <form id="adoptForm" autocomplete="off" onsubmit="return false">
-        <div class="field">
-          <label for="taxYear">Which tax year are you filing for?</label>
-          <select id="taxYear">
-            <option value="2026" selected>2026</option>
-            <option value="2025">2025</option>
-          </select>
-          <p class="muted-small" style="margin-top:6px">2026 is the default. Pick 2025 if you are filing late, filing on an extension, or fixing a return you already sent in. The 2025 amounts were smaller: $17,280 per child, of which $5,000 could come back to you as a refund.</p>
-        </div>
+         PROGRESSIVE ENHANCEMENT, NOT A JS APP. Every card below ships VISIBLE
+         and in reading order in the built HTML: with JavaScript off, blocked, or
+         a crawler reading the page, this is a plain sequential form with real
+         <label>s and native <details> helpers. adoption-credit-wizard.js sets
+         data-js="on" on the .otw section only after its first successful render,
+         and ONLY THEN does styles.css collapse the stack to one card at a time.
+         Hide-on-demand, never show-on-demand. The single exception is #out, the
+         computed answer, which has always been JS-only.
 
-        <div class="field">
-          <label for="filingStatus">How are you filing this year?</label>
-          <select id="filingStatus">
-            <option value="single" selected>Single</option>
-            <option value="mfj">Married filing jointly</option>
-            <option value="hoh">Head of household</option>
-            <option value="qw">Qualifying surviving spouse</option>
-            <option value="mfs">Married filing separately</option>
-          </select>
-          <p class="muted-small" style="margin-top:6px">The same box you tick at the top of your tax return.</p>
-        </div>
-        <div class="field" id="mfsField" style="display:none">
-          <label for="livedApart">You are filing your own return, separate from your spouse. Do all three of these describe your year?</label>
-          <p class="muted-small" id="livedApartTest" style="margin:6px 0">One, you lived apart from your spouse for the last six months of the year. Two, the child lived in your home for more than half the year. Three, you paid more than half the cost of running that home.</p>
-          <select id="livedApart" aria-describedby="livedApartTest livedApartNote">
-            <option value="no" selected>No</option>
-            <option value="yes">Yes, all three</option>
-          </select>
-          <p class="muted-small" id="livedApartNote" style="margin-top:6px">Married couples normally have to file one joint return to claim the adoption credit. Those three conditions together are the only exception (§23(f)).</p>
-        </div>
+         ALL THREE CHILDREN SHIP AS REAL MARKUP, which the old page did not do:
+         it built the per-child expense fields with innerHTML from #children, so
+         a reader with no JavaScript had no way to enter an expense at all. The
+         cards for children two and three are always in the document; the wizard
+         only stops STEPPING through them when "how many children" says one, and
+         the module reads only the first N children into the engine.
 
-        <div class="field">
-          <label for="childCount">How many children are you claiming this year?</label>
-          <select id="childCount">
-            <option value="1" selected>1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-          </select>
-          <p class="muted-small" style="margin-top:6px">Adopting more than three? Work the extra children out on IRS Form 8839 and add them on. This tool mirrors the form's three columns.</p>
-        </div>
+         IDS ARE A CONTRACT with adoption-credit-wizard.js: qae0/qae1/qae2,
+         special0/1/2, prior0/1/2, magi, taxLiability, employerBenefits,
+         hasProgram, cfAmount, cfYear, and the radio groups named taxYear,
+         childCount, filingStatus and livedApart. Four selects became real
+         radios because a card has to be answerable before JavaScript runs and a
+         closed choice reads better as options than as a dropdown; their old id
+         strings survive as the group NAMES. #out and #outStatus keep their roles
+         (result panel + the one polite live region). #outStatus deliberately
+         sits OUTSIDE the cards: inside one it would be display:none on every
+         step but its own and the announcement would never reach a screen reader.
+         #out gains data-tb-result (the anchor report-widget.js hooks) and loses
+         aria-live, which #outStatus now carries — the result box rewrites its
+         whole innerHTML on every keystroke, so it must not be a live region.
 
-        <p class="muted-small" style="margin:0 0 12px">For each child below, enter what the adoption cost you out of your own pocket this year: adoption and agency fees, court costs, lawyer's fees, and travel and lodging for the trip. Leave out anything an employer or a government program paid back to you, surrogacy costs, and the cost of adopting your spouse's child. Those do not count.</p>
+         BRANCHES. Children two and three are on the path only when "how many
+         children" says so; the married-filing-separately three-part test is on
+         the path only when the filing card says "separate return". The employer
+         card and the leftover-credit card are on every path but carry a Skip,
+         because both are rare and both default to nothing.
 
-        <div id="children"></div>
+         THE ORDER IS COSTS FIRST. The old form asked the year, the filing status
+         and the child count before it asked anything the visitor came for. The
+         subject of the tool goes first; the administrative questions (which year,
+         how you file) sit together after it, then the two money questions, then
+         the two rare extras.
 
-        <div class="field">
-          <label for="magi">What was your total income for the year?</label>
-          <input type="text" id="magi" inputmode="decimal" data-money autocomplete="off" value="120000" aria-describedby="magiNote">
-          <p class="muted-small" id="magiNote" style="margin-top:6px">Use line 11 of your Form 1040, the line labelled adjusted gross income. For 2026 the credit starts shrinking once this goes above $265,080 and is gone by $305,080. If you leave foreign income off your return (Form 2555 or 4563), add it back here first.</p>
-        </div>
+         The /embed/ build is NOT this. It keeps its single-column #adoptForm and
+         is still served by adoption-credit-calculator.js, because a third party
+         sizes that iframe once and a flow whose height changes per card would
+         clip inside it. The two must stay independent.
 
-        <div class="field">
-          <label for="taxLiability">How much federal income tax do you owe this year, before this credit?</label>
-          <input type="text" id="taxLiability" inputmode="decimal" data-money autocomplete="off" value="8000" aria-describedby="taxLiabilityNote">
-          <p class="muted-small" id="taxLiabilityNote" style="margin-top:6px">Your income tax with your other credits already taken off. This only caps the part of the adoption credit that needs tax to soak it up. The refundable part is paid to you even if you put $0 here. The IRS works this figure out on its Credit Limit Worksheet.</p>
-        </div>
+         Ad slots, prose, the myth-bust, the comparison table and the sources
+         below are untouched. -->
+    <section class="otw" id="adoptionWizard" aria-label="Adoption tax credit calculator">
+      <h2 class="sr-only">Adoption tax credit calculator</h2>
+      <div class="otw-dots" id="otwDots" aria-hidden="true"></div>
+      <p class="otw-stepnum" id="otwStepnum"></p>
 
-        <!-- These two questions replace two jargon-titled disclosure panels
-             ("Employer adoption assistance (§137)?" and "Carryforward from a prior
-             year?"). Each is now a plain question. A technical term is kept in the
-             note underneath only where the visitor meets it in writing: Form 8839
-             prints "carryforward", so that one stays; "§137 employer adoption
-             assistance" appears on no form the visitor holds, so it is gone.
-             Both default to No, which is what an untouched page computed before.
-             The fields a question needs ship VISIBLE inside a [data-reveal] wrapper
-             and are hidden by question-flow.js only after load, so JavaScript off,
-             a broken script, or a crawler still sees every field. Never invert this
-             to show-on-demand. Every .adv-q must stay inside this .adv fieldset:
-             its legend is styled by ".adv .adv-q legend". -->
-        <fieldset class="adv">
-          <legend>A few more questions, only if they apply to you</legend>
-          <p class="adv-hint">Answer only the ones that apply to you. Leave both on No and neither one touches your credit.</p>
-
-          <fieldset class="adv-q" aria-describedby="qEmployerNote">
-            <legend>Did your employer put money toward your adoption costs?</legend>
-            <p class="adv-q-note" id="qEmployerNote">Some workplaces offer adoption help as a benefit. Answer Yes if yours paid anything toward this adoption, whether to you or straight to the agency.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qEmployer" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qEmployer" value="yes"><span>Yes</span></label>
+      <form id="adoptionWizForm" autocomplete="off" onsubmit="return false">
+        <section class="otw-card" data-step="0" aria-labelledby="otwQ0">
+          <h2 class="otw-q" id="otwQ0"><label for="qae0">What has this adoption cost you out of your own pocket this year?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="qae0" inputmode="decimal" data-money autocomplete="off" value="15000" aria-describedby="qae0Note">
+          </div>
+          <div class="otw-field">
+            <label for="special0">Was this adoption officially determined to be special needs, and did it become final this year?</label>
+            <select class="otw-in otw-in-sm" id="special0" aria-describedby="special0Note">
+              <option value="no" selected>No</option>
+              <option value="yes">Yes, both</option>
+            </select>
+            <p class="otw-note" id="special0Note">That means a State or an Indian tribal government decided the child cannot go back to the birth parents' home and cannot be placed without help. It is a tax-law term, not the same thing as a disability. Answer yes and you are treated as having paid the full $17,670 for 2026 ($17,280 for 2025) even if you paid nothing.</p>
+          </div>
+          <details class="otw-help" id="qae0Note">
+            <summary>Adoption and agency fees, court costs, lawyer's fees, and travel and lodging for the trip</summary>
+            <p>Leave out anything an employer or a government programme paid back to you, surrogacy costs, and the cost of adopting your husband's or wife's child. Those do not count. A rough total is fine, you can change it at the end and watch the number update.</p>
+          </details>
+          <details class="otw-help otw-esc">
+            <summary>I already claimed some of this child's costs on an earlier return</summary>
+            <div class="otw-field">
+              <label for="prior0">How much have you already claimed for this child?</label>
+              <input type="text" class="otw-in otw-in-sm" id="prior0" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="prior0Note">
+              <p class="otw-note" id="prior0Note">The $17,670 limit covers the whole adoption, not each year of it, so whatever you already claimed for this child comes off what is left this year.</p>
             </div>
-            <div class="adv-reveal" data-reveal="qEmployer">
-              <div class="field">
-                <label for="hasProgram">Was that help part of a written adoption-assistance plan your employer set up?</label>
-                <select id="hasProgram" aria-describedby="hasProgramNote">
-                  <option value="no" selected>No</option>
-                  <option value="yes">Yes</option>
-                </select>
-                <p class="muted-small" id="hasProgramNote" style="margin-top:6px">It has to be a written plan offered to staff generally, not a one-off payment. Your HR or benefits team can tell you. Only a written plan keeps the money out of your taxable pay.</p>
-              </div>
-              <div id="employerFields" style="display:none">
-                <div class="field">
-                  <label for="employerBenefits">How much did your employer pay toward these costs this year?</label>
-                  <input type="text" id="employerBenefits" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="employerBenefitsNote">
-                  <p class="muted-small" id="employerBenefitsNote" style="margin-top:6px">This money is kept out of your taxable pay instead, under its own separate $17,670 cap, so the same dollars cannot also count as expenses for the credit. No double dipping. This tool takes them off your first child's expenses.</p>
-                </div>
-              </div>
-            </div>
-          </fieldset>
+          </details>
+          <div class="otw-nav"><span></span><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-          <fieldset class="adv-q" aria-describedby="qCarryNote">
-            <legend>Do you have adoption credit left over from an earlier year?</legend>
-            <p class="adv-q-note" id="qCarryNote">Form 8839 calls this a carryforward: if an earlier year's credit was bigger than the tax you owed, the unused part waits for a later year.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qCarry" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qCarry" value="yes"><span>Yes</span></label>
+        <section class="otw-card" data-step="1" aria-labelledby="otwQ1">
+          <h2 class="otw-q" id="otwQ1">How many children did you adopt this year?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ1">
+            <label class="otw-opt">
+              <input type="radio" name="childCount" value="1" checked>
+              <span><span class="otw-opt-t">Just one</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="childCount" value="2">
+              <span><span class="otw-opt-t">Two</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="childCount" value="3">
+              <span><span class="otw-opt-t">Three</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>Every limit on this page is counted once per child, not once per return</summary>
+            <p>The $17,670 of costs and the $5,120 that can come back to you as a refund are both per child, so two children can bring back more than $5,120. Adopting more than three? Work the extra children out on IRS Form 8839 and add them on — this tool mirrors the form's three columns.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="2" aria-labelledby="otwQ2">
+          <h2 class="otw-q" id="otwQ2"><label for="qae1">What did adopting your second child cost you this year?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="qae1" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="qae1Note">
+          </div>
+          <div class="otw-field">
+            <label for="special1">Was this adoption officially determined to be special needs, and did it become final this year?</label>
+            <select class="otw-in otw-in-sm" id="special1">
+              <option value="no" selected>No</option>
+              <option value="yes">Yes, both</option>
+            </select>
+          </div>
+          <details class="otw-help" id="qae1Note">
+            <summary>Each child gets their own $17,670 of costs and their own $5,120 refund</summary>
+            <p>Count only what this child's adoption cost you: fees, court costs, lawyer's fees, and travel and lodging. Leave out anything an employer or a government programme paid back to you.</p>
+          </details>
+          <details class="otw-help otw-esc">
+            <summary>I already claimed some of this child's costs on an earlier return</summary>
+            <div class="otw-field">
+              <label for="prior1">How much have you already claimed for this child?</label>
+              <input type="text" class="otw-in otw-in-sm" id="prior1" inputmode="decimal" data-money autocomplete="off" value="0">
             </div>
-            <div class="adv-reveal" data-reveal="qCarry">
-              <div class="field">
-                <label for="cfAmount">How much is still left over?</label>
-                <input type="text" id="cfAmount" inputmode="decimal" data-money autocomplete="off" value="0">
-              </div>
-              <div class="field">
-                <label for="cfYear">Which year did that leftover credit come from?</label>
-                <!-- data-qf-off: question-flow parks a hidden field at its neutral value,
-                     and for anything numeric that neutral is 0. Year 0 is not a neutral
-                     year, it is an expired one: the engine reads yearArose and drops a
-                     carryforward that is more than five years old, so a cfYear left at 0
-                     silently deletes the visitor's leftover credit. Harmless while
-                     cfAmount is 0 (the engine never reads the year then), but the moment
-                     any path shows this field without restoring it first the answer is
-                     wrong by the full carryforward. Park it at the default year instead. -->
-                <input type="number" id="cfYear" inputmode="numeric" min="2018" max="2030" step="1" value="2025" data-qf-off="2025" aria-describedby="cfYearNote">
-                <p class="muted-small" id="cfYearNote" style="margin-top:6px">Leftover credit lasts five more years after the year it came from, then it is lost for good. Anything left over from before 2025 can only cut a tax bill, it can never be paid back to you as a refund.</p>
-              </div>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="3" aria-labelledby="otwQ3">
+          <h2 class="otw-q" id="otwQ3"><label for="qae2">What did adopting your third child cost you this year?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="qae2" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="qae2Note">
+          </div>
+          <div class="otw-field">
+            <label for="special2">Was this adoption officially determined to be special needs, and did it become final this year?</label>
+            <select class="otw-in otw-in-sm" id="special2">
+              <option value="no" selected>No</option>
+              <option value="yes">Yes, both</option>
+            </select>
+          </div>
+          <details class="otw-help" id="qae2Note">
+            <summary>Each child gets their own $17,670 of costs and their own $5,120 refund</summary>
+            <p>Count only what this child's adoption cost you: fees, court costs, lawyer's fees, and travel and lodging. Leave out anything an employer or a government programme paid back to you.</p>
+          </details>
+          <details class="otw-help otw-esc">
+            <summary>I already claimed some of this child's costs on an earlier return</summary>
+            <div class="otw-field">
+              <label for="prior2">How much have you already claimed for this child?</label>
+              <input type="text" class="otw-in otw-in-sm" id="prior2" inputmode="decimal" data-money autocomplete="off" value="0">
             </div>
-          </fieldset>
-        </fieldset>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="4" aria-labelledby="otwQ4">
+          <h2 class="otw-q" id="otwQ4">Which tax year are you filing for?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ4">
+            <label class="otw-opt">
+              <input type="radio" name="taxYear" value="2026" checked>
+              <span><span class="otw-opt-t">2026</span><span class="otw-opt-s">the return you file in early 2027</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="taxYear" value="2025">
+              <span><span class="otw-opt-t">2025</span><span class="otw-opt-s">filing late, filing on an extension, or fixing a return you already sent in</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>The 2025 amounts were smaller</summary>
+            <p>For 2025 it is $17,280 of costs per child, of which $5,000 could come back to you as a refund, and the credit shrinks between $259,190 and $299,190 of income. For 2026 those become $17,670, $5,120, and $265,080 to $305,080.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="5" aria-labelledby="otwQ5">
+          <h2 class="otw-q" id="otwQ5">How are you filing this year?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ5">
+            <label class="otw-opt">
+              <input type="radio" name="filingStatus" value="single" checked>
+              <span><span class="otw-opt-t">On my own</span><span class="otw-opt-s">single</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filingStatus" value="mfj">
+              <span><span class="otw-opt-t">Together with my husband or wife, on one return</span><span class="otw-opt-s">married filing jointly</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filingStatus" value="hoh">
+              <span><span class="otw-opt-t">On my own, with a child or dependent at home</span><span class="otw-opt-s">head of household</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filingStatus" value="qw">
+              <span><span class="otw-opt-t">My husband or wife died recently and I still have a dependent child at home</span><span class="otw-opt-s">qualifying surviving spouse</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filingStatus" value="mfs">
+              <span><span class="otw-opt-t">Married, but sending in my own separate return</span><span class="otw-opt-s">married filing separately</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>For this credit, the only answer that changes anything is the last one</summary>
+            <p>The income limits are the same whichever of the first four you pick. Married couples who send in separate returns generally cannot claim the adoption credit at all — there is one narrow exception, and the next question asks about it.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="6" aria-labelledby="otwQ6">
+          <h2 class="otw-q" id="otwQ6">Do all three of these describe your year?</h2>
+          <p class="otw-note" id="livedApartTest">One, you lived apart from your husband or wife for the last six months of the year. Two, the child lived in your home for more than half the year. Three, you paid more than half the cost of running that home.</p>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ6" aria-describedby="livedApartTest">
+            <label class="otw-opt">
+              <input type="radio" name="livedApart" value="no" checked>
+              <span><span class="otw-opt-t">No</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="livedApart" value="yes">
+              <span><span class="otw-opt-t">Yes, all three</span></span>
+            </label>
+          </div>
+          <details class="otw-help" id="livedApartNote">
+            <summary>Why this one question decides everything</summary>
+            <p>Married couples normally have to file one joint return to claim the adoption credit. Those three conditions together are the only exception (§23(f)).</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="7" aria-labelledby="otwQ7">
+          <h2 class="otw-q" id="otwQ7"><label for="magi">What was your total income for the year?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="magi" inputmode="decimal" data-money autocomplete="off" value="120000" aria-describedby="magiNote">
+          </div>
+          <details class="otw-help" id="magiNote">
+            <summary>Use line 11 of your Form 1040, the line labelled adjusted gross income</summary>
+            <p>For 2026 the credit starts shrinking once this goes above $265,080 and is gone by $305,080. If you leave foreign income off your return (Form 2555 or 4563), add it back here first. Married and sending in one return together? Use the figure from that return.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="8" aria-labelledby="otwQ8">
+          <h2 class="otw-q" id="otwQ8"><label for="taxLiability">How much federal income tax will you owe this year, before this credit?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="taxLiability" inputmode="decimal" data-money autocomplete="off" value="8000" aria-describedby="taxLiabilityNote">
+          </div>
+          <p class="otw-flag" id="otwTaxFlag" hidden></p>
+          <details class="otw-help" id="taxLiabilityNote">
+            <summary>This only caps the part of the credit that needs tax to soak it up</summary>
+            <p>Your income tax with your other credits already taken off — not everything withheld from your pay, and not your Social Security and Medicare. The refundable part is paid to you even if you put $0 here. The IRS works this figure out on its Credit Limit Worksheet.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="9" aria-labelledby="otwQ9">
+          <h2 class="otw-q" id="otwQ9"><label for="employerBenefits">How much did your employer put toward your adoption costs this year?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="employerBenefits" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="employerBenefitsNote">
+          </div>
+          <p class="otw-flag" id="otwEmployerFlag" hidden></p>
+          <div class="otw-field">
+            <label for="hasProgram">Was that help part of a written adoption-assistance plan your employer set up?</label>
+            <select class="otw-in otw-in-sm" id="hasProgram" aria-describedby="hasProgramNote">
+              <option value="no" selected>No</option>
+              <option value="yes">Yes</option>
+            </select>
+            <p class="otw-note" id="hasProgramNote">It has to be a written plan offered to staff generally, not a one-off payment. Your HR or benefits team can tell you. Only a written plan keeps the money out of your taxable pay.</p>
+          </div>
+          <details class="otw-help" id="employerBenefitsNote">
+            <summary>The same dollars cannot count twice</summary>
+            <p>Money from a written plan is kept out of your taxable pay instead, under its own separate $17,670 limit, so it is not also part of the costs you claim here. No double dipping. This tool takes it off your first child's costs. Leave this at 0 if your employer paid nothing — most do not.</p>
+          </details>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip</button> <button type="button" class="otw-next">Next</button></span>
+          </div>
+        </section>
+
+        <section class="otw-card" data-step="10" aria-labelledby="otwQ10">
+          <h2 class="otw-q" id="otwQ10"><label for="cfAmount">How much adoption credit do you have left over from an earlier year?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="cfAmount" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="cfAmountNote">
+          </div>
+          <p class="otw-flag" id="otwCarryFlag" hidden></p>
+          <div class="otw-field">
+            <label for="cfYear">Which year did that leftover credit come from?</label>
+            <!-- The old page parked this field behind a yes/no and question-flow.js
+                 blanked hidden numeric fields to 0. Year 0 is not a neutral year, it
+                 is an expired one: the engine drops a carryforward more than five
+                 years old, so a zeroed cfYear silently deleted the visitor's leftover
+                 credit. In the card flow the field is always in the document and
+                 never blanked, and the module falls back to the year before the
+                 filing year if it is ever empty, so that hazard is gone. -->
+            <input type="number" class="otw-in otw-in-sm" id="cfYear" inputmode="numeric" min="2018" max="2030" step="1" value="2025">
+          </div>
+          <details class="otw-help" id="cfAmountNote">
+            <summary>Form 8839 calls this a carryforward</summary>
+            <p>If an earlier year's credit was bigger than the tax you owed, the unused part waits for a later year. It lasts five more years after the year it came from, then it is lost for good. Anything left over from before 2025 can only cut a tax bill, it can never be paid back to you as a refund. Leave this at 0 if this is your first year claiming.</p>
+          </details>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip</button> <button type="button" class="otw-next">See my answer</button></span>
+          </div>
+        </section>
+
+        <section class="otw-card otw-result" data-step="11" aria-labelledby="otwQ11">
+          <h2 class="otw-q sr-only" id="otwQ11" tabindex="-1">Your answer</h2>
+          <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+          <div class="obbba-out" id="out" data-tb-result></div>
+          <details class="otw-help">
+            <summary>When you can claim these costs</summary>
+            <p>Expenses paid <em>before</em> a domestic adoption is final are claimed the <em>following</em> year; foreign-adoption expenses wait until the adoption is final. Enter only the expenses claimable in the tax year you selected. This is arithmetic, not an eligibility ruling — the eligible-child, finality and residency rules have more parts than it covers.</p>
+          </details>
+          <div class="otw-answers" id="otwAnswers"></div>
+          <div class="otw-restart"><button type="button" id="otwRestart">Start over</button></div>
+        </section>
       </form>
-
-      <div class="obbba-out" id="out" aria-live="polite"></div>
+      <p id="outStatus" role="status" class="sr-only"></p>
     </section>
+
+    <p class="lede">The 2025 tax law changed the adoption credit in a way most pages get wrong: part of it is now <strong>refundable</strong> — paid to you even if you owe no tax. For 2026 the credit is your qualified adoption expenses up to <strong>$17,670 per child</strong>, phased out between <strong>$265,080 and $305,080</strong> of income, and up to <strong>$5,120 of it per child</strong> is refundable. That refundable slice is <strong>per child, not per return</strong>, so two children can bring more than $5,120 back as a refund. Enter your expenses to see the refundable amount, the nonrefundable amount, and any 5-year carryforward. Everything runs in your browser — nothing is uploaded.</p>
 
     <p class="note">For general information only — not tax, legal, or financial advice. Figures are for the tax year you select (2026 default). The 2026 Form 8839 isn't published yet, so line references are from the 2025 form and may move. Confirm your numbers with IRS Form 8839 and its instructions and a tax professional before filing.</p>
 
@@ -248,6 +443,6 @@
 <script>
   window.__ADOPTION_DATA__ = {{ADOPTION_DATA_JSON}};
 </script>
-<script type="module" src="/assets/adoption-credit-calculator.js"></script>
+<script type="module" src="/assets/adoption-credit-wizard.js"></script>
 </body>
 </html>
