@@ -386,7 +386,13 @@ function chips(s) {
   add('filing', FILING_WORDS[s.filing] || s.filing);
   if (isCalifornia(s)) add('paytype', s.paymentType === 'other' ? 'other extra pay' : 'bonus or stock');
   add('method', s.method === 'aggregate' ? 'paid on a paycheck' : 'paid on its own');
-  if (s.ytdSupp > 0) add('earlier', `${usd(s.ytdSupp)} earlier bonuses`, 'ytdSupp');
+  // A chip for this card whatever the figure is. It used to appear only above
+  // zero, which is the shipped default AND the state its own Skip leaves behind,
+  // so the card it points at was unreachable from the answer: the answer card
+  // carries no Back, every other card is hidden once the flow is running, and
+  // the only way out was Start over, which discards all seven answers. Every
+  // other tool in the family chips every card on the path, zero included.
+  add('earlier', s.ytdSupp > 0 ? `${usd(s.ytdSupp)} earlier bonuses` : 'no earlier bonuses', 'ytdSupp');
   return out;
 }
 

@@ -86,10 +86,6 @@
           <div class="otw-money">
             <input type="text" class="otw-in" id="bonus" inputmode="decimal" data-money autocomplete="off" value="10000">
           </div>
-          <details class="otw-help">
-            <summary>The full amount your employer promised you, not the smaller amount that lands in your account</summary>
-            <p>Use the figure on the letter or the payslip line, before any tax comes off. If part of your bonus is paid in shares, use what the shares were worth on the day you got them.</p>
-          </details>
           <div class="otw-nav"><span></span><button type="button" class="otw-next">Next</button></div>
         </section>
 
@@ -105,7 +101,7 @@
           </div>
           <details class="otw-help">
             <summary>Your normal salary or wages for the year, before tax</summary>
-            <p>A ballpark is fine. It is what decides the rate your bonus is really taxed at, your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>, and whether you have already passed the Social Security cap for the year. Married and sending in one return together? Enter only your own pay here.</p>
+            <p>A ballpark is fine. It decides your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>, the rate your bonus is really taxed at. Enter only your own pay, even on a joint return.</p>
           </details>
           <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
         </section>
@@ -123,13 +119,9 @@
             </label>
             <label class="otw-opt">
               <input type="radio" name="filingStatus" value="head_of_household">
-              <span><span class="otw-opt-t">On my own, with a child or dependent at home</span><span class="otw-opt-s">head of household</span></span>
+              <span><span class="otw-opt-t">On my own, with a child or dependent at home</span><span class="otw-opt-s"><a href="/tax-glossary/#filing-status">head of household</a></span></span>
             </label>
           </div>
-          <details class="otw-help">
-            <summary>Why this changes the answer</summary>
-            <p>Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>, and it sets the income bands your bonus is really taxed in. Head of household is for someone unmarried who pays most of the cost of a home for a child or another dependent.</p>
-          </details>
           <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
         </section>
 
@@ -167,7 +159,7 @@
           <p class="otw-flag" id="otwMethodFlag" hidden></p>
           <details class="otw-help">
             <summary>Your final tax in {{STATE_NAME}} is the same either way — only the amount held back now changes</summary>
-            <p>A bonus on its own is normally held back at a flat 22% for federal tax. A bonus buried inside a normal paycheck is held back as if you earned that much every payday, which usually takes more. Both are prepayments, and both settle to the same figure when you file your {{STATE_NAME}} and federal returns.</p>
+            <p>On its own it is normally held back at a flat 22% federally. Inside a paycheck it is held back as if you earned that much every payday, which usually takes more.</p>
           </details>
           <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
         </section>
@@ -179,7 +171,7 @@
           </div>
           <details class="otw-help">
             <summary>Leave this at 0 unless your bonuses pass $1,000,000 in one year</summary>
-            <p>Do not count the bonus you entered at the start. This only changes the answer once your bonuses add up to more than $1,000,000 for the year, where the federal share held back jumps from 22% to 37% on the part above that line. It is a federal rule, so it works the same in {{STATE_NAME}} as everywhere else.</p>
+            <p>Do not count the bonus you entered at the start. Past $1,000,000 of bonuses in one year the federal share jumps from 22% to 37%.</p>
           </details>
           <div class="otw-nav">
             <button type="button" class="otw-back">Back</button>
@@ -193,7 +185,7 @@
           <div class="obbba-out" id="out" data-tb-result></div>
           <details class="otw-help">
             <summary>Why my {{STATE_NAME}} payslip says something a little different</summary>
-            <p>Withholding is what your employer sends in now; your real tax is settled when you file, and both halves here are estimates. City and county taxes and state programs such as paid family leave are not modelled, and they come out of a bonus in the places that charge them. See our <a href="/terms/">terms</a>.</p>
+            <p>Withholding is what your employer sends in now; your real tax is settled when you file. City and county taxes and state programs are not modelled. See our <a href="/terms/">terms</a>.</p>
           </details>
           <div class="otw-answers" id="otwAnswers"></div>
           <div class="otw-restart"><button type="button" id="otwRestart">Start over</button></div>

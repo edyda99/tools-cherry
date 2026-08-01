@@ -718,6 +718,16 @@ select.otw-in { appearance: none; -webkit-appearance: none; padding-right: 38px;
   line-height: 1.05; letter-spacing: -.02em; color: var(--accent); font-variant-numeric: tabular-nums; }
 .otw-big.otw-zero { color: var(--text); }
 .otw-lead { margin: 0; font-size: 15.5px; color: var(--text); }
+/* margin:0 above is deliberate — a lead sits tight under .otw-big, which already
+   carries the gap. But the longer answers on this family stack two or three
+   leads, each introducing its own group of rows, and with no margin at either
+   end and .otw-story having only a top margin, a lead ran straight into the lead
+   before it and straight into the last row of the list above it: three separate
+   sentences reading as one paragraph. These two rules give a lead a gap ONLY
+   where something else precedes it, so the first one under the headline figure
+   is untouched. Scoped to a class that exists on wizard answer cards alone. */
+.otw-lead + .otw-lead { margin-top: 14px; }
+.otw-story + .otw-lead, .otw-plain + .otw-lead { margin-top: 16px; }
 .otw-story { list-style: none; margin: 16px 0 0; padding: 0; font-size: 15.5px; }
 .otw-story li { display: flex; justify-content: space-between; gap: 12px;
   padding: 9px 0; border-top: 1px solid var(--border); }

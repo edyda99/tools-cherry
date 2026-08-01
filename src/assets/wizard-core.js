@@ -249,11 +249,22 @@ export function createWizard(spec) {
       : list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1];
     return `Still using our example figures for ${words}. Type your own to see your answer.`;
   }
+  // The note is TAKEN OFF and PUT BACK, never retired for good. A branching flow
+  // can empty the missing list on one path and re-introduce one of our invented
+  // figures on the next — a visitor who switches branches was otherwise shown a
+  // number we made up with no label on it, because the only thing that ever
+  // restored the note was Start over. So the list is re-read on every render and
+  // the note follows it in both directions.
   function syncExampleNote(state) {
+    const missing = isFn(spec.exampleMissing) ? (spec.exampleMissing(state, touched) || []) : [];
+    if (!missing.length) {
+      const on = document.querySelector(ids.example);
+      if (on) on.remove();
+      return;
+    }
+    restoreExampleNote();
     const el = document.querySelector(ids.example);
     if (!el) return;
-    const missing = isFn(spec.exampleMissing) ? (spec.exampleMissing(state, touched) || []) : [];
-    if (!missing.length) { el.remove(); return; }
     el.textContent = isFn(spec.exampleText) ? spec.exampleText(missing) : defaultExampleText(missing);
   }
   function noteFieldTouched(id) {
@@ -393,6 +404,32 @@ export function createWizard(spec) {
     try { target.focus({ preventScroll: true }); } catch (_) { target.focus(); }
   }
 
+  // ---- coming back from the answer ----------------------------------------
+  // Tapping an answer chip drops the visitor onto the card that asked for that
+  // figure, and until this existed the only way back to the answer was Next
+  // through every remaining card: on a nine-card flow, editing the first chip
+  // cost seven more taps to see the number again. So while the visitor is on a
+  // detour that STARTED at the answer, the card they are standing on grows one
+  // extra control that goes straight back. It is created here rather than
+  // written into fourteen templates because it exists only during the detour,
+  // and it reuses .otw-skip so it needs no new CSS. Unlike Skip it clears
+  // nothing: they came here to change a number, not to abandon one.
+  let cameFromResult = false;
+  function syncReturnButton() {
+    if (!stage) return;
+    stage.querySelectorAll('[data-otw-return]').forEach((b) => b.remove());
+    if (!cameFromResult || step === RESULT) return;
+    const card = cardEls.find((c) => Number(c.dataset.step) === step);
+    const next = card && card.querySelector('.otw-next');
+    if (!next || !next.parentNode) return;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'otw-skip';
+    b.setAttribute('data-otw-return', '');
+    b.textContent = 'Back to my answer';
+    next.parentNode.insertBefore(b, next);
+  }
+
   function show(n, withFocus = true) {
     // Settle any pending flag before the card it belongs to leaves the screen.
     flushFlags();
@@ -404,6 +441,8 @@ export function createWizard(spec) {
       c.classList.toggle('otw-on', on);
       if (on) active = c;
     });
+    if (step === RESULT) cameFromResult = false;
+    syncReturnButton();
     renderProgress(path);
     if (step === RESULT) render();
     if (withFocus) focusCard(active);
@@ -435,6 +474,7 @@ export function createWizard(spec) {
     });
     if (stage) stage.querySelectorAll('.otw-esc[open]').forEach((d) => { d.open = false; });
     touched.clear();
+    cameFromResult = false;
     stateNoteShown = null;
     restoreExampleNote();
     if (isFn(spec.onReset)) spec.onReset({ wizard: controller });
@@ -459,6 +499,9 @@ export function createWizard(spec) {
       const t = e.target.closest('button');
       if (!t || !stage.contains(t)) return;
       const path = pathOf(read());
+      // Checked before Skip: the return button borrows .otw-skip for its looks,
+      // and Skip would blank the very field the visitor came back to change.
+      if (t.dataset.otwReturn !== undefined) { show(RESULT); return; }
       if (t.classList.contains('otw-next')) { show(nextOf(step, path)); return; }
       if (t.classList.contains('otw-back')) { show(prevOf(step, path)); return; }
       if (t.classList.contains('otw-skip')) {
@@ -490,6 +533,9 @@ export function createWizard(spec) {
       }
       if (t.dataset.otwGoto !== undefined) {
         const field = t.dataset.otwField;
+        // Only a chip tapped FROM the answer starts a detour; a goto from
+        // anywhere else is ordinary navigation and grows no return button.
+        if (step === RESULT) cameFromResult = true;
         // A chip pointing at a field inside a collapsed helper has to open the
         // helper and land in the field itself: focusCard would otherwise pick
         // the first visible input on that card, which is a different question.
@@ -541,6 +587,17 @@ export function createWizard(spec) {
       let pointerAt = 0;
       const group = cardEls.find((c) => Number(c.dataset.step) === card.step);
       group?.addEventListener('pointerdown', () => { pointerAt = Date.now(); });
+      // A card whose options REVEAL a field is not answered by the option alone.
+      // Several tools put a money input behind a Yes ("how much comes out?"), and
+      // the reveal and the auto-advance fired on the same tap: the field appeared
+      // and the card left the screen in one gesture, so the number could never be
+      // typed. On the last such card there was no way back at all, because the
+      // answer card ships no nav row. So: if answering has put a usable control on
+      // this card, the pointer lands IN it instead of moving on.
+      const revealedField = () => {
+        if (!group) return null;
+        return [...group.querySelectorAll('.otw-in')].find((n) => n.offsetParent !== null) || null;
+      };
       // Scoped to the stage: an /embed/ twin's own radios never share a page with
       // these, but a page that later grows a second radio group of the same name
       // outside the wizard must not be double-bound from here.
@@ -548,7 +605,21 @@ export function createWizard(spec) {
         el.addEventListener('change', (e) => {
           if (e.isTrusted) noteFieldTouched(card.radios);
           render();
-          if (step === card.step && Date.now() - pointerAt < 800) show(nextOf(card.step, pathOf(read())));
+          // The dots and the "Step 2 of 5" line are repainted here as well as on
+          // every field event. A radio answer can shorten or lengthen the path
+          // (filing status adds the spouse card, an account type short-circuits
+          // three), and a KEYBOARD answer never reaches show(), so without this
+          // the progress line described the old path until the next Next — a
+          // wrong step count in front of exactly the visitors least able to
+          // ignore it.
+          renderProgress(pathOf(read()));
+          if (step !== card.step || Date.now() - pointerAt >= 800) return;
+          const field = revealedField();
+          if (field) {
+            try { field.focus({ preventScroll: true }); } catch (_) { field.focus(); }
+            return;
+          }
+          show(nextOf(card.step, pathOf(read())));
         });
       });
     }

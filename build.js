@@ -2522,6 +2522,35 @@ function stateBody(state, year, taxData) {
   return body + stateDisclaimerNote(state, noTax);
 }
 
+// The first wizard card's helper: what "before anything comes out" actually
+// means on THIS state's pay stub. It used to be one sentence repeated verbatim
+// on all 51 pages, and it was part of an 818-word block of state-invariant copy
+// that the card rewrite added to every URL in the cluster.
+//
+// Every branch reads withholdingProfile(state), never state.hasIncomeTax alone
+// (hard rule 1 in withholding-profile.js), and `federalOnly` is the only branch
+// permitted to say "nothing more" (hard rule 2). The deductions it names are
+// exactly the rows the results table on the same page prints, so this asserts
+// nothing new: it says, in the visitor's own words, what the table below is
+// about to subtract.
+function grossPayHelp(state) {
+  const wp = withholdingProfile(state);
+  const open = 'Your pay stub calls it gross pay. It is what you are paid before ';
+  if (wp.federalOnly) {
+    return open + `federal income tax, Social Security and Medicare come out of it — ` +
+      `${state.name} takes nothing further out of wages.`;
+  }
+  if (!wp.hasIncomeTax) {
+    return open + `federal income tax, Social Security and Medicare come out of it. ` +
+      `${state.name} charges no tax on wages, but ${wp.programPhrase} still come out.`;
+  }
+  if (!wp.programPhrase) {
+    return open + `federal and ${state.name} income tax, Social Security and Medicare come out of it.`;
+  }
+  return open + `federal and ${state.name} income tax, Social Security, Medicare and ` +
+    `${wp.programPhrase} come out of it.`;
+}
+
 // The "what this estimate doesn't include" note. Emitted on all 51 pages from
 // this one place, so the heading is byte-identical everywhere and no state can
 // silently ship without the caveat again (13 of 51 used to). Each state's own
@@ -4157,6 +4186,35 @@ async function main() {
   const embedRothCatchupTpl = await read(join(SRC, 'templates', 'embed', 'roth-catchup-calculator.html'));
   const bonusTaxTpl = await read(join(SRC, 'templates', 'bonus-tax-calculator.html'));
   const bonusTaxStateTpl = await read(join(SRC, 'templates', 'bonus-tax-calculator-state.html'));
+  // "What kind of extra pay is this?" is a CALIFORNIA question: California is the
+  // only state that holds back a different rate on bonuses and stock options than
+  // on other supplemental pay, and the card's own options quote its 10.23% and
+  // 6.6% by name. bonus-tax-wizard.js keeps it off the path everywhere else with
+  // `when: isCalifornia` — but that only takes effect once JavaScript has run,
+  // and on this cluster the served card stack IS the form for a reader without
+  // it. So the other 50 pages must not SERVE the card at all: a Texas reader was
+  // being asked a California question and shown a California rate, and every
+  // crawler saw the same block on 50 URLs. Removed from the emitted HTML rather
+  // than parameterised so the copy stays in one place, in the template.
+  //
+  // The remaining cards keep their original data-step numbers, leaving a gap at
+  // 3. wizard-core steps along the path array rather than by counting, so a gap
+  // costs nothing, and renumbering would put the card numbers on the two builds
+  // out of step with each other for no gain.
+  const PAYTYPE_CARD_RE =
+    /[ \t]*<section class="otw-card" data-step="3" data-card="paytype"[\s\S]*?<\/section>\n/;
+  const dropPaytypeCard = (html, slug) => {
+    if (slug === 'california') return html;
+    const out = html.replace(PAYTYPE_CARD_RE, '');
+    if (out === html) {
+      throw new Error(
+        `bonus-tax-calculator-state.html: could not find the paytype card to drop for ${slug}. ` +
+        `The card's opening tag has changed, so 50 state pages would ship California's ` +
+        `"California holds back 10.23%" question. Update PAYTYPE_CARD_RE.`
+      );
+    }
+    return out;
+  };
   const embedBonusTaxTpl = await read(join(SRC, 'templates', 'embed', 'bonus-tax-calculator.html'));
   const form1099Tpl = await read(join(SRC, 'templates', '1099-threshold-checker.html'));
   const embedForm1099Tpl = await read(join(SRC, 'templates', 'embed', '1099-threshold-checker.html'));
@@ -4698,6 +4756,13 @@ async function main() {
       // since the state page was restructured, and four unread copies of the
       // "what comes out of your pay" claim are four more places for it to drift.
       // The live versions are inside stateMetaDesc() and stateLede().
+      // The first card's helper, written from THIS state's withholding profile
+      // rather than as one sentence repeated on all 51 pages. It is the same
+      // list of deductions the results table below prints, so it makes no claim
+      // the page does not already make, and it is the one place in the card
+      // stack where the state genuinely changes the answer to the question being
+      // asked ("what comes out before you see it?").
+      GROSS_HELP: grossPayHelp(state),
       FIGURE_BANNER: figureYearBanner(state, year),
       ANSWER_LEAD: answer.lead,
       ANSWER_TAIL: answer.tail,
@@ -4801,7 +4866,8 @@ async function main() {
     ], slug);
     // injectQuestionFlow, not fillTool: these 51 pages are written through the
     // plain fill() path, so the reveal controller has to be attached here.
-    const html = injectQuestionFlow(fill(bonusTaxStateTpl, {
+    // dropPaytypeCard, because California is the only state that asks it.
+    const html = injectQuestionFlow(dropPaytypeCard(fill(bonusTaxStateTpl, {
       STATE_NAME: state.name,
       STATE_ABBR: state.abbr,
       STATE_SLUG: slug,
@@ -4826,7 +4892,7 @@ async function main() {
       VERIFIED: verified,
       SITE_NAME: SITE.name,
       SITE_URL: SITE.url
-    }), `/${slug}-bonus-tax-calculator/`);
+    }), slug), `/${slug}-bonus-tax-calculator/`);
     const bonusRelated = relatedLinksHtml(orderAncillary(slug, [
       { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
       { name: `${state.name} Paycheck Calculator`, path: `/${slug}-paycheck-calculator/` },

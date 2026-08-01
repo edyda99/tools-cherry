@@ -211,6 +211,11 @@ function renderResult({ state: s, result: r }) {
   if (!r.eligible) {
     let big;
     let why;
+    // The 70½ flag and the 70½ reason are the same sentence twice. The flag
+    // exists so the doubt travels from the age card to the answer, but on this
+    // branch the answer's own "why" already explains 70½ in full, three lines
+    // below it. One of them stands down.
+    let ageSaidBelow = false;
     if (!r.accountEligible) {
       big = 'Not allowed';
       why = `A 401(k), a 403(b) or a 457 at work cannot pay a charity directly — only an IRA can. If you want this ` +
@@ -226,12 +231,16 @@ function renderResult({ state: s, result: r }) {
         `is what decides whether that route is open to you at all.`;
     } else {
       big = 'Not yet';
+      ageSaidBelow = true;
       why = `You have to be 70½ on the day the money leaves the account, and you entered ${count(s.age)}. That is ` +
         `the rule for this route, and it is not the same as the age you are first made to take money out, which ` +
         `is ${RMD_AGE}.`;
     }
 
-    return warn +
+    const warnHere = ageSaidBelow
+      ? [otherWarning(s)].filter(Boolean).map((t) => `<div class="ot-input-warning">${t}</div>`).join('')
+      : warn;
+    return warnHere +
       `<p class="otw-kick">Giving straight from this account</p>` +
       `<p class="otw-big otw-zero">${big}</p>` +
       `<p class="otw-lead">Taking the money out yourself and writing the gift off is the route open to you here. ` +

@@ -185,8 +185,15 @@ const yearlyPay = (s) => annualizeGross(s.wage);
 // The expensive mistake this page can make: typing a yearly salary while the
 // pay-type card says hourly. It does not look wrong on the card, and the answer
 // it produces is wrong by a factor of about two thousand.
+// The one line between "a yearly salary" and "an hourly rate". Nobody is paid
+// $1,000 an hour and nobody earns $1,000 a year, so a figure on the wrong side
+// of it is the wrong KIND of number rather than an unusual one. Both the warning
+// below and the switch conversion read it, so they cannot disagree about which
+// figures look like a salary.
+const WAGE_KIND_LINE = 1000;
+
 function wageTypeWarning(s) {
-  if (s.wage.type !== 'hourly' || s.wage.amount < 1000) return '';
+  if (s.wage.type !== 'hourly' || s.wage.amount < WAGE_KIND_LINE) return '';
   return `Check these numbers: ${usd2(s.wage.amount)} an hour over ${s.wage.hoursPerWeek} hours a week ` +
     `comes to ${usd(yearlyPay(s))} a year. If that figure is your yearly salary, choose "A yearly salary" above.`;
 }
@@ -443,12 +450,30 @@ function render() {
     ).join('');
   }
 
-  // deduction rows: only show when non-zero (style.display, since .line { display:flex }
-  // overrides the [hidden] attribute via specificity)
-  if (!isZero && p.preTax > 0) { $('preTaxLine').style.display = ''; $('rPreTax').textContent = '−' + usd2(p.preTax); }
-  else $('preTaxLine').style.display = 'none';
-  if (!isZero && p.postTax > 0) { $('postTaxLine').style.display = ''; $('rPostTax').textContent = '−' + usd2(p.postTax); }
-  else $('postTaxLine').style.display = 'none';
+  // Deduction rows: shown only when there is one to show. BOTH switches have to
+  // move. The rows ship carrying the `hidden` ATTRIBUTE (state-page.html), and
+  // styles.css answers that with `.line[hidden] { display: none }`, an author
+  // rule that outranks the inline `display: ''` this used to set on its own — so
+  // the row stayed invisible while its money was already inside Net pay, and the
+  // visible column stopped subtracting to the total printed under it. A visitor
+  // with a $12,000 retirement plan saw six rows adding to $2,343.65 over a Net
+  // pay of $1,882.11, with the bar legend beside it reporting deductions of
+  // 17.3% and no deduction row on screen.
+  //
+  // Written out longhand, one id per line, on purpose: build.js's pre-render
+  // guard derives its denominator by scanning THIS file for literal
+  // dollar-sign-with-a-quoted-id textContent writes, so folding these four into
+  // a helper that takes the ids as arguments would make #rPreTax and #rPostTax
+  // invisible to the scan and fail the build. (Spelled out in words rather than
+  // in code because the scan reads comments too.)
+  const preTaxOn = !isZero && p.preTax > 0;
+  $('preTaxLine').hidden = !preTaxOn;
+  $('preTaxLine').style.display = preTaxOn ? '' : 'none';
+  $('rPreTax').textContent = preTaxOn ? '−' + usd2(p.preTax) : usd2(p.preTax);
+  const postTaxOn = !isZero && p.postTax > 0;
+  $('postTaxLine').hidden = !postTaxOn;
+  $('postTaxLine').style.display = postTaxOn ? '' : 'none';
+  $('rPostTax').textContent = postTaxOn ? '−' + usd2(p.postTax) : usd2(p.postTax);
 
   renderBreakdown(r);
   renderCompare();
@@ -515,9 +540,18 @@ function convertOnWageTypeSwitch() {
   const hoursPerYear = (parseFloat($('hours').value) || 40) * 52;
   if (!(hoursPerYear > 0)) return;
 
-  if (from === 'salary' && now === 'hourly') {
+  // Only convert a figure that is on the WRONG side of the salary/rate line.
+  // The card order is amount first, pay type second, so the ordinary hourly
+  // visitor types their rate ($28) and then chooses "An hourly rate" — and this
+  // used to divide it by 2,080 on the way past, leaving $0.01 an hour and a
+  // take-home of $0.41 a week, with card one already off the screen and no
+  // warning to explain it (the warning only fires above $1,000). A figure that
+  // already reads as an hourly rate is left exactly as typed, and the same
+  // going the other way: 75,000 sitting in the field while the answer says
+  // hourly is a salary, and multiplying it by 2,080 was never right either.
+  if (from === 'salary' && now === 'hourly' && current >= WAGE_KIND_LINE) {
     amountEl.value = fmtAmount(Math.round((current / hoursPerYear) * 100) / 100, 2);
-  } else if (from === 'hourly' && now === 'salary') {
+  } else if (from === 'hourly' && now === 'salary' && current < WAGE_KIND_LINE) {
     amountEl.value = fmtAmount(Math.round(current * hoursPerYear), 0);
   }
 }
@@ -604,6 +638,21 @@ function exampleStillOurs(state, touched) {
 // to the card that asked. The four rule cards are deliberately not here: their
 // answers are the ticked chips inside the applies panel on the same card, which
 // state-flow.js keeps in step with them in both directions.
+//
+// The five deduction cards ARE here, and every one of them chips whether it was
+// answered Yes or No. They were left out at first on the reasoning that a No is
+// not a figure worth quoting back — but the answer card ships no Back and the
+// other thirteen cards are hidden once the flow is running, so a visitor who
+// answered No to "do you put part of your pay into a retirement plan" and then
+// remembered that they do had no route to that card at all. The only exit was
+// Start over, which puts the salary back to our $75,000 example and throws away
+// every answer. A chip is the whole way back.
+//
+// `field` is passed only where that card's money input is actually on screen,
+// which is only when the question was answered Yes. Pointing a chip at a field
+// inside a hidden [data-reveal] wrapper would leave the focus call silently
+// doing nothing; with no field named, the core focuses the question's radios
+// instead, which is the control the visitor needs first anyway.
 function answerChips(s) {
   const list = [
     { step: AMOUNT, field: 'amount', label: s.wage.type === 'hourly' ? `${usd2(s.wage.amount)}/hr` : `${usd(s.wage.amount)}/yr` },
@@ -612,6 +661,19 @@ function answerChips(s) {
   if (s.wage.type === 'hourly') list.push({ step: HOURS, field: 'hours', label: `${s.wage.hoursPerWeek} hrs/week` });
   list.push({ step: FREQ, label: PAID_LABEL[s.payFrequency] || PAID_LABEL.biweekly });
   list.push({ step: FILING, label: FILING_LABEL[s.filingStatus] || FILING_LABEL.single });
+
+  const ded = (step, on, yes, no, field) =>
+    list.push(on ? { step, label: yes, field } : { step, label: no });
+  ded(Q_RETIRE, answeredYes('qRetire') && s.adv.retirement401k > 0,
+    `${usd(s.adv.retirement401k)}/yr to retirement`, 'no retirement plan', 'retirement401k');
+  ded(Q_HEALTH, answeredYes('qHealth') && s.adv.cafeteria125 > 0,
+    `${usd(s.adv.cafeteria125)}/yr for health cover`, 'no health cover', 'cafeteria125');
+  ded(Q_DEPS, answeredYes('qDeps') && s.adv.dependentsCredit > 0,
+    `${usd(s.adv.dependentsCredit)} of dependent credit`, 'no dependents', 'depChildren');
+  ded(Q_EXTRA, answeredYes('qExtra') && s.adv.extraWithholding > 0,
+    `${usd(s.adv.extraWithholding)}/yr extra tax`, 'no extra withholding', 'extraWithholding');
+  ded(Q_POST, answeredYes('qPost') && s.adv.postTax > 0,
+    `${usd(s.adv.postTax)}/yr taken after tax`, 'nothing taken after tax', 'postTax');
   return list;
 }
 

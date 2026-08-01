@@ -118,6 +118,12 @@ const PAGES = [
       // Same pin, new id: the state answer renders after the result, never above
       // it. #stateVerdict became #otwStateNote when the result became a card.
       ['verdict-follows-the-result', before('data-tb-result', 'id="otwStateNote"')],
+      // ADDED, and the pin the relocation left owing. `state-select-is-a-plain-
+      // field` used to live on THIS block and now lives on the embed block
+      // below, so nothing here said anything about the shape it guarded. This
+      // does, from the other side: the old single-column form is not merely
+      // unpinned on the full page, it is gone from it.
+      ['no-plain-form-left-on-the-full-page', absent('id="tipsForm"')],
       ['no-question-flow-script', absent(QUESTION_FLOW)],
       ['wizard-script-shipped', contains('/assets/tips-wizard')],
     ],
@@ -778,6 +784,12 @@ const PAGES = [
       // flow now, and the only way to leave it unanswered is its own Skip.
       ['earlier-bonuses-are-asked-outright', insideForm('id="bonusWizForm"', 'id="ytdSupp"')],
       ['no-qYtd-question', absent('name="qYtd"')],
+      // Only California asks which kind of extra pay this is, and the card's
+      // own options quote California's 10.23% and 6.6% by name. The wizard kept
+      // it off the path with `when: isCalifornia`, but that needs JavaScript,
+      // and on this cluster the served card stack IS the form without it. So the
+      // card must not be SERVED here at all.
+      ['no-california-paytype-card', absent('name="paymentType"')],
       ['no-question-flow-script', absent(QUESTION_FLOW)],
       ['wizard-script-shipped', contains('/assets/bonus-tax-wizard')],
     ],
@@ -802,6 +814,11 @@ const PAGES = [
       // preserved verbatim, under its original name, on the /embed/ build above,
       // which is the one build where #paymentTypeRow still exists.
       ['payment-type-is-a-step-in-the-flow', insideForm('id="bonusWizForm"', 'name="paymentType"')],
+      // ADDED, and the pin the relocation left owing. The literal
+      // `paymentTypeRow-kept` assertion moved to the embed block, so nothing on
+      // THIS page spoke about the old wrapper any more. This does, from the
+      // other side: the display:none div is gone from the page it used to sit on.
+      ['no-paymentTypeRow-wrapper', absent('id="paymentTypeRow"')],
       ['no-question-flow-script', absent(QUESTION_FLOW)],
       ['wizard-script-shipped', contains('/assets/bonus-tax-wizard')],
     ],
@@ -816,6 +833,12 @@ const PAGES = [
       ['how-it-was-paid-is-asked-outright', insideForm('id="bonusWizForm"', 'name="method"')],
       ['earlier-bonuses-are-asked-outright', insideForm('id="bonusWizForm"', 'id="ytdSupp"')],
       ['no-qYtd-question', absent('name="qYtd"')],
+      // Only California asks which kind of extra pay this is, and the card's
+      // own options quote California's 10.23% and 6.6% by name. The wizard kept
+      // it off the path with `when: isCalifornia`, but that needs JavaScript,
+      // and on this cluster the served card stack IS the form without it. So the
+      // card must not be SERVED here at all.
+      ['no-california-paytype-card', absent('name="paymentType"')],
       ['no-question-flow-script', absent(QUESTION_FLOW)],
       ['wizard-script-shipped', contains('/assets/bonus-tax-wizard')],
     ],

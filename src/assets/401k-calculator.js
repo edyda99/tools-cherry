@@ -163,12 +163,21 @@ function scheduleTable(schedule) {
 }
 
 function renderResult({ state: s, result: r }) {
-  const warnings = [ageWarning(s), contribWarning(s)]
+  const ok = Number.isFinite(r.projectedBalance) && r.schedule && r.schedule.length > 0;
+
+  // The doubt is meant to travel from the card to the answer, because the card
+  // that carries the flag may be five screens back. But when there is no
+  // projection at all, blockedReason() below explains the SAME contradiction in
+  // the same words, and both landed on the same screen three lines apart: "you
+  // put 30 as your age now and 25 as the age you stop working, so there are no
+  // years left to save in", twice. The flag stands down where the reason has
+  // already said it.
+  const ageDoubled = !ok && !!ageWarning(s);
+  const warnings = [ageDoubled ? '' : ageWarning(s), contribWarning(s)]
     .filter(Boolean)
     .map((t) => `<div class="ot-input-warning">${t}</div>`)
     .join('');
 
-  const ok = Number.isFinite(r.projectedBalance) && r.schedule && r.schedule.length > 0;
   if (!ok) {
     // An em dash rather than "$0": a projection that cannot be made has no
     // number, and printing $0 over a form the visitor has half filled in reads
@@ -216,7 +225,16 @@ function renderResult({ state: s, result: r }) {
       `<span class="otw-amt${growthR > 0 ? ' otw-free' : ''}">${usd(growthR)}</span></li>` +
     // Not part of the split above — it is the first rows restated — so it carries
     // the heavier rule that stops a reader adding it in on top.
-    `<li class="otw-after"><span>Paid in altogether, by you and your employer</span>` +
+    //
+    // The label names only the people who are actually putting money in, and
+    // names the starting balance separately, because this row is startR + mineR
+    // + bossR. It read "Paid in altogether, by you and your employer" whatever
+    // the numbers said: with the match at zero the employer row was correctly
+    // dropped from the story above while the total below it still credited them,
+    // and the $25,000 that was already sitting in the account was folded into a
+    // figure the lead sentence frames as money paid in "over those years".
+    `<li class="otw-after"><span>Already there, plus everything ` +
+      `${bossR > 0 ? 'you and your employer pay' : 'you pay'} in</span>` +
       `<span class="otw-amt">${usd(paidIn)}</span></li>` +
     `</ul>`;
 

@@ -187,7 +187,12 @@ function perChildBox(r) {
     `<tr><td>Child ${c.index + 1}${c.specialNeeds ? ' (special needs)' : ''}</td>` +
     `<td>${usd(c.allowed)}</td><td>${usd(c.refundable)}</td><td>${usd(c.nonrefundable)}</td></tr>`
   ).join('');
-  return `<details class="otw-help"><summary>How this splits between your children</summary>` +
+  // The id is what makes the open/closed state stick. wizard-core keys the
+  // preserved state on `d.id || '#' + i`, and this fold's index inside #out
+  // MOVES when the child count changes (the two lists above it grow and shrink),
+  // so without an id a visitor who opened the breakdown and then changed the
+  // number of children had it open or close on its own.
+  return `<details class="otw-help" id="acPerChild"><summary>How this splits between your children</summary>` +
     `<div class="childbreak"><table>` +
     `<thead><tr><th>Per child</th><th>Credit</th><th>Paid to you</th><th>Against your tax</th></tr></thead>` +
     `<tbody>${rows}</tbody></table></div></details>`;
