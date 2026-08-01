@@ -12,8 +12,10 @@ const STATES = window.__STATES__ || {};
 const usd = (n) => '$' + Math.round(Math.max(0, n || 0)).toLocaleString('en-US');
 const pct = (n) => (Math.max(0, n || 0) * 100).toFixed(1) + '%';
 // Counts (hours) get the same thousands separators money does, so a rendered
-// 1,200 never sits next to a typed 1,200 as a bare "1200".
-const count = (n) => Math.round(Math.max(0, n || 0)).toLocaleString('en-US');
+// 1,200 never sits next to a typed 1,200 as a bare "1200". Fractions are KEPT:
+// the math runs on 500.5 hours, so quoting it back as "501" would be us naming
+// a number the visitor did not type and did not get an answer for.
+const count = (n) => Math.max(0, n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
 // Yearly totals round to whole dollars (usd above), but an HOURLY rate carries
 // cents: a typed 22.50 must not be quoted back as "$23 an hour".
 const usdRate = (n) => {
@@ -35,11 +37,30 @@ function num(id) {
 }
 
 // The page loads with example inputs nobody typed, so the answer is labelled
-// as an example until the visitor edits a field. Optional-chained: the /embed/
-// build of this calculator has no such note.
+// as an example until the visitor has supplied EVERY number the answer is built
+// from. Clearing on the first edit to any one of them was the bug: somebody who
+// typed only their overtime hours got their own label on an answer still made of
+// our invented income and our invented hourly rate.
+// The answer needs income, plus either a typed premium or BOTH rate and hours,
+// so those are the sets that have to be complete. Erring towards "still an
+// example" is the safe direction: it understates our confidence in the visitor's
+// numbers, where the other way round overstates it.
+const touchedFields = new Set();
 function clearExampleNote() {
   document.querySelector('.calc-example')?.remove();
 }
+function noteFieldTouched(id) {
+  touchedFields.add(id);
+  const overtimeSupplied = touchedFields.has('premium') ||
+    (touchedFields.has('regRate') && touchedFields.has('otHours'));
+  if (touchedFields.has('income') && overtimeSupplied) clearExampleNote();
+}
+// Separate from the label above, and deliberately narrower: true once the
+// visitor has typed a rate or hours of their own, which is what makes the
+// derived premium a number worth checking a typed premium against. Without it
+// the cross-check would compare somebody's real figure to OUR example rate and
+// hours and accuse them of being wrong.
+let otBasisTouched = false;
 
 // #outStatus is the ONLY live region on the page. #out rewrites its whole
 // innerHTML on every keystroke, so leaving aria-live on it queued the entire
@@ -121,7 +142,18 @@ function zeroBenefitNote(r, saidTheyKnow) {
 function knownAnswer() {
   const group = document.querySelectorAll('input[name="qKnown"]');
   if (!group.length) return null;
-  return Array.prototype.some.call(group, (el) => el.checked && el.value === 'yes');
+  if (Array.prototype.some.call(group, (el) => el.checked && el.value === 'yes')) return true;
+  // DEGRADED-SCRIPT PATH. A "No" only means "ignore the premium box" while
+  // question-flow.js is alive to hide that box and park it at 0. Its wrapper
+  // ships VISIBLE by design, and question-flow's own catch block re-shows every
+  // wrapper without un-parking, so a wrapper still on screen under a No means the
+  // question was never wired up. The premium field is then editable, and treating
+  // it as absent would silently discard whatever is typed into it — the exact
+  // inverse of the bug this file was rewritten to remove. Fall back to the
+  // no-radio rule (direct iff premium > 0) instead.
+  const host = document.querySelector('[data-reveal="qKnown"]');
+  if (host && !host.hidden) return null;
+  return false;
 }
 
 function render() {
@@ -133,7 +165,9 @@ function render() {
   // premium > 0 -> eligible = the typed premium; otherwise derived mode ->
   // eligible = overtimePremium(rate, hours) = 0.5 * rate * hours. On pages
   // with no qKnown radios (the embed, and the no-JS-then-JS edge) the rule is:
-  // direct mode iff premium > 0, else derived.
+  // direct mode iff premium > 0, else derived. knownAnswer() also returns that
+  // no-radio null when the radios exist but their wrapper is still on screen
+  // under a No, which only happens if question-flow.js never ran; see there.
   // The two modes NEVER write into each other's boxes. The old code silently
   // overwrote #premium from rate x hours, which locked the field and put a
   // number the visitor never typed under a label that called it theirs.
@@ -148,26 +182,60 @@ function render() {
   const r = estimate({ kind: 'overtime', eligibleAmount: premium, grossAnnual: income, filingStatus: filing, federal: OBBBA, fed: FED });
 
   // ---- Input sanity warnings (visible, and never blocking) --------------
-  // Both are impossibilities rather than style notes, and both have the same
+  // Impossibilities and contradictions, not style notes, and they share one
   // most-likely cause: a whole overtime figure typed where only the extra half
   // belongs. We still compute and still show the answer; the warning sits above
-  // it so the number is never read without the doubt attached.
+  // it so the number is never read without the doubt attached. One at a time.
   const otPay = 1.5 * rate * hours; // what those hours pay in full, at time-and-a-half
+  // Suppress the two income-relative checks while the income box has the caret.
+  // money-input.js selects the whole field on entry, so retyping 80,000 passes
+  // through 8, 80, 800 and 8,000, and each of those would insert and then remove
+  // a warning block above the answer, shifting the panel on every keystroke.
+  // #income re-renders on blur, so the check still runs, once, on the number
+  // they meant. Nothing is skipped, only deferred to the end of the edit.
+  const incomeEl = $('income');
+  const incomeFocused = !!incomeEl && document.activeElement === incomeEl;
+  // A typed premium that contradicts the rate and hours sitting on the same
+  // screen. Both numbers are named, and so is which one the answer used: the
+  // page holds three inputs that all describe the same overtime, and silently
+  // preferring one of them is how a double-time worker gets told his whole
+  // premium is deductible. Only checked once the visitor has typed a rate or
+  // hours of their own (see otBasisTouched).
+  const basisComparable = otBasisTouched && rate > 0 && hours > 0 && derivedPremium > 0;
+  const basisMismatch = direct && basisComparable &&
+    Math.abs(typedPremium - derivedPremium) > Math.max(100, 0.1 * derivedPremium);
   let warning = '';
-  if (direct && income > 0 && typedPremium > income / 3) {
+  if (direct && !incomeFocused && income > 0 && typedPremium > income / 3) {
     // The hours that earn a premium are paid 1.5x, so they alone bring in three
     // times the premium. A premium above a third of total pay cannot happen.
     warning =
       `Check this number: ${usd(typedPremium)} is more than a third of the ${usd(income)} you entered for the year, ` +
-      `which the premium can never be — the overtime hours themselves pay three times their own premium. ` +
+      `and a premium can never be that big. Overtime pays one and a half times your normal rate, and only the extra ` +
+      `half of that is the premium, so the premium is always a third of your overtime pay or less. ` +
       `You may have typed your whole overtime pay; only the extra half counts.`;
-  } else if (!direct && income > 0 && otPay > income) {
+  } else if (basisMismatch) {
+    warning =
+      `Check this number: at ${usdRate(rate)} an hour, ${count(hours)} overtime hours make the required extra half ` +
+      `${usd(derivedPremium)}, not the ${usd(typedPremium)} you typed. If ${usd(typedPremium)} is your whole overtime pay, ` +
+      `or your pay at double time, only the required half of it counts. The answer below uses the ${usd(typedPremium)} ` +
+      `you typed and ignores your rate and hours.`;
+  } else if (!direct && !incomeFocused && income > 0 && otPay > income) {
     warning =
       `Check these two: ${count(hours)} overtime hours at ${usdRate(rate)} an hour come to ${usd(otPay)} of overtime pay on their own, ` +
       `more than the ${usd(income)} you entered as your pay for the whole year. Your hours, your rate or your yearly pay needs another look.`;
   }
   const warningBox = warning ? `<div class="ot-input-warning">${warning}</div>` : '';
 
+  // The premium is bigger than the law will let this visitor deduct — either the
+  // flat yearly cap or the cap after the income phase-out lowered it. EVERY
+  // sentence that names a premium and a deductible amount keys off this, because
+  // the two numbers stop being the same number the moment it is true, and the
+  // wording that conflated them is what shipped a screen reading "$12,500, the
+  // required extra half" over a $125,000 required extra half.
+  const capBinds = r.eligibleAmount > r.allowedCap;
+  const capReason = r.phasedOut
+    ? `your income lowers the cap to ${usd(r.allowedCap)}`
+    : `this deduction stops at ${usd(r.statutoryCap)} a year`;
   const capNote = r.eligibleAmount > r.statutoryCap
     ? ` <span class="obbba-note">(capped at ${usd(r.statutoryCap)})</span>`
     : '';
@@ -181,9 +249,17 @@ function render() {
   const statValue = benefits ? usd(r.taxSaved) : '$0';
   // Never "the $X you earned": in derived mode nobody typed that figure, and in
   // direct mode calling it earnings is what encouraged whole-overtime-pay entry.
+  // And never the deductible amount described AS the required extra half: once
+  // the cap or the phase-out binds they are different numbers, and the qualifier
+  // is the whole sentence. Both branches therefore name the premium AND the
+  // deductible part whenever those two differ.
   const statSubEarned = direct
-    ? `Your deductible overtime premium is ${usd(r.deduction)} of your ${usd(r.eligibleAmount)} premium.`
-    : `Your deductible overtime premium is ${usd(r.deduction)}, the required extra half on ${count(hours)} overtime hours.`;
+    ? (capBinds
+      ? `Your deductible overtime premium is ${usd(r.deduction)} of your ${usd(r.eligibleAmount)} premium, because ${capReason}.`
+      : `Your deductible overtime premium is ${usd(r.deduction)} of your ${usd(r.eligibleAmount)} premium.`)
+    : (capBinds
+      ? `The required extra half on ${count(hours)} overtime hours is ${usd(r.eligibleAmount)}. Only ${usd(r.deduction)} of it is deductible, because ${capReason}.`
+      : `Your deductible overtime premium is ${usd(r.deduction)}, the required extra half on ${count(hours)} overtime hours.`);
   const statSub = benefits
     ? statSubEarned
     : zeroBenefitNote(r, known === true); // the "why" stays visible, never hidden in details
@@ -205,22 +281,59 @@ function render() {
       `</div>`
     : '';
 
-  // ---- One headline caveat (phase-down) shown OUTSIDE the details -------
-  const headlineCaveat = (benefits && r.phasedOut && !r.fullyPhasedOut)
-    ? `<div class="obbba-note phaseout-flag">Heads up: your income is above the phase-out threshold, so your deductible cap is lowered to ${usd(r.allowedCap)} (see the breakdown for the math).</div>`
-    : '';
+  // ---- The limit caveat, shown OUTSIDE the collapsed details ------------
+  // The "(capped at $12,500)" row lives inside <details>, which is closed by
+  // default, so a visitor who reads only the answer never sees the word cap. Any
+  // time the limit actually costs them something it has to be on the no-click
+  // surface, next to the number it explains.
+  let headlineCaveat = '';
+  if (benefits && capBinds) {
+    headlineCaveat =
+      `<div class="obbba-note${r.phasedOut ? ' phaseout-flag' : ''}">Heads up: ${usd(r.deduction)} of your ` +
+      `${usd(r.eligibleAmount)} premium is deductible. ` +
+      (r.phasedOut
+        ? `Your income is above the phase-out threshold, so your cap drops to ${usd(r.allowedCap)}`
+        : `This deduction stops at ${usd(r.statutoryCap)} a year`) +
+      `, and the rest of the premium is taxed as usual (see the breakdown for the math).</div>`;
+  } else if (benefits && r.phasedOut && !r.fullyPhasedOut) {
+    headlineCaveat =
+      `<div class="obbba-note phaseout-flag">Heads up: your income is above the phase-out threshold, so your deductible cap is lowered to ${usd(r.allowedCap)} (see the breakdown for the math).</div>`;
+  }
 
-  // ---- What is taxable and what is not (derived mode only) --------------
-  // The question every visitor actually arrives with. It needs rate AND hours,
-  // so it can only be shown on the derived path; a typed premium alone does not
-  // say what the other two thirds of that overtime pay were.
-  const split = (!direct && rate > 0 && hours > 0)
+  // ---- What is taxable and what is not ----------------------------------
+  // The question every visitor actually arrives with. The three-row split needs
+  // rate AND hours, so it can only be shown on the derived path; a typed premium
+  // alone does not say what the other two thirds of that overtime pay were.
+  // ROUNDED ONCE. The labels invite the reader to add rows 2 and 3 up to row 1,
+  // so they have to add up: three independent Math.rounds do not (22.75/hr x 10h
+  // renders $341 = $228 + $114). The normal-rate row is therefore DERIVED by
+  // subtraction from the two rounded figures rather than rounded on its own.
+  const otPayR = Math.round(otPay);
+  const premiumR = Math.round(derivedPremium);
+  const normalR = otPayR - premiumR;
+  // The row for the required extra half claims deductibility ONLY when nothing
+  // reduces it. When the cap or the phase-out binds, this block sits above the
+  // collapsed details and would otherwise be the visible surface asserting the
+  // larger, undeducted number as "the deductible part" while the stat card two
+  // lines up said something smaller. So the claim moves to its own row, carrying
+  // the figure that survives the limit.
+  const splitRows = (!direct && rate > 0 && hours > 0)
     ? `<div class="obbba-note">How those ${count(hours)} overtime hours split up:</div>` +
-      `<div class="line"><span>Total overtime pay, at time-and-a-half</span><span class="num">${usd(otPay)}</span></div>` +
-      `<div class="line"><span>Paid at your normal rate — taxed as usual</span><span class="num">${usd(rate * hours)}</span></div>` +
-      `<div class="line"><span>The required extra half — the deductible part</span><span class="num">${usd(derivedPremium)}</span></div>` +
+      `<div class="line"><span>Total overtime pay, at the federal time-and-a-half minimum</span><span class="num">${usd(otPayR)}</span></div>` +
+      `<div class="line"><span>Paid at your normal rate — taxed as usual</span><span class="num">${usd(normalR)}</span></div>` +
+      `<div class="line"><span>The required extra half${capBinds ? '' : ' — the deductible part'}</span><span class="num">${usd(premiumR)}</span></div>` +
+      (capBinds
+        ? `<div class="line"><span>Deductible after ${r.phasedOut ? 'the income phase-out' : `the ${usd(r.statutoryCap)} yearly limit`}</span><span class="num">${usd(r.deduction)}</span></div>`
+        : '') +
       `<div class="obbba-note">If your employer pays above the required half, double time for instance, that extra is taxed as usual and is not counted here.</div>`
     : '';
+  // The double-time rule is the single most load-bearing sentence on the page for
+  // somebody typing a premium, and gating the whole block on !direct deleted it
+  // at exactly the moment a double-time worker types twice the right number.
+  const directBasisNote = direct
+    ? `<div class="obbba-note">Only the required extra half of time-and-a-half is deductible. If your employer pays above that, double time for instance, the part above the required half is taxed as usual and is not part of your premium.</div>`
+    : '';
+  const split = direct ? directBasisNote : splitRows;
 
   // ---- Full derivation, moved VERBATIM into a collapsed panel -----------
   // Label fix: this row previously mislabeled the taxSaved/deduction ratio
@@ -257,7 +370,15 @@ function render() {
 
   renderState();
 
-  announce(`Federal tax saved on your overtime premium: ${statValue}`);
+  // The compare bars are the only other place the cap is visible and they are
+  // aria-hidden, so without this a screen-reader user got the dollar figure and
+  // no hint that a much larger premium had been cut down to reach it. The
+  // warning is announced for the same reason: it is rendered inside #out, which
+  // is not a live region.
+  const capSpoken = capBinds && r.eligibleAmount > 0
+    ? ` Your ${usd(r.eligibleAmount)} premium is limited to ${usd(r.deduction)} deductible ${r.phasedOut ? 'by the income phase-out' : 'by the yearly cap'}.`
+    : '';
+  announce(`Federal tax saved on your overtime premium: ${statValue}.${capSpoken}${warning ? ' Check your numbers, there is a warning above the answer.' : ''}`);
 }
 
 function init() {
@@ -266,8 +387,17 @@ function init() {
   ['income', 'premium', 'regRate', 'otHours', 'filing', 'state'].forEach((id) => {
     const el = $(id);
     if (!el) return; // the /embed/ build ships a subset of these
-    el.addEventListener('input', render);
-    el.addEventListener('change', render);
+    // otBasisTouched is set HERE rather than alongside the example-note
+    // bookkeeping below, so it is already true by the time this same event's
+    // render() reads it. Bound in a later listener it would be one keystroke
+    // behind, and the typed-premium cross-check would miss the edit that
+    // triggered it.
+    const onEdit = (e) => {
+      if (e.isTrusted && (id === 'regRate' || id === 'otHours')) otBasisTouched = true;
+      render();
+    };
+    el.addEventListener('input', onEdit);
+    el.addEventListener('change', onEdit);
   });
   // Answering the premium question flips the whole render precedence, so it has
   // to recompute. question-flow.js does dispatch input on #premium when it parks
@@ -275,17 +405,22 @@ function init() {
   // listener is what makes the mode switch unconditional.
   document.querySelectorAll('input[name="qKnown"]').forEach((el) => el.addEventListener('change', render));
 
-  // The example label goes away when the visitor edits one of the OVERTIME
-  // numbers the example is made of. Editing income or filing status alone used
-  // to strip it while the answer still ran on our example rate and hours, which
-  // presented example figures as the visitor's own.
+  // The two income-relative warnings are held back while #income has the caret
+  // (see render), so the field has to recompute when it loses focus even if its
+  // value is unchanged since the last change event.
+  $('income')?.addEventListener('blur', render);
+
+  // The example label goes away only once EVERY number the answer is built from
+  // has been typed by the visitor (see noteFieldTouched). Clearing it on the
+  // first edit to any one field presented an answer still made of our example
+  // income and our example hourly rate as the visitor's own.
   // isTrusted filters out question-flow.js's synthetic park/restore events: a
   // programmatic write is not somebody typing their own number.
-  ['regRate', 'otHours', 'premium'].forEach((id) => {
+  ['income', 'regRate', 'otHours', 'premium'].forEach((id) => {
     const el = $(id);
     if (!el) return;
     ['input', 'change'].forEach((evt) => el.addEventListener(evt, (e) => {
-      if (e.isTrusted) clearExampleNote();
+      if (e.isTrusted) noteFieldTouched(id);
     }));
   });
   render();

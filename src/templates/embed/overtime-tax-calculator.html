@@ -28,8 +28,16 @@
          qKnown radios here and no [data-reveal] wrapper. The shared script's
          no-radio branch covers exactly this case: direct mode iff #premium > 0,
          else derived. That is why #premium ships EMPTY with a placeholder — a
-         value here would silently outrank the rate and hours beside it. Same
-         inputs in, same answer out as the full page. -->
+         value here would silently outrank the rate and hours beside it. A typed
+         premium that contradicts the rate and hours next to it raises the same
+         .ot-input-warning the full page raises, so the no-radio path is not the
+         weaker path. Same inputs in, same answer out as the full page.
+         The rate+hours row stacks on narrow widths through the `#otForm` hook in
+         styles.css; the id is load-bearing for layout here, not only for script.
+         The .calc-example line ships pre-filled numbers honestly: the script
+         removes it once income AND (rate+hours, or a premium) are the visitor's
+         own. Its height is part of what the published iframe height in
+         embed-gallery.html is sized for. -->
     <form id="otForm" autocomplete="off" onsubmit="return false">
       <div class="field">
         <label for="income">Total annual income (all wages)</label>
@@ -43,7 +51,7 @@
       <div class="field">
         <label for="premium">Already know your exact premium? <span class="muted-small">(the extra "half" only, for the whole year)</span></label>
         <input type="text" id="premium" inputmode="decimal" data-money autocomplete="off" placeholder="5,000" aria-describedby="premiumNote">
-        <p class="muted-small" id="premiumNote" style="margin-top:6px">Leave this empty and we use your rate and hours above. For 2025 you total the extra half from your pay stubs; from 2026 it has its own box on your W-2, Box 12 code TT.</p>
+        <p class="muted-small" id="premiumNote" style="margin-top:6px">Leave this empty and we use your rate and hours above. For 2025 you total the extra half from your pay stubs; from 2026 it has its own box on your W-2, Box 12 code TT. Anything your employer pays above the required half does not count towards it.</p>
       </div>
       <div class="field">
         <label for="filing">Filing status</label>
@@ -58,6 +66,7 @@
         <select id="state"><option value="">— Select a state —</option></select>
       </div>
     </form>
+    <p class="calc-example">These are example numbers. Type yours to see your own.</p>
     <div class="obbba-out" id="out" aria-live="polite"></div>
     <div class="state-verdict" id="stateVerdict" hidden></div>
   </section>

@@ -464,9 +464,17 @@ html.js .applies-line[data-hidden] { display: none; }
    overtime-tax-calculator and salt-cap-calculator, are in this pass's scope.
    Unscoped it added 39-231px of document height to the other eight, including
    two embeds published at a fixed iframe height. Not written as
-   `.field.est-row` because overtime-tax-calculator's row has no .field class. */
+   `.field.est-row` because overtime-tax-calculator's row has no .field class.
+   #otForm is the third hook, and it buys exactly one more page: the overtime
+   /embed/ build, whose rate+hours row is now always visible rather than parked
+   inside a collapsed <details>, so its narrow-width state is the default view
+   there too. Only /overtime-tax-calculator/ and its embed carry that id, and the
+   full page already matched on .calc-answer. Adding .embed-wrap instead would
+   have pulled in every other embed; adding .calc-answer to the embed's markup
+   would have pulled in `.calc-answer .stat-value` at 56px, the exact regression
+   the note above that rule records. */
 @media (max-width: 480px) {
-  :root:has(.answer-band, .calc-answer) .est-row { grid-template-columns: 1fr; }
+  :root:has(.answer-band, .calc-answer, #otForm) .est-row { grid-template-columns: 1fr; }
 }
 
 /* ---- Overtime calculator: input-sanity warning -----------------------------

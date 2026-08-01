@@ -31,7 +31,7 @@
       <h2 class="sr-only">Overtime tax savings calculator</h2>
       <form id="otForm" autocomplete="off" onsubmit="return false">
         <div class="field">
-          <label for="income">How much do you earn in a year, before anything is taken out?</label>
+          <label for="income">How much do you earn in a year?</label>
           <input type="text" id="income" inputmode="decimal" data-money autocomplete="off" value="60000" aria-describedby="incomeNote">
           <p class="muted-small" id="incomeNote" style="margin-top:6px">Your pay for the whole year, overtime included. Married and sending in one return together? Add both incomes. This number decides whether the deduction starts shrinking, which begins at $150,000 on your own or $300,000 filing jointly. Tax forms measure that against your modified adjusted gross income, or MAGI. If money leaves your pay before tax, into a 401(k) or a health plan, take those amounts off: MAGI is your pay after them.</p>
         </div>
@@ -87,6 +87,13 @@
              restores them on Yes. That parking is exactly what makes derived mode
              win by default, since a parked #premium is 0 and 0 fails the direct-mode
              test. Do not fight it.
+             The one case that parking does NOT cover is question-flow.js never
+             running at all (script blocked, or its own catch block re-showing every
+             wrapper without un-parking). The premium box is then visible and
+             editable under a "No", so overtime-tax-calculator.js treats a visible
+             wrapper under a No as "no question was ever asked" and falls back to the
+             no-radio rule, rather than discarding what gets typed into a box that is
+             right there on screen.
              #stateVerdict lives INSIDE the qState reveal on purpose: it is the answer
              to that question, so it can never be stranded on screen once the select
              that produced it is hidden. The ids regRate, otHours, premium, state and

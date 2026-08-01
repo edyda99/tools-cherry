@@ -41,12 +41,19 @@
       <h3>No Tax on Overtime Calculator</h3>
       <p>Shows how much of a worker's overtime premium is deductible under the 2025 law, and the federal tax saved — with a per-state conformity note.</p>
       <label class="lbl" for="snip-ot">Embed code</label>
-      <textarea id="snip-ot" class="embed-snippet" readonly>&lt;iframe src="{{SITE_URL}}/embed/overtime-tax-calculator/" width="100%" height="640" style="border:1px solid #e2e2e2;border-radius:12px;max-width:560px" title="No Tax on Overtime Calculator by Tools Berry" loading="lazy"&gt;&lt;/iframe&gt;
+      <textarea id="snip-ot" class="embed-snippet" readonly>&lt;iframe src="{{SITE_URL}}/embed/overtime-tax-calculator/" width="100%" height="1440" style="border:1px solid #e2e2e2;border-radius:12px;max-width:560px" title="No Tax on Overtime Calculator by Tools Berry" loading="lazy"&gt;&lt;/iframe&gt;
 &lt;p&gt;Free &lt;a href="{{SITE_URL}}/overtime-tax-calculator/"&gt;No Tax on Overtime Calculator&lt;/a&gt; by Tools Berry&lt;/p&gt;</textarea>
       <div class="copy-row"><button type="button" class="btn-primary" data-copy="snip-ot">Copy embed code</button></div>
       <div class="embed-preview">
         <p class="muted-small">Live preview:</p>
-        <iframe src="{{SITE_URL}}/embed/overtime-tax-calculator/" height="640" title="No Tax on Overtime Calculator preview" loading="lazy"></iframe>
+        <!-- 1440, not 640: the overtime embed's rate+hours row, its basis note and
+             its taxable/not-taxable split are all always-visible now, where the rate
+             and hours used to sit inside a collapsed <details>. Measured at 1,425px
+             of content at the snippet's 560px max-width (headless Chrome, built
+             dist, default inputs, derivation collapsed). Left at 640 the snippet we
+             hand third parties would scroll inside its own frame. Re-measure if the
+             embed's form or its answer panel grows again. -->
+        <iframe src="{{SITE_URL}}/embed/overtime-tax-calculator/" height="1440" title="No Tax on Overtime Calculator preview" loading="lazy"></iframe>
       </div>
     </div>
 
