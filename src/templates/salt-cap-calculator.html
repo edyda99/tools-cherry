@@ -28,104 +28,189 @@
   <div class="wrap">
     <h1>SALT Cap Calculator</h1>
 
-    <section class="calc" aria-label="SALT deduction cap calculator">
+    <!-- THE WIZARD (converted 2026-08-01 onto the shared wizard-core.js, following
+         the pilot at /tips-tax-calculator/ and the approved reference UX at
+         /overtime-tax-calculator/).
+
+         This calculator used to be one long form: six labelled boxes, one of them
+         parked behind a yes/no reveal question, and a stat card plus a collapsed
+         derivation underneath. The replacement asks ONE question per card and ends
+         with the answer written out as a story rather than a stat card over a
+         table.
+
+         PROGRESSIVE ENHANCEMENT, NOT A JS APP. Every card below ships VISIBLE and
+         in reading order in the built HTML: with JavaScript off, blocked, or a
+         crawler reading the page, this is a plain sequential form with real
+         <label>s and native <details> helpers. salt-cap-wizard.js sets data-js="on"
+         on the .otw section only after its first successful render, and ONLY THEN
+         does styles.css collapse the stack to one card at a time. Hide-on-demand,
+         never show-on-demand. The single exception is #out, the computed answer,
+         which has always been JS-only.
+
+         The controls that only mean something once the stepping exists (Next /
+         Back / Skip, the progress dots, the quick chips, the answer chips, Start
+         over) are also gated on data-js="on" in CSS, because a "Next" button that
+         cannot advance anything is worse than no button.
+
+         IDS ARE A CONTRACT with salt-cap-wizard.js: magi, incomeTax, propTax,
+         other, and the two radio groups named "year" (2025 / 2026) and "filing"
+         (single / married / married_separate / head_of_household). #out and
+         #outStatus keep their old names and roles (result panel + the one polite
+         live region). #outStatus deliberately sits OUTSIDE the cards: inside one it
+         would be display:none on every step but its own and the announcement would
+         never reach a screen reader.
+
+         THE YEAR IS ASKED FIRST, and it is the one place this page departs from the
+         reference's "ask the tool's own subject first". Every money question after
+         it is "for that year", and the caps it names in the answer ($40,000 vs
+         $40,400) differ by year — asking it last would leave the first five
+         questions quietly unscoped. It costs one tap and it ships pre-answered.
+
+         THE "OTHER WRITE-OFFS" QUESTION IS LAST because it is the only one a
+         visitor may genuinely have nothing to say to, and the Skip button always
+         jumps to the answer. Skipping it CLEARS the box rather than hiding it: the
+         field ships pre-filled at $10,000 and the itemize-vs-standard verdict reads
+         it on every render, so leaving the $10,000 in place behind a hidden field
+         would quietly answer the question for them. This page therefore ships no
+         [data-reveal] wrapper any more, and build.js stops sending it
+         question-flow.js on that basis alone.
+
+         THE SALT TORPEDO WARNING moved into #out. It used to be a #torpedo box
+         below the result; it was always written by JavaScript and always empty in
+         the built HTML, so nothing readable left the page. It still uses the same
+         .torpedo-warn styling, which the /embed/ build's own #torpedo box also
+         still uses.
+
+         The /embed/ build is NOT this. It keeps its single-column form, its own
+         #saltForm id and its #torpedo box, and is still served by
+         salt-cap-calculator.js, because a third party sizes that iframe once and a
+         flow whose height changes per card would clip inside it. The two must stay
+         independent, which is why this form is #saltWizForm and not #saltForm.
+
+         Ad slots, the lede, the note, the prose and the FAQ below are untouched. -->
+    <section class="otw" id="saltWizard" aria-label="SALT deduction cap calculator">
       <h2 class="sr-only">SALT deduction savings calculator</h2>
-      <form id="saltForm" autocomplete="off" onsubmit="return false">
-        <div class="field">
-          <label for="year">Which tax year are you asking about?</label>
-          <select id="year">
-            <option value="2025">2025</option>
-            <option value="2026">2026</option>
-          </select>
-          <p class="muted-small" style="margin-top:6px">The 2025 and 2026 figures are final. The limit creeps up about 1% a year through 2029, then drops back to $10,000 in 2030. More on that below.</p>
-        </div>
+      <div class="otw-dots" id="otwDots" aria-hidden="true"></div>
+      <p class="otw-stepnum" id="otwStepnum"></p>
 
-        <div class="field">
-          <label for="filing">How do you file your taxes?</label>
-          <select id="filing">
-            <option value="single">Single</option>
-            <option value="married">Married filing jointly</option>
-            <option value="married_separate">Married filing separately</option>
-            <option value="head_of_household">Head of household</option>
-          </select>
-          <p class="muted-small" style="margin-top:6px">"Married filing jointly" means you and your spouse send in one return together. "Married filing separately" means you each send your own, and that halves every figure on this page: the limit, the income level where it starts shrinking, and the floor it stops at.</p>
-        </div>
+      <form id="saltWizForm" autocomplete="off" onsubmit="return false">
+        <section class="otw-card" data-step="0" aria-labelledby="otwQ0">
+          <h2 class="otw-q" id="otwQ0">Which tax year are you asking about?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ0">
+            <label class="otw-opt">
+              <input type="radio" name="year" value="2025" checked>
+              <span><span class="otw-opt-t">2025</span><span class="otw-opt-s">the cap starts at $40,000, and starts shrinking above $500,000 of income</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="year" value="2026">
+              <span><span class="otw-opt-t">2026</span><span class="otw-opt-s">the cap starts at $40,400, and starts shrinking above $505,000 of income</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>The limit creeps up about 1% a year through 2029, then drops back to $10,000 in 2030</summary>
+            <p>The 2025 and 2026 figures are final. After that it is $40,804 for 2027 and about 1% more each year through 2029. For tax years beginning in 2030 it reverts to a flat $10,000, permanently, with no shrinking at higher incomes. More on that below.</p>
+          </details>
+          <div class="otw-nav"><span></span><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-        <div class="field">
-          <label for="magi">How much did you make this year, before tax?</label>
-          <input type="text" id="magi" inputmode="decimal" data-money autocomplete="off" value="300000">
-          <p class="muted-small">If you filed last year, this is line 11 on your Form 1040. Married and filing one return together? Add both incomes.</p>
-          <p class="muted-small" style="margin-top:6px">This figure is what decides whether your limit gets cut.</p>
-        </div>
+        <section class="otw-card" data-step="1" aria-labelledby="otwQ1">
+          <h2 class="otw-q" id="otwQ1"><label for="incomeTax">How much state and local income tax did you pay that year?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="incomeTax" inputmode="decimal" data-money autocomplete="off" value="28000" aria-describedby="incomeTaxNote">
+          </div>
+          <details class="otw-help" id="incomeTaxNote">
+            <summary>No state income tax where you live? Put the general sales tax you paid in this box instead</summary>
+            <p>What your state, city, or county took out of your pay for the year, plus anything more you paid them at filing time. You may claim state income tax or general sales tax, one or the other, never both.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-        <!-- These two boxes ARE the thing this page is about: added together they are
-             what the law calls your SALT. Neither is optional enough to hide behind a
-             question, so both stay on screen and the wording carries the work instead.
-             The two cases that used to be buried in one shared footnote (no state
-             income tax where you live, and renting) now each get told what to type.
-             They are two SEPARATE .field blocks, each with its note directly under its
-             own input. They used to share one .est-row grid with both notes printed
-             after the pair, which reads fine on a desktop and breaks on a phone: at
-             480px the row collapses to one column and the note explaining the first
-             box lands underneath the second box. Do not put them back in a grid. -->
-        <div class="field">
-          <label for="incomeTax">State and local income tax you paid</label>
-          <input type="text" id="incomeTax" inputmode="decimal" data-money autocomplete="off" value="28000" aria-describedby="incomeTaxNote">
-          <p class="muted-small" id="incomeTaxNote">What your state, city, or county took out of your pay for the year, plus anything more you paid them at filing time. Live somewhere with no state income tax? Put the general sales tax you paid in this box instead. You may claim one or the other, never both.</p>
-        </div>
+        <section class="otw-card" data-step="2" aria-labelledby="otwQ2">
+          <h2 class="otw-q" id="otwQ2"><label for="propTax">And how much property tax did you pay?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="propTax" inputmode="decimal" data-money autocomplete="off" value="20000" aria-describedby="propTaxNote">
+          </div>
+          <div class="otw-chips" id="otwPropChips">
+            <button type="button" data-otw-fill="propTax" data-otw-value="0">I rent, and pay no car tax &rarr; 0</button>
+          </div>
+          <details class="otw-help" id="propTaxNote">
+            <summary>These two boxes added together are what the law calls your SALT</summary>
+            <p>What you paid on your home and land, plus any yearly tax your state charges on what a car or boat is worth. Renting, and no such car tax? Put 0.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-        <div class="field">
-          <label for="propTax">Property tax you paid</label>
-          <input type="text" id="propTax" inputmode="decimal" data-money autocomplete="off" value="20000" aria-describedby="propTaxNote">
-          <p class="muted-small" id="propTaxNote">What you paid on your home and land, plus any yearly tax your state charges on what a car or boat is worth. Renting, and no such car tax? Put 0. These two boxes added together are what the law calls your SALT.</p>
-        </div>
+        <section class="otw-card" data-step="3" aria-labelledby="otwQ3">
+          <h2 class="otw-q" id="otwQ3"><label for="magi">How much did you make that year, before tax?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="magi" inputmode="decimal" data-money autocomplete="off" value="300000">
+          </div>
+          <p class="otw-flag" id="otwIncomeFlag" hidden></p>
+          <details class="otw-help">
+            <summary>This figure is what decides whether your limit gets cut</summary>
+            <p>If you filed last year, this is line 11 on your Form 1040. Married and filing one return together? Add both incomes. It only matters above $500,000 ($505,000 in 2026), where the limit starts shrinking. Tax forms measure that against your <a href="/tax-glossary/#magi">modified adjusted gross income</a>, which for almost everyone is the same figure.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-        <!-- "Other itemized deductions" was the one label on this page that stops a
-             non-expert cold, and it is also the only input here that a large share of
-             visitors genuinely have nothing to put in. It becomes a plain question,
-             with the technical term kept in the small note underneath so someone who
-             already knows it still recognises the field. The money box lives in a
-             [data-reveal] wrapper that ships VISIBLE in the built HTML;
-             question-flow.js (this path is opted in via QUESTION_FLOW_PAGES in
-             build.js) only ever ADDS [hidden] after load, so JavaScript off, a broken
-             script, or a crawler all still see the field. Never invert this to
-             show-on-demand.
+        <section class="otw-card" data-step="4" aria-labelledby="otwQ4">
+          <h2 class="otw-q" id="otwQ4">How do you file your taxes?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ4">
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="single" checked>
+              <span><span class="otw-opt-t">On my own</span><span class="otw-opt-s">single</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="married">
+              <span><span class="otw-opt-t">Together with my husband or wife, one return</span><span class="otw-opt-s">married filing jointly, and the limit is the same as a single person's, never doubled</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="married_separate">
+              <span><span class="otw-opt-t">Married, but we each send our own return</span><span class="otw-opt-s">married filing separately, and every figure on this page is halved</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="head_of_household">
+              <span><span class="otw-opt-t">On my own, with a child or dependent at home</span><span class="otw-opt-s">head of household</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>Sending in separate returns halves every figure on this page</summary>
+            <p>The limit, the income level where it starts shrinking, and the floor it stops at are each cut in half for married couples who each send their own return. Filing one return together does not double anything: a couple gets the same limit as a single person, which is the same "marriage penalty" the old $10,000 limit had.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-             It ships answered YES on purpose. #other has always loaded pre-filled at
-             $10,000 and salt-cap-calculator.js reads it unconditionally on every
-             render, so defaulting this question to No would change what an untouched
-             page computes. Answering No is still safe: question-flow.js parks a
-             hidden field at its neutral 0 and fires input+change, so the
-             itemize-vs-standard verdict recomputes with the box genuinely empty
-             rather than quietly keeping the $10,000. -->
-        <fieldset class="adv">
-          <legend>A few more questions, only if they apply to you</legend>
-          <p class="adv-hint">If the state and local taxes you just entered are the only big write-offs you have, answer No and the extra box goes away.</p>
+        <section class="otw-card" data-step="5" aria-labelledby="otwQ5">
+          <h2 class="otw-q" id="otwQ5"><label for="other">How much do your other big write-offs add up to?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="other" inputmode="decimal" data-money autocomplete="off" value="10000" aria-describedby="otherNote">
+          </div>
+          <div class="otw-chips" id="otwOtherChips">
+            <button type="button" data-otw-fill="other" data-otw-value="0">Nothing else &rarr; 0</button>
+          </div>
+          <details class="otw-help" id="otherNote">
+            <summary>Mainly mortgage interest and donations to charity, for a full year</summary>
+            <p>Do not count the state and local taxes you just entered, those are already in. Listing expenses like these one by one, instead of taking the flat amount everyone is offered, is called <a href="/tax-glossary/#itemizing">itemizing</a>, and it is the only way the limit on this page can matter to you at all. The $10,000 shown is only an example, replace it with your own figure.</p>
+          </details>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip</button> <button type="button" class="otw-next">See my answer</button></span>
+          </div>
+        </section>
 
-          <fieldset class="adv-q" aria-describedby="qOtherNote">
-            <legend>Do you write off other big expenses on your tax return?</legend>
-            <p class="adv-q-note" id="qOtherNote">Mainly mortgage interest and donations to charity. Do not count the state and local taxes you just entered, those are already in. Listing expenses like these one by one, instead of taking the flat amount everyone is offered, is called <a href="/tax-glossary/#itemizing">itemizing</a>, and it is the only way the limit on this page can matter to you at all.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qOther" value="no"><span>No</span></label>
-              <label class="seg"><input type="radio" name="qOther" value="yes" checked><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qOther">
-              <div class="field">
-                <label for="other">How much do those other expenses add up to?</label>
-                <input type="text" id="other" inputmode="decimal" data-money autocomplete="off" value="10000" aria-describedby="otherNote">
-                <p class="adv-q-note" id="otherNote">Add up a full year of them. Leave your state and local taxes out of this box, they are counted above. The $10,000 shown is only an example, replace it with your own figure.</p>
-              </div>
-            </div>
-          </fieldset>
-        </fieldset>
+        <section class="otw-card otw-result" data-step="6" aria-labelledby="otwQ6">
+          <h2 class="otw-q sr-only" id="otwQ6" tabindex="-1">Your answer</h2>
+          <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+          <div class="obbba-out" id="out" data-tb-result></div>
+          <details class="otw-help">
+            <summary>Does the bigger limit help if I owe the alternative minimum tax?</summary>
+            <p>Less, or not at all. State and local taxes are added back on Form 6251 (line 2a) when your alternative minimum taxable income is worked out, so a filer pulled into the AMT loses some or all of the benefit of the bigger cap. This tool does not model the AMT, pass-through entity tax elections, or the other Schedule A limits.</p>
+          </details>
+          <div class="otw-answers" id="otwAnswers"></div>
+          <div class="otw-restart"><button type="button" id="otwRestart">Start over</button></div>
+        </section>
       </form>
-
-      <div class="calc-answer">
-        <p class="calc-example">These are example numbers. Type yours to see your own.</p>
-        <div class="obbba-out" id="out" data-tb-result></div>
-      </div>
       <p id="outStatus" role="status" class="sr-only"></p>
-      <div class="torpedo-warn" id="torpedo" hidden></div>
     </section>
 
     <p class="lede">The 2025 One Big Beautiful Bill Act raised the cap on deducting <strong>state and local taxes (SALT)</strong> from $10,000 to <strong>$40,000</strong> for 2025 ($40,400 for 2026) — but only for <a href="/tax-glossary/#itemizing">itemizers</a>, and it phases back down above $500,000 of income. Enter your numbers to see your allowed SALT deduction, whether itemizing beats your standard deduction, and what the raise actually saves you. Everything runs in your browser — nothing is uploaded.</p>
@@ -184,6 +269,6 @@
   window.__OBBBA__ = {{OBBBA_JSON}};
   window.__FED__ = {{FED_JSON}};
 </script>
-<script type="module" src="/assets/salt-cap-calculator.js"></script>
+<script type="module" src="/assets/salt-cap-wizard.js"></script>
 </body>
 </html>
