@@ -27,131 +27,233 @@
 <main id="main">
   <div class="wrap">
     <h1>PMI / Mortgage Insurance Deduction Calculator</h1>
-    <p class="lede">From <strong>2026</strong> you can once again take the mortgage insurance you pay off your taxable income. It had not been allowed since 2021. The monthly charge on an ordinary loan, FHA mortgage insurance, a VA funding fee and a USDA guarantee fee all count, but only if you already list your bigger expenses one by one on your tax return instead of taking the flat amount everyone is offered, which is called <a href="/tax-glossary/#itemizing">itemizing</a>. It also fades fast as income rises: nothing at all once your <a href="/tax-glossary/#agi">income for the year</a> passes <strong>$109,000</strong>, or <strong>$54,500</strong> if you are married and send in your own separate return. Most articles say $110,000, and they are wrong. Fill in your numbers to see what counts and what it saves you. Everything runs in your browser, nothing is uploaded.</p>
+    <!-- THE WIZARD (rewritten 2026-08-01, a conversion onto wizard-core.js).
+         This calculator used to be one long form: five labelled boxes, two more
+         behind an "a few more questions" fieldset, and a results panel, all on
+         screen at once. The approved replacement, proven on
+         /overtime-tax-calculator/ and /tips-tax-calculator/, asks ONE question
+         per card and ends with the answer written out as a story rather than as
+         a stat card over a collapsed derivation.
 
-    <section class="calc" aria-label="PMI / mortgage insurance deduction calculator">
-      <form id="mipForm" autocomplete="off" onsubmit="return false">
-        <div class="field">
-          <label for="filing">How do you file your taxes?</label>
-          <select id="filing">
-            <option value="single">Single</option>
-            <option value="married">Married filing jointly</option>
-            <option value="married_separate">Married filing separately</option>
-            <option value="head_of_household">Head of household</option>
-          </select>
-          <p class="muted-small" style="margin-top:6px">Being married and filing one return together does not buy you a higher income limit here. A couple filing together starts losing this deduction at the same $100,000 as a single person. The only different case is a married person who files their own separate return, who starts losing it at $50,000.</p>
-        </div>
+         PROGRESSIVE ENHANCEMENT, NOT A JS APP. Every card below ships VISIBLE
+         and in reading order in the built HTML: with JavaScript off, blocked, or
+         a crawler reading the page, this is a plain sequential form with real
+         <label>s and native <details> helpers. pmi-deduction-wizard.js sets
+         data-js="on" on the .otw section only after its first successful render,
+         and ONLY THEN does styles.css collapse the stack to one card at a time.
+         Hide-on-demand, never show-on-demand. The single exception is #out, the
+         computed answer, which has always been JS-only.
 
-        <div class="field">
-          <label for="agi">How much did you make this year, before tax?</label>
-          <input type="text" id="agi" inputmode="decimal" data-money autocomplete="off" value="95000">
-          <p class="muted-small" style="margin-top:6px">Your pay and other income for the year, after a few adjustments. It is the figure on line 11 of your Form 1040, where it is printed as your <a href="/tax-glossary/#agi">adjusted gross income</a>. Married and filing together? Add both incomes.</p>
-        </div>
+         The controls that only mean something once the stepping exists (Next /
+         Back / Skip, the progress dots, the quick chips, the answer chips, Start
+         over) are also gated on data-js="on" in CSS, because a "Next" button
+         that cannot advance anything is worse than no button.
 
-        <div class="field">
-          <label for="miType">What kind of mortgage insurance do you pay?</label>
-          <select id="miType">
-            <option value="monthly_pmi">A monthly charge on an ordinary home loan (PMI)</option>
-            <option value="fha">An FHA loan (FHA mortgage insurance, MIP)</option>
-            <option value="va">A VA loan (funding fee)</option>
-            <option value="usda">A USDA or rural home loan (guarantee fee)</option>
-          </select>
-          <p class="muted-small" style="margin-top:6px">PMI is private mortgage insurance, the extra charge a lender adds when you put down less than 20 percent. Your pick only changes how a one off payment at closing is handled: an FHA upfront premium, or a PMI policy paid in one go, has to be spread over 84 months, while a VA or USDA fee counts in full in the year you pay it.</p>
-        </div>
+         IDS ARE A CONTRACT with pmi-deduction-wizard.js: recurring, upfront,
+         closingMonth, termMonths, agi, other, contract2007, and the radio groups
+         named "miType" (monthly_pmi / fha / va / usda) and "filing" (single /
+         married / married_separate / head_of_household). Every one of those
+         values is passed straight into mipComparison() in the shared
+         obbba-deduction engine, so none of them may be renamed here alone. #out
+         and #outStatus are the result panel and the one polite live region;
+         #outStatus deliberately sits OUTSIDE the cards, because inside one it
+         would be display:none on every step but its own and the announcement
+         would never reach a screen reader.
 
-        <div class="field">
-          <label for="recurring">How much mortgage insurance did you pay during 2026?</label>
-          <input type="text" id="recurring" inputmode="decimal" data-money autocomplete="off" value="1800">
-          <p class="muted-small" style="margin-top:6px">The part you pay as you go, month by month or once a year. Your lender reports the year's total in Box 5 of the Form 1098 it sends you. Leave out anything you paid as a lump sum when you closed on the loan, there is a question for that below.</p>
-        </div>
+         THE ORDER, AND THE TWO BRANCHES. The premiums come first because they
+         are the tool's own subject, then the lump sum at closing, then income,
+         then the write-offs question that decides whether any of it is worth
+         anything. The loan-type card and the closing-month/term card are BOTH
+         conditional: with no lump sum the engine never reads the loan type at
+         all (mipQualifyingPremium only branches on it inside `if (upfront > 0)`),
+         and a VA funding fee or USDA guarantee fee counts in full in the year it
+         is paid, so the month and the term change nothing. Someone paying only a
+         monthly premium answers five questions, not seven.
 
-        <div class="field">
-          <div class="check-field">
-            <input type="checkbox" id="contract2007" checked>
-            <label for="contract2007">My mortgage insurance policy started in 2007 or later</label>
+         The pre-2007 contract gate lives in a collapsed .otw-esc escape on the
+         first card rather than on a card of its own: almost every policy still
+         running started after 2006, so it is a rare correction rather than a
+         question worth asking everybody. It stays a checkbox with its old id;
+         the wizard restores its shipped state on Start over by hand, because the
+         core's snapshot restores input.value and a checkbox carries its state in
+         .checked.
+
+         The /embed/ build is NOT this. It keeps its single-column #mipForm and
+         is still served by pmi-deduction-calculator.js, because a third party
+         sizes that iframe once and a flow whose height changes per card would
+         clip inside it. The two must stay independent, which is why this form is
+         #pmiWizForm and not #mipForm.
+
+         Ad slots, prose, the myth-busting section, the worked example and the
+         FAQ below are untouched. -->
+    <section class="otw" id="pmiWizard" aria-label="PMI / mortgage insurance deduction calculator">
+      <h2 class="sr-only">Mortgage insurance deduction calculator</h2>
+      <div class="otw-dots" id="otwDots" aria-hidden="true"></div>
+      <p class="otw-stepnum" id="otwStepnum"></p>
+
+      <form id="pmiWizForm" autocomplete="off" onsubmit="return false">
+        <section class="otw-card" data-step="0" aria-labelledby="otwQ0">
+          <h2 class="otw-q" id="otwQ0"><label for="recurring">How much mortgage insurance did you pay during 2026?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="recurring" inputmode="decimal" data-money autocomplete="off" value="1800">
           </div>
-          <p class="muted-small" style="margin-top:6px">Almost every policy still running today did, so leave this ticked unless you know otherwise. Only policies taken out after December 31, 2006 count. Untick it only if yours genuinely dates from 2006 or earlier, which is rare. Unticked, the deduction is $0 whatever your income.</p>
-        </div>
+          <div class="otw-chips" id="otwPremiumChips">
+            <button type="button" data-otw-fill="recurring" data-otw-value="1200">~$100 a month &rarr; 1,200</button>
+            <button type="button" data-otw-fill="recurring" data-otw-value="1800">~$150 a month &rarr; 1,800</button>
+            <button type="button" data-otw-fill="recurring" data-otw-value="3000">~$250 a month &rarr; 3,000</button>
+          </div>
+          <details class="otw-help">
+            <summary>Your lender puts the year's total in Box 5 of the Form 1098 it sends you</summary>
+            <p>The part you pay as you go, month by month or once a year. Leave out anything you paid as a lump sum when you closed on the loan, there is a question for that next. A rough total is fine, you can change it at the end and watch the number update.</p>
+          </details>
+          <details class="otw-help otw-esc">
+            <summary>What if my policy is older than 2007?</summary>
+            <div class="otw-field">
+              <label for="contract2007"><input type="checkbox" id="contract2007" checked aria-describedby="contract2007Note"> My mortgage insurance policy started in 2007 or later</label>
+              <p class="otw-note" id="contract2007Note">Only policies taken out after December 31, 2006 count, and that rule was never repealed. Almost every policy still running today started later, so leave this ticked unless you know otherwise. Untick it and the deduction is $0 whatever your income and whatever you paid.</p>
+            </div>
+          </details>
+          <div class="otw-nav"><span></span><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-        <!-- The two things that stop a non-expert here are the lump sum paid at
-             closing (UFMIP, funding fee, guarantee fee) and "other itemized
-             deductions". Each is now a plain question, with the technical term
-             kept in the small note underneath, so someone who knows the term
-             still recognises the field and the term stays findable. The money
-             boxes live in [data-reveal] wrappers that ship VISIBLE here;
-             question-flow.js hides them after load when the answer is No, so
-             JavaScript off, a broken script, or a crawler all still see every
-             field. Never invert this to show-on-demand.
-             The "other expenses" question ships answered YES on purpose: that
-             box has always loaded pre-filled at $20,000, so a No default would
-             change what an untouched page computes.
-             pmi-deduction-calculator.js reads #upfront, #closingMonth,
-             #termMonths and #other directly and knows nothing about these
-             questions, so those ids, and the select values under them, must not
-             change. It also rewrites #upfrontHint's text on every render and
-             toggles #termField / #closingMonth's .field wrapper by display,
-             which is why both keep their ids and their .field wrappers. -->
-        <fieldset class="adv">
-          <legend>A few more questions, only if they apply to you</legend>
-          <p class="adv-hint">Left as they are, these say you paid nothing extra at closing and you already write off other big expenses. The amounts in the boxes are examples, put your own in.</p>
+        <section class="otw-card" data-step="1" aria-labelledby="otwQ1">
+          <h2 class="otw-q" id="otwQ1"><label for="upfront">And how much did you pay in one lump sum when you closed on the loan?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="upfront" inputmode="decimal" data-money autocomplete="off" value="0">
+          </div>
+          <details class="otw-help">
+            <summary>Paid nothing at closing? Leave it at 0 and carry on</summary>
+            <p>A single charge for mortgage insurance paid at closing, on top of anything you pay monthly. Your closing paperwork names it by loan type: upfront mortgage insurance premium on an FHA loan, funding fee on a VA loan, guarantee fee on a USDA loan, or a single premium policy on an ordinary loan. Most people paying month by month have nothing to put here.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-          <fieldset class="adv-q" aria-describedby="qUpfrontNote">
-            <legend>Did you pay a lump sum for mortgage insurance when you closed on the loan?</legend>
-            <p class="adv-q-note" id="qUpfrontNote">A single charge paid at closing, on top of anything you pay monthly. Your closing paperwork names it by loan type: upfront mortgage insurance premium on an FHA loan, funding fee on a VA loan, guarantee fee on a USDA loan, or a single premium policy on an ordinary loan.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qUpfront" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qUpfront" value="yes"><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qUpfront">
-              <div class="field est-row" id="upfrontFields">
-                <div class="field" style="margin:0">
-                  <label for="upfront">How much was that lump sum?</label>
-                  <input type="text" id="upfront" inputmode="decimal" data-money autocomplete="off" value="0">
-                </div>
-                <div class="field" style="margin:0">
-                  <label for="closingMonth">Which month did you close?</label>
-                  <select id="closingMonth">
-                    <option value="1">January</option><option value="2">February</option><option value="3">March</option>
-                    <option value="4">April</option><option value="5">May</option><option value="6" selected>June</option>
-                    <option value="7">July</option><option value="8">August</option><option value="9">September</option>
-                    <option value="10">October</option><option value="11">November</option><option value="12">December</option>
-                  </select>
-                </div>
-              </div>
-              <div class="field" id="termField">
-                <label for="termMonths">How long does the loan run?</label>
-                <select id="termMonths" aria-describedby="termMonthsNote">
-                  <option value="360" selected>30 years</option>
-                  <option value="180">15 years</option>
-                  <option value="240">20 years</option>
-                  <option value="84">7 years or less</option>
-                </select>
-                <p class="adv-q-note" id="termMonthsNote">This only changes the answer if the loan runs less than seven years. Anything longer hits the 84 month limit first.</p>
-              </div>
-              <p class="adv-q-note" id="upfrontHint">A lump sum on an FHA loan, or a PMI policy paid in one go, is not deducted all at once. It is split evenly over 84 months, or over the length of the loan if that is shorter, and only the months falling in 2026 count this year. A VA or USDA fee is treated better, it counts in full in the year you pay it.</p>
-            </div>
-          </fieldset>
+        <section class="otw-card" data-step="2" aria-labelledby="otwQ2">
+          <h2 class="otw-q" id="otwQ2">What kind of home loan is that lump sum on?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ2">
+            <label class="otw-opt">
+              <input type="radio" name="miType" value="monthly_pmi" checked>
+              <span><span class="otw-opt-t">An ordinary home loan</span><span class="otw-opt-s">private mortgage insurance, PMI, the charge a lender adds when you put down less than 20 percent</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="miType" value="fha">
+              <span><span class="otw-opt-t">An FHA loan</span><span class="otw-opt-s">the lump sum is called an upfront mortgage insurance premium, or UFMIP</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="miType" value="va">
+              <span><span class="otw-opt-t">A VA loan</span><span class="otw-opt-s">the lump sum is called a funding fee</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="miType" value="usda">
+              <span><span class="otw-opt-t">A USDA or rural home loan</span><span class="otw-opt-s">the lump sum is called a guarantee fee</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>It only changes how that lump sum is treated</summary>
+            <p>A VA funding fee and a USDA guarantee fee count in full in the year you pay them. An FHA upfront premium, or an ordinary PMI policy paid in one go, has to be spread over 84 months instead, so only the months falling in 2026 count on this year's return. Your monthly premiums are treated the same way whichever loan you have.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-          <fieldset class="adv-q" aria-describedby="qOtherNote">
-            <legend>Do you already write off other big expenses on your tax return?</legend>
-            <p class="adv-q-note" id="qOtherNote">Mainly mortgage interest and state and local taxes. Listing expenses like these one by one, instead of taking the flat amount everyone is offered, is called <a href="/tax-glossary/#itemizing">itemizing</a>. Mortgage insurance only counts if you do that, so this answer decides whether you save anything at all.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qOther" value="no"><span>No</span></label>
-              <label class="seg"><input type="radio" name="qOther" value="yes" checked><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qOther">
-              <div class="field">
-                <label for="other">How much do those other expenses add up to?</label>
-                <input type="text" id="other" inputmode="decimal" data-money autocomplete="off" value="20000" aria-describedby="otherNote">
-                <p class="adv-q-note" id="otherNote">Leave your mortgage insurance out of this box, it is counted above. Add up your mortgage interest, your state and local taxes (up to the <a href="/salt-cap-calculator/">$40,000 cap</a>), your <a href="/charitable-deduction-calculator/">charitable gifts</a>, and anything else you would list one by one. The $20,000 shown is only an example, put in your own figure.</p>
-              </div>
-            </div>
-          </fieldset>
-        </fieldset>
+        <section class="otw-card" data-step="3" aria-labelledby="otwQ3">
+          <h2 class="otw-q" id="otwQ3">When did you close on the loan, and how long does it run?</h2>
+          <div class="otw-field">
+            <label for="closingMonth">The month you closed</label>
+            <select class="otw-in otw-in-sm" id="closingMonth">
+              <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+              <option value="4">April</option><option value="5">May</option><option value="6" selected>June</option>
+              <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+              <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+            </select>
+          </div>
+          <div class="otw-field">
+            <label for="termMonths">How long the loan runs</label>
+            <select class="otw-in otw-in-sm" id="termMonths" aria-describedby="termMonthsNote">
+              <option value="360" selected>30 years</option>
+              <option value="180">15 years</option>
+              <option value="240">20 years</option>
+              <option value="84">7 years or less</option>
+            </select>
+            <p class="otw-note" id="termMonthsNote">This only changes the answer if the loan runs less than seven years. Anything longer hits the 84 month limit first.</p>
+          </div>
+          <details class="otw-help">
+            <summary>Only the months that fall in 2026 count this year</summary>
+            <p>Your lump sum is split evenly over 84 months, or over the length of the loan if that is shorter, starting the month you got the insurance. Close in June and seven of those months land in 2026, so seven of them count on this year's return and the rest carries into later years. If you refinance or pay the loan off before the spreading ends, whatever is left is lost, not deducted at payoff.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="4" aria-labelledby="otwQ4">
+          <h2 class="otw-q" id="otwQ4">How do you file your taxes?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ4">
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="single" checked>
+              <span><span class="otw-opt-t">On my own</span><span class="otw-opt-s">single</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="married">
+              <span><span class="otw-opt-t">Together with my husband or wife</span><span class="otw-opt-s">married, one return, and the income limit is exactly the same as a single person's, never doubled</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="married_separate">
+              <span><span class="otw-opt-t">Married, but we each send in our own return</span><span class="otw-opt-s">married filing separately, the one case where the income limit is halved</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="head_of_household">
+              <span><span class="otw-opt-t">On my own, with a child or dependent at home</span><span class="otw-opt-s">head of household</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>Being married and filing together does not buy you a higher income limit</summary>
+            <p>Being married and filing one return together does not buy you a higher income limit here. A couple filing together starts losing this deduction at the same $100,000 as a single person. The only different case is a married person who files their own separate return, who starts losing it at $50,000. Your answer also sets the flat standard deduction this is measured against.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="5" aria-labelledby="otwQ5">
+          <h2 class="otw-q" id="otwQ5"><label for="agi">How much did you make this year, before tax?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="agi" inputmode="decimal" data-money autocomplete="off" value="95000">
+          </div>
+          <p class="otw-flag" id="otwAgiFlag" hidden></p>
+          <details class="otw-help">
+            <summary>Past $109,000 this deduction is gone completely, and $54,500 if you file your own separate return</summary>
+            <p>Your pay and other income for the year, after a few adjustments. It is the figure on line 11 of your Form 1040, where it is printed as your <a href="/tax-glossary/#agi">adjusted gross income</a>. Married and filing together? Add both incomes. From $100,000 up it starts shrinking, a tenth of it at a time for every $1,000 over, and by $109,000 there is none of it left.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="6" aria-labelledby="otwQ6">
+          <h2 class="otw-q" id="otwQ6"><label for="other">How much do your other write-offs add up to?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="other" inputmode="decimal" data-money autocomplete="off" value="20000">
+          </div>
+          <details class="otw-help">
+            <summary>This answer decides whether your mortgage insurance saves you anything at all</summary>
+            <p>Mainly your mortgage interest and your state and local taxes (up to the <a href="/salt-cap-calculator/">$40,000 cap</a>), plus your <a href="/charitable-deduction-calculator/">charitable gifts</a> and anything else you would list one by one instead of taking the flat amount everyone is offered, which is called <a href="/tax-glossary/#itemizing">itemizing</a>. Mortgage insurance only counts if you do that. Leave your mortgage insurance out of this box, it is counted already. Nothing to put here? Press Skip and we will treat it as none.</p>
+          </details>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip</button> <button type="button" class="otw-next">See my answer</button></span>
+          </div>
+        </section>
+
+        <section class="otw-card otw-result" data-step="7" aria-labelledby="otwQ7">
+          <h2 class="otw-q sr-only" id="otwQ7" tabindex="-1">Your answer</h2>
+          <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+          <div class="obbba-out" id="out" data-tb-result></div>
+          <details class="otw-help">
+            <summary>Do I have to list my write-offs one by one to get this?</summary>
+            <p>Yes. Mortgage insurance goes on Schedule A beside your mortgage interest, so it only helps if your write-offs together beat the flat standard deduction, which for 2026 is $16,100 on your own, $32,200 filing together, and $24,150 as head of household. There is no version of this deduction for people who take the flat amount, unlike the 2026 change to charitable giving.</p>
+          </details>
+          <div class="otw-answers" id="otwAnswers"></div>
+          <div class="otw-restart"><button type="button" id="otwRestart">Start over</button></div>
+        </section>
       </form>
-
-      <div class="obbba-out" id="out" aria-live="polite"></div>
+      <p id="outStatus" role="status" class="sr-only"></p>
     </section>
+
+    <p class="lede">From <strong>2026</strong> you can once again take the mortgage insurance you pay off your taxable income. It had not been allowed since 2021. The monthly charge on an ordinary loan, FHA mortgage insurance, a VA funding fee and a USDA guarantee fee all count, but only if you already list your bigger expenses one by one on your tax return instead of taking the flat amount everyone is offered, which is called <a href="/tax-glossary/#itemizing">itemizing</a>. It also fades fast as income rises: nothing at all once your <a href="/tax-glossary/#agi">income for the year</a> passes <strong>$109,000</strong>, or <strong>$54,500</strong> if you are married and send in your own separate return. Most articles say $110,000, and they are wrong. Fill in your numbers to see what counts and what it saves you. Everything runs in your browser, nothing is uploaded.</p>
 
     <p class="note">Estimate for general guidance only — not tax advice. Figures use the 2026 federal brackets and standard deductions (single/MFS $16,100 / married filing jointly $32,200 / head of household $24,150). Does not model loans above the $750,000 acquisition-debt cap, rental-property mortgage insurance (Schedule E, out of scope), or the general itemized-deduction §68 "2/37 rule" (it never touches this deduction — see below). Verify with the IRS or a tax professional.</p>
 
@@ -202,6 +304,7 @@
       <p><strong>Is FHA's upfront premium deducted differently than a VA funding fee?</strong> Yes. FHA UFMIP and single-premium PMI amortize over the shorter of the loan term or 84 months. VA funding fees and USDA guarantee fees are fully deductible the year paid — no amortization.</p>
       <p><strong>Do I need to itemize?</strong> Yes — this is a Schedule A itemized deduction only, with no non-itemizer alternative.</p>
       <p><strong>Does a pre-2007 mortgage insurance contract qualify?</strong> No. Only contracts issued after December 31, 2006 qualify — a restriction that's still on the books.</p>
+      <p><strong>Why does the calculator ask what my other write-offs come to?</strong> Because that is what decides whether this deduction is worth anything. Mortgage insurance is added to the rest of your Schedule A total, and the whole pile has to beat your standard deduction before a single dollar of it changes your tax. Answer that question with nothing and the tool will tell you how much more you would need.</p>
       <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your numbers never leave your browser.</p>
       <p class="muted-small">Sources: Public Law 119-21 §70108, <a href="https://www.govinfo.gov/content/pkg/PLAW-119publ21/html/PLAW-119publ21.htm">enrolled statute text (govinfo)</a>; <a href="https://www.law.cornell.edu/uscode/text/26/163">26 USC §163(h) (Cornell LII)</a>; <a href="https://www.law.cornell.edu/cfr/text/26/1.163-11">Treas. Reg. §1.163-11</a>; IRS, <a href="https://www.irs.gov/pub/irs-pdf/p936.pdf">Publication 936</a>; IRS, <a href="https://www.irs.gov/instructions/i1098">Instructions for Form 1098</a>; <a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32</a> (2026 standard deduction).</p>
     </section>
@@ -221,6 +324,6 @@
   window.__OBBBA__ = {{OBBBA_JSON}};
   window.__FED__ = {{FED_JSON}};
 </script>
-<script type="module" src="/assets/pmi-deduction-calculator.js"></script>
+<script type="module" src="/assets/pmi-deduction-wizard.js"></script>
 </body>
 </html>
