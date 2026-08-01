@@ -575,9 +575,12 @@
                build.js's pre-render guard derives its denominator by scanning
                app.js for id-keyed textContent writes and fails the build for any
                id statePanel() has no pre-rendered value for. statePanel() is in
-               build.js and this pass may not edit it. See app.js's `slot()` for
-               the whole note, and notes/state-page-phase5.md for the build.js
-               entry that should replace this arrangement. -->
+               build.js and this pass may not edit it. app.js's `slot()` carries
+               the whole note, including the two statePanel().expected entries
+               that would retire this arrangement. (It used to point here at
+               notes/state-page-phase5.md; there is no notes/ directory in this
+               repo, so that pointer led nowhere and the instruction now lives in
+               app.js where the code is.) -->
           <div data-otw-slot="filing"></div>
 
           <!-- The four rule pointers for this state, and the deep link into the

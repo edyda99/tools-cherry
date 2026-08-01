@@ -915,6 +915,15 @@ const PAGES = [
       ['bonus-check-is-a-card', contains('name="qBonus"')],
       ['age-check-is-a-card', contains('name="qAge"')],
       ['rule-chips-still-ship', contains('id="h-tips"')],
+      // NEW PIN (2026-08-02), strictly stronger than the one above it.
+      // state-flow.js now hides this fieldset once the flow has been walked to
+      // the answer with all four rule questions answered No, so that the answer
+      // card stops re-asking four questions the visitor just answered. That is
+      // hide-on-demand and it must stay that way: the fieldset has to SHIP, with
+      // no hidden attribute and no inline style, so a crawler and a reader with
+      // no JavaScript get the whole panel. If this fails, the hide moved from
+      // the script into the build.
+      ['rule-chip-fieldset-ships-visible', contains('<fieldset class="applies-chips">')],
 
       // The answer, and its order. The band leads the result card; the rule
       // pointers follow the computed table, not the other way round.

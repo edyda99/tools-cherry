@@ -36,10 +36,27 @@
 // page they arrived on. The CSS rule that acts on data-hidden is scoped to
 // html.js, so it cannot bite before this file has run either.
 //
-// It touches the DOM in four ways only: setAttribute/removeAttribute on
+// FOUR NOs AND THE QUESTIONS STOP BEING ASKED. The paragraph above is about the
+// four pointer LINES, and it still holds: this file never hides one of those
+// until something is ticked. It does now hide the four CHECKBOXES, and only
+// them, once two things are both true: the visitor has stepped through the flow
+// as far as the answer card (app.js says so with tb:paycheck-answered), and all
+// four questions came back No. At that moment the panel was re-asking, as
+// checkboxes, four questions the visitor had answered one card earlier — 42% of
+// the answer card, measured, spent asking again — and the honest reading of that
+// is that the page did not listen. The four per-state sentences and all five
+// links stay exactly where they were: they are what a crawler and a no-JS reader
+// get, and they are the per-state content, whereas the checkboxes are a second
+// copy of a control the flow already owns. Ticking anything, or Start over,
+// brings them straight back, and the answer chips under the result are a way
+// back to each of the four cards in any case.
+//
+// It touches the DOM in five ways only: setAttribute/removeAttribute on
 // data-hidden, one setAttribute('href') on the deep link, `checked` on the eight
-// controls named above, and focus(). No innerHTML, no textContent, no
-// createElement, no insertAdjacentHTML.
+// controls named above, focus(), and `style.display` on the two nodes named in
+// the paragraph above. No innerHTML, no textContent, no createElement, no
+// insertAdjacentHTML. Nothing is REMOVED from the document, so every byte the
+// build served is still in it.
 
 const IDS = [
   ['h-tips', 'tips', 'qTips'],
@@ -68,6 +85,25 @@ try {
 
     const lineFor = (key) => root.querySelector('[data-line="' + key + '"]');
     const baseHref = deep ? deep.getAttribute('href') : '';
+
+    // The duplicate ask: the checkbox fieldset and the one sentence above it
+    // that tells the visitor to use it. Both are optional — a page that ships
+    // the panel without them still works — and both are only ever hidden, never
+    // detached. `section > p` is the intro: the emitter
+    // (src/content/state-applies.js) puts exactly one <p> directly under
+    // #applies, and the "see every rule" link lives inside .applies-panel.
+    const section = document.getElementById('applies');
+    const chipBox = section ? section.querySelector('.applies-chips') : null;
+    const chipIntro = section ? [...section.children].find((el) => el.tagName === 'P') : null;
+    // Flipped by app.js when the flow reaches the answer card, and back on Start
+    // over. Until then nothing is hidden, so a visitor who has not walked the
+    // flow, a crawler, and a reader with JavaScript off all see the same panel.
+    let flowAnswered = false;
+    const showAsk = (on) => {
+      for (const el of [chipBox, chipIntro]) {
+        if (el) el.style.display = on ? '' : 'none';
+      }
+    };
 
     // Card answer -> chip. A card that is not on the page leaves its chip alone.
     const readCards = () => {
@@ -116,6 +152,13 @@ try {
       if (deep) {
         deep.setAttribute('href', picked.length ? baseHref + '&has=' + picked.join(',') : baseHref);
       }
+      // Answered, and answered No four times: the ask has nothing left to ask.
+      // Never on a change that came FROM the panel (`changed` is the checkbox
+      // the visitor just clicked): unticking the last box would then delete the
+      // control under their finger and strand the keyboard inside a node that is
+      // no longer displayed. A card answer arrives with changed === null, and
+      // the visitor is a screen away from these boxes by then.
+      showAsk(!(flowAnswered && !picked.length && !changed));
     };
 
     for (const e of boxes) {
@@ -128,8 +171,23 @@ try {
 
     // Start over restores every radio by assignment, which fires no change event,
     // so without this the chips would still show the answers the visitor just
-    // discarded. app.js dispatches it from the wizard's onReset hook.
-    document.addEventListener('tb:paycheck-reset', () => { readCards(); sync(null); });
+    // discarded. app.js dispatches it from the wizard's onReset hook. It also
+    // puts the flow back at question one, so the four questions are live again
+    // and the ask comes back with them.
+    document.addEventListener('tb:paycheck-reset', () => {
+      flowAnswered = false;
+      readCards();
+      sync(null);
+    });
+
+    // app.js dispatches this the first time the flow reaches the answer card.
+    // Before it, the visitor may simply not have got to those four questions yet,
+    // and hiding the only other copy of them would take the answer away from
+    // somebody who never gave one.
+    document.addEventListener('tb:paycheck-answered', () => {
+      flowAnswered = true;
+      sync(null);
+    });
 
     // The cards are the source of truth on load: they carry the shipped default
     // (No on all four), and reading them first means a browser that restored a
