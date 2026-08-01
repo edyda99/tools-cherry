@@ -30,16 +30,30 @@
     <section class="calc" aria-label="Tips tax deduction calculator">
       <h2 class="sr-only">Tips tax savings calculator</h2>
       <form id="tipsForm" autocomplete="off" onsubmit="return false">
+        <!-- Each helper is a <details>: the one sentence a visitor needs in order to
+             answer the field is the <summary>, and the rest of the same words stay a
+             click away. #incomeNote and #tipsNote carry their ids on the <details>
+             itself so the aria-describedby on the input above still resolves.
+
+             The ids income, tips, filing and state, and the filing option values
+             single / married / head_of_household, are read by
+             /assets/tips-tax-calculator.js and must not be renamed. -->
         <div class="field">
           <label for="income">How much did you earn in total this year, before anything was taken out?</label>
           <input type="text" id="income" inputmode="decimal" data-money autocomplete="off" value="45000" aria-describedby="incomeNote">
-          <p class="muted-small" id="incomeNote" style="margin-top:6px">Everything you were paid for the whole year, your wages and your tips together. Married and sending in one return together? Add both incomes. This number is what decides whether the tip break starts shrinking, which begins at $150,000 on your own or $300,000 filing jointly.</p>
+          <details class="derivation field-help" id="incomeNote">
+            <summary>Everything you were paid for the whole year, your wages and your tips together.</summary>
+            <p class="muted-small">Married and sending in one return together? Add both incomes. This number is what decides whether the tip break starts shrinking, which begins at $150,000 on your own or $300,000 filing jointly.</p>
+          </details>
         </div>
 
         <div class="field">
           <label for="tips">How much of that was tips?</label>
           <input type="text" id="tips" inputmode="decimal" data-money autocomplete="off" value="18000" aria-describedby="tipsNote">
-          <p class="muted-small" id="tipsNote" style="margin-top:6px">The tips customers chose to give you over the year, in cash or on a card, as you reported them. Up to $25,000 of them can come off the income you are taxed on. A charge the business adds by itself, such as an automatic 18% for a large table, is not a tip and does not count.</p>
+          <details class="derivation field-help" id="tipsNote">
+            <summary>Up to $25,000 of them can come off the income you are taxed on.</summary>
+            <p class="muted-small">The tips customers chose to give you over the year, in cash or on a card, as you reported them. A charge the business adds by itself, such as an automatic 18% for a large table, is not a tip and does not count.</p>
+          </details>
         </div>
 
         <div class="field">
@@ -49,52 +63,24 @@
             <option value="married">Married filing jointly</option>
             <option value="head_of_household">Head of household</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">Form 1040 prints this at the top as your <a href="/tax-glossary/#filing-status">filing status</a>. Pick Single if you are not married. Pick Married filing jointly if you are married and you and your spouse send in one return together, which married couples have to do to claim this break. Pick Head of household if you are unmarried and pay most of the cost of a home for a child or another dependent. Married but sending in separate returns means you cannot claim it.</p>
+          <details class="derivation field-help">
+            <summary>Married but sending in separate returns means you cannot claim it.</summary>
+            <p class="muted-small">Form 1040 prints this at the top as your <a href="/tax-glossary/#filing-status">filing status</a>. Pick Single if you are not married. Pick Married filing jointly if you are married and you and your spouse send in one return together, which married couples have to do to claim this break. Pick Head of household if you are unmarried and pay most of the cost of a home for a child or another dependent.</p>
+          </details>
         </div>
 
-        <!-- The one optional thing this page asks for is now a plain question rather
-             than a jargon-labelled box sitting in the main flow. The select it needs
-             lives inside a [data-reveal] wrapper that ships VISIBLE in the built HTML;
-             /assets/question-flow.js (opted in by path in build.js) hides it only after
-             the page loads, and parks it back at its empty value when the answer goes
-             back to No, so a state picked and then un-picked cannot keep feeding the
-             verdict panel. Script off, script broken, or a crawler all still see every
-             field. Hide-on-demand, never show-on-demand. The word "conformity" was
-             deleted rather than kept: it appears on no form or pay stub a visitor
-             will ever hold, so it bought nothing and cost a re-read.
-
-             The ids income, tips, filing and state, and the filing option values
-             single / married / head_of_household, are read by
-             /assets/tips-tax-calculator.js and must not be renamed. Every .adv-q must
-             stay inside the .adv fieldset: its legend is styled by ".adv .adv-q legend"
-             and is unstyled anywhere else. -->
-        <fieldset class="adv">
-          <legend>A few more questions, only if they apply to you</legend>
-          <p class="adv-hint">Left on No, you get the federal answer, which is the one most people need.</p>
-
-          <fieldset class="adv-q" aria-describedby="qStateNote">
-            <legend>Do you want to know whether your state taxes your tips too?</legend>
-            <p class="adv-q-note" id="qStateNote">This break is a federal one, so it lowers the tax you send to Washington. Some states copy it, some do not, and nine states do not tax wages at all.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qState" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qState" value="yes"><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qState">
-              <div class="field">
-                <label for="state">Which state do you work in?</label>
-                <select id="state"><option value="">Select a state</option></select>
-              </div>
-            </div>
-          </fieldset>
-        </fieldset>
+        <div class="field">
+          <label for="state">Which state do you work in?</label>
+          <select id="state"><option value="">Select a state</option></select>
+        </div>
       </form>
 
       <div class="calc-answer">
         <p class="calc-example">These are example numbers. Type yours to see your own.</p>
         <div class="obbba-out" id="out" data-tb-result></div>
+        <div class="state-verdict" id="stateVerdict" hidden></div>
       </div>
       <p id="outStatus" role="status" class="sr-only"></p>
-      <div class="state-verdict" id="stateVerdict" hidden></div>
     </section>
 
     <p class="lede">The 2025 One Big Beautiful Bill Act lets you take <strong>up to $25,000 of tips</strong> off the income the federal government taxes you on, for the 2025 to 2028 tax years. Fill in your tips and your income to see how much of it counts and what it saves you. Everything runs in your browser, nothing is uploaded.</p>
@@ -104,19 +90,20 @@
     <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
 
     <section class="prose">
-      <h2>How the "no tax on tips" deduction works</h2>
+      <details class="prose-fold"><summary><h2>How the "no tax on tips" deduction works</h2></summary>
       <p>The One Big Beautiful Bill Act (signed July 2025) added a temporary federal deduction, at Internal Revenue Code §224, for <strong>qualified tips</strong>. It is claimed on Schedule 1-A after your AGI is figured, so it does not reduce your AGI, though you can still take it whether or not you itemize, on top of your <a href="/tax-glossary/#standard-deduction">standard deduction</a>.</p>
       <p><strong>Annual cap.</strong> Up to <strong>$25,000</strong> of qualified tips per year, for tax years <strong>2025 through 2028</strong>. This is a single per-return limit — it is <em>not</em> doubled for married couples filing jointly.</p>
       <p><strong>Which tips qualify.</strong> Cash and charged tips (cash, check, card, or tokens exchangeable for cash) paid voluntarily by the customer, in an occupation that "customarily and regularly" receives tips — the Treasury has published the list of qualifying occupations, and you can <a href="/w2-box-decoder/#ttoc-lookup">check whether your job is on it</a>. Mandatory service charges (an automatic 18% on a large party, for example) are not tips and don't count.</p>
       <p><strong>Income phase-out.</strong> The deduction shrinks by $100 for every $1,000 your <a href="/tax-glossary/#magi">modified adjusted gross income (MAGI)</a> is over $150,000 (single) or $300,000 (joint), reaching zero at $400,000 / $550,000.</p>
       <p><strong>It's a deduction, not a refund.</strong> It lowers your taxable income, so the dollar you save is roughly the deduction times your <a href="/tax-glossary/#marginal-tax-rate">marginal tax rate</a>. And it's income-tax only: <strong><a href="/tax-glossary/#fica">Social Security and Medicare</a> still apply to tips</strong>, and you still report all your tips as normal — you claim the deduction when you file.</p>
       <p>Work overtime too? There's a matching <a href="/overtime-tax-calculator/">no tax on overtime calculator</a>. 65 or older? The same law also added a <a href="/senior-deduction-calculator/">$6,000 senior bonus deduction</a> — the one marketed as "no tax on Social Security." Itemizing in a high-tax state? It also raised the <a href="/salt-cap-calculator/">SALT deduction cap to $40,000</a>. Bought a new car? You can also deduct up to $10,000 of the loan interest — see the <a href="/car-loan-interest-calculator/">car loan interest deduction calculator</a>.</p>
-    </section>
+      </details>
+      </section>
 
     <div class="ad-slot" data-ad="incontent">Advertisement</div>
 
     <section class="prose">
-      <h2>A worked example: Renata, a restaurant server</h2>
+      <details class="prose-fold"><summary><h2>A worked example: Renata, a restaurant server</h2></summary>
       <p>Renata is single. Last year she earned about $52,000 in all — $34,000 in wages plus $18,000 in tips. Here's how the deduction plays out:</p>
       <ul>
         <li><strong>Qualified tips:</strong> her $18,000 of cash and card tips is below the $25,000 cap, and her $52,000 income is far under the $150,000 phase-out line, so all <strong>$18,000</strong> is deductible.</li>
@@ -124,15 +111,19 @@
         <li><strong>What doesn't change:</strong> Social Security and Medicare were still owed on all $18,000 of tips, and she still reports every tip as usual — the $2,160 shows up as a bigger refund when she files.</li>
       </ul>
       <p>Remember the cap is a flat $25,000 per return, not per person — a married couple filing jointly still shares one $25,000 limit, it isn't doubled.</p>
-    </section>
+      </details>
+      </section>
 
     <div class="ad-slot" data-ad="incontent">Advertisement</div>
 
     <section class="prose">
-      <h2>Who can claim it</h2>
+      <details class="prose-fold"><summary><h2>Who can claim it</h2></summary>
       <p>You need a Social Security number valid for employment, and if you're married you must file jointly (married filing separately is not eligible). Both employees (tips on your <a href="/tax-glossary/#w-2">W-2</a>) and self-employed workers can claim it — the self-employed are limited to their net business income, and specified service businesses are excluded. You must work in one of the occupations the Treasury lists as customarily tipped — <a href="/w2-box-decoder/#ttoc-lookup">look up your occupation and its Box 14b code here</a>.</p>
+      </details>
       <h2>Does your state tax tips?</h2>
-      <p>This deduction is federal. Whether it also lowers your <em>state</em> income tax depends on your state — many states do not conform, some conform only from 2026, and nine states have no wage income tax at all. Answer the state question in the calculator above and pick your state to see how it treats them, or open your state's paycheck calculator for the detail.</p>
+      <!-- The general answer moved into the #stateVerdict box beside the result,
+           where the benchmark personas actually looked for it. -->
+      <p>Pick your state above to see how it treats them, or open your state's paycheck calculator for the detail.</p>
     </section>
 
     <div class="ad-slot" data-ad="incontent">Advertisement</div>
@@ -145,7 +136,7 @@
       <p><strong>What is FICA?</strong> FICA is the Social Security (6.2%) and Medicare (1.45%) payroll tax withheld from your pay. It's separate from federal income tax, and this deduction doesn't reduce it — FICA is still owed on your tips.</p>
       <p><strong>What is filing status?</strong> It's the category you file under — single, married filing jointly, or head of household here. It sets your phase-out thresholds. Married workers must file jointly to claim this deduction; married filing separately can't.</p>
       <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your numbers never leave your browser.</p>
-      <p class="muted-small">Sources: IRS, <a href="https://www.irs.gov/newsroom/one-big-beautiful-bill-act-tax-deductions-for-working-americans-and-seniors" rel="nofollow">tax deductions for working Americans and seniors</a>; Treasury final regulations on qualifying tipped occupations; IRS Notice 2025-69.</p>
+      <p class="muted-small">Sources: IRS, <a href="https://www.irs.gov/newsroom/one-big-beautiful-bill-act-tax-deductions-for-working-americans-and-seniors">tax deductions for working Americans and seniors</a>; Treasury final regulations on qualifying tipped occupations; IRS Notice 2025-69.</p>
     </section>
 
     <div class="note"><strong>Embed this calculator.</strong> Put this calculator on your site — free, one copy-paste snippet, no scripts from third parties. <a href="/embed/">Get the snippet</a>.</div>

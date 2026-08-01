@@ -33,13 +33,19 @@
         <div class="field">
           <label for="income">How much do you earn in a year, before anything is taken out?</label>
           <input type="text" id="income" inputmode="decimal" data-money autocomplete="off" value="60000" aria-describedby="incomeNote">
-          <p class="muted-small" id="incomeNote" style="margin-top:6px">Your pay for the whole year, overtime included. Married and sending in one return together? Add both incomes. This number is what decides whether the deduction starts shrinking, which begins at $150,000 on your own or $300,000 filing jointly. Tax forms measure that against your modified adjusted gross income, or MAGI, which for almost everyone is the same figure.</p>
+          <details class="derivation field-help" id="incomeNote" style="margin-top:6px">
+            <summary>Your pay for the whole year, overtime included.</summary>
+            <p class="muted-small">Married and sending in one return together? Add both incomes. This number is what decides whether the deduction starts shrinking, which begins at $150,000 on your own or $300,000 filing jointly. Tax forms measure that against your modified adjusted gross income, or MAGI, which for almost everyone is the same figure.</p>
+          </details>
         </div>
 
         <div class="field">
           <label for="premium">How much extra were you paid for overtime hours, on top of your normal rate?</label>
           <input type="text" id="premium" inputmode="decimal" data-money autocomplete="off" value="5000" aria-describedby="premiumNote">
-          <p class="muted-small" id="premiumNote" style="margin-top:6px">Only the extra part counts, not your whole overtime pay. If you normally earn $20 an hour and overtime pays $30, the extra is $10 an hour, so 300 overtime hours comes to $3,000. Tax forms call that extra part your overtime premium, the "half" in time-and-a-half. Not sure of your total? Answer Yes to the first question below and we will work it out for you.</p>
+          <details class="derivation field-help" id="premiumNote" style="margin-top:6px">
+            <summary>Only the extra part counts, not your whole overtime pay.</summary>
+            <p class="muted-small">If you normally earn $20 an hour and overtime pays $30, the extra is $10 an hour, so 300 overtime hours comes to $3,000. Tax forms call that extra part your overtime premium, the "half" in time-and-a-half. Not sure of your total? Answer Yes to the first question below and we will work it out for you.</p>
+          </details>
         </div>
 
         <div class="field">
@@ -49,11 +55,19 @@
             <option value="married">Married filing jointly</option>
             <option value="head_of_household">Head of household</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>. Pick Single if you are not married. Pick Married filing jointly if you are married and you and your spouse send in one return together, which married couples have to do to claim this deduction. Pick Head of household if you are unmarried and pay most of the cost of a home for a child or another dependent.</p>
+          <details class="derivation field-help" style="margin-top:6px">
+            <summary>Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>.</summary>
+            <p class="muted-small">Pick Single if you are not married. Pick Married filing jointly if you are married and you and your spouse send in one return together, which married couples have to do to claim this deduction. Pick Head of household if you are unmarried and pay most of the cost of a home for a child or another dependent.</p>
+          </details>
         </div>
 
-        <!-- The two optional things this page asks for are plain questions rather
-             than jargon-labelled boxes sitting in the main flow. The fields each
+        <div class="field">
+          <label for="state">Which state do you work in?</label>
+          <select id="state"><option value="">Select a state</option></select>
+        </div>
+
+        <!-- The one optional thing this page asks for is a plain question rather
+             than a jargon-labelled box sitting in the main flow. The fields that
              question needs live inside a [data-reveal] wrapper that ships VISIBLE in
              the built HTML; question-flow.js (this page opts in via QUESTION_FLOW_PAGES
              in build.js) only ever ADDS `hidden` once the page is up. Hide-on-demand,
@@ -62,15 +76,15 @@
              POLARITY: Yes always means "this applies to me, show me the fields". A
              question phrased so that Yes means "I do not know" leaves No meaning two
              opposite things at once, so never invert one.
-             #stateVerdict lives INSIDE the qState reveal on purpose: it is the answer to
-             that question, so it can never be stranded on screen once the select that
-             produced it is hidden. The ids regRate, otHours, state and stateVerdict are
-             read by overtime-tax-calculator.js and must not be renamed. Keep .est-row
-             without a .field class: the mobile stacking rule in styles.css is written as
-             a bare `.est-row` on that assumption. -->
+             The state select is NOT behind a question any more: it is a plain field in
+             the main flow above, and #stateVerdict renders inside the result panel with
+             the rest of the answer, so neither one can be stranded on screen by a hidden
+             wrapper. The ids regRate, otHours, state and stateVerdict are read by
+             overtime-tax-calculator.js and must not be renamed. Keep .est-row without a
+             .field class: the mobile stacking rule in styles.css is written as a bare
+             `.est-row` on that assumption. -->
         <fieldset class="adv">
-          <legend>A few more questions, only if they apply to you</legend>
-          <p class="adv-hint">Both start on No. If neither applies to you, leave them alone and your answer above is already complete.</p>
+          <legend>A question, only if it applies to you</legend>
 
           <fieldset class="adv-q" aria-describedby="qEstimateNote">
             <legend>Do you want us to work out the extra part of your overtime for you?</legend>
@@ -93,28 +107,13 @@
               <p class="adv-q-note" id="qEstimateHelp">Fill in both and the overtime box above updates on its own. The sum is half your normal hourly rate, multiplied by your overtime hours.</p>
             </div>
           </fieldset>
-
-          <fieldset class="adv-q" aria-describedby="qStateNote">
-            <legend>Do you want to know whether your state taxes your overtime too?</legend>
-            <p class="adv-q-note" id="qStateNote">This break is a federal one. Some states copy it, some do not, and nine states do not tax wages at all.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qState" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qState" value="yes"><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qState">
-              <div class="field">
-                <label for="state">Which state do you work in?</label>
-                <select id="state"><option value="">Select a state</option></select>
-              </div>
-              <div class="state-verdict" id="stateVerdict" hidden></div>
-            </div>
-          </fieldset>
         </fieldset>
       </form>
 
       <div class="calc-answer">
         <p class="calc-example">These are example numbers. Type yours to see your own.</p>
         <div class="obbba-out" id="out" data-tb-result></div>
+        <div class="state-verdict" id="stateVerdict" hidden></div>
       </div>
       <p id="outStatus" role="status" class="sr-only"></p>
     </section>
@@ -126,19 +125,20 @@
     <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
 
     <section class="prose">
-      <h2>How the "no tax on overtime" deduction works</h2>
+      <details class="prose-fold"><summary><h2>How the "no tax on overtime" deduction works</h2></summary>
       <p>The One Big Beautiful Bill Act (signed July 2025) added a temporary federal deduction, at Internal Revenue Code §225, for <strong>qualified overtime compensation</strong>. It is claimed on Schedule 1-A after your AGI is figured, so it does not reduce your AGI, though you can still take it whether or not you itemize, on top of your <a href="/tax-glossary/#standard-deduction">standard deduction</a>.</p>
       <p><strong>Only the premium qualifies.</strong> Federal law (the Fair Labor Standards Act) requires "time-and-a-half" for overtime, 1.5× your regular rate. The deduction covers just the extra 0.5×, the "half." If you earn $20/hour normally and $30/hour on overtime, the $10/hour difference is the premium that counts, not the full $30.</p>
       <p><strong>Annual caps.</strong> Up to <strong>$12,500</strong> of premium if you're single or head of household, or <strong>$25,000</strong> if married filing jointly, per year, for tax years <strong>2025 through 2028</strong>.</p>
       <p><strong>Income phase-out.</strong> The deduction shrinks by $100 for every $1,000 your <a href="/tax-glossary/#magi">modified adjusted gross income (MAGI)</a> is over $150,000 (single) or $300,000 (joint), reaching zero at $275,000 / $550,000.</p>
       <p><strong>It's a deduction, not a refund.</strong> It lowers your taxable income, so the dollar you save is roughly the deduction times your <a href="/tax-glossary/#marginal-tax-rate">marginal tax rate</a>. And it's income-tax only: <strong><a href="/tax-glossary/#fica">Social Security and Medicare</a> are still withheld</strong> on overtime, and <a href="/tax-glossary/#withholding">withholding</a> on your paycheck doesn't change, you claim the deduction when you file.</p>
       <p>Earn tips too? There's a matching <a href="/tips-tax-calculator/">no tax on tips calculator</a>. 65 or older? The same law also added a <a href="/senior-deduction-calculator/">$6,000 senior bonus deduction</a>, the one marketed as "no tax on Social Security." Itemizing in a high-tax state? It also raised the <a href="/salt-cap-calculator/">SALT deduction cap to $40,000</a>. Bought a new car? You can also deduct up to $10,000 of the loan interest, see the <a href="/car-loan-interest-calculator/">car loan interest deduction calculator</a>.</p>
-    </section>
+      </details>
+      </section>
 
     <div class="ad-slot" data-ad="incontent">Advertisement</div>
 
     <section class="prose">
-      <h2>A worked example: Marcus, a warehouse worker</h2>
+      <details class="prose-fold"><summary><h2>A worked example: Marcus, a warehouse worker</h2></summary>
       <p>Marcus is single and earned about $50,000 last year. He put in 300 hours of overtime at a regular rate of $20 an hour. His overtime was paid at time-and-a-half ($30 an hour), but only the <strong>premium</strong>, the extra $10 an hour, qualifies. Step by step:</p>
       <ul>
         <li><strong>Overtime premium:</strong> ½ × $20 × 300 hours = <strong>$3,000</strong>. The other $6,000 of overtime pay is just his regular rate for those hours, so it doesn't count.</li>
@@ -147,15 +147,19 @@
         <li><strong>What doesn't change:</strong> Social Security and Medicare were still withheld on all of his overtime, and his paychecks during the year were the same, and the $360 arrives as a bigger refund (or smaller balance due) when he files.</li>
       </ul>
       <p>If Marcus were in the 22% bracket, the same $3,000 premium would save about $660. A deduction is worth your marginal rate, so higher earners save more per dollar.</p>
-    </section>
+      </details>
+      </section>
 
     <div class="ad-slot" data-ad="incontent">Advertisement</div>
 
     <section class="prose">
-      <h2>Who can claim it</h2>
+      <details class="prose-fold"><summary><h2>Who can claim it</h2></summary>
       <p>You need a Social Security number valid for employment, and if you're married you must file jointly (married filing separately is not eligible). It's available to both employees (overtime reported on your <a href="/tax-glossary/#w-2">W-2</a>) and, in limited cases, others whose FLSA-required overtime is reported on a payee statement. For tax year 2025, employers weren't required to break out qualified overtime separately, so you may need to total it from your pay stubs; from 2026 it appears in a dedicated box on the W-2, Box 12 code TT, explained in the <a href="/w2-box-decoder/">W-2 box decoder</a>.</p>
+      </details>
       <h2>Does your state tax overtime?</h2>
-      <p>This deduction is federal. Whether it also lowers your <em>state</em> income tax depends on your state: many states do not conform, some conform only from 2026, and nine states have no wage income tax at all. Answer Yes to the state question above to see how your own state treats it, or open your state's paycheck calculator for the detail.</p>
+      <!-- The general answer moved into the #stateVerdict box beside the result,
+           mirroring the tips page. -->
+      <p>Pick your state above to see how your own state treats it, or open your state's paycheck calculator for the detail.</p>
     </section>
 
     <div class="ad-slot" data-ad="incontent">Advertisement</div>
@@ -168,7 +172,7 @@
       <p><strong>What is FICA?</strong> FICA is the Social Security (6.2%) and Medicare (1.45%) payroll tax withheld from your pay. It's separate from federal income tax, and this deduction doesn't reduce it, so FICA still applies to your overtime.</p>
       <p><strong>What is filing status?</strong> It's the category you file under: single, married filing jointly, or head of household here. It sets your cap and phase-out thresholds. Married workers must file jointly to claim this deduction; married filing separately can't.</p>
       <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side, so your numbers never leave your browser.</p>
-      <p class="muted-small">Sources: IRS, <a href="https://www.irs.gov/newsroom/questions-and-answers-about-the-new-deduction-for-qualified-overtime-compensation" rel="nofollow">Questions and answers about the deduction for qualified overtime compensation</a>; IRS Notice 2025-69.</p>
+      <p class="muted-small">Sources: IRS, <a href="https://www.irs.gov/newsroom/questions-and-answers-about-the-new-deduction-for-qualified-overtime-compensation">Questions and answers about the deduction for qualified overtime compensation</a>; IRS Notice 2025-69.</p>
     </section>
 
     <div class="note"><strong>Embed this calculator.</strong> Put this calculator on your site, free, one copy-paste snippet, no scripts from third parties. <a href="/embed/">Get the snippet</a>.</div>

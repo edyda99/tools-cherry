@@ -84,7 +84,7 @@ export function buildWamParts(deps) {
     if (!u) return '';
     let host = u;
     try { host = new URL(u).hostname.replace(/^www\./, ''); } catch (_) { /* keep raw */ }
-    return `<p class="wam-src"><a href="${esc(u)}" rel="nofollow noopener" target="_blank">`
+    return `<p class="wam-src"><a href="${esc(u)}" rel="noopener" target="_blank">`
       + `${esc(label || 'Source')}: ${esc(host)}</a></p>`;
   };
 
@@ -105,6 +105,18 @@ export function buildWamParts(deps) {
   // ── the employeePrograms vs payrollContributions diff, computed, not listed ──
   // A program the state documents as employee-paid but that our paycheck estimate
   // does not subtract has to be surfaced, or the page contradicts its own calculator.
+  //
+  // The word match below is deliberately strict, because a FALSE match is the
+  // dangerous one: it would silently drop a genuinely unmodelled program from the
+  // page. Two real labels cannot be matched by any safe rule, so they opt in by
+  // name instead of by loosening the rule for all 51 states:
+  //   "WA Cares" -> the only distinctive word is "Cares", a short ordinary word
+  //                 the generic-phrase guard rejects on purpose.
+  //   "PA UC"    -> "UC" is a two-letter acronym, under the acronym length floor,
+  //                 and the payroll file spells it out as "Unemployment Compensation".
+  // A program carrying `_matches` names the payrollContributions rows it already
+  // covers. Comparison is on the normalized form, so punctuation and dash style on
+  // either side are irrelevant.
   const normalize = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   function unmatchedContributions(slug) {
     const td = taxData.states[slug] || {};
@@ -113,7 +125,9 @@ export function buildWamParts(deps) {
     const pcs = pd.payrollContributions || [];
     if (!pcs.length) return [];
     const keys = [];
+    const explicit = new Set();
     for (const ep of eps) {
+      for (const m of ep._matches || []) explicit.add(normalize(m));
       const label = String(ep.label || '');
       // Drop a leading state abbreviation ("WA PFML" -> "PFML") so the phrase match
       // works against the payroll file's longer, differently-worded names.
@@ -126,6 +140,7 @@ export function buildWamParts(deps) {
     }
     return pcs.filter((pc) => {
       const n = normalize(pc.name);
+      if (explicit.has(n)) return false;
       const words = new Set(n.split(' '));
       return !keys.some((k) => (k.includes(' ') ? n.includes(k) : words.has(k)));
     });
@@ -158,7 +173,7 @@ export function buildWamParts(deps) {
     echoCross.push(`<span class="g" data-cross="${esc(slug)}">${esc(name)}</span>`);
     echoMoved.push(`<span class="g" data-mfrom="${esc(slug)}">${esc(name)}</span>`);
     const nodeBody = `${esc(name)}: <a href="#state-${esc(slug)}">what we hold on ${esc(name)}</a>`
-      + (obSrc ? ` and <a href="${esc(obSrc)}" rel="nofollow noopener" target="_blank">our source for ${esc(name)}</a>` : '')
+      + (obSrc ? ` and <a href="${esc(obSrc)}" rel="noopener" target="_blank">our source for ${esc(name)}</a>` : '')
       + `.`;
     crossNodes.push(`<li class="g" data-cross="${esc(slug)}">${nodeBody}</li>`);
     movedNodes.push(`<li class="g" data-mfrom="${esc(slug)}">${nodeBody}</li>`);
@@ -202,7 +217,7 @@ export function buildWamParts(deps) {
         rows.push(
           `<li><strong>${esc(ep.label)}</strong>: ${esc(pct(ep.rate))} of pay${esc(cap)}.`
           + (ep._fullName ? ` <span class="wam-sub">${esc(ep._fullName)}</span>` : '')
-          + (ep._source ? ` <a href="${esc(ep._source)}" rel="nofollow noopener" target="_blank">source</a>` : '')
+          + (ep._source ? ` <a href="${esc(ep._source)}" rel="noopener" target="_blank">source</a>` : '')
           + `</li>`
         );
       }
@@ -211,7 +226,7 @@ export function buildWamParts(deps) {
           `<li><strong>${esc(pc.name)}</strong>: ${esc(pc.employeeRate2026)}`
           + (pc.wageBaseOrCap ? `, ${esc(pc.wageBaseOrCap)}` : '') + `. `
           + `<em>Not in our take-home estimate.</em>`
-          + (pc.source ? ` <a href="${esc(pc.source)}" rel="nofollow noopener" target="_blank">source</a>` : '')
+          + (pc.source ? ` <a href="${esc(pc.source)}" rel="noopener" target="_blank">source</a>` : '')
           + `</li>`
         );
       }
@@ -367,7 +382,7 @@ export function buildWamParts(deps) {
         + unmatched.map((pc) =>
           `<li><strong>${esc(pc.name)}</strong>: ${esc(pc.employeeRate2026)}`
           + (pc.wageBaseOrCap ? `, ${esc(pc.wageBaseOrCap)}` : '') + `.`
-          + (pc.source ? ` <a href="${esc(pc.source)}" rel="nofollow noopener" target="_blank">source</a>` : '')
+          + (pc.source ? ` <a href="${esc(pc.source)}" rel="noopener" target="_blank">source</a>` : '')
           + `</li>`).join('')
         + `</ul>`
         + `<p>Our paycheck calculator does not subtract these, so the take-home pay it shows you is bigger than the amount that will actually land in your account.</p>`
@@ -429,7 +444,7 @@ export function buildWamParts(deps) {
     if (local.exists && local.notes) {
       bandA.i2.push(
         `<li class="g" data-st="${esc(slug)}"><span class="wam-verbatim">${esc(local.notes)}</span>`
-        + (local.source ? ` <a href="${esc(local.source)}" rel="nofollow noopener" target="_blank">source</a>` : '')
+        + (local.source ? ` <a href="${esc(local.source)}" rel="noopener" target="_blank">source</a>` : '')
         + `</li>`
       );
     }
@@ -705,7 +720,7 @@ export function buildWamParts(deps) {
     `<span class="g" data-married="${v}">${v === 'yes' ? 'You are married.' : 'You are not married.'}</span>`).join('\n');
 
   const sourceList = federalSources
-    .map((s) => `<li><a href="${esc(s.url)}" rel="nofollow noopener" target="_blank">${esc(s.label)}</a></li>`)
+    .map((s) => `<li><a href="${esc(s.url)}" rel="noopener" target="_blank">${esc(s.label)}</a></li>`)
     .join('\n');
 
   return {

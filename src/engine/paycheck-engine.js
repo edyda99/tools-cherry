@@ -103,12 +103,68 @@ export function ficaTax(grossAnnual, filingStatus, fed, preTaxFica = 0) {
  * @param {number} preTax - pre-tax amounts that reduce state taxable income
  *                          (most states conform to 401(k) + cafeteria pre-tax treatment).
  */
+/**
+ * Optional income-tested reduction of a state's standard deduction. Opt-in: a state
+ * without `tax.standardDeductionPhaseout` is untouched.
+ *
+ * South Carolina is the only user. Act 110 of 2026 replaced the federal standard
+ * deduction with the SC Income Adjusted Deduction (SCIAD) and phases it down to zero,
+ * S.C. Code 12-6-1140(15)(b)-(c). Two details in that text are easy to get backwards
+ * and both change the answer:
+ *
+ * 1. THE ROUNDING IS ON THE REDUCTION, NOT THE DEDUCTION, and it floors.
+ *    "Any reduction amount which is not a multiplier of ten dollars must be rounded to
+ *    the next lowest ten dollars." Flooring the reduction makes the reduction smaller,
+ *    so the deduction LARGER and the tax LOWER. Flooring the resulting deduction
+ *    instead moves it the other way: at single AGI 40,100 the statute gives a
+ *    reduction of 20 and a deduction of 14,980, whereas rounding the deduction gives
+ *    14,970, a $10 error in the wrong direction.
+ * 2. THE INPUT IS FEDERAL AGI, not South Carolina taxable income. Each of
+ *    (b)(i)-(iii) says "the taxpayer's federal adjusted gross income". Feeding
+ *    post-deduction income in would be circular and would understate the phase-down
+ *    for every filer above the threshold.
+ *    What we actually pass is `grossAnnual - preTax`, which is this engine's WAGES-ONLY
+ *    PROXY for federal AGI, not federal AGI itself: the engine models no non-wage income
+ *    and no above-the-line adjustments. So this APPROXIMATES the 12-6-1140(15)(b) test
+ *    rather than implementing it, and the state's disclaimer says so. It is the same
+ *    quantity federalIncomeTax() uses before its own standard deduction, so the state and
+ *    federal sides are at least consistent with each other.
+ *
+ * (b)(iv) makes the two clamps explicit: a fraction of zero means no reduction, and a
+ * fraction "equal to or exceeds one" means the deduction "is not allowed", so the
+ * phase-out completes exactly at over + denominator (95,000 / 142,500 / 190,000).
+ */
+function phaseOutStandardDeduction(base, agi, filingStatus, cfg) {
+  const row = cfg[filingStatus] ?? cfg.single;
+  if (!row || !row.denominator) return base;
+  const excess = Math.max(0, agi - row.over);
+  if (excess >= row.denominator) return 0;
+  const step = cfg.roundReductionDownTo || 1;
+  // Divide ONCE, at the end. Computing the fraction first and then multiplying
+  // rounds twice, and the second rounding lands just under a $10 boundary often
+  // enough to matter: at head-of-household AGI 62,970 the exact reduction is 810,
+  // but 22500 * (2970/82500) evaluates to 809.9999999999999 in IEEE-754, so the
+  // floor drops a whole $10 step and hands the filer $10 too much deduction.
+  // 45 head-of-household AGIs between 62,970 and 118,080 hit that edge; single
+  // and married never do. Multiplying first keeps the numerator an exact integer
+  // (well under 2^53 for every SCIAD base and denominator), so the single divide
+  // is the only place rounding can happen and it rounds the way the statute says.
+  const reduction = Math.floor((base * excess) / (row.denominator * step)) * step;
+  return Math.max(0, base - reduction);
+}
+
 export function stateIncomeTax(grossAnnual, filingStatus, stateData, preTax = 0) {
   if (!stateData || !stateData.hasIncomeTax || !stateData.tax) return 0;
   const t = stateData.tax;
   if (t.type === 'none') return 0;
 
-  const stdDed = (t.standardDeduction && (t.standardDeduction[filingStatus] ?? t.standardDeduction.single)) || 0;
+  let stdDed = (t.standardDeduction && (t.standardDeduction[filingStatus] ?? t.standardDeduction.single)) || 0;
+  // grossAnnual - preTax is this engine's federal AGI: federalIncomeTax() above derives
+  // federal TAXABLE income as exactly that minus the federal standard deduction, so the
+  // quantity before the deduction is AGI. That is the input SCIAD's phase-down needs.
+  if (t.standardDeductionPhaseout) {
+    stdDed = phaseOutStandardDeduction(stdDed, Math.max(0, grossAnnual - preTax), filingStatus, t.standardDeductionPhaseout);
+  }
   const taxable = Math.max(0, grossAnnual - preTax - stdDed);
 
   if (t.type === 'flat') {
@@ -116,7 +172,16 @@ export function stateIncomeTax(grossAnnual, filingStatus, stateData, preTax = 0)
   }
   if (t.type === 'bracket') {
     const brackets = t.brackets[filingStatus] ?? t.brackets.single;
-    return applyBrackets(taxable, brackets);
+    let tax = applyBrackets(taxable, brackets);
+    // Opt-in flat amount added once taxable income passes a threshold. Ohio is
+    // the only user: ORC 5747.02(A)(3)(c) reads "$332.00 plus 2.75% of the
+    // amount in excess of $26,050". applyBrackets is continuous by
+    // construction, it sums slice times rate, so it can never produce that
+    // step. The comparison is strictly greater than: at exactly the threshold
+    // the statute charges nothing, and using >= would bill $332 to a filer
+    // Ohio exempts.
+    if (t.baseAmount && taxable > t.baseAmount.over) tax += t.baseAmount.amount;
+    return tax;
   }
   return 0;
 }

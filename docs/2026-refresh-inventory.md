@@ -116,16 +116,26 @@ runner does not "helpfully" change a number that is supposed to stay constant.
    **fails** when the calendar year exceeds `tax-data-2026.json`'s `taxYear`. When you roll
    to 2027 data, that gate updates automatically; if you defer the roll, expect the
    freshness test to start failing on Jan 1, 2027.
-7. **`/data/take-home-pay-by-state/` (added 2026-07-25) needs NO manual figure edits, but its
-   prose must be re-read after any tax-data roll.** Every number on it (all 51 take-home
-   figures, the $6,440 spread, the eight-way tie at the top, the "$13,408 federal + FICA"
-   stat) is computed at build time from `tax-data-2026.json` via `computePaycheck`, so a data
-   roll updates the page automatically and nothing is hardcoded. What a roll CAN break is the
-   narrative: the analysis paragraphs (eight-way tie, "North Dakota is the surprise",
-   Washington's paid-leave premium, California) are each guarded so they disappear rather than
-   state something false, but a disappeared paragraph leaves a thinner page. **On refresh day,
-   load the page and confirm the analysis sections still render and still describe the new
-   numbers.** The title and H1 also carry the literal year "(2026)" and must be bumped by hand.
+7. **`/data/take-home-pay-by-state/` (added 2026-07-25, second salary level added 2026-07-29)
+   needs NO manual figure edits, but its prose must be re-read after any tax-data roll.**
+   The page runs the whole 51-jurisdiction comparison at BOTH salary levels in
+   `STUDY_SALARIES` (`build.js`, currently `[75000, 100000]`), side by side in one table.
+   Every number on it (102 take-home figures, both spreads, the tie at the top, both
+   "federal + FICA" stats, the CSV and the JSON) is computed at build time from
+   `tax-data-2026.json` via `computePaycheck`, so editing the data file and rebuilding is the
+   only step and nothing is hardcoded. Change a salary level in `STUDY_SALARIES` and the
+   study, the homepage pointers, the related-tool label and the cross-link sentence on all 51
+   state pages all move with it. What a roll CAN break is the narrative: the analysis
+   paragraphs ("the top of the table is a tie", "North Dakota is the surprise", the no-income
+   tax state with a payroll premium, the gap widening with salary, the ranking movers,
+   California's headline rate) are each guarded so they disappear rather than state something
+   false, but a disappeared paragraph leaves a thinner page. **On refresh day, load the page
+   and confirm the analysis sections still render and still describe the new numbers.** The
+   title and H1 also carry the literal year "(2026)" and must be bumped by hand.
+   **Copy rule:** the page must never claim it updates itself when a state publishes new
+   brackets (nothing here ingests tax data), never call the figures the money that reaches a
+   reader's bank account (one filing status, no deductions, it is a model), and never say the
+   tax question is settled between two states when its own FAQ lists what is excluded.
 8. **Outbound citations on ~36 tool pages** (`src/data/tool-sources.json`, added 2026-07-25)
    are third-party URLs that rot without warning. The daily advisor digest now HEADs all of
    them and reports any that break, so this needs no calendar slot — but if the digest flags

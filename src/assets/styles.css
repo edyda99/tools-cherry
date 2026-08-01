@@ -335,15 +335,98 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
 .answer-lead { font-size: 14px; color: var(--text); margin: 12px 0 16px; }
 
 /* ---- "Which rules apply to me" block (state paycheck pages) ---------- */
-.applies-chips { border: 0; padding: 0; margin: 0 0 16px; }
-.applies-chips legend { padding: 0; font-size: 13.5px; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
-.applies-opt { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; font-size: 15.5px; cursor: pointer; }
-.applies-opt input { width: 18px; height: 18px; flex: 0 0 auto; margin-top: 2px; accent-color: var(--accent); }
-.applies-line { margin: 0 0 12px; }
-.applies-more { margin: 4px 0 0; }
+/* The block is interactive, so it wears the same card clothing as .calc above
+   it instead of sitting as bare prose. Chips reuse the .yn/.seg construction:
+   a real checkbox, visually hidden but still focusable, painting the sibling
+   span. Every selector here is applies-* scoped; only the 51 state paycheck
+   pages emit these classes. */
+.applies-panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 20px 22px; box-shadow: var(--shadow-md);
+}
+.applies-chips { border: 0; padding: 0; margin: 0 0 22px; }
+.applies-chips legend { padding: 0; font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+.applies-opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.applies-opt { position: relative; margin: 0; cursor: pointer; display: flex; }
+.applies-opt input { position: absolute; opacity: 0; width: 0; height: 0; }
+/* Chips sit on --surface with a shadow so the one interactive row does not
+   share a fill with the static pointer cards below, and the label wears
+   --text, not --muted: the clickable words must not be the greyest text in
+   the panel. align-items is flex-start so the box tracks the FIRST line when
+   the long turning-65 label wraps on a phone, with 1px of margin standing in
+   for optical centring against a single 18px line. */
+.applies-opt span {
+  display: flex; align-items: flex-start; gap: 9px; padding: 9px 14px;
+  font-size: 14px; font-weight: 600; line-height: 1.3; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill); box-shadow: var(--shadow-sm);
+  transition: background .15s, color .15s, border-color .15s;
+}
+/* The box is the multi-select affordance and it is a BOX, not a ring: the
+   copy above it says "tick the boxes" and a circle reads as a radio.
+   --muted for the idle stroke clears the 3:1 WCAG 1.4.11 floor that
+   --border-strong missed (measured 1.35:1). On tick the box fills with
+   --accent-ink and the glyph takes --accent, so both themes keep the
+   check legible on the green pill. The second content declaration is the
+   alt-text syntax: supporting browsers drop the glyph from the accessible
+   name, the rest fall back to the line above. */
+.applies-opt span::before {
+  content: ""; box-sizing: border-box; flex: 0 0 auto; width: 16px; height: 16px;
+  margin-top: 1px; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; line-height: 1;
+  border-radius: 4px; border: 2px solid var(--muted);
+  transition: background .15s, border-color .15s, color .15s;
+}
+.applies-opt:hover span { border-color: var(--accent); }
+.applies-opt input:checked + span { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+.applies-opt input:checked + span::before {
+  content: "✓";
+  content: "✓" / "";
+  color: var(--accent); background: var(--accent-ink); border-color: var(--accent-ink);
+}
+.applies-opt input:focus-visible + span { box-shadow: var(--ring); }
+.applies-lines { display: grid; gap: 12px; }
+/* .prose p is (0,1,1) and later in the file, so every paragraph rule in this
+   block rides on .applies for specificity or its margins silently lose. The
+   card border is --border-strong for the reason .adv-q documents: --border
+   on a --surface-2 fill measured ~1.1:1 and does not register. */
+.applies .applies-line {
+  margin: 0; padding: 12px 14px; font-size: 14.5px; line-height: 1.55;
+  background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: var(--radius);
+}
+/* The deep link is the panel's one onward action, so it dresses as a soft
+   green button, clearly apart from the card group above it (20px against the
+   grid's 12px) and out of the border-only clothing the cards wear. */
+.applies .applies-more { margin: 20px 0 0; }
+.applies .applies-more a {
+  display: inline-flex; align-items: center; padding: 10px 16px; font-size: 14px; font-weight: 700;
+  color: var(--accent-hover); background: var(--accent-soft);
+  border-radius: var(--radius-sm); text-decoration: none;
+}
+.applies .applies-more a:hover { text-decoration: underline; }
+@media (max-width: 680px) {
+  .applies-panel { padding: 16px; }
+  /* The pills are the section's only touch controls, so they grow to the
+     44px floor the site's other primary controls use on a phone. Reached via
+     padding, not min-height: 12+18+12 makes a one-line pill ~44px while the
+     box stays aligned to the first line of a wrapped label instead of
+     floating between the lines. */
+  .applies-opt span { padding: 12px 16px; }
+}
 /* Hide-on-demand only: scoped to html.js so the lines stay visible with
    JavaScript off, and state-flow.js only sets data-hidden after a tick. */
 html.js .applies-line[data-hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .applies-opt span, .applies-opt span::before { transition: none; }
+}
+/* Forced colors drops background/box-shadow, which would erase both the
+   checked state and the focus ring (the input itself is a 0x0 box). Put the
+   native checkbox back on screen in that mode; it renders state and focus in
+   system colors by itself. */
+@media (forced-colors: active) {
+  .applies-opt input { position: static; opacity: 1; width: 16px; height: 16px; margin-right: 8px; }
+  .applies-opt span::before { display: none; }
+}
 
 /* ---- Results panel --------------------------------------------------- */
 .results { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; }
@@ -357,6 +440,11 @@ html.js .applies-line[data-hidden] { display: none; }
 .net-big { font-size: clamp(32px, 8vw, 40px); font-weight: 800; letter-spacing: -.02em; color: var(--accent); font-variant-numeric: tabular-nums; margin: 0; }
 /* A zero/placeholder answer is not a positive result, so it drops the green. */
 .net-big.is-zero { color: var(--text); }
+/* Example state: until the visitor edits the form, the headline is somebody
+   else's $75,000 and must not wear the confirmed-answer accent. Id-scoped on
+   purpose: .net-big is shared by 96 pages and only the 51 state paycheck
+   pages carry the prefilled example (see the in-scope hook above). */
+#netBig.is-example { color: var(--muted); }
 /* Money set as money: the take-home figure is the one thing a paycheck page
    exists to say, so it outranks the page title, and tight leading keeps a
    wrapped figure reading as one number. Scoped to #netBig, which exists only
@@ -537,6 +625,18 @@ details.estimator summary { cursor: pointer; font-size: .92rem; opacity: .9; }
 .bt-headline.even { border-left: 4px solid #4a6785; background: rgba(74,103,133,.10); }
 .bt-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 6px; }
 .bt-col h3 { margin: 0 0 6px; font-size: 1rem; }
+/* The withheld-now half of the bonus derivation renders inline (personas
+   could not screenshot the split without opening a panel); only the
+   at-tax-time half stays behind the details. */
+.bt-now { margin-top: 12px; }
+.bt-now h3 { margin: 0 0 6px; font-size: 1rem; }
+/* Prose sections below the calculators fold to their heading: the body stays
+   in the DOM for crawlers and for anyone who taps, but the visitor who came
+   for a number no longer scrolls a tax class. Summary keeps the real h2. */
+.prose-fold > summary { cursor: pointer; }
+.prose-fold > summary > h2 { display: inline; margin: 0; }
+.prose-fold > summary:hover > h2 { text-decoration: underline; }
+.prose-fold[open] > summary { margin-bottom: 8px; display: block; }
 @media (max-width: 640px) { .bt-cols { grid-template-columns: 1fr; } }
 
 /* ---- QR colour pickers + scannability warning ----------------------- */
@@ -593,6 +693,13 @@ details.estimator summary { cursor: pointer; font-size: .92rem; opacity: .9; }
 .nowrap { white-space: nowrap; }
 
 /* ---- Advanced fieldset ---------------------------------------------- */
+/* Bonus pages park the whole .adv fieldset behind this closed disclosure: the
+   questions only matter past $1,000,000 of bonuses or an unusual pay method,
+   so they cost one line until opened. Same clothing as the .brackets summary. */
+.adv-more { grid-column: 1 / -1; margin: 4px 0 0; }
+.adv-more > summary { cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--link); }
+.adv-more > summary:hover { text-decoration: underline; }
+.adv-more > .adv { margin-top: 10px; }
 .adv { grid-column: 1 / -1; margin: 4px 0 0; border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px 2px; background: var(--surface-2); }
 /* The panel heading is floated out of the fieldset's legend notch rather than sitting
    in it. In the notch it fits on one line at desktop but wraps to two on a phone, and
@@ -920,8 +1027,13 @@ ul.breakdown { list-style: none; padding: 0; }
    the paragraph that is meant to read as the short intro ends up the longest
    line on the page. Measured on /tax-glossary/ and on all 51 paycheck pages,
    which are the 52 pages that put a .lede inside .prose. Excluding it here
-   leaves `.lede { max-width: 60ch }` as the single source of that measure. */
-:root:has(.answer-band, .calc-answer) .prose p:not(.lede),
+   leaves `.lede { max-width: 60ch }` as the single source of that measure.
+
+   `.applies-line` is excluded for the same reason as `.lede`: those four
+   paragraphs are bordered cards inside the .applies-panel now, not running
+   text, and a 68ch cap leaves them 233px short of the panel edge at 1280px
+   while the chip row above runs the full width. */
+:root:has(.answer-band, .calc-answer) .prose p:not(.lede):not(.applies-line),
 :root:has(.answer-band, .calc-answer) .prose li,
 :root:has(.answer-band, .calc-answer) .prose > .note { max-width: 68ch; }
 .prose p { margin: 0 0 15px; }

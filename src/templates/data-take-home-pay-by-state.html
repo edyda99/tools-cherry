@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Take-Home Pay on {{SALARY}} in All {{ROW_COUNT}} States, Compared ({{TAX_YEAR}}) — Tools Berry</title>
-<meta name="description" content="The same {{SALARY}} salary is worth {{SPREAD}} more in some states than in others. We computed {{TAX_YEAR}} take-home pay for a single filer in all 50 states and DC.">
+<title>Take-Home Pay by State on {{BASE_SALARY}} and {{HIGH_SALARY}} ({{TAX_YEAR}})</title>
+<meta name="description" content="{{TAX_YEAR}} take-home pay on {{BASE_SALARY}} and {{HIGH_SALARY}}, computed for a single filer in all 50 states and DC, ranked, with a link to every state's calculator.">
 <link rel="canonical" href="{{SITE_URL}}/data/take-home-pay-by-state/">
-<meta property="og:title" content="Take-Home Pay on {{SALARY}} in All {{ROW_COUNT}} States, Compared ({{TAX_YEAR}})">
-<meta property="og:description" content="Same salary, {{SPREAD}} difference. {{TAX_YEAR}} take-home pay on {{SALARY}} computed for all 50 states and DC, with a link to every state's own paycheck calculator.">
+<meta property="og:title" content="Take-Home Pay by State on {{BASE_SALARY}} and {{HIGH_SALARY}} ({{TAX_YEAR}})">
+<meta property="og:description" content="Same salary, {{BASE_SPREAD}} difference at {{BASE_SALARY}} and {{HIGH_SPREAD}} at {{HIGH_SALARY}}. {{TAX_YEAR}} take-home pay computed for all 50 states and DC, with a link to every state's own paycheck calculator.">
 <meta property="og:type" content="article">
 <meta name="author" content="Edmond Daher">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -16,7 +16,9 @@
 <style>
   .study-byline { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; font-size:.92rem; color:var(--muted); margin:2px 0 18px; }
   .study-byline .who { font-weight:600; color:var(--text); }
-  .stat-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:18px 0 6px; }
+  .salary-head { font-size:1rem; margin:20px 0 0; }
+  .salary-head .lvl { font-variant-numeric:tabular-nums; }
+  .stat-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:10px 0 6px; }
   .stat-card { border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; background:var(--surface); }
   .stat-card .n { font-size:1.85rem; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums; }
   .stat-card .k { font-size:.85rem; color:var(--muted); margin-top:4px; }
@@ -30,15 +32,70 @@
   .table-tools .count { font-size:.85rem; color:var(--muted); white-space:nowrap; }
   .table-scroll { overflow-x:auto; margin:6px 0; -webkit-overflow-scrolling:touch; }
   table.study { border-collapse:collapse; width:100%; font-size:.92rem; min-width:660px; }
+  /* The two-salary table carries eight columns, so it needs more room than the
+     narrower cost-of-living table below it. Both stay inside .table-scroll, so
+     the page body itself never scrolls sideways on a phone. */
+  table.study.wide { min-width:900px; }
   table.study th, table.study td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
   table.study thead th { position:sticky; top:0; background:var(--surface); cursor:pointer; white-space:nowrap; border-bottom:2px solid var(--border-strong); }
-  table.study thead th[data-sort]::after { content:" \2195"; opacity:.35; font-size:.8em; }
+  /* Sort arrow rides on the first line of the heading, not after the salary
+     label below it, which would push it onto a line of its own. */
+  table.study thead th[data-sort] .hd-main::after { content:" \2195"; opacity:.35; font-size:.8em; }
+  /* Salary label under a column heading: keeps the column narrow enough to read
+     on a phone while still naming which salary the column belongs to. */
+  table.study thead th .hd-sub { display:block; font-weight:400; font-size:.85em; color:var(--muted); }
   table.study tbody tr:hover { background:rgba(128,128,128,.06); }
   table.study td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
   table.study th.num { text-align:right; }
   table.study td.net { font-weight:700; }
   table.study td.rank { color:var(--muted); font-variant-numeric:tabular-nums; width:3.2em; }
   table.study td.zero { color:var(--muted); font-weight:400; }
+  /* The employee payroll premium, on its own line under the income tax it sits
+     beside, so the pair reads as one "what the state took" figure. */
+  table.study td.tax .sub { display:block; font-size:.78rem; font-weight:400; color:var(--muted); white-space:normal; }
+  /* A row whose tax figures are not on this page's year. Emitted from the data's
+     own figureYear, so it disappears by itself once the state publishes. */
+  table.study td.st .fy-flag { display:block; font-size:.78rem; font-weight:400; color:var(--muted); white-space:normal; margin-top:2px; }
+  /* Phones. A wide table is only usable if the reader can still tell which row
+     and which column they are looking at, so two things change here:
+     1. The rank and state columns are pinned to the left edge, which keeps the
+        state name beside its own figures however far right the reader scrolls.
+     2. .table-scroll gets a height. position:sticky resolves against the nearest
+        scrollport, and overflow-x:auto computes overflow-y to auto, so the
+        headings were already sticking to a box that could never scroll
+        vertically. Giving that box a height is what makes them actually pin. */
+  @media (max-width: 760px) {
+    .table-scroll { max-height:72vh; overflow:auto; overscroll-behavior-x:contain; }
+    table.study { font-size:.82rem; }
+    table.study.wide { min-width:600px; }
+    table.study:not(.wide) { min-width:520px; }
+    table.study th, table.study td { padding:7px 7px; }
+    /* Headings wrap on a phone. Held on one line they set the column width, and
+       "Avg. combined sales tax" alone was wider than a third of the screen. */
+    table.study thead th { z-index:2; white-space:normal; }
+    /* The premium line keeps its dollar figure and drops the category name: at
+       this column width "disability insurance, paid family leave and other state
+       programs" wrapped to five lines and made one row taller than a third of the
+       screen. The caption under the table says what the smaller line is. */
+    table.study td.tax .sub { font-size:.72rem; }
+    table.study td.tax .sub .k { display:none; }
+    table.study.wide th:nth-child(1), table.study.wide td:nth-child(1) {
+      position:sticky; left:0; z-index:1; background:var(--surface);
+      width:34px; min-width:34px; max-width:34px; padding-left:5px; padding-right:4px;
+    }
+    table.study.wide th:nth-child(2), table.study.wide td:nth-child(2) {
+      position:sticky; left:34px; z-index:1; background:var(--surface);
+      width:104px; min-width:104px; max-width:104px; white-space:normal;
+      box-shadow:1px 0 0 var(--border-strong);
+    }
+    table.study.wide thead th:nth-child(1), table.study.wide thead th:nth-child(2) { z-index:4; }
+    table.study:not(.wide) th:nth-child(1), table.study:not(.wide) td:nth-child(1) {
+      position:sticky; left:0; z-index:1; background:var(--surface);
+      width:104px; min-width:104px; max-width:104px; white-space:normal;
+      box-shadow:1px 0 0 var(--border-strong);
+    }
+    table.study:not(.wide) thead th:nth-child(1) { z-index:4; }
+  }
   .muted-small { color:var(--muted); font-size:.86rem; }
   .method dt { font-weight:600; margin-top:10px; }
   .method dd { margin:2px 0 0; color:var(--muted); font-size:.92rem; }
@@ -69,51 +126,63 @@
 <main id="main">
   <div class="wrap">
     <article>
-    <h1>Take-home pay on {{SALARY}} in all 51 states, compared ({{TAX_YEAR}})</h1>
+    <h1>Take-home pay on {{BASE_SALARY}} and {{HIGH_SALARY}} in all 51 states, compared ({{TAX_YEAR}})</h1>
     <div class="study-byline">
       <span>By <span class="who">Edmond Daher</span></span>
       <span>·</span>
       <span>Updated {{PUB_DATE}}</span>
       <span>·</span>
-      <span>All 50 states + DC · computed, not estimated</span>
+      <span>All 50 states + DC · {{FIGURE_BASIS}}</span>
     </div>
 
-    <p class="lede">A job offer of {{SALARY}} is not the same offer everywhere. We ran an identical {{SALARY}} salary through the {{TAX_YEAR}} tax rules of all 50 states and the District of Columbia, for a single filer taking the standard deduction, and the annual take-home pay ranges from <strong>{{TOP_NET}}</strong> down to <strong>{{BOTTOM_NET}}</strong>. That is a <strong>{{SPREAD}}</strong> gap on the same gross pay, or about {{SPREAD_MONTHLY}} a month, decided by nothing but the address on your pay stub.</p>
+    <p class="lede">A job offer is not the same offer everywhere. We ran two identical salaries, {{BASE_SALARY}} and {{HIGH_SALARY}}, through {{RULES_BASIS}}, for a single filer taking the standard deduction and no other deductions. On {{BASE_SALARY}} the modelled annual take-home pay runs from <strong>{{BASE_TOP_NET}}</strong> down to <strong>{{BASE_BOTTOM_NET}}</strong>, a <strong>{{BASE_SPREAD}}</strong> gap on the same gross pay. On {{HIGH_SALARY}} the same gap widens to <strong>{{HIGH_SPREAD}}</strong>. Both salaries sit side by side in one table below, so you can read your own state at either level without leaving its row.</p>
 
+    <h2 class="salary-head">On a <span class="lvl">{{BASE_SALARY}}</span> salary</h2>
     <div class="stat-cards">
-      <div class="stat-card high"><div class="n">{{TOP_NET}}</div><div class="k">most take-home ({{TOP_STATES_SHORT}})</div></div>
-      <div class="stat-card low"><div class="n">{{BOTTOM_NET}}</div><div class="k">least take-home ({{BOTTOM_STATE}})</div></div>
-      <div class="stat-card gap"><div class="n">{{SPREAD}}</div><div class="k">spread on identical {{SALARY}} gross pay</div></div>
-      <div class="stat-card same"><div class="n">{{FED_FICA}}</div><div class="k">federal tax + FICA, identical in all {{ROW_COUNT}}</div></div>
+      <div class="stat-card high"><div class="n">{{BASE_TOP_NET}}</div><div class="k">most take-home ({{BASE_TOP_STATES_SHORT}})</div></div>
+      <div class="stat-card low"><div class="n">{{BASE_BOTTOM_NET}}</div><div class="k">least take-home ({{BASE_BOTTOM_STATE}})</div></div>
+      <div class="stat-card gap"><div class="n">{{BASE_SPREAD}}</div><div class="k">spread on identical {{BASE_SALARY}} gross pay</div></div>
+      <div class="stat-card same"><div class="n">{{BASE_FED_FICA}}</div><div class="k">federal tax + FICA, identical in all {{ROW_COUNT}}</div></div>
+    </div>
+
+    <h2 class="salary-head">On a <span class="lvl">{{HIGH_SALARY}}</span> salary</h2>
+    <div class="stat-cards">
+      <div class="stat-card high"><div class="n">{{HIGH_TOP_NET}}</div><div class="k">most take-home ({{HIGH_TOP_STATES_SHORT}})</div></div>
+      <div class="stat-card low"><div class="n">{{HIGH_BOTTOM_NET}}</div><div class="k">least take-home ({{HIGH_BOTTOM_STATE}})</div></div>
+      <div class="stat-card gap"><div class="n">{{HIGH_SPREAD}}</div><div class="k">spread on identical {{HIGH_SALARY}} gross pay</div></div>
+      <div class="stat-card same"><div class="n">{{HIGH_FED_FICA}}</div><div class="k">federal tax + FICA, identical in all {{ROW_COUNT}}</div></div>
     </div>
 
     <div class="study-callout">
-      <strong>The short version:</strong> {{TOP_TIE_PHRASE}} {{BOTTOM_STATE}} keeps the least at {{BOTTOM_NET}}. Most of your tax bill is federal and identical everywhere, so the state layer, worth up to {{SPREAD}} a year here, is the only part that moves.
+      <strong>The short version:</strong> {{TOP_TIE_PHRASE}} {{BOTTOM_PHRASE}} In this model most of the bill is federal and identical everywhere, so the state layer, worth up to {{BASE_SPREAD}} a year on {{BASE_SALARY}} and {{HIGH_SPREAD}} on {{HIGH_SALARY}}, is the only part that moves.
     </div>
 
     <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
 
-    <h2 id="table">Take-home pay on {{SALARY}}, all {{ROW_COUNT}} jurisdictions</h2>
-    <p class="muted-small">Single filer, standard deduction, {{TAX_YEAR}} rules, paid as one annual amount. Tap any column header to sort, or search to filter. Every state name links to that state's own paycheck calculator, where you can change the salary, filing status and pay frequency.</p>
+    <h2 id="table">Take-home pay on {{SALARY_LIST}}, all {{ROW_COUNT}} jurisdictions</h2>
+    <p class="muted-small">Single filer, standard deduction, {{TAX_YEAR}} rules, paid as one annual amount. Ranked by take-home pay on {{BASE_SALARY}}; tap the {{HIGH_SALARY}} column heading to re-rank the table by that salary instead, or search to filter. Every state name links to that state's own paycheck calculator, where you can change the salary, filing status and pay frequency.</p>
     <div class="table-tools">
       <input type="search" data-filter-for="thpTable" placeholder="Search a state, for example Texas or Oregon" aria-label="Search states">
       <span class="count"><strong data-filter-count="thpTable">{{ROW_COUNT}}</strong> of {{ROW_COUNT}} shown</span>
     </div>
     <div class="table-scroll">
-      <table class="study" id="thpTable" data-datatable>
+      <table class="study wide" id="thpTable" data-datatable>
+        <caption class="sr-only">Computed {{TAX_YEAR}} annual take-home pay, state income tax and total tax rate for a single filer on {{BASE_SALARY}} and on {{HIGH_SALARY}}, in all {{ROW_COUNT}} US jurisdictions</caption>
         <thead><tr>
-          <th data-sort="num">#</th>
-          <th data-sort="text">State (opens its calculator)</th>
-          <th class="num" data-sort="num">Annual take-home</th>
-          <th class="num" data-sort="num">State income tax</th>
-          <th class="num" data-sort="num">State payroll deductions</th>
-          <th class="num" data-sort="num">Total tax rate</th>
+          <th data-sort="num"><span class="hd-main">#</span><span class="hd-sub">on {{BASE_SALARY}}</span></th>
+          <th data-sort="text"><span class="hd-main">State</span><span class="hd-sub">opens its calculator</span></th>
+          <th class="num" data-sort="num"><span class="hd-main">Take-home</span><span class="hd-sub">on {{BASE_SALARY}}</span></th>
+          <th class="num" data-sort="num"><span class="hd-main">Take-home</span><span class="hd-sub">on {{HIGH_SALARY}}</span></th>
+          <th class="num" data-sort="num"><span class="hd-main">State tax</span><span class="hd-sub">on {{BASE_SALARY}}</span></th>
+          <th class="num" data-sort="num"><span class="hd-main">State tax</span><span class="hd-sub">on {{HIGH_SALARY}}</span></th>
+          <th class="num" data-sort="num"><span class="hd-main">Total tax rate</span><span class="hd-sub">on {{BASE_SALARY}}</span></th>
+          <th class="num" data-sort="num"><span class="hd-main">Total tax rate</span><span class="hd-sub">on {{HIGH_SALARY}}</span></th>
         </tr></thead>
         <tbody>{{TABLE_ROWS}}</tbody>
       </table>
     </div>
-    <p class="muted-small">"State payroll deductions" are employee-side disability and paid-family-leave premiums (SDI, TDI, PFML, FLI, FAMLI), which {{PROGRAM_COUNT}} jurisdictions withhold on top of, or instead of, income tax. "Total tax rate" is federal income tax plus Social Security plus Medicare plus state income tax plus those premiums, as a share of gross pay.</p>
-    <p class="muted-small">Download the full dataset: <a href="/data/take-home-pay-by-state-{{TAX_YEAR}}.csv">CSV</a> · <a href="/data/take-home-pay-by-state-{{TAX_YEAR}}.json">JSON</a>. Free to reuse with attribution to Tools Berry (CC BY 4.0).</p>
+    <p class="muted-small">The smaller line under a state tax figure is that state's employee-paid payroll premiums. {{PROGRAM_COUNT}} jurisdictions withhold at least one, covering {{PROGRAM_KINDS}}, on top of or instead of income tax; sorting a state tax column sorts on the income tax alone. "Total tax rate" is federal income tax plus Social Security plus Medicare plus state income tax plus those premiums, as a share of gross pay.</p>
+    <p class="muted-small">Download the full dataset, both salaries: <a href="/data/take-home-pay-by-state-{{TAX_YEAR}}.csv">CSV</a> · <a href="/data/take-home-pay-by-state-{{TAX_YEAR}}.json">JSON</a>. Free to reuse with attribution to Tools Berry (CC BY 4.0).</p>
 
     <div class="ad-slot" data-ad="incontent">Advertisement</div>
 
@@ -130,38 +199,40 @@
 
     <section class="prose">
       <h2 id="cost-of-living">A bigger paycheck is not the same as being better off</h2>
-      <p>This study measures one thing: the dollars that reach your bank account from a {{SALARY}} salary. It says nothing about what those dollars buy. Cost of living is not modelled here at all, and it routinely swamps the {{SPREAD}} spread above. Housing is the largest single household expense in most budgets and can differ by far more than that between two states in the same row of this table.</p>
+      <p>This study measures one thing: what a payroll model leaves after federal income tax, FICA, state income tax and state payroll premiums, for a single filer with no other deductions. It says nothing about what those dollars buy. Cost of living is not modelled here at all.</p>
       <p>States with no income tax still have to raise revenue somewhere, and they generally do it through sales and property taxes instead. Here are the states at the top and the bottom of the take-home ranking, next to the two taxes a paycheck calculator structurally cannot see:</p>
       <div class="table-scroll">
         <table class="study" id="colTable" data-datatable>
           <thead><tr>
-            <th data-sort="text">State</th>
-            <th class="num" data-sort="num">Annual take-home</th>
-            <th class="num" data-sort="num">Avg. combined sales tax</th>
-            <th class="num" data-sort="num">Effective property tax</th>
-            <th class="num" data-sort="num">Median household income</th>
+            <th data-sort="text"><span class="hd-main">State</span></th>
+            <th class="num" data-sort="num"><span class="hd-main">Take-home</span><span class="hd-sub">on {{BASE_SALARY}}</span></th>
+            <th class="num" data-sort="num"><span class="hd-main">Take-home</span><span class="hd-sub">on {{HIGH_SALARY}}</span></th>
+            <th class="num" data-sort="num"><span class="hd-main">Avg. combined sales tax</span></th>
+            <th class="num" data-sort="num"><span class="hd-main">Effective property tax</span></th>
+            <th class="num" data-sort="num"><span class="hd-main">Median household income</span></th>
           </tr></thead>
           <tbody>{{COL_ROWS}}</tbody>
         </table>
       </div>
       <p class="muted-small">Sales tax is the average combined state and local rate; property tax is the effective rate on owner-occupied housing; median household income is the latest American Community Survey figure via FRED. Sources are linked in full on each state's own page.</p>
-      <p>{{COL_CONTRAST}} Neither figure is in the take-home column, and both are real money. Treat the table above as the payroll half of the question and nothing more.</p>
+      <p>{{COL_CONTRAST}} Neither figure is in the take-home columns, and both are real money. Treat the take-home figures on this page as the payroll half of the question and nothing more.</p>
     </section>
 
     <section class="prose method">
       <h2 id="method">How we computed this</h2>
-      <p>Every figure on this page is computed at build time by the same open calculation engine that powers the {{ROW_COUNT}} state paycheck calculators on this site. Nothing here is typed in by hand, so when a state publishes new brackets, this page changes with it.</p>
+      <p>Every figure on this page is computed at build time by the same open calculation engine that powers the {{ROW_COUNT}} state paycheck calculators on this site. Nothing here is typed in by hand and nothing is copied from another site's table.</p>
+      <p>To be plain about how the figures stay current, because it is easy to overclaim: this page does not fetch tax data from anywhere. A person updates the tax data file in this repository when a state publishes new brackets, and the next build recomputes all {{ROW_COUNT}} rows, both salaries, the summary figures, the analysis and the FAQ from it. The date under the headline is when that last happened.</p>
       <dl>
         <dt>The inputs, held constant</dt>
-        <dd>{{SALARY}} gross salary, single filing status, no dependents, paid as one annual amount, no pre-tax deductions, {{TAX_YEAR}} tax rules. Only the state changes between rows.</dd>
+        <dd>Two gross salary levels, {{SALARY_LIST}}, single filing status, no dependents, paid as one annual amount, no pre-tax deductions, {{TAX_YEAR}} tax rules. Within a salary level, only the state changes between rows.</dd>
         <dt>Federal income tax</dt>
         <dd>{{TAX_YEAR}} federal brackets applied to gross pay less the {{FED_STD_DED}} single standard deduction, per IRS Rev. Proc. 2025-32. No credits, no itemizing, no W-4 adjustments.</dd>
         <dt>FICA</dt>
-        <dd>Social Security at 6.2% on wages up to the {{TAX_YEAR}} wage base of {{SS_WAGE_BASE}}, and Medicare at 1.45% with no cap, per the SSA {{TAX_YEAR}} COLA fact sheet. {{SALARY}} is below the Additional Medicare threshold, so that 0.9% surtax does not apply here.</dd>
+        <dd>Social Security at 6.2% on wages up to the {{TAX_YEAR}} wage base of {{SS_WAGE_BASE}}, and Medicare at 1.45% with no cap, per the SSA {{TAX_YEAR}} COLA fact sheet. Both salary levels here are below the {{ADDL_MEDICARE_THRESHOLD}} Additional Medicare threshold for a single filer, so that 0.9% surtax does not apply on this page.</dd>
         <dt>State income tax</dt>
         <dd>Each state's own {{TAX_YEAR}} rate structure, flat or graduated, applied after that state's own standard deduction where it offers one. {{NOTAX_COUNT}} states levy no wage income tax at all: {{NOTAX_STATES}}.</dd>
         <dt>State payroll deductions</dt>
-        <dd>Employee-side disability and paid-leave premiums in the {{PROGRAM_COUNT}} jurisdictions that have them, with each program's own rate, wage base and annual cap: {{PROGRAM_STATES}}. These are withheld post-tax on gross wages, so they reduce take-home pay without reducing taxable income.</dd>
+        <dd>Employee-paid state premiums in the {{PROGRAM_COUNT}} jurisdictions that have them, covering {{PROGRAM_KINDS}}, with each program's own rate, wage base and annual cap: {{PROGRAM_STATES}}. The model withholds them after tax on gross wages, so they reduce take-home pay without reducing taxable income.</dd>
         <dt>Rounding and ties</dt>
         <dd>Dollar figures are rounded to the nearest dollar for display; ranks are computed on the unrounded values, and tied states share a rank.</dd>
       </dl>
@@ -171,11 +242,11 @@
       <h2 id="limits">What this does not include</h2>
       <p>A clean comparison needs identical inputs, which means leaving real things out. The figures above will not match your pay stub, and here is exactly why:</p>
       <ul>
-        <li><strong>Local income taxes.</strong> {{LOCAL_COUNT}} states allow city, county or school-district income taxes that are not modelled here: {{LOCAL_STATES}}. In practice these can move take-home pay by hundreds or thousands of dollars, and they push a few states further down than this table shows.</li>
+        <li><strong>Local income taxes.</strong> {{LOCAL_COUNT}} states allow city, county or school-district income taxes that are not modelled here: {{LOCAL_STATES}}. Where one applies, actual take-home pay is lower than the figure this table shows for that state.</li>
         <li><strong>Pre-tax deductions.</strong> No 401(k), no HSA or FSA, no health premiums. Those reduce taxable income, so a real paycheck in a high-tax state closes some of the gap shown here.</li>
         <li><strong>Credits, itemizing and other filing statuses.</strong> Single filers taking the standard deduction only. Married filing jointly, head of household, dependents and state-specific credits all change the answer, sometimes substantially.</li>
         <li><strong>Non-wage income and employer-side taxes.</strong> Investment income, self-employment income and the employer's half of FICA are all out of scope.</li>
-        <li><strong>Cost of living.</strong> As set out above, not modelled, and usually larger than the entire {{SPREAD}} spread.</li>
+        <li><strong>Cost of living.</strong> As set out above, not modelled at all.</li>
       </ul>
       {{PRIOR_YEAR_NOTE}}
       <p class="muted-small">This is a computed estimate for comparison, not tax advice, and not a substitute for your employer's withholding or a tax professional.</p>
@@ -189,7 +260,7 @@
     <section class="prose">
       <h2 id="cite">Cite this data</h2>
       <p>Free to use and republish with attribution. Suggested citation:</p>
-      <blockquote class="cite">Tools Berry, "Take-Home Pay on {{SALARY}} in All 51 States, Compared ({{TAX_YEAR}})", tools-berry.com/data/take-home-pay-by-state/ (updated {{PUB_DATE}}).</blockquote>
+      <blockquote class="cite">Tools Berry, "Take-Home Pay on {{SALARY_LIST}} in All 51 States, Compared ({{TAX_YEAR}})", tools-berry.com/data/take-home-pay-by-state/ (updated {{PUB_DATE}}).</blockquote>
       <p class="muted-small">Download: <a href="/data/take-home-pay-by-state-{{TAX_YEAR}}.csv">CSV</a> · <a href="/data/take-home-pay-by-state-{{TAX_YEAR}}.json">JSON</a> · licensed CC BY 4.0. Journalists and researchers: we are happy to run the same comparison at a different salary or filing status, or to supply the per-state sources. <a href="/contact/">Contact us</a>.</p>
     </section>
 

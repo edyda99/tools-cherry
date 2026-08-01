@@ -62,22 +62,34 @@ JPEG_QUALITY = 85
 MAX_BYTES = 5 * 1024 * 1024
 MAX_PAGES = 50  # bound per-invocation work so a crafted PDF can't max the 180s timeout
 
-# Word does not store cell shading as a colour: it stores a 2x2-pixel image stretched
-# over the cell, one per shaded cell, each with a full-size soft mask. A real 19-page,
-# 3.4 MB report carried 897 such chips against 40 actual pictures.
+# CORRECTED 2026-07-29. The comment here used to say Word stores cell shading as a
+# 2x2-pixel image instead of a colour. That is FALSE and was never measured. Word
+# exports cell shading as a vector fill, as the PDF spec expects: a control Word PDF
+# measured with PyMuPDF holds 148 grey and 142 blue filled paths at cell dimensions and
+# ZERO images under 64 intrinsic pixels, and four other Word PDFs match. The document
+# that triggered this work stores its own shading the same way, 936 cell-sized fills.
 #
-# That wrecks pdf2docx. Its ImagesExtractor collects every image occurrence, groups
-# them by pairwise intersection (quadratic), and then RE-RENDERS the page region for
-# every intersecting group at 3x resolution. Adjacent shaded cells all intersect, so a
-# few hundred chips turn into a pile of full-page renders: that report timed out at 60s
-# and again at 180s. Profiling put the time in ImagesExtractor.extract_images ->
-# Collection.group, exactly there.
+# What the tiny chips actually are: rasterised LINES OF TEXT. Every one of the 640
+# distinct 2x2 XObjects in that report carries a soft mask, and the masks are
+# text-line shaped, uniformly 110 px tall at widths from 100 to 858. A sanitizer or DLP
+# pipeline flattened the body text into glyph stencils, which is why that PDF has only
+# ~1,100 characters of selectable text across 19 pages. See stencil_ocr.py, whose
+# docstring had this right all along.
 #
-# Chips carry no content, only colour, so hiding them from pdf2docx costs a cell
-# background and buys the conversion: the same report now finishes in 4 seconds with
-# its text, 20 tables and all 22 real images intact. Filter on INTRINSIC pixel size,
-# never on the drawn rectangle — a chip's rectangle is cell-sized, which is why
-# pdf2docx's own "ignore small images" test (bbox area <= 4) never catches one.
+# The performance story is unchanged and still correct. pdf2docx's ImagesExtractor
+# collects every image occurrence, groups them by pairwise intersection (quadratic),
+# then RE-RENDERS the page region for each group at 4x (converter.py:101,
+# 'clip_image_res_ratio': 4.0; the 3.0 in ImagesExtractor's signature is a dead default
+# the Converter never passes). Hundreds of adjacent stencils
+# all intersect, so the report timed out at 60s and again at 180s. Profiling put the
+# time in ImagesExtractor.extract_images -> Collection.group.
+#
+# So this filter is right, for a different reason than the old comment gave: the chips
+# are not pictures, and pdf2docx cannot make text out of them anyway. They must still
+# reach stencil_ocr, which OCRs them back into real positioned text, or the conversion
+# emits empty pages. Filter on INTRINSIC pixel size, never on the drawn rectangle, since
+# a stencil's rectangle is line-sized, which is why pdf2docx's own "ignore small images"
+# test (bbox area <= 4) never catches one.
 TINY_IMAGE_PX = 64  # 8x8 intrinsic and under: a fill, never a picture
 
 # Even with chips filtered, a document can hold more real images than we can rebuild in

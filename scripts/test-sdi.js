@@ -93,11 +93,55 @@ t('RI TDI/TCI wage base $100,000 → max $1,100', () => {
 });
 
 // --- (d) WA PFML matches the official composite rate math --------------------
+// Asserted per PROGRAM, not on annual.statePrograms: Washington withholds two
+// separate employee premiums with different bases, so the state total is not the
+// PFML figure and must never be used as a proxy for it.
 t('WA PFML $60k = official 60000*1.13%*71.43%', () => {
-  approx(run('washington', 60000).annual.statePrograms, 60000 * 0.0113 * 0.7143, 0.02);
+  approx(progOf(run('washington', 60000), 'WA PFML').amount, 60000 * 0.0113 * 0.7143, 0.02);
 });
 t('WA PFML caps at the $184,500 SS wage base (~$1,489.21)', () => {
-  approx(run('washington', 250000).annual.statePrograms, 1489.21, 0.02);
+  approx(progOf(run('washington', 250000), 'WA PFML').amount, 1489.21, 0.02);
+});
+
+// --- uncapped programs: WA Cares, PA UC, CA SDI keep scaling past $184,500 ----
+// WA Cares has no wage cap and explicitly no Social Security cap (RCW 50B.04.080),
+// so it must NOT stop where PFML stops. Pinning both ends catches a stray wageBase.
+t('WA Cares 0.58% is uncapped: scales past the PFML wage base', () => {
+  approx(progOf(run('washington', 60000), 'WA Cares').amount, 60000 * 0.0058);
+  approx(progOf(run('washington', 250000), 'WA Cares').amount, 250000 * 0.0058); // 1450, not capped
+  approx(progOf(run('washington', 500000), 'WA Cares').amount, 2900.0);
+});
+t('WA total at $250k = capped PFML + uncapped WA Cares, not one merged rate', () => {
+  const r = run('washington', 250000);
+  approx(r.annual.statePrograms, 1489.21 + 1450.0, 0.02);
+});
+t('PA UC 0.07% is uncapped: applies to all gross wages', () => {
+  approx(progOf(run('pennsylvania', 60000), 'PA UC').amount, 42.0);
+  approx(progOf(run('pennsylvania', 500000), 'PA UC').amount, 350.0); // no wage base
+});
+
+// --- newly modelled employee-paid UI: AK, NJ --------------------------------
+t('AK SUI 0.50% caps at the $54,200 wage base → $271.00 max', () => {
+  approx(progOf(run('alaska', 40000), 'AK SUI (employee)').amount, 200.0);
+  approx(progOf(run('alaska', 100000), 'AK SUI (employee)').amount, 271.0);
+});
+t('NJ is a TWO-cap state: UI+WF/SWF stop at $44,800, TDI+FLI at $171,100', () => {
+  const r = run('new-jersey', 300000);
+  approx(progOf(r, 'NJ UI').amount, 171.36);      // 44800 * 0.003825
+  approx(progOf(r, 'NJ WF/SWF').amount, 19.04);   // 44800 * 0.000425
+  approx(progOf(r, 'NJ TDI').amount, 325.09);     // 171100 * 0.0019
+  approx(progOf(r, 'NJ FLI').amount, 393.53);     // 171100 * 0.0023
+  approx(r.annual.statePrograms, 171.36 + 19.04 + 325.09 + 393.53);
+  // the two bases really are different, or a single-cap bug would go unseen
+  const mid = run('new-jersey', 100000);
+  approx(progOf(mid, 'NJ UI').amount, 171.36);            // already capped
+  approx(progOf(mid, 'NJ TDI').amount, 100000 * 0.0019);  // still scaling
+});
+
+// --- MN Paid Leave: employee half, capped at the SS wage base ----------------
+t('MN Paid Leave 0.44% caps at $184,500 → $811.80 max', () => {
+  approx(progOf(run('minnesota', 60000), 'MN Paid Leave').amount, 264.0);
+  approx(progOf(run('minnesota', 250000), 'MN Paid Leave').amount, 811.8);
 });
 
 // --- per-frequency honesty: same annual total regardless of pay frequency ----

@@ -246,9 +246,14 @@ const run = (input) => computeBonus(input, taxData, suppData);
   is('51 jurisdictions', slugs.length, 51);
   const count = (m) => slugs.filter((s) => st[s].method === m).length;
   is('none = 9', count('none'), 9);
-  is('flat = 19', count('flat'), 19);
-  is('regular = 20', count('regular'), 20);
+  // 2026-07-29: maryland moved regular -> flat 6.5%, so flat 19->20 and regular 20->19. The
+  // Comptroller's 2026 Employer Withholding Guide gives a flat 6.5% state rate on a lump-sum
+  // annual bonus (county piggyback rides on top and is not modelled). These counts are a
+  // deliberate tripwire on silent method churn, so they move only with a stated reason.
+  is('flat = 20', count('flat'), 20);
+  is('regular = 19', count('regular'), 19);
   is('special = 3', count('special'), 3);
+  is('buckets cover all 51', count('none') + count('flat') + count('regular') + count('special'), 51);
   // every entry has verified + source; flagged ones carry singleSourced
   for (const s of slugs) {
     if (typeof st[s].verified !== 'boolean') { fail++; console.error(`FAIL ${s} missing verified`); } else pass++;

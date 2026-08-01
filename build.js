@@ -11,7 +11,8 @@ import { transform as esbuildTransform } from 'esbuild';
 import { STATIC_PAGES } from './src/content/static-pages.js';
 import { buildWamParts } from './src/content/what-applies-to-me.js';
 import { buildStateApplies } from './src/content/state-applies.js';
-import { computePaycheck } from './src/engine/paycheck-engine.js';
+import { withholdingProfile, programKindsOf } from './src/content/withholding-profile.js';
+import { computePaycheck, federalBracketBreakdown } from './src/engine/paycheck-engine.js';
 import { computeBonus } from './src/engine/bonus-tax.js';
 import { verifyDist, reportFailures } from './scripts/verify-dist.js';
 
@@ -253,7 +254,9 @@ const QUESTION_FLOW_PAGES = new Set([
   // again would be worse than simply showing it.
   '/ss-wage-base-calculator/',
   '/student-loan-cap-calculator/',
-  '/tips-tax-calculator/',
+  // tips-tax-calculator is deliberately absent. Its one optional input, the state picker,
+  // is a plain field in the form now, so the page ships no [data-reveal] wrapper and has no
+  // adv question left to gate.
   // w2-box-decoder is deliberately absent. It ships no [data-reveal] wrapper, so listing it
   // here downloaded question-flow.js for a script with nothing to do. It is a lookup rather
   // than a calculator, so all four boxes show plainly: a blank box already says "that line
@@ -318,6 +321,13 @@ function sitemapLastmod(u) {
     return gitDate('src/data/state-payroll-2026.json') || CONTENT_DATE;
   const tpl = `src/templates/${seg}.html`;
   if (existsSync(join(__dirname, tpl))) return gitDate(tpl) || CONTENT_DATE;
+  // Nested URLs whose template lives at the flat top level under a hyphenated
+  // name: /data/take-home-pay-by-state/ is built from
+  // src/templates/data-take-home-pay-by-state.html. Without this, every such page
+  // fell through to CONTENT_DATE and advertised a lastmod older than the content
+  // it was actually serving, which is the one thing a lastmod must not do.
+  const flat = `src/templates/${seg.replace(/\//g, '-')}.html`;
+  if (existsSync(join(__dirname, flat))) return gitDate(flat) || CONTENT_DATE;
   return CONTENT_DATE;
 }
 
@@ -594,6 +604,26 @@ const TOOL_DESCRIPTIONS = {
 };
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// The salary levels the /data/take-home-pay-by-state/ study runs, lowest first.
+// Held at module scope because several places name them: the study itself, the
+// related-tool label in RELATED_OVERRIDES below, and the cross-link sentence every
+// one of the 51 state pages carries. Adding or moving a level here moves all of
+// them together instead of leaving one quoting a salary the study no longer
+// computes. The first level is also DEFAULT_SALARY (declared further down from
+// this array), the salary every state page pre-fills, so a reader arriving from a
+// state page meets the example salary that page already showed them.
+const STUDY_SALARIES = [75000, 100000];
+// "$75,000 and $100,000". Formats inline rather than through usd0(), which is
+// declared further down this file and would still be in its temporal dead zone
+// here, above RELATED_OVERRIDES.
+const STUDY_SALARY_TEXT = (() => {
+  const m = (n) => '$' + n.toLocaleString('en-US');
+  return STUDY_SALARIES.length > 1
+    ? STUDY_SALARIES.slice(0, -1).map(m).join(', ')
+      + ' and ' + m(STUDY_SALARIES[STUDY_SALARIES.length - 1])
+    : m(STUDY_SALARIES[0]);
+})();
 
 // Hand-picked related links for pages that aren't in TOOLS (data studies, the
 // embed gallery). Keyed by currentPath.
@@ -881,7 +911,7 @@ const RELATED_OVERRIDES = {
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
     { name: 'Tip Income Tax by State (Data Study)', path: '/data/tips-tax-by-state/' },
-    { name: 'Take-Home Pay by State on $75,000 (Data Study)', path: '/data/take-home-pay-by-state/' },
+    { name: `Take-Home Pay by State on ${STUDY_SALARY_TEXT} (Data Study)`, path: '/data/take-home-pay-by-state/' },
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
     { name: 'Double Time Pay Calculator', path: '/double-time-pay-calculator/' },
     { name: 'Hours Calculator (Time Card)', path: '/hours-calculator/' },
@@ -1306,12 +1336,22 @@ const NOINDEX_TOOLS = new Set([
 // this build works to avoid. Every URL was fetched and content-checked when added.
 let TOOL_SOURCES = {};
 
+// The date we last checked the tax figures against their primary sources, read from
+// tax-data-2026.json's _meta.lastSourced once the file loads. It exists because the
+// bonus-page sources block used to hard-code "verified 2026-06-16" as a string
+// literal, so no amount of correcting the underlying data could ever move it. That
+// is a factual claim to a reader about when we checked, and a literal cannot keep
+// it true: on 2026-07-29 six states' brackets were rewritten and every page still
+// said the figures were verified in June. Assigned in buildStatePages alongside
+// taxData, same pattern as TOOL_SOURCES above.
+let LAST_SOURCED = '';
+
 function toolSourcesBlock(currentPath) {
   const slug = String(currentPath || '').replace(/^\/|\/$/g, '');
   const items = TOOL_SOURCES[slug];
   if (!items || !items.length) return '';
   const lis = items.map((s) => (
-    `<li><a href="${escHtml(s.url)}" rel="nofollow noopener" target="_blank">${escHtml(s.title)}</a>`
+    `<li><a href="${escHtml(s.url)}" rel="noopener" target="_blank">${escHtml(s.title)}</a>`
     + ` — ${escHtml(s.publisher)}</li>`
   )).join('');
   return `<section class="sources"><h2>Sources</h2><ul>${lis}</ul></section>`;
@@ -1354,14 +1394,83 @@ function stripInternal(value) {
 // A prominent, user-visible banner when a state's figures are from a prior year
 // (prior-year fallback policy) — e.g. California shows 2025 rates while 2026 is pending.
 // Returns '' when figureYear matches the site tax year.
+// Scope matters here. figureYear governs ONLY the state's bracket table. A bonus
+// page's headline number comes from the separate supplemental rate in
+// state-supplemental-2026.json, which is current, so a blanket "this page shows
+// <prior year> figures" is false for the number the page is named after. Say
+// which figures are affected instead of labelling the whole page.
+//
+// Do not reintroduce the word "official" either. Some supplemental rates carry
+// singleSourced: false and cite a payroll vendor rather than the state, so
+// "official" would be a second false claim on the same line.
+// 2026-07-30: this used to hard-code "brackets" as the thing on prior-year figures, which was
+// true only for California. Arizona and DC joined the fallback list that day with the OPPOSITE
+// shape: their rates and bracket tables are current and only the STANDARD DEDUCTION is a prior
+// year. The banner was therefore telling readers "Arizona has not published its 2026 income tax
+// brackets yet" when Arizona's flat 2.5% is current statute, and telling DC readers the same
+// about a 2026 bracket table that is operative under D.C. Code 47-1806.03(a)(11). So the scope
+// is now read from the data instead of assumed. `figureYearScope` is required on any state whose
+// figureYear is not the build year, enforced in scripts/test-tax-data.js.
+const FIGURE_YEAR_SCOPE = {
+  brackets: {
+    label: (fy) => `${fy} brackets`,
+    body: (name, fy, yr) =>
+      `${name} has not published its ${yr} income tax brackets yet, so figures worked out from ` +
+      `those brackets use its ${fy} ones.`,
+  },
+  standardDeduction: {
+    label: (fy) => `${fy} standard deduction`,
+    body: (name, fy, yr) =>
+      `${name}'s tax rates for ${yr} are current, but it has not published its ${yr} standard ` +
+      `deduction yet, so this page subtracts its ${fy} amount.`,
+  },
+};
+
 function figureYearBanner(state, year) {
   const fy = Number(state.figureYear);
   const yr = Number(year);
   if (!fy || fy === yr) return '';
+  const scope = FIGURE_YEAR_SCOPE[state.figureYearScope] || FIGURE_YEAR_SCOPE.brackets;
   return `<p class="year-fallback" role="note">` +
-    `<strong>${fy} rates (${yr} pending).</strong> ` +
-    `Showing ${state.name}'s official ${fy} tax figures — ${fy < yr ? 'the state has not published ' + yr + ' brackets yet' : 'figures are from ' + fy} and this page will update when ${yr} figures are released.` +
+    `<strong>${scope.label(fy)} (${yr} pending).</strong> ` +
+    `${scope.body(state.name, fy, yr)} We update this page when the state publishes.` +
     `</p>`;
+}
+
+// Jurisdictions whose figures are not on this build's tax year, read from the
+// data's own figureYear. Same test the study's byline and its in-table marker
+// use, so one state publishing its tables clears every one of them at once.
+function priorYearJurisdictions(states, year) {
+  return states.filter((s) => {
+    const fy = Number(s && s.figureYear);
+    return fy && fy !== Number(year);
+  });
+}
+
+// The take-home study's COVERAGE claim, in one place. "the 2026 rules of every
+// state and DC" is false while any jurisdiction sits on prior-year tables, and
+// it was written out longhand in the study's own lede and again in the study
+// cross-link on all 51 state pages. Both now call this, so the sentence corrects
+// itself the moment California and Oklahoma publish.
+// `scope` is the coverage wording the calling sentence needs, since one says
+// "every state and DC" and the other "all 50 states and the District of Columbia".
+function studyRulesPhrase(states, year, scope) {
+  const base = `the ${year} rules of ${scope}`;
+  // Sorted by name so the callers, one iterating the data file and one iterating
+  // a table ranked by take-home pay, still print the same sentence.
+  const prior = priorYearJurisdictions(states, year)
+    .slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  if (!prior.length) return base;
+  const years = [...new Set(prior.map((s) => Number(s.figureYear)))];
+  const andList = (arr) => (arr.length === 1
+    ? arr[0]
+    : arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1]);
+  const one = prior.length === 1;
+  // One shared fallback year is the normal case and reads far better than a year
+  // in brackets after every name; the mixed case still names each one's year.
+  return years.length === 1
+    ? `${base}, except ${andList(prior.map((s) => s.name))}, still on ${one ? 'its' : 'their'} ${years[0]} tables`
+    : `${base}, except ${andList(prior.map((s) => `${s.name} (${s.figureYear})`))}, still on ${one ? 'its' : 'their'} most recent published tables`;
 }
 
 // Rate formatter. Rounds to 3 decimal places of a percent and drops trailing
@@ -1383,7 +1492,9 @@ const usd0 = (n) => '$' + Math.round(n).toLocaleString('en-US');
 // answer-block prose, the neighbour comparison table, and the calculator's
 // pre-filled input all resolve to this number, so a visitor who has typed
 // nothing never sees the page quote two different example salaries.
-const DEFAULT_SALARY = 75000;
+// Taken from STUDY_SALARIES so the state pages and the all-states study open on
+// the same number rather than two example salaries that drifted apart.
+const DEFAULT_SALARY = STUDY_SALARIES[0];
 
 // Some states are legally "graduated" but behave as a single rate: a 0% band on
 // the first slice of income, then one rate on everything above it (Idaho,
@@ -1477,6 +1588,19 @@ function stateTaxFacts(state, year, taxData) {
 // where on-page tweaks yield nothing (the page-1-or-zero cliff).
 const TARGET_STATES = new Set(['pennsylvania', 'california', 'colorado', 'massachusetts', 'new-mexico']);
 
+// ── What a state takes from a paycheck besides income tax ──────────────────
+// Some states run employee-funded payroll programs (unemployment insurance,
+// paid family leave, disability, long-term care). Alaska and Washington run one
+// or more of those AND levy no income tax, so any sentence claiming a no-tax
+// state's paycheck loses "only federal tax and FICA" is false there.
+//
+// The rules, the category names and the "may this page claim exclusivity"
+// verdict all live in src/content/withholding-profile.js, which build.js and
+// state-applies.js both import, because keeping a second copy here is what let
+// one page contradict itself. Every sentence of this class is built from
+// withholdingProfile(state), never from a list of state names, so a state that
+// starts or stops a program rewrites its own copy on the next build.
+
 // One extractable sentence stating the state's 2026 income-tax rate, derived from
 // the already-sourced tax data (never hardcoded). Serves the informational
 // "{state} income tax rate" query (PA ranks ~pos 9 for it) and the AI-answer format.
@@ -1502,18 +1626,32 @@ function stateRateFigure(state) {
   return { title: `${lo}–${hi}`, desc: `graduated from ${lo} to ${hi}` };
 }
 
-// <title> per state. For NEAR_PAGE_1 target states, lead with the paycheck
-// calculator identity (the page IS a calculator, not a rate table) and surface
-// the rate figure as a trailing clause; the "{state} income tax rate {year}"
-// query is still carried by the meta description, H1 and body sentence. Kept
-// ≤60 chars so the compactor never strips the "Paycheck Calculator" identity.
-// Every other state keeps the original paycheck-calculator title verbatim.
+// <title> per state. The phrase people actually type is "{state} paycheck
+// calculator", so it now opens every title UNBROKEN. The old title split that
+// phrase down the middle with "and Payroll", which no searcher writes.
+// "Take-home pay" was the site's own body/meta vocabulary and appeared in no
+// title at all, so it rides in the clause after the colon.
+//
+// The variants are tried longest-first and the first one inside the 60-char SERP
+// budget wins, so long state names shed a word by DESIGN here rather than having
+// compactTitleStr silently peel the whole clause off later. The last fallback is
+// the bare base, which is 45 chars even for District of Columbia, so a state can
+// never lose the phrase or the year.
+//
+// NEAR_PAGE_1 target states keep their rate figure in the title instead of the
+// take-home clause (both together blow the budget): it serves the
+// "{state} income tax rate {year}" query they already rank near page 1 for, and
+// their take-home framing still sits in the meta description and the lead
+// paragraph under the H1.
 function stateTitle(state, year) {
+  const base = `${state.name} Paycheck Calculator ${year}`;
+  const variants = [];
   if (TARGET_STATES.has(state.slug)) {
     const fig = stateRateFigure(state);
-    if (fig) return `${state.name} Paycheck Calculator ${year} (${state.abbr}) — Tax ${fig.title}`;
+    if (fig) variants.push(`${base}: ${fig.title} Income Tax`);
   }
-  return `${state.name} Paycheck &amp; Payroll Calculator ${year} (${state.abbr}) — Take-Home Pay After Taxes`;
+  variants.push(`${base}: Take-Home Pay After Taxes`, `${base}: Take-Home Pay`, base);
+  return variants.find((t) => decodedLen(t) <= 60) || base;
 }
 
 // Answer-first meta descriptions (≤155 chars) for the highest-traffic paycheck
@@ -1525,23 +1663,55 @@ const STATE_META_OVERRIDE = {
   california: 'California income tax is graduated 1% to 12.3% for 2026. Free California paycheck calculator: your take-home after federal tax, FICA and CA tax.',
   'new-york': 'New York income tax is graduated 3.9% to 10.9% for 2026. Free New York paycheck calculator: your take-home after federal tax, FICA and NY tax.',
   oregon: 'Oregon income tax is graduated 4.75% to 9.9% for 2026. Free Oregon paycheck calculator: your take-home after federal tax, FICA and OR tax.',
-  texas: 'Texas has no state income tax, so your 2026 paycheck is cut only by federal tax and FICA. Free Texas paycheck calculator for your take-home pay.',
-  florida: 'Florida has no state income tax, so your 2026 paycheck is cut only by federal tax and FICA. Free Florida paycheck calculator for your take-home.',
 };
+
+// Texas and Florida get an answer-first meta too, but the opening claim is
+// BUILT from their data rather than typed out: only the tail is fixed copy, and
+// the "cut only by federal tax and FICA" half is emitted solely when the state
+// really withholds nothing of its own. Alaska and Washington have no income tax
+// either and would have inherited a false sentence from a hardcoded string.
+const NOTAX_META_TAIL = {
+  texas: 'Free Texas paycheck calculator for your take-home pay.',
+  florida: 'Free Florida paycheck calculator for your take-home.',
+};
+function noTaxMetaDesc(state, year) {
+  // Texas and Florida keep the tail they were written with; the other seven
+  // no-income-tax states get the same answer-first shape instead of a generic
+  // opener that the 155-char clamp cut off before it said anything.
+  const tail = NOTAX_META_TAIL[state.slug] || `Free ${state.name} paycheck calculator for your take-home pay.`;
+  const wp = withholdingProfile(state);
+  return wp.federalOnly
+    ? `${state.name} has no state income tax, so your ${year} paycheck is cut only by federal tax and FICA. ${tail}`
+    : `${state.name} has no state income tax, but ${wp.programPhrase} contributions still come out of your ${year} pay. ${tail}`;
+}
+// Trailing meta clause for a state with no income tax. It names the state's own
+// employee-paid contributions where it has them, so it never implies federal
+// figures are the only thing the tool has to show.
+function noTaxMetaNote(state) {
+  const wp = withholdingProfile(state);
+  return wp.federalOnly
+    ? `. ${state.name} has no state income tax, so it doubles as a federal income tax calculator`
+    : `. ${state.name} has no state income tax, and this tool still counts its ${wp.programPhrase} contributions`;
+}
 
 // Meta description per state. Answer-first overrides win for the top paycheck
 // pages; target states otherwise lead with the query + the rate answer in the
 // first ~150 chars; all others keep the original description verbatim.
 function stateMetaDesc(state, year) {
   if (STATE_META_OVERRIDE[state.slug]) return STATE_META_OVERRIDE[state.slug];
+  const wp = withholdingProfile(state);
+  if (!wp.hasIncomeTax) {
+    const nt = noTaxMetaDesc(state, year);
+    if (nt) return nt;
+  }
   if (TARGET_STATES.has(state.slug)) {
     const fig = stateRateFigure(state);
     if (fig) return `${state.name} income tax rate ${year}: ${fig.desc}. Free ${state.name} paycheck and take-home pay calculator — enter your salary or hourly wage to see your ${year} take-home after federal tax, FICA and ${state.name} state income tax.`;
   }
-  const taxPhrase = state.hasIncomeTax ? `, and ${state.name} state income tax` : '';
-  const metaTaxNote = state.hasIncomeTax
+  const taxPhrase = wp.hasIncomeTax ? `, and ${state.name} state income tax` : '';
+  const metaTaxNote = wp.hasIncomeTax
     ? ` — also works as a ${state.name} income tax calculator`
-    : `. ${state.name} has no state income tax, so it doubles as a federal income tax calculator`;
+    : noTaxMetaNote(state);
   return `Free ${year} ${state.name} (${state.abbr}) paycheck and payroll calculator. Enter your salary or hourly wage to see your take-home pay after federal tax, Social Security, Medicare${taxPhrase}${metaTaxNote}. Supports weekly, biweekly, monthly and more.`;
 }
 
@@ -1555,14 +1725,19 @@ const numWord = (n) => NUM_WORDS[n] || String(n);
 // (flat rate / bracket count + range / no tax) instead of a shared template
 // sentence, so the 51 ledes differ because the FACTS differ.
 function stateLede(state, year) {
-  const kw = state.hasIncomeTax
+  const wp = withholdingProfile(state);
+  const kw = wp.hasIncomeTax
     ? 'paycheck, payroll and income tax calculator'
     : 'paycheck and payroll calculator';
   const open = `Use this free ${state.name} (${state.abbr}) ${kw} to estimate your ${year} take-home pay`;
   const t = state.tax;
-  if (!state.hasIncomeTax || !t) {
-    const angle = NOTAX_ANGLE[state.slug];
-    return `${open} — ${state.name} runs on ${angle || 'other taxes'}, not a wage tax, so just federal tax and FICA come out.`;
+  if (!wp.hasIncomeTax) {
+    const angle = NOTAX_ANGLE[state.slug] || 'other taxes';
+    // The closing clause is data-keyed: a no-income-tax state that runs its own
+    // employee-paid programs cannot say "just federal tax and FICA come out".
+    return wp.federalOnly
+      ? `${open}. ${state.name} runs on ${angle}, not a wage tax, so just federal tax and FICA come out.`
+      : `${open}. ${state.name} runs on ${angle}, not a wage tax, so what comes out is federal tax, FICA and ${state.name}'s ${wp.programPhrase} contributions.`;
   }
   if (t.type === 'flat') {
     return `${open} after federal income tax, Social Security, Medicare, and ${state.name}'s flat ${pctStr(t.rate)} state income tax.`;
@@ -1623,27 +1798,450 @@ function stateNet75(state, taxData) {
       taxData
     );
     if (!Number.isFinite(r.annual.net) || !Number.isFinite(r.perPaycheck.net)) return null;
-    return { annualNet: r.annual.net, biweeklyNet: r.perPaycheck.net };
+    // The same call also carries the per-paycheck breakdown the results table
+    // shows on the page defaults (biweekly, single, $75,000, "Per paycheck"
+    // view), so the table, the headline figure and the answer sentence are three
+    // readings of one computation and cannot drift apart.
+    const pp = r.perPaycheck;
+    const perPaycheck = {
+      gross: pp.gross,
+      federal: pp.federal,
+      socialSecurity: pp.socialSecurity,
+      medicare: pp.medicare,
+      state: pp.state,
+      net: pp.net
+    };
+    if (Object.values(perPaycheck).some((v) => !Number.isFinite(v))) return null;
+    // The whole result rides along too. The results panel is not six numbers, it
+    // is the annual figures behind the donut and the rate row as well, and every
+    // one of them has to come out of this single call for the panel to be
+    // internally consistent.
+    return { annualNet: r.annual.net, biweeklyNet: pp.net, perPaycheck, result: r };
   } catch (_) { return null; }
 }
 
-// Byte-for-byte copies of app.js's two currency formatters (app.js lines 11-14),
-// so a build-rendered figure and the figure the browser writes over it on the
-// first render are the same string and hydration is a visual no-op. The build
-// asserts parity per state below (assertFormatterParity) rather than trusting it.
+// Byte-for-byte copies of every formatter app.js renders the results panel with
+// (app.js lines 11-17), so a build-rendered figure and the figure the browser
+// writes over it on the first render are the same string and hydration is a
+// visual no-op. Parity is asserted per state below rather than trusted.
 const usdApp = (n) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const usd2App = (n) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const pctApp = (n) => (n * 100).toFixed(1) + '%';
+const ratePctApp = (n) => (+(n * 100).toFixed(3)).toString() + '%';
+const escLblApp = (s) => String(s == null ? '' : s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+// The U+2212 minus app.js puts in front of every withheld line. Not a hyphen.
+const APP_MINUS = '−';
 
-// Fails the build if a future currency/rounding tweak makes the pre-rendered
-// figures disagree with what app.js will write on first paint.
-function assertFormatterParity(state, net75) {
-  if (!net75) return;
+// Second, independently written two-decimal formatter, the usd0 of the cents
+// world: plain number grouping with the dollar sign glued on, rather than Intl's
+// currency style. Only exists to disagree with usd2App if Intl's currency output
+// ever shifts (a stray non-breaking space, a "US$" prefix, a rounding change).
+const usd2Ref = (n) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// ---------------------------------------------------------------------------
+// The guard's denominator, DERIVED from src/assets/app.js.
+//
+// The previous version of this check iterated a hand-written list of six field
+// names. #programLines was not on that list, so the one element that shipped
+// empty sat structurally outside the denominator: the check could not have
+// failed on the defect it existed to catch, and it reported a confident pass
+// while 14 states served a subtraction that was wrong by the size of their
+// disability premium. A denominator maintained by hand always drifts behind the
+// code it guards, so it is now read out of app.js on every build.
+//
+// What is derived: the set of element ids that a function reachable from app.js's
+// own boot entry (init) assigns to .textContent or .innerHTML. That is exactly
+// the class of write that decides what a crawler, a search snippet and a
+// JavaScript-off reader see, which is the class of defect this guards. Adding a
+// new one to app.js puts it in the set automatically, and the build then fails
+// until build.js has a pre-rendered value for it.
+
+// Split app.js into its top-level function bodies by brace matching. Covers
+// `function name(...) {` and `const name = (...) => {` declared at column 0,
+// which between them is every function in that module.
+function appTopLevelFunctions(src) {
+  const fns = new Map();
+  const decl = /^(?:(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{|(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s+)?\([^)]*\)\s*=>\s*\{)/gm;
+  let m;
+  while ((m = decl.exec(src)) !== null) {
+    const name = m[1] || m[2];
+    let depth = 0;
+    let end = -1;
+    for (let i = m.index + m[0].length - 1; i < src.length; i++) {
+      const c = src[i];
+      if (c === '{') depth++;
+      else if (c === '}') { depth--; if (depth === 0) { end = i; break; } }
+    }
+    if (end === -1) continue;
+    fns.set(name, src.slice(m.index, end + 1));
+  }
+  return fns;
+}
+
+// Everything init can reach. Deliberately over-inclusive: a bare mention of a
+// function name counts as a call, because `addEventListener('input', render)`
+// and `.then(renderCompare)` are calls too. Over-inclusion can only widen the
+// set of elements the build is made responsible for, never narrow it.
+function appReachableFrom(fns, root) {
+  const seen = new Set();
+  const queue = [root];
+  while (queue.length) {
+    const name = queue.shift();
+    if (seen.has(name) || !fns.has(name)) continue;
+    seen.add(name);
+    const body = fns.get(name);
+    let m;
+    const ident = /\b([A-Za-z_$][\w$]*)\b/g;
+    while ((m = ident.exec(body)) !== null) {
+      if (fns.has(m[1]) && !seen.has(m[1])) queue.push(m[1]);
+    }
+  }
+  return seen;
+}
+
+// Every element id a body touches, split by whether the touch is null-guarded
+// and by whether it writes the element's content. `$('id').textContent = x` is
+// an unguarded content write; `const el = $('id'); if (el) el.innerHTML = x` is
+// a guarded one. Only a guarded id is allowed to be missing from the HTML.
+function appElementTouches(body) {
+  const touches = [];
+  const aliases = new Map();
+  let m;
+  const aliasRe = /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*\$\(\s*(['"])([\w-]+)\2\s*\)/g;
+  while ((m = aliasRe.exec(body)) !== null) aliases.set(m[1], m[3]);
+
+  const directRe = /\$\(\s*(['"])([\w-]+)\1\s*\)\s*\.\s*([A-Za-z_$][\w$]*)/g;
+  while ((m = directRe.exec(body)) !== null) {
+    const rest = body.slice(m.index + m[0].length);
+    const content = /^(?:textContent|innerHTML)$/.test(m[3]) && /^\s*=[^=]/.test(rest);
+    touches.push({ id: m[2], guarded: false, content });
+  }
+  for (const [alias, id] of aliases) {
+    const a = alias.replace(/[$]/g, '\\$');
+    const used = new RegExp(`\\b${a}\\s*[.)\\]]`).test(body);
+    if (!used) continue;
+    const guarded =
+      new RegExp(`!\\s*${a}\\b`).test(body) ||
+      new RegExp(`\\bif\\s*\\(\\s*${a}\\s*[)&]`).test(body) ||
+      new RegExp(`\\b${a}\\s*&&`).test(body);
+    const content = new RegExp(`\\b${a}\\s*\\.\\s*(?:textContent|innerHTML)\\s*=[^=]`).test(body);
+    touches.push({ id, guarded, content });
+  }
+  return touches;
+}
+
+// One scan per build. Returns the two derived sets the page guard runs on.
+function scanAppFirstRender(src) {
+  const fns = appTopLevelFunctions(src);
+  // init is the only boot path: __bootInit() calls init() and nothing else.
+  if (!fns.has('init') || !fns.has('render')) {
+    throw new Error(
+      'app.js scan failed: could not extract init()/render() from src/assets/app.js, so the ' +
+      'pre-render guard has no denominator. Refusing to build a results panel it cannot check.'
+    );
+  }
+  const reachable = appReachableFrom(fns, 'init');
+  if (!reachable.has('render')) {
+    throw new Error('app.js scan failed: render() is not reachable from init(); the extraction is wrong.');
+  }
+  const contentIds = new Set();
+  const mayBeAbsent = new Map(); // id -> true only while every touch of it is guarded
+  for (const name of reachable) {
+    for (const t of appElementTouches(fns.get(name))) {
+      if (t.content) contentIds.add(t.id);
+      const prior = mayBeAbsent.has(t.id) ? mayBeAbsent.get(t.id) : true;
+      mayBeAbsent.set(t.id, prior && t.guarded);
+    }
+  }
+  if (contentIds.size === 0) {
+    throw new Error(
+      'app.js scan found zero elements whose content the first render writes. That cannot be true ' +
+      'of this module, so the scan is broken and the guard would pass over nothing.'
+    );
+  }
+  return { contentIds, mayBeAbsent, reachable: reachable.size, functions: fns.size };
+}
+
+// Pull an element's exact inner HTML out of a rendered page by id, by matching
+// the opening tag and then walking forward with a depth count on that tag name.
+// Returns null when no element carries the id.
+function innerHtmlById(html, id) {
+  const at = html.indexOf(`id="${id}"`);
+  if (at === -1) return null;
+  const open = html.lastIndexOf('<', at);
+  const tag = /^<([A-Za-z][\w-]*)/.exec(html.slice(open));
+  if (!tag) return null;
+  const name = tag[1];
+  const gt = html.indexOf('>', at);
+  if (gt === -1) return null;
+  const openRe = new RegExp(`<${name}[\\s>]`, 'g');
+  const closeRe = new RegExp(`</${name}>`, 'g');
+  let depth = 1;
+  let i = gt + 1;
+  while (i < html.length) {
+    openRe.lastIndex = i;
+    closeRe.lastIndex = i;
+    const o = openRe.exec(html);
+    const c = closeRe.exec(html);
+    if (!c) return null;
+    if (o && o.index < c.index) { depth++; i = o.index + o[0].length; continue; }
+    depth--;
+    if (depth === 0) return html.slice(gt + 1, c.index);
+    i = c.index + c[0].length;
+  }
+  return null;
+}
+
+// Everything app.js's first render puts on the page for the form's own shipped
+// defaults: $75,000 salary, single, biweekly, "Per paycheck", Simple mode, no
+// advanced deductions. Each value is produced by the same formatter app.js uses,
+// from the same computePaycheck call the headline figure and the answer sentence
+// come from, so the served panel is one reading of one computation.
+function statePanel(state, taxData, net75) {
+  const r = net75.result;
+  const a = r.annual;
+  const p = r.perPaycheck;
+  const g = a.gross;
+  // app.js renderBreakdown()'s own width formatter: two decimals, annual basis.
+  const w = (v) => (v / g * 100).toFixed(2) + '%';
+  const ded = a.preTax + a.postTax + (a.statePrograms || 0);
+  const bb = federalBracketBreakdown(g, 'single', taxData.federal, 0);
+
+  const programLines = (p.programs || []).map((pr) =>
+    `<div class="line"><span class="lbl">${escLblApp(pr.label)} (${ratePctApp(pr.rate)})</span><span>${APP_MINUS}${usd2App(pr.amount)}</span></div>`
+  ).join('');
+
+  // app.js keys this row on hasIncomeTax alone, so on the nine states without an
+  // income tax the row is display:none from the first render onward and the only
+  // thing the served HTML did with it was tell a crawler "Texas income tax
+  // −$0.00". A withholding line that does not exist is not worth a row, so those
+  // pages ship none. app.js null-checks both #stateLine and #rState, and the
+  // guard below refuses to accept an absent element whose uses are not guarded.
+  const stateTaxRow = state.hasIncomeTax
+    ? `<div class="line" id="stateLine"><span class="lbl">${escLblApp(state.name)} income tax</span><span id="rState">${APP_MINUS}${usd2App(p.state)}</span></div>`
+    : '';
+
+  let bracketBody, bracketNote;
+  if (!bb.bands.length || bb.taxable <= 0) {
+    bracketBody = '<tr><td colspan="3">No federal income tax, taxable income is $0 after the standard deduction.</td></tr>';
+    bracketNote = '';
+  } else {
+    bracketBody = bb.bands.map((b) => {
+      const range = b.upper === Infinity ? `over ${usdApp(b.lower)}` : `${usdApp(b.lower)} – ${usdApp(b.upper)}`;
+      return `<tr><td>${ratePctApp(b.rate)} <span class="bk-range">(${range})</span></td><td>${usdApp(b.amount)}</td><td>${usdApp(b.tax)}</td></tr>`;
+    }).join('');
+    bracketNote =
+      `Taxable income ${usdApp(bb.taxable)} after the ${usdApp(bb.stdDed)} standard deduction. ` +
+      `Your federal marginal rate is ${ratePctApp(bb.marginalRate)}, the federal tax on your next dollar earned.`;
+  }
+
+  const tokens = {
+    ROW_GROSS: usd2App(p.gross),
+    ROW_FEDERAL: APP_MINUS + usd2App(p.federal),
+    ROW_SS: APP_MINUS + usd2App(p.socialSecurity),
+    ROW_MEDICARE: APP_MINUS + usd2App(p.medicare),
+    ROW_NET: usd2App(p.net),
+    STATE_TAX_ROW: stateTaxRow,
+    PROGRAM_LINES: programLines,
+    RATE_MARGINAL: ratePctApp(bb.marginalRate),
+    RATE_EFF: pctApp(a.effectiveRate),
+    RATE_TAKE: pctApp(a.takeHomeRate),
+    SEG_NET: w(a.net),
+    SEG_TAX: w(a.totalTax),
+    SEG_DED: w(ded),
+    LG_NET: pctApp(a.net / g),
+    LG_TAX: pctApp(a.totalTax / g),
+    LG_DED: pctApp(ded / g),
+    // renderBreakdown() hides the deductions key when there is nothing deducted.
+    LG_DED_STYLE: ded > 0 ? '' : ' style="display:none"',
+    BRACKET_BODY: bracketBody,
+    BRACKET_NOTE: bracketNote,
+    ADV_ECHO: `Take-home now: ${usd2App(p.net)} per 2 weeks`
+  };
+
+  // id -> what the served HTML must contain, checked against the emitted page.
+  // `absent` is only accepted for an id every one of whose uses in app.js is
+  // null-guarded; the scan above decides that, not this table.
+  const expected = {
+    netBig: { expect: usd2App(p.net) },
+    netSub: { expect: `take-home per 2 weeks · ${usd0(a.net)}/yr` },
+    netLabel: { expect: stateNetLabel(state) },
+    advEcho: { expect: tokens.ADV_ECHO },
+    rGross: { expect: tokens.ROW_GROSS },
+    rFederal: { expect: tokens.ROW_FEDERAL },
+    rSS: { expect: tokens.ROW_SS },
+    rMedicare: { expect: tokens.ROW_MEDICARE },
+    rState: state.hasIncomeTax
+      ? { expect: APP_MINUS + usd2App(p.state) }
+      : { absent: `${state.name} has no state income tax, so no such withholding row is served` },
+    rNet: { expect: tokens.ROW_NET },
+    programLines: { expect: programLines },
+    rMarginal: { expect: tokens.RATE_MARGINAL },
+    rEff: { expect: tokens.RATE_EFF },
+    rTake: { expect: tokens.RATE_TAKE },
+    lgNet: { expect: tokens.LG_NET },
+    lgTax: { expect: tokens.LG_TAX },
+    lgDed: { expect: tokens.LG_DED },
+    bracketBody: { expect: bracketBody },
+    bracketNote: { expect: bracketNote },
+    // Written on first render only when the visitor has a deduction to show, and
+    // on the shipped defaults they are genuinely zero. The rows are hidden, so
+    // the served figure is never read, but it still has to be the true one.
+    rPreTax: { expect: usd2App(p.preTax) },
+    rPostTax: { expect: usd2App(p.postTax) },
+    // syncAdvancedQuestions() writes usd(0) here before the first render.
+    depCredit: { expect: usdApp(0) },
+    // renderCompare() clears this until a state is picked, and populateCompare()
+    // only runs when the visitor opens the panel.
+    cmpResult: { expect: '' },
+    // announceResult() returns before the boot render (booted is still false),
+    // so the live region ships and stays empty until the visitor edits something.
+    outStatus: { expect: '' },
+    // No state page carries this element: the "example" kicker lives on other
+    // templates. app.js null-checks it, and it is written only after the visitor
+    // first touches the form, never on the boot render.
+    netKicker: { absent: 'no state page ships a #netKicker; written only after the first visitor edit' }
+  };
+
+  return { tokens, expected, breakdown: { p, programs: p.programs || [] } };
+}
+
+// Fails the build if the served results panel is not what app.js's first render
+// will produce: a missing pre-render, a figure that would flicker on hydration,
+// a row app.js writes that build.js has never heard of, or a breakdown whose
+// visible rows do not add up to the Net pay printed under them.
+function assertPanelParity(state, net75, panel, html, scan) {
+  if (!net75 || !net75.result) {
+    throw new Error(
+      `pre-rendered results panel missing for ${state.slug}: no $75,000 computation, so the page ` +
+      `would ship a table of zeroes under a sentence quoting a real take-home figure.`
+    );
+  }
   if (usd0(net75.annualNet) !== usdApp(net75.annualNet)) {
     throw new Error(
       `formatter parity broken for ${state.slug}: build usd0 "${usd0(net75.annualNet)}" ` +
-      `vs app.js usd "${usdApp(net75.annualNet)}" — the pre-rendered take-home would flicker on hydration.`
+      `vs app.js usd "${usdApp(net75.annualNet)}", the pre-rendered take-home would flicker on hydration.`
+    );
+  }
+
+  const { expected } = panel;
+  const derived = scan.contentIds;
+
+  // 1. Denominator, both directions. Every element app.js writes must have a
+  //    pre-rendered value here, and every entry here must still be something
+  //    app.js writes, so a deleted render line cannot leave a stale check behind.
+  for (const id of derived) {
+    if (!(id in expected)) {
+      throw new Error(
+        `app.js writes #${id} on its first render but build.js has no pre-rendered value for it. ` +
+        `${state.slug} would serve whatever the template happens to contain there while the rest ` +
+        `of the panel is real. Add it to statePanel().`
+      );
+    }
+  }
+  for (const id of Object.keys(expected)) {
+    if (!derived.has(id)) {
+      throw new Error(
+        `build.js pre-renders #${id} but app.js's first render no longer writes it. The check is ` +
+        `stale: remove it, or restore the write.`
+      );
+    }
+  }
+
+  // 2. Every derived id, against the page that was actually emitted.
+  let checked = 0;
+  for (const id of derived) {
+    const e = expected[id];
+    const got = innerHtmlById(html, id);
+    if (e.absent) {
+      if (scan.mayBeAbsent.get(id) !== true) {
+        throw new Error(
+          `#${id} is declared absent for ${state.slug} (${e.absent}) but app.js uses it without a ` +
+          `null check, so the first render would throw and the calculator would not run at all.`
+        );
+      }
+      if (got !== null) {
+        throw new Error(`#${id} is declared absent for ${state.slug} but the emitted page still carries it.`);
+      }
+      checked++;
+      continue;
+    }
+    if (got === null) {
+      throw new Error(
+        `#${id} is missing from the emitted ${state.slug} page, but app.js writes it unconditionally ` +
+        `on first render. Expected "${e.expect}".`
+      );
+    }
+    if (got !== e.expect) {
+      throw new Error(
+        `pre-render mismatch for ${state.slug} #${id}: served "${got}" but app.js's first render ` +
+        `writes "${e.expect}". Hydration would visibly change the page.`
+      );
+    }
+    checked++;
+  }
+  if (checked !== derived.size) {
+    throw new Error(`pre-render guard checked ${checked} of ${derived.size} derived elements for ${state.slug}.`);
+  }
+
+  // 3. Independent formatter cross-check on the money figures, so an Intl change
+  //    that moved both the build and app.js the same wrong way still trips.
+  const p = panel.breakdown.p;
+  for (const [field, v] of Object.entries({
+    gross: p.gross, federal: p.federal, socialSecurity: p.socialSecurity,
+    medicare: p.medicare, state: p.state, net: p.net
+  })) {
+    if (!Number.isFinite(v)) throw new Error(`pre-rendered field "${field}" is not finite for ${state.slug}.`);
+    if (usd2Ref(v) !== usd2App(v)) {
+      throw new Error(
+        `formatter parity broken for ${state.slug} row "${field}": build usd2Ref "${usd2Ref(v)}" ` +
+        `vs app.js usd2 "${usd2App(v)}", so that row would flicker on hydration.`
+      );
+    }
+  }
+
+  // 4. The arithmetic a reader can do with their eyes. This is the check the old
+  //    guard could not express, and the one the shipped defect would have failed:
+  //    the visible rows, INCLUDING the state disability / paid-leave rows, must
+  //    subtract to the Net pay printed beneath them.
+  const rows = [
+    ['Gross', p.gross, +1],
+    ['Federal income tax', p.federal, -1],
+    ['Social Security', p.socialSecurity, -1],
+    ['Medicare', p.medicare, -1]
+  ];
+  if (state.hasIncomeTax) rows.push([`${state.name} income tax`, p.state, -1]);
+  for (const pr of panel.breakdown.programs) rows.push([pr.label, pr.amount, -1]);
+
+  // 4a. The exact identity, before any rounding. Nothing may leave the paycheck
+  //     that does not have a row of its own.
+  const exact = rows.reduce((t, [, v, sign]) => t + sign * v, 0);
+  if (Math.abs(exact - p.net) > 1e-6) {
+    throw new Error(
+      `${state.slug} breakdown is incomplete: the rows served (` +
+      rows.map(([l, , sign]) => `${sign < 0 ? '-' : '+'}${l}`).join(' ') +
+      `) come to ${exact.toFixed(6)} but Net pay is ${p.net.toFixed(6)}. Something is being taken ` +
+      `out of the paycheck without a row telling the reader about it.`
+    );
+  }
+
+  // 4b. The identity as printed. Every row and the total round to cents
+  //     independently, so the printed figures can legitimately disagree by up to
+  //     half a cent each: with n rows plus the total that is floor((n+1)/2)
+  //     whole cents, and no more. Wider than that is not rounding.
+  const cents = (v) => Math.round(parseFloat(usd2App(v).replace(/[^0-9.]/g, '')) * 100);
+  const sum = rows.reduce((t, [, v, sign]) => t + sign * cents(v), 0);
+  const netCents = cents(p.net);
+  const slack = Math.floor((rows.length + 1) / 2);
+  if (Math.abs(sum - netCents) > slack) {
+    throw new Error(
+      `${state.slug} breakdown does not add up: the served rows (` +
+      rows.map(([l, v, sign]) => `${sign < 0 ? '-' : ''}${l} ${usd2App(v)}`).join(', ') +
+      `) sum to ${(sum / 100).toFixed(2)} but Net pay is printed as ${usd2App(p.net)}, a gap of ` +
+      `${Math.abs(sum - netCents)} cents against a per-row rounding budget of ${slack}. ` +
+      `A reader and a crawler both see a wrong subtraction.`
     );
   }
 }
@@ -1662,15 +2260,19 @@ function assertFormatterParity(state, net75) {
 function stateAnswerParts(state, year, net75) {
   if (!net75) return { lead: '', rate: '', tail: '' };
   const net = net75.annualNet;
-  const stateClause = state.hasIncomeTax ? `, and ${state.name} state income tax` : '';
+  const wp = withholdingProfile(state);
+  const stateClause = wp.hasIncomeTax ? `, and ${state.name} state income tax` : '';
   // When this state's disability / paid-leave employee contributions are modeled,
   // the net above already nets them out — say so, so the enumerated list matches
   // the figure.
-  const progClause = (state.employeePrograms && state.employeePrograms.length)
-    ? ` and ${state.abbr} disability / paid-leave contributions` : '';
+  // Named from the state's own programs, because "disability / paid-leave" was
+  // wrong for a state whose employee premium is unemployment insurance.
+  const progClause = wp.programPhrase
+    ? `${stateClause ? ' and' : ', plus'} ${state.abbr} ${wp.programPhrase} contributions`
+    : '';
   const lead = pickFrame(state.slug, 'answer', [
     `In ${state.name} for ${year}, a $75,000 salary takes home about ${usd0(net)} per year after federal income tax and FICA (Social Security and Medicare)${stateClause}${progClause}.`,
-    `A $75,000 salary in ${state.name} nets roughly ${usd0(net)} a year in ${year}, once federal income tax, Social Security and Medicare${state.hasIncomeTax ? ` and ${state.name} state tax` : ''}${progClause} are withheld.`,
+    `A $75,000 salary in ${state.name} nets roughly ${usd0(net)} a year in ${year}, once federal income tax, Social Security and Medicare${wp.hasIncomeTax ? ` and ${state.name} state tax` : ''}${progClause} are withheld.`,
     `Earning $75,000 in ${state.name}? Your estimated ${year} take-home is about ${usd0(net)} after federal tax and FICA${stateClause}${progClause}.`
   ]);
   // Wording is direction-neutral ("in the calculator", not "below") because the
@@ -1743,18 +2345,37 @@ const BASELINE_DISCLAIMER =
   'your pay stub is the authority on those.';
 
 // The no-income-tax pages need one extra line: "no income tax" is routinely
-// misread as "nothing comes out for the state".
-const NOTAX_DISCLAIMER =
-  'No state income tax does not mean no state payroll deductions. ' +
-  'Check your stub for state-run leave or disability contributions.';
+// misread as "nothing comes out for the state". WHICH line is a function of the
+// state's own programs, not of a constant: on Alaska and Washington the premiums
+// are already inside the take-home figure at the top of the page, and the old
+// constant sent those readers hunting on their stub for a deduction this page
+// had already subtracted, on the same page that said so.
+function notaxDisclaimer(state, wp) {
+  const open = 'No state income tax does not mean no state payroll deductions.';
+  return wp.federalOnly
+    ? `${open} Check your stub for state-run leave or disability contributions.`
+    : `${open} ${state.name} withholds ${wp.programPhrase} contributions from wages, and the ` +
+      `take-home figure above already subtracts those, so your stub is the check on anything ` +
+      `else your employer takes out.`;
+}
 
 // Prose body per state — branches on whether the state levies income tax.
 function stateBody(state, year, taxData) {
-  const noTax = !state.hasIncomeTax;
+  const wp = withholdingProfile(state);
+  const noTax = !wp.hasIncomeTax;
   let body;
   if (noTax) {
     const fact = NOTAX_FACTS[state.slug] ? ` ${NOTAX_FACTS[state.slug]}` : '';
-    const opener = pickFrame(state.slug, 'notax', [
+    // A no-income-tax state that runs its own employee-paid programs gets its own
+    // opener: the "reduced only by federal withholding and FICA" frames below are
+    // false there, and the take-home figure at the top of the page already
+    // subtracts those contributions, so the prose has to name them.
+    const prog = wp.programPhrase;
+    const opener = !wp.federalOnly ? pickFrame(state.slug, 'notaxprog', [
+      `${state.name} is one of the U.S. states with <strong>no state income tax</strong>, so there is no ${state.name} income tax line on your ${year} check. What still comes off is federal income tax, FICA (Social Security and Medicare), and the ${prog} contributions ${state.name} collects from employee wages, which the take-home figure above already subtracts.`,
+      `Because <strong>${state.name} levies no state income tax</strong>, nothing on your ${year} check goes to a state income tax line. Your pay is still reduced by federal withholding, FICA, and the ${prog} contributions ${state.name} takes from employee wages, and all of those are in the estimate above.`,
+      `${state.name} workers pay <strong>no state income tax</strong> in ${year}. The deductions that remain are federal income tax, FICA (Social Security and Medicare), and the ${prog} contributions ${state.name} takes straight from employee wages, so no income tax here does not mean nothing is withheld for the state.`
+    ]) : pickFrame(state.slug, 'notax', [
       `${state.name} is one of the U.S. states with <strong>no state income tax</strong>. Your ${year} paycheck is reduced only by federal income tax withholding and FICA (Social Security and Medicare) — there is no ${state.name} income tax line, so your take-home pay is higher than in an otherwise-identical job in a state that taxes wages.`,
       `Because <strong>${state.name} levies no state income tax</strong>, the only deductions on your ${year} paycheck are federal withholding and FICA — no state line at all, which leaves more in your pocket than the same job in a taxing state.`,
       `${state.name} workers pay <strong>no state income tax</strong> in ${year}. That means your paycheck loses only federal income tax and FICA (Social Security and Medicare), so take-home pay beats an equivalent salary in a wage-taxing state.`
@@ -1817,7 +2438,7 @@ function stateBody(state, year, taxData) {
 function stateDisclaimerNote(state, noTax) {
   const disclaimers = (state.disclaimer || []).slice();
   disclaimers.push(BASELINE_DISCLAIMER);
-  if (noTax) disclaimers.push(NOTAX_DISCLAIMER);
+  if (noTax) disclaimers.push(notaxDisclaimer(state, withholdingProfile(state)));
   return `<p class="note"><strong>What this estimate doesn't include:</strong> ` +
     disclaimers.join(' ') + `</p>`;
 }
@@ -1899,7 +2520,7 @@ function payrollDeductionsBlock(state, p) {
   // figure at the top of the page. Any other rows in this table (unemployment,
   // long-term-care, etc.) are not modeled, so say so plainly — this is the fix
   // for the "documents SDI but never subtracts it" criticism.
-  const modeled = Array.isArray(state.employeePrograms) ? state.employeePrograms : [];
+  const modeled = withholdingProfile(state).programs;
   let statusNote;
   if (modeled.length) {
     const labels = modeled.map((pr) => escHtml(pr.label)).join(', ');
@@ -2061,7 +2682,7 @@ function obbbaConformityBlock(state, obbba, year) {
     `<li><strong>${label}:</strong> 2025 — ${verdict(d.y2025)}; 2026–2028 — ${verdict(d.y2026)}.</li>`;
   const srcHost = (() => { try { return new URL(e.source).hostname.replace(/^www\./, ''); } catch (_) { return ''; } })();
   const srcLink = e.source && srcHost
-    ? ` <span class="muted-small">(source: <a href="${escHtml(e.source)}" rel="nofollow noopener" target="_blank">${escHtml(srcHost)}</a>)</span>`
+    ? ` <span class="muted-small">(source: <a href="${escHtml(e.source)}" rel="noopener" target="_blank">${escHtml(srcHost)}</a>)</span>`
     : '';
 
   return `<section class="prose"><h2>${h2}</h2>${fed}` +
@@ -2091,7 +2712,7 @@ function sourcesBlock(state, p, meta) {
   // repeated identical entries) — keep the first URL seen for each.
   const byHost = new Map();
   for (const u of urls) { const h = hostOf(u); if (!byHost.has(h)) byHost.set(h, u); }
-  const lis = [...byHost.entries()].map(([h, u]) => `<li><a href="${escHtml(u)}" rel="nofollow noopener" target="_blank">${escHtml(h)}</a></li>`).join('');
+  const lis = [...byHost.entries()].map(([h, u]) => `<li><a href="${escHtml(u)}" rel="noopener" target="_blank">${escHtml(h)}</a></li>`).join('');
   return `<section class="sources"><h2>Sources</h2><ul>${lis}</ul></section>`;
 }
 
@@ -2444,12 +3065,51 @@ function bonusSourceName(state, supp) {
   return `the ${state.name} Department of Revenue`;
 }
 
+// The bonus engine models income tax and FICA only. A state that runs
+// employee-paid programs therefore cannot present the federal 22% and FICA as
+// the whole story. What the note may CLAIM is set by the data: a program record
+// that states it is charged on supplemental pay gets a flat assertion, and one
+// that is silent gets a sentence that asserts neither direction, because
+// "Alaska withholds unemployment insurance from bonus pay" was written on one
+// page while another said a bonus "meets federal withholding and nothing else",
+// and no source in this repo settled which was right. Empty when the state has
+// no employee-paid programs at all.
+// `detail` adds the sentence explaining WHY the note stops where it does. The
+// note lands in four places on a bonus page, so only the explainer section takes
+// the long form and the rest take the clause.
+function bonusProgramNote(state, { detail = false } = {}) {
+  const wp = withholdingProfile(state);
+  const many = wp.programs.length > 1;
+  if (wp.bonusEvidence === 'confirmed') {
+    return ` ${state.name} also takes its ${wp.bonusPhrase} contributions out of a bonus, and ${many ? 'those sit' : 'that sits'} outside this estimate.`;
+  }
+  if (wp.bonusEvidence === 'unknown') {
+    const short = ` ${state.name} also withholds ${wp.programPhrase} contributions from wages, which this estimate does not model.`;
+    return detail
+      ? `${short} The published ${many ? 'rates do' : 'rate does'} not say whether a separately paid bonus carries ${many ? 'them' : 'it'}, so your pay stub is the authority there.`
+      : short;
+  }
+  return '';
+}
+
 function bonusLede(state, supp, year) {
+  const wp = withholdingProfile(state);
+  // (a) WHAT THIS STATE STILL TAKES that the bonus engine does not model. Keyed
+  // to the state's own employeePrograms and to nothing else. It used to be
+  // reachable only from inside the no-income-tax branch below, which is why the
+  // twelve income-tax states that run a real premium said nothing about it.
+  const progDisclosure = bonusProgramNote(state);
   let stateBit;
   if (supp.method === 'none') {
     const angle = NOTAX_ANGLE[state.slug];
     const angleBit = angle ? ` (it runs on ${angle})` : '';
-    stateBit = pickFrame(state.slug, 'btledeNo', [
+    if (!wp.federalOnly) {
+      // `federalOnly` is the only licence for the exclusivity frames below
+      // ("only ... come out", "nothing goes to the state"), so a state with
+      // programs takes this non-exclusive sentence instead. The premium itself
+      // is named by progDisclosure, appended once at the end for every state.
+      stateBit = `${state.name} takes <strong>no state income tax</strong>${angleBit}, so the flat <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a> come out of the bonus.`;
+    } else stateBit = pickFrame(state.slug, 'btledeNo', [
       `${state.name} takes <strong>no state income tax</strong>${angleBit}, so only the flat <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a> come out.`,
       `With <strong>no ${state.name} income tax</strong>${angleBit}, the only bites are the flat <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a>.`,
       `Because ${state.name} levies <strong>no income tax</strong>${angleBit}, nothing goes to the state — just the <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a>.`
@@ -2470,39 +3130,53 @@ function bonusLede(state, supp, year) {
   ]);
   const close = pickFrame(state.slug, 'btledeC', [
     `Enter your numbers to see what's held back now beside what the bonus will really cost when you file, and your refund or amount owed.`,
-    `Put in your figures below to compare what's withheld now with your real tax at filing — and the refund or shortfall.`,
+    `Put in your figures above to compare what's withheld now with your real tax at filing — and the refund or shortfall.`,
     `Run your numbers to see the "now" withholding next to the "at tax time" total, and how much comes back or is still owed.`,
-    `Type in your salary and bonus below and the tool lines up today's withholding against your true tax, with the refund or balance due.`,
+    `Type in your salary and bonus above and the tool lines up today's withholding against your true tax, with the refund or balance due.`,
     `Drop your figures in to watch the payday deduction sit next to the real filing cost, plus whatever you get back or owe.`
   ]);
-  return `${open} ${stateBit} ${close} Everything runs in your browser.`;
+  return `${open} ${stateBit}${progDisclosure} ${close} Everything runs in your browser.`;
 }
 
 function bonusAnswerBlock(state, supp) {
   let stateClause;
-  if (supp.method === 'none') stateClause = pickFrame(state.slug, 'btansState', [
-    `<strong>0%</strong> for state tax (${state.name} has no income tax)`,
-    `nothing for the state — ${state.name} levies no income tax`,
-    `<strong>$0</strong> in ${state.name} tax, since the state has no income tax`
-  ]);
+  const wp = withholdingProfile(state);
+  // TWO QUESTIONS, TWO VARIABLES. They used to be one, and the single variable
+  // was read as both.
+  //   (a) progDisclosure, what the state still withholds that this estimate
+  //       leaves out. Keyed to employeePrograms only, so it reaches the twelve
+  //       income-tax states that run a premium as well as the two that do not.
+  //   (b) noStateIncomeTax, whether the state levies a wage income tax, from
+  //       withholdingProfile rather than a raw field. This, and only this, may
+  //       select the "$0 in X income tax" phrasing: keying that phrasing to (a)
+  //       would let a state with a premium be told it pays no income tax.
+  const progDisclosure = bonusProgramNote(state);
+  const noStateIncomeTax = !wp.hasIncomeTax;
+  if (supp.method === 'none') stateClause = (noStateIncomeTax && progDisclosure)
+    ? `<strong>$0</strong> in ${state.name} income tax`
+    : pickFrame(state.slug, 'btansState', [
+      `<strong>0%</strong> for state tax (${state.name} has no income tax)`,
+      `nothing for the state, because ${state.name} levies no income tax`,
+      `<strong>$0</strong> in ${state.name} tax, since the state has no income tax`
+    ]);
   else if (supp.method === 'flat') stateClause = `<strong>${pctStr(supp.rate)}</strong> for ${state.name}`;
   else if (supp.special === 'ca_dual') stateClause = `<strong>10.23%</strong> for California (6.6% on non-bonus supplemental pay)`;
   else if (supp.special === 'pct_of_federal') stateClause = `<strong>30% of that federal amount</strong> for Vermont`;
   else if (supp.special === 'wi_banded') stateClause = `a <strong>graduated Wisconsin rate (3.54%–7.65%)</strong> by income`;
   else stateClause = `no separate ${state.name} rate — it's withheld as ordinary wages${supp.incomeRate ? ` (about <strong>${pctStr(supp.incomeRate)}</strong>)` : ''}`;
   const tail = pickFrame(state.slug, 'btans', [
-    `That's a prepayment, not your final tax — the bonus is really taxed at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> when you file, and the calculator below shows the refund or amount you'll owe.`,
-    `Those are <a href="/tax-glossary/#withholding">withholding</a> rates, not the tax itself; your bonus settles at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> on your return — the tool below shows by how much.`,
+    `That's a prepayment, not your final tax — the bonus is really taxed at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> when you file, and the calculator above shows the refund or amount you'll owe.`,
+    `Those are <a href="/tax-glossary/#withholding">withholding</a> rates, not the tax itself; your bonus settles at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> on your return — the tool above shows by how much.`,
     `But that's only <a href="/tax-glossary/#withholding">withholding</a>. Your real bill is your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> at filing; run the calculator to see the refund or shortfall.`,
-    `None of that is the final number — a bonus is taxed at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> once you file, so the calculator below estimates what comes back or is still due.`,
-    `Treat it as money on account. The real tax is your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>, reconciled on your return; the tool below shows the gap either way.`
+    `None of that is the final number — a bonus is taxed at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> once you file, so the calculator above estimates what comes back or is still due.`,
+    `Treat it as money on account. The real tax is your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>, reconciled on your return; the tool above shows the gap either way.`
   ]);
   const lead = pickFrame(state.slug, 'btansLead', [
     `<strong>Quick answer:</strong> a separately paid bonus in ${state.name} is <a href="/tax-glossary/#withholding">withheld</a> at a flat <strong>22%</strong> for federal income tax plus ${stateClause}, plus <strong>7.65%</strong> FICA.`,
     `<strong>Short version:</strong> in ${state.name}, a bonus paid on its own is <a href="/tax-glossary/#withholding">withheld</a> at the flat federal <strong>22%</strong>, ${stateClause}, and <strong>7.65%</strong> FICA.`,
     `<strong>The quick take:</strong> a stand-alone ${state.name} bonus has a flat <strong>22%</strong> federal tax <a href="/tax-glossary/#withholding">withheld</a>, ${stateClause}, plus <strong>7.65%</strong> FICA.`
   ]);
-  return `<section class="prose"><p>${lead} ${tail}</p></section>`;
+  return `<section class="prose"><p>${lead} ${tail}${progDisclosure}</p></section>`;
 }
 
 function bonusMythBust(state, supp, ex) {
@@ -2601,10 +3275,19 @@ function bonusFicaPara(state) {
 
 function bonusHowItWorks(state, supp, year) {
   const src = bonusSourceName(state, supp);
+  // (a) again, hoisted out of the no-income-tax branch it used to live in. The
+  // explainer section is the one place that carries the long form, and every
+  // state that runs an employee-paid program gets it, whether or not the state
+  // also taxes income.
+  const progNote = bonusProgramNote(state, { detail: true });
   let st;
   if (supp.method === 'none') {
     const fact = NOTAX_FACTS[state.slug] ? ` ${NOTAX_FACTS[state.slug]}` : '';
-    st = pickFrame(state.slug, 'btst_n', [
+    if (progNote) {
+      // Every frame below calls the federal 22% and FICA the only withholding,
+      // which is not true of a state that also runs employee-paid programs.
+      st = `<p><strong>${state.name}: $0 state income tax.</strong> ${state.name} levies no income tax on wages, so no state income tax comes out of your bonus and the withholding in this estimate is the federal 22% plus FICA.${progNote}${fact}</p>`;
+    } else st = pickFrame(state.slug, 'btst_n', [
       `<p><strong>${state.name}: $0 state.</strong> ${state.name} levies no state income tax on wages, so nothing is withheld for state tax on your bonus — only the federal 22% and FICA.${fact}</p>`,
       `<p><strong>${state.name}: nothing at the state level.</strong> With no ${state.name} wage income tax, your bonus loses <strong>$0</strong> to state withholding; just the federal 22% and FICA apply.${fact}</p>`,
       `<p><strong>${state.name} takes no cut.</strong> Because ${state.name} has no state income tax, there's no state line on your bonus at all — the only withholding is the flat 22% federal and FICA.${fact}</p>`,
@@ -2623,7 +3306,12 @@ function bonusHowItWorks(state, supp, year) {
       `<p><strong>${state.name} keeps it simple: ${pctStr(supp.rate)}.</strong> A separately paid bonus is subject to one flat state rate in ${state.name}, <strong>${pctStr(supp.rate)}</strong> (${src}).${extra}</p>`
     ]);
   } else if (supp.special === 'ca_dual') {
-    st = `<p><strong>California: two rates.</strong> California withholds <strong>10.23%</strong> on bonuses and stock options, and <strong>6.6%</strong> on other supplemental wages (${src}). SDI is also withheld but is not an income tax.</p>`;
+    // The old closing sentence here, "SDI is also withheld but is not an income
+    // tax", was the only mention of a premium on any income-tax state's bonus
+    // page, and it told a Californian the premium exists without telling them
+    // the figures on this page do not include it. The shared note below says
+    // both, in the same words every other state gets.
+    st = `<p><strong>California: two rates.</strong> California withholds <strong>10.23%</strong> on bonuses and stock options, and <strong>6.6%</strong> on other supplemental wages (${src}).</p>`;
   } else if (supp.special === 'pct_of_federal') {
     st = `<p><strong>Vermont: 30% of the federal amount.</strong> Vermont's supplemental withholding is <strong>30% of the federal income tax withheld</strong> on the bonus, not a percent of the bonus — about 6.6% of the bonus on the flat 22% federal (6% for nonqualified deferred comp), per ${src}.</p>`;
   } else if (supp.special === 'wi_banded') {
@@ -2643,6 +3331,11 @@ function bonusHowItWorks(state, supp, year) {
       st = st.replace('</p>', ` ${state.name}'s income tax is graduated across ${numWord(b.length)} ${state.name} brackets topping out at ${pctStr(topRate)}, so an aggregated bonus is withheld somewhere along that schedule.</p>`);
     }
   }
+  // Appended inside the state paragraph, after every branch above has finished
+  // rewriting it, so the note lands last rather than in front of a sentence the
+  // regular-method branch splices in. The no-income-tax branch already placed it
+  // ahead of its NOTAX_FACTS tail, so it is excluded here rather than doubled.
+  if (supp.method !== 'none' && progNote) st = st.replace(/<\/p>\s*$/, `${progNote}</p>`);
   const heading = pickFrame(state.slug, 'bthowH', [
     `How a ${state.name} bonus is withheld: 22% federal + ${bonusRateWord(supp)}`,
     `What comes out of a ${state.name} bonus in ${year}`,
@@ -2740,8 +3433,36 @@ function bonusSizeTable(state, supp, taxData, suppData) {
     `<p class="muted-small">${foot}</p></section>`;
 }
 
+// Each ancillary section folds to its own h2: the body stays in the DOM (the
+// AI-citation channel reads HTML, not rendered state) but the visitor who came
+// for a number no longer scrolls a tax class. Benchmark personas quit these
+// pages "at the second table"; the FAQ and Sources blocks are not run through
+// this and stay open (scannable answers and the trust anchor respectively).
+//
+// AdSense-review guard: the re-review requested 2026-07-25 was made against
+// pages whose prose was fully visible; the folds shipped 07-31 hide 27-55% of
+// it on load. Until that verdict lands, every prose fold renders expanded by
+// default (still user-collapsible) so a human reviewer sees the same content
+// density the review request attested to. Flip to false after the verdict to
+// restore collapsed-by-default. Applied in rewriteHtmlAssetRefs so template
+// folds (tips/overtime/state-page) get it too, not just foldProse output.
+const PROSE_FOLD_OPEN = true;
+function foldProse(html) {
+  const m = html.match(/^(\s*<section class="prose[^"]*"[^>]*>)([\s\S]*?)(<h2[^>]*>[\s\S]*?<\/h2>)([\s\S]*?)(<\/section>\s*)$/);
+  if (!m) return html;
+  return `${m[1]}${m[2]}<details class="prose-fold"><summary>${m[3]}</summary>${m[4]}</details>${m[5]}`;
+}
+
+// Multi-section variant for strings that concatenate several prose sections
+// (state-page ancillary/payroll/bracket blocks). Sections without an h2, and
+// anything not shaped <section class="prose...">, pass through untouched.
+function foldProseAll(html) {
+  if (!html) return html;
+  return html.replace(/<section class="prose[^"]*"[^>]*>[\s\S]*?<\/section>/g, (sec) => foldProse(sec));
+}
+
 function bonusSections(sections, slug) {
-  const ordered = orderAncillary(slug, sections).filter(Boolean);
+  const ordered = orderAncillary(slug, sections).filter(Boolean).map(foldProse);
   const half = Math.ceil(ordered.length / 2);
   return { a: ordered.slice(0, half).join('\n'), b: ordered.slice(half).join('\n') };
 }
@@ -2840,7 +3561,27 @@ function bonusFaqEntries(state, supp, year) {
     : supp.special === 'wi_banded' ? '3.54%–7.65% by income band'
     : supp.incomeRate ? `about ${pctStr(supp.incomeRate)} (aggregate method)` : 'the aggregate method';
   const e = [];
-  if (supp.method === 'none') {
+  const wp = withholdingProfile(state);
+  // The programs clause, and whether there is one at all, comes from the state's
+  // own data. This answer is emitted as FAQPage JSON-LD, so an exclusivity claim
+  // here ("only the 22% and FICA") is a structured-data claim: it is allowed on a
+  // federal-only state and on no other.
+  // The most dangerous of the four slots, and the reason (a) and (b) cannot
+  // share a variable. The branch below opens "X has no state income tax, so $0
+  // is withheld", and it used to be entered on the strength of the note alone.
+  // Widening the note to the twelve income-tax program states without splitting
+  // the variable would publish "New Jersey has no state income tax" as FAQPage
+  // JSON-LD on twelve pages, California's among them. Count the states here from
+  // the data, not from this comment, if you touch it.
+  const progTail = bonusProgramNote(state);
+  const noStateIncomeTax = !wp.hasIncomeTax;
+  if (noStateIncomeTax && progTail) {
+    e.push({
+      q: `How much is withheld from a bonus in ${state.name}?`,
+      a: `${state.name} has no state income tax, so $0 is withheld for state income tax. Federally, a separately paid bonus is withheld at a flat 22% (37% above $1,000,000/yr), plus 7.65% FICA, which is a prepayment rather than your final tax.${progTail}`,
+      html: `${state.name} has no state income tax, so <strong>$0</strong> is withheld for state income tax. Federally, a separately paid bonus is <a href="/tax-glossary/#withholding">withheld</a> at a flat <strong>22%</strong> (37% above $1,000,000/yr), plus 7.65% <a href="/tax-glossary/#fica">FICA</a>, which is a prepayment rather than your final tax.${progTail}`
+    });
+  } else if (supp.method === 'none') {
     e.push(pickFrame(state.slug, 'btfaq1n', [
       { q: `How much is withheld from a bonus in ${state.name}?`,
         a: `${state.name} has no state income tax, so $0 is withheld for state tax. Federally, a separately paid bonus is withheld at a flat 22% (37% above $1,000,000/yr), plus 7.65% FICA — a prepayment, not your final tax.`,
@@ -2853,7 +3594,7 @@ function bonusFaqEntries(state, supp, year) {
         html: `State <a href="/tax-glossary/#withholding">withholding</a> is zero because ${state.name} taxes no wage income. The only deductions are the flat <strong>22%</strong> federal (37% on bonus dollars above $1,000,000/yr) and 7.65% <a href="/tax-glossary/#fica">FICA</a>, and the 22% is refundable if your real rate is lower.` }
     ]));
   } else {
-    e.push(pickFrame(state.slug, 'btfaq1s', [
+    const frame = pickFrame(state.slug, 'btfaq1s', [
       { q: `What is the ${state.name} bonus tax rate in ${year}?`,
         a: `${state.name} withholds ${rateStrPlain} on a separately paid bonus, on top of the flat 22% federal rate (37% above $1,000,000/yr) and 7.65% FICA. That is withholding, not your final tax.`,
         html: `${state.name} withholds <strong>${rateStrPlain}</strong> on a separately paid bonus, on top of the flat <strong>22%</strong> federal rate (37% above $1,000,000/yr) and 7.65% <a href="/tax-glossary/#fica">FICA</a>. That's <a href="/tax-glossary/#withholding">withholding</a>, not your final tax.` },
@@ -2863,7 +3604,12 @@ function bonusFaqEntries(state, supp, year) {
       { q: `What rate does ${state.name} withhold on a bonus in ${year}?`,
         a: `${state.name}'s supplemental withholding is ${rateStrPlain}, added to the flat 22% federal prepayment (37% on bonus pay over $1,000,000/yr) and 7.65% FICA. Only the income-tax portion is a prepayment; it trues up at your real rate.`,
         html: `${state.name}'s supplemental <a href="/tax-glossary/#withholding">withholding</a> is <strong>${rateStrPlain}</strong>, added to the flat <strong>22%</strong> federal prepayment (37% on bonus pay over $1,000,000/yr) and 7.65% <a href="/tax-glossary/#fica">FICA</a>. Only the income-tax portion is a prepayment; it trues up at your real rate.` }
-    ]));
+    ]);
+    // Spread, not mutate: pickFrame hands back the literal out of the array
+    // above, and this answer is republished as FAQPage JSON-LD, so writing
+    // through the reference would append the note again on the next state that
+    // draws the same frame.
+    e.push(progTail ? { ...frame, a: `${frame.a}${progTail}`, html: `${frame.html}${progTail}` } : frame);
   }
   e.push(pickFrame(state.slug, 'btfaq2', [
     { q: `Are bonuses taxed at a higher rate in ${state.name}?`, a: `No. A bonus is ordinary income taxed at your normal marginal rate when you file; the flat 22% withheld is a prepayment, not a tax rate.`,
@@ -2890,7 +3636,7 @@ function bonusFaqEntries(state, supp, year) {
   else if (supp.special === 'ca_dual') e.push({ q: `Does California withhold a different rate on stock options?`, a: `California uses 10.23% for bonuses and stock options, and 6.6% for other supplemental wages. Pick the payment type in the calculator to switch.` });
   else if (state.slug === 'north-carolina') e.push({ q: `Is North Carolina's 4.09% bonus rate the same as its income tax rate?`, a: `No. The flat income tax is 3.99%, but the supplemental withholding rate is a distinct 4.09% (NC-30, 2026).` });
   else if (supp.method === 'regular') e.push({ q: `Does ${state.name} have a separate bonus withholding rate?`, a: `No. ${state.name} has no separate supplemental rate, so a bonus is withheld with the aggregate method — as if it were part of your regular wages${supp.incomeRate ? `, effectively near ${pctStr(supp.incomeRate)}` : ''}.` });
-  else if (supp.method === 'none') e.push({ q: `Does ${state.name} tax my bonus at all?`, a: `${state.name} charges no state income tax on it. You still owe federal income tax (a flat 22% is withheld, trued up at filing) and FICA on the bonus.` });
+  else if (supp.method === 'none') e.push({ q: `Does ${state.name} tax my bonus at all?`, a: `${state.name} charges no state income tax on it. You still owe federal income tax (a flat 22% is withheld, trued up at filing) and FICA on the bonus.${progTail}` });
   else e.push({ q: `Does a bonus push my ${state.name} income into a higher bracket?`, a: `No. Brackets are marginal — only the dollars above each threshold are taxed higher. A bonus never re-taxes income you already earned.` });
   return orderAncillary(state.slug, e);
 }
@@ -2902,11 +3648,11 @@ function bonusFaqBlock(state, entries) {
 
 function bonusSourcesBlock(state, supp) {
   const lis = [];
-  lis.push(`<li><a href="https://www.irs.gov/publications/p15" rel="nofollow noopener" target="_blank">IRS Publication 15 (2026) — Supplemental Wages</a> (flat 22% / 37% above $1M)</li>`);
+  lis.push(`<li><a href="https://www.irs.gov/publications/p15" rel="noopener" target="_blank">IRS Publication 15 (2026) — Supplemental Wages</a> (flat 22% / 37% above $1M)</li>`);
   if (supp._sourceUrl) {
-    lis.push(`<li>${state.name} supplemental rate: <a href="${escHtml(supp._sourceUrl)}" rel="nofollow noopener" target="_blank">${escHtml(supp.source || 'state source')}</a></li>`);
+    lis.push(`<li>${state.name} supplemental rate: <a href="${escHtml(supp._sourceUrl)}" rel="noopener" target="_blank">${escHtml(supp.source || 'state source')}</a></li>`);
   } else if (supp.method === 'regular' || supp.method === 'none') {
-    lis.push(`<li>${state.name} income-tax status &amp; rate: see the <a href="/${state.slug}-paycheck-calculator/">${state.name} paycheck calculator</a> sources (state DOR, verified 2026-06-16).</li>`);
+    lis.push(`<li>${state.name} income-tax status &amp; rate: see the <a href="/${state.slug}-paycheck-calculator/">${state.name} paycheck calculator</a> sources (state DOR${LAST_SOURCED ? `, verified ${LAST_SOURCED}` : ''}).</li>`);
   }
   if (supp.singleSourced) {
     lis.push(`<li><em>${state.name}'s supplemental rate is sourced from a payroll-industry reference; verify with the ${state.name} Department of Revenue for the current year.</em></li>`);
@@ -3183,6 +3929,10 @@ async function rewriteHtmlAssetRefs(dir, hashMap) {
     let changed = false;
     const stripped = stripInlineStyleComments(stripHtmlComments(html));
     if (stripped !== html) { html = stripped; changed = true; }
+    if (PROSE_FOLD_OPEN && html.includes('<details class="prose-fold">')) {
+      html = html.replaceAll('<details class="prose-fold">', '<details class="prose-fold" open>');
+      changed = true;
+    }
     for (const [orig, hashed] of hashMap) {
       const re = new RegExp(`(["'])/assets/${orig.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\1`, 'g');
       if (re.test(html)) {
@@ -3196,11 +3946,19 @@ async function rewriteHtmlAssetRefs(dir, hashMap) {
 
 async function main() {
   const taxData = await readJSON(join(SRC, 'data', 'tax-data-2026.json'));
+  LAST_SOURCED = (taxData._meta && taxData._meta.lastSourced) || '';
   const roster = await readJSON(join(SRC, 'data', 'states.json'));
   TOOL_SOURCES = await readJSON(join(SRC, 'data', 'tool-sources.json'));
   const payrollData = await readJSON(join(SRC, 'data', 'state-payroll-2026.json'));
   const payroll = (payrollData && payrollData.states) || {};
   const stateTpl = await read(join(SRC, 'templates', 'state-page.html'));
+  // The pre-render guard's denominator, read out of app.js itself once per build
+  // rather than maintained by hand next to it. See scanAppFirstRender().
+  const appScan = scanAppFirstRender(await read(join(SRC, 'assets', 'app.js')));
+  console.log(
+    `   pre-render guard: ${appScan.contentIds.size} elements derived from app.js ` +
+    `(${appScan.reachable} of ${appScan.functions} functions reachable from init)`
+  );
   const homeTpl = await read(join(SRC, 'templates', 'home.html'));
   const pageTpl = await read(join(SRC, 'templates', 'page.html'));
   const invoiceTpl = await read(join(SRC, 'templates', 'invoice-generator.html'));
@@ -3484,8 +4242,49 @@ async function main() {
       `Update to ${nowYear} before relying on this deploy. (npm test will fail on this.)\n`);
   }
 
+  // `verified` is rendered to every state and bonus page as "verified <date>", which is
+  // a factual claim about when a human last checked. It goes stale the moment the figures
+  // it describes are edited, and the year check above cannot see that: on 2026-07-29 six
+  // states' brackets were rewritten while this date still read 2026-06-16. Surfaced here
+  // as well as in check-freshness.js because the build is what runs on every deploy.
+  if (verified) {
+    try {
+      const { execFileSync } = await import('node:child_process');
+      const lastDataCommit = execFileSync(
+        'git', ['log', '-1', '--format=%cs', '--', 'src/data/tax-data-2026.json'],
+        { cwd: __dirname, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+      ).trim();
+      if (lastDataCommit && lastDataCommit > verified) {
+        console.warn(`\n⚠  VERIFIED-DATE STALE: tax data last changed ${lastDataCommit}, but pages ` +
+          `will render "verified ${verified}". Re-check the figures, then set _meta.lastSourced ` +
+          `to the date you actually checked. Do not bump it without checking.\n`);
+      }
+    } catch (err) {
+      // Not a git checkout, or git is unavailable. Say so rather than swallowing it:
+      // a silent catch here is how this guard would quietly stop guarding. The
+      // check-freshness.js copy still runs in `npm test`.
+      console.warn(`⚠  verified-date check skipped: ${err.message}`);
+    }
+  }
+
+  // A `_watch` entry is a dated legal-status tripwire (temporary act, revenue
+  // trigger, active dispute). Unlike the warnings above it hard-fails the build:
+  // an expired watch means pages may be computing on law that no longer exists,
+  // and the date exists precisely so it cannot be ignored. npm test carries the
+  // same check; this copy runs on every deploy.
+  const watchToday = new Date().toISOString().slice(0, 10);
+  for (const [wSlug, wSt] of Object.entries(taxData.states)) {
+    if (wSt._watch && wSt._watch.until && wSt._watch.until < watchToday) {
+      throw new Error(`legal-status watch EXPIRED for ${wSlug} on ${wSt._watch.until}: ${wSt._watch.what}`);
+    }
+  }
+
   const builtSlugs = new Set(Object.keys(taxData.states));
   const homeLinks = stateLinks(roster, builtSlugs, null);
+  // Computed once over the jurisdictions the study actually ranks, then written
+  // into all 51 state pages, so no page can claim a coverage the data denies.
+  const studyRulesText = studyRulesPhrase(
+    [...builtSlugs].map((s) => taxData.states[s]), year, 'every state and DC');
 
   // fresh dist
   await rm(DIST, { recursive: true, force: true });
@@ -3740,7 +4539,7 @@ async function main() {
       { name: `${state.name} Bonus Tax Calculator`, path: `/${slug}-bonus-tax-calculator/` },
       { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
       { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
-      { name: 'Take-Home Pay by State on $75,000 (Data Study)', path: '/data/take-home-pay-by-state/' },
+      { name: `Take-Home Pay by State on ${STUDY_SALARY_TEXT} (Data Study)`, path: '/data/take-home-pay-by-state/' },
       { name: 'Overtime Tax by State (Data Study)', path: '/data/overtime-tax-by-state/' },
       { name: 'Tip Income Tax by State (Data Study)', path: '/data/tips-tax-by-state/' },
       { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' }
@@ -3760,27 +4559,31 @@ async function main() {
     // One take-home computation for this state, shared by the extractable answer
     // sentence and by the pre-rendered figures in the calculator's answer band.
     const net75 = stateNet75(state, taxData);
-    assertFormatterParity(state, net75);
+    if (!net75) {
+      throw new Error(
+        `no $75,000 computation for ${slug}: the page would serve an empty results panel and an ` +
+        `answer sentence with no figure in it. Fix the state's tax data rather than shipping zeroes.`
+      );
+    }
+    const panel = statePanel(state, taxData, net75);
     const answer = stateAnswerParts(state, year, net75);
     const html = fill(stateTpl, {
       STATE_NAME: state.name,
       STATE_TITLE: stateTitle(state, year),
       STATE_META_DESC: stateMetaDesc(state, year),
-      STATE_H1: TARGET_STATES.has(slug)
-        ? `${state.name} Paycheck, Payroll &amp; Income Tax Calculator`
-        : `${state.name} Paycheck &amp; Payroll Calculator`,
+      // Short, human, and the exact phrase a searcher types, with nothing wedged
+      // into the middle of it. The take-home framing lives in the answer-lead
+      // paragraph directly beneath, which already states this state's take-home
+      // figure, and the "payroll" / "income tax calculator" vocabulary the old
+      // H1 carried is still on the page in the lede, the body H2s and the meta.
+      STATE_H1: `${state.name} Paycheck Calculator`,
       STATE_SLUG: slug,
       STATE_ABBR: state.abbr,
-      STATE_TAX_PHRASE: state.hasIncomeTax ? `, and ${state.name} state income tax` : '',
-      STATE_KEYWORD_PHRASE: state.hasIncomeTax
-        ? 'paycheck, payroll and income tax calculator'
-        : 'paycheck and payroll calculator',
-      STATE_NOTAX_NOTE: state.hasIncomeTax
-        ? ''
-        : ` ${state.name} has no state income tax, so this tool shows your federal income tax and take-home pay.`,
-      STATE_META_TAX_NOTE: state.hasIncomeTax
-        ? ` — also works as a ${state.name} income tax calculator`
-        : `. ${state.name} has no state income tax, so it doubles as a federal income tax calculator`,
+      // STATE_TAX_PHRASE / STATE_KEYWORD_PHRASE / STATE_NOTAX_NOTE /
+      // STATE_META_TAX_NOTE were removed here: no template has referenced them
+      // since the state page was restructured, and four unread copies of the
+      // "what comes out of your pay" claim are four more places for it to drift.
+      // The live versions are inside stateMetaDesc() and stateLede().
       FIGURE_BANNER: figureYearBanner(state, year),
       ANSWER_LEAD: answer.lead,
       ANSWER_TAIL: answer.tail,
@@ -3791,9 +4594,17 @@ async function main() {
       // JavaScript off, and right to a crawler that never executes anything.
       // app.js's first render reproduces these strings exactly (parity asserted
       // above), so hydration is a visual no-op.
-      NET_LABEL: net75 ? stateNetLabel(state) : '',
-      NET_BIG: net75 ? usd2App(net75.biweeklyNet) : '$0.00',
-      NET_SUB: net75 ? `take-home per 2 weeks · ${usd0(net75.annualNet)}/yr` : '',
+      NET_LABEL: stateNetLabel(state),
+      NET_BIG: usd2App(net75.biweeklyNet),
+      NET_SUB: `take-home per 2 weeks · ${usd0(net75.annualNet)}/yr`,
+      // The whole results panel, pre-rendered on the same page defaults the form
+      // ships with: the withholding rows, the state program rows, the rate row
+      // and the donut. Without them the served HTML said "Net pay $0.00" under a
+      // sentence quoting the real figure, and then, once six of them were filled
+      // but the program rows were not, said a subtraction that was wrong by the
+      // size of the state premium. That is what a crawler that never executes
+      // anything read.
+      ...panel.tokens,
       BRACKET_SUMMARY: bracketSummary(state),
       COMPARE_SUMMARY: compareSummary(roster, builtSlugs, slug),
       APPLIES_BLOCK: buildStateApplies({
@@ -3807,16 +4618,29 @@ async function main() {
       STATE_LEDE: stateLede(state, year),
       STATE_BODY_H2: stateBodyH2(state, year),
       STATE_BODY: stateBody(state, year, taxData),
-      BRACKET_TABLE: bracketTableBlock(state, year),
-      STATE_PAYROLL: payrollDeductionsBlock(state, p),
-      ANCILLARY_A: ancillary.slice(0, ancSplit).join('\n'),
-      ANCILLARY_B: ancillary.slice(ancSplit).join('\n'),
+      // The explainer sections below the calculator fold to their headings
+      // (foldProseAll), the paycheck-page half of the same treatment the bonus
+      // pages got: the words stay in the DOM for the AI-citation channel, the
+      // visitor stops scrolling a tax class. The applies block (interactive),
+      // the FAQ, the neighbor/link section and Sources deliberately stay open.
+      BRACKET_TABLE: foldProseAll(bracketTableBlock(state, year)),
+      STATE_PAYROLL: foldProseAll(payrollDeductionsBlock(state, p)),
+      ANCILLARY_A: foldProseAll(ancillary.slice(0, ancSplit).join('\n')),
+      ANCILLARY_B: foldProseAll(ancillary.slice(ancSplit).join('\n')),
       STATE_FAQ: stateFaqBlock(state, faqEntries),
-      OBBBA_CONFORMITY: obbbaConformityBlock(state, obbba, year),
+      OBBBA_CONFORMITY: foldProseAll(obbbaConformityBlock(state, obbba, year)),
       SOURCES: sourcesBlock(state, p, taxData._meta),
       STATE_LINKS: stateLinks(roster, builtSlugs, slug),
       NEIGHBOR_H2: neighborHeading(roster, builtSlugs, slug),
       NEIGHBOR_COMPARE: neighborCompareTable(roster, builtSlugs, slug, taxData, year),
+      // Salaries quoted in the one-sentence cross-link to the all-states study.
+      // Read from the module constant that study is built on, so the sentence can
+      // never quote a level the study no longer computes.
+      STUDY_SALARIES: STUDY_SALARY_TEXT,
+      // Same sentence's coverage claim, from the same helper the study's own lede
+      // uses. It used to read "the 2026 rules of every state and DC" on all 51
+      // pages, which is not true while any jurisdiction is on prior-year tables.
+      STUDY_RULES: studyRulesText,
       FAQ_JSONLD: faqJsonLd(faqEntries),
       TAX_DATA_JSON: JSON.stringify(payload),
       YEAR: year,
@@ -3826,10 +4650,11 @@ async function main() {
     });
     const dir = join(DIST, `${slug}-paycheck-calculator`);
     await mkdir(dir, { recursive: true });
-    await writeFile(
-      join(dir, 'index.html'),
-      html.replace('<footer class="site">', `${stateRelated}\n<footer class="site">`)
-    );
+    const pageHtml = html.replace('<footer class="site">', `${stateRelated}\n<footer class="site">`);
+    // Checked against the bytes about to be written, not against the token map
+    // that produced them, so a template that stops using a token is caught too.
+    assertPanelParity(state, net75, panel, pageHtml, appScan);
+    await writeFile(join(dir, 'index.html'), pageHtml);
     urls.push(`${SITE.url}/${slug}-paycheck-calculator/`);
   }
 
@@ -3871,6 +4696,11 @@ async function main() {
       STATE_H1: `${state.name} Bonus Tax Calculator`,
       STATE_LEDE: bonusLede(state, suppEntry, year),
       BONUS_INTRO: bonusAnswerBlock(state, suppEntry),
+      // Derived from the state's own figureYear, never from a list of slugs, so
+      // California and Oklahoma stop being labelled the moment their data moves
+      // to 2026 and any state that falls behind starts being labelled without a
+      // code change. Same helper the paycheck cluster uses.
+      FIGURE_BANNER: figureYearBanner(state, year),
       SECTIONS_A: secs.a,
       SECTIONS_B: secs.b,
       STATE_FAQ: bonusFaqBlock(state, faqEntries),
@@ -3921,6 +4751,9 @@ async function main() {
       // Live count of built state pages, so the take-home-study link on the
       // paycheck hub can never claim a roster size the build didn't produce.
       ROW_COUNT_STATES: String(builtSlugs.size),
+      // Same guarantee for the salary levels: both homepage pointers to the
+      // take-home study read them from the array the study is built on.
+      STUDY_SALARIES: STUDY_SALARY_TEXT,
     })
   );
 
@@ -4863,7 +5696,7 @@ async function main() {
       const changed = (ot.y2025 && ot26 && ot.y2025 !== ot26)
         ? ' <span class="changed">changed from 2025</span>' : '';
       const src = s.source
-        ? `<a href="${esc(s.source)}" rel="nofollow noopener" target="_blank">source</a>` : '';
+        ? `<a href="${esc(s.source)}" rel="noopener" target="_blank">source</a>` : '';
       const note = [s.note ? esc(s.note) : '', src].filter(Boolean).join(' ');
       return `<tr id="state-${slug}"><td><a href="/${slug}-paycheck-calculator/">${esc(s.name)}</a></td>` +
         `<td data-rank="${otC.rank}">${otC.html}${changed}</td>` +
@@ -4974,7 +5807,7 @@ async function main() {
       const changed = (tp.y2025 && tp26 && tp.y2025 !== tp26)
         ? ' <span class="changed">changed from 2025</span>' : '';
       const src = s.source
-        ? `<a href="${esc(s.source)}" rel="nofollow noopener" target="_blank">source</a>` : '';
+        ? `<a href="${esc(s.source)}" rel="noopener" target="_blank">source</a>` : '';
       const note = [s.note ? esc(s.note) : '', src].filter(Boolean).join(' ');
       return `<tr id="state-${slug}"><td><a href="/${slug}-paycheck-calculator/">${esc(s.name)}</a></td>` +
         `<td data-rank="${tpC.rank}">${tpC.html}${changed}</td>` +
@@ -5098,21 +5931,39 @@ async function main() {
     urls.push(`${SITE.url}/what-applies-to-me/`);
   }
 
-  // "Take-home pay on $75,000 in all 51 states" DATA STUDY (/data/take-home-pay-by-state/).
-  // Doubles as the topical HUB for the 51 per-state paycheck calculators: every row
-  // deep-links to its own /<slug>-paycheck-calculator/ page.
+  // "Take-home pay on $75,000 and $100,000 in all 51 states" DATA STUDY
+  // (/data/take-home-pay-by-state/). Doubles as the topical HUB for the 51
+  // per-state paycheck calculators: every row deep-links to its own
+  // /<slug>-paycheck-calculator/ page.
+  //
+  // ONE page, TWO salary levels (STUDY_SALARIES), side by side in one table row.
+  // The lower level is the one the page ranks and narrates on, because it is also
+  // DEFAULT_SALARY, the salary every state page pre-fills; the higher level rides
+  // alongside it so a reader can read both figures for their own state without
+  // leaving the row. A SECOND page at the second salary was built and deleted:
+  // two indexable pages answering the same comparison only compete with each
+  // other, and the reader has to pick one before knowing which they want.
   //
   // EVERY figure on the page is computed here, at build time, by running the SAME
   // paycheck engine the state pages run (computePaycheck + tax-data-2026.json), so
-  // the study can never drift from the calculators and regenerates correctly when a
-  // state publishes new brackets. Nothing about the result is hardcoded: the winners,
-  // the losers, the spread, the ties, the analysis paragraphs and the FAQ are all
-  // derived from the sorted result set, and each analysis block is guarded so it
-  // disappears rather than lies if the underlying pattern stops holding.
+  // the study can never drift from the calculators and is recomputed from whatever
+  // the tax-data file currently says. Nothing about the result is hardcoded: the
+  // winners, the losers, the spreads, the ties, the analysis paragraphs and the
+  // FAQ are all derived from the sorted result sets, and each analysis block is
+  // guarded so it disappears rather than lies if the underlying pattern stops
+  // holding.
+  //
+  // What that does NOT license the copy to claim: nothing in this repo ingests
+  // state tax data by itself. A human edits src/data/tax-data-2026.json and the
+  // next build recomputes the page from it. "Computed, not hardcoded" is true;
+  // "updates itself when a state publishes new brackets" is not, and the page
+  // must not say it. Same discipline on the figures themselves: they are one
+  // filing status with no deductions, so they are a model of take-home pay, not
+  // the money that lands in anyone's account.
   {
-    const SALARY = 75000;
+    const SALARIES = STUDY_SALARIES;
     const STUDY_PUBLISHED_ISO = '2026-07-25';
-    const STUDY_UPDATED_ISO = '2026-07-25';
+    const STUDY_UPDATED_ISO = '2026-07-29';
     const STUDY_DATE_HUMAN = humanDate(STUDY_UPDATED_ISO);
     const esc = escHtml;
     const pct1 = (r) => (r * 100).toFixed(1) + '%';
@@ -5124,72 +5975,154 @@ async function main() {
       ? (arr[0] || '')
       : arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1]);
 
-    // One row per jurisdiction in the roster that tax-data actually carries.
-    const thpRows = roster
-      .filter((s) => taxData.states[s.slug])
-      .map((s) => {
-        const st = taxData.states[s.slug];
-        const a = computePaycheck({
-          wage: { type: 'salary', amount: SALARY },
-          filingStatus: 'single', payFrequency: 'annual', stateSlug: s.slug,
-        }, taxData).annual;
-        // Total withholding rate INCLUDES the post-tax state disability/paid-leave
-        // premiums, because the take-home column already nets them out — using the
-        // engine's tax-only effectiveRate here would make WA look identical to TX
-        // while showing a smaller paycheck.
-        return {
-          name: st.name, slug: s.slug, abbr: st.abbr,
-          net: a.net, stateTax: a.state, programs: a.statePrograms,
-          federal: a.federal, fica: a.socialSecurity + a.medicare,
-          totalRate: SALARY > 0 ? (SALARY - a.net) / SALARY : 0,
-          hasIncomeTax: !!st.hasIncomeTax,
-          figureYear: st.figureYear,
-          topRate: (() => {
-            const t = st.tax;
-            if (!st.hasIncomeTax || !t) return 0;
-            if (t.type === 'flat') return t.rate || 0;
-            if (t.type === 'bracket') {
-              const b = (t.brackets && (t.brackets.single || [])) || [];
-              return b.length ? b[b.length - 1].rate : 0;
-            }
-            return 0;
-          })(),
-        };
-      })
-      .sort((x, y) => y.net - x.net || x.name.localeCompare(y.name));
-
-    // Competition ranking on the UNROUNDED net, so tied states share a rank.
-    let rk = 0, prevNet = null;
-    thpRows.forEach((r, i) => {
-      if (prevNet === null || Math.abs(r.net - prevNet) > 0.005) { rk = i + 1; prevNet = r.net; }
-      r.rank = rk;
-    });
-
+    // One computed result set per salary level. Everything downstream reads from
+    // these, so a salary level is added or moved in STUDY_SALARIES alone.
+    const buildSet = (SALARY) => {
+      const rows = roster
+        .filter((s) => taxData.states[s.slug])
+        .map((s) => {
+          const st = taxData.states[s.slug];
+          const a = computePaycheck({
+            wage: { type: 'salary', amount: SALARY },
+            filingStatus: 'single', payFrequency: 'annual', stateSlug: s.slug,
+          }, taxData).annual;
+          // Total withholding rate INCLUDES the post-tax state payroll premiums,
+          // because the take-home column already nets them out. Using the
+          // engine's tax-only effectiveRate here would make WA look identical to
+          // TX while showing a smaller paycheck.
+          return {
+            name: st.name, slug: s.slug, abbr: st.abbr,
+            net: a.net, stateTax: a.state, programs: a.statePrograms,
+            programList: a.programs || [],
+            federal: a.federal, fica: a.socialSecurity + a.medicare,
+            totalRate: SALARY > 0 ? (SALARY - a.net) / SALARY : 0,
+            hasIncomeTax: !!st.hasIncomeTax,
+            figureYear: st.figureYear,
+            topRate: (() => {
+              const t = st.tax;
+              if (!st.hasIncomeTax || !t) return 0;
+              if (t.type === 'flat') return t.rate || 0;
+              if (t.type === 'bracket') {
+                const b = (t.brackets && (t.brackets.single || [])) || [];
+                return b.length ? b[b.length - 1].rate : 0;
+              }
+              return 0;
+            })(),
+          };
+        })
+        .sort((x, y) => y.net - x.net || x.name.localeCompare(y.name));
+      // Competition ranking on the UNROUNDED net, so tied states share a rank.
+      let rk = 0, prevNet = null;
+      rows.forEach((r, i) => {
+        if (prevNet === null || Math.abs(r.net - prevNet) > 0.005) { rk = i + 1; prevNet = r.net; }
+        r.rank = rk;
+      });
+      const best = rows[0];
+      const worst = rows[rows.length - 1];
+      const topTied = rows.filter((r) => r.rank === 1);
+      return {
+        salary: SALARY, rows, bySlug: new Map(rows.map((r) => [r.slug, r])),
+        best, worst, spread: best.net - worst.net,
+        topTied, topNames: topTied.map((r) => r.name),
+        // Federal income tax + FICA are identical in every row (same gross, same status).
+        fedFica: best.federal + best.fica,
+        median: rows[Math.floor(rows.length / 2)],
+        // Next-lowest state that is NOT tied with the last one.
+        nextUp: [...rows].reverse().find((r) => r.rank !== worst.rank),
+        noTaxWithProgram: rows.find((r) => !r.hasIncomeTax && r.programs > 0),
+      };
+    };
+    const sets = SALARIES.map(buildSet);
+    const base = sets[0];                  // the level the page ranks and narrates on
+    const high = sets[sets.length - 1];    // the level shown alongside it
+    const thpRows = base.rows;
     const rowCount = thpRows.length;
-    const best = thpRows[0];
-    const worst = thpRows[rowCount - 1];
-    const spread = best.net - worst.net;
-    const topTied = thpRows.filter((r) => r.rank === 1);
-    const topNames = topTied.map((r) => r.name);
-    // Federal income tax + FICA are identical in every row (same gross, same status).
-    const fedFica = best.federal + best.fica;
-    const median = thpRows[Math.floor(rowCount / 2)];
-    // Next-lowest state that is NOT tied with the last one.
-    const nextUp = [...thpRows].reverse().find((r) => r.rank !== worst.rank);
+    const best = base.best;
+    const worst = base.worst;
+    const spread = base.spread;
+    const topTied = base.topTied;
+    const topNames = base.topNames;
+    const fedFica = base.fedFica;
+    const nextUp = base.nextUp;
 
+    // Plain-English name for what a state's employee payroll premiums are FOR,
+    // derived from the program labels the engine returns. Those labels are
+    // acronyms (CA SDI, NJ TDI + NJ FLI, WA Cares, PA UC), which is exactly the
+    // jargon an ordinary reader cannot act on, so the page says what the money
+    // buys rather than what the programme is called. Every rule is tested against
+    // every label, because one label can cover two things (RI TDI/TCI). An
+    // unrecognised label falls back to a true-but-vague phrase rather than being
+    // silently dropped or mislabelled.
+    // Declaration order is also DISPLAY order, which is why it is fixed here rather
+    // than derived from each state's dollar amounts: a state's premiums cover the
+    // same things at both salary levels, so its label has to read the same in both
+    // of its cells. Ranking by dollars instead made New Jersey say "paid family
+    // leave, unemployment insurance" in one column and "paid family leave,
+    // disability insurance" in the next, which looks like a data error and is not.
+    // The rules themselves live in src/content/withholding-profile.js, because the
+    // state and bonus pages now name the same programs in prose and the two must
+    // never drift apart. "WA Cares" is long-term care and matches no other rule,
+    // so ordering cannot mislabel it.
+    const kindsOf = programKindsOf;
+    // Table-cell version: at most two categories, so the line stays short enough to
+    // sit under a number in a narrow column on a phone.
+    const programKind = (progs) => {
+      const kinds = kindsOf(progs);
+      if (!kinds.length) return 'state payroll programs';
+      if (kinds.length <= 2) return listAnd(kinds);
+      return `${kinds[0]}, ${kinds[1]} and other state programs`;
+    };
+    // Every category any jurisdiction withholds for, counted from the data, so the
+    // methodology cannot go on naming only disability and paid leave after a state
+    // program of another kind is added to the dataset.
+    const allProgramKinds = (() => {
+      const out = [];
+      for (const r of thpRows) for (const k of kindsOf(r.programList)) if (!out.includes(k)) out.push(k);
+      return out.sort();
+    })();
+
+    // A row whose figures are not on this page's tax year, read from the data's own
+    // figureYear. The byline and the row marker both come from this, so a state
+    // that publishes its tables loses the marker on the next build and nobody has
+    // to remember a list of state names.
+    const priorYearOf = (r) => {
+      const fy = Number(r.figureYear);
+      return fy && fy !== Number(year) ? fy : null;
+    };
+
+    // A state-tax cell: that state's income tax, with its employee payroll premium
+    // on a second line where it has one. data-val is the income tax alone, so a
+    // click-to-sort on the column sorts on the figure the column heading names.
+    const taxCell = (r) => {
+      const txt = r.stateTax > 0 ? usd0(r.stateTax) : 'None';
+      const cls = `num tax${r.stateTax > 0 ? '' : ' zero'}`;
+      const sub = r.programs > 0
+        // The kind sits in its own span so a phone can drop it: at 100px of column
+        // width "disability insurance, paid family leave and other state programs"
+        // wrapped to five lines and made one row taller than a third of the screen.
+        // The caption under the table names what the smaller line is either way.
+        ? `<span class="sub">+ ${usd0(r.programs)} <span class="k">${esc(programKind(r.programList))}</span></span>`
+        : '';
+      return `<td class="${cls}" data-val="${Math.round(r.stateTax)}">${txt}${sub}</td>`;
+    };
+
+    // One row per jurisdiction, ordered by take-home on the base salary, carrying
+    // BOTH salary levels so a reader never has to hold a number in their head
+    // while scrolling to a second table.
     const tableRows = thpRows.map((r) => {
-      const progCell = r.programs > 0
-        ? `<td class="num" data-val="${Math.round(r.programs)}">${usd0(r.programs)}</td>`
-        : '<td class="num zero" data-val="0">None</td>';
-      const stateCell = r.stateTax > 0
-        ? `<td class="num" data-val="${Math.round(r.stateTax)}">${usd0(r.stateTax)}</td>`
-        : '<td class="num zero" data-val="0">None</td>';
+      const h = high.bySlug.get(r.slug);
+      const fy = priorYearOf(r);
+      const fyFlag = fy
+        ? `<span class="fy-flag">${fy} figures, no ${year} tables published yet</span>`
+        : '';
       return `<tr id="state-${r.slug}">` +
         `<td class="rank" data-val="${r.rank}">${r.rank}</td>` +
-        `<td><a href="/${r.slug}-paycheck-calculator/">${esc(r.name)}</a></td>` +
+        `<td class="st" data-val="${esc(r.name)}"><a href="/${r.slug}-paycheck-calculator/">${esc(r.name)}</a>${fyFlag}</td>` +
         `<td class="num net" data-val="${Math.round(r.net)}">${usd0(r.net)}</td>` +
-        stateCell + progCell +
-        `<td class="num" data-val="${(r.totalRate * 100).toFixed(2)}">${pct2(r.totalRate)}</td></tr>`;
+        `<td class="num net" data-val="${Math.round(h.net)}">${usd0(h.net)}</td>` +
+        taxCell(r) + taxCell(h) +
+        `<td class="num" data-val="${(r.totalRate * 100).toFixed(2)}">${pct2(r.totalRate)}</td>` +
+        `<td class="num" data-val="${(h.totalRate * 100).toFixed(2)}">${pct2(h.totalRate)}</td></tr>`;
     }).join('\n');
 
     // --- Analysis blocks. Each is guarded on the pattern it describes still holding.
@@ -5197,49 +6130,83 @@ async function main() {
     const maxStateTaxRow = [...thpRows].sort((a, b) => b.stateTax - a.stateTax)[0];
     blocks.push(
       `<h3>Most of the tax bill never changes</h3>` +
-      `<p>Before any state gets involved, a single filer on ${usd0(SALARY)} owes ${usd0(best.federal)} ` +
+      `<p>Before any state gets involved, a single filer on ${usd0(base.salary)} owes ${usd0(best.federal)} ` +
       `in federal income tax and ${usd0(best.fica)} in FICA (Social Security at 6.2% plus Medicare at 1.45%). ` +
-      `That ${usd0(fedFica)} is the same in every jurisdiction on this page. Only the state layer moves, ` +
+      `That ${usd0(fedFica)} is the same in every jurisdiction on this page, and on ${usd0(high.salary)} the ` +
+      `equivalent figure, ${usd0(high.fedFica)}, is again the same everywhere. Only the state layer moves, ` +
       `and state income tax across the ${rowCount} jurisdictions runs from nothing at all to ` +
       `${usd0(maxStateTaxRow.stateTax)} in ${esc(maxStateTaxRow.name)}. Even in ${esc(worst.name)}, ` +
       `where the total bill is highest, federal tax and FICA are still ` +
-      `${pct1(fedFica / (SALARY - worst.net))} of everything withheld. Moving state cannot touch that part.</p>`
+      `${pct1(fedFica / (base.salary - worst.net))} of everything withheld. Moving state cannot touch that part.</p>`
     );
+    // How the state layer scales between the two salary levels. Guarded on the
+    // spread actually growing, which is what a progressive state code does but is
+    // not something the page should assert without checking.
+    if (high.spread > spread) {
+      const growth = Math.round(((high.spread / spread) - 1) * 100);
+      blocks.push(
+        `<h3>The gap gets wider as the salary goes up</h3>` +
+        `<p>On ${usd0(base.salary)} the distance between the best state and the worst is ${usd0(spread)}. ` +
+        `On ${usd0(high.salary)} it is ${usd0(high.spread)}, ${growth}% wider, even though the extra salary ` +
+        `is only ${Math.round((high.salary / base.salary - 1) * 100)}% more gross pay. The states with no ` +
+        `wage income tax take nothing on either salary, so the whole of that widening comes from the states ` +
+        `that do tax income moving up their own brackets. ${esc(worst.name)} takes ${usd0(worst.stateTax)} ` +
+        `on ${usd0(base.salary)} and ${usd0(high.bySlug.get(worst.slug).stateTax)} on ${usd0(high.salary)}. ` +
+        `The practical reading: the higher your salary, the more the state on your pay stub is worth ` +
+        `arguing about.</p>`
+      );
+    }
     if (topTied.length > 1) {
+      const stillTied = high.topTied.length > 1
+        && high.topNames.join('|') === topNames.join('|');
       blocks.push(
         `<h3>The top of the table is a tie, not a race</h3>` +
         `<p>${numWord(topTied.length)} jurisdictions land on exactly ${usd0(best.net)}: ` +
         `${esc(listAnd(topNames))}. They are identical because they do the same thing, which is nothing: ` +
-        `no state income tax on wages and no employee-side payroll premium either. There is no ranking to ` +
-        `be had between them on take-home pay. Where they differ is sales tax, property tax and housing, ` +
-        `none of which touch a pay stub.</p>`
+        `no state income tax on wages and no employee-side payroll premium either. ` +
+        (stillTied
+          ? `The same ${numWord(topTied.length).toLowerCase()} tie again on ${usd0(high.salary)}, at ` +
+            `${usd0(high.best.net)} each. `
+          : `On ${usd0(high.salary)} the leaders are ${esc(listAnd(high.topNames))}, at ` +
+            `${usd0(high.best.net)}. `) +
+        `There is no ranking to be had between them on take-home pay. Where they differ is sales tax, ` +
+        `property tax and housing, none of which touch a pay stub.</p>`
       );
     }
     // The lowest-billing state that still HAS an income tax: the "you would not guess it" row.
     const gentlest = thpRows.filter((r) => r.hasIncomeTax && r.stateTax > 0)
       .sort((a, b) => a.stateTax - b.stateTax)[0];
     if (gentlest && gentlest.stateTax < spread / 4) {
+      const gHigh = high.bySlug.get(gentlest.slug);
       blocks.push(
         `<h3>${esc(gentlest.name)} is the surprise</h3>` +
-        `<p>${esc(gentlest.name)} does levy an income tax, but on ${usd0(SALARY)} it collects only ` +
+        `<p>${esc(gentlest.name)} does levy an income tax, but on ${usd0(base.salary)} it collects only ` +
         `${usd0(gentlest.stateTax)}. That tax is the single thing separating it from the states above, ` +
         `so it finishes at ${usd0(gentlest.net)}, exactly ${usd0(best.net - gentlest.net)} behind them. ` +
-        `On this salary it behaves like a ` +
-        `no-income-tax state. That is the useful reminder in this dataset: "has an income tax" and ` +
-        `"takes a meaningful bite" are different questions, and a headline rate answers neither, because ` +
-        `standard deductions and bracket widths do most of the work at ordinary salaries.</p>`
+        `On this salary it behaves like a no-income-tax state. Raise the salary to ${usd0(high.salary)} and ` +
+        `its bill goes to ${usd0(gHigh.stateTax)}, which is the point: "has an income tax" and "takes a ` +
+        `meaningful bite" are different questions, and the answer to the second one depends on the salary ` +
+        `you ask it about.</p>`
       );
     }
-    // A state with NO income tax that still withholds something (paid-leave/disability).
-    const noTaxWithProgram = thpRows.find((r) => !r.hasIncomeTax && r.programs > 0);
+    // A state with NO income tax that still withholds something.
+    const noTaxWithProgram = base.noTaxWithProgram;
     if (noTaxWithProgram) {
+      const nHigh = high.bySlug.get(noTaxWithProgram.slug);
       blocks.push(
         `<h3>No income tax does not always mean no state deduction</h3>` +
         `<p>${esc(noTaxWithProgram.name)} has no state income tax and still does not tie for first. ` +
-        `It withholds ${usd0(noTaxWithProgram.programs)} a year for its state paid-leave premium, which ` +
-        `lands it at ${usd0(noTaxWithProgram.net)}, rank ${noTaxWithProgram.rank} of ${rowCount}. It is the ` +
-        `clearest case in the table of a state deduction that is not an income tax, and it is why ` +
-        `"no income tax" predicts take-home pay less well than people assume.</p>`
+        `It withholds ${usd0(noTaxWithProgram.programs)} a year in employee-paid state premiums, which ` +
+        `lands it at ${usd0(noTaxWithProgram.net)}, rank ${noTaxWithProgram.rank} of ${rowCount}. ` +
+        // Guarded, because a premium with a wage cap charges the same dollars at
+        // both salaries and "the premium comes to the same figure" would read as a
+        // copy-paste bug unless the page says why.
+        (Math.abs(nHigh.programs - noTaxWithProgram.programs) < 0.5
+          ? `On ${usd0(high.salary)} it is the same ${usd0(nHigh.programs)}, because the premium is ` +
+            `capped and the extra salary is above the cap. `
+          : `On ${usd0(high.salary)} the same premiums come to ${usd0(nHigh.programs)}. `) +
+        `It is the clearest case in the table of a state deduction that is not an income tax, and it ` +
+        `is why "no income tax" predicts take-home pay less well than people assume.</p>`
       );
     }
     // Bottom of the table, plus how flat the middle really is.
@@ -5254,14 +6221,40 @@ async function main() {
           `cluster rather than a single outlier. `;
       blocks.push(
         `<h3>The bottom of the table, and how flat the middle is</h3>` +
-        `<p>${esc(worst.name)} keeps the least, ${usd0(worst.net)}, on a ${usd0(SALARY)} salary. ` +
+        `<p>${esc(worst.name)} keeps the least, ${usd0(worst.net)}, on a ${usd0(base.salary)} salary. ` +
         outlier +
         `The middle is much flatter than the headline spread suggests: between the rank-${midLow.rank} ` +
         `state (${esc(midLow.name)}) and the rank-${midHigh.rank} state (${esc(midHigh.name)}) the entire ` +
         `difference is ${usd0(midLow.net - midHigh.net)} a year, under ` +
-        `${usd0((midLow.net - midHigh.net) / 12)} a month. For most of the country, the state you pick ` +
-        `changes your paycheck by less than a single utility bill.</p>`
+        `${usd0((midLow.net - midHigh.net) / 12)} a month. For most of the country, and on this salary, ` +
+        `the state you pick moves your take-home pay by a smaller amount than most people expect.</p>`
       );
+    }
+    // States that change position between the two salary levels. Guarded on a move
+    // large enough to be worth a paragraph.
+    {
+      const movers = thpRows
+        .map((r) => ({ name: r.name, from: r.rank, to: high.bySlug.get(r.slug).rank }))
+        .map((m) => Object.assign(m, { delta: m.to - m.from }))
+        .filter((m) => Math.abs(m.delta) >= 3)
+        .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+        .slice(0, 4);
+      if (movers.length >= 2) {
+        const phrase = (m) => `${m.name} (${m.from} to ${m.to})`;
+        const fell = movers.filter((m) => m.delta > 0).map(phrase);
+        const rose = movers.filter((m) => m.delta < 0).map(phrase);
+        blocks.push(
+          `<h3>The ranking is not the same at both salaries</h3>` +
+          `<p>A state's position depends on the salary you compare at, because a flat rate and a graduated ` +
+          `one pull apart as income rises. Between ${usd0(base.salary)} and ${usd0(high.salary)}, the ` +
+          `biggest moves in the ranking are ` +
+          (fell.length ? `${esc(listAnd(fell))} falling` : '') +
+          (fell.length && rose.length ? ', and ' : '') +
+          (rose.length ? `${esc(listAnd(rose))} climbing` : '') +
+          `. That is the reason both salaries sit in the same table above rather than on two pages: the ` +
+          `answer to "which state is better" changes with the number you put in.</p>`
+        );
+      }
     }
     // Highest headline top marginal rate vs. what it actually costs at this salary.
     const headline = [...thpRows].sort((a, b) => b.topRate - a.topRate)[0];
@@ -5272,12 +6265,12 @@ async function main() {
       blocks.push(
         `<h3>A high state rate is not the same as a high state bill</h3>` +
         `<p>${esc(headline.name)} has the highest top marginal income-tax rate in the country at ` +
-        `${pct1(headline.topRate)}, but that rate applies to income far above ${usd0(SALARY)}. At this ` +
+        `${pct1(headline.topRate)}, but that rate applies to income far above ${usd0(base.salary)}. At this ` +
         `salary ${esc(headline.name)} takes ${usd0(headline.stateTax)} of income tax, less than ` +
         `${beatenBy} states whose top rate is lower than its own` +
         (headline.programs > 0
           ? `, and it finishes rank ${headline.rank} of ${rowCount} largely because it adds ` +
-            `${usd0(headline.programs)} of state disability insurance on top`
+            `${usd0(headline.programs)} of employee-paid state premiums on top`
           : '') +
         `. A marginal rate describes your last dollar; this table describes all of them.</p>`
       );
@@ -5292,6 +6285,7 @@ async function main() {
     const colRows = colPick.filter((r) => (colSeen.has(r.slug) ? false : colSeen.add(r.slug)))
       .map((r) => {
         const p = payroll[r.slug] || {};
+        const h = high.bySlug.get(r.slug);
         const sales = p.salesTax && typeof p.salesTax.combinedAvgRatePct === 'number' ? p.salesTax.combinedAvgRatePct : null;
         const prop = p.propertyTax && typeof p.propertyTax.effectiveRatePct === 'number' ? p.propertyTax.effectiveRatePct : null;
         const mhi = p.medianHouseholdIncome && p.medianHouseholdIncome.amountUsd;
@@ -5300,6 +6294,7 @@ async function main() {
           : `<td class="num" data-val="${v}">${v}${suffix}</td>`);
         return `<tr><td><a href="/${r.slug}-paycheck-calculator/">${esc(r.name)}</a></td>` +
           `<td class="num net" data-val="${Math.round(r.net)}">${usd0(r.net)}</td>` +
+          `<td class="num net" data-val="${Math.round(h.net)}">${usd0(h.net)}</td>` +
           cell(sales, '%') + cell(prop, '%') +
           (mhi ? `<td class="num" data-val="${mhi}">${usd0(mhi)}</td>` : '<td class="num zero" data-val="">n/a</td>') +
           `</tr>`;
@@ -5325,34 +6320,50 @@ async function main() {
       .filter((s) => payroll[s.slug] && payroll[s.slug].localIncomeTax && payroll[s.slug].localIncomeTax.exists)
       .map((s) => s.name).sort();
     // Any jurisdiction still shown on prior-year figures (the documented fallback).
-    const priorYear = thpRows.filter((r) => r.hasIncomeTax && Number(r.figureYear) && Number(r.figureYear) !== Number(year));
+    // Says who updates it and how, because nothing here polls a state for brackets.
+    const priorYear = thpRows.filter((r) => priorYearOf(r));
+    // The byline used to promise every figure came from published TAX_YEAR tables,
+    // which is not true of a row on the prior-year fallback. It now describes what
+    // the table actually contains, and the table marks the rows in question.
+    const figureBasis = priorYear.length
+      ? `every figure computed from published tax tables, ${year} except for the ` +
+        `${priorYear.length === 1 ? 'state' : 'states'} marked in the table`
+      : `every figure computed from published ${year} tax tables`;
     const priorYearNote = priorYear.length
       ? `<p><strong>Prior-year figures.</strong> ${esc(listAnd(priorYear.map((r) => `${r.name} (${r.figureYear})`)))} ` +
         `${priorYear.length === 1 ? 'has' : 'have'} not published ${year} brackets yet, so ` +
         `${priorYear.length === 1 ? 'that row uses' : 'those rows use'} the most recent official figures. ` +
-        `Each row updates automatically once the ${year} tables are released.</p>`
+        `We update our tax data file when the ${year} tables are released, and the next build recomputes ` +
+        `${priorYear.length === 1 ? 'that row' : 'those rows'} from it.</p>`
       : '';
 
     // --- FAQ. The visible Q&A and the FAQPage schema are generated from ONE array,
     // so the rendered page and the structured data can never disagree.
     const faq = [
       {
-        q: `Which state has the highest take-home pay on a ${usd0(SALARY)} salary?`,
+        q: `Which state has the highest take-home pay on a ${usd0(base.salary)} salary?`,
         a: topTied.length > 1
           ? `${numWord(topTied.length)} jurisdictions tie at ${usd0(best.net)} a year: ${listAnd(topNames)}. Each has no state income tax on wages and no state payroll premium, so a single filer keeps the same amount in all of them.`
           : `${best.name}, at ${usd0(best.net)} a year for a single filer taking the standard deduction.`,
       },
       {
-        q: `Which state has the lowest take-home pay on ${usd0(SALARY)}?`,
+        q: `Which state has the lowest take-home pay on ${usd0(base.salary)}?`,
         a: `${worst.name}, at ${usd0(worst.net)} a year, which is ${usd0(spread)} less than the top of the table on identical gross pay.`,
       },
       {
+        q: `What changes if the salary is ${usd0(high.salary)} instead?`,
+        a: `The best states pay ${usd0(high.best.net)} and ${high.worst.name} pays ${usd0(high.worst.net)}, `
+          + `so the gap between them widens from ${usd0(spread)} to ${usd0(high.spread)}. The order of the `
+          + `table also shifts, because a flat state rate and a graduated one diverge as income rises. Both `
+          + `salaries are in the same table above, one row per state.`,
+      },
+      {
         q: 'Is a no-income-tax state always the better financial move?',
-        a: `No. This page measures payroll only. States without an income tax generally raise revenue through sales and property taxes instead, and housing costs, which are not a tax at all, vary by far more than the ${usd0(spread)} spread shown here. A bigger paycheck in a more expensive place can leave you worse off.`,
+        a: `No. This page measures payroll only. States without an income tax generally raise revenue through sales and property taxes instead, and neither of those is in a paycheck calculation. Cost of living is not modelled here at all.`,
       },
       noTaxWithProgram ? {
         q: 'Why do two states with no income tax show different take-home pay?',
-        a: `Because an income tax is not the only thing a state can withhold. ${noTaxWithProgram.name} has no income tax but collects ${usd0(noTaxWithProgram.programs)} a year for its state paid-leave program, which is why it does not tie with the other no-income-tax states.`,
+        a: `Because an income tax is not the only thing a state can withhold. ${noTaxWithProgram.name} has no income tax but collects ${usd0(noTaxWithProgram.programs)} a year in employee-paid state premiums on a ${usd0(base.salary)} salary, which is why it does not tie with the other no-income-tax states.`,
       } : null,
       {
         q: 'Are city and local income taxes included?',
@@ -5360,7 +6371,15 @@ async function main() {
       },
       {
         q: 'Why is the gap between states smaller than I expected?',
-        a: `Because most of the bill is federal. On ${usd0(SALARY)} a single filer pays ${usd0(fedFica)} in federal income tax and FICA no matter where they live. State tax is the only variable, and on this salary it is worth at most ${usd0(spread)} a year.`,
+        a: `Because most of the bill is federal. On ${usd0(base.salary)} a single filer pays ${usd0(fedFica)} in federal income tax and FICA no matter where they live, and on ${usd0(high.salary)} it is ${usd0(high.fedFica)}. State tax is the only variable, and it is worth at most ${usd0(spread)} a year at the lower salary and ${usd0(high.spread)} at the higher one.`,
+      },
+      {
+        q: 'Will these figures match my own paycheck?',
+        a: `Almost certainly not, and they are not meant to. Every row uses the same assumptions so the states can be compared: one salary, single filer, standard deduction, no 401(k), no health insurance, no dependents, no local income tax. Treat this as a model of the state-by-state difference, not as your net pay. Open your own state's calculator and enter your real numbers for a figure that is about you.`,
+      },
+      {
+        q: 'How often is this page updated?',
+        a: `Whenever the tax data behind it is. Nothing on this site fetches tax figures automatically: we edit the ${year} tax data file when a state publishes new brackets, and the next build recomputes every figure, table, summary and answer on this page from that file. The date under the headline is when that last happened.`,
       },
     ].filter(Boolean);
     const faqBlocks = faq.map((f) =>
@@ -5385,17 +6404,19 @@ async function main() {
     const srcSeen = new Set();
     const sourceRows = Object.entries(metaSources)
       .filter(([, u]) => /^https?:\/\//.test(u) && !srcSeen.has(u) && srcSeen.add(u))
-      .map(([k, u]) => `<li><a href="${esc(u)}" rel="nofollow noopener" target="_blank">` +
+      .map(([k, u]) => `<li><a href="${esc(u)}" rel="noopener" target="_blank">` +
         `${esc(SOURCE_TITLES[k] || k.replace(/_/g, ' '))}</a></li>`)
       .join('');
 
-    const studyDesc = `${usd0(SALARY)} pays ${usd0(spread)} more a year in some US states than others. ` +
-      `Computed ${year} take-home pay for a single filer on ${usd0(SALARY)} in all ${rowCount} jurisdictions, ` +
-      `from ${usd0(best.net)} down to ${usd0(worst.net)}, after federal income tax, FICA, state income tax ` +
-      `and state payroll deductions.`;
+    // "$75,000 and $100,000", from the same array the tables are built from.
+    const salaryList = STUDY_SALARY_TEXT;
+    const studyDesc = `The same salary is worth ${usd0(spread)} more a year in some US states than others ` +
+      `on ${usd0(base.salary)}, and ${usd0(high.spread)} more on ${usd0(high.salary)}. Computed ${year} ` +
+      `take-home pay for a single filer at both salaries in all ${rowCount} jurisdictions, after federal ` +
+      `income tax, FICA, state income tax and state payroll deductions.`;
     const articleLd = JSON.stringify({
       '@context': 'https://schema.org', '@type': 'Article',
-      headline: `Take-Home Pay on ${usd0(SALARY)} in All ${rowCount} States, Compared (${year})`,
+      headline: `Take-Home Pay on ${salaryList} in All ${rowCount} States, Compared (${year})`,
       description: studyDesc,
       datePublished: STUDY_PUBLISHED_ISO, dateModified: STUDY_UPDATED_ISO,
       author: { '@type': 'Person', '@id': `${SITE.url}/#edmond-daher`, name: 'Edmond Daher', url: `${SITE.url}/about/` },
@@ -5405,9 +6426,9 @@ async function main() {
     });
     const datasetLd = JSON.stringify({
       '@context': 'https://schema.org', '@type': 'Dataset',
-      name: `US take-home pay on a ${usd0(SALARY)} salary by state, tax year ${year}`,
+      name: `US take-home pay on ${salaryList} salaries by state, tax year ${year}`,
       description: `Computed ${year} annual take-home pay, state income tax, state payroll deductions and ` +
-        `total effective tax rate for a single filer earning ${usd0(SALARY)}, in all 50 US states and the ` +
+        `total effective tax rate for a single filer earning ${salaryList}, in all 50 US states and the ` +
         `District of Columbia. Derived from ${year} IRS federal brackets, the SSA wage base and each state's ` +
         `own income tax tables.`,
       url: `${SITE.url}/data/take-home-pay-by-state/`,
@@ -5416,7 +6437,8 @@ async function main() {
       license: 'https://creativecommons.org/licenses/by/4.0/',
       temporalCoverage: String(year),
       spatialCoverage: { '@type': 'Country', name: 'United States' },
-      variableMeasured: ['Annual take-home pay', 'State income tax', 'State payroll deductions', 'Total effective tax rate'],
+      variableMeasured: ['Gross salary', 'Annual take-home pay', 'State income tax',
+        'State payroll deductions', 'Total effective tax rate'],
       distribution: [
         { '@type': 'DataDownload', encodingFormat: 'text/csv', contentUrl: `${SITE.url}/data/take-home-pay-by-state-${year}.csv` },
         { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/take-home-pay-by-state-${year}.json` },
@@ -5424,35 +6446,65 @@ async function main() {
       isAccessibleForFree: true,
     });
 
+    const addlMedicare = (taxData.federal.fica.additionalMedicare
+      && taxData.federal.fica.additionalMedicare.threshold
+      && taxData.federal.fica.additionalMedicare.threshold.single) || null;
+
     await mkdir(join(DIST, 'data', 'take-home-pay-by-state'), { recursive: true });
     await writeFile(
       join(DIST, 'data', 'take-home-pay-by-state', 'index.html'),
       fillTool(thpTpl, {
         SITE_NAME: SITE.name, SITE_URL: SITE.url,
-        TAX_YEAR: String(year), SALARY: usd0(SALARY), ROW_COUNT: String(rowCount),
+        TAX_YEAR: String(year), ROW_COUNT: String(rowCount),
+        // The lede's coverage claim, from the same figureYear the byline reads.
+        RULES_BASIS: esc(studyRulesPhrase(thpRows, year, 'all 50 states and the District of Columbia')),
+        BASE_SALARY: usd0(base.salary), HIGH_SALARY: usd0(high.salary),
+        SALARY_LIST: salaryList,
         PUB_DATE: STUDY_DATE_HUMAN,
         TABLE_ROWS: tableRows, COL_ROWS: colRows, COL_CONTRAST: colContrast,
         ANALYSIS_BLOCKS: analysisBlocks, FAQ_BLOCKS: faqBlocks,
-        TOP_NET: usd0(best.net), BOTTOM_NET: usd0(worst.net),
-        SPREAD: usd0(spread), SPREAD_MONTHLY: usd0(spread / 12),
-        TOP_STATES_TEXT: esc(listAnd(topNames)),
-        TOP_STATES_SHORT: esc(topNames.length > 3 ? `${topNames.slice(0, 3).join(', ')} +${topNames.length - 3} more` : listAnd(topNames)),
-        TOP_STATES_COUNT_WORD: numWord(topTied.length),
+        BASE_TOP_NET: usd0(best.net), BASE_BOTTOM_NET: usd0(worst.net),
+        BASE_SPREAD: usd0(spread), BASE_SPREAD_MONTHLY: usd0(spread / 12),
+        BASE_BOTTOM_STATE: esc(worst.name),
+        BASE_TOP_STATES_SHORT: esc(topNames.length > 3
+          ? `${topNames.slice(0, 3).join(', ')} +${topNames.length - 3} more` : listAnd(topNames)),
+        BASE_FED_FICA: usd0(fedFica),
+        // Guarded: the same state is last at both salaries today, but a rate change
+        // could split them, and "X keeps the least at both salaries" would then be
+        // a plain untruth sitting in the callout at the top of the page.
+        BOTTOM_PHRASE: worst.slug === high.worst.slug
+          ? `${esc(worst.name)} keeps the least at both salaries, ${usd0(worst.net)} on ` +
+            `${usd0(base.salary)} and ${usd0(high.worst.net)} on ${usd0(high.salary)}.`
+          : `${esc(worst.name)} keeps the least on ${usd0(base.salary)} at ${usd0(worst.net)}, and ` +
+            `${esc(high.worst.name)} on ${usd0(high.salary)} at ${usd0(high.worst.net)}.`,
+        HIGH_TOP_NET: usd0(high.best.net), HIGH_BOTTOM_NET: usd0(high.worst.net),
+        HIGH_SPREAD: usd0(high.spread), HIGH_SPREAD_MONTHLY: usd0(high.spread / 12),
+        HIGH_BOTTOM_STATE: esc(high.worst.name),
+        HIGH_TOP_STATES_SHORT: esc(high.topNames.length > 3
+          ? `${high.topNames.slice(0, 3).join(', ')} +${high.topNames.length - 3} more`
+          : listAnd(high.topNames)),
+        HIGH_FED_FICA: usd0(high.fedFica),
         // Guarded so the callout stays grammatical (and true) if the top ever
-        // stops being a tie.
+        // stops being a tie, or stops being the same tie at both salaries.
         TOP_TIE_PHRASE: topTied.length > 1
           ? `${numWord(topTied.length)} jurisdictions tie for the most take-home pay at ` +
-            `${usd0(best.net)} (${esc(listAnd(topNames))}), because they levy no state income tax ` +
-            `and no state payroll deduction.`
-          : `${esc(best.name)} leaves the most take-home pay, ${usd0(best.net)}.`,
-        BOTTOM_STATE: esc(worst.name),
-        FED_TAX: usd0(best.federal), FICA_TAX: usd0(best.fica), FED_FICA: usd0(fedFica),
+            `${usd0(best.net)} on ${usd0(base.salary)} (${esc(listAnd(topNames))}), because they levy no ` +
+            `state income tax and no state payroll deduction` +
+            (high.topNames.join('|') === topNames.join('|')
+              ? `, and the same ${numWord(topTied.length).toLowerCase()} tie again at ` +
+                `${usd0(high.best.net)} on ${usd0(high.salary)}.`
+              : `. On ${usd0(high.salary)} the leaders are ${esc(listAnd(high.topNames))} at ` +
+                `${usd0(high.best.net)}.`)
+          : `${esc(best.name)} leaves the most take-home pay on ${usd0(base.salary)}, ${usd0(best.net)}.`,
         FED_STD_DED: usd0(taxData.federal.standardDeduction.single),
         SS_WAGE_BASE: usd0(taxData.federal.fica.socialSecurity.wageBase),
+        ADDL_MEDICARE_THRESHOLD: addlMedicare ? usd0(addlMedicare) : '',
         NOTAX_COUNT: String(noTaxStates.length), NOTAX_STATES: esc(listAnd(noTaxStates)),
         PROGRAM_COUNT: String(programStates.length), PROGRAM_STATES: esc(listAnd(programStates)),
+        PROGRAM_KINDS: esc(listAnd(allProgramKinds)),
         LOCAL_COUNT: String(localStates.length), LOCAL_STATES: esc(listAnd(localStates)),
         PRIOR_YEAR_NOTE: priorYearNote,
+        FIGURE_BASIS: figureBasis,
         SOURCE_ROWS: sourceRows,
         LAST_SOURCED: esc((taxData._meta && taxData._meta.lastSourced) || ''),
         ARTICLE_LD: articleLd, DATASET_LD: datasetLd, FAQ_LD: faqLd,
@@ -5461,49 +6513,60 @@ async function main() {
     urls.push(`${SITE.url}/data/take-home-pay-by-state/`);
 
     // Journalist-liftable citation kit: the exact rows the page renders, as CSV and
-    // JSON, generated from the same computed array (never a second calculation).
+    // JSON, generated from the same computed arrays (never a second calculation).
+    // One row per state PER SALARY, so the file carries the same two levels the
+    // page does and a reader can filter on the salary column.
     const csvEscT = (v) => {
       const s = String(v == null ? '' : v);
       return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
     };
-    const csvT = [['Rank', 'State', 'Abbr', 'Gross salary', 'Annual take-home', 'Federal income tax',
+    const csvT = [['Gross salary', 'Rank', 'State', 'Abbr', 'Annual take-home', 'Federal income tax',
       'FICA', 'State income tax', 'State payroll deductions', 'Total effective tax rate']];
-    for (const r of thpRows) {
-      csvT.push([r.rank, r.name, r.abbr, SALARY, Math.round(r.net), Math.round(r.federal),
-        Math.round(r.fica), Math.round(r.stateTax), Math.round(r.programs), (r.totalRate * 100).toFixed(2) + '%']);
+    for (const s of sets) {
+      for (const r of s.rows) {
+        csvT.push([s.salary, r.rank, r.name, r.abbr, Math.round(r.net), Math.round(r.federal),
+          Math.round(r.fica), Math.round(r.stateTax), Math.round(r.programs),
+          (r.totalRate * 100).toFixed(2) + '%']);
+      }
     }
     await writeFile(join(DIST, 'data', `take-home-pay-by-state-${year}.csv`),
       csvT.map((r) => r.map(csvEscT).join(',')).join('\n') + '\n');
     await writeFile(join(DIST, 'data', `take-home-pay-by-state-${year}.json`),
       JSON.stringify({
-        name: `US take-home pay on a ${usd0(SALARY)} salary by state, tax year ${year}`,
+        name: `US take-home pay on ${salaryList} salaries by state, tax year ${year}`,
         taxYear: year,
         assumptions: {
-          grossSalary: SALARY, filingStatus: 'single', payFrequency: 'annual',
+          grossSalaries: SALARIES, filingStatus: 'single', payFrequency: 'annual',
           standardDeduction: true, preTaxDeductions: 0,
           excludes: ['local income taxes', 'pre-tax deductions', 'tax credits', 'itemized deductions', 'cost of living'],
         },
         license: 'https://creativecommons.org/licenses/by/4.0/',
         source: `${SITE.url}/data/take-home-pay-by-state/`,
-        states: thpRows.map((r) => ({
-          rank: r.rank, state: r.name, abbr: r.abbr, slug: r.slug,
-          takeHomeAnnual: Math.round(r.net),
-          federalIncomeTax: Math.round(r.federal),
-          fica: Math.round(r.fica),
-          stateIncomeTax: Math.round(r.stateTax),
-          statePayrollDeductions: Math.round(r.programs),
-          totalEffectiveTaxRate: Number((r.totalRate * 100).toFixed(2)),
-          calculator: `${SITE.url}/${r.slug}-paycheck-calculator/`,
+        salaryLevels: sets.map((s) => ({
+          grossSalary: s.salary,
+          states: s.rows.map((r) => ({
+            rank: r.rank, state: r.name, abbr: r.abbr, slug: r.slug,
+            takeHomeAnnual: Math.round(r.net),
+            federalIncomeTax: Math.round(r.federal),
+            fica: Math.round(r.fica),
+            stateIncomeTax: Math.round(r.stateTax),
+            statePayrollDeductions: Math.round(r.programs),
+            totalEffectiveTaxRate: Number((r.totalRate * 100).toFixed(2)),
+            calculator: `${SITE.url}/${r.slug}-paycheck-calculator/`,
+          })),
         })),
       }, null, 2) + '\n');
 
     // One-line key-figures summary for llms-full.txt, from the same computed values.
-    dataPageStatsTakeHome = `${rowCount} jurisdictions; take-home on a ${usd0(SALARY)} single-filer salary ` +
-      `ranges ${usd0(best.net)} (${topNames.join(', ')}) to ${usd0(worst.net)} (${worst.name}), a ` +
-      `${usd0(spread)} spread; federal income tax + FICA are ${usd0(fedFica)} in every state; ` +
-      `${noTaxStates.length} states levy no wage income tax; ${programStates.length} withhold a state ` +
-      `disability or paid-leave premium.`;
+    dataPageStatsTakeHome = `${rowCount} jurisdictions at two salary levels. On a ${usd0(base.salary)} ` +
+      `single-filer salary take-home ranges ${usd0(best.net)} (${topNames.join(', ')}) to ` +
+      `${usd0(worst.net)} (${worst.name}), a ${usd0(spread)} spread, with federal income tax + FICA of ` +
+      `${usd0(fedFica)} in every state. On ${usd0(high.salary)} it ranges ${usd0(high.best.net)} to ` +
+      `${usd0(high.worst.net)} (${high.worst.name}), a ${usd0(high.spread)} spread, with federal income ` +
+      `tax + FICA of ${usd0(high.fedFica)}. ${noTaxStates.length} states levy no wage income tax; ` +
+      `${programStates.length} withhold an employee-paid state payroll premium.`;
   }
+
 
   // Standalone /data/ REFERENCE TABLES. Each re-packages an already-sourced
   // dataset that otherwise only lives buried inside a tool page, as its own
@@ -5730,7 +6793,7 @@ async function main() {
         const rv = rateVal(s);
         const noteBits = [];
         if (s.note) noteBits.push(esc(s.note));
-        if (s._sourceUrl) noteBits.push(`<a href="${esc(s._sourceUrl)}" rel="nofollow noopener" target="_blank">source</a>`);
+        if (s._sourceUrl) noteBits.push(`<a href="${esc(s._sourceUrl)}" rel="noopener" target="_blank">source</a>`);
         return `<tr><td><strong>${esc(s.name)}</strong> (${esc(s.abbr)})</td>` +
           `<td><span class="chip m-${s.method}">${METHOD_LABEL[s.method] || esc(s.method)}</span></td>` +
           `<td class="rate" data-val="${rv === '' ? '' : rv}">${esc(rateText(s))}</td>` +
@@ -5939,7 +7002,18 @@ async function main() {
   // `/*` are left alone and simply carry through.
   await writeFile(
     join(DIST, '_headers'),
-    `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: DENY\n  Cache-Control: public, max-age=0, must-revalidate\n\n/assets/*\n  ! Cache-Control\n  Cache-Control: public, max-age=300, must-revalidate\n\n/assets/*.js\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n\n/assets/*.css\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n`
+    // `/embed/*` is the one exception. Those pages exist to be put in someone
+    // else's iframe, which is exactly what the inherited `X-Frame-Options: DENY`
+    // forbids, so every embed we have ever pitched would have rendered as a
+    // blank box for the partner and failed silently on our side. Unset it there,
+    // the same way the cache blocks unset Cache-Control. Safe to frame: the
+    // embed pages carry no auth input, no cookie or localStorage use, no
+    // external form action and no ad slot, so there is nothing to clickjack.
+    // `/embed/` itself is deliberately put back under DENY afterwards. It is
+    // the gallery listing, not a widget, and unlike the widgets it does carry
+    // the AdSense loader. A framable ad-bearing page invites invisible-iframe
+    // impression fraud, so the wildcard must not be allowed to cover it.
+    `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: DENY\n  Cache-Control: public, max-age=0, must-revalidate\n\n/embed/*\n  ! X-Frame-Options\n  Content-Security-Policy: frame-ancestors *\n\n/embed/\n  ! Content-Security-Policy\n  X-Frame-Options: DENY\n\n/assets/*\n  ! Cache-Control\n  Cache-Control: public, max-age=300, must-revalidate\n\n/assets/*.js\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n\n/assets/*.css\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n`
   );
 
   // robots + sitemap
@@ -6024,9 +7098,9 @@ async function main() {
     .join('\n\n');
   const llmsFullDatasets = [
     {
-      name: 'Take-Home Pay on $75,000 in All 51 States',
+      name: `Take-Home Pay on ${STUDY_SALARY_TEXT} in All 51 States`,
       path: '/data/take-home-pay-by-state/',
-      what: 'Compares computed annual take-home pay on an identical $75,000 single-filer salary across all 50 US states and DC, with state income tax, state payroll deductions and total effective tax rate per state.',
+      what: `Compares computed annual take-home pay on identical ${STUDY_SALARY_TEXT} single-filer salaries across all 50 US states and DC, with state income tax, state payroll deductions and total effective tax rate per state at each salary.`,
       figures: dataPageStatsTakeHome,
     },
     {

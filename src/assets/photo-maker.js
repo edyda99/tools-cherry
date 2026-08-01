@@ -62,7 +62,7 @@ function applySpec(spec) {
   drawGuide(spec);
   const bgName = spec.background.toLowerCase() === '#ffffff' ? 'white' : 'light grey';
   $('specNote').innerHTML = `${fmtDims(spec)} · ${bgName} background. ` +
-    `<a href="${spec.source}" target="_blank" rel="noopener nofollow">official rules</a>. ${spec.note}`;
+    `<a href="${spec.source}" target="_blank" rel="noopener">official rules</a>. ${spec.note}`;
 }
 
 // Head-position guide sized from the spec's chin-to-crown range.

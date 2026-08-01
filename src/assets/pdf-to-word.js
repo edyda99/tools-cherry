@@ -353,9 +353,12 @@ function resetServerDownload() {
 
 // --- pre-flight: is this PDF worth sending to the server? --------------------
 // The server engine rebuilds every embedded image, so its cost tracks image count,
-// not file size or page count. It ignores Word's shading chips (2x2-pixel fills
-// stretched over a cell — a 19-page report held 1,004 of them against 40 real
-// pictures), so count the way the server counts: intrinsic pixel size, skipping
+// not file size or page count. It ignores tiny chips (a 19-page report held 1,004 of
+// them against 40 real pictures). Those chips are NOT Word shading, which Word exports
+// as a vector fill: they are rasterised lines of body text, left behind by a sanitizer
+// pipeline, and the server OCRs them back into real text. See the corrected note in
+// backend/pdf-to-word/lambda_function.py. Either way they are not pictures, so count
+// the way the server counts: intrinsic pixel size, skipping
 // anything too small to be a picture. Only genuinely image-heavy documents are
 // turned away, and turning them away here costs a second instead of a long wait,
 // a wasted daily slot, and a conversion that was never going to finish.
@@ -373,7 +376,7 @@ const TINY_IMAGE_PX = 64; // matches TINY_IMAGE_PX in backend/pdf-to-word/lambda
 async function preflightPdf(file, limit) {
   const OPS = window.pdfjsLib.OPS;
   // paintImageXObject carries [id, width, height] — the only op that can be judged
-  // by size. The others are counted whole; they never appear in fill-chip swarms.
+  // by size. The others are counted whole; they never appear in stencil swarms.
   const SIZELESS_IMAGE_OPS = new Set([OPS.paintInlineImageXObject, OPS.paintImageMaskXObject]);
   const pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
   const lastPage = Math.min(pdf.numPages, PREFLIGHT_PAGES);

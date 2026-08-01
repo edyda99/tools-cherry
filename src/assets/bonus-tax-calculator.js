@@ -34,6 +34,27 @@ function currentState() {
   return sel ? sel.value : null;
 }
 
+// A state whose figures are a prior-year fallback has to say so wherever those
+// figures are shown, not only on its own cluster page. The 51 state pages get
+// this server-rendered by figureYearBanner() in build.js; the hub and the embed
+// choose their state at runtime, so the same notice is rebuilt here from the
+// same two fields the server reads, the state's figureYear against the data's
+// taxYear. No slug list on either side: California and Oklahoma stop being
+// labelled the moment their 2026 tables land in the data, and a state that falls
+// behind starts being labelled with no code change. Returns '' on a fixed-state
+// page so the server-rendered banner is not repeated inside the answer.
+function figureYearNote(slug, stateName) {
+  if (FIXED_STATE) return '';
+  const st = taxData.states && taxData.states[slug];
+  const fy = st && Number(st.figureYear);
+  const yr = Number(taxData.taxYear);
+  if (!fy || !yr || fy === yr) return '';
+  return `<p class="year-fallback" role="note"><strong>${fy} rates (${yr} pending).</strong> ` +
+    `These use ${stateName}'s official ${fy} state tax figures. ` +
+    `${fy < yr ? `The state has not published ${yr} brackets yet` : `Figures are from ${fy}`}, ` +
+    `and we update this once it does.</p>`;
+}
+
 function methodLabel(m) {
   if (m === 'none') return 'no state income tax';
   if (m === 'regular') return 'regular (aggregate) method';
@@ -59,6 +80,7 @@ function render() {
   if (ptRow) ptRow.style.display = (supp.special === 'ca_dual') ? '' : 'none';
 
   const out = $('out');
+  const fyNote = figureYearNote(slug, stateName);
 
   if (bonus <= 0) {
     out.innerHTML =
@@ -66,7 +88,7 @@ function render() {
         `<p class="stat-kicker">Take-home from your bonus</p>` +
         `<p class="stat-value is-zero">$0</p>` +
         `<p class="stat-sub">Enter your bonus amount above to see what you'd take home in ${stateName}.</p>` +
-      `</div>`;
+      `</div>` + fyNote;
     return;
   }
 
@@ -106,28 +128,32 @@ function render() {
       `<p class="stat-sub">${usd2(w.total)} was withheld from this bonus up front in ${stateName} (see below for the refund or amount owed).</p>` +
     `</div>`;
 
-  // ---- Full derivation, moved VERBATIM into a collapsed panel -----------
+  // ---- Withheld-now breakdown, inline. Benchmark personas could not get the
+  // line-by-line split (the thing they said they'd screenshot) without opening
+  // a panel, and the paycheck page's always-visible list is what beat
+  // SmartAsset. The h3 and the prepayment note travel with it: they are what
+  // keep this take-home figure from colliding with the filing-time one above.
+  const withheldNow =
+    `<div class="bt-now">` +
+      `<h3>Withheld from your check now</h3>` +
+      `<div class="line"><span>Federal (flat 22%${w.federal > bonus * 0.22 + 1 ? ' / 37%' : ''})</span><span class="num">${usd2(w.federal)}</span></div>` +
+      stateWLine +
+      `<div class="line"><span>FICA (Social Security + Medicare)</span><span class="num">${usd2(w.fica)}</span></div>` +
+      `<div class="line big"><span>Total withheld</span><span class="num">${usd2(w.total)}</span></div>` +
+      `<div class="line"><span>Take-home now</span><span class="num">${usd2(w.keep)}</span></div>` +
+      `<div class="obbba-note">That's <strong>${pct1(w.pctOfBonus)}</strong> of your bonus held back — the "where did half my bonus go?" number. Most of the income-tax part is a prepayment, not your final tax.</div>` +
+    `</div>`;
+
+  // The at-tax-time half stays collapsed; its old h3 is now the summary.
   const derivation =
-    `<details class="derivation"><summary>See how this was calculated</summary>` +
-      `<div class="bt-cols">` +
-        `<div class="bt-col">` +
-          `<h3>Withheld from your check now</h3>` +
-          `<div class="line"><span>Federal (flat 22%${w.federal > bonus * 0.22 + 1 ? ' / 37%' : ''})</span><span class="num">${usd2(w.federal)}</span></div>` +
-          stateWLine +
-          `<div class="line"><span>FICA (Social Security + Medicare)</span><span class="num">${usd2(w.fica)}</span></div>` +
-          `<div class="line big"><span>Total withheld</span><span class="num">${usd2(w.total)}</span></div>` +
-          `<div class="line"><span>Take-home now</span><span class="num ok-flag">${usd2(w.keep)}</span></div>` +
-          `<div class="obbba-note">That's <strong>${pct1(w.pctOfBonus)}</strong> of your bonus held back — the "where did half my bonus go?" number. Most of the income-tax part is a prepayment, not your final tax.</div>` +
-        `</div>` +
-        `<div class="bt-col">` +
-          `<h3>What it'll actually cost at tax time</h3>` +
-          `<div class="line"><span>Federal income tax on the bonus</span><span class="num">${usd2(t.federal)}</span></div>` +
-          trueStateLine +
-          `<div class="line"><span>FICA (same — a real tax, not a prepayment)</span><span class="num">${usd2(t.fica)}</span></div>` +
-          `<div class="line big"><span>True tax on the bonus</span><span class="num">${usd2(t.total)}</span></div>` +
-          `<div class="line"><span>What you actually keep</span><span class="num ok-flag">${usd2(t.keep)}</span></div>` +
-          `<div class="obbba-note">The bonus is ordinary income taxed at your <strong>marginal rate</strong> once your whole year runs through the brackets — this is the number that sticks.</div>` +
-        `</div>` +
+    `<details class="derivation"><summary>What it'll actually cost at tax time</summary>` +
+      `<div class="bt-col">` +
+        `<div class="line"><span>Federal income tax on the bonus</span><span class="num">${usd2(t.federal)}</span></div>` +
+        trueStateLine +
+        `<div class="line"><span>FICA (same — a real tax, not a prepayment)</span><span class="num">${usd2(t.fica)}</span></div>` +
+        `<div class="line big"><span>True tax on the bonus</span><span class="num">${usd2(t.total)}</span></div>` +
+        `<div class="line"><span>What you actually keep</span><span class="num ok-flag">${usd2(t.keep)}</span></div>` +
+        `<div class="obbba-note">The bonus is ordinary income taxed at your <strong>marginal rate</strong> once your whole year runs through the brackets — this is the number that sticks.</div>` +
       `</div>` +
       `<div class="obbba-note muted-small">${stateName} uses ${methodLabel(supp.method)}${supp.method === 'flat' ? ` (${pct1(supp.rate)})` : ''}${supp.special === 'pct_of_federal' ? ' — 30% of the federal withholding, not of the bonus' : ''}${supp.special === 'wi_banded' ? ' — a graduated rate by annual income' : ''}. FICA (7.65%) is a true tax and is the same in both columns. Estimate only, not tax advice.</div>` +
     `</details>`;
@@ -136,7 +162,7 @@ function render() {
   const prevDetails = out.querySelector('details.derivation');
   const wasOpen = prevDetails ? prevDetails.open : false;
 
-  out.innerHTML = statCard + headlineCaveat + derivation;
+  out.innerHTML = statCard + fyNote + headlineCaveat + withheldNow + derivation;
 
   const newDetails = out.querySelector('details.derivation');
   if (newDetails) newDetails.open = wasOpen;
@@ -162,6 +188,13 @@ function init() {
     el.addEventListener('input', render);
     el.addEventListener('change', render);
   });
+  // Same example handling as the tips/overtime tools: the load render shows
+  // example figures, so the note stays until the visitor edits a field, and a
+  // tap on a prefilled field selects the whole value for replacement.
+  const form = document.getElementById('bonusForm');
+  ['input', 'change'].forEach((evt) =>
+    form?.addEventListener(evt, () => document.querySelector('.calc-example')?.remove(), { once: true }));
+  ['bonus', 'regIncome'].forEach((id) => $(id)?.addEventListener('focus', (ev) => ev.target.select()));
   render();
 }
 
