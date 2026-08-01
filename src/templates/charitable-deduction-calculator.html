@@ -27,89 +27,167 @@
 <main id="main">
   <div class="wrap">
     <h1>Charitable Deduction Calculator</h1>
-    <p class="lede">Starting in <strong>2026</strong>, the One Big Beautiful Bill Act changes charitable deductions three ways at once: a new <strong>$1,000 (single) / $2,000 (married)</strong> deduction for people who take the <a href="/tax-glossary/#standard-deduction">standard deduction</a>, a new <strong>0.5%-of-<a href="/tax-glossary/#agi">AGI</a> floor</strong> for <a href="/tax-glossary/#itemizing">itemizers</a>, and a <strong>35-cent-on-the-dollar cap</strong> at the top bracket. These changes are <strong>permanent</strong>. Enter your numbers to see what's deductible and what it saves you. Everything runs in your browser — nothing is uploaded.</p>
+    <!-- THE WIZARD (converted 2026-08-01 onto wizard-core.js; the shape was approved on
+         /overtime-tax-calculator/ and first ported on /tips-tax-calculator/).
+         This calculator used to be one long form: five boxes, two of them parked behind
+         yes/no questions, with a results panel beside them. The replacement asks ONE
+         question per card and ends with the answer written out as a story rather than as
+         a stat card over a collapsed derivation.
 
-    <section class="calc" aria-label="Charitable deduction calculator">
-      <form id="charForm" autocomplete="off" onsubmit="return false">
-        <!-- The boxes load pre-filled and the "other expenses" question below ships
-             answered Yes over $20,000, so say plainly that the figures on screen are
-             a demonstration. Lives inside the form, not beside it: section.calc is a
-             two-column grid, and a third direct child would drop the answer panel
-             onto a row of its own. -->
-        <p class="calc-example">These are example numbers. Type yours to see your own.</p>
-        <div class="field">
-          <label for="filing">How do you file your taxes?</label>
-          <select id="filing">
-            <option value="single">Single</option>
-            <option value="married">Married filing jointly</option>
-            <option value="head_of_household">Head of household</option>
-          </select>
-          <p class="muted-small" style="margin-top:6px">This sets the size of the new break for donating: <strong>$2,000</strong> if you are married and file one return together, <strong>$1,000</strong> for everyone else. Married but filing your own separate return? Pick Single here, your break is $1,000 as well.</p>
-        </div>
+         PROGRESSIVE ENHANCEMENT, NOT A JS APP. Every card below ships VISIBLE and in
+         reading order in the built HTML: with JavaScript off, blocked, or a crawler
+         reading the page, this is a plain sequential form with real <label>s and native
+         <details> helpers. charitable-deduction-wizard.js sets data-js="on" on the .otw
+         section only after its first successful render, and ONLY THEN does styles.css
+         collapse the stack to one card at a time. Hide-on-demand, never show-on-demand.
+         The single exception is #out, the computed answer, which has always been
+         JS-only. The stepping controls (Next / Back, the dots, the quick chips, the
+         answer chips, Start over) are gated on data-js="on" in CSS as well, because a
+         Next button that cannot advance anything is worse than no button.
 
-        <div class="field">
-          <label for="agi">How much did you make this year, before tax?</label>
-          <input type="text" id="agi" inputmode="decimal" data-money autocomplete="off" value="175000">
-          <p class="muted-small" style="margin-top:6px">Your pay and other income, after a few adjustments. It is the number on line 11 of your Form 1040, the line labelled <a href="/tax-glossary/#agi">adjusted gross income, or AGI</a>. It sets the 0.5% cut-off and your tax rate, so there is nothing else to enter. Married and filing together? Add both incomes.</p>
-        </div>
+         IDS ARE A CONTRACT with charitable-deduction-wizard.js: cashGift, nonCash, agi,
+         other, and the radio group named "filing" (values single / married /
+         head_of_household). They are the ids this page has always used, so the engine
+         call is unchanged. #out and #outStatus are the result panel and the one polite
+         live region; #outStatus deliberately sits OUTSIDE the cards, because inside one
+         it would be display:none on every step but its own and the announcement would
+         never reach a screen reader. #out now carries data-tb-result, the explicit
+         anchor report-widget.js hooks, in place of the aria-live="polite" it used to be
+         found by.
 
-        <div class="field">
-          <label for="cashGift">How much did you give to charity in cash this year?</label>
-          <input type="text" id="cashGift" inputmode="decimal" data-money autocomplete="off" value="2500">
-          <p class="muted-small" style="margin-top:6px">Money you handed over by cash, check, or card to an ordinary <strong>public charity</strong>. Only this kind counts toward the $1,000 / $2,000 break. Money paid into a donor-advised fund or a private foundation does not count toward it.</p>
-        </div>
+         THE TWO YES/NO QUESTIONS ARE GONE. THEIR NEUTRAL VALUES ARE NOT.
+         question-flow.js used to hide #nonCash behind "did you give a charity anything
+         other than money?" (shipping No) and #other behind "do you already write off
+         other big expenses?" (shipping Yes). The part that matters: answering No PARKED
+         the field at a neutral value rather than merely hiding it, because #other ships
+         pre-filled at 20,000 and a hidden 20,000 still fed the itemize-vs-standard
+         verdict and flipped the headline. Those questions are cards that ask for the
+         number itself now, so the neutral answer has to stay reachable:
+           * #nonCash ships at 0 — exactly the value question-flow parked it at while
+             its question read No, so an untouched page computes what it always did.
+           * #other still ships at 20,000, also unchanged, and the "Nothing else" quick
+             chip on that card writes 0 into it. That chip IS the No, and it zeroes the
+             box rather than hiding it. Never replace it with anything that only hides.
+         The page therefore ships no [data-reveal] wrapper, and that alone is what takes
+         it out of the question-flow injection in build.js — no build.js edit involved.
 
-        <!-- The last two inputs are the ones that stop a non-expert: "non-cash
-             gifts" and "other itemized deductions". Each is now a plain question,
-             with the technical term kept in the small note underneath so someone
-             who knows the term still recognises the field. The money box lives in
-             a [data-reveal] wrapper that ships VISIBLE here; question-flow.js
-             hides it after load when the answer is No, so JavaScript off, a broken
-             script, or a crawler all still see every field. Never invert this.
-             The "other expenses" question ships answered YES on purpose: that box
-             has always loaded pre-filled at $20,000, so a No default would change
-             what an untouched page computes. See the itemize-vs-standard verdict
-             in charitable-deduction-calculator.js, which reads #other directly. -->
-        <fieldset class="adv">
-          <legend>A few more questions, only if they apply to you</legend>
-          <p class="adv-hint">The second one starts on Yes with an example figure in it. Change either answer if it does not match your year, and put your own figures in.</p>
+         NO BRANCH: all five questions are on every visitor's path, so there is no when()
+         in the card list and no escape hatch to reason about. The one cross-check lives
+         on the income card — giving larger than the whole year's income, or cash giving
+         above the 60%-of-income ceiling this estimate deliberately does not model —
+         because income is the second of the two numbers and so the one being typed when
+         the contradiction can first exist. It warns, it never blocks.
 
-          <fieldset class="adv-q" aria-describedby="qGoodsNote">
-            <legend>Did you give a charity anything other than money?</legend>
-            <p class="adv-q-note" id="qGoodsNote">Things like clothes, furniture, a car, or shares of stock.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qGoods" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qGoods" value="yes"><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qGoods">
-              <div class="field">
-                <label for="nonCash">What were those gifts worth in total?</label>
-                <input type="text" id="nonCash" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="nonCashNote">
-                <p class="adv-q-note" id="nonCashNote">Use what the items were worth second-hand, not what you paid. These can count if you list your deductions one by one, but they never count toward the $1,000 / $2,000 break, which is cash only.</p>
-              </div>
-            </div>
-          </fieldset>
+         The /embed/ build is NOT this. It keeps its single-column #charForm and is still
+         served by charitable-deduction-calculator.js, because a third party sizes that
+         iframe once and a flow whose height changes per card would clip inside it. The
+         two must stay independent, which is why the form id here differs from that one.
 
-          <fieldset class="adv-q" aria-describedby="qOtherNote">
-            <legend>Do you already write off other big expenses on your tax return?</legend>
-            <p class="adv-q-note" id="qOtherNote">Mainly state and local taxes and mortgage interest. Listing expenses like these one by one, instead of taking the flat amount everyone is offered, is called <a href="/tax-glossary/#itemizing">itemizing</a>. It is what decides whether your donation is worth anything extra, so it is worth answering.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qOther" value="no"><span>No</span></label>
-              <label class="seg"><input type="radio" name="qOther" value="yes" checked><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qOther">
-              <div class="field">
-                <label for="other">How much do those other expenses add up to?</label>
-                <input type="text" id="other" inputmode="decimal" data-money autocomplete="off" value="20000" aria-describedby="otherNote">
-                <p class="adv-q-note" id="otherNote">Leave your donations out of this box, they are counted above. Add up your state and local taxes (up to the <a href="/salt-cap-calculator/">$40,000 cap</a>) and your mortgage interest. The $20,000 shown is only an example, put in your own figure.</p>
-              </div>
-            </div>
-          </fieldset>
-        </fieldset>
+         The lede moved below the calculator, unchanged, so the tool is the first thing
+         on the page — the order every other calculator in this family already ships. Ad
+         slots, prose, the worked example and the FAQ are untouched. -->
+    <section class="otw" id="charitableWizard" aria-label="Charitable deduction calculator">
+      <h2 class="sr-only">Charitable deduction calculator</h2>
+      <div class="otw-dots" id="otwDots" aria-hidden="true"></div>
+      <p class="otw-stepnum" id="otwStepnum"></p>
+
+      <form id="charitableWizForm" autocomplete="off" onsubmit="return false">
+        <section class="otw-card" data-step="0" aria-labelledby="otwQ0">
+          <h2 class="otw-q" id="otwQ0"><label for="cashGift">How much did you give to charity in cash this year?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="cashGift" inputmode="decimal" data-money autocomplete="off" value="2500">
+          </div>
+          <div class="otw-chips" id="otwGiftChips">
+            <button type="button" data-otw-fill="cashGift" data-otw-value="520">~$10 a week &rarr; 520</button>
+            <button type="button" data-otw-fill="cashGift" data-otw-value="1200">~$100 a month &rarr; 1,200</button>
+            <button type="button" data-otw-fill="cashGift" data-otw-value="2600">~$50 a week &rarr; 2,600</button>
+          </div>
+          <details class="otw-help">
+            <summary>Money you handed over by cash, check, or card to an ordinary public charity</summary>
+            <p>Only this kind counts toward the $1,000 / $2,000 break. Money paid into a donor-advised fund or a private foundation does not count toward it. A rough total is fine, you can change it at the end and watch the number update.</p>
+          </details>
+          <div class="otw-nav"><span></span><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="1" aria-labelledby="otwQ1">
+          <h2 class="otw-q" id="otwQ1"><label for="nonCash">If you gave things rather than money, what were they worth?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="nonCash" inputmode="decimal" data-money autocomplete="off" value="0">
+          </div>
+          <details class="otw-help">
+            <summary>Things like clothes, furniture, a car, or shares of stock</summary>
+            <p>Use what the items were worth second-hand, not what you paid. These can count if you list your deductions one by one, but they never count toward the $1,000 / $2,000 break, which is cash only. Leave the box at 0 if you only gave money.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="2" aria-labelledby="otwQ2">
+          <h2 class="otw-q" id="otwQ2"><label for="agi">How much did you make this year, before tax?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="agi" inputmode="decimal" data-money autocomplete="off" value="175000">
+          </div>
+          <p class="otw-flag" id="otwAgiFlag" hidden></p>
+          <details class="otw-help">
+            <summary>Your pay and other income, after a few adjustments</summary>
+            <p>It is the number on line 11 of your Form 1040, the line labelled <a href="/tax-glossary/#agi">adjusted gross income, or AGI</a>. It sets the 0.5% cut-off and your tax rate, so there is nothing else to enter. Married and filing together? Add both incomes.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="3" aria-labelledby="otwQ3">
+          <h2 class="otw-q" id="otwQ3">How do you do your taxes?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ3">
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="single" checked>
+              <span><span class="otw-opt-t">On my own</span><span class="otw-opt-s">single &mdash; your break for donating is $1,000</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="married">
+              <span><span class="otw-opt-t">Together with my husband or wife</span><span class="otw-opt-s">married, one return together &mdash; your break for donating is $2,000</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="head_of_household">
+              <span><span class="otw-opt-t">On my own, with a child or dependent at home</span><span class="otw-opt-s">head of household &mdash; your break for donating is $1,000</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>What if I'm married but we send in separate returns?</summary>
+            <p>Pick "On my own" — your break for donating is $1,000 as well. Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>. It sets the size of that break and the flat <a href="/tax-glossary/#standard-deduction">standard deduction</a> your listed expenses are measured against.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="4" aria-labelledby="otwQ4">
+          <h2 class="otw-q" id="otwQ4"><label for="other">What do your other big write-offs add up to?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="other" inputmode="decimal" data-money autocomplete="off" value="20000">
+          </div>
+          <div class="otw-chips" id="otwOtherChips">
+            <button type="button" data-otw-fill="other" data-otw-value="0">Nothing else &rarr; 0</button>
+          </div>
+          <details class="otw-help">
+            <summary>Mainly state and local taxes and mortgage interest — this is what decides whether your donation is worth anything extra</summary>
+            <p>Leave your donations out of this box, they are counted already. Add up your state and local taxes (up to the <a href="/salt-cap-calculator/">$40,000 cap</a>) and your mortgage interest. Listing expenses like these one by one, instead of taking the flat amount everyone is offered, is called <a href="/tax-glossary/#itemizing">itemizing</a>. The $20,000 in the box is only an example — put in your own figure, or tap "Nothing else" if you have none.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">See my answer</button></div>
+        </section>
+
+        <section class="otw-card otw-result" data-step="5" aria-labelledby="otwQ5">
+          <h2 class="otw-q sr-only" id="otwQ5" tabindex="-1">Your answer</h2>
+          <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+          <div class="obbba-out" id="out" data-tb-result></div>
+          <details class="otw-help">
+            <summary>Which gifts count toward the $1,000 / $2,000 break?</summary>
+            <p>Cash, check or card, given to an ordinary <strong>public charity</strong>. Gifts of goods or shares never count toward it, and neither does money paid into a donor-advised fund, a private foundation, or a supporting organisation — those can still be deductible if you list your deductions one by one. There is no carrying an unused part of this break into next year.</p>
+          </details>
+          <div class="otw-answers" id="otwAnswers"></div>
+          <div class="otw-restart"><button type="button" id="otwRestart">Start over</button></div>
+        </section>
       </form>
-
-      <div class="obbba-out" id="out" aria-live="polite"></div>
+      <p id="outStatus" role="status" class="sr-only"></p>
     </section>
+
+    <p class="lede">Starting in <strong>2026</strong>, the One Big Beautiful Bill Act changes charitable deductions three ways at once: a new <strong>$1,000 (single) / $2,000 (married)</strong> deduction for people who take the <a href="/tax-glossary/#standard-deduction">standard deduction</a>, a new <strong>0.5%-of-<a href="/tax-glossary/#agi">AGI</a> floor</strong> for <a href="/tax-glossary/#itemizing">itemizers</a>, and a <strong>35-cent-on-the-dollar cap</strong> at the top bracket. These changes are <strong>permanent</strong>. Enter your numbers to see what's deductible and what it saves you. Everything runs in your browser — nothing is uploaded.</p>
 
     <p class="note">Estimate for general guidance only — not tax advice. Figures use the 2026 federal brackets and standard deductions (single $16,100 / married filing jointly $32,200 / head of household $24,150). The tax-saving figure compares your best deduction with the gift against your best deduction without it. It does not model the 60%/30%/20%-of-AGI ceilings on very large gifts, carryforwards, the AMT, or state tax. Verify with the IRS or a tax professional.</p>
 
@@ -179,6 +257,6 @@
   window.__OBBBA__ = {{OBBBA_JSON}};
   window.__FED__ = {{FED_JSON}};
 </script>
-<script type="module" src="/assets/charitable-deduction-calculator.js"></script>
+<script type="module" src="/assets/charitable-deduction-wizard.js"></script>
 </body>
 </html>
