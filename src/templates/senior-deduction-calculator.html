@@ -27,75 +27,186 @@
 <main id="main">
   <div class="wrap">
     <h1>Senior Bonus Deduction Calculator</h1>
-    <section class="calc" aria-label="Senior bonus deduction calculator">
+    <!-- THE WIZARD (rewritten 2026-08-01 onto wizard-core.js, following the
+         approved shape proven on /overtime-tax-calculator/ and the /tips-tax-
+         calculator/ pilot). This page used to be one long form: five labelled
+         boxes and a stat card over a collapsed derivation, all on screen at
+         once. It now asks ONE question per card and ends with the answer
+         written out as a story.
+
+         PROGRESSIVE ENHANCEMENT, NOT A JS APP. Every card below ships VISIBLE
+         and in reading order in the built HTML: with JavaScript off, blocked, or
+         a crawler reading the page, this is a plain sequential form with real
+         <label>s, real radios and native <details> helpers.
+         senior-deduction-wizard.js sets data-js="on" on the .otw section only
+         after its first successful render, and ONLY THEN does styles.css
+         collapse the stack to one card at a time. Hide-on-demand, never
+         show-on-demand. The single exception is #out, the computed answer, which
+         has always been JS-only. The stepping controls (Next / Back, the
+         progress dots, the income chips, the answer chips, Start over) are also
+         gated on data-js="on" in CSS, because a "Next" button that cannot
+         advance anything is worse than no button.
+
+         IDS ARE A CONTRACT with senior-deduction-wizard.js: the money field
+         #magi, the #year select, and the three radio groups named "age65"
+         (yes/no), "filing" (single / married / married_separate /
+         head_of_household / qss) and "spouseAge65" (yes/no). #out and #outStatus
+         keep their old names and roles (result panel + the one polite live
+         region). #outStatus deliberately sits OUTSIDE the cards: inside one it
+         would be display:none on every step but its own and the announcement
+         would never reach a screen reader.
+
+         THE TWO 65+ CHECKBOXES BECAME YES/NO RADIOS. A lone checkbox on a card
+         reads as a leftover from a form, not as the question the card is asking,
+         and "unticked" is ambiguous between "no" and "not answered yet". Radios
+         also give the card the pointer-advance and the Start-over restore that
+         wizard-core.js provides for a radio group and cannot provide for a
+         checkbox (its snapshot restores el.value, which is meaningless for a
+         checkbox's checked state). Every group therefore ships one option
+         pre-checked, and the pre-checked answers are the ones this page already
+         shipped: 65-or-older Yes, spouse No.
+
+         THE SPOUSE CARD IS THE ONE BRANCH. It is on the path only when the
+         filing answer is "married filing jointly" — the same rule the old
+         #spouseRow followed, now expressed as a card that is simply not asked
+         rather than a row that appears and disappears under the visitor. The
+         answer left behind on it is harmless if the visitor goes back and
+         changes how they file: the engine only counts a spouse on a joint
+         return.
+
+         THE ORDER IS AGE FIRST, YEAR LAST. Age is what this tool is actually
+         about and it is the eligibility gate, so it opens the flow; the tax-year
+         dropdown is calendar admin that would have opened the page on a
+         bureaucratic select. Nothing here is skippable: every one of the five
+         answers changes the number, so no card carries a Skip.
+
+         The /embed/ build is NOT this. It keeps its single-column form (#seniorForm)
+         and is still served by senior-deduction-calculator.js, because a third
+         party sizes that iframe once and a flow whose height changes per card
+         would clip inside it. The two must stay independent, which is why this
+         form is #seniorWizForm.
+
+         Ad slots, the "is this really no tax on Social Security" myth section,
+         the prose, the worked example and the FAQ below are untouched. -->
+    <section class="otw" id="seniorWizard" aria-label="Senior bonus deduction calculator">
       <h2 class="sr-only">Senior deduction calculator</h2>
-      <!-- Every control here is required to get any answer at all: the year, how
-           you file, who is 65 or older, and your income. Nothing is left over as
-           optional, so this form deliberately carries no optional-questions block
-           and no [data-reveal] wrappers, and this path is deliberately NOT in
-           QUESTION_FLOW_PAGES in build.js: there is nothing for question-flow.js
-           to hide, so the page must not download it. The fix here is wording, not
-           machinery: every label is a real question, and the only jargon left is
-           "filing status", which is printed on the Form 1040 box the question is
-           about. MAGI is gone; the visitor is told to use line 11 instead, which
-           is the number they can actually find.
-           #spouseRow is shown and hidden by render() in
-           senior-deduction-calculator.js off the filing answer, which is why it
-           must never also carry data-reveal: question-flow.js sets the same
-           `hidden` property, and pointing both at one element would let the two
-           fight. The id stays on the element that gets hidden, and the note now
-           sits inside it so the explanation disappears with the question. -->
-      <form id="seniorForm" autocomplete="off" onsubmit="return false">
-        <div class="field">
-          <label for="year">Which tax year are you working out?</label>
-          <select id="year">
+      <div class="otw-dots" id="otwDots" aria-hidden="true"></div>
+      <p class="otw-stepnum" id="otwStepnum"></p>
+
+      <form id="seniorWizForm" autocomplete="off" onsubmit="return false">
+        <section class="otw-card" data-step="0" aria-labelledby="otwQ0">
+          <h2 class="otw-q" id="otwQ0">Will you be 65 or older by the end of the tax year?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ0">
+            <label class="otw-opt">
+              <input type="radio" name="age65" value="yes" checked>
+              <span><span class="otw-opt-t">Yes</span><span class="otw-opt-s">65 or older on December 31 — for a 2025 return, born before January 2, 1961</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="age65" value="no">
+              <span><span class="otw-opt-t">No, I'll still be under 65</span><span class="otw-opt-s">the deduction starts with the year you turn 65</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>It starts the year you turn 65, whether or not you have retired</summary>
+            <p>This one is about your age, not about retirement. You do not have to have stopped working, and you do not have to be receiving Social Security, despite the "no tax on Social Security" nickname. Your birthday only has to land on or before December 31 of the year the return covers.</p>
+          </details>
+          <div class="otw-nav"><span></span><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="1" aria-labelledby="otwQ1">
+          <h2 class="otw-q" id="otwQ1">How do you file your tax return?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ1">
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="single" checked>
+              <span><span class="otw-opt-t">On my own</span><span class="otw-opt-s">single</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="married">
+              <span><span class="otw-opt-t">Together with my husband or wife, one return</span><span class="otw-opt-s">married filing jointly, which married couples have to do to claim this</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="married_separate">
+              <span><span class="otw-opt-t">Married, but we each send our own return</span><span class="otw-opt-s">married filing separately, which gets nothing at all</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="head_of_household">
+              <span><span class="otw-opt-t">On my own, paying most of the costs of a home for a child or relative</span><span class="otw-opt-s">head of household</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="qss">
+              <span><span class="otw-opt-t">Widowed in the last two years, with a dependent child at home</span><span class="otw-opt-s">qualifying surviving spouse</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>Married couples have to send in one return together to claim it</summary>
+            <p>This is the box you tick at the top of Form 1040, printed there as your <a href="/tax-glossary/#filing-status">filing status</a>. It sets the income at which the deduction starts to shrink: $150,000 on a joint return, $75,000 for everyone else. Married couples who send in separate returns get $0.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="2" aria-labelledby="otwQ2">
+          <h2 class="otw-q" id="otwQ2">Will your husband or wife also be 65 or older?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ2">
+            <label class="otw-opt">
+              <input type="radio" name="spouseAge65" value="yes">
+              <span><span class="otw-opt-t">Yes, both of us</span><span class="otw-opt-s">that is $6,000 each, so $12,000 to start from</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="spouseAge65" value="no" checked>
+              <span><span class="otw-opt-t">No, only me</span><span class="otw-opt-s">one $6,000 on the return</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>Each of you who is 65 or older adds another $6,000</summary>
+            <p>So a couple where both qualify starts from $12,000. If your income is high enough for the deduction to start shrinking, the reduction applies to each person's $6,000 separately, not to the $12,000 as one lump.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="3" aria-labelledby="otwQ3">
+          <h2 class="otw-q" id="otwQ3"><label for="magi">What is your yearly income?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="magi" inputmode="decimal" data-money autocomplete="off" value="60000">
+          </div>
+          <div class="otw-chips" id="otwIncomeChips">
+            <button type="button" data-otw-fill="magi" data-otw-value="30000">~$2,500 a month &rarr; 30,000</button>
+            <button type="button" data-otw-fill="magi" data-otw-value="48000">~$4,000 a month &rarr; 48,000</button>
+            <button type="button" data-otw-fill="magi" data-otw-value="78000">~$6,500 a month &rarr; 78,000</button>
+          </div>
+          <details class="otw-help">
+            <summary>Above $75,000, or $150,000 on a joint return, the $6,000 starts to shrink</summary>
+            <p>Use the income figure from your tax return, line 11 on Form 1040. Filing one return with your spouse? Use the combined figure for the two of you. Each qualifying person's $6,000 drops by 6 cents for every extra dollar over the line, and it runs out completely at $175,000, or at $250,000 on a joint return. Tax forms measure this against your <a href="/tax-glossary/#magi">modified adjusted gross income</a>, which for almost everyone is the same number.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="4" aria-labelledby="otwQ4">
+          <h2 class="otw-q" id="otwQ4"><label for="year">Which year's tax return is this for?</label></h2>
+          <select class="otw-in" id="year">
             <option value="2025">2025</option>
             <option value="2026">2026</option>
             <option value="2027">2027</option>
             <option value="2028">2028</option>
           </select>
-          <p class="muted-small" style="margin-top:6px">Pick the year the tax return covers, not today's date. This deduction exists for 2025 through 2028 only.</p>
-        </div>
+          <details class="otw-help">
+            <summary>This deduction exists for the 2025 to 2028 tax years only</summary>
+            <p>Pick the year the return covers, not today's date. Neither the $6,000 nor the income limits move over those four years, because neither is adjusted for inflation, and there is nothing after 2028 unless Congress extends it.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">See my answer</button></div>
+        </section>
 
-        <div class="field">
-          <label for="filing">How do you file your tax return?</label>
-          <select id="filing">
-            <option value="single">On my own (single)</option>
-            <option value="married">Married, and we file one return together (married filing jointly)</option>
-            <option value="married_separate">Married, but we each file our own return (married filing separately)</option>
-            <option value="head_of_household">On my own, paying most of the costs of a home for a child or relative (head of household)</option>
-            <option value="qss">Widowed in the last two years, with a dependent child at home (qualifying surviving spouse)</option>
-          </select>
-          <p class="muted-small" style="margin-top:6px">This is the box you tick at the top of Form 1040, printed there as your filing status. It sets the income level where this deduction starts to shrink. Married couples have to file one return together to claim it, so filing separately gets $0.</p>
-        </div>
-
-        <div class="field">
-          <div class="check-field">
-            <input type="checkbox" id="age65" checked>
-            <label for="age65">I will be <strong>65 or older on December 31</strong> of that tax year <span class="muted-small">(for the 2025 return, born before January 2, 1961)</span></label>
-          </div>
-          <p class="muted-small" style="margin-top:6px">This one is about your age, not about retirement. You do not have to have stopped working, and you do not have to be receiving Social Security, despite the "no tax on Social Security" nickname.</p>
-        </div>
-
-        <div class="field" id="spouseRow" hidden>
-          <div class="check-field">
-            <input type="checkbox" id="spouseAge65">
-            <label for="spouseAge65">My spouse will also be <strong>65 or older on December 31</strong> of that tax year</label>
-          </div>
-          <p class="muted-small" style="margin-top:6px">Each of you who is 65 or older adds another $6,000, so a couple where both qualify starts from $12,000. This question only appears when you file one return together.</p>
-        </div>
-
-        <div class="field">
-          <label for="magi">What is your yearly income?</label>
-          <input type="text" id="magi" inputmode="decimal" data-money autocomplete="off" value="60000">
-          <p class="muted-small" style="margin-top:6px">Use the income figure from your tax return, line 11 on Form 1040. Filing one return with your spouse? Use the combined figure for the two of you. Above $75,000, or $150,000 on a joint return, each qualifying person's $6,000 shrinks by 6 cents for every extra dollar, and it runs out completely at $175,000, or at $250,000 on a joint return.</p>
-        </div>
+        <section class="otw-card otw-result" data-step="5" aria-labelledby="otwQ5">
+          <h2 class="otw-q sr-only" id="otwQ5" tabindex="-1">Your answer</h2>
+          <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+          <div class="obbba-out" id="out" data-tb-result></div>
+          <details class="otw-help">
+            <summary>Does this mean my Social Security isn't taxed?</summary>
+            <p>No. The 2025 law did not change how Social Security benefits are taxed — the same rules still decide how much of your benefits count as income. This is a separate deduction based on your age, taken after that calculation, so it does not change your <a href="/tax-glossary/#agi">AGI</a>, how much of your benefits are taxable, or the income Medicare uses to set IRMAA surcharges.</p>
+          </details>
+          <div class="otw-answers" id="otwAnswers"></div>
+          <div class="otw-restart"><button type="button" id="otwRestart">Start over</button></div>
+        </section>
       </form>
-
-      <div class="calc-answer">
-        <p class="calc-example">These are example numbers. Type yours to see your own.</p>
-        <div class="obbba-out" id="out" data-tb-result></div>
-      </div>
       <p id="outStatus" role="status" class="sr-only"></p>
     </section>
 
@@ -167,6 +278,6 @@
   window.__OBBBA__ = {{OBBBA_JSON}};
   window.__FED__ = {{FED_JSON}};
 </script>
-<script type="module" src="/assets/senior-deduction-calculator.js"></script>
+<script type="module" src="/assets/senior-deduction-wizard.js"></script>
 </body>
 </html>
