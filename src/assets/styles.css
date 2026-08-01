@@ -460,16 +460,19 @@ html.js .applies-line[data-hidden] { display: none; }
 /* Side by side these leave each input about 150px on a 390px phone, too narrow
    for a labelled dollar amount, so they stack. Scoped with the same
    `:root:has(.answer-band, .calc-answer)` hook as the other shared-rule
-   overrides in this pass: ten built pages carry .est-row and only two of them,
-   overtime-tax-calculator and salt-cap-calculator, are in this pass's scope.
+   overrides in that pass: ten built pages carried .est-row and only two of them,
+   overtime-tax-calculator and salt-cap-calculator, were in that pass's scope.
    Unscoped it added 39-231px of document height to the other eight, including
    two embeds published at a fixed iframe height. Not written as
    `.field.est-row` because overtime-tax-calculator's row has no .field class.
-   #otForm is the third hook, and it buys exactly one more page: the overtime
-   /embed/ build, whose rate+hours row is now always visible rather than parked
-   inside a collapsed <details>, so its narrow-width state is the default view
-   there too. Only /overtime-tax-calculator/ and its embed carry that id, and the
-   full page already matched on .calc-answer. Adding .embed-wrap instead would
+   #otForm is the third hook, and since the 2026-08-01 wizard rewrite it is the
+   ONLY hook that reaches the overtime pair at all: the full page now ships the
+   .otw cards, which carry neither .calc-answer nor .est-row, so this rule no
+   longer applies there and does not need to — the wizard is one question per
+   card. What #otForm still buys is the /embed/ build, whose rate+hours row is
+   always visible rather than parked inside a collapsed <details>, so its
+   narrow-width state is the default view there. (Before the rewrite the full
+   page matched on .calc-answer; it does not any more.) Adding .embed-wrap would
    have pulled in every other embed; adding .calc-answer to the embed's markup
    would have pulled in `.calc-answer .stat-value` at 56px, the exact regression
    the note above that rule records. */
@@ -498,13 +501,17 @@ html.js .applies-line[data-hidden] { display: none; }
    untouched pages six times in one pass before, so nothing below touches a
    shared class, a bare element selector outside .otw, or an id anything else
    uses. Colours come from the site tokens, which already carry both schemes;
-   the one hard-coded pair (.otw-flag) gets the same explicit dark treatment
-   .ot-input-warning above uses.
+   the two that cannot use a token — .otw-flag's amber, and the select chevron,
+   which is a background image and so cannot take currentColor — each get the
+   same explicit dark pair .ot-input-warning above uses.
 
    data-js="on" IS THE HINGE. overtime-wizard.js sets it on the .otw section
-   after it boots. Until then every card is a plain stacked form section and the
-   stepping controls (dots, Next/Back/Skip, hour chips, answer chips, Start
-   over) are display:none, because a control that cannot do anything is worse
+   after it boots, and only after its first successful render, so a calculator
+   that throws on load leaves the plain stacked form on screen rather than
+   hiding every card behind a class nothing will add. Until then every card is a
+   plain stacked form section and the stepping controls (dots, Next/Back/Skip,
+   hour chips, answer chips, Start over) are display:none, because a control
+   that cannot do anything is worse
    than no control. Hide-on-demand, never show-on-demand: a crawler, a blocked
    script and a no-JS reader all see the whole form. */
 .otw { max-width: 520px; margin: 0 auto 24px; }
@@ -530,9 +537,18 @@ html.js .applies-line[data-hidden] { display: none; }
 .otw-in:focus { outline: 2px solid transparent; outline-offset: 2px;
   border-color: var(--link); box-shadow: var(--ring); }
 .otw-in-sm { font-size: 17px; }
+/* The chevron is a background image, so it cannot take currentColor and needs
+   the same explicit dark pair .otw-flag gets: the two fills are the light and
+   dark values of --muted. */
 select.otw-in { appearance: none; -webkit-appearance: none; padding-right: 38px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%235a6675' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 14px center; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) select.otw-in {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%239eabba' d='M1 1l5 5 5-5'/%3E%3C/svg%3E"); }
+}
+:root[data-theme="dark"] select.otw-in {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%239eabba' d='M1 1l5 5 5-5'/%3E%3C/svg%3E"); }
 .otw-money { position: relative; }
 .otw-money::before { content: "$"; position: absolute; left: 14px; top: 50%;
   transform: translateY(-50%); font-size: 19px; color: var(--muted); pointer-events: none; }
@@ -600,6 +616,11 @@ select.otw-in { appearance: none; -webkit-appearance: none; padding-right: 38px;
 .otw-story li { display: flex; justify-content: space-between; gap: 12px;
   padding: 9px 0; border-top: 1px solid var(--border); }
 .otw-story li:first-child { border-top: 0; }
+/* The one row that is NOT part of the split: what survives the cap or the
+   phase-out. The rows above it add up to the top row, this one restates the
+   third of them after the limit, so it gets a heavier rule to stop a reader
+   adding it in. */
+.otw-story li.otw-after { border-top: 2px solid var(--border-strong); margin-top: 4px; }
 .otw-amt { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .otw-amt.otw-taxed { color: var(--muted); }
 .otw-amt.otw-free { color: var(--accent); }

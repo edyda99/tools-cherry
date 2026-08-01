@@ -99,12 +99,54 @@ function announce(text) {
 // plus either a typed premium or BOTH a rate and hours. Clearing it on the first
 // edit to any one field presented an answer still made of our invented income
 // and our invented rate as the visitor's own.
+//
+// The label also NAMES the figures still coming from us, and that is not a
+// flourish: the defaults ($20 an hour, $60,000 a year) are ordinary enough to be
+// somebody's real pay, so a visitor who only picks an hours chip can be shown a
+// number that is genuinely theirs under a banner flatly calling it an example.
+// "Still using our example figures for your yearly pay" is true in both cases.
 const touchedFields = new Set();
-function noteFieldTouched(id) {
-  touchedFields.add(id);
+let exampleNote = null;   // kept, never dropped on the floor: "Start over" puts it back
+let exampleHome = null;
+let exampleNext = null;
+
+function captureExampleNote() {
+  exampleNote = document.querySelector('.calc-example');
+  if (!exampleNote) return;
+  exampleHome = exampleNote.parentNode;
+  exampleNext = exampleNote.nextSibling;
+}
+function restoreExampleNote() {
+  if (exampleNote && !exampleNote.isConnected && exampleHome) exampleHome.insertBefore(exampleNote, exampleNext);
+}
+function exampleSatisfied() {
   const overtimeSupplied = touchedFields.has('premium') ||
     (touchedFields.has('regRate') && touchedFields.has('otHours'));
-  if (touchedFields.has('income') && overtimeSupplied) document.querySelector('.calc-example')?.remove();
+  return touchedFields.has('income') && overtimeSupplied;
+}
+function noteFieldTouched(id) {
+  touchedFields.add(id);
+  if (exampleSatisfied()) document.querySelector('.calc-example')?.remove();
+}
+// Rewrites the surviving label to list exactly the fields still holding our
+// numbers. The list and the removal rule above are the same rule read two ways,
+// so the label disappears on the keystroke that empties the list.
+function renderExampleNote(direct) {
+  const el = document.querySelector('.calc-example');
+  if (!el) return;
+  const missing = [];
+  if (direct) {
+    if (!touchedFields.has('premium')) missing.push('your overtime premium');
+  } else {
+    if (!touchedFields.has('regRate')) missing.push('your normal hourly rate');
+    if (!touchedFields.has('otHours')) missing.push('your overtime hours');
+  }
+  if (!touchedFields.has('income')) missing.push('your yearly pay');
+  if (!missing.length) { el.remove(); return; }
+  const list = missing.length === 1
+    ? missing[0]
+    : missing.slice(0, -1).join(', ') + ' and ' + missing[missing.length - 1];
+  el.textContent = `Still using our example figures for ${list}. Type your own to see your answer.`;
 }
 
 // ---- State dropdown + conformity verdict ------------------------------------
@@ -130,21 +172,29 @@ const VERDICT = {
   'n/a': '—'
 };
 
+// The state verdict is the one collapsed helper that answers a question the
+// visitor asked out loud (they chose a state on the card before this one), so it
+// OPENS ITSELF the first time each state is rendered. Left closed, 41 of the 51
+// states showed a bare "What about my state?" summary and hid the yes/no behind
+// a click. It re-opens only when the chosen state changes, so a visitor who
+// closes it does not have it reopened under them by the next keystroke.
+let stateNoteShown = null;
 function renderStateNote() {
   const box = $('otwStateNote');
   const sel = $('state');
   if (!box || !sel) return;
   const e = STATES[sel.value];
-  if (!sel.value || !e) { box.hidden = true; box.open = false; return; }
+  if (!sel.value || !e) { box.hidden = true; box.open = false; stateNoteShown = null; return; }
   box.hidden = false;
+  if (stateNoteShown !== sel.value) { box.open = true; stateNoteShown = sel.value; }
   const sum = box.querySelector('summary');
   const body = box.querySelector('.otw-state-body');
   if (!e.hasWageTax) {
-    sum.textContent = 'What about my state? Nothing to do';
+    sum.textContent = `What about my state? ${e.name} doesn't tax wages, so nothing to do`;
     body.innerHTML = `<strong>${e.name}:</strong> no state income tax on wages, so the federal saving above is the whole story.`;
     return;
   }
-  sum.textContent = 'What about my state?';
+  sum.textContent = `What about my state? ${e.name}`;
   const y25 = e.overtime.y2025, y26 = e.overtime.y2026;
   body.innerHTML =
     `<strong>Overtime deduction in ${e.name}:</strong> ` +
@@ -153,6 +203,27 @@ function renderStateNote() {
 }
 
 // ---- Inline card flags ------------------------------------------------------
+// Both flags sit between an input and the nav row, so inserting or removing one
+// moves the Next button. Rendering them per keystroke made that happen mid-word:
+// money-input.js selects the whole field on entry, so retyping 80,000 passes
+// through 8, 80, 800 and 8,000, and typing an overtime rate of 40 passes through
+// 4 — every one of those intermediate values flips a flag on and off again.
+// They are therefore DEBOUNCED to the settled value rather than suppressed while
+// the field has focus, which was the earlier fix: suppressing meant a visitor
+// who edited a number last never saw its flag on its own card at all (the blur
+// that lifted the suppression arrived after the card was already hidden).
+const FLAG_SETTLE_MS = 350;
+let flagTimer = null;
+function scheduleFlags() {
+  clearTimeout(flagTimer);
+  flagTimer = setTimeout(() => { otRateFlag(); incomeFlag(); }, FLAG_SETTLE_MS);
+}
+function flushFlags() {
+  clearTimeout(flagTimer);
+  otRateFlag();
+  incomeFlag();
+}
+
 function otRateFlag() {
   const el = $('otwOtRateFlag');
   if (!el) return;
@@ -202,12 +273,6 @@ function incomeWarning() {
 function incomeFlag() {
   const el = $('otwIncomeFlag');
   if (!el) return;
-  // While #income has the caret, money-input.js has selected the whole field, so
-  // retyping 80,000 passes through 8, 80, 800 and 8,000 — each of which would
-  // insert and remove this block and shift the card on every keystroke. #income
-  // re-checks on blur, so nothing is skipped, only deferred to the end of the edit.
-  const incomeEl = $('income');
-  if (incomeEl && document.activeElement === incomeEl) return;
   const w = incomeWarning();
   el.hidden = !w;
   el.textContent = w;
@@ -239,11 +304,18 @@ function basisOf(s) {
   };
 }
 
-function zeroBenefitNote(r, direct) {
+function zeroBenefitNote(r, direct, s, b) {
   if (r.eligibleAmount <= 0) {
-    return direct
-      ? 'Enter your overtime premium to see your federal tax saving.'
-      : 'Fill in your normal rate, your overtime rate and your overtime hours to see your federal tax saving.';
+    if (direct) return 'Enter your overtime premium to see your federal tax saving.';
+    // Three filled-in fields can still produce nothing to deduct: an overtime
+    // rate at or below the normal rate pays no premium at all. Saying "fill in
+    // your rate and hours" over a filled-in form names the wrong problem, and
+    // the commonest cause is the two rates entered the wrong way round.
+    if (s && b && s.rate > 0 && s.otRate > 0 && s.hours > 0 && b.paidExtra <= 0) {
+      return `Your overtime rate (${usdRate(s.otRate)} an hour) is not above your normal rate (${usdRate(s.rate)} an hour), ` +
+        `so those hours paid no premium and there is nothing to deduct. If the two rates went in the wrong way round, swap them.`;
+    }
+    return 'Fill in your normal rate, your overtime rate and your overtime hours to see your federal tax saving.';
   }
   if (r.fullyPhasedOut) {
     return 'Your income is high enough that the deduction is fully phased out, so there is nothing to deduct this year.';
@@ -272,6 +344,16 @@ function render() {
     `<p class="otw-kick">When you file your taxes next year</p>` +
     `<p class="otw-big${benefits ? '' : ' otw-zero'}">${usd(r.taxSaved)}</p>`;
 
+  // ---- Does a limit bite? Asked BEFORE the story, and not via `benefits` --
+  // Whether the cap or the phase-out cuts the deduction is a question about the
+  // DEDUCTION, not about whether any tax came back: a premium can be capped all
+  // the way down to nothing (income past the phase-out) and produce taxSaved = 0.
+  // Gating this on `benefits` left exactly that screen showing a headline "$0"
+  // above a row still asserting the government skipped tax on the whole premium,
+  // with nothing on the card reconciling the two numbers.
+  const capBinds = r.eligibleAmount > 0 && r.eligibleAmount > r.allowedCap;
+  const limitWord = r.phasedOut ? 'the income phase-out' : `the ${usd(r.statutoryCap)} yearly limit`;
+
   // ---- The story --------------------------------------------------------
   // ROUNDED ONCE. The labels invite the reader to add the lower rows up to the
   // top one, so they have to add up: three independent Math.rounds do not
@@ -282,7 +364,10 @@ function render() {
   let rows = '';
   let extraNote = '';
   if (!benefits && r.eligibleAmount <= 0) {
-    lead = `<p class="otw-lead">${zeroBenefitNote(r, direct)}</p>`;
+    // No lead here: with no story rows to introduce, the plain box below is the
+    // only thing left to introduce, and the two would print the same sentence
+    // twice in a row under the headline.
+    lead = '';
   } else if (direct) {
     lead = `<p class="otw-lead">Here is what your ${usd(r.eligibleAmount)} overtime premium does:</p>`;
     rows =
@@ -302,26 +387,46 @@ function render() {
     const genR = Math.round(b.generosity);
     const normR = otPayR - premR - genR;
     lead = `<p class="otw-lead">Here is what happened inside your ${count(s.hours)} overtime hours:</p>`;
+    // The "half" row claims the tax break ONLY while nothing shrinks it. When a
+    // cap or the phase-out binds, that row is the larger, partly-taxed number
+    // and the claim moves down to its own row carrying the figure that actually
+    // survives — the same repair 56aa05a made on the embed. That row is also the
+    // first place a rate-and-hours visitor meets the word "premium", which the
+    // flag below then reuses, so it is glossed here rather than assumed.
     rows =
       `<ul class="otw-story">` +
       `<li><span>They paid you about</span><span class="otw-amt">${usd(otPayR)}</span></li>` +
       `<li><span>Your normal rate for those hours — taxed like all your pay</span><span class="otw-amt otw-taxed">${usd(normR)}</span></li>` +
-      `<li><span>The required overtime "half" — the government skips tax on this</span><span class="otw-amt otw-free">${usd(premR)}</span></li>` +
+      `<li><span>The required overtime "half"${capBinds ? ', your overtime premium' : ' — the government skips tax on this'}</span>` +
+        `<span class="otw-amt${capBinds ? '' : ' otw-free'}">${usd(premR)}</span></li>` +
       (genR > 0
         ? `<li><span>Your employer's extra, above the required half — taxed as usual</span><span class="otw-amt otw-taxed">${usd(genR)}</span></li>`
         : '') +
+      (capBinds
+        ? `<li class="otw-after"><span>Deductible after ${limitWord}${r.deduction > 0 ? ' — the government skips tax on this' : ''}</span>` +
+          `<span class="otw-amt${r.deduction > 0 ? ' otw-free' : ''}">${usd(r.deduction)}</span></li>`
+        : '') +
       `</ul>`;
+    // The generosity row states that the employer's extra is taxed but never
+    // says why. This is the sentence that says why, and it used to be emitted
+    // only on the typed-premium path, which by construction never has that row.
+    if (genR > 0) {
+      extraNote = `<p class="otw-note">Only the required extra half of time-and-a-half counts, so the part your employer pays ` +
+        `above it, double time for instance, is taxed as usual and is not part of your premium.</p>`;
+    }
   }
 
   // ---- The limit, named with BOTH numbers --------------------------------
   // The premium and the deductible amount stop being the same number the moment
   // a cap or the phase-out binds, and the wording that conflated them is what
   // once shipped a screen reading "$12,500, the required extra half" over a
-  // $125,000 required extra half. Every sentence here names both.
-  const capBinds = r.eligibleAmount > r.allowedCap;
+  // $125,000 required extra half. Every sentence here names both. The fully
+  // phased-out case is left to the plain box below, which explains the $0 rather
+  // than announcing a cap that dropped to nothing.
   let capFlag = '';
-  if (benefits && capBinds) {
-    capFlag = `<p class="otw-flag">Heads up: ${usd(r.deduction)} of your ${usd(r.eligibleAmount)} premium is deductible. ` +
+  if (capBinds && !r.fullyPhasedOut) {
+    capFlag = `<p class="otw-flag">Heads up: ${usd(r.deduction)} of your ${usd(r.eligibleAmount)} overtime premium ` +
+      `(the extra half above your normal rate) is deductible. ` +
       (r.phasedOut
         ? `Your income is above the phase-out threshold, so your cap drops to ${usd(r.allowedCap)}`
         : `This deduction stops at ${usd(r.statutoryCap)} a year`) +
@@ -335,33 +440,43 @@ function render() {
     ? `<div class="otw-plain">Skipping federal tax on ${usd(r.deduction)} puts about ${usd(r.taxSaved)} back in your ` +
       `pocket, as a bigger refund (or a smaller bill) when you file. Social Security and Medicare still come out of ` +
       `your overtime, and your paycheck during the year does not change.</div>`
-    : `<div class="otw-plain">${zeroBenefitNote(r, direct)}</div>`;
+    : `<div class="otw-plain">${zeroBenefitNote(r, direct, s, b)}</div>`;
 
   out.innerHTML = warnBox + head + lead + rows + capFlag + plain + extraNote;
 
+  renderExampleNote(direct);
   renderStateNote();
   renderAnswerChips(s, direct, r);
 
-  const capSpoken = capBinds && r.eligibleAmount > 0
+  // Only from the answer card. render() runs on every keystroke on every card,
+  // and a screen-reader user typing their hourly rate on card 1 was read a
+  // result panel five cards away that they could neither see nor reach.
+  if (step !== RESULT) return;
+  const capSpoken = capBinds
     ? ` Your ${usd(r.eligibleAmount)} premium is limited to ${usd(r.deduction)} deductible ${r.phasedOut ? 'by the income phase-out' : 'by the yearly cap'}.`
     : '';
   announce(`Federal tax saved on your overtime premium: ${usd(r.taxSaved)}.${capSpoken}` +
     (warning ? ' Check your numbers, there is a warning above the answer.' : ''));
 }
 
-// Each chip names an answer and jumps back to the card that asked for it.
+// Each chip names an answer and jumps back to the card that asked for it. The
+// third value is the field that answer actually lives in, needed only where the
+// card and the field disagree: the typed premium sits inside a collapsed
+// <details> on the rate card, so the chip named after it has to open that
+// helper and land in #premium instead of the rate box in front of it.
 function renderAnswerChips(s, direct, r) {
   const box = $('otwAnswers');
   if (!box) return;
   const stateName = s.state && STATES[s.state] ? STATES[s.state].name : 'no state';
   const items = direct
-    ? [[RATE, `${usd(r.eligibleAmount)} premium`]]
+    ? [[RATE, `${usd(r.eligibleAmount)} premium`, 'premium']]
     : [[RATE, `${usdRate(s.rate)}/hr normal`], [OTRATE, `${usdRate(s.otRate)}/hr overtime`], [HOURS, `${count(s.hours)} OT hours`]];
   items.push([INCOME, `${usd(s.income)}/yr`]);
   items.push([FILING, FILING_WORDS[s.filing] || s.filing]);
   items.push([STATE, stateName]);
   box.innerHTML = items
-    .map(([target, label]) => `<button type="button" data-otw-goto="${target}">${label} ✎</button>`)
+    .map(([target, label, field]) =>
+      `<button type="button" data-otw-goto="${target}"${field ? ` data-otw-field="${field}"` : ''}>${label} ✎</button>`)
     .join('');
 }
 
@@ -370,6 +485,7 @@ function renderProgress(path) {
   const dots = $('otwDots');
   const label = $('otwStepnum');
   const at = path.indexOf(step);
+  if (at === -1) return; // mid-edit, off-path: show() normalises it a moment later
   if (dots) {
     dots.innerHTML = path.map((_, i) => `<span${i <= at ? ' class="otw-on"' : ''}></span>`).join('');
   }
@@ -394,6 +510,8 @@ function focusCard(card) {
 }
 
 function show(n, withFocus = true) {
+  // Settle any pending flag before the card it belongs to leaves the screen.
+  flushFlags();
   const direct = isDirect();
   const path = pathOf(direct);
   let target = n;
@@ -423,16 +541,44 @@ function syncOtRate() {
   el.value = v > 0 ? v.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '';
 }
 
+// "Start over" means start over: without this it moved the visitor to card 1 and
+// left every number they had entered in place, including the overtime rate
+// frozen to their old edit, which is the opposite of what the word promises.
+// The defaults are snapshotted AFTER initMoneyInputs() has formatted them, so a
+// restart restores "60,000" rather than the raw "60000" in the markup.
+const defaults = new Map();
+function snapshotDefaults() {
+  ['regRate', 'otRate', 'otHours', 'income', 'premium'].forEach((id) => {
+    const el = $(id);
+    if (el) defaults.set(id, el.value);
+  });
+}
+function restart() {
+  defaults.forEach((v, id) => { const el = $(id); if (el) el.value = v; });
+  const sel = $('state');
+  if (sel) sel.value = '';
+  const first = document.querySelector('input[name="filing"]');
+  if (first) first.checked = true;
+  document.querySelectorAll('#otWizard .otw-esc[open]').forEach((d) => { d.open = false; });
+  otRateTouched = false;
+  touchedFields.clear();
+  stateNoteShown = null;
+  restoreExampleNote();
+  // Card first, THEN the answer: render() announces only from the answer card,
+  // and a restart should not read the example figures out to a screen reader on
+  // its way back to question one.
+  show(RATE);
+  render();
+}
+
 function init() {
   const stage = $('otWizard');
   if (!stage) return;
   cards = [...stage.querySelectorAll('.otw-card')].sort((a, b) => Number(a.dataset.step) - Number(b.dataset.step));
   initMoneyInputs();
+  snapshotDefaults();
+  captureExampleNote();
   fillStates();
-
-  // Only now does the stack become a stepped wizard: everything above ships
-  // visible so a crawler, a blocked script or a no-JS reader gets the whole form.
-  stage.dataset.js = 'on';
 
   stage.addEventListener('click', (e) => {
     const t = e.target.closest('button');
@@ -447,11 +593,23 @@ function init() {
     }
     if (t.dataset.otwHours) {
       const el = $('otHours');
-      if (el) { el.value = t.dataset.otwHours; noteFieldTouched('otHours'); incomeFlag(); render(); }
+      if (el) { el.value = t.dataset.otwHours; noteFieldTouched('otHours'); flushFlags(); render(); }
       return;
     }
-    if (t.dataset.otwGoto !== undefined) { show(Number(t.dataset.otwGoto)); return; }
-    if (t.id === 'otwRestart') { show(RATE); }
+    if (t.dataset.otwGoto !== undefined) {
+      const field = t.dataset.otwField;
+      // A chip pointing at a field inside a collapsed helper has to open it,
+      // then focus the field itself: focusCard would otherwise land on the
+      // first visible input on that card, which is a different question.
+      if (field === 'premium') stage.querySelector('.otw-esc')?.setAttribute('open', '');
+      show(Number(t.dataset.otwGoto), !field);
+      if (field) {
+        const el = $(field);
+        if (el) { try { el.focus({ preventScroll: true }); } catch (_) { el.focus(); } }
+      }
+      return;
+    }
+    if (t.id === 'otwRestart') { restart(); }
   });
 
   // Enter advances, except on a <summary> (where it opens the helper) and on the
@@ -464,17 +622,32 @@ function init() {
     show(nextOf(step, isDirect()));
   });
 
-  const recompute = () => { otRateFlag(); incomeFlag(); render(); };
+  // The progress line is recomputed too: typing a premium into the escape on
+  // card 1 shortens the path from 6 questions to 4, and the dots and "Step 1 of
+  // 6" label used to keep describing the long path until the visitor pressed
+  // Next, contradicting the flow they were already on.
+  const recompute = () => { scheduleFlags(); renderProgress(pathOf(isDirect())); render(); };
 
   $('regRate')?.addEventListener('input', () => { syncOtRate(); recompute(); });
   $('otRate')?.addEventListener('input', (e) => { if (e.isTrusted) otRateTouched = true; recompute(); });
   ['otHours', 'income', 'premium'].forEach((id) => $(id)?.addEventListener('input', recompute));
-  $('income')?.addEventListener('blur', recompute);
+  ['income', 'otRate', 'regRate'].forEach((id) => $(id)?.addEventListener('blur', () => { flushFlags(); render(); }));
   $('state')?.addEventListener('change', () => { renderStateNote(); render(); });
+
+  // Choosing an option IS the answer to this card, so a POINTER choice moves on
+  // by itself. Only a pointer: arrow keys move the selection inside a radiogroup
+  // in every browser and fire `change` doing it, so advancing on `change` alone
+  // swept a keyboard or screen-reader user off the card on their first Down
+  // press, silently locking in "married" and leaving head of household
+  // unreachable in one pass — a $12,500 difference in the cap. Keyboard users
+  // advance with Enter or the Next button, which is what the rest of the wizard
+  // already does.
+  let pointerAt = 0;
+  const opts = stage.querySelector('.otw-opts');
+  opts?.addEventListener('pointerdown', () => { pointerAt = Date.now(); });
   document.querySelectorAll('input[name="filing"]').forEach((el) => el.addEventListener('change', () => {
     render();
-    // Choosing an option IS the answer to this card, so it moves on by itself.
-    if (step === FILING) show(nextOf(FILING, isDirect()));
+    if (step === FILING && Date.now() - pointerAt < 800) show(nextOf(FILING, isDirect()));
   }));
 
   // isTrusted filters programmatic writes: only somebody typing their own number
@@ -485,12 +658,20 @@ function init() {
     ['input', 'change'].forEach((evt) => el.addEventListener(evt, (e) => { if (e.isTrusted) noteFieldTouched(id); }));
   });
 
-  otRateFlag();
-  incomeFlag();
+  flushFlags();
   // Render the answer once up front rather than only on arrival at the last
   // card: #out is the page's [data-tb-result] anchor, and an empty one leaves
   // report-widget.js with nothing to attach its "Report a wrong result" link to.
   render();
+
+  // ONLY NOW does the stack become a stepped wizard, and the order is the whole
+  // point: data-js="on" is what tells styles.css to hide every card, and only
+  // the .otw-on class the show() below adds brings one back. Setting it before
+  // the first render meant a throw in render() (a stale cached module, a missing
+  // window.__OBBBA__ — exactly what showCalculatorLoadError exists for) left the
+  // error banner sitting above an entirely invisible form. Hide-on-demand, never
+  // show-on-demand: nothing is hidden until there is something to show.
+  stage.dataset.js = 'on';
   show(RATE, false); // never steal focus on load
   announceReady = true;
 }
