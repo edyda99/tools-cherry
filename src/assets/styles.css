@@ -583,17 +583,24 @@ html.js .applies-line[data-hidden] { display: none; }
 }
 :root[data-theme="dark"] .ot-input-warning { border-left-color: #f08a72; background: rgba(240,138,114,.12); }
 
-/* ---- Overtime wizard (/overtime-tax-calculator/ only) ----------------------
-   EVERY class in this block is prefixed .otw- and appears on exactly one built
-   page. styles.css serves ~240 pages and an unscoped rule here has leaked onto
-   untouched pages six times in one pass before, so nothing below touches a
-   shared class, a bare element selector outside .otw, or an id anything else
-   uses. Colours come from the site tokens, which already carry both schemes;
-   the two that cannot use a token — .otw-flag's amber, and the select chevron,
-   which is a background image and so cannot take currentColor — each get the
-   same explicit dark pair .ot-input-warning above uses.
+/* ---- The card-flow wizard (.otw) -------------------------------------------
+   Written for /overtime-tax-calculator/ (2026-08-01) and now the shared clothing
+   for the whole tax-calculator family as each page is converted onto
+   src/assets/wizard-core.js — /tips-tax-calculator/ is the second. It is
+   COMPLETE: a conversion needs no new rule here, and an agent converting one
+   tool must not add one, because styles.css serves ~240 pages.
 
-   data-js="on" IS THE HINGE. overtime-wizard.js sets it on the .otw section
+   EVERY class in this block is prefixed .otw- and appears only on pages that
+   ship the wizard. An unscoped rule here has leaked onto untouched pages six
+   times in one pass before, so nothing below touches a shared class, a bare
+   element selector outside .otw, or an id anything else uses. Colours come from
+   the site tokens, which already carry both schemes; the two that cannot use a
+   token — .otw-flag's amber, and the select chevron, which is a background image
+   and so cannot take currentColor — each get the same explicit dark pair
+   .ot-input-warning above uses.
+
+   data-js="on" IS THE HINGE. The page's wizard module (overtime-wizard.js, or
+   wizard-core.js for every conversion after it) sets it on the .otw section
    after it boots, and only after its first successful render, so a calculator
    that throws on load leaves the plain stacked form on screen rather than
    hiding every card behind a class nothing will add. Until then every card is a

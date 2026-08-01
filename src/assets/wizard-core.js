@@ -462,7 +462,13 @@ export function createWizard(spec) {
       if (t.classList.contains('otw-next')) { show(nextOf(step, path)); return; }
       if (t.classList.contains('otw-back')) { show(prevOf(step, path)); return; }
       if (t.classList.contains('otw-skip')) {
-        const card = cards.find((c) => c.step === step);
+        // Keyed on the card the button is IN, not on the card the flow happens to
+        // be standing on. They are the same for anybody clicking a Skip they can
+        // see, and keying it on the current step meant a skip triggered any other
+        // way cleared the wrong card's fields, or none.
+        const host = t.closest('.otw-card');
+        const at = host ? Number(host.dataset.step) : step;
+        const card = cards.find((c) => c.step === at) || cards.find((c) => c.step === step);
         (card && card.skipClears ? card.skipClears : []).forEach((id) => { const el = byId(id); if (el) el.value = ''; });
         show(RESULT);
         return;
