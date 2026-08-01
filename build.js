@@ -230,6 +230,14 @@ function injectReport(html) { return injectToolScript(html, '/assets/report-widg
 // engine coupling that zeroes a No-answered field's contribution. Loading this
 // file on top would double-bind the change listeners and the two copies would
 // fight over focus. See the header comment in src/assets/question-flow.js.
+//
+// Most of the pages still listed below are queued for the card-flow rewrite (see
+// WIZARD_ROLLOUT further down). Their entries do NOT need deleting when that
+// happens: injectQuestionFlow also requires the page to actually ship a
+// [data-reveal] wrapper, and a converted page ships none, so the entry goes
+// inert on the same commit that converts the template. Read the note above
+// injectQuestionFlow before "tidying" one of these away early — deleting an
+// entry ahead of the template edit is a silent wrong answer, not a tidy-up.
 const QUESTION_FLOW_PAGES = new Set([
   '/1099-threshold-checker/',
   // 1099-vs-w2-calculator is deliberately absent. It ships no [data-reveal] wrapper, so
@@ -277,12 +285,35 @@ function wantsQuestionFlow(currentPath) {
   return QUESTION_FLOW_PAGES.has(p) || QUESTION_FLOW_PAGE_RE.test(p);
 }
 
+// A page leaves the question flow by SHIPPING NO [data-reveal] WRAPPER, which is
+// exactly what converting it to the card flow does. That is why the allow-list
+// above still names pages that are queued for conversion: the entry is inert the
+// moment the template stops shipping a wrapper, so a wizard conversion is a
+// template edit and never a build.js edit, and the fan-out agents converting the
+// remaining ~14 tools never touch this file.
+//
+// It is deliberately an AND, never a replacement for the list. Sniffing the
+// markup alone would silently start loading this script onto whatever page grew
+// a data-reveal attribute next; the list still decides which pages MAY load it,
+// and the markup decides whether there is anything for it to do. It also cannot
+// be inverted into "remove the page from the list when you convert it": doing
+// that ahead of the template edit is a silent WRONG ANSWER, not a cosmetic
+// regression. question-flow.js does not merely hide a No-answered field, it
+// parks the field at a neutral value, and charitable-deduction ships #other
+// pre-filled at 20000 — drop the script while the wrapper is still there and a
+// visitor who answers "no, nothing else to write off" watches the box disappear
+// while 20000 keeps feeding the comparison.
+function shipsRevealWrapper(html) {
+  return String(html || '').includes('data-reveal=');
+}
+
 // Loaded as type="module" (matching state-flow.js): module scripts are deferred
 // by default and keep their top-level names out of the global scope, so this can
 // never collide with a tool's own /assets/<tool>.js. The path is rewritten to
 // its content-hashed name by the final rewriteHtmlAssetRefs pass. Idempotent.
 function injectQuestionFlow(html, currentPath) {
   if (!wantsQuestionFlow(currentPath)) return html;
+  if (!shipsRevealWrapper(html)) return html;
   // Match the injected TAG, not the bare path: a template comment that merely
   // mentions /assets/question-flow.js used to satisfy this guard and silently
   // suppress the injection (tips-tax-calculator shipped its [data-reveal] field
@@ -290,6 +321,64 @@ function injectQuestionFlow(html, currentPath) {
   if (html.includes('src="/assets/question-flow.js"') || !html.includes('</head>')) return html;
   return html.replace('</head>', '<script type="module" src="/assets/question-flow.js"></script>\n</head>');
 }
+
+// --- The wizard rollout ------------------------------------------------------
+// /overtime-tax-calculator/ was rewritten on 2026-08-01 from one long form into a
+// stack of cards that asks ONE question at a time and ends with the answer
+// written out as a story (src/assets/overtime-wizard.js). That shape was
+// approved and is being rolled out across the tax-calculator family on
+// src/assets/wizard-core.js, one agent per tool.
+//
+// THIS TABLE IS THE PRE-WIRING, and it exists so those agents never edit
+// build.js: fourteen agents editing one file is fourteen conflicts, and a
+// conflict resolved wrong here silently drops a script from a live page. Every
+// planned asset is listed now and registered the moment its file appears in
+// src/assets/, so a conversion is a template edit plus a new JS file and
+// nothing else.
+//
+// Registration is existence-gated because that is the only way to list an asset
+// before it is written: registerAsset() reads the file, so queueing a name that
+// is not on disk yet fails the whole build. A name here that never appears is
+// therefore inert, and the build prints how many are live so a half-finished
+// rollout cannot be mistaken for a finished one.
+//
+// Tools WITHOUT an /embed/ twin are listed with a null asset: they have no
+// second consumer to protect, so their conversion rewrites the existing
+// /assets/<tool>.js in place and adds no file. Tools WITH an embed twin keep
+// that old file (it still serves the iframe build, which is deliberately never a
+// wizard) and gain the new one named here.
+const WIZARD_ROLLOUT = [
+  { path: '/overtime-tax-calculator/', asset: 'overtime-wizard.js' },        // shipped 2026-08-01
+  { path: '/tips-tax-calculator/', asset: 'tips-wizard.js' },                // pilot
+  { path: '/1099-threshold-checker/', asset: '1099-threshold-wizard.js' },
+  { path: '/able-account-calculator/', asset: 'able-account-wizard.js' },
+  { path: '/adoption-credit-calculator/', asset: 'adoption-credit-wizard.js' },
+  // bonus-tax-calculator-wizard drives the hub page AND the 51
+  // /{state}-bonus-tax-calculator/ pages, which render from
+  // bonus-tax-calculator-state.html with the same form markup: 52 URLs, one
+  // asset, the largest blast radius in the family.
+  { path: '/bonus-tax-calculator/', asset: 'bonus-tax-wizard.js' },
+  { path: '/car-loan-interest-calculator/', asset: 'car-loan-interest-wizard.js' },
+  { path: '/charitable-deduction-calculator/', asset: 'charitable-deduction-wizard.js' },
+  { path: '/dependent-care-fsa-vs-credit-calculator/', asset: 'dependent-care-fsa-vs-credit-wizard.js' },
+  { path: '/employer-student-loan-repayment-calculator/', asset: 'employer-student-loan-repayment-wizard.js' },
+  { path: '/pmi-deduction-calculator/', asset: 'pmi-deduction-wizard.js' },
+  { path: '/qcd-vs-charitable-deduction-calculator/', asset: 'qcd-vs-charitable-deduction-wizard.js' },
+  { path: '/roth-catchup-calculator/', asset: 'roth-catchup-wizard.js' },
+  { path: '/salt-cap-calculator/', asset: 'salt-cap-wizard.js' },
+  { path: '/senior-deduction-calculator/', asset: 'senior-deduction-wizard.js' },
+  { path: '/w4-overtime-tips-withholding-calculator/', asset: 'w4-overtime-tips-withholding-wizard.js' },
+  { path: '/1099-vs-w2-calculator/', asset: null },   // no embed twin: rewritten in place
+  { path: '/401k-calculator/', asset: null },         // no embed twin: rewritten in place
+];
+// Deliberately absent, and they stay absent: /ss-wage-base-calculator/ hosts two
+// independent calculators with two result panels, /student-loan-cap-calculator/
+// branches on a mode select into four different question sets,
+// /w2-box-decoder/ is a four-box decoder plus a live occupation search plus a
+// reference table rather than one answer, and /what-applies-to-me/ computes
+// nothing and ends in a filtered list of rules. A linear card flow serves none
+// of the four. /double-time-pay-calculator/, /tip-calculator/ and
+// /sales-tax-calculator/ are plain arithmetic with no tax-law engine.
 
 // Build date (YYYY-MM-DD) — used for the sitemap's per-URL lastmod default.
 const BUILD_DATE = new Date().toISOString().slice(0, 10);
@@ -4481,11 +4570,29 @@ async function main() {
   registerAsset('engine', 'obbba-deduction.js');
   registerAsset('engine', 'roth-catchup.js');
   // overtime-tax-calculator.js now serves the /embed/ build ONLY; the full page
-  // runs overtime-wizard.js (the card-by-card flow). Both are registered because
-  // both ship.
+  // runs overtime-wizard.js (the card-by-card flow). Same for tips-tax-calculator.js
+  // and tips-wizard.js. Both halves of each pair are registered because both ship;
+  // the wizard halves come from WIZARD_ROLLOUT below rather than from a literal
+  // line here.
   registerAsset('assets', 'overtime-tax-calculator.js');
-  registerAsset('assets', 'overtime-wizard.js');
   registerAsset('assets', 'tips-tax-calculator.js');
+  // The shared card-flow controller every wizard in the rollout imports. Listed
+  // unconditionally: it is written, and a rollout asset that imports a file the
+  // hash pipeline has never seen would ship an unrewritten /assets/wizard-core.js
+  // reference pointing at a file that does not exist in dist/.
+  registerAsset('assets', 'wizard-core.js');
+  // Every planned <tool>-wizard.js, registered the moment its file exists. See
+  // WIZARD_ROLLOUT at the top of this file for why this is existence-gated and
+  // why a fan-out agent must never add a line here.
+  let wizardsLive = 0;
+  for (const { asset } of WIZARD_ROLLOUT) {
+    if (!asset) continue; // no embed twin: the tool's existing asset is rewritten in place
+    if (!existsSync(join(SRC, 'assets', asset))) continue;
+    registerAsset('assets', asset);
+    wizardsLive++;
+  }
+  const wizardsPlanned = WIZARD_ROLLOUT.filter((w) => w.asset).length;
+  console.log(`   wizard rollout: ${wizardsLive} of ${wizardsPlanned} planned <tool>-wizard.js assets present`);
   registerAsset('assets', 'senior-deduction-calculator.js');
   // Shared live-thousands-separator helper for money inputs (imported by the
   // answer-first SALT pilot; reusable by other tax tools).
