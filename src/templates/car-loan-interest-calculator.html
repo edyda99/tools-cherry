@@ -13,12 +13,16 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
 <style>
-  .loan-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  /* The eligibility checklist, the one card that asks for four things at once.
+     Page-scoped and unchanged from the pre-wizard form, which is why it is still
+     here rather than in styles.css: .elig appears on this page and on this
+     page's /embed/ twin, nowhere else. The old .loan-row grid went with the
+     three-across loan row — the wizard asks for the amount, the rate and the
+     term on three separate cards, so nothing renders that grid any more. */
   .elig { margin:0; padding:0; list-style:none; }
   .elig li { display:flex; gap:10px; align-items:flex-start; padding:7px 0; }
   .elig input { margin-top:3px; flex:0 0 auto; width:18px; height:18px; }
   .elig label { cursor:pointer; }
-  @media (max-width:520px){ .loan-row { grid-template-columns:1fr; } }
 </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Car Loan Interest Deduction Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Estimate the new car loan interest deduction under the One Big Beautiful Bill Act (IRC §163(h)(4)): up to $10,000 of qualified vehicle-loan interest a year for 2025–2028, with the $100,000/$200,000 income phase-out ($200 per $1,000 over), an eligibility check for new / US-assembled / personal-use / non-lease loans, and your estimated federal tax saving."}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How much car loan interest can I deduct under the 2025 law?","acceptedAnswer":{"@type":"Answer","text":"Up to $10,000 of interest (not principal) per tax return per year, for tax years 2025 through 2028. It is one $10,000 limit for the whole return — not per person and not per vehicle — and a married couple filing jointly still shares a single $10,000 cap. The deduction phases out for modified adjusted gross income over $100,000 ($200,000 for joint filers), losing $200 for every $1,000 of income above that line."}},{"@type":"Question","name":"Is this a $10,000 tax credit — does it cut my tax bill by $10,000?","acceptedAnswer":{"@type":"Answer","text":"No. It is a deduction, not a credit. It lowers your taxable income by up to $10,000 of interest, so the actual saving is that amount times your marginal tax rate. For a typical first-year interest of about $2,400 on a $40,000 loan, a filer in the 22% bracket saves roughly $527 — not $2,400 and certainly not $10,000."}},{"@type":"Question","name":"Do used cars or leased vehicles qualify?","acceptedAnswer":{"@type":"Answer","text":"No. The vehicle must be new — its original use has to begin with you — so used cars and cars you buy at the end of a lease do not qualify. Lease financing is excluded outright, as are RVs, campers, trailers, and ATVs. The vehicle must also be a car, minivan, van, SUV, pickup, or motorcycle under 14,000 lbs, with final assembly in the United States, bought for personal use with a loan secured by a first lien and taken out after December 31, 2024."}},{"@type":"Question","name":"How do I check whether my car was assembled in the United States?","acceptedAnswer":{"@type":"Answer","text":"Two ways. Enter your 17-character VIN in the free NHTSA VIN Decoder (vpic.nhtsa.dot.gov/decoder) and look at the plant of manufacture, or read the 'Final Assembly Point' line on the Monroney window sticker that came with the car. Final assembly must be in the United States — where the brand is headquartered does not matter."}},{"@type":"Question","name":"Do I have to itemize to claim the car loan interest deduction?","acceptedAnswer":{"@type":"Answer","text":"No. It is available whether you take the standard deduction or itemize. It is claimed on the new Schedule 1-A and flows to Form 1040 line 13b after your adjusted gross income (AGI), so it reduces your taxable income but does not lower your AGI. You must report the vehicle's VIN on the return."}},{"@type":"Question","name":"What is MAGI?","acceptedAnswer":{"@type":"Answer","text":"MAGI (modified adjusted gross income) is your adjusted gross income plus a few add-backs, mainly foreign-income exclusions — for almost everyone it is the same as your AGI. It is the income figure the car-loan interest phase-out uses."}},{"@type":"Question","name":"What is filing status?","acceptedAnswer":{"@type":"Answer","text":"Your filing status is the category you file under — single, married filing jointly, married filing separately, or head of household. Only a joint return gets the $200,000 phase-out threshold; everyone else (including married filing separately, which is allowed for this deduction) uses $100,000."}}]}</script>
@@ -35,71 +39,203 @@
 <main id="main">
   <div class="wrap">
     <h1>Car Loan Interest Deduction Calculator</h1>
-    <p class="lede">The 2025 One Big Beautiful Bill Act lets you deduct up to <strong>$10,000 of interest</strong> a year on a loan for a <strong>new, US-assembled</strong> vehicle bought for personal use — for tax years <strong>2025 through 2028</strong>. Enter your loan and income to see your estimated first-year interest, how much is deductible after the income phase-out, and what it actually saves you. Everything runs in your browser — nothing is uploaded.</p>
+    <!-- THE WIZARD (rewritten 2026-08-01, converted onto wizard-core.js).
+         This calculator used to be one long form: a tax-year select, a filing
+         select, an income box, a three-across loan row and a four-box
+         eligibility checklist, all on screen at once, above a results panel
+         whose real answer sat behind a "See how this was calculated" fold. A
+         buyer who wants one number ("do I get anything back for this car
+         loan?") had to hold six tax concepts in their head before the page told
+         them anything. The approved replacement, proven on
+         /overtime-tax-calculator/ and /tips-tax-calculator/, asks ONE question
+         per card and ends with the answer written out as a story.
 
-    <section class="calc" aria-label="Car loan interest deduction calculator">
-      <form id="carForm" autocomplete="off" onsubmit="return false">
-        <div class="field">
-          <label for="year">Tax year</label>
-          <select id="year">
-            <option value="2025">2025</option>
-            <option value="2026">2026</option>
-            <option value="2027">2027</option>
-            <option value="2028">2028</option>
-          </select>
-          <p class="muted-small" style="margin-top:6px">The deduction exists for 2025 through 2028 only. The $10,000 cap and the income thresholds are the same every year — they are not indexed for inflation.</p>
-        </div>
+         PROGRESSIVE ENHANCEMENT, NOT A JS APP. Every card below ships VISIBLE
+         and in reading order in the built HTML: with JavaScript off, blocked, or
+         a crawler reading the page, this is a plain sequential form with real
+         <label>s and native <details> helpers. car-loan-interest-wizard.js sets
+         data-js="on" on the .otw section only after its first successful render,
+         and ONLY THEN does styles.css collapse the stack to one card at a time.
+         Hide-on-demand, never show-on-demand. The single exception is #out, the
+         computed answer, which has always been JS-only.
 
-        <div class="field">
-          <label for="filing">Filing status</label>
-          <select id="filing">
-            <option value="single">Single</option>
-            <option value="married">Married filing jointly</option>
-            <option value="married_separate">Married filing separately</option>
-            <option value="head_of_household">Head of household</option>
-          </select>
-          <p class="muted-small" style="margin-top:6px">Married filing separately is allowed here (unlike the tips and overtime deductions) and uses the $100,000 threshold. Only a joint return gets the $200,000 threshold.</p>
-        </div>
+         The controls that only mean something once the stepping exists (Next /
+         Back, the progress dots, the term chips, the answer chips, Start over)
+         are also gated on data-js="on" in CSS, because a "Next" button that
+         cannot advance anything is worse than no button.
 
-        <div class="field">
-          <label for="magi">Your yearly income <span class="muted-small">(Form 1040 line 11)</span></label>
-          <input type="text" id="magi" inputmode="decimal" data-money autocomplete="off" value="90000">
-          <p class="muted-small" style="margin-top:6px">The law uses MAGI — AGI plus a few foreign-income exclusions — which equals AGI for nearly everyone. Filing jointly? Use your combined income.</p>
-        </div>
+         IDS ARE A CONTRACT with car-loan-interest-wizard.js: amount, apr, term,
+         magi, year, the four eligibility checkboxes (e-new, e-usa, e-origin,
+         e-personal) and the radio group named "filing" (values single / married
+         / married_separate / head_of_household — the old filing-status <select>
+         became real radios so the card works before JavaScript runs). #out keeps
+         its name and role and gains the marker attribute report-widget.js
+         hooks; the aria-live it used to carry moved to #outStatus, because the
+         result box rewrites its whole innerHTML on every keystroke and is not a
+         live region. #outStatus deliberately sits OUTSIDE the cards: inside one
+         it would be display:none on every step but its own and the announcement
+         would never reach a screen reader.
 
-        <div class="field">
-          <label>Your car loan</label>
-          <div class="loan-row">
-            <div class="field" style="margin:0">
-              <label for="amount" class="muted-small">Loan amount ($)</label>
-              <input type="text" id="amount" inputmode="decimal" data-money autocomplete="off" value="40000">
-            </div>
-            <div class="field" style="margin:0">
-              <label for="apr" class="muted-small">APR (%)</label>
-              <input type="number" id="apr" inputmode="decimal" min="0" step="0.1" value="6.5">
-            </div>
-            <div class="field" style="margin:0">
-              <label for="term" class="muted-small">Term (months)</label>
-              <input type="number" id="term" inputmode="numeric" min="1" step="12" value="60">
-            </div>
+         THE ORDER: the loan amount opens (it is the one figure every buyer knows
+         without looking anything up), then the eligibility gate, then the rate,
+         the term, the income and the filing status. THE BRANCH is that gate: the
+         four conditions are what actually decide this deduction, and unchecking
+         any one of them makes the answer $0 whatever the rate, the term, the
+         income or the filing status say. So when a box is unchecked those four
+         later cards leave the path immediately and the flow runs
+         loan → gate → answer, where the answer names exactly which condition
+         failed. Re-check the box and the four cards come back on that keystroke.
+
+         THE TAX YEAR is not a card. It is a real field (#year) inside a
+         collapsed helper on the gate card, because all four years it offers are
+         inside the 2025–2028 window and the $10,000 cap and the income
+         thresholds are identical in every one of them — the select cannot change
+         the answer, so it does not get a question of its own.
+
+         The /embed/ build is NOT this. It keeps its single-column form, its
+         #carForm id and its own copy of the .elig styles, and is still served by
+         car-loan-interest-calculator.js, because a third party sizes that iframe
+         once and a flow whose height changes per card would clip inside it. The
+         two must stay independent.
+
+         The lede below moved from above the calculator to under it, unchanged,
+         so the first thing on the page is the first question rather than a
+         hundred words of statute. Ad slots, prose, the worked example and the
+         FAQ are untouched. -->
+    <section class="otw" id="carLoanWizard" aria-label="Car loan interest deduction calculator">
+      <h2 class="sr-only">Car loan interest deduction calculator</h2>
+      <div class="otw-dots" id="otwDots" aria-hidden="true"></div>
+      <p class="otw-stepnum" id="otwStepnum"></p>
+
+      <form id="carLoanWizForm" autocomplete="off" onsubmit="return false">
+        <section class="otw-card" data-step="0" aria-labelledby="otwQ0">
+          <h2 class="otw-q" id="otwQ0"><label for="amount">How much did you borrow for the car?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="amount" inputmode="decimal" data-money autocomplete="off" value="40000">
           </div>
-          <p class="muted-small" style="margin-top:6px">We estimate the interest in the first full year of the loan from these terms. Interest is highest in year one and falls each year as you pay down the balance.</p>
-        </div>
+          <details class="otw-help">
+            <summary>The amount you financed, not the price on the window</summary>
+            <p>Take the price, subtract your down payment and anything you got for your trade-in, and that is the figure on your loan paperwork. A rough number is fine, you can change it at the end and watch the answer update. Only the interest on it is deductible, never the money you borrowed.</p>
+          </details>
+          <div class="otw-nav"><span></span><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-        <div class="field">
-          <label>Does your vehicle and loan qualify? Check each that is true:</label>
+        <section class="otw-card" data-step="1" aria-labelledby="otwQ1">
+          <h2 class="otw-q" id="otwQ1">Does all of this describe your car and your loan?</h2>
           <ul class="elig">
-            <li><input type="checkbox" id="e-new" checked><label for="e-new"><strong>New vehicle</strong> — its original use begins with you (not a used car or a lease buyout)</label></li>
-            <li><input type="checkbox" id="e-usa" checked><label for="e-usa"><strong>Assembled in the United States</strong> — final assembly in the US (check your VIN or the window sticker)</label></li>
-            <li><input type="checkbox" id="e-origin" checked><label for="e-origin"><strong>Loan taken out in 2025 or later</strong> — incurred after December 31, 2024, secured by a first lien on the car</label></li>
-            <li><input type="checkbox" id="e-personal" checked><label for="e-personal"><strong>Personal use, financed with a loan</strong> — not a business/commercial vehicle and not a lease</label></li>
+            <li><input type="checkbox" id="e-new" checked><label for="e-new"><strong>It's new</strong> — you are its first owner. A used car, or buying your leased car at the end of the lease, does not count.</label></li>
+            <li><input type="checkbox" id="e-usa" checked><label for="e-usa"><strong>It was put together in the United States</strong> — final assembly in the US. Your VIN or the window sticker says where.</label></li>
+            <li><input type="checkbox" id="e-origin" checked><label for="e-origin"><strong>You took the loan out in 2025 or later</strong> — signed after December 31, 2024, with the car itself as the security.</label></li>
+            <li><input type="checkbox" id="e-personal" checked><label for="e-personal"><strong>It's for your own use, on a loan</strong> — not a business or commercial vehicle, and not a lease.</label></li>
           </ul>
-          <p class="muted-small" style="margin-top:2px">Unchecking any box means the interest isn't deductible — the result explains why.</p>
-        </div>
-      </form>
+          <p class="otw-note">Leave any box unchecked and the interest is not deductible. The answer will say which one and why.</p>
+          <details class="otw-help">
+            <summary>These four are the whole test, and most people trip on one of them</summary>
+            <p>They are the conditions Congress wrote into the law, and the deduction needs all four at once. The one people miss is where the car was assembled: it is the plant, not the badge, so a US brand built in Mexico is out and a foreign brand built in Kentucky is in. Check the plant in your 17-character VIN at the free <a href="https://vpic.nhtsa.dot.gov/decoder/">NHTSA VIN decoder</a>, or read the "Final Assembly Point" line on the window sticker. RVs, campers, trailers and ATVs never qualify, whatever else is true.</p>
+          </details>
+          <details class="otw-help otw-esc">
+            <summary>Working out a different tax year? The rules are the same in all four</summary>
+            <div class="otw-field">
+              <label for="year">Tax year</label>
+              <select class="otw-in otw-in-sm" id="year" aria-describedby="yearNote">
+                <option value="2025">2025</option>
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+                <option value="2028">2028</option>
+              </select>
+              <p class="otw-note" id="yearNote">The deduction exists for 2025 through 2028 only. The $10,000 cap and the income thresholds are the same every year — they are not indexed for inflation, so the year you pick does not change the answer.</p>
+            </div>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-      <div class="obbba-out" id="out" aria-live="polite"></div>
+        <section class="otw-card" data-step="2" aria-labelledby="otwQ2">
+          <h2 class="otw-q" id="otwQ2"><label for="apr">What interest rate are you paying, as a percentage?</label></h2>
+          <input type="number" class="otw-in" id="apr" inputmode="decimal" min="0" step="0.1" value="6.5">
+          <p class="otw-flag" id="otwAprFlag" hidden></p>
+          <details class="otw-help">
+            <summary>It's the APR on your loan agreement</summary>
+            <p>Type it the way the paperwork writes it: 6.5 for six and a half percent. This is the whole reason the deduction is worth anything, because only the interest counts. If your loan is a 0% deal there is no interest at all, so there is nothing here to deduct.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="3" aria-labelledby="otwQ3">
+          <h2 class="otw-q" id="otwQ3"><label for="term">How many months do you have to pay it back?</label></h2>
+          <input type="number" class="otw-in" id="term" inputmode="numeric" min="1" step="12" value="60">
+          <p class="otw-flag" id="otwTermFlag" hidden></p>
+          <div class="otw-chips" id="otwTermChips">
+            <button type="button" data-otw-fill="term" data-otw-value="48">4 years &rarr; 48</button>
+            <button type="button" data-otw-fill="term" data-otw-value="60">5 years &rarr; 60</button>
+            <button type="button" data-otw-fill="term" data-otw-value="72">6 years &rarr; 72</button>
+          </div>
+          <details class="otw-help">
+            <summary>Why the length matters more than you'd think</summary>
+            <p>We work out the interest in the <em>first full year</em> of the loan from these three numbers. Interest is front-loaded: year one is always the biggest deduction and it shrinks every year after, because you are paying it on a balance that keeps falling. A longer loan spreads the same debt over more months, so you pay more interest in total.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="4" aria-labelledby="otwQ4">
+          <h2 class="otw-q" id="otwQ4"><label for="magi">And how much do you earn in a whole year?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="magi" inputmode="decimal" data-money autocomplete="off" value="90000">
+          </div>
+          <p class="otw-flag" id="otwIncomeFlag" hidden></p>
+          <details class="otw-help">
+            <summary>It only matters if you earn over $100,000 ($200,000 filing jointly)</summary>
+            <p>A ballpark is fine. Married and sending in one return together? Add both incomes. Above that line the deduction starts shrinking, by $200 for every $1,000 you are over. Tax forms measure it against your <a href="/tax-glossary/#magi">modified adjusted gross income</a> — that is Form 1040 line 11 for nearly everyone, so if money leaves your pay before tax, into a 401(k) or a health plan, take those amounts off.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="5" aria-labelledby="otwQ5">
+          <h2 class="otw-q" id="otwQ5">How do you do your taxes?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ5">
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="single" checked>
+              <span><span class="otw-opt-t">On my own</span><span class="otw-opt-s">single</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="married">
+              <span><span class="otw-opt-t">Together with my husband or wife</span><span class="otw-opt-s">married, one return — the only answer that gets the $200,000 income line instead of $100,000</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="married_separate">
+              <span><span class="otw-opt-t">Married, but we each send our own return</span><span class="otw-opt-s">married filing separately, which is allowed for this deduction and gets its own $10,000 limit</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="head_of_household">
+              <span><span class="otw-opt-t">On my own, with a child or dependent at home</span><span class="otw-opt-s">head of household</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>Married filing separately is allowed here, unlike the tips and overtime breaks</summary>
+            <p>Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>. Only a joint return gets the $200,000 threshold — single, head of household and married filing separately all use $100,000. The $10,000 cap is one limit per return, so a couple filing together share a single $10,000 between them, while two separate returns get $10,000 each.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">See my answer</button></div>
+        </section>
+
+        <section class="otw-card otw-result" data-step="6" aria-labelledby="otwQ6">
+          <h2 class="otw-q sr-only" id="otwQ6" tabindex="-1">Your answer</h2>
+          <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+          <div class="obbba-out" id="out" data-tb-result></div>
+          <details class="otw-help">
+            <summary>Will my car payment get smaller?</summary>
+            <p>No. Nothing about the loan changes: same payment, same rate, same months. This is money off the income you are taxed on, so it arrives as a bigger refund, or a smaller bill, when you file. You claim it on Schedule 1-A, you can take it without itemizing, and you have to put the car's VIN on the return.</p>
+          </details>
+          <details class="otw-help">
+            <summary>How do I check where my car was assembled?</summary>
+            <p>Two ways, both free. Type your 17-character VIN into the <a href="https://vpic.nhtsa.dot.gov/decoder/">NHTSA VIN decoder</a> and read the plant of manufacture, or find the "Final Assembly Point" line on the window sticker that came with the car. It has to be the United States. Where the brand is headquartered does not matter at all.</p>
+          </details>
+          <div class="otw-answers" id="otwAnswers"></div>
+          <div class="otw-restart"><button type="button" id="otwRestart">Start over</button></div>
+        </section>
+      </form>
+      <p id="outStatus" role="status" class="sr-only"></p>
     </section>
+
+    <p class="lede">The 2025 One Big Beautiful Bill Act lets you deduct up to <strong>$10,000 of interest</strong> a year on a loan for a <strong>new, US-assembled</strong> vehicle bought for personal use — for tax years <strong>2025 through 2028</strong>. Enter your loan and income to see your estimated first-year interest, how much is deductible after the income phase-out, and what it actually saves you. Everything runs in your browser — nothing is uploaded.</p>
 
     <p class="note">Estimate for general guidance only — not tax advice. The first-year interest assumes a fully amortizing fixed-rate loan and 12 monthly payments in the first year. The tax-saving figure uses the 2026 federal brackets and treats your income as taxed against the standard deduction (married filing separately is estimated with the single table). It does not model state tax, AMT, or your full return. Verify with the IRS or a tax professional, and report the vehicle's VIN on Schedule 1-A.</p>
 
@@ -149,6 +285,7 @@
       <p><strong>Do used cars or leases qualify?</strong> No. New vehicles only (original use begins with you), and lease financing is excluded — including buying your car at the end of a lease.</p>
       <p><strong>How do I check US final assembly?</strong> Decode your 17-character VIN at the free <a href="https://vpic.nhtsa.dot.gov/decoder/">NHTSA VIN Decoder</a> (plant of manufacture) or read the "Final Assembly Point" on the window sticker.</p>
       <p><strong>Do I have to itemize?</strong> No. It's available to non-itemizers, claimed on Schedule 1-A after AGI — but it does not reduce your AGI.</p>
+      <p><strong>Does my monthly car payment change?</strong> No. The loan, the rate and the payment are exactly the same. The deduction lowers the income you are taxed on, so it arrives as a bigger refund or a smaller bill after you file — never as a smaller payment during the year.</p>
       <p><strong>What is MAGI?</strong> Modified adjusted gross income is your adjusted gross income plus a few add-backs, mainly foreign-income exclusions — for almost everyone it's the same as your AGI. It's the income figure the phase-out uses.</p>
       <p><strong>What is filing status?</strong> It's the category you file under — single, married filing jointly, married filing separately, or head of household. Only a joint return gets the $200,000 phase-out threshold; everyone else (including married filing separately, which is allowed here) uses $100,000.</p>
       <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your numbers never leave your browser.</p>
@@ -170,6 +307,6 @@
   window.__OBBBA__ = {{OBBBA_JSON}};
   window.__FED__ = {{FED_JSON}};
 </script>
-<script type="module" src="/assets/car-loan-interest-calculator.js"></script>
+<script type="module" src="/assets/car-loan-interest-wizard.js"></script>
 </body>
 </html>
