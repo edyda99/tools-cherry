@@ -12,18 +12,6 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
-<style>
-  /* Scoped extras — side-by-side comparison cards using the shared theme vars. */
-  .cmp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 4px 0 0; }
-  @media (max-width: 560px) { .cmp-grid { grid-template-columns: 1fr; } }
-  .cmp-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
-  .cmp-card h3 { margin: 0 0 4px; font-size: 15px; }
-  .cmp-card .cmp-th { font-size: clamp(22px, 6vw, 28px); font-weight: 800; letter-spacing: -.02em; color: var(--accent); margin: 0 0 10px; }
-  .cmp-row { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding: 5px 0; border-top: 1px solid var(--border); }
-  .cmp-row .lbl { color: var(--muted); }
-  .calc-summary { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin: 18px 0; font-size: 15.5px; line-height: 1.55; }
-  .benefits-note { background: var(--accent-soft, var(--surface-2)); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin: 14px 0; font-size: 14.5px; line-height: 1.55; }
-</style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"1099 vs W-2 Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Compare estimated take-home pay as a W-2 employee versus a 1099 self-employed contractor, including FICA, self-employment tax, a federal income tax estimate, and the employer-benefits gap."}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is the difference between 1099 and W-2 for taxes?","acceptedAnswer":{"@type":"Answer","text":"A W-2 employee splits payroll tax with their employer and pays 7.65% in FICA (Social Security and Medicare). A 1099 self-employed contractor pays both halves as self-employment tax — 15.3% on 92.35% of net earnings — but can deduct the employer-equivalent half from income before federal income tax. This calculator estimates both so you can compare take-home pay."}},{"@type":"Question","name":"How much more should a 1099 contractor charge than a W-2 salary?","acceptedAnswer":{"@type":"Answer","text":"Because a contractor pays the full self-employment tax and self-funds health insurance, retirement, and paid time off, many aim for a rate 25–40% above an equivalent W-2 salary. The right uplift depends on your benefits and expenses — enter both figures here to find the contract amount where take-home pay comes out even."}},{"@type":"Question","name":"What is self-employment tax?","acceptedAnswer":{"@type":"Answer","text":"Self-employment tax is the Social Security and Medicare tax paid by self-employed people: 12.4% Social Security up to the annual wage base plus 2.9% Medicare, for 15.3% total, applied to 92.35% of net earnings. Half of it is deductible from income before federal income tax."}},{"@type":"Question","name":"Does this calculator include state income tax?","acceptedAnswer":{"@type":"Answer","text":"No. It is a federal estimate only — federal income tax plus FICA or self-employment tax. It does not include state or local income tax, the Qualified Business Income (QBI) deduction, additional Medicare tax, or the cash value of employer benefits. Treat the result as an estimate, not tax advice."}},{"@type":"Question","name":"What counts as net earnings for the 1099 side?","acceptedAnswer":{"@type":"Answer","text":"Net earnings are your gross contract or freelance income minus your business expenses. Enter that net figure on the 1099 side. Self-employment tax and the federal income tax estimate are then applied to it."}}]}</script>
 </head>
@@ -39,51 +27,126 @@
 <main id="main">
   <div class="wrap">
     <h1>1099 vs W-2 Calculator</h1>
-    <section class="calc" aria-label="1099 vs W-2 calculator">
+    <!-- THE WIZARD (rewritten 2026-08-01 onto wizard-core.js, the shape proved on
+         /overtime-tax-calculator/ and /tips-tax-calculator/).
+
+         WHY THIS PAGE IS A WIZARD. It used to be three labelled boxes, a headline
+         panel, and then — a full ad slot further down the page — two comparison
+         cards and two summary boxes the visitor had to scroll past the fold to
+         reach. The answer was assembled from four separate blocks in three places.
+         It is now one card per question and ONE answer card that says which offer
+         keeps more, then writes both sides out as rows that add up.
+
+         PROGRESSIVE ENHANCEMENT, NOT A JS APP. Every card below ships VISIBLE and
+         in reading order in the built HTML: with JavaScript off, blocked, or a
+         crawler reading the page, this is a plain sequential form with real
+         <label>s and native <details> helpers. 1099-vs-w2-calculator.js sets
+         data-js="on" on the .otw section only after its first successful render,
+         and ONLY THEN does styles.css collapse the stack to one card at a time.
+         Hide-on-demand, never show-on-demand. The single exception is #out, the
+         computed answer, which has always been JS-only.
+
+         The controls that only mean something once the stepping exists (Next /
+         Back, the progress dots, the uplift chips, the answer chips, Start over)
+         are gated on data-js="on" in CSS, because a "Next" button that cannot
+         advance anything is worse than no button.
+
+         IDS ARE A CONTRACT with 1099-vs-w2-calculator.js: #w2Gross, #contractNet
+         and the radio group named "status" (values single / married — the engine
+         compares against the string "married"). #out and #outStatus keep their
+         old names and roles (result panel + the one polite live region);
+         #outStatus deliberately sits OUTSIDE the cards, because inside one it
+         would be display:none on every step but its own and the announcement
+         would never reach a screen reader. #otwUpliftChips is rewritten on every
+         render: its three buttons are 100% / 125% / 140% OF THE SALARY on the
+         card before, so they cannot be static values in this file.
+
+         NO BRANCHES, NO ESCAPE HATCHES, NO SKIP. All three questions feed the one
+         comparison and every one of them changes both sides of it, so there is no
+         card a visitor can be routed past and none they may leave unanswered.
+         There is no state picker on this page either: the estimate is federal
+         only, which the note under the calculator and the answer card both say.
+
+         THE ORDER IS SALARY, THEN CONTRACT, THEN FILING STATUS. The contract card
+         comes second because its quick chips are priced off the salary — "25%
+         more than the salary" is not a question you can answer before the salary
+         exists. #contractNet carries the page's one correctness trap, and it now
+         rides in the always-visible <summary> of that card's helper rather than
+         in a paragraph under a field: the contract figure must already have the
+         costs of doing the work taken off it, or the contract side reads too
+         high. There is no expenses input to add, because the engine takes that
+         figure already net of those costs.
+
+         There is no /embed/ twin of this tool, so this is a rewrite in place and
+         no second build of the old form survives anywhere.
+
+         Ad slots, the lede, the notes, the prose and the FAQ below are untouched. -->
+    <section class="otw" id="w2Wizard" aria-label="1099 vs W-2 calculator">
       <h2 class="sr-only">1099 vs W-2 take-home comparison</h2>
-      <!-- Every field here is required to get any answer at all, so none of them
-           hides behind a question: all three ship always-visible and carry the
-           question in the label instead. There is no optional-questions block on
-           this page, and no reveal wrappers at all, because the engine has exactly
-           these three inputs and nothing further to reveal. So this page no longer
-           needs question-flow.js and should drop out of QUESTION_FLOW_PAGES in
-           build.js. #contractNetNote carries the page's one correctness trap: the
-           contract figure must already have the costs of doing the work taken off
-           it, or the contract side reads too high. There is no expenses input to
-           add, because the engine takes that figure already net of those costs.
-           Ids and option values are the engine's contract and are unchanged:
-           1099-vs-w2-calculator.js reads #w2Gross, #contractNet and #status, and
-           compares #status.value against the string "married". -->
-      <form id="w2Form" autocomplete="off" onsubmit="return false">
-        <div class="field">
-          <label for="w2Gross">If you take the employee job, what is the yearly salary?</label>
-          <input id="w2Gross" type="text" inputmode="decimal" data-money autocomplete="off" value="100000" placeholder="100000" aria-describedby="w2GrossNote">
-          <p class="adv-q-note" id="w2GrossNote">The whole salary in dollars, before tax or anything else comes out of it. This is the W-2 side of the comparison.</p>
-        </div>
+      <div class="otw-dots" id="otwDots" aria-hidden="true"></div>
+      <p class="otw-stepnum" id="otwStepnum"></p>
 
-        <div class="field">
-          <label for="contractNet">If you take the contract job, how much is left for you over a year?</label>
-          <input id="contractNet" type="text" inputmode="decimal" data-money autocomplete="off" value="100000" placeholder="100000" aria-describedby="contractNetNote">
-          <p class="adv-q-note" id="contractNetNote">The contract money in dollars, after taking off what you spend to do the work: a laptop, tools, a work phone, driving your own car. This is the 1099 side of the comparison. Add up a full year of those costs and subtract them before you type, because tax on contract work is charged on what is left, not on the headline figure. Typing the headline figure makes the contract job look better than it really is.</p>
-        </div>
+      <form id="w2WizForm" autocomplete="off" onsubmit="return false">
+        <section class="otw-card" data-step="0" aria-labelledby="otwQ0">
+          <h2 class="otw-q" id="otwQ0"><label for="w2Gross">If you take the employee job, what is the yearly salary?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="w2Gross" inputmode="decimal" data-money autocomplete="off" value="100000">
+          </div>
+          <details class="otw-help">
+            <summary>The whole salary, before tax or anything else comes out of it</summary>
+            <p>This is the W-2 side of the comparison: a regular job where the employer takes the tax out of every paycheck and pays half of your Social Security and Medicare for you. Use the figure on the offer letter, for a full year. A round number is fine, you can change it at the end and watch the answer update.</p>
+          </details>
+          <div class="otw-nav"><span></span><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-        <div class="field">
-          <label for="status">How do you file your taxes?</label>
-          <select id="status" aria-describedby="statusNote">
-            <option value="single" selected>On my own (single)</option>
-            <option value="married">Jointly with my spouse (married filing jointly)</option>
-          </select>
-          <p class="adv-q-note" id="statusNote">This is called your filing status. It sets which federal tax rates the estimate uses.</p>
-        </div>
+        <section class="otw-card" data-step="1" aria-labelledby="otwQ1">
+          <h2 class="otw-q" id="otwQ1"><label for="contractNet">If you take the contract job, how much is left for you over a year?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="contractNet" inputmode="decimal" data-money autocomplete="off" value="100000">
+          </div>
+          <div class="otw-chips" id="otwUpliftChips">
+            <button type="button" data-otw-fill="contractNet" data-otw-value="100000">The same as the salary &rarr; 100,000</button>
+            <button type="button" data-otw-fill="contractNet" data-otw-value="125000">25% more &rarr; 125,000</button>
+            <button type="button" data-otw-fill="contractNet" data-otw-value="140000">40% more &rarr; 140,000</button>
+          </div>
+          <details class="otw-help">
+            <summary>Take off what you spend to do the work first, or the contract job will look better than it is</summary>
+            <p>The contract money for a year, after a laptop, tools, a work phone, driving your own car and anything else the job costs you. Add up a full year of those costs and subtract them before you type, because tax on contract work is charged on what is left, not on the headline figure. This is the 1099 side of the comparison: you are paid the whole amount and then pay your own tax out of it.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="2" aria-labelledby="otwQ2">
+          <h2 class="otw-q" id="otwQ2">How do you file your taxes?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ2">
+            <label class="otw-opt">
+              <input type="radio" name="status" value="single" checked>
+              <span><span class="otw-opt-t">On my own</span><span class="otw-opt-s">single</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="status" value="married">
+              <span><span class="otw-opt-t">Together with my husband or wife</span><span class="otw-opt-s">married filing jointly, one return for the two of you</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>It sets which federal tax rates both sides of the estimate use</summary>
+            <p>Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>. Both offers are worked out with the same one, so it moves both numbers rather than tipping the comparison one way. Head of household and married filing separately are not offered here; pick the closest of the two above and treat the answer as a rougher guide.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">See my answer</button></div>
+        </section>
+
+        <section class="otw-card otw-result" data-step="3" aria-labelledby="otwQ3">
+          <h2 class="otw-q sr-only" id="otwQ3" tabindex="-1">Your answer</h2>
+          <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+          <div class="obbba-out" id="out" data-tb-result></div>
+          <details class="otw-help">
+            <summary>What this comparison leaves out</summary>
+            <p>Federal tax only: income tax plus FICA or self-employment tax, for tax year <span data-tax-year>2026</span>. No state or local income tax, which would take something off both sides. No QBI deduction, which only the contract side could claim and which would narrow the gap. No additional Medicare tax. And no price on health insurance, a retirement match or paid time off, which the employee job may hand you and the contract job will not. An estimate to compare two offers with, not tax advice.</p>
+          </details>
+          <div class="otw-answers" id="otwAnswers"></div>
+          <div class="otw-restart"><button type="button" id="otwRestart">Start over</button></div>
+        </section>
       </form>
-
-      <div class="calc-answer">
-        <p class="calc-example">These are example numbers. Type yours to see your own.</p>
-        <div class="results" data-tb-result>
-          <p class="net-big" id="headline">—</p>
-          <p class="net-sub" id="headlineSub"></p>
-        </div>
-      </div>
       <p id="outStatus" role="status" class="sr-only"></p>
     </section>
 
@@ -100,35 +163,6 @@
     <p class="year-fallback" role="note"><strong>Estimate — federal taxes only.</strong> Uses <span data-tax-year>2026</span> federal brackets, the standard deduction, FICA (7.65%), and self-employment tax (15.3% on 92.35% of net earnings, with the employer-half deduction). No state or local tax, no QBI deduction, no additional Medicare tax. Not tax advice.</p>
 
     <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
-
-    <div id="compareWrap" hidden>
-      <div class="cmp-grid">
-        <div class="cmp-card">
-          <h3>W-2 employee</h3>
-          <p class="cmp-th" id="w2TakeHome">—</p>
-          <div class="cmp-row"><span class="lbl">Gross salary</span><span id="w2Gross_">—</span></div>
-          <div class="cmp-row"><span class="lbl">FICA (7.65%)</span><span id="w2Payroll">—</span></div>
-          <div class="cmp-row"><span class="lbl">Est. federal income tax</span><span id="w2Federal">—</span></div>
-        </div>
-        <div class="cmp-card">
-          <h3>1099 self-employed</h3>
-          <p class="cmp-th" id="seTakeHome">—</p>
-          <div class="cmp-row"><span class="lbl">Net earnings</span><span id="seGross">—</span></div>
-          <div class="cmp-row"><span class="lbl">Self-employment tax (15.3%)</span><span id="sePayroll">—</span></div>
-          <div class="cmp-row"><span class="lbl">Est. federal income tax</span><span id="seFederal">—</span></div>
-        </div>
-      </div>
-
-      <div class="benefits-note">
-        <strong>The employer-benefits gap</strong>
-        <p id="benefitsText" style="margin:6px 0 0;"></p>
-      </div>
-    </div>
-
-    <div class="calc-summary" id="summaryBox" hidden>
-      <strong>Comparison summary</strong>
-      <p id="summaryText" style="margin:6px 0 0;"></p>
-    </div>
 
     <section class="prose">
       <h2>How to use the 1099 vs W-2 calculator</h2>
