@@ -27,124 +27,245 @@
 <main id="main">
   <div class="wrap">
     <h1>QCD vs. Charitable Deduction Calculator</h1>
-    <p class="lede">If you are <strong>70½ or older</strong> and have a traditional IRA, there are two very different ways to give money from it to a charity. You can have the IRA pay the charity <strong>directly</strong>, and then the money never counts as your income at all, up to <strong>$111,000</strong> in 2026. Or you can take the money out yourself, count it as income, and write the gift off, which only helps if you already list your bigger expenses one by one on your tax return. Fill in your numbers to see what each way does to your income and to your federal tax, side by side. The direct route has a name on the paperwork, a qualified charitable distribution or QCD, and your IRA provider will expect you to ask for it by that name. Everything runs in your browser, nothing is uploaded.</p>
+    <!-- THE WIZARD (converted 2026-08-01 onto wizard-core.js, after the
+         /overtime-tax-calculator/ reference and the /tips-tax-calculator/ pilot).
+         This page used to be one long form: nine controls on screen at once,
+         three of them behind a "a few more questions, only if they apply to you"
+         fieldset with its own yes/no gates, and a results panel whose real
+         comparison lived inside a collapsed "see how this was calculated". The
+         approved replacement asks ONE question per card and ends with the answer
+         written out as a story: the same gift, two ways, with rows that add up.
 
-    <section class="calc" aria-label="QCD vs. charitable deduction calculator">
-      <form id="qcdForm" autocomplete="off" onsubmit="return false">
-        <div class="field est-row">
-          <div class="field" style="margin:0">
-            <label for="filing">How do you file your taxes?</label>
-            <select id="filing">
-              <option value="single">Single</option>
-              <option value="married">Married filing jointly</option>
-              <option value="head_of_household">Head of household</option>
-            </select>
+         PROGRESSIVE ENHANCEMENT, NOT A JS APP. Every card below ships VISIBLE and
+         in reading order in the built HTML: with JavaScript off, blocked, or a
+         crawler reading the page, this is a plain sequential form with real
+         <label>s and native <details> helpers. qcd-vs-charitable-deduction-wizard.js
+         sets data-js="on" on the .otw section only after its first successful
+         render, and ONLY THEN does styles.css collapse the stack to one card at a
+         time. Hide-on-demand, never show-on-demand. The single exception is #out,
+         the computed answer, which has always been JS-only.
+
+         The controls that only mean something once the stepping exists (Next /
+         Back / Skip, the progress dots, the quick chips, the answer chips, Start
+         over) are also gated on data-js="on" in CSS, because a "Next" button that
+         cannot advance anything is worse than no button.
+
+         IDS ARE A CONTRACT with qcd-vs-charitable-deduction-wizard.js: donation,
+         age, agi, rmd, offset, other, and the radio groups named "accountType",
+         "filing" and "spouse65". #out and #outStatus keep their old names and
+         roles (result panel + the one polite live region). #outStatus deliberately
+         sits OUTSIDE the cards: inside one it would be display:none on every step
+         but its own and the announcement would never reach a screen reader.
+
+         THREE CARDS ARE ON A BRANCH, and the branch is the point of this tool.
+         "Which account" and "how old are you" together decide whether the direct
+         route (a qualified charitable distribution) is open at all: a 401(k), a
+         Roth IRA, or an age under 70½ closes it. When it is closed, the two
+         IRA-side follow-ups — the required withdrawal and the post-70½
+         contribution offset — can no longer change any number on the answer, so
+         they leave the path, the dots shorten on that keystroke, and the visitor
+         is never asked a question whose answer is already irrelevant. The
+         spouse-65 card is on the path only for a joint return, which is the only
+         return its answer can move. Every one of those cards is still in the
+         document; the core only stops showing them.
+
+         THE ORDER IS GIFT, THEN THE IRA SIDE, THEN THE TAX-RETURN SIDE. The gift
+         is the tool's own subject, so it is asked first. The account and the age
+         follow because they are the two gates. The last card, "other big
+         expenses", is asked last and is always on the path: it is the number that
+         decides whether writing the gift off is worth anything at all, and it is
+         also the second of the only two numbers on this page that can contradict
+         each other, so the cross-check sits there.
+
+         The /embed/ build is NOT this. It keeps its single-column form and is
+         still served by qcd-vs-charitable-deduction-calculator.js, because a third
+         party sizes that iframe once and a flow whose height changes per card
+         would clip inside it. The two must stay independent, which is why the form
+         id here is #qcdWizForm and the embed's is still #qcdForm.
+
+         Ad slots, prose, the mythbusting section, the worked example and the FAQ
+         below are untouched. -->
+    <section class="otw" id="qcdWizard" aria-label="QCD vs. charitable deduction calculator">
+      <h2 class="sr-only">QCD vs. charitable deduction calculator</h2>
+      <div class="otw-dots" id="otwDots" aria-hidden="true"></div>
+      <p class="otw-stepnum" id="otwStepnum"></p>
+
+      <form id="qcdWizForm" autocomplete="off" onsubmit="return false">
+        <section class="otw-card" data-step="0" aria-labelledby="otwQ0">
+          <h2 class="otw-q" id="otwQ0"><label for="donation">How much do you want to give to charity?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="donation" inputmode="decimal" data-money autocomplete="off" value="10000">
           </div>
-          <div class="field" style="margin:0">
-            <label for="age">How old are you?</label>
-            <input type="number" id="age" inputmode="decimal" min="0" max="120" step="0.5" value="75" aria-describedby="ageNote">
+          <div class="otw-chips" id="otwGiftChips">
+            <button type="button" data-otw-fill="donation" data-otw-value="1000">$1,000</button>
+            <button type="button" data-otw-fill="donation" data-otw-value="5000">$5,000</button>
+            <button type="button" data-otw-fill="donation" data-otw-value="25000">$25,000</button>
           </div>
-        </div>
-        <p class="muted-small" id="ageNote" style="margin-top:-6px">You can enter a half year here, for example 70.5. Sending money straight from your IRA to a charity is only allowed once you have actually reached <strong>70½</strong> on the day the money leaves the account, not simply turned 70 that year. That is about two and a half years before you are first made to take money out, which starts at 73.</p>
+          <details class="otw-help">
+            <summary>This is the amount the charity ends up with, and it is the same either way</summary>
+            <p>Both routes on the next screens move exactly these dollars to the charity. What changes is how your tax return counts them: sent straight from the IRA the money never appears as your income at all, while taking it out yourself makes it income first and then asks whether you can write the gift off. A rough figure is fine, you can change it at the end and watch the answer update.</p>
+          </details>
+          <div class="otw-nav"><span></span><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-        <div class="field" id="spouseWrap">
-          <div class="check-field">
-            <input type="checkbox" id="spouseAge65">
-            <label for="spouseAge65">My spouse is also 65 or older</label>
+        <section class="otw-card" data-step="1" aria-labelledby="otwQ1">
+          <h2 class="otw-q" id="otwQ1">Which account would that money come out of?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ1">
+            <label class="otw-opt">
+              <input type="radio" name="accountType" value="traditional_ira" checked>
+              <span><span class="otw-opt-t">A traditional IRA</span><span class="otw-opt-s">the usual kind, opened by you at a bank or a broker</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="accountType" value="inactive_sep_ira">
+              <span><span class="otw-opt-t">A SEP IRA nobody is paying into any more</span><span class="otw-opt-s">a small-business IRA that got no new money this year</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="accountType" value="inactive_simple_ira">
+              <span><span class="otw-opt-t">A SIMPLE IRA nobody is paying into any more</span><span class="otw-opt-s">a small-employer IRA that got no new money this year</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="accountType" value="roth_ira">
+              <span><span class="otw-opt-t">A Roth IRA</span><span class="otw-opt-s">allowed, but almost never worth it — that money already comes out tax-free</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="accountType" value="401k">
+              <span><span class="otw-opt-t">A 401(k), 403(b) or 457 at work</span><span class="otw-opt-s">the direct route does not work from a workplace plan</span></span>
+            </label>
           </div>
-          <p class="muted-small" style="margin-top:6px">People aged 65 and over get a slightly bigger version of the <a href="/tax-glossary/#standard-deduction">flat deduction</a> everyone is offered. This box only changes the side where you take the money as income and write the gift off, and only when the two of you file one joint return.</p>
-        </div>
+          <details class="otw-help">
+            <summary>Paying a charity straight from the account only works from an IRA</summary>
+            <p>It does not work from a workplace plan such as a 401(k), a 403(b) or a 457, and it does not work from a SEP or SIMPLE IRA that someone is still paying into. "Inactive" here just means nobody has added money to it this year. A Roth IRA is allowed but is almost never worth using, because that money already comes out tax-free. If your money is in a workplace plan you can move it into a traditional IRA first, and then give from there.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-        <div class="field">
-          <label for="donation">How much do you want to give to charity?</label>
-          <input type="text" id="donation" inputmode="decimal" data-money autocomplete="off" value="10000">
-        </div>
+        <section class="otw-card" data-step="2" aria-labelledby="otwQ2">
+          <h2 class="otw-q" id="otwQ2"><label for="age">How old are you?</label></h2>
+          <input type="number" class="otw-in" id="age" inputmode="decimal" min="0" max="120" step="0.5" value="75">
+          <p class="otw-flag" id="otwAgeFlag" hidden></p>
+          <details class="otw-help">
+            <summary>You can enter a half year here, for example 70.5</summary>
+            <p>Sending money straight from your IRA to a charity is only allowed once you have actually reached <strong>70½</strong> on the day the money leaves the account, not simply turned 70 that year. That is about two and a half years before you are first made to take money out, which starts at 73. Those two ages are set by two different rules and mixing them up is the most common mistake people make here.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-        <div class="field">
-          <label for="accountType">Which account would that money come out of?</label>
-          <select id="accountType" aria-describedby="accountTypeNote">
-            <option value="traditional_ira">Traditional IRA</option>
-            <option value="inactive_sep_ira">Inactive SEP IRA</option>
-            <option value="inactive_simple_ira">Inactive SIMPLE IRA</option>
-            <option value="roth_ira">Roth IRA</option>
-            <option value="401k">401(k) / 403(b) / 457</option>
-          </select>
-          <p class="muted-small" id="accountTypeNote" style="margin-top:6px">Paying a charity straight from the account only works from an <strong>IRA</strong>. It does not work from a workplace plan such as a 401(k), a 403(b) or a 457, and it does not work from a SEP or SIMPLE IRA that someone is still paying into. "Inactive" here just means nobody has added money to it this year. A Roth IRA is allowed but is almost never worth using, because that money already comes out tax-free.</p>
-        </div>
+        <section class="otw-card" data-step="3" aria-labelledby="otwQ3">
+          <h2 class="otw-q" id="otwQ3"><label for="rmd">How much are you made to take out of your IRA this year?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="rmd" inputmode="decimal" data-money autocomplete="off" value="0">
+          </div>
+          <details class="otw-help">
+            <summary>Your IRA provider works this figure out and tells you each year — leave it at 0 if you do not know it</summary>
+            <p>The amount you are made to take is called a <strong>required minimum distribution</strong>, or RMD, and it starts at age 73. Money sent straight from the IRA to a charity counts toward this amount, but only if you do it before any other withdrawal that year. Take anything else out first and that withdrawal uses up the required amount instead.</p>
+          </details>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip</button> <button type="button" class="otw-next">Next</button></span>
+          </div>
+        </section>
 
-        <div class="field">
-          <label for="agi">How much other income will you have this year?</label>
-          <input type="text" id="agi" inputmode="decimal" data-money autocomplete="off" value="60000" aria-describedby="agiNote">
-          <p class="muted-small" id="agiNote" style="margin-top:6px">Everything else on your tax return: Social Security, a pension, other withdrawals, investment income. Leave the money for this gift out of it. The tool adds that back on its own, on the side where you take it as income first, and works your <a href="/tax-glossary/#agi">income for the year</a> out from there.</p>
-        </div>
+        <section class="otw-card" data-step="4" aria-labelledby="otwQ4">
+          <h2 class="otw-q" id="otwQ4"><label for="offset">Since you turned 70½, how much new money have you paid into a traditional IRA and written off?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="offset" inputmode="decimal" data-money autocomplete="off" value="0">
+          </div>
+          <details class="otw-help">
+            <summary>For almost everyone this is $0 — leave it and skip on</summary>
+            <p>This one is rare. It only counts if you are still working, still paying new money into a traditional IRA, and also writing those contributions off on your tax return, and only for money you put in after you turned 70½. A narrow rule then cuts the amount you can give straight to the charity by that much, dollar for dollar. It exists to stop people paying money in for a write-off and pulling the same money straight back out tax-free.</p>
+          </details>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip</button> <button type="button" class="otw-next">Next</button></span>
+          </div>
+        </section>
 
-        <!-- The last three inputs are the ones that stop a non-expert: "other
-             itemized deductions", "RMD", and the post-70½ contribution offset.
-             Each is now a plain question, with the technical term kept in the
-             small note underneath so someone who knows the term still recognises
-             the field. Each money box lives in a [data-reveal] wrapper that ships
-             VISIBLE here; question-flow.js (opted in for this path in
-             QUESTION_FLOW_PAGES) hides it after load when the answer is No, so
-             JavaScript off, a broken script, or a crawler all still see every
-             field. Never invert this to show-on-demand. All three boxes default
-             to 0, so every question ships answered No and an untouched page
-             computes exactly what it computed before. -->
-        <fieldset class="adv">
-          <legend>A few more questions, only if they apply to you</legend>
-          <p class="adv-hint">Left on No, these say you have nothing else to write off, nothing you are made to take out of the IRA, and no new money paid into it. Change any that do not match you.</p>
+        <section class="otw-card" data-step="5" aria-labelledby="otwQ5">
+          <h2 class="otw-q" id="otwQ5"><label for="agi">How much other income will you have this year?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="agi" inputmode="decimal" data-money autocomplete="off" value="60000">
+          </div>
+          <details class="otw-help">
+            <summary>Everything else on your tax return — leave the money for this gift out of it</summary>
+            <p>Social Security, a pension, other withdrawals, investment income. The tool adds the gift money back on its own, on the side where you take it out as income first, and works your <a href="/tax-glossary/#agi">income for the year</a> out from there. A ballpark is fine.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-          <fieldset class="adv-q" aria-describedby="qOtherNote">
-            <legend>Do you already write off other big expenses on your tax return?</legend>
-            <p class="adv-q-note" id="qOtherNote">Mainly state and local taxes and mortgage interest. Listing expenses like these one by one, instead of taking the flat amount everyone is offered, is called <a href="/tax-glossary/#itemizing">itemizing</a>. It is what decides whether writing this gift off is worth anything at all, so it is worth answering.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qOther" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qOther" value="yes"><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qOther">
-              <div class="field">
-                <label for="other">How much do those other expenses add up to?</label>
-                <input type="text" id="other" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="otherNote">
-                <p class="adv-q-note" id="otherNote">Leave this charity gift out of the box, it is already counted above. Add up your state and local taxes, up to the <a href="/salt-cap-calculator/">$40,000 cap</a>, plus your mortgage interest.</p>
-              </div>
-            </div>
-          </fieldset>
+        <section class="otw-card" data-step="6" aria-labelledby="otwQ6">
+          <h2 class="otw-q" id="otwQ6">How do you do your taxes?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ6">
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="single" checked>
+              <span><span class="otw-opt-t">On my own</span><span class="otw-opt-s">single</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="married">
+              <span><span class="otw-opt-t">Together with my husband or wife</span><span class="otw-opt-s">married, one return between the two of us</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="head_of_household">
+              <span><span class="otw-opt-t">On my own, with a child or dependent at home</span><span class="otw-opt-s">head of household</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>Why this changes the answer</summary>
+            <p>Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>. It sets the flat amount everyone is offered instead of listing expenses one by one, and it sets the tax rates on your income — between them those decide whether writing the gift off is worth anything at all. It also sets the small write-off a non-lister gets for giving: $1,000 on your own, $2,000 on a joint return.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-          <fieldset class="adv-q" aria-describedby="qRmdNote">
-            <legend>Do you already have to take a set amount out of your IRA every year?</legend>
-            <p class="adv-q-note" id="qRmdNote">This starts at age 73. The amount you are made to take is called a <strong>required minimum distribution</strong>, or RMD, and your IRA provider works it out and tells you each year. Answer No if you are not 73 yet, or if you do not know the figure.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qRmd" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qRmd" value="yes"><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qRmd">
-              <div class="field">
-                <label for="rmd">How much do you have to take out this year?</label>
-                <input type="text" id="rmd" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="rmdNote">
-                <p class="adv-q-note" id="rmdNote">Money sent straight from the IRA to a charity counts toward this amount, but only if you do it before any other withdrawal that year. Take anything else out first and that withdrawal uses up the required amount instead.</p>
-              </div>
-            </div>
-          </fieldset>
+        <section class="otw-card" data-step="7" aria-labelledby="otwQ7">
+          <h2 class="otw-q" id="otwQ7">Is your husband or wife also 65 or older?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ7">
+            <label class="otw-opt">
+              <input type="radio" name="spouse65" value="no" checked>
+              <span><span class="otw-opt-t">No, or I would rather not say</span><span class="otw-opt-s">we will leave the extra amount out, which is the cautious answer</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="spouse65" value="yes">
+              <span><span class="otw-opt-t">Yes, 65 or older</span><span class="otw-opt-s">adds their share of the over-65 extra</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>People aged 65 and over get a slightly bigger version of the flat deduction everyone is offered</summary>
+            <p>You already get it, because this route needs you to be past 70½. This question only adds your husband or wife's share of it, and it only changes the side where you take the money out as income and write the gift off. It never changes the direct route, because nothing is being written off there.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-          <fieldset class="adv-q" aria-describedby="qOffsetNote">
-            <legend>Are you still working and still paying new money into a traditional IRA?</legend>
-            <p class="adv-q-note" id="qOffsetNote">This one is rare. It only counts if you are also writing those contributions off on your tax return, and only for money you put in after you turned 70½. If none of that describes you, leave this on No.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qOffset" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qOffset" value="yes"><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qOffset">
-              <div class="field">
-                <label for="offset">How much have you paid in and written off since you turned 70½?</label>
-                <input type="text" id="offset" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="offsetNote">
-                <p class="adv-q-note" id="offsetNote">A narrow anti-abuse rule cuts the amount you can give tax-free by this much, dollar for dollar. It exists to stop people paying money in for a write-off and pulling the same money straight back out tax-free.</p>
-              </div>
-            </div>
-          </fieldset>
-        </fieldset>
+        <section class="otw-card" data-step="8" aria-labelledby="otwQ8">
+          <h2 class="otw-q" id="otwQ8"><label for="other">How much do you write off in other big expenses each year?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="other" inputmode="decimal" data-money autocomplete="off" value="0">
+          </div>
+          <p class="otw-flag" id="otwOtherFlag" hidden></p>
+          <details class="otw-help">
+            <summary>Mainly state and local taxes and mortgage interest — nothing else to write off? Leave it at 0</summary>
+            <p>Listing expenses like these one by one, instead of taking the flat amount everyone is offered, is called <a href="/tax-glossary/#itemizing">itemizing</a>. It is what decides whether writing this gift off is worth anything at all, so it is worth answering. Add up your state and local taxes, up to the <a href="/salt-cap-calculator/">$40,000 cap</a>, plus your mortgage interest. Leave this charity gift itself out of the box, it is already counted.</p>
+          </details>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip</button> <button type="button" class="otw-next">See my answer</button></span>
+          </div>
+        </section>
+
+        <section class="otw-card otw-result" data-step="9" aria-labelledby="otwQ9">
+          <h2 class="otw-q sr-only" id="otwQ9" tabindex="-1">Your answer</h2>
+          <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+          <div class="obbba-out" id="out" data-tb-result></div>
+          <details class="otw-help">
+            <summary>Which charities can be paid straight from an IRA?</summary>
+            <p>Only a public charity, and the money has to go <strong>directly from your IRA provider to the charity</strong> — never through your own bank account first. A donor-advised fund, a private foundation and a supporting organisation are all shut out by law, even though a gift to some of those can still be written off the other way. The gift also has to be a pure gift: no dinner, no raffle ticket, no member perks in return.</p>
+          </details>
+          <div class="otw-answers" id="otwAnswers"></div>
+          <div class="otw-restart"><button type="button" id="otwRestart">Start over</button></div>
+        </section>
       </form>
-
-      <div class="obbba-out" id="out" aria-live="polite"></div>
+      <p id="outStatus" role="status" class="sr-only"></p>
     </section>
+
+    <p class="lede">If you are <strong>70½ or older</strong> and have a traditional IRA, there are two very different ways to give money from it to a charity. You can have the IRA pay the charity <strong>directly</strong>, and then the money never counts as your income at all, up to <strong>$111,000</strong> in 2026. Or you can take the money out yourself, count it as income, and write the gift off, which only helps if you already list your bigger expenses one by one on your tax return. Fill in your numbers to see what each way does to your income and to your federal tax, side by side. The direct route has a name on the paperwork, a qualified charitable distribution or QCD, and your IRA provider will expect you to ask for it by that name. Everything runs in your browser, nothing is uploaded.</p>
 
     <p class="note">Estimate for general guidance only — not tax advice. Figures use the 2026 federal brackets, the 2026 standard deduction plus the age-65+ addition ($2,050 single/head of household, $1,650 per qualifying spouse married filing jointly), and the 2026 charitable-deduction rules (the §170(p) $1,000/$2,000 non-itemizer cap, the 0.5%-of-AGI floor, and the §68 top-bracket haircut) via the same engine as the <a href="/charitable-deduction-calculator/">Charitable Deduction Calculator</a>. It assumes no basis in the IRA (all pre-tax), doesn't model the one-time $55,000 split-interest QCD, IRMAA tiers, Social Security taxability, the 3.8% NIIT, the 60%/30%/20%-of-AGI ceilings on very large gifts, or state tax (a few states don't conform to the QCD exclusion). Verify with the IRS or a tax professional.</p>
 
@@ -197,6 +318,7 @@
       <p><strong>Does it count toward my RMD?</strong> Yes, if you're 73+, as long as you make the QCD before any other withdrawal that year.</p>
       <p><strong>Is it withheld like a normal distribution?</strong> No — a QCD isn't subject to withholding, so the full amount reaches the charity.</p>
       <p><strong>Can I use a 401(k) or Roth IRA?</strong> Not a 401(k)/403(b)/457 (roll to an IRA first). A Roth technically qualifies but usually isn't worth it — that money's already tax-free.</p>
+      <p><strong>Does either route change my Social Security or Medicare tax?</strong> No. Money coming out of an IRA is not wages, so no Social Security or Medicare payroll tax is charged on it either way. A lower AGI can still change your Medicare <em>premium</em> surcharge, which is a different thing.</p>
       <p><strong>Is anything saved or uploaded?</strong> No. The tool is fully client-side — your numbers never leave your browser.</p>
       <p class="muted-small">Sources: IRS Notice 2025-67, <a href="https://www.irs.gov/pub/irs-drop/n-25-67.pdf">2026 qualified charitable distribution amounts</a>; IRS Publication 590-B, <a href="https://www.irs.gov/pub/irs-pdf/p590b.pdf">Distributions from Individual Retirement Arrangements</a>; <a href="https://www.law.cornell.edu/uscode/text/26/408">26 USC §408(d)(8) (Cornell LII)</a>; Northern Trust, <a href="https://www.northerntrust.com/united-states/institute/articles/withholding-from-ira-qualified-plan-distributions">withholding from IRA distributions</a>; Kiplinger, <a href="https://www.kiplinger.com/taxes/extra-standard-deduction-age-65-and-older">the extra standard deduction for 65 and older</a>. Take-and-deduct math shares the sources of the <a href="/charitable-deduction-calculator/">Charitable Deduction Calculator</a> (Public Law 119-21 §§70424, 70425, 70111).</p>
     </section>
@@ -216,6 +338,6 @@
   window.__OBBBA__ = {{OBBBA_JSON}};
   window.__FED__ = {{FED_JSON}};
 </script>
-<script type="module" src="/assets/qcd-vs-charitable-deduction-calculator.js"></script>
+<script type="module" src="/assets/qcd-vs-charitable-deduction-wizard.js"></script>
 </body>
 </html>
