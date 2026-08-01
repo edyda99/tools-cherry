@@ -1,0 +1,35 @@
+{
+  "date": "2026-08-01",
+  "note": "Same 14-doc corpus, same score.py (weights v4). Outputs under out/bench_*. Home-field caveat: corpus/metrics were authored while tuning our passes; treat as gap analysis.",
+  "engines": {
+    "ours-live": {"source": "convert_corpus with enhance() patched to identity (prod today)", "coverage": 14, "mean_composite": 0.7989},
+    "ours-branch": {"source": "scoreboard.json (iter11, all passes)", "coverage": 14, "mean_composite": 0.9735},
+    "ilovepdf": {"source": "ilovepdf.com web UI, 'Powered by Solid Documents', NO-OCR mode", "coverage": 14, "mean_composite": 0.9801},
+    "word-reflow": {"source": "Microsoft Word PDF reflow via word_reflow.sh (Terminal relay)", "coverage": 14, "mean_composite": 0.8933},
+    "libreoffice": {"source": "soffice --headless --infilter=writer_pdf_import --convert-to docx", "coverage": 14, "mean_composite": 0.4803},
+    "smallpdf": {"source": "smallpdf.com web UI (Solid licensee)", "coverage": 3, "mean_composite_on_covered": 1.0, "note": "header_footer/headings/inline_styles all 1.000, identical to ilovepdf; site refused the automated session afterwards"},
+    "adobe": {"source": "adobe.com Acrobat online", "coverage": 1, "note": "headings 1.000; second download is sign-in-gated"}
+  },
+  "findings": [
+    "ours-branch ties or beats Solid on 12/14 docs; wins prose (their reflow 0.8, word corruption) and lists (their numbering 0.914)",
+    "Solid's lead is wrap_hard+two_column only; their wrap_hard reflow is real (6 paras, 0 w:br) but text pays: recall 0.902 precision 0.821 with mid-word breakage: meas-urement, pro-cedure, incon-sistent, acknow-ledgement",
+    "Word reflow is the only engine with clean text AND rewrap on wrap_hard (0.862) but drops heading styles everywhere",
+    "ours-live (no enhance) is behind Word reflow on all 14 docs; season passes are worth +0.175 mean"
+  ],
+  "per_doc_composite": {
+    "header_footer":   {"ours-live": 0.787, "ours-branch": 1.0,   "ilovepdf": 1.0,   "word": 0.928, "libreoffice": 0.513, "smallpdf": 1.0},
+    "headings":        {"ours-live": 0.883, "ours-branch": 1.0,   "ilovepdf": 1.0,   "word": 0.897, "libreoffice": 0.590, "smallpdf": 1.0, "adobe": 1.0},
+    "inline_styles":   {"ours-live": 0.844, "ours-branch": 1.0,   "ilovepdf": 1.0,   "word": 0.873, "libreoffice": 0.630, "smallpdf": 1.0},
+    "links":           {"ours-live": 0.847, "ours-branch": 1.0,   "ilovepdf": 1.0,   "word": 0.894, "libreoffice": 0.507},
+    "lists":           {"ours-live": 0.787, "ours-branch": 1.0,   "ilovepdf": 0.990, "word": 0.908, "libreoffice": 0.565},
+    "lists_hard":      {"ours-live": 0.687, "ours-branch": 1.0,   "ilovepdf": 1.0,   "word": 0.883, "libreoffice": 0.505},
+    "mixed_report":    {"ours-live": 0.790, "ours-branch": 1.0,   "ilovepdf": 1.0,   "word": 0.948, "libreoffice": 0.422},
+    "prose":           {"ours-live": 0.851, "ours-branch": 1.0,   "ilovepdf": 0.968, "word": 0.883, "libreoffice": 0.557},
+    "table_bordered":  {"ours-live": 0.857, "ours-branch": 1.0,   "ilovepdf": 1.0,   "word": 0.879, "libreoffice": 0.402},
+    "table_borderless":{"ours-live": 0.800, "ours-branch": 1.0,   "ilovepdf": 1.0,   "word": 0.903, "libreoffice": 0.435},
+    "table_merged":    {"ours-live": 0.857, "ours-branch": 1.0,   "ilovepdf": 1.0,   "word": 0.864, "libreoffice": 0.340},
+    "table_ragged":    {"ours-live": 0.800, "ours-branch": 1.0,   "ilovepdf": 1.0,   "word": 0.903, "libreoffice": 0.332},
+    "two_column":      {"ours-live": 0.834, "ours-branch": 0.951, "ilovepdf": 0.983, "word": 0.883, "libreoffice": 0.464},
+    "wrap_hard":       {"ours-live": 0.561, "ours-branch": 0.678, "ilovepdf": 0.781, "word": 0.862, "libreoffice": 0.463}
+  }
+}
