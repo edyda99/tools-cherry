@@ -33,14 +33,20 @@
         <div class="field">
           <label for="income">How much do you earn in a year, before anything is taken out?</label>
           <input type="text" id="income" inputmode="decimal" data-money autocomplete="off" value="60000" aria-describedby="incomeNote">
-          <p class="muted-small" id="incomeNote" style="margin-top:6px">Your pay for the whole year, overtime included. Married and sending in one return together? Add both incomes. This number is what decides whether the deduction starts shrinking, which begins at $150,000 on your own or $300,000 filing jointly. Tax forms measure that against your modified adjusted gross income, or MAGI, which for almost everyone is the same figure.</p>
+          <p class="muted-small" id="incomeNote" style="margin-top:6px">Your pay for the whole year, overtime included. Married and sending in one return together? Add both incomes. This number decides whether the deduction starts shrinking, which begins at $150,000 on your own or $300,000 filing jointly. Tax forms measure that against your modified adjusted gross income, or MAGI. If money leaves your pay before tax, into a 401(k) or a health plan, take those amounts off: MAGI is your pay after them.</p>
         </div>
 
-        <div class="field">
-          <label for="premium">How much extra were you paid for overtime hours, on top of your normal rate?</label>
-          <input type="text" id="premium" inputmode="decimal" data-money autocomplete="off" value="5000" aria-describedby="premiumNote">
-          <p class="muted-small" id="premiumNote" style="margin-top:6px">Only the extra part counts, not your whole overtime pay. If you normally earn $20 an hour and overtime pays $30, the extra is $10 an hour, so 300 overtime hours comes to $3,000. Tax forms call that extra part your overtime premium, the "half" in time-and-a-half. Not sure of your total? Answer Yes to the first question below and we will work it out for you.</p>
+        <div class="est-row">
+          <div class="field" style="margin:0">
+            <label for="regRate">What do you normally earn an hour?</label>
+            <input type="text" id="regRate" inputmode="decimal" data-money autocomplete="off" value="20" aria-describedby="otBasisNote">
+          </div>
+          <div class="field" style="margin:0">
+            <label for="otHours">How many overtime hours did you work this year?</label>
+            <input type="number" id="otHours" inputmode="numeric" min="0" step="1" value="500" aria-describedby="otBasisNote">
+          </div>
         </div>
+        <p class="muted-small" id="otBasisNote" style="margin:6px 0 18px">Federal law makes your employer pay time-and-a-half for overtime: your normal rate, plus half of it again. Only that required half can be deducted, and these two numbers are all we need to work it out. If your employer pays more than time-and-a-half, double time for instance, the part above the required half is taxed as usual. Already know your exact premium? There is a question for that below.</p>
 
         <div class="field">
           <label for="filing">How do you send in your tax return?</label>
@@ -52,45 +58,58 @@
           <p class="muted-small" style="margin-top:6px">Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>. Pick Single if you are not married. Pick Married filing jointly if you are married and you and your spouse send in one return together, which married couples have to do to claim this deduction. Pick Head of household if you are unmarried and pay most of the cost of a home for a child or another dependent.</p>
         </div>
 
-        <!-- The two optional things this page asks for are plain questions rather
-             than jargon-labelled boxes sitting in the main flow. The fields each
-             question needs live inside a [data-reveal] wrapper that ships VISIBLE in
-             the built HTML; question-flow.js (this page opts in via QUESTION_FLOW_PAGES
-             in build.js) only ever ADDS `hidden` once the page is up. Hide-on-demand,
-             never show-on-demand, so JavaScript off, JavaScript broken or a crawler all
-             still see every field.
+        <!-- INPUT ARCHITECTURE (rewritten 2026-08-01, and the reason matters).
+             The MAIN flow asks only for numbers a worker can read off a pay stub:
+             yearly pay, normal hourly rate, overtime hours. The overtime PREMIUM is
+             DERIVED from rate x hours (0.5 x r x h) and is never typed unless the
+             visitor volunteers that they already know it. It used to be the headline
+             field, which asked for a figure no 2025 document shows and which invited
+             people to type their whole overtime pay, three times too large, and get
+             an authoritative-looking answer back.
+             RENDER PRECEDENCE, mirrored in overtime-tax-calculator.js: direct mode
+             when the qKnown radios exist AND "yes" is checked AND #premium > 0, in
+             which case the typed premium is the eligible amount; otherwise derived
+             mode from #regRate and #otHours. On a page with no qKnown radios (the
+             /embed/ build) it is direct iff #premium > 0, else derived. Neither mode
+             ever writes into the other's box, so nothing on screen is a number the
+             visitor did not either type or ask for.
+             The optional things this page asks for are plain questions rather than
+             jargon-labelled boxes sitting in the main flow. The fields each question
+             needs live inside a [data-reveal] wrapper that ships VISIBLE in the built
+             HTML; question-flow.js (this page opts in via QUESTION_FLOW_PAGES in
+             build.js) only ever ADDS `hidden` once the page is up. Hide-on-demand,
+             never show-on-demand, so JavaScript off, JavaScript broken or a crawler
+             all still see every field.
              POLARITY: Yes always means "this applies to me, show me the fields". A
              question phrased so that Yes means "I do not know" leaves No meaning two
              opposite things at once, so never invert one.
-             #stateVerdict lives INSIDE the qState reveal on purpose: it is the answer to
-             that question, so it can never be stranded on screen once the select that
-             produced it is hidden. The ids regRate, otHours, state and stateVerdict are
-             read by overtime-tax-calculator.js and must not be renamed. Keep .est-row
-             without a .field class: the mobile stacking rule in styles.css is written as
-             a bare `.est-row` on that assumption. -->
+             Answering No PARKS the wrapper's fields at 0 (question-flow.js) and
+             restores them on Yes. That parking is exactly what makes derived mode
+             win by default, since a parked #premium is 0 and 0 fails the direct-mode
+             test. Do not fight it.
+             #stateVerdict lives INSIDE the qState reveal on purpose: it is the answer
+             to that question, so it can never be stranded on screen once the select
+             that produced it is hidden. The ids regRate, otHours, premium, state and
+             stateVerdict are read by overtime-tax-calculator.js and must not be
+             renamed. Keep .est-row without a .field class: the mobile stacking rule
+             in styles.css is written as a bare `.est-row` on that assumption. -->
         <fieldset class="adv">
           <legend>A few more questions, only if they apply to you</legend>
-          <p class="adv-hint">Both start on No. If neither applies to you, leave them alone and your answer above is already complete.</p>
+          <p class="adv-hint">Both start on No. Leave them there and your answer above already stands, worked out from your rate and your hours.</p>
 
-          <fieldset class="adv-q" aria-describedby="qEstimateNote">
-            <legend>Do you want us to work out the extra part of your overtime for you?</legend>
-            <p class="adv-q-note" id="qEstimateNote">Answer Yes and we will work it out from your normal hourly rate and your overtime hours, then fill in the box above for you.</p>
+          <fieldset class="adv-q" aria-describedby="qKnownNote">
+            <legend>Do you already know your exact overtime premium for the year?</legend>
+            <p class="adv-q-note" id="qKnownNote">Answer Yes only if you have the figure itself in front of you. On No we work it out from your hourly rate and your overtime hours above, which is the usual case.</p>
             <div class="yn">
-              <label class="seg"><input type="radio" name="qEstimate" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qEstimate" value="yes"><span>Yes</span></label>
+              <label class="seg"><input type="radio" name="qKnown" value="no" checked><span>No</span></label>
+              <label class="seg"><input type="radio" name="qKnown" value="yes"><span>Yes</span></label>
             </div>
-            <div class="adv-reveal" data-reveal="qEstimate">
-              <div class="est-row">
-                <div class="field" style="margin:0">
-                  <label for="regRate">What do you normally earn an hour?</label>
-                  <input type="text" id="regRate" inputmode="decimal" data-money autocomplete="off" placeholder="20" aria-describedby="qEstimateHelp">
-                </div>
-                <div class="field" style="margin:0">
-                  <label for="otHours">How many overtime hours did you work this year?</label>
-                  <input type="number" id="otHours" inputmode="numeric" min="0" step="1" placeholder="250" aria-describedby="qEstimateHelp">
-                </div>
+            <div class="adv-reveal" data-reveal="qKnown">
+              <div class="field">
+                <label for="premium">Your overtime premium for the year</label>
+                <input type="text" id="premium" inputmode="decimal" data-money autocomplete="off" placeholder="5,000" aria-describedby="premiumNote">
+                <p class="adv-q-note" id="premiumNote">The premium is the extra half only, not your whole overtime pay: at $20 an hour normally and $30 an hour on overtime, the extra is $10 an hour. For 2025 you total that extra half from your pay stubs; from 2026 it has its own box on your W-2, Box 12 code TT. Anything your employer pays above the required half does not count towards it.</p>
               </div>
-              <p class="adv-q-note" id="qEstimateHelp">Fill in both and the overtime box above updates on its own. The sum is half your normal hourly rate, multiplied by your overtime hours.</p>
             </div>
           </fieldset>
 
@@ -163,7 +182,8 @@
     <section class="prose">
       <h2>Common questions</h2>
       <p><strong>Is overtime completely tax-free now?</strong> No. Only the FLSA premium is deductible, only up to the annual cap, only for federal income tax, and only for 2025–2028. Social Security and Medicare still apply, and your state may still tax it.</p>
-      <p><strong>What if I don't know my exact premium?</strong> Answer Yes to the first question under the calculator, then put in your normal hourly rate and your total overtime hours. It works the premium out for you: half your rate, multiplied by your hours.</p>
+      <p><strong>Which overtime counts?</strong> Only overtime the federal Fair Labor Standards Act requires, which is the hours you work past 40 in a week. Overtime required only by a contract or by state law, not by the federal FLSA, does not qualify. Paid double time? Only the required half still counts: at $20 an hour normally and $40 an hour on overtime, $10 an hour is deductible and the other $10 is taxed as usual.</p>
+      <p><strong>What if I don't know my exact premium?</strong> That is the normal case, and it is what the calculator assumes. It works the premium out from your normal hourly rate and your overtime hours: half your rate, multiplied by your hours. Answer Yes to the premium question under the calculator only if you already know your exact figure.</p>
       <p><strong>What is MAGI?</strong> Modified adjusted gross income is your adjusted gross income plus a few add-backs, mainly foreign-income exclusions, and for almost everyone it's the same as your AGI. It's the income figure the phase-out above uses.</p>
       <p><strong>What is FICA?</strong> FICA is the Social Security (6.2%) and Medicare (1.45%) payroll tax withheld from your pay. It's separate from federal income tax, and this deduction doesn't reduce it, so FICA still applies to your overtime.</p>
       <p><strong>What is filing status?</strong> It's the category you file under: single, married filing jointly, or head of household here. It sets your cap and phase-out thresholds. Married workers must file jointly to claim this deduction; married filing separately can't.</p>
