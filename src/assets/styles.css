@@ -492,6 +492,138 @@ html.js .applies-line[data-hidden] { display: none; }
 }
 :root[data-theme="dark"] .ot-input-warning { border-left-color: #f08a72; background: rgba(240,138,114,.12); }
 
+/* ---- Overtime wizard (/overtime-tax-calculator/ only) ----------------------
+   EVERY class in this block is prefixed .otw- and appears on exactly one built
+   page. styles.css serves ~240 pages and an unscoped rule here has leaked onto
+   untouched pages six times in one pass before, so nothing below touches a
+   shared class, a bare element selector outside .otw, or an id anything else
+   uses. Colours come from the site tokens, which already carry both schemes;
+   the one hard-coded pair (.otw-flag) gets the same explicit dark treatment
+   .ot-input-warning above uses.
+
+   data-js="on" IS THE HINGE. overtime-wizard.js sets it on the .otw section
+   after it boots. Until then every card is a plain stacked form section and the
+   stepping controls (dots, Next/Back/Skip, hour chips, answer chips, Start
+   over) are display:none, because a control that cannot do anything is worse
+   than no control. Hide-on-demand, never show-on-demand: a crawler, a blocked
+   script and a no-JS reader all see the whole form. */
+.otw { max-width: 520px; margin: 0 auto 24px; }
+.otw-dots { display: none; }
+.otw[data-js="on"] .otw-dots { display: flex; gap: 8px; justify-content: center; margin-bottom: 8px; }
+.otw-dots span { width: 9px; height: 9px; border-radius: 50%; background: var(--border-strong); }
+.otw-dots span.otw-on { background: var(--accent); }
+.otw-stepnum { text-align: center; font-size: 13px; color: var(--muted); margin: 0; }
+.otw[data-js="on"] .otw-stepnum { margin: 0 0 14px; }
+.otw-card { background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 26px 22px; box-shadow: var(--shadow-md); margin-bottom: 16px; }
+.otw[data-js="on"] .otw-card { display: none; margin-bottom: 0; }
+.otw[data-js="on"] .otw-card.otw-on { display: block; }
+.otw-q { font-size: 20px; line-height: 1.35; font-weight: 700; color: var(--text); margin: 0 0 16px; }
+.otw-q label { display: block; cursor: pointer; }
+
+/* Inputs. Bigger than a normal .field input on purpose: one card asks one
+   question, so its answer box is the thing on screen. */
+.otw-in { width: 100%; font-family: inherit; font-size: 21px; padding: 12px 14px;
+  color: var(--text); background: var(--surface);
+  border: 1.5px solid var(--border-strong); border-radius: var(--radius-sm); }
+.otw-in:hover { border-color: var(--muted); }
+.otw-in:focus { outline: 2px solid transparent; outline-offset: 2px;
+  border-color: var(--link); box-shadow: var(--ring); }
+.otw-in-sm { font-size: 17px; }
+select.otw-in { appearance: none; -webkit-appearance: none; padding-right: 38px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%235a6675' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center; }
+.otw-money { position: relative; }
+.otw-money::before { content: "$"; position: absolute; left: 14px; top: 50%;
+  transform: translateY(-50%); font-size: 19px; color: var(--muted); pointer-events: none; }
+.otw-money .otw-in { padding-left: 30px; }
+
+/* Helper texts are native <details> so they work with no JavaScript at all. */
+.otw-help { margin-top: 14px; font-size: 14.5px; color: var(--muted); }
+.otw-help > summary { cursor: pointer; font-weight: 600; color: var(--link); list-style: none; }
+.otw-help > summary::-webkit-details-marker { display: none; }
+.otw-help > summary::before { content: "\25B8\00a0"; }
+.otw-help[open] > summary::before { content: "\25BE\00a0"; }
+.otw-help > p, .otw-help > div { margin: 8px 0 0; }
+.otw-field { margin-top: 10px; }
+.otw-field label { display: block; font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.otw-note { font-size: 13.5px; line-height: 1.5; color: var(--muted); margin: 8px 0 0; }
+
+.otw-chips { display: none; }
+.otw[data-js="on"] .otw-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.otw-chips button { font: inherit; font-size: 14px; cursor: pointer; padding: 7px 14px;
+  color: var(--text); background: var(--surface-2);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-pill); }
+.otw-chips button:hover { border-color: var(--accent); }
+
+/* Filing status. Real radios rather than the prototype's plain buttons: the
+   card has to work before JavaScript runs, and a <button> that only a listener
+   makes meaningful would leave the no-JS reader with no way to answer at all. */
+.otw-opts { display: grid; gap: 10px; }
+.otw-opt { display: flex; align-items: flex-start; gap: 11px; cursor: pointer;
+  padding: 13px 15px; background: var(--surface);
+  border: 1.5px solid var(--border-strong); border-radius: var(--radius); }
+.otw-opt:hover { border-color: var(--accent); }
+.otw-opt:focus-within { border-color: var(--link); box-shadow: var(--ring); }
+.otw-opt input { width: 18px; height: 18px; margin: 3px 0 0; flex: 0 0 auto; accent-color: var(--accent); }
+.otw-opt-t { display: block; font-size: 16px; color: var(--text); }
+.otw-opt-s { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+.otw-nav { display: none; }
+.otw[data-js="on"] .otw-nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 22px; }
+.otw-nav-end { display: flex; align-items: center; gap: 6px; }
+.otw-next { font: inherit; font-weight: 700; cursor: pointer; padding: 12px 26px;
+  color: var(--accent-ink); background: var(--accent); border: 0; border-radius: var(--radius-sm); }
+.otw-next:hover { background: var(--accent-hover); }
+.otw-back { font: inherit; font-size: 15px; cursor: pointer; padding: 8px 4px;
+  color: var(--muted); background: none; border: 0; }
+.otw-back:hover { color: var(--text); }
+.otw-skip { font: inherit; font-size: 14px; cursor: pointer; padding: 8px 4px;
+  color: var(--muted); background: none; border: 0; text-decoration: underline; }
+
+/* Gentle, never blocking: the answer still computes underneath every flag. */
+.otw-flag { margin: 12px 0 0; padding: 10px 12px; font-size: 14px; line-height: 1.45;
+  color: #6b4514; background: #fdf3e7; border: 1px solid #ecd9bd; border-radius: var(--radius-sm); }
+.otw-flag[hidden] { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .otw-flag { color: #e8c692; background: #2e2418; border-color: #4a3a22; }
+}
+:root[data-theme="dark"] .otw-flag { color: #e8c692; background: #2e2418; border-color: #4a3a22; }
+
+/* The answer card. */
+.otw-kick { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--muted); }
+.otw-big { margin: 2px 0 6px; font-size: clamp(36px, 11vw, 46px); font-weight: 800;
+  line-height: 1.05; letter-spacing: -.02em; color: var(--accent); font-variant-numeric: tabular-nums; }
+.otw-big.otw-zero { color: var(--text); }
+.otw-lead { margin: 0; font-size: 15.5px; color: var(--text); }
+.otw-story { list-style: none; margin: 16px 0 0; padding: 0; font-size: 15.5px; }
+.otw-story li { display: flex; justify-content: space-between; gap: 12px;
+  padding: 9px 0; border-top: 1px solid var(--border); }
+.otw-story li:first-child { border-top: 0; }
+.otw-amt { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.otw-amt.otw-taxed { color: var(--muted); }
+.otw-amt.otw-free { color: var(--accent); }
+.otw-plain { margin-top: 16px; padding: 12px 14px; font-size: 14.5px; line-height: 1.5;
+  background: var(--surface-2); border-radius: var(--radius-sm); }
+.otw-answers { display: none; }
+.otw[data-js="on"] .otw-answers { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.otw-answers button { font: inherit; font-size: 13px; cursor: pointer; padding: 5px 12px;
+  color: var(--muted); background: none; border: 1px dashed var(--border-strong); border-radius: var(--radius-pill); }
+.otw-answers button:hover { color: var(--text); border-color: var(--accent); }
+.otw-restart { display: none; }
+.otw[data-js="on"] .otw-restart { display: block; margin-top: 16px; text-align: center; }
+.otw-restart button { font: inherit; font-size: 14px; cursor: pointer;
+  color: var(--muted); background: none; border: 0; text-decoration: underline; }
+
+/* 390px: the card keeps its own padding budget so the question, the input and
+   the nav row all fit without a horizontal scroll. */
+@media (max-width: 420px) {
+  .otw-card { padding: 22px 16px; }
+  .otw-q { font-size: 18px; }
+  .otw-in { font-size: 19px; }
+  .otw-next { padding: 12px 20px; }
+}
+
 /* Equal-weight tile pairs — two results that are both "the answer" and
    neither should read as primary/secondary (e.g. weighted vs unweighted
    GPA). Pairs with .stat-card/.stat-kicker/.stat-value above. */

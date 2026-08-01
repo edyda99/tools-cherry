@@ -1,5 +1,16 @@
 // overtime-tax-calculator.js — estimates the OBBBA "no tax on overtime" (IRC §225)
 // federal deduction and tax saving. All logic client-side; nothing uploaded.
+//
+// SCOPE, since 2026-08-01: this file now serves the /embed/ build ONLY. The full
+// /overtime-tax-calculator/ page was rewritten as a card-by-card wizard and runs
+// src/assets/overtime-wizard.js instead. Everything below still reads every field
+// with an optional guard, so the code paths that only the old full page had —
+// the qKnown radios, the [data-reveal] wrapper check in knownAnswer(), the
+// #outStatus announcer — simply return their "not on this page" branch on the
+// embed. They are kept rather than deleted because the embed is a published
+// iframe that was last fixed at f23326e, and pruning dead branches out of a
+// shipped widget buys nothing and risks the one thing that must not change.
+// The embed's markup, and only the embed's markup, is the contract for this file.
 import { estimate, overtimePremium } from '/assets/obbba-deduction.js';
 import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 

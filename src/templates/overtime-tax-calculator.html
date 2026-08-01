@@ -27,121 +27,160 @@
 <main id="main">
   <div class="wrap">
     <h1>No Tax on Overtime Calculator</h1>
-    <section class="calc" aria-label="Overtime tax deduction calculator">
+    <!-- THE WIZARD (rewritten 2026-08-01) — and the reason matters.
+         This calculator used to be one long form: five labelled boxes, two
+         yes/no questions and a results panel, all on screen at once. Every
+         usability read of it came back the same way — a worker who wants one
+         number ("how much do I get back?") was asked to hold five tax concepts
+         in their head before the page told them anything. The approved
+         replacement asks ONE question per card, prefills the answer it can
+         infer, and ends with the answer written out as a story.
+
+         PROGRESSIVE ENHANCEMENT, NOT A JS APP. Every card below ships VISIBLE
+         and in reading order in the built HTML: with JavaScript off, blocked,
+         or a crawler reading the page, this is a plain sequential form with
+         real <label>s and native <details> helpers. overtime-wizard.js sets
+         data-js="on" on the .otw section and ONLY THEN does styles.css collapse
+         the stack to one card at a time. Hide-on-demand, never show-on-demand —
+         the same rule the old [data-reveal] wrappers followed, for the same
+         reason. The single exception is #out, the computed answer, which has
+         always been JS-only.
+
+         The controls that only mean something once the stepping exists (Next /
+         Back / Skip, the progress dots, the hour chips, the answer chips, Start
+         over) are also gated on data-js="on" in CSS, because a "Next" button
+         that cannot advance anything is worse than no button.
+
+         IDS ARE A CONTRACT with overtime-wizard.js: regRate, otRate, otHours,
+         income, premium, state, and the radio group named "filing". #out and
+         #outStatus keep their old names and roles (result panel + the one
+         polite live region). #outStatus deliberately sits OUTSIDE the cards:
+         inside one it would be display:none on every step but its own and the
+         announcement would never reach a screen reader.
+
+         TWO PATHS. The default is rate + overtime rate + hours, which is what a
+         pay stub actually shows. The collapsed "I already have my exact premium
+         figure" escape on the first card is the other: a premium typed there
+         wins, and the wizard skips the overtime-rate and hours cards because
+         neither is used to compute anything after that.
+
+         Ad slots, prose, the worked example and the FAQ below are untouched. -->
+    <section class="otw" id="otWizard" aria-label="Overtime tax deduction calculator">
       <h2 class="sr-only">Overtime tax savings calculator</h2>
-      <form id="otForm" autocomplete="off" onsubmit="return false">
-        <div class="field">
-          <label for="income">How much do you earn in a year?</label>
-          <input type="text" id="income" inputmode="decimal" data-money autocomplete="off" value="60000" aria-describedby="incomeNote">
-          <p class="muted-small" id="incomeNote" style="margin-top:6px">Your pay for the whole year, overtime included. Married and sending in one return together? Add both incomes. This number decides whether the deduction starts shrinking, which begins at $150,000 on your own or $300,000 filing jointly. Tax forms measure that against your modified adjusted gross income, or MAGI. If money leaves your pay before tax, into a 401(k) or a health plan, take those amounts off: MAGI is your pay after them.</p>
-        </div>
+      <div class="otw-dots" id="otwDots" aria-hidden="true"></div>
+      <p class="otw-stepnum" id="otwStepnum"></p>
 
-        <div class="est-row">
-          <div class="field" style="margin:0">
-            <label for="regRate">What do you normally earn an hour?</label>
-            <input type="text" id="regRate" inputmode="decimal" data-money autocomplete="off" value="20" aria-describedby="otBasisNote">
+      <form id="otwForm" autocomplete="off" onsubmit="return false">
+        <section class="otw-card" data-step="0" aria-labelledby="otwQ0">
+          <h2 class="otw-q" id="otwQ0"><label for="regRate">What do you normally earn an hour?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="regRate" inputmode="decimal" data-money autocomplete="off" value="20">
           </div>
-          <div class="field" style="margin:0">
-            <label for="otHours">How many overtime hours did you work this year?</label>
-            <input type="number" id="otHours" inputmode="numeric" min="0" step="1" value="500" aria-describedby="otBasisNote">
+          <details class="otw-help">
+            <summary>It's on your pay stub</summary>
+            <p>Look for a line like "rate" or "regular". Use the normal one, not the overtime one, that comes next.</p>
+          </details>
+          <details class="otw-help otw-esc">
+            <summary>I already have my exact premium figure</summary>
+            <div class="otw-field">
+              <label for="premium">Your overtime premium for the year</label>
+              <input type="text" class="otw-in otw-in-sm" id="premium" inputmode="decimal" data-money autocomplete="off" placeholder="5,000" aria-describedby="premiumNote">
+              <p class="otw-note" id="premiumNote">The premium is the extra half only, not your whole overtime pay: at $20 an hour normally and $30 an hour on overtime, the extra is $10 an hour. For 2025 you total that extra half from your pay stubs; from 2026 it has its own box on your W-2, Box 12 code TT. Fill this in and we skip the overtime-rate and hours questions.</p>
+            </div>
+          </details>
+          <div class="otw-nav"><span></span><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="1" aria-labelledby="otwQ1">
+          <h2 class="otw-q" id="otwQ1"><label for="otRate">And what do they pay you for one overtime hour?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="otRate" inputmode="decimal" data-money autocomplete="off" value="30">
           </div>
-        </div>
-        <p class="muted-small" id="otBasisNote" style="margin:6px 0 18px">Federal law makes your employer pay time-and-a-half for overtime: your normal rate, plus half of it again. Only that required half can be deducted, and these two numbers are all we need to work it out. If your employer pays more than time-and-a-half, double time for instance, the part above the required half is taxed as usual. Already know your exact premium? There is a question for that below.</p>
+          <p class="otw-flag" id="otwOtRateFlag" hidden></p>
+          <details class="otw-help">
+            <summary>Most jobs pay time-and-a-half</summary>
+            <p>That's your normal rate plus half again, and we've filled that in for you. If your job pays more, double time for instance, type what one overtime hour really pays.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-        <div class="field">
-          <label for="filing">How do you send in your tax return?</label>
-          <select id="filing">
-            <option value="single">Single</option>
-            <option value="married">Married filing jointly</option>
-            <option value="head_of_household">Head of household</option>
-          </select>
-          <p class="muted-small" style="margin-top:6px">Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>. Pick Single if you are not married. Pick Married filing jointly if you are married and you and your spouse send in one return together, which married couples have to do to claim this deduction. Pick Head of household if you are unmarried and pay most of the cost of a home for a child or another dependent.</p>
-        </div>
+        <section class="otw-card" data-step="2" aria-labelledby="otwQ2">
+          <h2 class="otw-q" id="otwQ2"><label for="otHours">How many overtime hours did you work this year?</label></h2>
+          <input type="number" class="otw-in" id="otHours" inputmode="numeric" min="0" step="1" value="500">
+          <div class="otw-chips" id="otwHourChips">
+            <button type="button" data-otw-hours="100">~2 a week &rarr; 100</button>
+            <button type="button" data-otw-hours="250">~5 a week &rarr; 250</button>
+            <button type="button" data-otw-hours="500">~10 a week &rarr; 500</button>
+          </div>
+          <details class="otw-help">
+            <summary>A rough guess is fine</summary>
+            <p>You can change it at the end and watch the number update.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-        <!-- INPUT ARCHITECTURE (rewritten 2026-08-01, and the reason matters).
-             The MAIN flow asks only for numbers a worker can read off a pay stub:
-             yearly pay, normal hourly rate, overtime hours. The overtime PREMIUM is
-             DERIVED from rate x hours (0.5 x r x h) and is never typed unless the
-             visitor volunteers that they already know it. It used to be the headline
-             field, which asked for a figure no 2025 document shows and which invited
-             people to type their whole overtime pay, three times too large, and get
-             an authoritative-looking answer back.
-             RENDER PRECEDENCE, mirrored in overtime-tax-calculator.js: direct mode
-             when the qKnown radios exist AND "yes" is checked AND #premium > 0, in
-             which case the typed premium is the eligible amount; otherwise derived
-             mode from #regRate and #otHours. On a page with no qKnown radios (the
-             /embed/ build) it is direct iff #premium > 0, else derived. Neither mode
-             ever writes into the other's box, so nothing on screen is a number the
-             visitor did not either type or ask for.
-             The optional things this page asks for are plain questions rather than
-             jargon-labelled boxes sitting in the main flow. The fields each question
-             needs live inside a [data-reveal] wrapper that ships VISIBLE in the built
-             HTML; question-flow.js (this page opts in via QUESTION_FLOW_PAGES in
-             build.js) only ever ADDS `hidden` once the page is up. Hide-on-demand,
-             never show-on-demand, so JavaScript off, JavaScript broken or a crawler
-             all still see every field.
-             POLARITY: Yes always means "this applies to me, show me the fields". A
-             question phrased so that Yes means "I do not know" leaves No meaning two
-             opposite things at once, so never invert one.
-             Answering No PARKS the wrapper's fields at 0 (question-flow.js) and
-             restores them on Yes. That parking is exactly what makes derived mode
-             win by default, since a parked #premium is 0 and 0 fails the direct-mode
-             test. Do not fight it.
-             The one case that parking does NOT cover is question-flow.js never
-             running at all (script blocked, or its own catch block re-showing every
-             wrapper without un-parking). The premium box is then visible and
-             editable under a "No", so overtime-tax-calculator.js treats a visible
-             wrapper under a No as "no question was ever asked" and falls back to the
-             no-radio rule, rather than discarding what gets typed into a box that is
-             right there on screen.
-             #stateVerdict lives INSIDE the qState reveal on purpose: it is the answer
-             to that question, so it can never be stranded on screen once the select
-             that produced it is hidden. The ids regRate, otHours, premium, state and
-             stateVerdict are read by overtime-tax-calculator.js and must not be
-             renamed. Keep .est-row without a .field class: the mobile stacking rule
-             in styles.css is written as a bare `.est-row` on that assumption. -->
-        <fieldset class="adv">
-          <legend>A few more questions, only if they apply to you</legend>
-          <p class="adv-hint">Both start on No. Leave them there and your answer above already stands, worked out from your rate and your hours.</p>
+        <section class="otw-card" data-step="3" aria-labelledby="otwQ3">
+          <h2 class="otw-q" id="otwQ3"><label for="income">And how much do you earn in a whole year, everything included?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="income" inputmode="decimal" data-money autocomplete="off" value="60000">
+          </div>
+          <p class="otw-flag" id="otwIncomeFlag" hidden></p>
+          <details class="otw-help">
+            <summary>Why we ask</summary>
+            <p>A ballpark is fine. Married and sending in one return together? Add both incomes. It only changes the answer if you earn over $150,000 on your own ($300,000 filing jointly), where this tax break starts shrinking. Tax forms measure that against your <a href="/tax-glossary/#magi">modified adjusted gross income</a>, so if money leaves your pay before tax, into a 401(k) or a health plan, take those amounts off.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-          <fieldset class="adv-q" aria-describedby="qKnownNote">
-            <legend>Do you already know your exact overtime premium for the year?</legend>
-            <p class="adv-q-note" id="qKnownNote">Answer Yes only if you have the figure itself in front of you. On No we work it out from your hourly rate and your overtime hours above, which is the usual case.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qKnown" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qKnown" value="yes"><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qKnown">
-              <div class="field">
-                <label for="premium">Your overtime premium for the year</label>
-                <input type="text" id="premium" inputmode="decimal" data-money autocomplete="off" placeholder="5,000" aria-describedby="premiumNote">
-                <p class="adv-q-note" id="premiumNote">The premium is the extra half only, not your whole overtime pay: at $20 an hour normally and $30 an hour on overtime, the extra is $10 an hour. For 2025 you total that extra half from your pay stubs; from 2026 it has its own box on your W-2, Box 12 code TT. Anything your employer pays above the required half does not count towards it.</p>
-              </div>
-            </div>
-          </fieldset>
+        <section class="otw-card" data-step="4" aria-labelledby="otwQ4">
+          <h2 class="otw-q" id="otwQ4">How do you do your taxes?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ4">
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="single" checked>
+              <span><span class="otw-opt-t">On my own</span><span class="otw-opt-s">single</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="married">
+              <span><span class="otw-opt-t">Together with my husband or wife</span><span class="otw-opt-s">married, one return, which married couples have to do to claim this break</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="head_of_household">
+              <span><span class="otw-opt-t">On my own, with a child or dependent at home</span><span class="otw-opt-s">head of household</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>What if I'm married but we file separately?</summary>
+            <p>Married couples who send in separate returns cannot claim this deduction at all. Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-          <fieldset class="adv-q" aria-describedby="qStateNote">
-            <legend>Do you want to know whether your state taxes your overtime too?</legend>
-            <p class="adv-q-note" id="qStateNote">This break is a federal one. Some states copy it, some do not, and nine states do not tax wages at all.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qState" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qState" value="yes"><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qState">
-              <div class="field">
-                <label for="state">Which state do you work in?</label>
-                <select id="state"><option value="">Select a state</option></select>
-              </div>
-              <div class="state-verdict" id="stateVerdict" hidden></div>
-            </div>
-          </fieldset>
-        </fieldset>
+        <section class="otw-card" data-step="5" aria-labelledby="otwQ5">
+          <h2 class="otw-q" id="otwQ5"><label for="state">Which state do you work in?</label></h2>
+          <select class="otw-in" id="state"><option value="">Choose a state…</option></select>
+          <details class="otw-help">
+            <summary>Why it matters</summary>
+            <p>This tax break is federal. Some states copy it, some still tax your overtime, and nine states don't tax wages at all.</p>
+          </details>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip</button> <button type="button" class="otw-next">See my answer</button></span>
+          </div>
+        </section>
+
+        <section class="otw-card otw-result" data-step="6" aria-labelledby="otwQ6">
+          <h2 class="otw-q sr-only" id="otwQ6" tabindex="-1">Your answer</h2>
+          <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+          <div class="obbba-out" id="out" data-tb-result></div>
+          <details class="otw-help">
+            <summary>Will my paycheck get bigger now?</summary>
+            <p>No. Nothing changes during the year, and Social Security and Medicare still come out of overtime. This arrives as a bigger refund, or a smaller bill, when you file.</p>
+          </details>
+          <details class="otw-help" id="otwStateNote" hidden><summary></summary><div class="otw-state-body"></div></details>
+          <div class="otw-answers" id="otwAnswers"></div>
+          <div class="otw-restart"><button type="button" id="otwRestart">Start over</button></div>
+        </section>
       </form>
-
-      <div class="calc-answer">
-        <p class="calc-example">These are example numbers. Type yours to see your own.</p>
-        <div class="obbba-out" id="out" data-tb-result></div>
-      </div>
       <p id="outStatus" role="status" class="sr-only"></p>
     </section>
 
@@ -181,7 +220,7 @@
       <h2>Who can claim it</h2>
       <p>You need a Social Security number valid for employment, and if you're married you must file jointly (married filing separately is not eligible). It's available to both employees (overtime reported on your <a href="/tax-glossary/#w-2">W-2</a>) and, in limited cases, others whose FLSA-required overtime is reported on a payee statement. For tax year 2025, employers weren't required to break out qualified overtime separately, so you may need to total it from your pay stubs; from 2026 it appears in a dedicated box on the W-2, Box 12 code TT, explained in the <a href="/w2-box-decoder/">W-2 box decoder</a>.</p>
       <h2>Does your state tax overtime?</h2>
-      <p>This deduction is federal. Whether it also lowers your <em>state</em> income tax depends on your state: many states do not conform, some conform only from 2026, and nine states have no wage income tax at all. Answer Yes to the state question above to see how your own state treats it, or open your state's paycheck calculator for the detail.</p>
+      <p>This deduction is federal. Whether it also lowers your <em>state</em> income tax depends on your state: many states do not conform, some conform only from 2026, and nine states have no wage income tax at all. The calculator above asks which state you work in and says how your own state treats it, or open your state's paycheck calculator for the detail.</p>
     </section>
 
     <div class="ad-slot" data-ad="incontent">Advertisement</div>
@@ -190,7 +229,7 @@
       <h2>Common questions</h2>
       <p><strong>Is overtime completely tax-free now?</strong> No. Only the FLSA premium is deductible, only up to the annual cap, only for federal income tax, and only for 2025–2028. Social Security and Medicare still apply, and your state may still tax it.</p>
       <p><strong>Which overtime counts?</strong> Only overtime the federal Fair Labor Standards Act requires, which is the hours you work past 40 in a week. Overtime required only by a contract or by state law, not by the federal FLSA, does not qualify. Paid double time? Only the required half still counts: at $20 an hour normally and $40 an hour on overtime, $10 an hour is deductible and the other $10 is taxed as usual.</p>
-      <p><strong>What if I don't know my exact premium?</strong> That is the normal case, and it is what the calculator assumes. It works the premium out from your normal hourly rate and your overtime hours: half your rate, multiplied by your hours. Answer Yes to the premium question under the calculator only if you already know your exact figure.</p>
+      <p><strong>What if I don't know my exact premium?</strong> That is the normal case, and it is what the calculator assumes. It works the premium out from the three things a pay stub does show: your normal hourly rate, what one overtime hour pays, and how many overtime hours you worked. Open "I already have my exact premium figure" on the first question only if you have the figure itself in front of you.</p>
       <p><strong>What is MAGI?</strong> Modified adjusted gross income is your adjusted gross income plus a few add-backs, mainly foreign-income exclusions, and for almost everyone it's the same as your AGI. It's the income figure the phase-out above uses.</p>
       <p><strong>What is FICA?</strong> FICA is the Social Security (6.2%) and Medicare (1.45%) payroll tax withheld from your pay. It's separate from federal income tax, and this deduction doesn't reduce it, so FICA still applies to your overtime.</p>
       <p><strong>What is filing status?</strong> It's the category you file under: single, married filing jointly, or head of household here. It sets your cap and phase-out thresholds. Married workers must file jointly to claim this deduction; married filing separately can't.</p>
@@ -214,6 +253,6 @@
   window.__FED__ = {{FED_JSON}};
   window.__STATES__ = {{STATES_JSON}};
 </script>
-<script type="module" src="/assets/overtime-tax-calculator.js"></script>
+<script type="module" src="/assets/overtime-wizard.js"></script>
 </body>
 </html>

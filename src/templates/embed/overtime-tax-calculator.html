@@ -24,10 +24,15 @@
 <div class="embed-wrap">
   <h1>No Tax on Overtime Calculator</h1>
   <section class="calc" aria-label="Overtime tax deduction calculator">
-    <!-- Mirrors the main page's input architecture: rate + hours are the primary,
-         always-visible path and the overtime premium is DERIVED from them
-         (0.5 x rate x hours); the premium box is the escape hatch for somebody
-         who already knows the figure, not the headline field.
+    <!-- DELIBERATELY NOT THE WIZARD. The full page became a card-by-card flow on
+         2026-08-01 and runs overtime-wizard.js; this embed keeps the single-column
+         form and overtime-tax-calculator.js, which now exists for this build alone.
+         An iframe a third-party site sized once (see the published height in
+         embed-gallery.html) is the wrong place for a control that changes the
+         widget's height on every step, and this build was last fixed at f23326e.
+         Rate + hours are the primary, always-visible path and the overtime premium
+         is DERIVED from them (0.5 x rate x hours); the premium box is the escape
+         hatch for somebody who already knows the figure, not the headline field.
          This build does NOT load question-flow.js (build.js injects it for
          /overtime-tax-calculator/ only, never for /embed/*), so there are no
          qKnown radios here and no [data-reveal] wrapper. The shared script's

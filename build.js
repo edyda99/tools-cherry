@@ -243,7 +243,10 @@ const QUESTION_FLOW_PAGES = new Set([
   '/charitable-deduction-calculator/',
   '/dependent-care-fsa-vs-credit-calculator/',
   '/employer-student-loan-repayment-calculator/',
-  '/overtime-tax-calculator/',
+  // overtime-tax-calculator is deliberately absent since the 2026-08-01 wizard rewrite. Its two
+  // yes/no questions became cards in the step flow, so the page ships no [data-reveal] wrapper any
+  // more and listing it here downloaded question-flow.js for a script with nothing to do. The card
+  // stepping is overtime-wizard.js's own, and its helper texts are native <details>.
   '/pmi-deduction-calculator/',
   '/qcd-vs-charitable-deduction-calculator/',
   '/roth-catchup-calculator/',
@@ -4431,7 +4434,11 @@ async function main() {
   registerAsset('assets', '1099-vs-w2-calculator.js');
   registerAsset('engine', 'obbba-deduction.js');
   registerAsset('engine', 'roth-catchup.js');
+  // overtime-tax-calculator.js now serves the /embed/ build ONLY; the full page
+  // runs overtime-wizard.js (the card-by-card flow). Both are registered because
+  // both ship.
   registerAsset('assets', 'overtime-tax-calculator.js');
+  registerAsset('assets', 'overtime-wizard.js');
   registerAsset('assets', 'tips-tax-calculator.js');
   registerAsset('assets', 'senior-deduction-calculator.js');
   // Shared live-thousands-separator helper for money inputs (imported by the
