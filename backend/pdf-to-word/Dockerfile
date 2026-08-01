@@ -46,6 +46,6 @@ ENV PATH="/opt/tesseract/bin:${PATH}" \
 COPY requirements.txt ${LAMBDA_TASK_ROOT}/
 RUN pip install --no-cache-dir -r ${LAMBDA_TASK_ROOT}/requirements.txt
 
-COPY lambda_function.py stencil_ocr.py ${LAMBDA_TASK_ROOT}/
+COPY lambda_function.py stencil_ocr.py docx_enhance.py ${LAMBDA_TASK_ROOT}/
 
 CMD [ "lambda_function.handler" ]

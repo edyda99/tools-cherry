@@ -31,6 +31,7 @@ from pdf2docx import Converter
 from PIL import Image
 
 import stencil_ocr
+import docx_enhance
 
 
 def _install_fill_chip_filter():
@@ -290,6 +291,18 @@ def _convert(in_path, out_path):
             out = stencil_ocr.postprocess_docx(out)
         except Exception:
             pass
+    # structural enhancement passes (hyperlink repair, headings, lists,
+    # header/footer parts, reflow) — every edit is evidence-gated against the
+    # PDF pdf2docx actually converted (in_path is the .ocr.pdf for stencils);
+    # a failure here must never cost the conversion
+    try:
+        pdf_doc = fitz.open(in_path)
+        try:
+            out = docx_enhance.enhance(out, pdf_doc)
+        finally:
+            pdf_doc.close()
+    except Exception as e:  # noqa: BLE001
+        print(json.dumps({"m": "enhance_failed", "err": str(e)[:200]}))
     # pdf2docx re-saves embedded photos as lossless PNG; recompress back to JPEG.
     return _shrink_docx_images(out)
 
