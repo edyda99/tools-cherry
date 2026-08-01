@@ -11,6 +11,11 @@
 <style>
   body { margin: 0; padding: 14px; background: transparent; }
   .embed-wrap { max-width: 560px; margin: 0 auto; }
+  /* Inside a real iframe (<=680px viewport) .calc's shared grid already collapses
+     to one column; this pins the same single-column layout when the embed URL is
+     opened directly in a wide window, where grid auto-placement would otherwise
+     strand the example note in column 2 and drop the answer under the form. */
+  .embed-wrap .calc { grid-template-columns: 1fr; }
   .embed-wrap h1 { font-size: 1.25rem; margin: 0 0 10px; }
   .embed-credit { margin-top:14px; text-align:center; font-size:.85rem; opacity:.9; }
 </style>
