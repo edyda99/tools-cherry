@@ -86,14 +86,50 @@ const PAGES = [
     ],
   },
   {
+    // REPINNED 2026-08-01 to the wizard. This page's calculator was rewritten
+    // from the shared one-long-form layout into a card-by-card flow, so four of
+    // the five names below moved to different ids — the intent behind each pin is
+    // unchanged and each is still asserted, against the shape that now ships.
+    // The old form (#otForm) still exists, and these old pins still hold, on the
+    // /embed/ build; that build is pinned separately below.
     file: 'overtime-tax-calculator/index.html',
     pins: [
+      // Same pin as tips, new form id: the state select sits in the flow the
+      // visitor is already walking, not behind a yes/no they have to answer.
+      ['state-select-is-a-step-in-the-flow', insideForm('id="otwForm"', 'id="state"')],
+      ['no-qState-question', absent('name="qState"')],
+      // The qEstimate question is GONE because its answer became the default:
+      // rate and hours are asked outright, as cards, rather than hidden behind
+      // "do you want us to work it out for you". So the pin that guarded the
+      // question now guards the two fields being in the main flow unconditionally,
+      // which is the stronger form of the same promise.
+      ['no-qEstimate-question', absent('name="qEstimate"')],
+      ['rate-is-asked-outright', insideForm('id="otwForm"', 'id="regRate"')],
+      ['hours-are-asked-outright', insideForm('id="otwForm"', 'id="otHours"')],
+      // Same pin, new id: the state answer renders after the result, never above
+      // it and never where the select that produced it can leave it stranded.
+      // #stateVerdict became #otwStateNote when the result became a card.
+      ['verdict-follows-the-result', before('data-tb-result', 'id="otwStateNote"')],
+      // Inverted deliberately, matching build.js: the page is no longer in
+      // QUESTION_FLOW_PAGES because it ships no [data-reveal] wrapper for
+      // question-flow.js to act on. Listing it would download a script with
+      // nothing to do. The stepping is overtime-wizard.js's own.
+      ['no-question-flow-script', absent(QUESTION_FLOW)],
+      ['wizard-script-shipped', contains('/assets/overtime-wizard')],
+    ],
+  },
+  {
+    // The embed is deliberately NOT the wizard (a third party sizes the iframe
+    // once), so it keeps the old single-column form and the old ids. Pinned here
+    // because the four pins that used to cover that shape moved off the full page
+    // above, and without this the shape would be unguarded on the one build that
+    // still ships it.
+    file: 'embed/overtime-tax-calculator/index.html',
+    pins: [
       ['state-select-is-a-plain-field', insideForm('id="otForm"', 'id="state"')],
-      // Unlike tips, this page keeps one real question (work the overtime out
-      // from rate and hours), so question-flow.js is still required here.
-      ['qEstimate-question-kept', contains('name="qEstimate"')],
-      ['verdict-follows-the-result', before('data-tb-result', 'id="stateVerdict"')],
-      ['question-flow-script-kept', contains(QUESTION_FLOW)],
+      ['verdict-follows-the-result', before('id="out"', 'id="stateVerdict"')],
+      ['no-question-flow-script', absent(QUESTION_FLOW)],
+      ['not-the-wizard', absent('/assets/overtime-wizard')],
     ],
   },
   // The 51 state bonus pages all render from one template, so three of them

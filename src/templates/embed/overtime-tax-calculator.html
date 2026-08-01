@@ -11,6 +11,11 @@
 <style>
   body { margin: 0; padding: 14px; background: transparent; }
   .embed-wrap { max-width: 560px; margin: 0 auto; }
+  /* Inside a real iframe (<=680px viewport) .calc's shared grid already collapses
+     to one column; this pins the same single-column layout when the embed URL is
+     opened directly in a wide window, where grid auto-placement would otherwise
+     strand the example note in column 2 and drop the answer under the form. */
+  .embed-wrap .calc { grid-template-columns: 1fr; }
   .embed-wrap h1 { font-size: 1.25rem; margin: 0 0 10px; }
   .embed-credit { margin-top:14px; text-align:center; font-size:.85rem; opacity:.9; }
 </style>
@@ -19,21 +24,44 @@
 <div class="embed-wrap">
   <h1>No Tax on Overtime Calculator</h1>
   <section class="calc" aria-label="Overtime tax deduction calculator">
+    <!-- DELIBERATELY NOT THE WIZARD. The full page became a card-by-card flow on
+         2026-08-01 and runs overtime-wizard.js; this embed keeps the single-column
+         form and overtime-tax-calculator.js, which now exists for this build alone.
+         An iframe a third-party site sized once (see the published height in
+         embed-gallery.html) is the wrong place for a control that changes the
+         widget's height on every step, and this build was last fixed at f23326e.
+         Rate + hours are the primary, always-visible path and the overtime premium
+         is DERIVED from them (0.5 x rate x hours); the premium box is the escape
+         hatch for somebody who already knows the figure, not the headline field.
+         This build does NOT load question-flow.js (build.js injects it for
+         /overtime-tax-calculator/ only, never for /embed/*), so there are no
+         qKnown radios here and no [data-reveal] wrapper. The shared script's
+         no-radio branch covers exactly this case: direct mode iff #premium > 0,
+         else derived. That is why #premium ships EMPTY with a placeholder — a
+         value here would silently outrank the rate and hours beside it. A typed
+         premium that contradicts the rate and hours next to it raises the same
+         .ot-input-warning the full page raises, so the no-radio path is not the
+         weaker path. Same inputs in, same answer out as the full page.
+         The rate+hours row stacks on narrow widths through the `#otForm` hook in
+         styles.css; the id is load-bearing for layout here, not only for script.
+         The .calc-example line ships pre-filled numbers honestly: the script
+         removes it once income AND (rate+hours, or a premium) are the visitor's
+         own. Its height is part of what the published iframe height in
+         embed-gallery.html is sized for. -->
     <form id="otForm" autocomplete="off" onsubmit="return false">
       <div class="field">
         <label for="income">Total annual income (all wages)</label>
         <input type="text" id="income" inputmode="decimal" data-money autocomplete="off" value="60000">
       </div>
+      <div class="est-row">
+        <div class="field" style="margin:0"><label for="regRate">Your normal rate ($/hr)</label><input type="text" id="regRate" inputmode="decimal" data-money autocomplete="off" value="20" aria-describedby="otBasisNote"></div>
+        <div class="field" style="margin:0"><label for="otHours">Overtime hours this year</label><input type="number" id="otHours" inputmode="numeric" min="0" step="1" value="500" aria-describedby="otBasisNote"></div>
+      </div>
+      <p class="muted-small" id="otBasisNote" style="margin:6px 0 18px">Overtime is paid at time-and-a-half, and only the required extra half can be deducted. We work that out from these two. Anything paid above the required half, double time for instance, is taxed as usual.</p>
       <div class="field">
-        <label for="premium">Overtime premium for the year <span class="muted-small">(the extra "half" above your normal rate)</span></label>
-        <input type="text" id="premium" inputmode="decimal" data-money autocomplete="off" value="5000">
-        <details class="estimator">
-          <summary>Estimate it from rate &amp; hours</summary>
-          <div class="est-row" style="margin-top:8px">
-            <div class="field" style="margin:0"><label for="regRate">Regular rate ($/hr)</label><input type="text" id="regRate" inputmode="decimal" data-money autocomplete="off" placeholder="20"></div>
-            <div class="field" style="margin:0"><label for="otHours">Overtime hours/yr</label><input type="number" id="otHours" inputmode="numeric" min="0" step="1" placeholder="250"></div>
-          </div>
-        </details>
+        <label for="premium">Already know your exact premium? <span class="muted-small">(the extra "half" only, for the whole year)</span></label>
+        <input type="text" id="premium" inputmode="decimal" data-money autocomplete="off" placeholder="5,000" aria-describedby="premiumNote">
+        <p class="muted-small" id="premiumNote" style="margin-top:6px">Leave this empty and we use your rate and hours above. For 2025 you total the extra half from your pay stubs; from 2026 it has its own box on your W-2, Box 12 code TT. Anything your employer pays above the required half does not count towards it.</p>
       </div>
       <div class="field">
         <label for="filing">Filing status</label>
@@ -48,6 +76,7 @@
         <select id="state"><option value="">— Select a state —</option></select>
       </div>
     </form>
+    <p class="calc-example">These are example numbers. Type yours to see your own.</p>
     <div class="obbba-out" id="out" aria-live="polite"></div>
     <div class="state-verdict" id="stateVerdict" hidden></div>
   </section>
