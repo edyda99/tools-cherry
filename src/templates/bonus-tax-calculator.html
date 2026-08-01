@@ -28,107 +28,202 @@
   <div class="wrap">
     <h1>Bonus Tax Calculator by State</h1>
     <p class="updated">Data compiled and maintained by <a href="/data/overtime-tax-by-state/#author">Edmond Daher</a> · Updated {{VERIFIED}}</p>
-    <p class="lede">Your bonus is <strong>not taxed at a higher rate</strong> — it's just <strong><a href="/tax-glossary/#withholding">withheld</a> differently</strong>. Employers usually hold back a flat <strong>22%</strong> for federal income tax (37% on any part over $1,000,000), plus your state's supplemental rate, plus <a href="/tax-glossary/#fica">FICA</a>. Pick your state and enter your numbers to see what's held back now beside what the bonus will <em>really</em> cost at tax time — and the refund or amount you'll owe. Everything runs in your browser; nothing is uploaded.</p>
+    <!-- THE WIZARD (rewritten 2026-08-01 onto wizard-core.js, the same shape proven on
+         /overtime-tax-calculator/ and /tips-tax-calculator/). This calculator used to be
+         one long form: four labelled boxes, a California-only row revealed by inline
+         style, and two more questions parked inside a collapsed "a few more questions"
+         fieldset. It now asks ONE question per card and ends with the answer written out
+         as a story: what leaves the bonus on payday, and what the bonus really costs once
+         the year is added up.
 
-    <section class="calc" aria-label="Bonus tax calculator">
-      <form id="bonusForm" autocomplete="off" onsubmit="return false">
-        <div class="field">
-          <label for="bonus">How much is your bonus, before anything is taken out?</label>
-          <input id="bonus" type="text" inputmode="decimal" data-money autocomplete="off" value="10000" placeholder="10000">
-          <p class="muted-small" style="margin-top:6px">The full amount your employer promised you, not the smaller amount that landed in your account.</p>
-        </div>
-        <div class="field">
-          <label for="state">Which state do you work in?</label>
-          <select id="state"></select>
-          <p class="muted-small" style="margin-top:6px">The state your employer takes tax out for. Nine states take none at all.</p>
-        </div>
-        <div class="field">
-          <label for="regIncome">What do you earn in a year, not counting this bonus?</label>
-          <input id="regIncome" type="text" inputmode="decimal" data-money autocomplete="off" value="70000" placeholder="70000">
-          <p class="muted-small" style="margin-top:6px">Your normal salary or wages for the year. This sets the rate your bonus is really taxed at, your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>, and whether you have already hit the Social Security cap.</p>
-        </div>
-        <div class="field">
-          <label for="filingStatus">How do you file your tax return?</label>
-          <select id="filingStatus">
-            <option value="single">On my own, or married and filing separately</option>
-            <option value="married">Married, filing together (jointly)</option>
-            <option value="head_of_household">Head of household</option>
-          </select>
-          <p class="muted-small" style="margin-top:6px">Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>. Head of household is for someone unmarried who pays most of the cost of a home for a child or another dependent.</p>
-        </div>
-        <!-- paymentTypeRow's visibility belongs to bonus-tax-calculator.js, which sets
-             this element's style.display directly the moment California is picked (the
-             only state with two rates). It is deliberately NOT a question and NOT inside
-             an .adv-reveal wrapper: question-flow.js toggles the `hidden` property, the
-             script here toggles inline display, and stacking the two would let one of
-             them strand a Californian's rate choice off screen. Keep it in the main flow
-             and keep the id. -->
-        <div class="field" id="paymentTypeRow" style="display:none">
-          <label for="paymentType">What kind of extra pay is this?</label>
-          <select id="paymentType">
-            <option value="bonus">A bonus, or stock options (10.23%)</option>
-            <option value="other">Another kind of extra pay (6.6%)</option>
-          </select>
-          <p class="muted-small" style="margin-top:6px">California is the only state that holds back one rate on bonuses and stock options and a lower one on every other kind of extra pay, so this question shows up for California alone.</p>
-        </div>
-        <!-- Advanced is two plain questions in an ALWAYS-VISIBLE fieldset, never a
-             collapsed <details>. The sentence that tells a visitor they can skip this
-             is worthless if it only becomes readable after they open the thing it is
-             telling them to skip, which is exactly what the old summary/details shape
-             did. The money input the first question needs sits inside a [data-reveal]
-             wrapper that ships VISIBLE in the built HTML; question-flow.js (this page
-             opts in via QUESTION_FLOW_PAGES in build.js) only ever ADDS `hidden` once
-             the page is up. Hide-on-demand, never show-on-demand, so JavaScript off,
-             JavaScript broken or a crawler all still see every field.
+         THIS TEMPLATE HAS A TWIN. src/templates/bonus-tax-calculator-state.html renders
+         the 51 /{state}-bonus-tax-calculator/ pages from the same cards and the same
+         /assets/bonus-tax-wizard.js — 52 URLs, one flow. The twin ships NO state card
+         (its state is fixed by window.__BONUS_STATE__) and no #otwStateNote. That is why
+         the JS reads its step numbers from the data-card attributes below instead of
+         hard-coding them: the two templates number their cards 0..N contiguously and
+         independently, and the wizard follows whichever it finds. CHANGE ONE, CHECK THE
+         OTHER.
 
-             The ids ytdSupp and method, the radio group name qYtd, and the method
-             option values flat / aggregate are read by
-             /assets/bonus-tax-calculator.js and must not be renamed. #method stays a
-             <select> and not a Yes/No pair: the script reads
-             document.getElementById('method').value, and a radio returns its own value
-             whether or not it is checked, so radios carrying that id would report the
-             wrong method silently. Its legend does the asking, with no second heading
-             above the control. Every .adv-q must stay inside the .adv fieldset: its
-             legend is styled by ".adv .adv-q legend" and is unstyled anywhere else. -->
-        <details class="adv-more">
-          <summary>A few more questions, only if they apply to you</summary>
-        <fieldset class="adv">
+         PROGRESSIVE ENHANCEMENT, NOT A JS APP. Every card below ships VISIBLE and in
+         reading order in the built HTML: with JavaScript off, blocked, or a crawler
+         reading the page, this is a plain sequential form with real <label>s and native
+         <details> helpers. bonus-tax-wizard.js sets data-js="on" on the .otw section only
+         after its first successful render, and ONLY THEN does styles.css collapse the
+         stack to one card at a time. Hide-on-demand, never show-on-demand. The single
+         exception is #out, the computed answer, which has always been JS-only. The
+         controls that only mean something once the stepping exists (Next / Back / Skip,
+         the dots, the quick chips, the answer chips, Start over) are also gated on
+         data-js="on" in CSS.
 
-          <fieldset class="adv-q" aria-describedby="qYtdNote">
-            <legend>Have you already been paid other bonuses this year?</legend>
-            <p class="adv-q-note" id="qYtdNote">This only changes your answer once your bonuses add up to more than $1,000,000 for the year, where the federal share held back jumps from 22% to 37% on the part above that.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qYtd" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qYtd" value="yes"><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qYtd">
-              <div class="field">
-                <label for="ytdSupp">How much did those earlier bonuses add up to?</label>
-                <input id="ytdSupp" type="text" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="ytdSuppNote">
-                <p class="adv-q-note" id="ytdSuppNote">Do not count the bonus you entered at the top. Leave it at 0 if you are not sure.</p>
-              </div>
-            </div>
-          </fieldset>
+         THE CALIFORNIA CARD IS A BRANCH, NOT A HIDDEN ROW. California is the only state
+         that holds back two different supplemental rates, so the old #paymentTypeRow was
+         a div that JavaScript un-hid by writing style.display. It is now a real card that
+         wizard-core keeps OFF the path unless the chosen state is California — off the
+         path, not hidden from the document, so the stack under a broken script is still
+         complete. Its own copy says who it is for.
 
-          <fieldset class="adv-q" aria-describedby="qMethodNote">
-            <legend id="qMethodLegend">How was this bonus paid to you?</legend>
-            <p class="adv-q-note" id="qMethodNote">Most bonuses arrive on their own, which is the answer already picked, so leave this alone if that sounds like yours. Your final tax is the same either way, only the amount held back right now changes.</p>
-            <div class="field">
-              <select id="method" aria-labelledby="qMethodLegend">
-                <option value="flat">On its own, separate from my regular paycheck</option>
-                <option value="aggregate">Added onto a regular paycheck, all in one lump</option>
-              </select>
-            </div>
-          </fieldset>
-        </fieldset>
-        </details>
+         IDS ARE A CONTRACT with bonus-tax-wizard.js: bonus, state, regIncome, ytdSupp,
+         and the radio groups named filingStatus (single / married / head_of_household),
+         paymentType (bonus / other) and method (flat / aggregate). Each card also carries
+         a data-card key, which is how the JS finds its step number. #out and #outStatus
+         keep their roles (result panel + the one polite live region). #outStatus
+         deliberately sits OUTSIDE the cards: inside one it would be display:none on every
+         step but its own and the announcement would never reach a screen reader. #out
+         lost its aria-live: the box is rewritten on every keystroke, so the polite
+         sentence goes to #outStatus instead.
+
+         THE ORDER puts the rare questions last. Bonus, state, pay, filing status are what
+         everyone answers; the California rate, how the bonus was paid, and earlier
+         bonuses this year change the answer for a minority and sit behind them, the last
+         one with a Skip.
+
+         The /embed/ build is NOT this. It keeps its single-column #bonusForm and is still
+         served by bonus-tax-calculator.js, because a third party sizes that iframe once
+         and a flow whose height changes per card would clip inside it. The two must stay
+         independent, which is why the form here is #bonusWizForm.
+
+         Ad slots, the lede, the myth-buster, the worked example, the FAQ, the state grid
+         and the sources below are untouched. -->
+    <section class="otw" id="bonusWizard" aria-label="Bonus tax calculator">
+      <h2 class="sr-only">Bonus tax calculator</h2>
+      <div class="otw-dots" id="otwDots" aria-hidden="true"></div>
+      <p class="otw-stepnum" id="otwStepnum"></p>
+
+      <form id="bonusWizForm" autocomplete="off" onsubmit="return false">
+        <section class="otw-card" data-step="0" data-card="bonus" aria-labelledby="otwQ0">
+          <h2 class="otw-q" id="otwQ0"><label for="bonus">How much is your bonus, before anything is taken out?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="bonus" inputmode="decimal" data-money autocomplete="off" value="10000">
+          </div>
+          <details class="otw-help">
+            <summary>The full amount your employer promised you, not the smaller amount that landed in your account</summary>
+            <p>Use the figure on the letter or the payslip line, before any tax comes off. If part of your bonus is paid in shares, use what the shares were worth on the day you got them.</p>
+          </details>
+          <div class="otw-nav"><span></span><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="1" data-card="state" aria-labelledby="otwQ1">
+          <h2 class="otw-q" id="otwQ1"><label for="state">Which state do you work in?</label></h2>
+          <select class="otw-in" id="state"><option value="">Choose a state…</option></select>
+          <details class="otw-help">
+            <summary>The state your employer takes tax out for. Nine states take none at all</summary>
+            <p>Every state does one of four things to a bonus: take nothing, take its own flat rate, tax it like an ordinary paycheck, or use a formula of its own. Picking yours changes the amount held back, and the answer says which of the four your state uses.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="2" data-card="income" aria-labelledby="otwQ2">
+          <h2 class="otw-q" id="otwQ2"><label for="regIncome">What do you earn in a year, not counting this bonus?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="regIncome" inputmode="decimal" data-money autocomplete="off" value="70000">
+          </div>
+          <div class="otw-chips" id="otwPayChips">
+            <button type="button" data-otw-fill="regIncome" data-otw-value="36000">$3,000 a month &rarr; 36,000</button>
+            <button type="button" data-otw-fill="regIncome" data-otw-value="60000">$5,000 a month &rarr; 60,000</button>
+            <button type="button" data-otw-fill="regIncome" data-otw-value="96000">$8,000 a month &rarr; 96,000</button>
+          </div>
+          <details class="otw-help">
+            <summary>Your normal salary or wages for the year, before tax</summary>
+            <p>A ballpark is fine. It is what decides the rate your bonus is really taxed at, your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>, and whether you have already passed the Social Security cap for the year. Married and sending in one return together? Enter only your own pay here.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="3" data-card="filing" aria-labelledby="otwQ3">
+          <h2 class="otw-q" id="otwQ3">How do you file your tax return?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ3">
+            <label class="otw-opt">
+              <input type="radio" name="filingStatus" value="single" checked>
+              <span><span class="otw-opt-t">On my own</span><span class="otw-opt-s">single, or married and filing separately</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filingStatus" value="married">
+              <span><span class="otw-opt-t">Together with my husband or wife</span><span class="otw-opt-s">married, filing jointly</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filingStatus" value="head_of_household">
+              <span><span class="otw-opt-t">On my own, with a child or dependent at home</span><span class="otw-opt-s">head of household</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>Why this changes the answer</summary>
+            <p>Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>, and it sets the income bands your bonus is really taxed in. Head of household is for someone unmarried who pays most of the cost of a home for a child or another dependent.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="4" data-card="paytype" aria-labelledby="otwQ4">
+          <h2 class="otw-q" id="otwQ4">What kind of extra pay is this?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ4">
+            <label class="otw-opt">
+              <input type="radio" name="paymentType" value="bonus" checked>
+              <span><span class="otw-opt-t">A bonus, or stock options</span><span class="otw-opt-s">California holds back 10.23%</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="paymentType" value="other">
+              <span><span class="otw-opt-t">Another kind of extra pay</span><span class="otw-opt-s">California holds back 6.6% — commissions, back pay, unused holiday</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>Only California asks this</summary>
+            <p>California is the one state that holds back a higher rate on bonuses and stock options than on every other kind of extra pay. Every other state uses a single rate for all of them, so this question makes no difference anywhere else.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="5" data-card="method" aria-labelledby="otwQ5">
+          <h2 class="otw-q" id="otwQ5">How was this bonus paid to you?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ5">
+            <label class="otw-opt">
+              <input type="radio" name="method" value="flat" checked>
+              <span><span class="otw-opt-t">On its own, separate from my regular paycheck</span><span class="otw-opt-s">the usual way, and the answer already chosen</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="method" value="aggregate">
+              <span><span class="otw-opt-t">Added onto a regular paycheck, all in one lump</span><span class="otw-opt-s">the whole cheque was taxed together</span></span>
+            </label>
+          </div>
+          <p class="otw-flag" id="otwMethodFlag" hidden></p>
+          <details class="otw-help">
+            <summary>Your final tax is the same either way — only the amount held back now changes</summary>
+            <p>A bonus on its own is normally held back at a flat 22% for federal tax. A bonus buried inside a normal paycheck is held back as if you earned that much every payday, which usually takes more. Both are prepayments, and both settle to the same figure when you file.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="6" data-card="earlier" aria-labelledby="otwQ6">
+          <h2 class="otw-q" id="otwQ6"><label for="ytdSupp">How much have you already been paid in other bonuses this year?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="ytdSupp" inputmode="decimal" data-money autocomplete="off" value="0">
+          </div>
+          <details class="otw-help">
+            <summary>Leave this at 0 unless your bonuses pass $1,000,000 in one year</summary>
+            <p>Do not count the bonus you entered at the start. This only changes the answer once your bonuses add up to more than $1,000,000 for the year, where the federal share held back jumps from 22% to 37% on the part above that line.</p>
+          </details>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip</button> <button type="button" class="otw-next">See my answer</button></span>
+          </div>
+        </section>
+
+        <section class="otw-card otw-result" data-step="7" data-card="result" aria-labelledby="otwQ7">
+          <h2 class="otw-q sr-only" id="otwQ7" tabindex="-1">Your answer</h2>
+          <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+          <div class="obbba-out" id="out" data-tb-result></div>
+          <details class="otw-help">
+            <summary>Why my payslip says something a little different</summary>
+            <p>Withholding is what your employer sends in now; your real tax is settled when you file, and both halves here are estimates. City and county taxes (New York City and Yonkers, for example) and state programs such as paid family leave are not modelled, and they come out of a bonus in the places that charge them. See our <a href="/terms/">terms</a>.</p>
+          </details>
+          <details class="otw-help" id="otwStateNote" hidden><summary></summary><div class="otw-state-body" data-otw-body></div></details>
+          <div class="otw-answers" id="otwAnswers"></div>
+          <div class="otw-restart"><button type="button" id="otwRestart">Start over</button></div>
+        </section>
       </form>
-
-      <div class="calc-answer">
-        <p class="calc-example">These are example numbers. Type yours to see your own.</p>
-        <div class="obbba-out" id="out" aria-live="polite" data-tb-result></div>
-      </div>
+      <p id="outStatus" role="status" class="sr-only"></p>
     </section>
+
+    <p class="lede">Your bonus is <strong>not taxed at a higher rate</strong> — it's just <strong><a href="/tax-glossary/#withholding">withheld</a> differently</strong>. Employers usually hold back a flat <strong>22%</strong> for federal income tax (37% on any part over $1,000,000), plus your state's supplemental rate, plus <a href="/tax-glossary/#fica">FICA</a>. Pick your state and enter your numbers to see what's held back now beside what the bonus will <em>really</em> cost at tax time — and the refund or amount you'll owe. Everything runs in your browser; nothing is uploaded.</p>
 
     <p class="note">Estimate for general guidance only — not tax advice. Withholding is what your employer sends in now; your real tax is settled when you file. Local city/county taxes (e.g. NYC, Yonkers) may also apply and are not modeled. See our <a href="/terms/">terms</a>.</p>
 
@@ -207,6 +302,6 @@
 <script>
   window.__BONUS_TAX__ = {{BONUS_TAX_JSON}};
 </script>
-<script type="module" src="/assets/bonus-tax-calculator.js"></script>
+<script type="module" src="/assets/bonus-tax-wizard.js"></script>
 </body>
 </html>
