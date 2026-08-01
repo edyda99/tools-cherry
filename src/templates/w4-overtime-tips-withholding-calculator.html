@@ -27,149 +27,235 @@
 <main id="main">
   <div class="wrap">
     <h1>W-4 Overtime &amp; Tips Withholding Calculator (2026)</h1>
+    <!-- THE WIZARD (rewritten 2026-08-01, converted onto wizard-core.js).
+         This calculator used to be one long form: three plain fields, then an
+         "a few more questions" fieldset holding three yes/no gates, one of them
+         wrapping a second yes/no gate of its own. A visitor who wanted one
+         number ("how much bigger is my paycheck?") had to answer four questions
+         about questions before reaching a field. The approved replacement,
+         proven on /overtime-tax-calculator/ and /tips-tax-calculator/, asks ONE
+         question per card and ends with the answer written out as a story.
+
+         PROGRESSIVE ENHANCEMENT, NOT A JS APP. Every card below ships VISIBLE
+         and in reading order in the built HTML: with JavaScript off, blocked, or
+         a crawler reading the page, this is a plain sequential form with real
+         <label>s and native <details> helpers.
+         w4-overtime-tips-withholding-wizard.js sets data-js="on" on the .otw
+         section only after its first successful render, and ONLY THEN does
+         styles.css collapse the stack to one card at a time. Hide-on-demand,
+         never show-on-demand — the same rule the old [data-reveal] wrappers
+         followed, for the same reason. The single exception is #out, the
+         computed answer, which has always been JS-only.
+
+         The controls that only mean something once the stepping exists (Next /
+         Back, the progress dots, the quick chips, the answer chips, Start over)
+         are also gated on data-js="on" in CSS, because a "Next" button that
+         cannot advance anything is worse than no button.
+
+         IDS ARE A CONTRACT with w4-overtime-tips-withholding-wizard.js, and the
+         field ids are unchanged from the old form: tips, otrate, othours,
+         otpremium, income, months, plus the radio groups named "paid"
+         (tips / overtime / both), "filing" and "freq". #out and #outStatus are
+         the result panel and the one polite live region; #outStatus deliberately
+         sits OUTSIDE the cards, because inside one it would be display:none on
+         every step but its own and the announcement would never reach a screen
+         reader.
+
+         THREE BRANCHES, and why they are branches rather than yes/no gates.
+         (1) The first card asks which kind of extra pay you get, because the
+             W-4 has a separate line for each and there is no point walking a
+             tipped worker through two overtime cards. "Tips" drops the two
+             overtime cards; "Overtime" drops the tips card. A path that is off
+             is not merely hidden: the wizard feeds the engine ZERO for it, so
+             the example tips figure below can never leak into an
+             overtime-only answer.
+         (2) The old qOt/otmode pair (a yes/no inside a yes/no) is gone. The
+             hours-vs-known-premium choice is now the collapsed escape on the
+             hourly-rate card, the same idiom /overtime-tax-calculator/ uses: a
+             premium typed there wins outright and the overtime-hours card drops
+             off the path, because nothing after it uses the hours.
+         (3) The old qMidYear yes/no is gone the same way: #months is the
+             collapsed escape on the pay-frequency card, which is the card that
+             already asks how your year is cut into paychecks. Leaving it closed
+             means a full year, which is what the old "No" meant.
+
+         The /embed/ build is NOT this. It keeps its single-column form, its own
+         #w4Form and its otmode radios, and is still served by
+         w4-overtime-tips-withholding-calculator.js, because a third party sizes
+         that iframe once and a flow whose height changes per card would clip
+         inside it. The two must stay independent.
+
+         Ad slots, prose, the worked example and the FAQ below are untouched. -->
+    <section class="otw" id="w4Wizard" aria-label="W-4 overtime and tips withholding calculator">
+      <h2 class="sr-only">W-4 overtime and tips withholding calculator</h2>
+      <div class="otw-dots" id="otwDots" aria-hidden="true"></div>
+      <p class="otw-stepnum" id="otwStepnum"></p>
+
+      <form id="w4WizForm" autocomplete="off" onsubmit="return false">
+        <section class="otw-card" data-step="0" aria-labelledby="otwQ0">
+          <h2 class="otw-q" id="otwQ0">Which of these does your job pay you?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ0">
+            <label class="otw-opt">
+              <input type="radio" name="paid" value="tips">
+              <span><span class="otw-opt-t">Tips</span><span class="otw-opt-s">cash tips, tips added to a card, and tips shared out at work</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="paid" value="overtime">
+              <span><span class="otw-opt-t">Overtime</span><span class="otw-opt-s">extra pay for hours past your normal week</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="paid" value="both" checked>
+              <span><span class="otw-opt-t">Both</span><span class="otw-opt-s">you get tips and you work overtime</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>Your W-4 has a separate line for each one</summary>
+            <p>Tips go on line 1a of the Step 4(b) Deductions Worksheet and overtime on line 1b, so we only ask about the part you actually get. If neither one is yours, this tool has nothing to change for you.</p>
+          </details>
+          <div class="otw-nav"><span></span><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="1" aria-labelledby="otwQ1">
+          <h2 class="otw-q" id="otwQ1"><label for="tips">How much do you expect to get in tips in all of 2026?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="tips" inputmode="decimal" data-money autocomplete="off" value="6000">
+          </div>
+          <div class="otw-chips" id="otwTipChips">
+            <button type="button" data-otw-fill="tips" data-otw-value="5200">~$100 a week &rarr; 5,200</button>
+            <button type="button" data-otw-fill="tips" data-otw-value="13000">~$250 a week &rarr; 13,000</button>
+            <button type="button" data-otw-fill="tips" data-otw-value="20800">~$400 a week &rarr; 20,800</button>
+          </div>
+          <details class="otw-help">
+            <summary>Only the first $25,000 of tips counts, so a rough guess for the year is fine</summary>
+            <p>Your W-4 calls these qualified tips. Cash tips, tips added to a card payment, and tips shared out by your workplace all count. A charge the business adds by itself, such as an automatic 18% for a large table, is not a tip and does not count. You can change this at the end and watch the number update.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="2" aria-labelledby="otwQ2">
+          <h2 class="otw-q" id="otwQ2"><label for="otrate">What do you normally earn an hour?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="otrate" inputmode="decimal" data-money autocomplete="off" value="20">
+          </div>
+          <details class="otw-help">
+            <summary>It's on your pay stub</summary>
+            <p>Look for a line like "rate" or "regular". Use your normal rate, not the overtime one: we work the extra part out from it, because only that extra part counts.</p>
+          </details>
+          <details class="otw-help otw-esc">
+            <summary>I already know what my overtime paid me on top</summary>
+            <div class="otw-field">
+              <label for="otpremium">Your overtime premium for the year</label>
+              <input type="text" class="otw-in otw-in-sm" id="otpremium" inputmode="decimal" data-money autocomplete="off" placeholder="3,000" aria-describedby="otPremiumNote">
+              <p class="otw-note" id="otPremiumNote">Just the extra part, not your whole overtime pay: at $20 an hour normally and $30 an hour on overtime, the extra is $10 an hour. You can add it up from your pay stubs, or read last year's total off box 12 code TT on your W-2. Fill this in and we skip the overtime-hours question.</p>
+            </div>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="3" aria-labelledby="otwQ3">
+          <h2 class="otw-q" id="otwQ3"><label for="othours">How many overtime hours do you expect for the whole year?</label></h2>
+          <input type="number" class="otw-in" id="othours" inputmode="numeric" min="0" step="10" value="300">
+          <div class="otw-chips" id="otwHourChips">
+            <button type="button" data-otw-fill="othours" data-otw-value="100">~2 a week &rarr; 100</button>
+            <button type="button" data-otw-fill="othours" data-otw-value="250">~5 a week &rarr; 250</button>
+            <button type="button" data-otw-fill="othours" data-otw-value="500">~10 a week &rarr; 500</button>
+          </div>
+          <details class="otw-help">
+            <summary>We count half your usual hourly rate for every overtime hour</summary>
+            <p>That half is the extra part, and it is the only part the deduction covers. So $20 an hour and 300 overtime hours comes to $3,000. A rough guess is fine, you can change it at the end.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="4" aria-labelledby="otwQ4">
+          <h2 class="otw-q" id="otwQ4"><label for="income">How much money do you expect to make in all of 2026?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="income" inputmode="decimal" data-money autocomplete="off" value="52000">
+          </div>
+          <p class="otw-flag" id="otwIncomeFlag" hidden></p>
+          <details class="otw-help">
+            <summary>Everything you expect to be paid this year, tips and overtime included</summary>
+            <p>Married and sending in one return together? Add both incomes. This sets your tax rate, and it is what decides whether these breaks start to shrink for you. Tax forms measure that against your <a href="/tax-glossary/#magi">modified adjusted gross income</a>, so if money leaves your pay before tax, into a 401(k) or a health plan, take those amounts off.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="5" aria-labelledby="otwQ5">
+          <h2 class="otw-q" id="otwQ5">How do you send in your tax return?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ5">
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="single" checked>
+              <span><span class="otw-opt-t">On my own</span><span class="otw-opt-s">single</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="married">
+              <span><span class="otw-opt-t">Together with my husband or wife</span><span class="otw-opt-s">married, one return, which married couples have to do to get these breaks</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="head_of_household">
+              <span><span class="otw-opt-t">On my own, with a child or dependent at home</span><span class="otw-opt-s">head of household</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>What if I'm married but we file separately?</summary>
+            <p>Married couples who send in separate returns cannot claim these deductions at all, so there is nothing to put on the W-4. Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>. Pick head of household if you are unmarried and pay most of the cost of a home for a child or another dependent.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="6" aria-labelledby="otwQ6">
+          <h2 class="otw-q" id="otwQ6">How often do you get paid?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ6">
+            <label class="otw-opt">
+              <input type="radio" name="freq" value="weekly" checked>
+              <span><span class="otw-opt-t">Every week</span><span class="otw-opt-s">52 paychecks a year</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="freq" value="biweekly">
+              <span><span class="otw-opt-t">Every two weeks</span><span class="otw-opt-s">26 paychecks a year</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="freq" value="semimonthly">
+              <span><span class="otw-opt-t">Twice a month</span><span class="otw-opt-s">24 paychecks a year</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="freq" value="monthly">
+              <span><span class="otw-opt-t">Once a month</span><span class="otw-opt-s">12 paychecks a year</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>Why we ask</summary>
+            <p>This is how we split the yearly change across your paychecks, so we can tell you what one check goes up by rather than only what the year adds up to.</p>
+          </details>
+          <details class="otw-help otw-esc">
+            <summary>I'm handing the new W-4 in part-way through the year</summary>
+            <div class="otw-field">
+              <label for="months">How many months of 2026 are left when you hand it in?</label>
+              <input type="number" class="otw-in otw-in-sm" id="months" inputmode="numeric" min="1" max="12" step="1" value="12" aria-describedby="monthsNote">
+              <p class="otw-note" id="monthsNote">Leave this alone for the full-year figure. The whole year's change gets squeezed into the paychecks you have left, so each of those checks goes up by more than it would over a full year.</p>
+            </div>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">See my answer</button></div>
+        </section>
+
+        <section class="otw-card otw-result" data-step="7" aria-labelledby="otwQ7">
+          <h2 class="otw-q sr-only" id="otwQ7" tabindex="-1">Your answer</h2>
+          <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+          <div class="obbba-out" id="out" data-tb-result></div>
+          <details class="otw-help">
+            <summary>Does this cut my tax bill?</summary>
+            <p>No, and that is the point: it is the same tax break, arriving earlier. Your employer stops holding back more than you are going to owe, so the money reaches you every payday instead of as a refund next spring. Social Security and Medicare still come out of every tip and overtime dollar, and this is federal only — most states do not copy these deductions, so your state withholding is unchanged. Doing nothing is fine too, you just wait for the refund.</p>
+          </details>
+          <div class="otw-answers" id="otwAnswers"></div>
+          <div class="otw-restart"><button type="button" id="otwRestart">Start over</button></div>
+        </section>
+      </form>
+      <p id="outStatus" role="status" class="sr-only"></p>
+    </section>
+
     <p class="lede">The 2025 law's <strong>no tax on tips</strong> and <strong>no tax on overtime</strong> deductions are claimed when you file — so all year your employer keeps <a href="/tax-glossary/#withholding">withholding</a> federal income tax as if that money were fully taxable, and you get it back as a bigger refund next spring. You don't have to wait. This tool estimates the deduction you'll actually get and tells you <strong>exactly what to enter on your 2026 Form W-4 Step 4(b) Deductions Worksheet</strong> so your employer withholds less <strong>now</strong> — turning that once-a-year refund into more take-home every payday. Everything runs in your browser; nothing is uploaded.</p>
 
     <p class="note" style="margin-top:0"><strong>Companion to the filing-time tools.</strong> The <a href="/overtime-tax-calculator/">no tax on overtime calculator</a> and <a href="/tips-tax-calculator/">no tax on tips calculator</a> answer "how much will this deduction save me on my return?" This one answers the other half: "how do I get that money in my paychecks now instead of as a refund?"</p>
-
-    <section class="calc" aria-label="W-4 overtime and tips withholding calculator">
-      <!-- The three things everyone has to answer (how you file, what you earn,
-           how often you are paid) stay in the main flow. The three conditional
-           ones (tips, overtime, handing the W-4 in part-way through the year) are
-           plain questions, and the fields each one needs live inside a
-           [data-reveal] wrapper that ships VISIBLE in the built HTML. This page
-           opts in to question-flow.js via QUESTION_FLOW_PAGES in build.js, and
-           that script only ever ADDS `hidden` once the page is up.
-           Hide-on-demand, never show-on-demand, so JavaScript off, JavaScript
-           broken or a crawler all still see every field.
-
-           CONTRACT with w4-overtime-tips-withholding-calculator.js, rename none
-           of it: the ids filing, income, freq, tips, otrate, othours, otpremium
-           and months, the wrappers #ot-hours and #ot-premium, and the radio group
-           named otmode with its values "hours" and "premium". That otmode pair is
-           now the same No/Yes segmented control as every other two-way choice on
-           the site: "hours" is the No side (we work the extra pay out for you)
-           and "premium" is the Yes side (you already know it and type it in).
-           The labels changed, the name and the two values did not.
-
-           Two deliberate departures from the usual "every question starts on No".
-           qOt starts on YES because the overtime boxes have always shipped with
-           example numbers ($20 an hour, 300 hours), so an untouched page keeps
-           computing exactly what it computed before; the .calc-example line above
-           the result is what tells the visitor whose numbers those are. And
-           #months carries data-qf-off="12" because question-flow's usual neutral
-           for a number box is 0, which would feed the engine "no months left"
-           instead of a full year; parking it at 12 is what "this does not apply
-           to me" means here. -->
-      <form id="w4Form" autocomplete="off" onsubmit="return false">
-        <div class="field">
-          <label for="filing">How do you send in your tax return?</label>
-          <select id="filing" aria-describedby="filingNote">
-            <option value="single">Single</option>
-            <option value="married">Married filing jointly</option>
-            <option value="head_of_household">Head of household</option>
-          </select>
-          <p class="muted-small" id="filingNote" style="margin-top:6px">Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>. Married couples have to send in one return together to get these breaks, so filing separately is not on the list. Pick Head of household if you are unmarried and pay most of the cost of a home for a child or another dependent.</p>
-        </div>
-
-        <div class="field">
-          <label for="income">How much money do you expect to make in all of 2026?</label>
-          <input type="text" id="income" inputmode="decimal" data-money autocomplete="off" value="52000" aria-describedby="incomeNote">
-          <p class="muted-small" id="incomeNote" style="margin-top:6px">Count everything you expect to be paid this year, tips and overtime included. Married and sending in one return together? Add both incomes. This sets your tax rate, and it is what decides whether these breaks start to shrink for you.</p>
-        </div>
-
-        <div class="field">
-          <label for="freq">How often do you get paid?</label>
-          <select id="freq" aria-describedby="freqNote">
-            <option value="weekly">Weekly (52 paychecks a year)</option>
-            <option value="biweekly">Every two weeks (26)</option>
-            <option value="semimonthly">Twice a month (24)</option>
-            <option value="monthly">Monthly (12)</option>
-          </select>
-          <p class="muted-small" id="freqNote" style="margin-top:6px">This is how we split the yearly change across your paychecks.</p>
-        </div>
-
-        <fieldset class="adv">
-          <legend>A few more questions, only if they apply to you</legend>
-          <p class="adv-hint">Leave a question on No and we count nothing for it. The overtime question starts on Yes with example numbers in the boxes, so type yours over them.</p>
-
-          <fieldset class="adv-q" aria-describedby="qTipsNote">
-            <legend>Do you get tips at work?</legend>
-            <p class="adv-q-note" id="qTipsNote">Your W-4 calls these qualified tips. Cash tips, tips added to a card payment, and tips shared out by your workplace all count.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qTips" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qTips" value="yes"><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qTips">
-              <div class="field">
-                <label for="tips">How much do you expect to get in tips over all of 2026?</label>
-                <input type="text" id="tips" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="tipsNote">
-                <p class="adv-q-note" id="tipsNote">A rough guess is fine. Only the first $25,000 of tips counts, so anything above that will not change the answer.</p>
-              </div>
-            </div>
-          </fieldset>
-
-          <fieldset class="adv-q" aria-describedby="qOtNote">
-            <legend>Do you get paid extra for overtime hours?</legend>
-            <p class="adv-q-note" id="qOtNote">Only the extra part counts, not your whole overtime pay. If you usually earn $20 an hour and overtime pays $30, the extra is $10 an hour, and that extra is what your W-4 calls the overtime premium.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qOt" value="no"><span>No</span></label>
-              <label class="seg"><input type="radio" name="qOt" value="yes" checked><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qOt">
-              <fieldset class="adv-q" aria-describedby="otModeNote">
-                <legend>Do you already know how much extra your overtime paid you?</legend>
-                <p class="adv-q-note" id="otModeNote">Answer No and we work it out from your hourly rate and your overtime hours.</p>
-                <div class="yn">
-                  <label class="seg"><input type="radio" name="otmode" value="hours" checked><span>No</span></label>
-                  <label class="seg"><input type="radio" name="otmode" value="premium"><span>Yes</span></label>
-                </div>
-              </fieldset>
-              <div id="ot-hours">
-                <div class="ot-row">
-                  <div class="field" style="margin:0">
-                    <label for="otrate">What do you normally earn an hour?</label>
-                    <input type="text" id="otrate" inputmode="decimal" data-money autocomplete="off" value="20" aria-describedby="otHoursNote">
-                  </div>
-                  <div class="field" style="margin:0">
-                    <label for="othours">How many overtime hours do you expect for the whole year?</label>
-                    <input type="number" id="othours" inputmode="numeric" min="0" step="10" value="300" aria-describedby="otHoursNote">
-                  </div>
-                </div>
-                <p class="adv-q-note" id="otHoursNote">We count half your usual hourly rate for every overtime hour, because that half is the extra part. So $20 an hour and 300 overtime hours comes to $3,000.</p>
-              </div>
-              <div id="ot-premium" hidden>
-                <div class="field" style="margin:0">
-                  <label for="otpremium">How much extra did overtime pay you over the year, on top of your usual rate?</label>
-                  <input type="text" id="otpremium" inputmode="decimal" data-money autocomplete="off" value="3000" aria-describedby="otPremiumNote">
-                  <p class="adv-q-note" id="otPremiumNote">Just the extra part, not your whole overtime pay. You can add it up from your pay stubs, or read the year's total off box 12 code <span class="w4-code">TT</span> on next year's W-2.</p>
-                </div>
-              </div>
-            </div>
-          </fieldset>
-
-          <fieldset class="adv-q" aria-describedby="qMidYearNote">
-            <legend>Are you handing in the new W-4 part-way through the year?</legend>
-            <p class="adv-q-note" id="qMidYearNote">Answer No if you are setting this up at the start of the year, or you just want the full-year figure.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qMidYear" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qMidYear" value="yes"><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qMidYear">
-              <div class="field">
-                <label for="months">How many months of 2026 are left when you hand it in?</label>
-                <input type="number" id="months" inputmode="numeric" min="1" max="12" step="1" value="12" data-qf-off="12" aria-describedby="monthsNote">
-                <p class="adv-q-note" id="monthsNote">The whole year's change gets squeezed into the paychecks you have left, so each of those checks goes up by more than it would over a full year.</p>
-              </div>
-            </div>
-          </fieldset>
-        </fieldset>
-      </form>
-
-      <div class="calc-answer">
-        <p class="calc-example">These are example numbers. Type yours to see your own.</p>
-        <div class="obbba-out" id="out" aria-live="polite"></div>
-      </div>
-    </section>
 
     <p class="note">Estimate for general guidance only — not tax advice. Withholding is an approximation: Publication 15-T's built-in standard-deduction proxy and your Step 2 checkbox affect which bracket your adjusted wage lands in, so the per-paycheck figure is an estimate, not a guarantee. Figures use the 2026 federal brackets and standard deduction. This tool is federal-only — it does not model state withholding (most states don't conform; see the state pages) or FICA. Verify with the IRS or a tax professional.</p>
 
@@ -242,6 +328,6 @@
   window.__OBBBA__ = {{OBBBA_JSON}};
   window.__FED__ = {{FED_JSON}};
 </script>
-<script type="module" src="/assets/w4-overtime-tips-withholding-calculator.js"></script>
+<script type="module" src="/assets/w4-overtime-tips-withholding-wizard.js"></script>
 </body>
 </html>
