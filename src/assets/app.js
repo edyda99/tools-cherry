@@ -1,10 +1,41 @@
-// app.js — wires the form to the engine and renders results live.
-// Each generated state page injects window.__TAX_DATA__ (federal + that state)
-// and window.__STATE_SLUG__ before this module loads.
-import { computePaycheck, PAY_PERIODS, federalBracketBreakdown } from '/assets/paycheck-engine.js';
+// app.js — wires the form to the engine and renders results live, on all 51
+// /{state}-paycheck-calculator/ pages. Each generated state page injects
+// window.__TAX_DATA__ (federal + that state) and window.__STATE_SLUG__ before
+// this module loads.
+//
+// THE CARD FLOW (2026-08-01). The page used to be one .calc card with every
+// control on screen at once and a Simple/Advanced mode toggle hiding five plain
+// questions. It is now the card-by-card wizard the family shares:
+// wizard-core.js drives the stepping, the dots, the Back/Next/Skip nav, the
+// 350 ms inline-flag debounce, the answer chips and Start over. What stays here
+// is everything that makes this page the paycheck calculator: reading the form,
+// calling the engine, and writing the result.
+//
+// WHY THIS FILE DOES NOT USE spec.renderResult. Every other tool in the family
+// hands wizard-core one HTML string for a single #out box. This page's answer is
+// about twenty-five separately-identified elements (the headline, the caption,
+// each withholding row, the state's disability/paid-leave rows, the rate row,
+// the bracket table) and build.js PRE-RENDERS every one of them at build time
+// from the same computation, so a crawler and a no-JS reader see the real
+// figures. assertPanelParity() then fails the build if this file's first render
+// would write a different string into any of them, if a row app.js writes has no
+// pre-rendered value, or if the visible rows stop adding up to Net pay. So the
+// page ships no #out at all, wizard-core never calls renderResult, and render()
+// below writes the same ids it always did. Adding or removing one of those
+// writes is a build.js change as well as a change here.
+//
+// EVERY INPUT STAYS IN THE DOM. readForm() and render() read most of those ids
+// unguarded on every keystroke, and answeredYes() treats a MISSING qX radio
+// group as "yes". Cards the visitor is not on are hidden by CSS, never
+// unmounted; wizard-core is built the same way.
+import { computePaycheck, PAY_PERIODS, federalBracketBreakdown, annualizeGross } from '/assets/paycheck-engine.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
+// Imported, never re-derived: one shared reader for a radio group, and the boot
+// handshake that puts the site's "this calculator failed to load" banner on
+// screen with the plain stacked form still visible underneath it.
+import { createWizard, radioOf } from '/assets/wizard-core.js';
 const taxData = window.__TAX_DATA__;
 const stateSlug = window.__STATE_SLUG__;
 
@@ -42,21 +73,22 @@ const num = (id) => moneyValue($(id)) || 0;
 // value we set programmatically keeps the separators the visitor sees.
 const fmtAmount = (n, dp) => n.toLocaleString('en-US', { maximumFractionDigits: dp });
 
-// True until the visitor edits the form, i.e. while the figure on screen is
-// still the page's own worked example rather than the visitor's own numbers.
-let exampleLive = true;
+// --- The cards ---------------------------------------------------------------
+// data-step on each card in state-page.html, named. The five deduction cards
+// come last because they are the only optional ones that change the figure, and
+// the four rule cards before them change no figure at all: they decide which of
+// this state's 2026 rule pointers the answer card shows. RESULT is never skipped.
+const AMOUNT = 0, PAYTYPE = 1, HOURS = 2, FREQ = 3, FILING = 4;
+const Q_TIPS = 5, Q_OT = 6, Q_BONUS = 7, Q_AGE = 8;
+const Q_RETIRE = 9, Q_HEALTH = 10, Q_DEPS = 11, Q_EXTRA = 12, Q_POST = 13;
+const RESULT = 14;
 
-function currentMode() {
-  const checked = document.querySelector('input[name="mode"]:checked');
-  return checked ? checked.value : 'simple';
-}
-
-// --- Advanced: plain questions instead of jargon-labelled money fields -------
-// Each question is a yes/no radio group; the money input it needs sits in a
-// [data-reveal] wrapper that ships visible in the HTML and is hidden here when
+// --- The five deduction questions -------------------------------------------
+// Each is a yes/no radio group on its own card; the money input it needs sits in
+// a [data-reveal] wrapper that ships visible in the HTML and is hidden here when
 // the answer is No. Answering No zeroes that field's contribution even if a
 // number is still sitting in it, so flipping back to No always restores the
-// Simple-mode result.
+// plain answer.
 const ADV_QUESTIONS = ['qRetire', 'qHealth', 'qDeps', 'qExtra', 'qPost'];
 
 // W-4 Step 3 arithmetic, UI layer only: the engine still receives one annual
@@ -106,30 +138,86 @@ function syncAdvancedQuestions() {
 }
 
 function currentView() {
-  const checked = document.querySelector('input[name="view"]:checked');
-  return checked ? checked.value : 'period';
+  return radioOf('view', 'period');
 }
 
+// The one reader. wizard-core calls it too (spec.read), so the flow's path
+// predicates, its answer chips and its inline flags all see exactly the figures
+// the engine is about to be handed, rather than a second reading of the same
+// fields that could disagree with it.
+//
+// The three closed choices are radio groups rather than <select>s since the card
+// rewrite: a card asks one question, and a radio group answers it without a
+// second tap into a dropdown. radioOf falls back to the shipped default when
+// nothing is checked, which is also what a no-JS submit would have sent.
 function readForm() {
-  const wageType = $('wageType').value; // 'salary' | 'hourly'
+  const wageType = radioOf('wageType', 'salary'); // 'salary' | 'hourly'
   const amount = moneyValue($('amount')) || 0;
   const hoursPerWeek = parseFloat($('hours').value) || 40;
-  const input = {
+  return {
     wage: { type: wageType, amount, hoursPerWeek },
-    filingStatus: $('filingStatus').value,
-    payFrequency: $('payFrequency').value,
-    stateSlug
-  };
-  if (currentMode() === 'advanced') {
-    input.adv = {
+    filingStatus: radioOf('filingStatus', 'single'),
+    payFrequency: radioOf('payFrequency', 'biweekly'),
+    stateSlug,
+    // Always read, never gated on a mode toggle: the five questions are cards in
+    // the flow now, every one of them ships answered No, and No zeroes its own
+    // field. So the default flow produces exactly what the old Simple mode did,
+    // which is what build.js pre-renders the results panel from.
+    adv: {
       retirement401k: advMoney('qRetire', 'retirement401k'),
       cafeteria125: advMoney('qHealth', 'cafeteria125'),
       dependentsCredit: answeredYes('qDeps') ? dependentsCreditValue() : 0,
       extraWithholding: advMoney('qExtra', 'extraWithholding'),
       postTax: advMoney('qPost', 'postTax')
-    };
-  }
-  return input;
+    }
+  };
+}
+
+// --- Inline warnings ---------------------------------------------------------
+// Never blocking: the answer still computes underneath every one of these, the
+// doubt just travels with it. Each lives on the card that asks for the SECOND of
+// the two numbers it compares, because that is where the visitor is standing the
+// first moment the contradiction can exist. wizard-core debounces them to the
+// settled value (350 ms) and flushes on blur and on step change, so a flag can
+// never flicker mid-word and move the Next button under a thumb.
+const yearlyPay = (s) => annualizeGross(s.wage);
+
+// The expensive mistake this page can make: typing a yearly salary while the
+// pay-type card says hourly. It does not look wrong on the card, and the answer
+// it produces is wrong by a factor of about two thousand.
+function wageTypeWarning(s) {
+  if (s.wage.type !== 'hourly' || s.wage.amount < 1000) return '';
+  return `Check these numbers: ${usd2(s.wage.amount)} an hour over ${s.wage.hoursPerWeek} hours a week ` +
+    `comes to ${usd(yearlyPay(s))} a year. If that figure is your yearly salary, choose "A yearly salary" above.`;
+}
+
+function retireWarning(s) {
+  const pay = yearlyPay(s);
+  if (pay <= 0 || s.adv.retirement401k <= 0 || s.adv.retirement401k <= pay) return '';
+  return `Check these numbers: the ${usd(s.adv.retirement401k)} going into your retirement plan is more than ` +
+    `the ${usd(pay)} you are paid in a year, and it comes out of that pay.`;
+}
+
+function healthWarning(s) {
+  const pay = yearlyPay(s);
+  const before = s.adv.retirement401k + s.adv.cafeteria125;
+  if (pay <= 0 || s.adv.cafeteria125 <= 0 || before <= pay) return '';
+  return `Check these numbers: ${usd(before)} coming out before tax is more than the ${usd(pay)} you are paid ` +
+    `in a year. Both figures are meant to be yearly totals.`;
+}
+
+function extraWarning(s) {
+  const pay = yearlyPay(s);
+  if (pay <= 0 || s.adv.extraWithholding <= 0 || s.adv.extraWithholding <= pay) return '';
+  return `Check these numbers: ${usd(s.adv.extraWithholding)} of extra tax is more than the ${usd(pay)} you are ` +
+    `paid in a year. If your W-4 shows a per-paycheck amount, multiply it by the number of paychecks you get.`;
+}
+
+function postWarning(s) {
+  const pay = yearlyPay(s);
+  if (pay <= 0 || s.adv.postTax <= 0 || s.adv.postTax <= pay) return '';
+  return `Check these numbers: ${usd(s.adv.postTax)} coming out after tax is more than the ${usd(pay)} you are ` +
+    `paid in a year.`;
 }
 
 const PERIOD_LABEL = {
@@ -252,10 +340,14 @@ function renderBreakdown(r) {
 }
 
 function render() {
-  const input = readForm();
-  // hourly fields visibility
-  $('hoursField').style.display = input.wage.type === 'hourly' ? '' : 'none';
+  // Show or hide each deduction question's money field for the answer beside it
+  // before anything is read, so a field that has just been switched off is not
+  // still on screen while its contribution is already zero. There is no separate
+  // "hours" toggle any more: hours is its own card, and wizard-core drops it
+  // from the path (and from the dots) the moment the pay type is a salary.
+  syncAdvancedQuestions();
 
+  const input = readForm();
   const r = computePaycheck(input, taxData);
   const annualView = currentView() === 'annual';
   const p = annualView ? r.annual : r.perPaycheck;
@@ -272,6 +364,13 @@ function render() {
   // The headline drops to body colour while there is nothing to report, so the
   // accent is spent on a real answer. announceResult() reads the same class.
   $('netBig').classList.toggle('is-zero', isZero);
+  // The muted "this is our example, not yours" treatment, kept in step with the
+  // note that says so out loud rather than dropped on the first keystroke
+  // anywhere in the form. wizard-core owns that note: it keeps it on screen, and
+  // keeps it naming which figure is still ours, until #amount is the visitor's
+  // own number, and removes it then. Reading its presence rather than tracking a
+  // second flag here is what stops the muted figure and the caption disagreeing.
+  $('netBig').classList.toggle('is-example', !!document.querySelector('.calc-example'));
   $('netSub').textContent = isZero
     ? ''
     : (annualView
@@ -283,9 +382,11 @@ function render() {
   const lbl = $('netLabel');
   if (lbl) lbl.textContent = isZero ? NO_PAY_YET_ASK : netLabelText(input);
 
-  // The Advanced questions run to y=1797 on a 390px viewport while the answer
-  // band sits at y=394, so the last three questions change a figure one to two
-  // screens above the thumb. This line lives at the foot of that panel.
+  // The running answer. It sits OUTSIDE the cards, under whichever one is on
+  // screen, so the figure travels with the visitor: the answer itself is on the
+  // last card, and without this every question after the first changes a number
+  // that is nowhere on screen. onRender below hides it on the answer card, where
+  // the real figure is right there.
   const echo = $('advEcho');
   if (echo) {
     echo.textContent = isZero
@@ -384,8 +485,26 @@ function announceResult() {
 // instead; no tax figure is involved.
 let prevWageType = null;
 
+// The live flow controller, held rather than mounted and forgotten, for the one
+// thing below that needs it.
+let wizard = null;
+
+// Pay type is the only answer on this page that changes the SHAPE of the flow:
+// hourly adds the hours card, salary drops it. wizard-core repaints the progress
+// dots and the "Step 3 of 5" label from every FIELD event, but a radio answer
+// only re-renders the result, so the dots kept describing a flow one card longer
+// than the one the visitor was in until they pressed Next. Re-showing the
+// current step is the core's own public way to make it re-derive the path: it
+// normalises forward if the card underfoot has just left the path, and passing
+// false keeps it from stealing focus off the radio the visitor is using.
+// (Reported as a wizard-core gap rather than patched there: the core is shared
+// by the whole calculator family and is not this page's to change.)
+function repaintFlowShape() {
+  if (wizard) wizard.show(wizard.step, false);
+}
+
 function convertOnWageTypeSwitch() {
-  const now = $('wageType').value;
+  const now = radioOf('wageType', 'salary');
   const from = prevWageType;
   if (from === null || from === now) { prevWageType = now; return; }
   prevWageType = now;
@@ -470,58 +589,142 @@ function renderBrackets(bb) {
     `Your federal marginal rate is ${ratePct(bb.marginalRate)}, the federal tax on your next dollar earned.`;
 }
 
-function applyMode() {
-  const adv = currentMode() === 'advanced';
-  $('advancedFields').hidden = !adv;
-  render();
+// --- Which answers still belong to us ---------------------------------------
+// The page loads with a $75,000 salary nobody typed, so the answer stays
+// labelled an example until that figure is the visitor's own. It is the ONLY
+// invented number on the page: salary, every-two-weeks, single, 40 hours and No
+// to all nine questions are real defaults that are true for a great many people
+// and invent nothing, so none of them is listed here and none of them retires
+// the label on its own. wizard-core clears the note when this returns empty.
+function exampleStillOurs(state, touched) {
+  return touched.has('amount') ? [] : ['your pay'];
+}
+
+// The chips under the answer, one per figure the flow asked for, each a way back
+// to the card that asked. The four rule cards are deliberately not here: their
+// answers are the ticked chips inside the applies panel on the same card, which
+// state-flow.js keeps in step with them in both directions.
+function answerChips(s) {
+  const list = [
+    { step: AMOUNT, field: 'amount', label: s.wage.type === 'hourly' ? `${usd2(s.wage.amount)}/hr` : `${usd(s.wage.amount)}/yr` },
+    { step: PAYTYPE, label: s.wage.type === 'hourly' ? 'paid hourly' : 'salaried' }
+  ];
+  if (s.wage.type === 'hourly') list.push({ step: HOURS, field: 'hours', label: `${s.wage.hoursPerWeek} hrs/week` });
+  list.push({ step: FREQ, label: PAID_LABEL[s.payFrequency] || PAID_LABEL.biweekly });
+  list.push({ step: FILING, label: FILING_LABEL[s.filingStatus] || FILING_LABEL.single });
+  return list;
 }
 
 function init() {
   initMoneyInputs();
-  prevWageType = $('wageType').value;
-  // Registered before the render listeners so the amount is already converted
-  // by the time the render for this same event runs.
-  ['change', 'input'].forEach((evt) =>
-    $('wageType').addEventListener(evt, convertOnWageTypeSwitch));
+  prevWageType = radioOf('wageType', 'salary');
+  // Registered BEFORE wizard-core binds its own listeners to the same radios, so
+  // the typed amount is already converted by the time the render for this same
+  // change event runs. Listener order on one element is registration order.
+  document.querySelectorAll('input[name="wageType"]').forEach((el) =>
+    el.addEventListener('change', () => { convertOnWageTypeSwitch(); repaintFlowShape(); }));
 
-  // The pre-filled figure is labelled as an example until the visitor touches
-  // the form; after that the label must not claim to be an example any more.
+  // #netKicker is not on a state paycheck page and never has been: it belongs to
+  // the sibling templates whose headline carries a kicker line. The write stays
+  // because build.js derives the pre-render guard's denominator from THIS file
+  // and declares the id absent-but-null-guarded on the strength of it; deleting
+  // the write makes that declaration stale and fails the build. The visible half
+  // of the example label is wizard-core's note and the is-example class render()
+  // keeps in step with it.
   const form = $('paycheckForm');
   const dropExampleLabel = () => {
-    exampleLive = false;
     const kicker = $('netKicker');
     if (kicker) kicker.textContent = 'Your estimated take-home pay';
-    const big = $('netBig');
-    if (big) big.classList.remove('is-example');
-    document.querySelector('.calc-example')?.remove();
   };
   if (form) {
     form.addEventListener('input', dropExampleLabel, { once: true });
     form.addEventListener('change', dropExampleLabel, { once: true });
   }
 
-  ['wageType', 'amount', 'hours', 'filingStatus', 'payFrequency',
-   'retirement401k', 'cafeteria125', 'dependentsCredit', 'extraWithholding', 'postTax',
-   'depChildren', 'depOther']
-    .forEach((id) => {
-      const el = $(id);
-      if (el) el.addEventListener('input', id === 'depChildren' || id === 'depOther'
-        ? () => { syncAdvancedQuestions(); render(); }
-        : render);
-    });
-  ADV_QUESTIONS.forEach((name) => {
-    document.querySelectorAll(`input[name="${name}"]`).forEach((el) =>
-      el.addEventListener('change', () => { syncAdvancedQuestions(); render(); }));
-  });
-  syncAdvancedQuestions();
-  document.querySelectorAll('input[name="mode"]').forEach((el) =>
-    el.addEventListener('change', applyMode));
+  // The view toggle and the comparison live on the answer card, outside the
+  // flow's question set, so they keep their own listeners. Everything else is
+  // wired by wizard-core from the card list below.
   document.querySelectorAll('input[name="view"]').forEach((el) =>
     el.addEventListener('change', render));
   const cmpPanel = $('comparePanel');
   if (cmpPanel) cmpPanel.addEventListener('toggle', () => { if (cmpPanel.open) populateCompare().then(renderCompare); });
   if ($('cmpState')) $('cmpState').addEventListener('change', renderCompare);
-  applyMode();
+
+  // createWizard rather than mountWizard: __bootInit() below already does the
+  // readyState handshake and already puts the shared "this calculator failed to
+  // load" banner up if anything in here throws, which is all mountWizard adds,
+  // and holding the controller is what repaintFlowShape() needs.
+  wizard = createWizard({
+    stage: 'paycheckWizard',
+    read: readForm,
+    // The engine call belongs to render(), which has to make it anyway to write
+    // twenty-five elements. Computing here as well would run the whole state and
+    // federal calculation twice per keystroke for a figure nothing reads.
+    compute: () => null,
+    // Never called: this page ships no #out, see the header. Present because the
+    // core's contract asks for it, and because an empty string is the honest
+    // answer to "what HTML goes in the result box" when there is no result box.
+    renderResult: () => '',
+
+    cards: [
+      { step: AMOUNT, fields: ['amount'] },
+      { step: PAYTYPE, radios: 'wageType', flags: [{ id: 'otwWageTypeFlag', text: wageTypeWarning }] },
+      // Off the path entirely on a salary, so it leaves the dots and the "Step 3
+      // of 5" count on the keystroke that changes the pay type, not on the next
+      // Next. The input stays in the DOM: readForm() reads it unguarded.
+      { step: HOURS, fields: ['hours'], when: (s) => s.wage.type === 'hourly' },
+      { step: FREQ, radios: 'payFrequency' },
+      { step: FILING, radios: 'filingStatus' },
+
+      // The four rule checks. They change no figure, so they carry no flag, and
+      // each carries a Skip: a visitor who only wants the take-home number should
+      // never have to answer nine more questions to see it.
+      { step: Q_TIPS, radios: 'qTips' },
+      { step: Q_OT, radios: 'qOt' },
+      { step: Q_BONUS, radios: 'qBonus' },
+      { step: Q_AGE, radios: 'qAge' },
+
+      // The five that do change the figure. skipClears empties the card's own
+      // money field on the way past, so a number typed and then skipped cannot
+      // keep feeding the answer from a card the visitor has left behind.
+      { step: Q_RETIRE, radios: 'qRetire', fields: ['retirement401k'], skipClears: ['retirement401k'],
+        flags: [{ id: 'otwRetireFlag', text: retireWarning }] },
+      { step: Q_HEALTH, radios: 'qHealth', fields: ['cafeteria125'], skipClears: ['cafeteria125'],
+        flags: [{ id: 'otwHealthFlag', text: healthWarning }] },
+      { step: Q_DEPS, radios: 'qDeps', fields: ['depChildren', 'depOther'], skipClears: ['depChildren', 'depOther'] },
+      { step: Q_EXTRA, radios: 'qExtra', fields: ['extraWithholding'], skipClears: ['extraWithholding'],
+        flags: [{ id: 'otwExtraFlag', text: extraWarning }] },
+      { step: Q_POST, radios: 'qPost', fields: ['postTax'], skipClears: ['postTax'],
+        flags: [{ id: 'otwPostFlag', text: postWarning }] },
+
+      { step: RESULT, result: true }
+    ],
+
+    exampleMissing: exampleStillOurs,
+    chips: answerChips,
+
+    // The core announces only from its own renderResult path, and this page has
+    // none, so announceResult() below stays the page's single announcer: one
+    // debounced sentence into #outStatus, never on the boot render.
+    onRender: ({ step }) => {
+      const echo = $('advEcho');
+      if (echo) echo.style.display = step === RESULT ? 'none' : '';
+      render();
+    },
+
+    // Start over puts every radio back by assignment, which fires no change
+    // event, so the four applies chips would keep showing the answers the
+    // visitor just discarded. state-flow.js listens for this and re-reads them.
+    onReset: () => {
+      try { document.dispatchEvent(new CustomEvent('tb:paycheck-reset')); } catch (_) { /* older browsers */ }
+    }
+  });
+
+  // start() renders once, THEN sets data-js="on" and shows card one, in that
+  // order on purpose: a throw in the render leaves the plain stacked form on
+  // screen under the error banner rather than an invisible one.
+  wizard.start();
+
   booted = true;
 }
 

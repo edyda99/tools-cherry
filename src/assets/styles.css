@@ -321,6 +321,17 @@ h3 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
    `0 0 20px`, so it needs an explicit top margin here or it butts against the
    card; 18px matches .calc's own mobile row gap. */
 .calc + .year-fallback { margin: 18px 0 20px; }
+/* Same rule, restated for the wizard. The state paycheck pages stopped shipping
+   `.calc` when the form became a `.otw` card stack (2026-08-01), so the selector
+   above quietly stopped matching on the two states that HAVE a prior-year notice
+   (california, oklahoma) and the notice fell back to its base `0 0 20px`, butting
+   against `.otw`'s own margin-bottom. Both selectors are kept because `.calc` is
+   still the shape on every non-converted tool page. Margin only: the notice's
+   colours live on `.year-fallback` itself, which already carries its own
+   prefers-color-scheme and [data-theme] pairs below, so this needs no light/dark
+   variant of its own and must not grow one — a colour here would leak past the
+   two pages that render the notice. */
+.otw + .year-fallback { margin: 18px 0 20px; }
 .net-label { font-size: 13px; color: var(--muted); margin: 0 0 6px; line-height: 1.45; }
 .answer-band .net-sub { margin: 3px 0 14px; }
 .answer-band .mode-row.view-toggle { margin: 0; }

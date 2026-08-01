@@ -31,276 +31,480 @@
     <h1>{{STATE_H1}}</h1>
     {{ANSWER_LEAD}}
 
-    <section class="calc" aria-label="Paycheck calculator">
-      <!-- NOT a live region. It used to carry role="status", an implicit polite
-           region, which re-announced the headline, its caption AND the two
-           view-toggle labels inside it on every keystroke — and the results block
-           below announced the whole table at the same time, so every edit spoke
-           twice. Announcing is now one debounced sentence into #outStatus, the
-           same single-announcer pattern the six tool pages use. -->
-      <div class="answer-band">
-        <!-- The headline is an example until the visitor edits something: the
-             caption names it and the is-example class mutes the accent, both
-             dropped by dropExampleLabel() in app.js on first form input. Four
-             of four benchmark personas read the unlabelled figure as their own
-             answer; two said they'd have walked away with the wrong number. -->
-        <p class="calc-example">These are example numbers. Type yours to see your own.</p>
-        <p class="net-label" id="netLabel">{{NET_LABEL}}</p>
-        <p class="net-big is-example" id="netBig">{{NET_BIG}}</p>
-        <p class="net-sub" id="netSub">{{NET_SUB}}</p>
-        <div class="mode-row view-toggle" role="radiogroup" aria-label="Show amounts as">
-          <label class="seg"><input type="radio" name="view" value="period" checked><span>Per paycheck</span></label>
-          <label class="seg"><input type="radio" name="view" value="annual"><span>Annual</span></label>
-        </div>
-      </div>
+    <!-- THE WIZARD (rewritten 2026-08-01, the 51 state paycheck pages, on
+         src/assets/wizard-core.js).
+
+         This calculator used to be one .calc card: an answer band, a two-column
+         form, a Simple/Advanced mode toggle, five plain yes/no questions behind
+         that toggle, and a results table, all on screen at once. On a 390px phone
+         the answer band sat at y=394 and the last advanced question at y=1797, so
+         answering it moved a figure two screens above the thumb. The approved
+         replacement, proven on /overtime-tax-calculator/ and /tips-tax-calculator/,
+         asks ONE question per card and ends with the answer.
+
+         ONE TEMPLATE, 51 PAGES. Everything below is state-agnostic. The only
+         per-state pieces are the tokens build.js fills: the pre-rendered result
+         figures, STATE_TAX_ROW (omitted entirely on the nine states with no
+         wage tax), PROGRAM_LINES (the SDI / PFML / UI rows on the 14 states
+         that have them) and the APPLIES_BLOCK section.
+
+         PROGRESSIVE ENHANCEMENT, NOT A JS APP. Every card ships VISIBLE and in
+         reading order: with JavaScript off, blocked, or a crawler reading the
+         page, this is a plain sequential form with real <label>s, real radios and
+         native <details> helpers, and the whole results table is already filled in
+         with real figures for the shipped defaults. wizard-core.js sets
+         data-js="on" on the .otw section only after app.js's first successful
+         render, and ONLY THEN does styles.css collapse the stack to one card at a
+         time. Hide-on-demand, never show-on-demand.
+
+         NO INPUT IS EVER UNMOUNTED. app.js's readForm() and render() read about
+         twenty-five ids on every keystroke, most of them unguarded, so a card that
+         is off the visitor's path is HIDDEN BY CSS and still in the document. The
+         same goes for every qX radio group: answeredYes() falls back to true when
+         a group is missing from the page, so removing one would silently switch
+         that question on and feed a stray number to the engine.
+
+         IDS ARE A CONTRACT, in three directions at once:
+           - app.js reads amount / hours / retirement401k / cafeteria125 /
+             depChildren / depOther / extraWithholding / postTax and the radio
+             groups named wageType, payFrequency, filingStatus, view and qRetire /
+             qHealth / qDeps / qExtra / qPost;
+           - build.js pre-renders every id app.js writes on its first render
+             (netLabel, netBig, netSub, advEcho, the rows, the rate row, the
+             bracket table, depCredit) and assertPanelParity() fails the build if
+             one is missing, or carries a value app.js would immediately overwrite
+             with a different one, or if the visible rows stop adding up to Net pay;
+           - state-flow.js pairs the four qTips / qOt / qBonus / qAge cards with
+             the h-tips / h-ot / h-bonus / h-age checkboxes inside the APPLIES_BLOCK section.
+
+         THE ORDER. How much you are paid, then how you are paid, then who you are,
+         then what kind of pay you get (the four rule checks), then what comes out
+         of your pay (the five deduction questions), then the answer. The nine
+         optional cards each carry a Skip that goes straight to the answer, so
+         nobody has to walk all fourteen to see a number.
+
+         #outStatus deliberately sits OUTSIDE the cards: inside one it would be
+         display:none on every step but its own and the announcement would never
+         reach a screen reader. #advEcho sits outside them too, on purpose, so the
+         live take-home figure travels with the visitor from card to card instead
+         of being stranded at the foot of one panel. -->
+    <section class="otw" id="paycheckWizard" aria-label="{{STATE_NAME}} paycheck calculator">
+      <h2 class="sr-only">{{STATE_NAME}} take-home pay calculator</h2>
+      <div class="otw-dots" id="otwDots" aria-hidden="true"></div>
+      <p class="otw-stepnum" id="otwStepnum"></p>
+
       <form id="paycheckForm" autocomplete="off" onsubmit="return false">
-        <div class="field">
-          <label for="amount">Gross pay (before taxes)</label>
-          <input id="amount" type="text" inputmode="decimal" data-money autocomplete="off" value="75000" placeholder="75000">
-        </div>
-        <div class="field">
-          <label for="wageType">Pay type</label>
-          <select id="wageType">
-            <option value="salary">Salary (annual)</option>
-            <option value="hourly">Hourly</option>
-          </select>
-        </div>
-        <div class="field" id="hoursField" style="display:none">
-          <label for="hours">Hours per week</label>
-          <input id="hours" type="number" inputmode="decimal" min="0" step="any" value="40">
-        </div>
-        <div class="field">
-          <label for="filingStatus">Filing status</label>
-          <select id="filingStatus">
-            <option value="single">Single / Married filing separately</option>
-            <option value="married">Married filing jointly</option>
-            <option value="head_of_household">Head of household</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="payFrequency">Pay frequency</label>
-          <select id="payFrequency">
-            <option value="weekly">Weekly</option>
-            <option value="biweekly" selected>Biweekly</option>
-            <option value="semimonthly">Semi-monthly</option>
-            <option value="monthly">Monthly</option>
-            <option value="annual">Annual</option>
-          </select>
-        </div>
 
-        <div class="field mode-row" role="radiogroup" aria-label="Calculator mode">
-          <label class="seg"><input type="radio" name="mode" value="simple" checked><span>Simple</span></label>
-          <label class="seg"><input type="radio" name="mode" value="advanced"><span>Advanced</span></label>
-        </div>
+        <section class="otw-card" data-step="0" aria-labelledby="otwQ0">
+          <h2 class="otw-q" id="otwQ0"><label for="amount">How much are you paid, before anything comes out?</label></h2>
+          <div class="otw-money">
+            <input id="amount" class="otw-in" type="text" inputmode="decimal" data-money autocomplete="off" value="75000" placeholder="75000">
+          </div>
+          <details class="otw-help">
+            <summary>This is the figure before tax, not the amount that lands in your account</summary>
+            <p>Your pay stub calls it gross pay. It is what you are paid before income tax, Social Security, Medicare, health cover or a retirement plan come out of it. A yearly salary or an hourly rate both work, the next question asks which one you typed.</p>
+          </details>
+          <div class="otw-nav"><span></span><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-        <!-- Advanced is a short sequence of plain questions about the person, not a
-             wall of jargon-labelled money fields. Each money input lives inside a
-             [data-reveal] wrapper that ships VISIBLE in the HTML; app.js hides the
-             ones whose question is answered No. Hide-on-demand, never show-on-demand,
-             so a broken or absent script can never leave a question unanswerable.
+        <section class="otw-card" data-step="1" aria-labelledby="otwQ1">
+          <h2 class="otw-q" id="otwQ1">Is that a yearly salary or an hourly rate?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ1">
+            <label class="otw-opt">
+              <input type="radio" name="wageType" value="salary" checked>
+              <span><span class="otw-opt-t">A yearly salary</span><span class="otw-opt-s">one figure for the whole year, the same in every paycheck</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="wageType" value="hourly">
+              <span><span class="otw-opt-t">An hourly rate</span><span class="otw-opt-s">what you are paid for one hour of work</span></span>
+            </label>
+          </div>
+          <p class="otw-flag" id="otwWageTypeFlag" hidden></p>
+          <details class="otw-help">
+            <summary>Switching between the two converts the number you already typed</summary>
+            <p>Pick the other one and the figure above is converted for you, using the hours a week on the next card. Nothing is lost, so it is safe to change your mind.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-             The note under each question points at the document the reader physically
-             has, their pay stub, and names a technical term ONLY where that term is
-             printed on the stub or the W-4 and so helps them find the number. Notes
-             that merely translated the plain question back into jargon ("Often called
-             a 401(k) or a 403(b)", "This is Step 3 of your W-4") are gone: a reader
-             who does not know the term cannot act on it, and a reader who does know it
-             did not need the question rewritten for them.
+        <section class="otw-card" data-step="2" aria-labelledby="otwQ2">
+          <h2 class="otw-q" id="otwQ2"><label for="hours">How many hours do you work in a normal week?</label></h2>
+          <input id="hours" class="otw-in" type="number" inputmode="decimal" min="0" step="any" value="40">
+          <details class="otw-help">
+            <summary>Your usual week, not a busy one</summary>
+            <p>This turns your hourly rate into a year of pay, so use the hours you work most weeks. Overtime is not counted here: it is paid at a higher rate and it changes from week to week, so it belongs in the <a href="/overtime-tax-calculator/">overtime calculator</a> instead.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-             Every money field ships EMPTY with placeholder="0". A literal value="0"
-             turned a tap to the left of the zero plus "5000" into 50000, and the
-             equivalent tap in the pre-filled salary field turned "75,000" into
-             "75,00060000". app.js also selects a money field's contents on focus, so
-             the first tap replaces rather than appends. Both halves are needed: the
-             empty default removes the silent 10x, select-on-focus removes the 100x. -->
-        <fieldset id="advancedFields" class="adv" hidden>
-          <legend>Advanced: a few questions about your pay</legend>
-          <p class="adv-hint">Answer only the ones that apply to you. Leaving every answer on No gives the same result as Simple mode.</p>
+        <section class="otw-card" data-step="3" aria-labelledby="otwQ3">
+          <h2 class="otw-q" id="otwQ3">How often are you paid?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ3">
+            <label class="otw-opt">
+              <input type="radio" name="payFrequency" value="weekly">
+              <span><span class="otw-opt-t">Every week</span><span class="otw-opt-s">52 paychecks a year</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="payFrequency" value="biweekly" checked>
+              <span><span class="otw-opt-t">Every two weeks</span><span class="otw-opt-s">26 paychecks a year, usually the same weekday</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="payFrequency" value="semimonthly">
+              <span><span class="otw-opt-t">Twice a month</span><span class="otw-opt-s">24 paychecks a year, usually the 15th and the last day</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="payFrequency" value="monthly">
+              <span><span class="otw-opt-t">Once a month</span><span class="otw-opt-s">12 paychecks a year</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="payFrequency" value="annual">
+              <span><span class="otw-opt-t">Once a year</span><span class="otw-opt-s">one payment for the whole year</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>It changes the size of each check, not the tax you owe for the year</summary>
+            <p>The yearly totals are the same either way. This only decides how the year is cut up, so the figure you see is the one you would actually receive.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-          <fieldset class="adv-q" aria-describedby="qRetireNote">
-            <legend>Do you put part of your pay into a retirement plan at work?</legend>
-            <p class="adv-q-note" id="qRetireNote">Look on your pay stub for a line like 401(k), 403(b), 457, TSP, retirement or pension.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qRetire" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qRetire" value="yes"><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qRetire">
-              <div class="field">
-                <label for="retirement401k">How much goes in over a full year?</label>
-                <input id="retirement401k" type="text" inputmode="decimal" data-money autocomplete="off" value="" placeholder="0">
+        <section class="otw-card" data-step="4" aria-labelledby="otwQ4">
+          <h2 class="otw-q" id="otwQ4">How do you do your taxes?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ4">
+            <label class="otw-opt">
+              <input type="radio" name="filingStatus" value="single" checked>
+              <span><span class="otw-opt-t">On my own</span><span class="otw-opt-s">single, or married and sending in separate returns</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filingStatus" value="married">
+              <span><span class="otw-opt-t">Together with my husband or wife</span><span class="otw-opt-s">married, one return between you</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filingStatus" value="head_of_household">
+              <span><span class="otw-opt-t">On my own, with a child or dependent at home</span><span class="otw-opt-s">head of household</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>It moves the income bands, so it changes the tax on the same pay</summary>
+            <p>Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>. Filing together usually means a wider band of income is taxed at each rate, so the same salary keeps more of itself. This estimate assumes one income; if your husband or wife also earns, the real figure is higher than this.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <!-- The four rule checks. Same four questions, same plain wording and the
+             same four answers as the checkbox chips inside the APPLIES_BLOCK section on the
+             answer card: state-flow.js keeps the pair in step in both directions,
+             so answering here ticks the chip there, and vice versa. They change no
+             figure in the paycheck, they decide which of that state's 2026 rule
+             pointers the answer card shows. -->
+        <section class="otw-card" data-step="5" aria-labelledby="otwQ5">
+          <h2 class="otw-q" id="otwQ5">Do customers tip you?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ5">
+            <label class="otw-opt"><input type="radio" name="qTips" value="no" checked><span><span class="otw-opt-t">No</span></span></label>
+            <label class="otw-opt"><input type="radio" name="qTips" value="yes"><span><span class="otw-opt-t">Yes</span></span></label>
+          </div>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip to my answer</button> <button type="button" class="otw-next">Next</button></span>
+          </div>
+        </section>
+
+        <section class="otw-card" data-step="6" aria-labelledby="otwQ6">
+          <h2 class="otw-q" id="otwQ6">Do you get paid extra for working extra hours?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ6">
+            <label class="otw-opt"><input type="radio" name="qOt" value="no" checked><span><span class="otw-opt-t">No</span></span></label>
+            <label class="otw-opt"><input type="radio" name="qOt" value="yes"><span><span class="otw-opt-t">Yes</span></span></label>
+          </div>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip to my answer</button> <button type="button" class="otw-next">Next</button></span>
+          </div>
+        </section>
+
+        <section class="otw-card" data-step="7" aria-labelledby="otwQ7">
+          <h2 class="otw-q" id="otwQ7">Do you get a bonus or commission?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ7">
+            <label class="otw-opt"><input type="radio" name="qBonus" value="no" checked><span><span class="otw-opt-t">No</span></span></label>
+            <label class="otw-opt"><input type="radio" name="qBonus" value="yes"><span><span class="otw-opt-t">Yes</span></span></label>
+          </div>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip to my answer</button> <button type="button" class="otw-next">Next</button></span>
+          </div>
+        </section>
+
+        <section class="otw-card" data-step="8" aria-labelledby="otwQ8">
+          <h2 class="otw-q" id="otwQ8">Do you, or your husband or wife, turn 65 at any point this year?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ8">
+            <label class="otw-opt"><input type="radio" name="qAge" value="no" checked><span><span class="otw-opt-t">No</span></span></label>
+            <label class="otw-opt"><input type="radio" name="qAge" value="yes"><span><span class="otw-opt-t">Yes</span></span></label>
+          </div>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip to my answer</button> <button type="button" class="otw-next">Next</button></span>
+          </div>
+        </section>
+
+        <!-- What comes out of your pay. These five DO change the figure. Each
+             money field lives inside its [data-reveal] wrapper, which ships
+             VISIBLE: app.js hides the ones whose question is answered No, and
+             answering No also zeroes that field's contribution even if a number is
+             still sitting in it, so flipping back to No always restores the plain
+             answer. Every field ships EMPTY with placeholder="0" — a literal
+             value="0" turned a tap to the left of the zero plus "5000" into 50000.
+
+             The note under each question points at the document the reader
+             physically has, their pay stub, and names a technical term only where
+             that term is printed on the stub or the W-4 and so helps them find the
+             number. -->
+        <section class="otw-card" data-step="9" aria-labelledby="otwQ9">
+          <h2 class="otw-q" id="otwQ9">Do you put part of your pay into a retirement plan at work?</h2>
+          <p class="otw-note" id="qRetireNote">Look on your pay stub for a line like 401(k), 403(b), 457, TSP, retirement or pension.</p>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ9" aria-describedby="qRetireNote">
+            <label class="otw-opt"><input type="radio" name="qRetire" value="no" checked><span><span class="otw-opt-t">No</span></span></label>
+            <label class="otw-opt"><input type="radio" name="qRetire" value="yes"><span><span class="otw-opt-t">Yes</span></span></label>
+          </div>
+          <div class="adv-reveal" data-reveal="qRetire">
+            <div class="otw-field">
+              <label for="retirement401k">How much goes in over a full year?</label>
+              <div class="otw-money">
+                <input id="retirement401k" class="otw-in otw-in-sm" type="text" inputmode="decimal" data-money autocomplete="off" value="" placeholder="0">
               </div>
             </div>
-          </fieldset>
+          </div>
+          <p class="otw-flag" id="otwRetireFlag" hidden></p>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip to my answer</button> <button type="button" class="otw-next">Next</button></span>
+          </div>
+        </section>
 
-          <fieldset class="adv-q" aria-describedby="qHealthNote">
-            <legend>Does money come out of your pay for health insurance or a health account?</legend>
-            <p class="adv-q-note" id="qHealthNote">Look on your pay stub for lines like medical, dental, vision, HSA or FSA.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qHealth" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qHealth" value="yes"><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qHealth">
-              <div class="field">
-                <label for="cafeteria125">How much comes out over a full year?</label>
-                <input id="cafeteria125" type="text" inputmode="decimal" data-money autocomplete="off" value="" placeholder="0">
+        <section class="otw-card" data-step="10" aria-labelledby="otwQ10">
+          <h2 class="otw-q" id="otwQ10">Does money come out of your pay for health insurance or a health account?</h2>
+          <p class="otw-note" id="qHealthNote">Look on your pay stub for lines like medical, dental, vision, HSA or FSA.</p>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ10" aria-describedby="qHealthNote">
+            <label class="otw-opt"><input type="radio" name="qHealth" value="no" checked><span><span class="otw-opt-t">No</span></span></label>
+            <label class="otw-opt"><input type="radio" name="qHealth" value="yes"><span><span class="otw-opt-t">Yes</span></span></label>
+          </div>
+          <div class="adv-reveal" data-reveal="qHealth">
+            <div class="otw-field">
+              <label for="cafeteria125">How much comes out over a full year?</label>
+              <div class="otw-money">
+                <input id="cafeteria125" class="otw-in otw-in-sm" type="text" inputmode="decimal" data-money autocomplete="off" value="" placeholder="0">
               </div>
             </div>
-          </fieldset>
+          </div>
+          <p class="otw-flag" id="otwHealthFlag" hidden></p>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip to my answer</button> <button type="button" class="otw-next">Next</button></span>
+          </div>
+        </section>
 
-          <!-- No note here on purpose. The one it used to carry ("This is Step 3 of
-               your W-4, the dependent tax credits") named a form the reader does not
-               have open and told them nothing the legend had not already asked, so it
-               is gone along with the aria-describedby that pointed at it. -->
-          <fieldset class="adv-q">
-            <legend>Do you claim any children or other dependents?</legend>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qDeps" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qDeps" value="yes"><span>Yes</span></label>
+        <!-- No pointer note here on purpose. The one this question used to carry
+             ("This is Step 3 of your W-4, the dependent tax credits") named a form
+             the reader does not have open and told them nothing the question had
+             not already asked. -->
+        <section class="otw-card" data-step="11" aria-labelledby="otwQ11">
+          <h2 class="otw-q" id="otwQ11">Do you claim any children or other dependents?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ11">
+            <label class="otw-opt"><input type="radio" name="qDeps" value="no" checked><span><span class="otw-opt-t">No</span></span></label>
+            <label class="otw-opt"><input type="radio" name="qDeps" value="yes"><span><span class="otw-opt-t">Yes</span></span></label>
+          </div>
+          <div class="adv-reveal" data-reveal="qDeps">
+            <div class="otw-field">
+              <label for="depChildren">Children under 17</label>
+              <input id="depChildren" class="otw-in otw-in-sm" type="number" inputmode="numeric" min="0" max="20" step="1" value="" placeholder="0">
             </div>
-            <div class="adv-reveal" data-reveal="qDeps">
-              <div class="field">
-                <div class="inline">
-                  <div class="field">
-                    <label for="depChildren">Children under 17</label>
-                    <input id="depChildren" type="number" inputmode="numeric" min="0" max="20" step="1" value="" placeholder="0">
-                  </div>
-                  <div class="field">
-                    <label for="depOther">Other dependents</label>
-                    <input id="depOther" type="number" inputmode="numeric" min="0" max="20" step="1" value="" placeholder="0">
-                  </div>
-                </div>
-                <p class="adv-derived">That is <b id="depCredit">$0</b> of dependent credit for the year. A W-4 counts $2,000 for each child under 17 and $500 for each other dependent.</p>
+            <div class="otw-field">
+              <label for="depOther">Other dependents</label>
+              <input id="depOther" class="otw-in otw-in-sm" type="number" inputmode="numeric" min="0" max="20" step="1" value="" placeholder="0">
+            </div>
+            <p class="otw-note">That is <b id="depCredit">$0</b> of dependent credit for the year. A W-4 counts $2,000 for each child under 17 and $500 for each other dependent.</p>
+          </div>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip to my answer</button> <button type="button" class="otw-next">Next</button></span>
+          </div>
+        </section>
+
+        <section class="otw-card" data-step="12" aria-labelledby="otwQ12">
+          <h2 class="otw-q" id="otwQ12">Did you ask your employer to take extra tax out of each paycheck?</h2>
+          <p class="otw-note" id="qExtraNote">Look on your pay stub for a line like additional or extra withholding. On the W-4 you handed in, it is the box on line 4(c).</p>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ12" aria-describedby="qExtraNote">
+            <label class="otw-opt"><input type="radio" name="qExtra" value="no" checked><span><span class="otw-opt-t">No</span></span></label>
+            <label class="otw-opt"><input type="radio" name="qExtra" value="yes"><span><span class="otw-opt-t">Yes</span></span></label>
+          </div>
+          <div class="adv-reveal" data-reveal="qExtra">
+            <div class="otw-field">
+              <label for="extraWithholding">How much extra over a full year?</label>
+              <div class="otw-money">
+                <input id="extraWithholding" class="otw-in otw-in-sm" type="text" inputmode="decimal" data-money autocomplete="off" value="" placeholder="0" aria-describedby="extraWithholdingNote">
+              </div>
+              <p class="otw-note" id="extraWithholdingNote">If your W-4 shows a per-paycheck amount, multiply it by the number of paychecks you get in a year.</p>
+            </div>
+          </div>
+          <p class="otw-flag" id="otwExtraFlag" hidden></p>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip to my answer</button> <button type="button" class="otw-next">Next</button></span>
+          </div>
+        </section>
+
+        <section class="otw-card" data-step="13" aria-labelledby="otwQ13">
+          <h2 class="otw-q" id="otwQ13">Is anything else taken out of your pay after tax?</h2>
+          <p class="otw-note" id="qPostNote">Look near the bottom of your pay stub for lines like union dues, life insurance, a repayment or a garnishment.</p>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ13" aria-describedby="qPostNote">
+            <label class="otw-opt"><input type="radio" name="qPost" value="no" checked><span><span class="otw-opt-t">No</span></span></label>
+            <label class="otw-opt"><input type="radio" name="qPost" value="yes"><span><span class="otw-opt-t">Yes</span></span></label>
+          </div>
+          <div class="adv-reveal" data-reveal="qPost">
+            <div class="otw-field">
+              <label for="postTax">How much over a full year?</label>
+              <div class="otw-money">
+                <input id="postTax" class="otw-in otw-in-sm" type="text" inputmode="decimal" data-money autocomplete="off" value="" placeholder="0">
               </div>
             </div>
-          </fieldset>
+          </div>
+          <p class="otw-flag" id="otwPostFlag" hidden></p>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip</button> <button type="button" class="otw-next">See my answer</button></span>
+          </div>
+        </section>
 
-          <fieldset class="adv-q" aria-describedby="qExtraNote">
-            <legend>Did you ask your employer to take extra tax out of each paycheck?</legend>
-            <p class="adv-q-note" id="qExtraNote">Look on your pay stub for a line like additional or extra withholding. On the W-4 you handed in, it is the box on line 4(c).</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qExtra" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qExtra" value="yes"><span>Yes</span></label>
+        <!-- THE ANSWER CARD. Exactly one, always last, never skipped.
+
+             The .answer-band, the .results table and the APPLIES_BLOCK section are all
+             UNCHANGED from the pre-wizard page: same ids, same classes, same
+             pre-rendered figures, same order, same data-tb-result anchor for
+             report-widget.js's "Report a wrong result" and "Copy result" controls.
+             What changed is where they sit. The band is still the first thing on
+             the card so the number leads, and .answer-band is also the class
+             styles.css uses to recognise a state paycheck page
+             (:root:has(.answer-band, .calc-answer)), so it is load-bearing beyond
+             its own box.
+
+             This card carries no [data-otw-body] state note: the state is the page. -->
+        <section class="otw-card otw-result" data-step="14" aria-labelledby="otwQ14">
+          <h2 class="otw-q sr-only" id="otwQ14" tabindex="-1">Your answer</h2>
+          <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+
+          <!-- NOT a live region. It used to carry role="status", an implicit polite
+               region, which re-announced the headline, its caption AND the two
+               view-toggle labels inside it on every keystroke — and the results block
+               below announced the whole table at the same time, so every edit spoke
+               twice. Announcing is now one debounced sentence into #outStatus. -->
+          <div class="answer-band">
+            <p class="net-label" id="netLabel">{{NET_LABEL}}</p>
+            <p class="net-big is-example" id="netBig">{{NET_BIG}}</p>
+            <p class="net-sub" id="netSub">{{NET_SUB}}</p>
+            <div class="mode-row view-toggle" role="radiogroup" aria-label="Show amounts as">
+              <label class="seg"><input type="radio" name="view" value="period" checked><span>Per paycheck</span></label>
+              <label class="seg"><input type="radio" name="view" value="annual"><span>Annual</span></label>
             </div>
-            <div class="adv-reveal" data-reveal="qExtra">
-              <div class="field">
-                <label for="extraWithholding">How much extra over a full year?</label>
-                <input id="extraWithholding" type="text" inputmode="decimal" data-money autocomplete="off" value="" placeholder="0" aria-describedby="extraWithholdingNote">
-                <p class="adv-q-note" id="extraWithholdingNote">If your W-4 shows a per-paycheck amount, multiply it by the number of paychecks you get in a year.</p>
+          </div>
+
+          <!-- data-tb-result is the explicit anchor for report-widget.js, and now the ONLY
+               one: the live-region attribute that used to sit here is gone, because reading
+               the entire tax table aloud on every keystroke is not an announcement, and
+               #outStatus below says the same thing in one sentence. The widget's old
+               fallback was to sniff for a polite live region, which is exactly how the
+               "Report a wrong result" and "Copy result" controls silently vanished from
+               all 51 state pages once before. Keep this attribute. -->
+          <div class="results" data-tb-result>
+            <div class="breakdown" id="breakdown" aria-hidden="true">
+              <div class="bar">
+                <span class="seg-net" id="segNet" style="width:{{SEG_NET}}"></span>
+                <span class="seg-tax" id="segTax" style="width:{{SEG_TAX}}"></span>
+                <span class="seg-ded" id="segDed" style="width:{{SEG_DED}}"></span>
+              </div>
+              <div class="legend">
+                <span><i class="k-net"></i>Take-home <b id="lgNet">{{LG_NET}}</b></span>
+                <span><i class="k-tax"></i>Taxes <b id="lgTax">{{LG_TAX}}</b></span>
+                <span class="lg-ded" id="lgDedWrap"{{LG_DED_STYLE}}><i class="k-ded"></i>Deductions <b id="lgDed">{{LG_DED}}</b></span>
               </div>
             </div>
-          </fieldset>
 
-          <fieldset class="adv-q" aria-describedby="qPostNote">
-            <legend>Is anything else taken out of your pay after tax?</legend>
-            <p class="adv-q-note" id="qPostNote">Look near the bottom of your pay stub for lines like union dues, life insurance, a repayment or a garnishment.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qPost" value="no" checked><span>No</span></label>
-              <label class="seg"><input type="radio" name="qPost" value="yes"><span>Yes</span></label>
+            <!-- Pre-rendered at build time for the form's own defaults: $75,000
+                 salary, single, biweekly, "Per paycheck", every question on No.
+                 app.js's first render writes these same strings back, character
+                 for character, so hydration changes nothing visible.
+
+                 Every row app.js writes is filled here, not just the tax lines: the
+                 state disability / paid-leave rows in PROGRAM_LINES are part of
+                 the subtraction, and leaving that container empty while Net pay had
+                 those amounts already taken out shipped a breakdown that did not add
+                 up on the 14 states that carry such a program. The visible rows sum
+                 to Net pay, and build.js asserts that per state.
+
+                 The two deduction rows below stay $0.00 because they genuinely are
+                 zero on those defaults, and their rows are hidden until a visitor
+                 enters a deduction. -->
+            <div class="line"><span class="lbl">Gross</span><span id="rGross">{{ROW_GROSS}}</span></div>
+            <div class="line"><span class="lbl">Federal income tax</span><span id="rFederal">{{ROW_FEDERAL}}</span></div>
+            <div class="line"><span class="lbl">Social Security</span><span id="rSS">{{ROW_SS}}</span></div>
+            <div class="line"><span class="lbl">Medicare</span><span id="rMedicare">{{ROW_MEDICARE}}</span></div>
+            {{STATE_TAX_ROW}}
+            <div id="programLines">{{PROGRAM_LINES}}</div>
+            <div class="line" id="preTaxLine" hidden><span class="lbl">Pre-tax deductions</span><span id="rPreTax">$0.00</span></div>
+            <div class="line" id="postTaxLine" hidden><span class="lbl">Post-tax deductions</span><span id="rPostTax">$0.00</span></div>
+            <div class="line total"><span class="lbl">Net pay</span><span id="rNet">{{ROW_NET}}</span></div>
+            <div class="rate-row">
+              <span>Federal marginal rate: <strong id="rMarginal">{{RATE_MARGINAL}}</strong></span>
+              <span>Effective tax rate: <strong id="rEff">{{RATE_EFF}}</strong></span>
+              <span>Take-home: <strong id="rTake">{{RATE_TAKE}}</strong></span>
             </div>
-            <div class="adv-reveal" data-reveal="qPost">
-              <div class="field">
-                <label for="postTax">How much over a full year?</label>
-                <input id="postTax" type="text" inputmode="decimal" data-money autocomplete="off" value="" placeholder="0">
+
+            <details class="brackets" id="bracketPanel">
+              <summary>{{BRACKET_SUMMARY}}</summary>
+              <div class="table-scroll">
+                <table class="bracket-table">
+                  <thead><tr><th>Bracket</th><th>Income taxed here</th><th>Tax</th></tr></thead>
+                  <tbody id="bracketBody">{{BRACKET_BODY}}</tbody>
+                </table>
               </div>
-            </div>
-          </fieldset>
+              <p class="muted-small" id="bracketNote">{{BRACKET_NOTE}}</p>
+            </details>
 
-          <!-- The answer this panel changes sits at the top of the page. Measured at
-               390px the answer band is at y=394 and the last question at y=1797, so
-               answering question three, four or five moved a number one to two full
-               screens above the visitor's thumb and read as doing nothing. This echoes
-               the live figure at the point of edit. render() writes it.
+            <details class="brackets" id="comparePanel">
+              <summary>{{COMPARE_SUMMARY}}</summary>
+              <div class="field" style="margin-top:12px">
+                <label for="cmpState">Compare with</label>
+                <select id="cmpState"><option value="">Choose a state…</option></select>
+              </div>
+              <div id="cmpResult" class="cmp-result"></div>
+            </details>
+          </div>
 
-               Deliberately NOT sticky: a pinned bar on a 390x844 viewport with the
-               keyboard up would cover the field being typed into. It borrows .adv-q so
-               it takes the same separator rule as the questions above it
-               (.adv-q + .adv-q), which is why the only inline declaration it needs is
-               the weight. .adv-echo carries no CSS today and exists as a hook if this
-               ever earns a rule of its own. -->
-          <!-- Echoes the live take-home at the foot of the panel. Questions three to
-               five sit one to two screens below the answer band on a phone, so without
-               this an answer changes something the visitor cannot see and the panel
-               feels inert. Not an .adv-q, it is not a question. -->
-          <p class="adv-echo" id="advEcho">{{ADV_ECHO}}</p>
-        </fieldset>
+          <!-- The four rule pointers for this state, and the deep link into the
+               full flow. It used to sit below the calculator as its own section;
+               it now lands on the answer card, which is where a visitor who has
+               just been asked those four questions looks for what they mean. The
+               markup is state-applies.js's, untouched, so all four lines and all
+               five anchors still ship VISIBLE: state-flow.js only hides the ones
+               whose question was not answered Yes, and only once one of them is,
+               so a crawler and a no-JS reader still see every line. -->
+          {{APPLIES_BLOCK}}
+
+          <div class="otw-answers" id="otwAnswers"></div>
+          <div class="otw-restart"><button type="button" id="otwRestart">Start over</button></div>
+        </section>
       </form>
 
-      <!-- data-tb-result is the explicit anchor for report-widget.js, and now the ONLY
-           one: the live-region attribute that used to sit here is gone, because reading
-           the entire tax table aloud on every keystroke is not an announcement, and
-           #outStatus below says the same thing in one sentence. The widget's old
-           fallback was to sniff for a polite live region, which is exactly how the
-           "Report a wrong result" and "Copy result" controls silently vanished from
-           all 51 state pages once before. Keep this attribute. -->
-      <div class="results" data-tb-result>
-        <div class="breakdown" id="breakdown" aria-hidden="true">
-          <div class="bar">
-            <span class="seg-net" id="segNet" style="width:{{SEG_NET}}"></span>
-            <span class="seg-tax" id="segTax" style="width:{{SEG_TAX}}"></span>
-            <span class="seg-ded" id="segDed" style="width:{{SEG_DED}}"></span>
-          </div>
-          <div class="legend">
-            <span><i class="k-net"></i>Take-home <b id="lgNet">{{LG_NET}}</b></span>
-            <span><i class="k-tax"></i>Taxes <b id="lgTax">{{LG_TAX}}</b></span>
-            <span class="lg-ded" id="lgDedWrap"{{LG_DED_STYLE}}><i class="k-ded"></i>Deductions <b id="lgDed">{{LG_DED}}</b></span>
-          </div>
-        </div>
+      <!-- Outside the cards on purpose. This echoes the live take-home figure so
+           it travels with the visitor from card to card: the answer is on the last
+           card, so without it every question after the first changes a number that
+           is nowhere on screen and the flow feels inert. app.js writes it on every
+           render and hides it on the answer card, where the real figure is right
+           there. build.js pre-renders the same sentence into ADV_ECHO. -->
+      <p class="adv-echo" id="advEcho">{{ADV_ECHO}}</p>
 
-        <!-- Pre-rendered at build time for the form's own defaults: $75,000
-             salary, single, biweekly, "Per paycheck". app.js's first render
-             writes these same strings back, character for character, so
-             hydration changes nothing visible.
-
-             Every row app.js writes is filled here, not just the tax lines: the
-             state disability / paid-leave rows in {{PROGRAM_LINES}} are part of
-             the subtraction, and leaving that container empty while Net pay had
-             those amounts already taken out shipped a breakdown that did not add
-             up on the 14 states that carry such a program. The visible rows sum
-             to Net pay, and build.js asserts that per state.
-
-             The two deduction rows below stay $0.00 because they genuinely are
-             zero on those defaults, and their rows are hidden until a visitor
-             enters a deduction. -->
-        <div class="line"><span class="lbl">Gross</span><span id="rGross">{{ROW_GROSS}}</span></div>
-        <div class="line"><span class="lbl">Federal income tax</span><span id="rFederal">{{ROW_FEDERAL}}</span></div>
-        <div class="line"><span class="lbl">Social Security</span><span id="rSS">{{ROW_SS}}</span></div>
-        <div class="line"><span class="lbl">Medicare</span><span id="rMedicare">{{ROW_MEDICARE}}</span></div>
-        {{STATE_TAX_ROW}}
-        <div id="programLines">{{PROGRAM_LINES}}</div>
-        <div class="line" id="preTaxLine" hidden><span class="lbl">Pre-tax deductions</span><span id="rPreTax">$0.00</span></div>
-        <div class="line" id="postTaxLine" hidden><span class="lbl">Post-tax deductions</span><span id="rPostTax">$0.00</span></div>
-        <div class="line total"><span class="lbl">Net pay</span><span id="rNet">{{ROW_NET}}</span></div>
-        <div class="rate-row">
-          <span>Federal marginal rate: <strong id="rMarginal">{{RATE_MARGINAL}}</strong></span>
-          <span>Effective tax rate: <strong id="rEff">{{RATE_EFF}}</strong></span>
-          <span>Take-home: <strong id="rTake">{{RATE_TAKE}}</strong></span>
-        </div>
-
-        <details class="brackets" id="bracketPanel">
-          <summary>{{BRACKET_SUMMARY}}</summary>
-          <div class="table-scroll">
-            <table class="bracket-table">
-              <thead><tr><th>Bracket</th><th>Income taxed here</th><th>Tax</th></tr></thead>
-              <tbody id="bracketBody">{{BRACKET_BODY}}</tbody>
-            </table>
-          </div>
-          <p class="muted-small" id="bracketNote">{{BRACKET_NOTE}}</p>
-        </details>
-
-        <details class="brackets" id="comparePanel">
-          <summary>{{COMPARE_SUMMARY}}</summary>
-          <div class="field" style="margin-top:12px">
-            <label for="cmpState">Compare with</label>
-            <select id="cmpState"><option value="">Choose a state…</option></select>
-          </div>
-          <div id="cmpResult" class="cmp-result"></div>
-        </details>
-      </div>
       <!-- The page's one live region. announceResult() writes a single debounced
            sentence here and skips the boot render, so a screen reader hears the
            new take-home figure once per pause instead of the whole table per
-           keystroke. Same element, same id and same placement as the six tool
-           templates use. -->
+           keystroke. Outside the cards: inside one it would be display:none on
+           every step but its own and never reach a screen reader at all. -->
       <p id="outStatus" role="status" class="sr-only"></p>
     </section>
 
@@ -314,7 +518,6 @@
          render anything here. -->
     {{FIGURE_BANNER}}
 
-    {{APPLIES_BLOCK}}
 
     <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
 
