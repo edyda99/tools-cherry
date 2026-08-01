@@ -28,14 +28,36 @@
 // unguarded on every keystroke, and answeredYes() treats a MISSING qX radio
 // group as "yes". Cards the visitor is not on are hidden by CSS, never
 // unmounted; wizard-core is built the same way.
+//
+// THE FOUR RULE QUESTIONS COMPUTE (2026-08-01). Tips, extra hours, a bonus and
+// turning 65 used to do one thing between them: filter which of this state's
+// pointer lines the answer card showed. They now ask for the one or two figures
+// the rule actually needs and the answer card says what each is worth, using the
+// SAME engines the standalone calculators use — obbba-deduction.js for the three
+// deductions and bonus-tax.js for the bonus. No math is re-derived here.
+//
+// AND NONE OF IT TOUCHES THE PAYCHECK. Tips, overtime and the senior deduction
+// are filing-time deductions: they arrive as a bigger refund or a smaller bill
+// next year, they do not change withholding during the year, and they never
+// enter computePaycheck's input or any row of the results table. They are
+// printed in a block of their own, below the table, labelled as money back when
+// you file. The bonus is the other way round — a payday figure — and its line
+// says so and carries the heavier rule that stops a reader adding it in.
 import { computePaycheck, PAY_PERIODS, federalBracketBreakdown, annualizeGross } from '/assets/paycheck-engine.js';
+import { allowedDeduction, federalTaxSaved, overtimePremium, seniorDeduction } from '/assets/obbba-deduction.js';
+import { computeBonus } from '/assets/bonus-tax.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
-// Imported, never re-derived: one shared reader for a radio group, and the boot
-// handshake that puts the site's "this calculator failed to load" banner on
-// screen with the plain stacked form still visible underneath it.
-import { createWizard, radioOf } from '/assets/wizard-core.js';
+// Imported, never re-derived: one shared reader for a radio group, one for a
+// select, and the boot handshake that puts the site's "this calculator failed to
+// load" banner on screen with the plain stacked form still visible underneath it.
+// numOf is the shared reader for a plain number field: positive numbers only,
+// fractions KEPT, because 12.5 overtime hours is 12.5 hours. countValue() below
+// floors instead, on purpose, because you cannot claim half a dependent.
+// count() quotes an hours figure back with its fractions intact, so 12.5 hours
+// is never read back as "13". Imported rather than re-derived, like the readers.
+import { createWizard, radioOf, selectOf, numOf, count } from '/assets/wizard-core.js';
 const taxData = window.__TAX_DATA__;
 const stateSlug = window.__STATE_SLUG__;
 
@@ -74,14 +96,18 @@ const num = (id) => moneyValue($(id)) || 0;
 const fmtAmount = (n, dp) => n.toLocaleString('en-US', { maximumFractionDigits: dp });
 
 // --- The cards ---------------------------------------------------------------
-// data-step on each card in state-page.html, named. The five deduction cards
-// come last because they are the only optional ones that change the figure, and
-// the four rule cards before them change no figure at all: they decide which of
-// this state's 2026 rule pointers the answer card shows. RESULT is never skipped.
-const AMOUNT = 0, PAYTYPE = 1, HOURS = 2, FREQ = 3, FILING = 4;
-const Q_TIPS = 5, Q_OT = 6, Q_BONUS = 7, Q_AGE = 8;
-const Q_RETIRE = 9, Q_HEALTH = 10, Q_DEPS = 11, Q_EXTRA = 12, Q_POST = 13;
-const RESULT = 14;
+// data-step on each card in state-page.html, named. PAY asks the KIND of pay and
+// the figure together, in that order: they were two cards, and a visitor who
+// typed 28 into the first met the word "hourly" only on the second, by which
+// time the answer had already been worked out from a $28 salary. The five
+// deduction cards come last because they are the only optional ones that change
+// the paycheck; the four rule cards before them change no paycheck figure at all
+// — they are worked out as filing-time money on the answer card. RESULT is never
+// skipped.
+const PAY = 0, HOURS = 1, FREQ = 2, FILING = 3;
+const Q_TIPS = 4, Q_OT = 5, Q_BONUS = 6, Q_AGE = 7;
+const Q_RETIRE = 8, Q_HEALTH = 9, Q_DEPS = 10, Q_EXTRA = 11, Q_POST = 12;
+const RESULT = 13;
 
 // --- The five deduction questions -------------------------------------------
 // Each is a yes/no radio group on its own card; the money input it needs sits in
@@ -90,6 +116,15 @@ const RESULT = 14;
 // number is still sitting in it, so flipping back to No always restores the
 // plain answer.
 const ADV_QUESTIONS = ['qRetire', 'qHealth', 'qDeps', 'qExtra', 'qPost'];
+
+// --- The four rule questions -------------------------------------------------
+// Three of them now reveal a figure of their own on the same card, on the same
+// terms: the wrapper ships VISIBLE and is hidden when the answer is No, and a No
+// contributes nothing to the answer whatever is still sitting in the box.
+// qAge reveals nothing — its deduction is worked out from the pay and the filing
+// status this page already has.
+const RULE_QUESTIONS = ['qTips', 'qOt', 'qBonus'];
+const REVEAL_QUESTIONS = RULE_QUESTIONS.concat(ADV_QUESTIONS);
 
 // W-4 Step 3 arithmetic, UI layer only: the engine still receives one annual
 // dollar figure in adv.dependentsCredit, exactly as before.
@@ -122,7 +157,7 @@ function dependentsCreditValue() {
 }
 
 function syncAdvancedQuestions() {
-  for (const name of ADV_QUESTIONS) {
+  for (const name of REVEAL_QUESTIONS) {
     const host = document.querySelector(`[data-reveal="${name}"]`);
     if (!host) continue;
     const show = answeredYes(name);
@@ -133,6 +168,18 @@ function syncAdvancedQuestions() {
     }
     host.hidden = !show;
   }
+  // The one sub-reveal: "what is one normal hour of your work worth" is asked
+  // only of a salaried visitor. An hourly one answered it on card one, and
+  // asking twice is how two answers to one question end up disagreeing.
+  const rateHost = document.querySelector('[data-reveal-basis="salary"]');
+  if (rateHost) {
+    const needRate = payBasis() !== 'hourly';
+    if (!needRate && rateHost.contains(document.activeElement)) {
+      const back = document.querySelector('input[name="qOt"]:checked');
+      if (back) back.focus();
+    }
+    rateHost.hidden = !needRate;
+  }
   const derived = $('depCredit');
   if (derived) derived.textContent = usd(dependentsCreditValue());
 }
@@ -141,24 +188,53 @@ function currentView() {
   return radioOf('view', 'period');
 }
 
+// How the visitor said they are paid: 'salary' (a year), 'monthly' (a month) or
+// 'hourly'. selectOf answers '' for a page that ships no such control, which
+// falls back to the shipped default — the same value a no-JS submit would send.
+const payBasis = () => selectOf('wageType') || 'salary';
+
 // The one reader. wizard-core calls it too (spec.read), so the flow's path
 // predicates, its answer chips and its inline flags all see exactly the figures
 // the engine is about to be handed, rather than a second reading of the same
 // fields that could disagree with it.
 //
-// The three closed choices are radio groups rather than <select>s since the card
-// rewrite: a card asks one question, and a radio group answers it without a
-// second tap into a dropdown. radioOf falls back to the shipped default when
-// nothing is checked, which is also what a no-JS submit would have sent.
+// Pay frequency and filing status are radio groups rather than <select>s since
+// the card rewrite: a card asks one question, and a radio group answers it
+// without a second tap into a dropdown. Pay type is the exception — three
+// choices, two of which differ by one word, read better as a list, and it sits
+// on the same card as the figure it describes.
+//
+// MONTHLY IS AN ADAPTER AND NOTHING MORE. paycheck-engine.js knows two kinds of
+// wage, a yearly salary and an hourly rate, and it stays that way: a monthly
+// figure is multiplied by twelve HERE, on its way in, and the engine is not
+// touched. `basis` and `typed` carry the visitor's own answer alongside, so the
+// caption, the chips and the labels can quote the number they actually typed
+// rather than the annualised one.
 function readForm() {
-  const wageType = radioOf('wageType', 'salary'); // 'salary' | 'hourly'
+  const basis = payBasis();
   const amount = moneyValue($('amount')) || 0;
   const hoursPerWeek = parseFloat($('hours').value) || 40;
+  const annualAmount = basis === 'monthly' ? amount * 12 : amount;
   return {
-    wage: { type: wageType, amount, hoursPerWeek },
+    basis,
+    typed: amount,
+    wage: { type: basis === 'hourly' ? 'hourly' : 'salary', amount: annualAmount, hoursPerWeek },
     filingStatus: radioOf('filingStatus', 'single'),
     payFrequency: radioOf('payFrequency', 'biweekly'),
     stateSlug,
+    // The four rule answers and the figures they need. Read on every keystroke
+    // like everything else here, and gated by their own question exactly as the
+    // five deduction fields below are: a No is worth zero whatever is in the box.
+    rules: {
+      tips: answeredYes('qTips') ? num('tipsYear') : 0,
+      otHours: answeredYes('qOt') ? numOf('otHours') : 0,
+      otRate: answeredYes('qOt') ? num('otRate') : 0,
+      // An hourly visitor's normal rate is the figure on card one; a salaried
+      // one is asked for it, because a salary does not name an hourly rate.
+      normalRate: answeredYes('qOt') ? (basis === 'hourly' ? amount : num('regRate')) : 0,
+      bonus: answeredYes('qBonus') ? num('bonusAmount') : 0,
+      age65: answeredYes('qAge')
+    },
     // Always read, never gated on a mode toggle: the five questions are cards in
     // the flow now, every one of them ships answered No, and No zeroes its own
     // field. So the default flow produces exactly what the old Simple mode did,
@@ -183,19 +259,45 @@ function readForm() {
 const yearlyPay = (s) => annualizeGross(s.wage);
 
 // The expensive mistake this page can make: typing a yearly salary while the
-// pay-type card says hourly. It does not look wrong on the card, and the answer
-// it produces is wrong by a factor of about two thousand.
+// dropdown above it says hourly. It does not look wrong on the card, and the
+// answer it produces is wrong by a factor of about two thousand.
 // The one line between "a yearly salary" and "an hourly rate". Nobody is paid
 // $1,000 an hour and nobody earns $1,000 a year, so a figure on the wrong side
-// of it is the wrong KIND of number rather than an unusual one. Both the warning
-// below and the switch conversion read it, so they cannot disagree about which
-// figures look like a salary.
+// of it is the wrong KIND of number rather than an unusual one.
+//
+// There is deliberately no monthly-vs-yearly twin of this check. $75,000 is a
+// perfectly ordinary yearly salary AND a possible monthly one, so the two
+// answers cannot contradict each other the way a $75,000 hourly rate and a
+// 40-hour week do; there is no line to put between them that would not be
+// invented. The example label carries our $75,000 until the visitor types over
+// it, which is the honest cover for that case.
 const WAGE_KIND_LINE = 1000;
 
 function wageTypeWarning(s) {
   if (s.wage.type !== 'hourly' || s.wage.amount < WAGE_KIND_LINE) return '';
   return `Check these numbers: ${usd2(s.wage.amount)} an hour over ${s.wage.hoursPerWeek} hours a week ` +
     `comes to ${usd(yearlyPay(s))} a year. If that figure is your yearly salary, choose "A yearly salary" above.`;
+}
+
+// Tips are part of your pay, so tips above the whole year's pay is the same
+// number counted wrong. The contradiction can only exist once the tips figure
+// exists, so the flag lives on the tips card.
+function tipsWarning(s) {
+  const pay = yearlyPay(s);
+  if (pay <= 0 || s.rules.tips <= 0 || s.rules.tips <= pay) return '';
+  return `Check these numbers: the ${usd(s.rules.tips)} you entered as tips is more than the ${usd(pay)} you entered ` +
+    `as your pay for the whole year, and your pay is supposed to include your tips.`;
+}
+
+// Overtime pay alone larger than the whole year's pay. Same shape: the overtime
+// hours are hours you were paid for, so they cannot come to more than the pay.
+function overtimeWarning(s) {
+  const pay = yearlyPay(s);
+  const otPay = s.rules.otRate * s.rules.otHours;
+  if (pay <= 0 || otPay <= 0 || otPay <= pay) return '';
+  return `Check these numbers: ${count(s.rules.otHours)} extra hours at ${usd2(s.rules.otRate)} an hour comes to ` +
+    `${usd(otPay)}, which is more than the ${usd(pay)} you entered as your pay for the whole year, and your pay ` +
+    `is supposed to include what those hours paid.`;
 }
 
 function retireWarning(s) {
@@ -249,9 +351,16 @@ function netLabelText(input) {
   if (!name) return '';
   const filing = FILING_LABEL[input.filingStatus] || FILING_LABEL.single;
   const paid = PAID_LABEL[input.payFrequency] || PAID_LABEL.biweekly;
-  const basis = input.wage.type === 'hourly'
-    ? `${usd2(input.wage.amount)} an hour over ${input.wage.hoursPerWeek} hours a week`
-    : `a ${usd(input.wage.amount)} salary`;
+  // Quotes the figure the visitor typed, in the words they chose for it: a
+  // monthly answer says "a $6,250 monthly salary", not the $75,000 the engine
+  // was handed. The salary and hourly wordings are untouched, and the salary one
+  // is byte-for-byte what build.js pre-renders (stateNetLabel) for the shipped
+  // defaults, so hydration still changes nothing.
+  const basis = input.basis === 'hourly'
+    ? `${usd2(input.typed)} an hour over ${input.wage.hoursPerWeek} hours a week`
+    : input.basis === 'monthly'
+      ? `a ${usd(input.typed)} monthly salary`
+      : `a ${usd(input.typed)} salary`;
   return `Based on ${basis} in ${name}, ${filing}, ${paid}`;
 }
 
@@ -304,6 +413,357 @@ function renderAnswerLead(r) {
     text.slice(n[1]);
 }
 
+// --- the two slots build.js cannot pre-render --------------------------------
+// READ THIS BEFORE ADDING A THIRD ONE.
+//
+// build.js's pre-render guard (scanAppFirstRender + assertPanelParity) scans
+// THIS FILE for `$('someId').textContent = …` writes reachable from init(), and
+// fails the build for any id statePanel() has no pre-rendered value for. That
+// guard is right, and it is why twenty-five figures on this page are served real
+// and hydrate to the identical string. It is also in build.js, which the pass
+// that added these two elements was not allowed to edit, so these two are
+// addressed by ATTRIBUTE and stay out of its denominator.
+//
+// Both are parity-neutral BY CONSTRUCTION, which is the only reason this is
+// acceptable rather than a hole in the guard:
+//   amountLabel — the template serves the SALARY wording and the select ships
+//     "A yearly salary" selected, so the first render writes back the identical
+//     string. scripts/test-ux-structure.js pins that identity, which is the
+//     check build.js would otherwise be making.
+//   filing     — ships EMPTY, and all four rule questions ship answered No, so
+//     the first render writes the same empty string. It is a computed answer,
+//     the one thing that has always been JavaScript-only here (#out everywhere
+//     else in this family), and it hides nothing from a crawler: the per-state
+//     pointer lines it sits above are server-rendered and stay visible.
+//
+// The right end state is two entries in statePanel().expected — one
+// `{ expect: <the salary label> }` and one `{ expect: '' }` — and these writes
+// moved back onto $('id'). That is a build.js change; see
+// notes/state-page-phase5.md.
+const slot = (name) => document.querySelector(`[data-otw-slot="${name}"]`);
+
+// The amount field asks for one figure whose meaning is whatever the select
+// above it says, so its label follows the select. Nothing else follows it: the
+// VALUE is never rewritten, because a number the visitor typed under one label
+// is not a number they typed under another.
+const AMOUNT_LABEL = {
+  salary: 'How much is that a year, before anything comes out?',
+  monthly: 'How much is that a month, before anything comes out?',
+  hourly: 'How much is that an hour, before anything comes out?'
+};
+
+function syncAmountLabel(basis) {
+  const el = slot('amountLabel');
+  if (!el) return;
+  const text = AMOUNT_LABEL[basis] || AMOUNT_LABEL.salary;
+  // Written only when it differs, so the served bytes are left alone on the
+  // boot render rather than replaced with an identical string.
+  if (el.textContent !== text) el.textContent = text;
+}
+
+// --- What the four rule answers are worth ------------------------------------
+// The engines are the ones the standalone calculators use, called with the pay
+// and the filing status this page already knows:
+//   tips, overtime, turning 65 -> obbba-deduction.js  (FILING-TIME deductions)
+//   a bonus in this state      -> bonus-tax.js        (a PAYDAY figure)
+// Their PARAMETERS are not in window.__TAX_DATA__ (that payload is deliberately
+// this state plus the federal tables and nothing else), so they are fetched from
+// the two published data files the site already serves, on demand, the first
+// time a rule is answered Yes. Same-origin static JSON, the same shape the
+// build reads, and the same trick renderCompare() below already uses for the
+// all-states file. Nothing is fetched for a visitor who answers No to all four.
+const OBBBA_URL = '/data/obbba-deductions-2026.json';
+const SUPP_URL = '/data/state-supplemental-withholding-rates-2026.json';
+let ruleData = null;                 // { obbba, supp } once BOTH have landed
+let ruleDataState = 'idle';          // idle -> loading -> ready | failed
+
+async function ensureRuleData() {
+  if (ruleDataState !== 'idle') return;
+  ruleDataState = 'loading';
+  try {
+    const [obbba, supp] = await Promise.all([
+      fetch(OBBBA_URL).then((res) => res.json()),
+      fetch(SUPP_URL).then((res) => res.json())
+    ]);
+    // Both or neither: half the data would compute two of the four rules and
+    // silently drop the others, which reads as "this rule is worth nothing".
+    if (!obbba || !obbba.federal || !supp || !supp.states) throw new Error('rule data incomplete');
+    ruleData = { obbba, supp };
+    ruleDataState = 'ready';
+  } catch (e) {
+    ruleDataState = 'failed';
+  }
+  render();
+}
+
+// The state's own 2026 verdict on the federal tips deduction, in the same words
+// /tips-tax-calculator/ uses for the same four verdicts, so one visitor reading
+// both pages is told the same thing twice rather than two different things.
+const CONFORMITY = {
+  yes: (name) => `deductible on your ${name} return too`,
+  no: (name) => `still taxed by ${name}`,
+  partial: (name) => `and ${name} adds a smaller capped state break of its own`,
+  unclear: (name) => `not yet confirmed by ${name}`
+};
+
+function conformityClause(kind) {
+  const e = ruleData && ruleData.obbba.states && ruleData.obbba.states[stateSlug];
+  const name = taxData.states[stateSlug]?.name || '';
+  if (!e || !name) return '';
+  if (!e.hasWageTax) return `${name} taxes no wages, so the federal deduction is the whole story here.`;
+  const v = e[kind] && e[kind].y2026;
+  const say = CONFORMITY[v];
+  if (!say) return '';
+  const lead = v === 'partial' ? 'It is federally deductible' : `In ${name} it is`;
+  return `${lead} ${say(name)}.`;
+}
+
+// The three deductions, in card order, each with the tax it saves. CHAINED, not
+// computed one at a time: obbba-deduction.js's own W-4 helper says why, and it
+// is the same reason — the tax saved by two deductions together is one
+// bracket-diff on their sum, never the sum of two separate diffs, because the
+// combined amount can span a bracket line the individual ones do not reach. So
+// each row is worth what it adds ON TOP of the rows above it, the last row's
+// running total IS the combined figure, and the rows therefore add up to it.
+function filingRows(input, income) {
+  const fed = taxData.federal;
+  const obbba = ruleData.obbba.federal;
+  const filing = input.filingStatus;
+  const rules = input.rules;
+  const rows = [];
+  let running = 0;
+  let savedSoFar = 0;
+  const chain = (deduction) => {
+    running += Math.max(0, deduction);
+    const total = federalTaxSaved(income, filing, running, fed).taxSaved;
+    const mine = total - savedSoFar;
+    savedSoFar = total;
+    return mine;
+  };
+
+  if (rules.tips > 0) {
+    const d = allowedDeduction({
+      eligibleAmount: rules.tips, filingStatus: filing, magi: income, params: obbba.tips
+    });
+    rows.push({
+      label: 'Tips',
+      saved: chain(d.deduction),
+      // Both numbers, always, the moment the cap or the phase-out binds: "your
+      // tips" and "the deductible amount" are the same figure only until it does.
+      note: d.deduction < rules.tips
+        ? `${usd(d.deduction)} of your ${usd(rules.tips)} in tips is deductible` +
+          (d.fullyPhasedOut
+            ? `: your pay is high enough that the deduction is fully phased out.`
+            : d.phasedOut
+              ? `: the ${usd(d.statutoryCap)} cap falls to ${usd(d.allowedCap)} at your income, and the rest of your tips is taxed as usual.`
+              : `. The deduction stops at ${usd(d.allowedCap)} a year, and the rest of your tips is taxed as usual.`)
+        : `All ${usd(rules.tips)} of your tips comes off the income you are taxed on.`,
+      extra: conformityClause('tips')
+    });
+  }
+
+  if (rules.otHours > 0 || rules.otRate > 0 || rules.normalRate > 0) {
+    // The shipped overtime pattern, not a 1.5x assumption: only the required
+    // "half" above the normal rate is deductible, and only as much of it as was
+    // actually paid. Double time pays more than the half and the excess is
+    // taxed as usual; an employer paying less than time and a half pays less
+    // than the half, and that smaller figure is what comes off.
+    const paidExtra = Math.max(0, rules.otRate - rules.normalRate) * rules.otHours;
+    const requiredHalf = overtimePremium(rules.normalRate, rules.otHours);
+    const premium = Math.min(paidExtra, requiredHalf);
+    const d = allowedDeduction({
+      eligibleAmount: premium, filingStatus: filing, magi: income, params: obbba.overtime
+    });
+    let note;
+    if (rules.normalRate <= 0) {
+      note = 'Fill in what one normal hour of your work is worth and this fills in.';
+    } else if (rules.otHours <= 0) {
+      note = 'Fill in how many extra hours you will work this year and this fills in.';
+    } else if (paidExtra <= 0) {
+      note = `Those hours pay ${usd2(rules.otRate)}, which is not above your normal ${usd2(rules.normalRate)}, ` +
+        `so they paid no premium and there is nothing to deduct. If the two rates went in the wrong way round, swap them.`;
+    } else if (d.deduction < premium) {
+      note = `${usd(d.deduction)} of your ${usd(premium)} overtime premium is deductible` +
+        (d.fullyPhasedOut
+          ? `: your pay is high enough that the deduction is fully phased out.`
+          : `: the deduction stops at ${usd(d.allowedCap)} a year, and the rest is taxed as usual.`);
+    } else {
+      note = `Only the extra "half" above your normal rate counts, which is ${usd(premium)} of the ` +
+        `${usd(rules.otRate * rules.otHours)} those ${count(rules.otHours)} hours pay.`;
+    }
+    rows.push({ label: 'Extra hours', saved: chain(d.deduction), note, extra: conformityClause('overtime') });
+  }
+
+  if (rules.age65) {
+    const d = seniorDeduction({
+      year: Number(taxData.taxYear), filingStatus: filing, age65: true, spouseAge65: false,
+      magi: income, params: obbba.senior
+    });
+    const perPerson = obbba.senior.amountPerPerson;
+    let note;
+    if (d.fullyPhasedOut) {
+      note = `The ${usd(perPerson)} senior deduction is fully phased out at your income, so it is worth nothing this year.`;
+    } else if (d.phasedOut) {
+      note = `${usd(d.deduction)} of the ${usd(perPerson)} senior deduction survives at your income; it shrinks by ` +
+        `6 cents for every dollar of pay over ${usd(d.threshold)}.`;
+    } else {
+      note = `${usd(d.deduction)} comes off the income you are taxed on for being 65 or over.`;
+    }
+    rows.push({
+      label: 'Turning 65',
+      saved: chain(d.deduction),
+      note,
+      // Counted for ONE person, because the card asks one question about two
+      // people. Saying so is the difference between an estimate and a wrong
+      // answer for a couple who both turn 65.
+      extra: filing === 'married'
+        ? 'Counted for one of you. If you both turn 65 this year it is doubled, which the senior calculator works out.'
+        : ''
+    });
+  }
+  return { rows, total: savedSoFar };
+}
+
+// What a bonus does, from the bonus engine, for THIS state. A payday figure, not
+// a filing-time one: it is what lands in the account when the bonus is paid,
+// after the flat federal prepayment, this state's supplemental withholding and
+// FICA. It is never added to the deductions above it.
+function bonusLine(input, income) {
+  const b = computeBonus(
+    {
+      bonus: input.rules.bonus, regIncome: income, filingStatus: input.filingStatus,
+      stateSlug, ytdSupp: 0, method: 'flat', paymentType: 'bonus'
+    },
+    taxData, ruleData.supp
+  );
+  return { bonus: Math.round(b.bonus), lands: Math.round(b.withheld.keep) };
+}
+
+// The overtime rate starts at one and a half times the normal rate, the usual
+// overtime rate, and STOPS following the moment the visitor types their own:
+// their number outranks our guess for the rest of the session. Copied in shape
+// from /overtime-tax-calculator/, which is where the rule was settled — the
+// calculator does not assume time and a half, it offers it and then believes
+// what it is told, because employers break the assumption in both directions.
+let otRateTouched = false;
+
+function syncOtRate() {
+  if (otRateTouched) return;
+  const el = $('otRate');
+  if (!el) return;
+  const normal = payBasis() === 'hourly' ? (moneyValue($('amount')) || 0) : num('regRate');
+  const v = Math.round(normal * 1.5 * 100) / 100;
+  const next = v > 0 ? fmtAmount(v, 2) : '';
+  if (el.value !== next) el.value = next;
+}
+
+// The block itself. Empty is a real answer here and the commonest one: four
+// questions answered No have nothing to say.
+function renderAtFiling(input, r) {
+  const box = slot('filing');
+  if (!box) return;
+  const rules = input.rules;
+  const anyYes = rules.tips > 0 || rules.bonus > 0 || rules.age65 ||
+    rules.otHours > 0 || rules.otRate > 0 || rules.normalRate > 0 ||
+    answeredYes('qTips') || answeredYes('qOt') || answeredYes('qBonus');
+  if (!anyYes) { box.innerHTML = ''; return; }
+
+  ensureRuleData();
+  const income = r.annual.gross;
+  if (!(income > 0)) {
+    box.innerHTML = `<p class="otw-note">Enter your pay above and we work out what these are worth to you.</p>`;
+    return;
+  }
+  if (ruleDataState === 'failed') {
+    box.innerHTML = `<p class="otw-note">We could not load the 2026 deduction figures just now, so these are not ` +
+      `worked out here. The links below still do it in full.</p>`;
+    return;
+  }
+  if (ruleDataState !== 'ready') {
+    box.innerHTML = `<p class="otw-note">Working out what these are worth to you…</p>`;
+    return;
+  }
+
+  const { rows, total } = filingRows(input, income);
+
+  // ROUNDED ONCE, THEN DERIVED. The labels invite a reader to add these up, so
+  // the printed rows have to come to the printed total: every row but the last
+  // is rounded on its own and the last is DERIVED from the already-rounded
+  // total. (If that derivation ever came out negative — possible only when the
+  // last row is worth almost nothing and the others round up — the total
+  // becomes the sum of the rounded rows instead, so the two are never at odds.)
+  const amounts = rows.map((row) => Math.round(row.saved));
+  let totalR = Math.round(total);
+  if (rows.length > 1) {
+    const derived = totalR - amounts.slice(0, -1).reduce((a, b) => a + b, 0);
+    if (derived >= 0) amounts[amounts.length - 1] = derived;
+    else totalR = amounts.reduce((a, b) => a + b, 0);
+  }
+
+  // The rows carry the money and nothing else; every qualifying sentence goes
+  // BELOW the list, named for the row it qualifies. A note nested inside a flex
+  // row would sit on the same line as the label it belongs to.
+  const items = rows.map((row, i) =>
+    `<li><span>${escLbl(row.label)}</span>` +
+    `<span class="otw-amt otw-free">+${usd(amounts[i])}</span></li>`
+  ).join('');
+
+  const totalRow = rows.length > 1
+    ? `<li class="otw-after"><span>Back when you file, all together</span>` +
+      `<span class="otw-amt otw-free">+${usd(totalR)}</span></li>`
+    : '';
+
+  // The bonus is a PAYDAY figure sitting in a filing-time block, so it carries
+  // the heavier rule that stops a reader adding it in, and its own words say
+  // when it happens.
+  let bonusRow = '';
+  const stateName = taxData.states[stateSlug]?.name || '';
+  const notes = rows.filter((row) => row.note || row.extra)
+    .map((row) => `<p class="otw-note"><strong>${escLbl(row.label)}.</strong> ${escLbl(row.note)}` +
+      `${row.extra ? ' ' + escLbl(row.extra) : ''}</p>`);
+  if (rules.bonus > 0) {
+    const b = bonusLine(input, income);
+    bonusRow = `<li class="otw-after"><span>Your ${usd(b.bonus)} bonus lands as about this on payday</span>` +
+      `<span class="otw-amt">${usd(b.lands)}</span></li>`;
+    notes.push(`<p class="otw-note"><strong>Bonus.</strong> That is what arrives the day it is paid, after the flat ` +
+      `federal prepayment, ${escLbl(stateName)} withholding and Social Security and Medicare. It is not filing-time ` +
+      // Only claim there is a total to keep it out of when there IS one.
+      `money${rows.length ? ', so it is not part of the total above' : ''}. Some of the federal part usually comes ` +
+      `back when you file, which the bonus calculator works out.</p>`);
+  }
+
+  const story = (items || bonusRow)
+    ? `<ul class="otw-story">${items}${totalRow}${bonusRow}</ul>${notes.join('')}`
+    : '';
+  const lead = rows.length
+    ? `<p class="otw-lead">None of this changes the paycheck above. It arrives when you file:</p>`
+    : '';
+
+  // The three sentences the whole family of filing-time deduction tools has to
+  // say, because without them readers left believing this money was tax-free
+  // outright: it comes back at filing, Social Security and Medicare are still
+  // owed on every dollar of it, and the paycheck during the year does not move.
+  // A bonus-only answer gets none of them: not one of the three is true of it,
+  // and pasting a FICA note onto a tool it does not describe is how a page ends
+  // up confidently explaining the wrong thing.
+  let plain = '';
+  if (rows.length) {
+    plain = `<div class="otw-plain">This is money back when you file next year, as a bigger refund or a smaller ` +
+      `bill, not extra in each paycheck. Social Security and Medicare are still owed on every dollar of it, and ` +
+      `your take-home above does not change because of it. Ask your employer about your W-4 if you would rather ` +
+      `have it during the year.</div>`;
+  } else if (!bonusRow) {
+    plain = `<div class="otw-plain">Nothing to claim at filing from your answers so far. Fill in the figures on ` +
+      `the cards you answered Yes to and this fills in.</div>`;
+  }
+
+  // The heading names what is actually below it. "At filing next year" over a
+  // lone bonus row would be flatly wrong: a bonus is paid, and taxed, on payday.
+  const kick = rows.length ? 'At filing next year' : (bonusRow ? 'When that bonus is paid' : 'At filing next year');
+
+  box.innerHTML = `<p class="otw-kick">${kick}</p>` + lead + story + plain;
+}
+
 // --- zero state -------------------------------------------------------------
 // The money rows the results panel prints unconditionally. With no pay entered
 // they used to read "−$0.00" five times under a "$0.00" headline, which asserts
@@ -347,12 +807,23 @@ function renderBreakdown(r) {
 }
 
 function render() {
-  // Show or hide each deduction question's money field for the answer beside it
-  // before anything is read, so a field that has just been switched off is not
-  // still on screen while its contribution is already zero. There is no separate
-  // "hours" toggle any more: hours is its own card, and wizard-core drops it
-  // from the path (and from the dots) the moment the pay type is a salary.
+  // Show or hide each question's money field for the answer beside it before
+  // anything is read, so a field that has just been switched off is not still on
+  // screen while its contribution is already zero. There is no separate "hours"
+  // toggle any more: hours is its own card, and wizard-core drops it from the
+  // path (and from the dots) the moment the pay type is not an hourly rate.
   syncAdvancedQuestions();
+  // Both of these write a field or a label, so they run BEFORE the form is read
+  // and never after: a value written after the read would be one keystroke stale
+  // in the answer underneath it.
+  //
+  // The label on the amount field follows the dropdown above it. Its VALUE never
+  // does: the number means what the dropdown says it means, and rewriting a
+  // figure the visitor typed is how $28 an hour became $0.01 an hour once.
+  syncAmountLabel(payBasis());
+  // The overtime rate follows one and a half times the normal rate until the
+  // visitor types their own, and then it stops following.
+  syncOtRate();
 
   const input = readForm();
   const r = computePaycheck(input, taxData);
@@ -476,6 +947,11 @@ function render() {
   $('rPostTax').textContent = postTaxOn ? '−' + usd2(p.postTax) : usd2(p.postTax);
 
   renderBreakdown(r);
+  // The four rule answers, worked out. Deliberately AFTER every row above and
+  // outside the results table: not one figure in it belongs to the paycheck, so
+  // none of it may be subtracted from Net pay or appear as a row that a reader
+  // would take off the top line.
+  renderAtFiling(input, r);
   renderCompare();
   announceResult();
 }
@@ -504,57 +980,22 @@ function announceResult() {
   }, 500);
 }
 
-// --- pay type switch --------------------------------------------------------
-// Switching salary <-> hourly used to leave the old number in place, so an
-// annual salary was read as an hourly rate. Convert the visitor's own figure
-// instead; no tax figure is involved.
-let prevWageType = null;
-
-// The live flow controller, held rather than mounted and forgotten, for the one
-// thing below that needs it.
+// --- pay type ----------------------------------------------------------------
+// NOTHING HERE CONVERTS THE TYPED FIGURE, and that is the whole point of the
+// merged first card. There used to be a convertOnWageTypeSwitch() that divided
+// or multiplied the amount by 2,080 when the pay type changed, plus a helper
+// under the radios promising it would. It could not be made right: the two cards
+// meant the visitor typed a figure BEFORE saying what kind of figure it was, so
+// the conversion had to guess from the size of the number which side of the line
+// it was on, and it guessed wrong in both directions ($28 typed as an hourly
+// rate became $0.01 an hour; $75,000 typed as a salary became $156,000,000 a
+// year). Asking the KIND first and labelling the box to match removes the guess
+// entirely: the amount means exactly what the dropdown above it says, and
+// changing the dropdown changes the label, never the number.
+//
+// The flow controller is still held rather than mounted and forgotten, because
+// init() starts it by hand.
 let wizard = null;
-
-// Pay type is the only answer on this page that changes the SHAPE of the flow:
-// hourly adds the hours card, salary drops it. wizard-core repaints the progress
-// dots and the "Step 3 of 5" label from every FIELD event, but a radio answer
-// only re-renders the result, so the dots kept describing a flow one card longer
-// than the one the visitor was in until they pressed Next. Re-showing the
-// current step is the core's own public way to make it re-derive the path: it
-// normalises forward if the card underfoot has just left the path, and passing
-// false keeps it from stealing focus off the radio the visitor is using.
-// (Reported as a wizard-core gap rather than patched there: the core is shared
-// by the whole calculator family and is not this page's to change.)
-function repaintFlowShape() {
-  if (wizard) wizard.show(wizard.step, false);
-}
-
-function convertOnWageTypeSwitch() {
-  const now = radioOf('wageType', 'salary');
-  const from = prevWageType;
-  if (from === null || from === now) { prevWageType = now; return; }
-  prevWageType = now;
-
-  const amountEl = $('amount');
-  const current = moneyValue(amountEl);
-  if (!Number.isFinite(current) || current <= 0) return;
-  const hoursPerYear = (parseFloat($('hours').value) || 40) * 52;
-  if (!(hoursPerYear > 0)) return;
-
-  // Only convert a figure that is on the WRONG side of the salary/rate line.
-  // The card order is amount first, pay type second, so the ordinary hourly
-  // visitor types their rate ($28) and then chooses "An hourly rate" — and this
-  // used to divide it by 2,080 on the way past, leaving $0.01 an hour and a
-  // take-home of $0.41 a week, with card one already off the screen and no
-  // warning to explain it (the warning only fires above $1,000). A figure that
-  // already reads as an hourly rate is left exactly as typed, and the same
-  // going the other way: 75,000 sitting in the field while the answer says
-  // hourly is a salary, and multiplying it by 2,080 was never right either.
-  if (from === 'salary' && now === 'hourly' && current >= WAGE_KIND_LINE) {
-    amountEl.value = fmtAmount(Math.round((current / hoursPerYear) * 100) / 100, 2);
-  } else if (from === 'hourly' && now === 'salary' && current < WAGE_KIND_LINE) {
-    amountEl.value = fmtAmount(Math.round(current * hoursPerYear), 0);
-  }
-}
 
 // --- compare with another state (fetches the published full tax data on demand) ---
 let fullData = null;
@@ -635,9 +1076,11 @@ function exampleStillOurs(state, touched) {
 }
 
 // The chips under the answer, one per figure the flow asked for, each a way back
-// to the card that asked. The four rule cards are deliberately not here: their
+// to the card that asked. The four rule cards are still not chipped here: their
 // answers are the ticked chips inside the applies panel on the same card, which
-// state-flow.js keeps in step with them in both directions.
+// state-flow.js keeps in step with them in both directions, and a Yes now also
+// prints a line of its own in the filing block above — three ways of showing one
+// answer is two too many.
 //
 // The five deduction cards ARE here, and every one of them chips whether it was
 // answered Yes or No. They were left out at first on the reasoning that a No is
@@ -654,11 +1097,14 @@ function exampleStillOurs(state, touched) {
 // doing nothing; with no field named, the core focuses the question's radios
 // instead, which is the control the visitor needs first anyway.
 function answerChips(s) {
-  const list = [
-    { step: AMOUNT, field: 'amount', label: s.wage.type === 'hourly' ? `${usd2(s.wage.amount)}/hr` : `${usd(s.wage.amount)}/yr` },
-    { step: PAYTYPE, label: s.wage.type === 'hourly' ? 'paid hourly' : 'salaried' }
-  ];
-  if (s.wage.type === 'hourly') list.push({ step: HOURS, field: 'hours', label: `${s.wage.hoursPerWeek} hrs/week` });
+  // ONE chip for the first card, because it is now one card. It quotes the
+  // figure the visitor typed AND the basis they chose for it, which is exactly
+  // what that card asked, and both halves are wrong together or right together.
+  const paid = s.basis === 'hourly'
+    ? `${usd2(s.typed)}/hr`
+    : s.basis === 'monthly' ? `${usd(s.typed)}/month` : `${usd(s.typed)}/yr`;
+  const list = [{ step: PAY, field: 'amount', label: paid }];
+  if (s.basis === 'hourly') list.push({ step: HOURS, field: 'hours', label: `${s.wage.hoursPerWeek} hrs/week` });
   list.push({ step: FREQ, label: PAID_LABEL[s.payFrequency] || PAID_LABEL.biweekly });
   list.push({ step: FILING, label: FILING_LABEL[s.filingStatus] || FILING_LABEL.single });
 
@@ -679,12 +1125,11 @@ function answerChips(s) {
 
 function init() {
   initMoneyInputs();
-  prevWageType = radioOf('wageType', 'salary');
-  // Registered BEFORE wizard-core binds its own listeners to the same radios, so
-  // the typed amount is already converted by the time the render for this same
-  // change event runs. Listener order on one element is registration order.
-  document.querySelectorAll('input[name="wageType"]').forEach((el) =>
-    el.addEventListener('change', () => { convertOnWageTypeSwitch(); repaintFlowShape(); }));
+  // The overtime rate stops following one and a half times the normal rate the
+  // moment a person types in it. isTrusted only: syncOtRate()'s own writes fire
+  // no event, and a chip or a prefill is OUR number until someone types over it.
+  const otRateEl = $('otRate');
+  if (otRateEl) otRateEl.addEventListener('input', (e) => { if (e.isTrusted) otRateTouched = true; });
 
   // #netKicker is not on a state paycheck page and never has been: it belongs to
   // the sibling templates whose headline carries a kicker line. The write stays
@@ -714,8 +1159,7 @@ function init() {
 
   // createWizard rather than mountWizard: __bootInit() below already does the
   // readyState handshake and already puts the shared "this calculator failed to
-  // load" banner up if anything in here throws, which is all mountWizard adds,
-  // and holding the controller is what repaintFlowShape() needs.
+  // load" banner up if anything in here throws, which is all mountWizard adds.
   wizard = createWizard({
     stage: 'paycheckWizard',
     read: readForm,
@@ -729,21 +1173,33 @@ function init() {
     renderResult: () => '',
 
     cards: [
-      { step: AMOUNT, fields: ['amount'] },
-      { step: PAYTYPE, radios: 'wageType', flags: [{ id: 'otwWageTypeFlag', text: wageTypeWarning }] },
-      // Off the path entirely on a salary, so it leaves the dots and the "Step 3
-      // of 5" count on the keystroke that changes the pay type, not on the next
-      // Next. The input stays in the DOM: readForm() reads it unguarded.
-      { step: HOURS, fields: ['hours'], when: (s) => s.wage.type === 'hourly' },
+      // Both answers on one card, so both are FIELDS: the pay type is a select
+      // now, and a select is a field to wizard-core, which means the dots, the
+      // "Step 2 of 5" line and the flag below are all repainted on the keystroke
+      // that changes it rather than on the next Next. (As two cards this needed a
+      // hand-rolled repaint, because the core does not re-derive the path from a
+      // radio answer. One less thing that can drift out of step.)
+      { step: PAY, fields: ['wageType', 'amount'],
+        flags: [{ id: 'otwWageTypeFlag', text: wageTypeWarning }] },
+      // Off the path entirely unless the pay is hourly, so it leaves the dots and
+      // the step count on the keystroke that changes the pay type, not on the
+      // next Next. The input stays in the DOM: readForm() reads it unguarded.
+      { step: HOURS, fields: ['hours'], when: (s) => s.basis === 'hourly' },
       { step: FREQ, radios: 'payFrequency' },
       { step: FILING, radios: 'filingStatus' },
 
-      // The four rule checks. They change no figure, so they carry no flag, and
-      // each carries a Skip: a visitor who only wants the take-home number should
-      // never have to answer nine more questions to see it.
-      { step: Q_TIPS, radios: 'qTips' },
-      { step: Q_OT, radios: 'qOt' },
-      { step: Q_BONUS, radios: 'qBonus' },
+      // The four rule checks. They change no paycheck figure, so a Skip past them
+      // still yields the right take-home; what they change is the filing-time
+      // block on the answer card, which is worked out from the figures they ask
+      // for here. skipClears empties those figures on the way past, so a number
+      // typed and then skipped cannot keep feeding an answer from a card the
+      // visitor has left behind.
+      { step: Q_TIPS, radios: 'qTips', fields: ['tipsYear'], skipClears: ['tipsYear'],
+        flags: [{ id: 'otwTipsFlag', text: tipsWarning }] },
+      { step: Q_OT, radios: 'qOt', fields: ['regRate', 'otHours', 'otRate'],
+        skipClears: ['regRate', 'otHours', 'otRate'],
+        flags: [{ id: 'otwOtFlag', text: overtimeWarning }] },
+      { step: Q_BONUS, radios: 'qBonus', fields: ['bonusAmount'], skipClears: ['bonusAmount'] },
       { step: Q_AGE, radios: 'qAge' },
 
       // The five that do change the figure. skipClears empties the card's own
@@ -777,7 +1233,10 @@ function init() {
     // Start over puts every radio back by assignment, which fires no change
     // event, so the four applies chips would keep showing the answers the
     // visitor just discarded. state-flow.js listens for this and re-reads them.
+    // The overtime rate goes back to following the normal rate too: it is not a
+    // number the visitor typed any more, so it must not keep behaving like one.
     onReset: () => {
+      otRateTouched = false;
       try { document.dispatchEvent(new CustomEvent('tb:paycheck-reset')); } catch (_) { /* older browsers */ }
     }
   });

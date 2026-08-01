@@ -65,23 +65,27 @@
          that question on and feed a stray number to the engine.
 
          IDS ARE A CONTRACT, in three directions at once:
-           - app.js reads amount / hours / retirement401k / cafeteria125 /
+           - app.js reads wageType / amount / hours / tipsYear / regRate /
+             otHours / otRate / bonusAmount / retirement401k / cafeteria125 /
              depChildren / depOther / extraWithholding / postTax and the radio
-             groups named wageType, payFrequency, filingStatus, view and qRetire /
-             qHealth / qDeps / qExtra / qPost;
+             groups named payFrequency, filingStatus, view and qTips / qOt /
+             qBonus / qAge / qRetire / qHealth / qDeps / qExtra / qPost;
            - build.js pre-renders every id app.js writes on its first render
              (netLabel, netBig, netSub, advEcho, the rows, the rate row, the
              bracket table, depCredit) and assertPanelParity() fails the build if
              one is missing, or carries a value app.js would immediately overwrite
-             with a different one, or if the visible rows stop adding up to Net pay;
+             with a different one, or if the visible rows stop adding up to Net pay.
+             The two computed slots that guard cannot see ([data-otw-slot]) are
+             parity-neutral by construction; app.js's slot() explains why;
            - state-flow.js pairs the four qTips / qOt / qBonus / qAge cards with
              the h-tips / h-ot / h-bonus / h-age checkboxes inside the APPLIES_BLOCK section.
 
-         THE ORDER. How much you are paid, then how you are paid, then who you are,
-         then what kind of pay you get (the four rule checks), then what comes out
-         of your pay (the five deduction questions), then the answer. The nine
-         optional cards each carry a Skip that goes straight to the answer, so
-         nobody has to walk all fourteen to see a number.
+         THE ORDER. How you are paid and how much, then who you are, then what
+         KIND of pay you get (the four rule checks, which now compute what each
+         rule is worth at filing), then what comes out of your pay (the five
+         deduction questions), then the answer. The nine optional cards each
+         carry a Skip that goes straight to the answer, so nobody has to walk all
+         thirteen questions to see a number.
 
          #outStatus deliberately sits OUTSIDE the cards: inside one it would be
          display:none on every step but its own and the announcement would never
@@ -95,11 +99,43 @@
 
       <form id="paycheckForm" autocomplete="off" onsubmit="return false">
 
+        <!-- ONE CARD, TWO ANSWERS, IN THIS ORDER ON PURPOSE (2026-08-01). The
+             kind of pay is asked FIRST and the figure second, because the figure
+             has no meaning until the reader has said what it is: this card used
+             to be two, "how much are you paid" and then "is that yearly or
+             hourly", and a visitor who typed 28 into card one and only met the
+             word "hourly" on card two had already been shown a take-home worked
+             out from a $28 salary. The label under the select follows the
+             selection, so the box is never asking for a figure of an unstated
+             kind, and NOTHING converts the number when the selection changes:
+             the amount means exactly what the dropdown above it says, and a
+             switch rewrites the label, never the value.
+
+             A <select>, not radio option cards: three choices where two of them
+             differ by one word read better in a list than as three stacked
+             cards, and a select answers before JavaScript runs exactly as a
+             radio does. It keeps name="wageType" so the no-JS form still names
+             the field. -->
         <section class="otw-card" data-step="0" aria-labelledby="otwQ0">
-          <h2 class="otw-q" id="otwQ0"><label for="amount">How much are you paid, before anything comes out?</label></h2>
-          <div class="otw-money">
-            <input id="amount" class="otw-in" type="text" inputmode="decimal" data-money autocomplete="off" value="75000" placeholder="75000">
+          <h2 class="otw-q" id="otwQ0"><label for="wageType">How are you paid?</label></h2>
+          <select id="wageType" name="wageType" class="otw-in">
+            <option value="salary" selected>A yearly salary</option>
+            <option value="monthly">A monthly salary</option>
+            <option value="hourly">An hourly rate</option>
+          </select>
+          <div class="otw-field">
+            <!-- app.js rewrites this label to follow the select (a year / a
+                 month / an hour). The text below is the SALARY wording, which is
+                 what the select ships selected, so app.js's first render writes
+                 these same bytes back and hydration changes nothing. That
+                 identity is pinned in scripts/test-ux-structure.js, because
+                 build.js's pre-render guard cannot see this write. -->
+            <label for="amount" data-otw-slot="amountLabel">How much is that a year, before anything comes out?</label>
+            <div class="otw-money">
+              <input id="amount" class="otw-in" type="text" inputmode="decimal" data-money autocomplete="off" value="75000" placeholder="75000">
+            </div>
           </div>
+          <p class="otw-flag" id="otwWageTypeFlag" hidden></p>
           <details class="otw-help">
             <summary>This is the figure before tax, not the amount that lands in your account</summary>
             <p>{{GROSS_HELP}}</p>
@@ -108,27 +144,7 @@
         </section>
 
         <section class="otw-card" data-step="1" aria-labelledby="otwQ1">
-          <h2 class="otw-q" id="otwQ1">Is that a yearly salary or an hourly rate?</h2>
-          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ1">
-            <label class="otw-opt">
-              <input type="radio" name="wageType" value="salary" checked>
-              <span><span class="otw-opt-t">A yearly salary</span><span class="otw-opt-s">one figure for the whole year, the same in every paycheck</span></span>
-            </label>
-            <label class="otw-opt">
-              <input type="radio" name="wageType" value="hourly">
-              <span><span class="otw-opt-t">An hourly rate</span><span class="otw-opt-s">what you are paid for one hour of work</span></span>
-            </label>
-          </div>
-          <p class="otw-flag" id="otwWageTypeFlag" hidden></p>
-          <details class="otw-help">
-            <summary>Switching between the two converts the number you already typed</summary>
-            <p>A yearly salary is converted to an hourly rate, and back, using the hours a week on the next card.</p>
-          </details>
-          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
-        </section>
-
-        <section class="otw-card" data-step="2" aria-labelledby="otwQ2">
-          <h2 class="otw-q" id="otwQ2"><label for="hours">How many hours do you work in a normal week?</label></h2>
+          <h2 class="otw-q" id="otwQ1"><label for="hours">How many hours do you work in a normal week?</label></h2>
           <input id="hours" class="otw-in" type="number" inputmode="decimal" min="0" step="any" value="40">
           <details class="otw-help">
             <summary>Your usual week, not a busy one</summary>
@@ -137,9 +153,9 @@
           <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
         </section>
 
-        <section class="otw-card" data-step="3" aria-labelledby="otwQ3">
-          <h2 class="otw-q" id="otwQ3">How often are you paid?</h2>
-          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ3">
+        <section class="otw-card" data-step="2" aria-labelledby="otwQ2">
+          <h2 class="otw-q" id="otwQ2">How often are you paid?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ2">
             <label class="otw-opt">
               <input type="radio" name="payFrequency" value="weekly">
               <span><span class="otw-opt-t">Every week</span><span class="otw-opt-s">52 paychecks a year</span></span>
@@ -168,9 +184,9 @@
           <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
         </section>
 
-        <section class="otw-card" data-step="4" aria-labelledby="otwQ4">
-          <h2 class="otw-q" id="otwQ4">How do you do your taxes?</h2>
-          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ4">
+        <section class="otw-card" data-step="3" aria-labelledby="otwQ3">
+          <h2 class="otw-q" id="otwQ3">How do you do your taxes?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ3">
             <label class="otw-opt">
               <input type="radio" name="filingStatus" value="single" checked>
               <span><span class="otw-opt-t">On my own</span><span class="otw-opt-s">single, or married and sending in separate returns</span></span>
@@ -194,15 +210,82 @@
         <!-- The four rule checks. Same four questions, same plain wording and the
              same four answers as the checkbox chips inside the APPLIES_BLOCK section on the
              answer card: state-flow.js keeps the pair in step in both directions,
-             so answering here ticks the chip there, and vice versa. They change no
-             figure in the paycheck, they decide which of that state's 2026 rule
-             pointers the answer card shows. -->
-        <section class="otw-card" data-step="5" aria-labelledby="otwQ5">
-          <h2 class="otw-q" id="otwQ5">Do customers tip you?</h2>
-          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ5">
+             so answering here ticks the chip there, and vice versa.
+
+             THEY NOW COMPUTE (2026-08-01). A Yes used to do one thing: filter the
+             per-state pointer lines on the answer card down to the rules that
+             apply, so a tipped worker was handed a link to a second calculator
+             and asked to type their pay and their filing status into it again.
+             This page already knows both. So a Yes reveals the one or two extra
+             figures the rule needs, right here, and the answer card works the
+             deduction out and says what it is worth. The pointer link stays, one
+             per rule, for the reader who wants the full calculator.
+
+             NONE OF THIS TOUCHES THE PAYCHECK. Tips, overtime and the senior
+             deduction are FILING-TIME deductions: they arrive as a bigger refund
+             or a smaller bill next year and change no paycheck during the year,
+             so their figures are quoted in a block of their own under the
+             results table and are never subtracted from Net pay. The bonus line
+             is the opposite way round, a payday figure, and says so.
+
+             Each money field lives in a [data-reveal] wrapper that SHIPS
+             VISIBLE, exactly like the five deduction questions below: app.js
+             hides the ones whose question is answered No, and a No contributes
+             nothing to the answer even if a number is still sitting in the box.
+             Every field ships EMPTY with placeholder="0". -->
+        <section class="otw-card" data-step="4" aria-labelledby="otwQ4">
+          <h2 class="otw-q" id="otwQ4">Do customers tip you?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ4">
             <label class="otw-opt"><input type="radio" name="qTips" value="no" checked><span><span class="otw-opt-t">No</span></span></label>
             <label class="otw-opt"><input type="radio" name="qTips" value="yes"><span><span class="otw-opt-t">Yes</span></span></label>
           </div>
+          <div class="adv-reveal" data-reveal="qTips">
+            <div class="otw-field">
+              <label for="tipsYear">How much do you get in tips over a full year?</label>
+              <div class="otw-money">
+                <input id="tipsYear" class="otw-in otw-in-sm" type="text" inputmode="decimal" data-money autocomplete="off" value="" placeholder="0" aria-describedby="tipsYearNote">
+              </div>
+              <p class="otw-note" id="tipsYearNote">Cash and card tips together, for the whole year. Your pay figure on the first card is meant to include them.</p>
+            </div>
+          </div>
+          <p class="otw-flag" id="otwTipsFlag" hidden></p>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip to my answer</button> <button type="button" class="otw-next">Next</button></span>
+          </div>
+        </section>
+
+        <!-- Three fields, and the first of them is off the path for an hourly
+             visitor: they already gave their normal rate on card one, so asking
+             again would be asking the same question twice and letting the two
+             answers disagree. [data-reveal-basis="salary"] ships VISIBLE and
+             app.js hides it the moment the pay type is an hourly rate. -->
+        <section class="otw-card" data-step="5" aria-labelledby="otwQ5">
+          <h2 class="otw-q" id="otwQ5">Do you get paid extra for working extra hours?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ5">
+            <label class="otw-opt"><input type="radio" name="qOt" value="no" checked><span><span class="otw-opt-t">No</span></span></label>
+            <label class="otw-opt"><input type="radio" name="qOt" value="yes"><span><span class="otw-opt-t">Yes</span></span></label>
+          </div>
+          <div class="adv-reveal" data-reveal="qOt">
+            <div class="otw-field" data-reveal-basis="salary">
+              <label for="regRate">What is one normal hour of your work worth?</label>
+              <div class="otw-money">
+                <input id="regRate" class="otw-in otw-in-sm" type="text" inputmode="decimal" data-money autocomplete="off" value="" placeholder="0">
+              </div>
+            </div>
+            <div class="otw-field">
+              <label for="otHours">How many extra hours will you work this year?</label>
+              <input id="otHours" class="otw-in otw-in-sm" type="number" inputmode="decimal" min="0" step="any" value="" placeholder="0">
+            </div>
+            <div class="otw-field">
+              <label for="otRate">What does one of those hours pay?</label>
+              <div class="otw-money">
+                <input id="otRate" class="otw-in otw-in-sm" type="text" inputmode="decimal" data-money autocomplete="off" value="" placeholder="0" aria-describedby="otRateNote">
+              </div>
+              <p class="otw-note" id="otRateNote">This starts at one and a half times your normal rate, the usual overtime rate. Change it if yours is different, and it stops following.</p>
+            </div>
+          </div>
+          <p class="otw-flag" id="otwOtFlag" hidden></p>
           <div class="otw-nav">
             <button type="button" class="otw-back">Back</button>
             <span class="otw-nav-end"><button type="button" class="otw-skip">Skip to my answer</button> <button type="button" class="otw-next">Next</button></span>
@@ -210,32 +293,30 @@
         </section>
 
         <section class="otw-card" data-step="6" aria-labelledby="otwQ6">
-          <h2 class="otw-q" id="otwQ6">Do you get paid extra for working extra hours?</h2>
+          <h2 class="otw-q" id="otwQ6">Do you get a bonus or commission?</h2>
           <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ6">
-            <label class="otw-opt"><input type="radio" name="qOt" value="no" checked><span><span class="otw-opt-t">No</span></span></label>
-            <label class="otw-opt"><input type="radio" name="qOt" value="yes"><span><span class="otw-opt-t">Yes</span></span></label>
-          </div>
-          <div class="otw-nav">
-            <button type="button" class="otw-back">Back</button>
-            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip to my answer</button> <button type="button" class="otw-next">Next</button></span>
-          </div>
-        </section>
-
-        <section class="otw-card" data-step="7" aria-labelledby="otwQ7">
-          <h2 class="otw-q" id="otwQ7">Do you get a bonus or commission?</h2>
-          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ7">
             <label class="otw-opt"><input type="radio" name="qBonus" value="no" checked><span><span class="otw-opt-t">No</span></span></label>
             <label class="otw-opt"><input type="radio" name="qBonus" value="yes"><span><span class="otw-opt-t">Yes</span></span></label>
           </div>
+          <div class="adv-reveal" data-reveal="qBonus">
+            <div class="otw-field">
+              <label for="bonusAmount">How much is it, before anything comes out?</label>
+              <div class="otw-money">
+                <input id="bonusAmount" class="otw-in otw-in-sm" type="text" inputmode="decimal" data-money autocomplete="off" value="" placeholder="0">
+              </div>
+            </div>
+          </div>
           <div class="otw-nav">
             <button type="button" class="otw-back">Back</button>
             <span class="otw-nav-end"><button type="button" class="otw-skip">Skip to my answer</button> <button type="button" class="otw-next">Next</button></span>
           </div>
         </section>
 
-        <section class="otw-card" data-step="8" aria-labelledby="otwQ8">
-          <h2 class="otw-q" id="otwQ8">Do you, or your husband or wife, turn 65 at any point this year?</h2>
-          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ8">
+        <!-- The one rule check that needs nothing else: the deduction is worked
+             out from the pay and the filing status this page already has. -->
+        <section class="otw-card" data-step="7" aria-labelledby="otwQ7">
+          <h2 class="otw-q" id="otwQ7">Do you, or your husband or wife, turn 65 at any point this year?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ7">
             <label class="otw-opt"><input type="radio" name="qAge" value="no" checked><span><span class="otw-opt-t">No</span></span></label>
             <label class="otw-opt"><input type="radio" name="qAge" value="yes"><span><span class="otw-opt-t">Yes</span></span></label>
           </div>
@@ -257,10 +338,10 @@
              physically has, their pay stub, and names a technical term only where
              that term is printed on the stub or the W-4 and so helps them find the
              number. -->
-        <section class="otw-card" data-step="9" aria-labelledby="otwQ9">
-          <h2 class="otw-q" id="otwQ9">Do you put part of your pay into a retirement plan at work?</h2>
+        <section class="otw-card" data-step="8" aria-labelledby="otwQ8">
+          <h2 class="otw-q" id="otwQ8">Do you put part of your pay into a retirement plan at work?</h2>
           <p class="otw-note" id="qRetireNote">Look on your pay stub for a line like 401(k), 403(b), 457, TSP, retirement or pension.</p>
-          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ9" aria-describedby="qRetireNote">
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ8" aria-describedby="qRetireNote">
             <label class="otw-opt"><input type="radio" name="qRetire" value="no" checked><span><span class="otw-opt-t">No</span></span></label>
             <label class="otw-opt"><input type="radio" name="qRetire" value="yes"><span><span class="otw-opt-t">Yes</span></span></label>
           </div>
@@ -279,10 +360,10 @@
           </div>
         </section>
 
-        <section class="otw-card" data-step="10" aria-labelledby="otwQ10">
-          <h2 class="otw-q" id="otwQ10">Does money come out of your pay for health insurance or a health account?</h2>
+        <section class="otw-card" data-step="9" aria-labelledby="otwQ9">
+          <h2 class="otw-q" id="otwQ9">Does money come out of your pay for health insurance or a health account?</h2>
           <p class="otw-note" id="qHealthNote">Look on your pay stub for lines like medical, dental, vision, HSA or FSA.</p>
-          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ10" aria-describedby="qHealthNote">
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ9" aria-describedby="qHealthNote">
             <label class="otw-opt"><input type="radio" name="qHealth" value="no" checked><span><span class="otw-opt-t">No</span></span></label>
             <label class="otw-opt"><input type="radio" name="qHealth" value="yes"><span><span class="otw-opt-t">Yes</span></span></label>
           </div>
@@ -305,9 +386,9 @@
              ("This is Step 3 of your W-4, the dependent tax credits") named a form
              the reader does not have open and told them nothing the question had
              not already asked. -->
-        <section class="otw-card" data-step="11" aria-labelledby="otwQ11">
-          <h2 class="otw-q" id="otwQ11">Do you claim any children or other dependents?</h2>
-          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ11">
+        <section class="otw-card" data-step="10" aria-labelledby="otwQ10">
+          <h2 class="otw-q" id="otwQ10">Do you claim any children or other dependents?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ10">
             <label class="otw-opt"><input type="radio" name="qDeps" value="no" checked><span><span class="otw-opt-t">No</span></span></label>
             <label class="otw-opt"><input type="radio" name="qDeps" value="yes"><span><span class="otw-opt-t">Yes</span></span></label>
           </div>
@@ -328,10 +409,10 @@
           </div>
         </section>
 
-        <section class="otw-card" data-step="12" aria-labelledby="otwQ12">
-          <h2 class="otw-q" id="otwQ12">Did you ask your employer to take extra tax out of each paycheck?</h2>
+        <section class="otw-card" data-step="11" aria-labelledby="otwQ11">
+          <h2 class="otw-q" id="otwQ11">Did you ask your employer to take extra tax out of each paycheck?</h2>
           <p class="otw-note" id="qExtraNote">Look on your pay stub for a line like additional or extra withholding. On the W-4 you handed in, it is the box on line 4(c).</p>
-          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ12" aria-describedby="qExtraNote">
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ11" aria-describedby="qExtraNote">
             <label class="otw-opt"><input type="radio" name="qExtra" value="no" checked><span><span class="otw-opt-t">No</span></span></label>
             <label class="otw-opt"><input type="radio" name="qExtra" value="yes"><span><span class="otw-opt-t">Yes</span></span></label>
           </div>
@@ -351,10 +432,10 @@
           </div>
         </section>
 
-        <section class="otw-card" data-step="13" aria-labelledby="otwQ13">
-          <h2 class="otw-q" id="otwQ13">Is anything else taken out of your pay after tax?</h2>
+        <section class="otw-card" data-step="12" aria-labelledby="otwQ12">
+          <h2 class="otw-q" id="otwQ12">Is anything else taken out of your pay after tax?</h2>
           <p class="otw-note" id="qPostNote">Look near the bottom of your pay stub for lines like union dues, life insurance, a repayment or a garnishment.</p>
-          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ13" aria-describedby="qPostNote">
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ12" aria-describedby="qPostNote">
             <label class="otw-opt"><input type="radio" name="qPost" value="no" checked><span><span class="otw-opt-t">No</span></span></label>
             <label class="otw-opt"><input type="radio" name="qPost" value="yes"><span><span class="otw-opt-t">Yes</span></span></label>
           </div>
@@ -386,8 +467,8 @@
              its own box.
 
              This card carries no [data-otw-body] state note: the state is the page. -->
-        <section class="otw-card otw-result" data-step="14" aria-labelledby="otwQ14">
-          <h2 class="otw-q sr-only" id="otwQ14" tabindex="-1">Your answer</h2>
+        <section class="otw-card otw-result" data-step="13" aria-labelledby="otwQ13">
+          <h2 class="otw-q sr-only" id="otwQ13" tabindex="-1">Your answer</h2>
           <p class="calc-example">These are example numbers. Type yours to see your own.</p>
 
           <!-- NOT a live region. It used to carry role="status", an implicit polite
@@ -477,6 +558,28 @@
             </details>
           </div>
 
+          <!-- WHAT THE FOUR RULE ANSWERS ARE WORTH. Filled by app.js from the
+               same engines the standalone calculators use: the OBBBA deduction
+               engine for tips, overtime and turning 65, and the bonus engine for
+               a bonus in this state. EMPTY IN THE SERVED HTML, and empty is the
+               correct served state: with all four questions shipping No there is
+               nothing to say, so app.js's first render writes the same empty
+               string the page serves and hydration changes nothing. It is a
+               computed answer, the one thing on this page that has always been
+               JavaScript-only (#out on every other tool in the family), and it
+               ADDS to the per-state pointer lines below rather than replacing
+               them: those still ship visible for a crawler and for a reader with
+               no JavaScript, with one deep link each, exactly as before.
+
+               Written through [data-otw-slot], not through an id, because
+               build.js's pre-render guard derives its denominator by scanning
+               app.js for id-keyed textContent writes and fails the build for any
+               id statePanel() has no pre-rendered value for. statePanel() is in
+               build.js and this pass may not edit it. See app.js's `slot()` for
+               the whole note, and notes/state-page-phase5.md for the build.js
+               entry that should replace this arrangement. -->
+          <div data-otw-slot="filing"></div>
+
           <!-- The four rule pointers for this state, and the deep link into the
                full flow. It used to sit below the calculator as its own section;
                it now lands on the answer card, which is where a visitor who has
@@ -484,7 +587,9 @@
                markup is state-applies.js's, untouched, so all four lines and all
                five anchors still ship VISIBLE: state-flow.js only hides the ones
                whose question was not answered Yes, and only once one of them is,
-               so a crawler and a no-JS reader still see every line. -->
+               so a crawler and a no-JS reader still see every line. It is also
+               where the ONE deep link per computed rule lives, which is why the
+               block above adds no second copy of the same four links. -->
           {{APPLIES_BLOCK}}
 
           <div class="otw-answers" id="otwAnswers"></div>

@@ -855,18 +855,49 @@ const PAGES = [
       // is the pin that fails if a card is ever dropped rather than hidden:
       // app.js's readForm() reads all of these unguarded on every keystroke.
       ['pay-is-asked-outright', insideForm('id="paycheckForm"', 'id="amount"')],
+      ['pay-type-is-asked-outright', insideForm('id="paycheckForm"', 'id="wageType"')],
       ['hours-is-asked-outright', insideForm('id="paycheckForm"', 'id="hours"')],
+      // The four rule questions compute now, so the figures they compute FROM
+      // are fields in the same one form, on the same terms as everything above:
+      // app.js reads all four on every keystroke and a card that was dropped
+      // rather than hidden would take the answer with it.
+      ['tips-are-asked-outright', insideForm('id="paycheckForm"', 'id="tipsYear"')],
+      ['overtime-hours-are-asked-outright', insideForm('id="paycheckForm"', 'id="otHours"')],
+      ['overtime-rate-is-asked-outright', insideForm('id="paycheckForm"', 'id="otRate"')],
+      ['normal-rate-is-asked-outright', insideForm('id="paycheckForm"', 'id="regRate"')],
+      ['bonus-is-asked-outright', insideForm('id="paycheckForm"', 'id="bonusAmount"')],
       ['retirement-is-asked-outright', insideForm('id="paycheckForm"', 'id="retirement401k"')],
       ['health-is-asked-outright', insideForm('id="paycheckForm"', 'id="cafeteria125"')],
       ['dependents-are-asked-outright', insideForm('id="paycheckForm"', 'id="depChildren"')],
       ['extra-is-asked-outright', insideForm('id="paycheckForm"', 'id="extraWithholding"')],
       ['post-tax-is-asked-outright', insideForm('id="paycheckForm"', 'id="postTax"')],
 
-      // The three closed choices became radio groups: a <select> would leave the
-      // card unanswerable before JavaScript runs.
-      ['pay-type-is-a-radio', contains('name="wageType"')],
+      // SAME PIN, NEW CONTROL (2026-08-01). This was 'pay-type-is-a-radio',
+      // asserting contains('name="wageType"') back when the pay type was two
+      // radios on a card of its own. It is now a three-option <select> on the
+      // same card as the amount (yearly / monthly / hourly), so the promise the
+      // pin keeps is unchanged and stated against what ships: the pay type is a
+      // real named form control that is answerable before JavaScript runs, and
+      // all three options are served. That is strictly more than the old pin
+      // said, which was only that the name existed somewhere.
+      ['pay-type-is-a-named-control', contains('name="wageType"')],
+      ['pay-type-offers-yearly', contains('<option value="salary"')],
+      ['pay-type-offers-monthly', contains('<option value="monthly"')],
+      ['pay-type-offers-hourly', contains('<option value="hourly"')],
       ['frequency-is-a-radio', contains('name="payFrequency"')],
       ['filing-is-a-radio', contains('name="filingStatus"')],
+
+      // HYDRATION PARITY FOR THE AMOUNT LABEL, and this pin is standing in for a
+      // check build.js normally makes. app.js rewrites this label to follow the
+      // select, and build.js's pre-render guard cannot see that write (it scans
+      // for $('id').textContent writes, and this one is addressed by attribute
+      // because statePanel() has no entry for it and build.js was out of scope
+      // for the pass that added it). The served text must therefore be exactly
+      // what app.js's first render writes for the shipped default, which is the
+      // SALARY wording — or the label visibly changes on hydration. If this pin
+      // fails, app.js's AMOUNT_LABEL.salary and this template have drifted.
+      ['amount-label-matches-the-shipped-default',
+        contains('data-otw-slot="amountLabel">How much is that a year, before anything comes out?</label>')],
 
       // The five deduction questions still ship, and still ship their money
       // field inside a wrapper that is VISIBLE in the HTML. answeredYes() treats
@@ -889,8 +920,33 @@ const PAGES = [
       // pointers follow the computed table, not the other way round.
       ['answer-band-leads-the-result', before('class="answer-band"', 'data-tb-result')],
       ['rules-follow-the-result', before('data-tb-result', 'id="appliesLines"')],
-      ['rules-are-on-the-answer-card', before('data-step="14"', 'id="appliesLines"')],
+      // SAME PIN, NEW STEP NUMBER (2026-08-01). The first two cards were merged
+      // into one ("how are you paid" and the amount together), so every card
+      // after it shifted down by one and the answer card is data-step="13" where
+      // it was data-step="14". Identical promise: the rule pointers are ON the
+      // answer card, not adrift somewhere below it.
+      ['rules-are-on-the-answer-card', before('data-step="13"', 'id="appliesLines"')],
       ['deep-link-follows-the-rules', before('id="appliesLines"', 'id="appliesDeep"')],
+
+      // The computed filing-time block: SHIPPED and SERVED EMPTY, both halves
+      // asserted by the one string. Empty is the correct served state — all four
+      // rule questions ship answered No, so app.js's first render writes the same
+      // empty string and hydration changes nothing — and it is the substitute for
+      // the build.js pre-render entry this element has no way to have. It sits
+      // ABOVE the pointer lines, so the figures and the deep link that explains
+      // them are read in that order.
+      ['filing-block-ships-empty', contains('<div data-otw-slot="filing"></div>')],
+      ['filing-block-precedes-the-rules', before('data-otw-slot="filing"', 'id="appliesLines"')],
+      ['filing-block-follows-the-result', before('data-tb-result', 'data-otw-slot="filing"')],
+
+      // The one deep link per computed rule, still server-rendered and still
+      // visible: the computed block ADDS to these lines, it never replaces them,
+      // and a crawler or a no-JS reader gets nothing but these.
+      ['tips-pointer-link-kept', contains('/tips-tax-calculator/')],
+      ['overtime-pointer-link-kept', contains('/overtime-tax-calculator/')],
+      ['senior-pointer-link-kept', contains('/senior-deduction-calculator/')],
+      ['bonus-pointer-link-kept', contains('-bonus-tax-calculator/')],
+      ['what-applies-deep-link-kept', contains('/what-applies-to-me/?state=')],
 
       // The report/copy anchor. It has silently vanished site-wide once before.
       ['result-anchor-kept', contains('data-tb-result')],
@@ -903,7 +959,12 @@ const PAGES = [
       // The wizard shipped, and the old shapes did not come back.
       ['no-mode-toggle', absent('name="mode"')],
       ['no-question-flow-script', absent(QUESTION_FLOW)],
-      ['fifteen-cards', count('data-step="', 15)],
+      // SAME PIN, NEW COUNT (2026-08-01). This was 'fifteen-cards' at 15. The
+      // amount card and the pay-type card became one, so the flow is fourteen
+      // cards: thirteen questions and the answer. Same promise, same strictness
+      // — an exact count is what catches a card silently DROPPED from the stack
+      // rather than hidden by CSS, which every other pin here would pass.
+      ['fourteen-cards', count('data-step="', 14)],
     ],
   })),
 ];

@@ -13,6 +13,18 @@
 // Answering either one moves the other. The chips are server-rendered by
 // src/content/state-applies.js and are untouched by this change.
 //
+// SINCE 2026-08-01 A YES ALSO COMPUTES. The four cards now ask for the figures
+// their rule needs (tips for the year, overtime hours and rate, the bonus) and
+// app.js works out what each is worth, in a block that sits directly above these
+// pointer lines on the same card. That does not change what this file does — it
+// still only ever hides a line — but it does change what a tick MEANS: ticking a
+// chip here is now answering a question that has an answer to recompute, so
+// writeCard() below dispatches a real change event where it used to set the
+// radio silently. The pointer lines stay exactly where they were, one deep link
+// each, because the computed block is an ADDITION to them and never a
+// replacement: the computed figures exist only for a visitor running JavaScript,
+// and the lines are what a crawler and a no-JS reader get.
+//
 // HIDE-ON-DEMAND, NEVER SHOW-ON-DEMAND. All four pointer lines ship visible in
 // the HTML. This script only ADDS data-hidden to the lines you did not tick, and
 // only once something IS ticked. So JavaScript off, JavaScript broken, or every
@@ -66,12 +78,26 @@ try {
       }
     };
 
-    // Chip -> card answer. Set by assignment and deliberately WITHOUT dispatching
-    // an event: the four questions change no figure in the paycheck, so there is
-    // nothing to recompute, and a synthetic change here would bounce back through
-    // the card listener below and re-enter this function.
+    // Chip -> card answer, and ONE change event on the radio that ended up
+    // checked. It used to be set silently, on the reasoning that these four
+    // questions changed no figure; they do now — a Yes reveals the figure its
+    // rule needs on the card and prints what the rule is worth on the answer —
+    // so a silent tick left the chip ticked, the pointer line showing and the
+    // computed block still saying nothing.
+    //
+    // It cannot loop. The event runs app.js's re-render and this file's own
+    // radio listener, which calls readCards(): that sets `box.checked` by
+    // ASSIGNMENT, which fires nothing, so the second pass converges on the same
+    // values and stops. wizard-core's auto-advance ignores it too, because the
+    // visitor is standing on the answer card, not on the card that owns the
+    // radio.
     const writeCard = (e) => {
       for (const r of e.radios) r.checked = (r.value === 'yes') === e.box.checked;
+      const on = e.radios.find((r) => r.checked);
+      if (on) {
+        try { on.dispatchEvent(new Event('change', { bubbles: true })); }
+        catch (_) { /* older browsers: the pointer lines still follow the tick */ }
+      }
     };
 
     const sync = (changed) => {
