@@ -13,10 +13,11 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
 <style>
-  /* Scoped extras for the amortization table — uses the shared theme vars. */
-  .amort-summary { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin: 18px 0; font-size: 15.5px; line-height: 1.55; }
-  details.amort { margin: 4px 0 8px; }
-  details.amort > summary { cursor: pointer; font-weight: 600; color: var(--text); padding: 8px 0; }
+  /* Scoped extras for the year-by-year table — uses the shared theme vars. The
+     table now renders INSIDE the answer card's #out box, inside a native
+     <details class="otw-help">, so the old .amort-summary / details.amort rules
+     that dressed the standalone summary box and its own fold are gone with the
+     markup they styled. Only the table itself still needs local rules. */
   .amort-table-wrap { overflow-x: auto; }
   table.amort-table { width: 100%; border-collapse: collapse; margin: 8px 0 0; font-size: 14px; }
   table.amort-table th, table.amort-table td { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
@@ -38,137 +39,226 @@
 <main id="main">
   <div class="wrap">
     <h1>401(k) Retirement Calculator</h1>
+    <!-- THE WIZARD (rewritten 2026-08-01, converted onto wizard-core.js).
+         This calculator used to be one long form: six labelled boxes, then a
+         panel of "a few more questions" holding two Yes/No toggles that revealed
+         three more boxes, then a results column, a summary box and a year-by-year
+         table strung down the page. The approved replacement, proven on
+         /overtime-tax-calculator/ and piloted on /tips-tax-calculator/, asks ONE
+         question per card and ends with the answer written out as a story.
+
+         PROGRESSIVE ENHANCEMENT, NOT A JS APP. Every card below ships VISIBLE and
+         in reading order in the built HTML: with JavaScript off, blocked, or a
+         crawler reading the page, this is a plain sequential form with real
+         <label>s and native <details> helpers. 401k-calculator.js sets
+         data-js="on" on the .otw section only after its first successful render,
+         and ONLY THEN does styles.css collapse the stack to one card at a time.
+         Hide-on-demand, never show-on-demand. The single exception is #out, the
+         computed answer, which has always been JS-only — and the year-by-year
+         table now lives inside it, because it is computed too.
+
+         The controls that only mean something once the stepping exists (Next /
+         Back / Skip, the progress dots, the quick chips, the answer chips, Start
+         over) are also gated on data-js="on" in CSS, because a "Next" button that
+         cannot advance anything is worse than no button.
+
+         IDS ARE A CONTRACT with 401k-calculator.js: currentAge, retirementAge,
+         currentBalance, annualSalary, employeeContrib, annualReturn,
+         employerMatch, matchCap and salaryGrowth all keep the names the old form
+         used, because the engine call and the tests point at them and a rename
+         buys nothing. #out and #outStatus are the result panel and the one polite
+         live region. #outStatus deliberately sits OUTSIDE the cards: inside one it
+         would be display:none on every step but its own and the announcement would
+         never reach a screen reader. #out carries data-tb-result, the anchor
+         report-widget.js hooks; before this rewrite the page had no explicit
+         anchor and the widget fell back to sniffing for an aria-live element.
+
+         THE TWO YES/NO QUESTIONS ARE GONE. The old page shipped `qMatch` and
+         `qGrowth` radio pairs, both defaulted to Yes, each revealing its fields
+         through a [data-reveal] wrapper. Neither survives: "does your employer put
+         money in as well?" is now answered by the match question itself (a quick
+         chip fills 0 for "they don't add anything", and answering 0 drops the
+         follow-up card about the cap out of the flow), and "do you expect your pay
+         to go up?" is answered by typing 0, or by Skip, on the pay-rise card. That
+         is one card instead of two in each case, and it is why this page now ships
+         no [data-reveal] wrapper at all, which is what takes it out of the
+         question-flow.js injection in build.js.
+
+         THE ORDER IS THE ORDER THE PROSE BELOW DESCRIBES — age, finish age,
+         balance today, yearly pay, what you put in, expected growth, then the two
+         employer-match questions and the pay-rise one. "How to use the 401(k)
+         retirement calculator" walks a reader down the questions in that sequence
+         and it is left byte-identical, so the cards follow it rather than the
+         other way round. (That paragraph still describes the retired Yes/No panel
+         in its last two sentences; correcting it is a separate, reported change.)
+
+         THE DEFAULTS ARE THE SHIPPED DEFAULTS. currentAge 30, retirementAge 65,
+         currentBalance 25,000, annualSalary 60,000, employeeContrib 6,
+         annualReturn 7, employerMatch 100, matchCap 6 and salaryGrowth 2 are
+         exactly what the old form shipped with its two questions on Yes, so an
+         untouched page projects exactly what it projected before.
+
+         There is no /embed/ twin of this page, so this file is the only consumer
+         of 401k-calculator.js and the rewrite happened in that file in place.
+
+         Ad slots, the lede, the note, the prose and the FAQ below are untouched. -->
+    <section class="otw" id="retire401kWizard" aria-label="401(k) retirement calculator">
+      <h2 class="sr-only">401(k) retirement projection</h2>
+      <div class="otw-dots" id="otwDots" aria-hidden="true"></div>
+      <p class="otw-stepnum" id="otwStepnum"></p>
+
+      <form id="retire401kWizForm" autocomplete="off" onsubmit="return false">
+        <section class="otw-card" data-step="0" aria-labelledby="otwQ0">
+          <h2 class="otw-q" id="otwQ0"><label for="currentAge">How old are you now?</label></h2>
+          <input type="number" class="otw-in" id="currentAge" inputmode="numeric" min="0" step="1" value="30">
+          <details class="otw-help">
+            <summary>The years between now and the day you stop working do most of the work</summary>
+            <p>Money you save early has the longest to grow, so your age changes the answer more than almost anything else on these cards. A rough age is fine.</p>
+          </details>
+          <div class="otw-nav"><span></span><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="1" aria-labelledby="otwQ1">
+          <h2 class="otw-q" id="otwQ1"><label for="retirementAge">At what age do you want to stop working?</label></h2>
+          <input type="number" class="otw-in" id="retirementAge" inputmode="numeric" min="0" step="1" value="65">
+          <p class="otw-flag" id="otwRetireFlag" hidden></p>
+          <div class="otw-chips" id="otwRetireChips">
+            <button type="button" data-otw-fill="retirementAge" data-otw-value="60">Stop at 60</button>
+            <button type="button" data-otw-fill="retirementAge" data-otw-value="65">Stop at 65</button>
+            <button type="button" data-otw-fill="retirementAge" data-otw-value="67">Stop at 67</button>
+          </div>
+          <details class="otw-help">
+            <summary>It is a plan, not a promise, and you can move it later</summary>
+            <p>Try it a few years either way and watch the answer change. The last years before you stop are the ones where the balance is biggest, so each one of them adds the most.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="2" aria-labelledby="otwQ2">
+          <h2 class="otw-q" id="otwQ2"><label for="currentBalance">How much is in the account today?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="currentBalance" inputmode="decimal" data-money autocomplete="off" value="25000" aria-describedby="currentBalanceNote">
+          </div>
+          <div class="otw-chips" id="otwBalanceChips">
+            <button type="button" data-otw-fill="currentBalance" data-otw-value="0">Starting from nothing &rarr; 0</button>
+          </div>
+          <details class="otw-help" id="currentBalanceNote">
+            <summary>The balance your 401(k) or other workplace retirement plan shows right now</summary>
+            <p>Put 0 if you are starting from nothing. If an old plan from a previous job is still sitting there too, add the two together.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="3" aria-labelledby="otwQ3">
+          <h2 class="otw-q" id="otwQ3"><label for="annualSalary">What do you earn in a year, before tax?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="annualSalary" inputmode="decimal" data-money autocomplete="off" value="60000">
+          </div>
+          <details class="otw-help">
+            <summary>Your own pay, before anything is taken out of it</summary>
+            <p>A ballpark is fine. Both what you save and what your employer adds are worked out as a share of this number, so it drives most of the answer. If you are married, use your pay only, not the household total, because the account is yours.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="4" aria-labelledby="otwQ4">
+          <h2 class="otw-q" id="otwQ4"><label for="employeeContrib">How much of your pay goes into the account?</label></h2>
+          <input type="number" class="otw-in" id="employeeContrib" inputmode="decimal" step="any" min="0" value="6" aria-describedby="employeeContribNote">
+          <p class="otw-flag" id="otwContribFlag" hidden></p>
+          <div class="otw-chips" id="otwContribChips">
+            <button type="button" data-otw-fill="employeeContrib" data-otw-value="3">3% of my pay</button>
+            <button type="button" data-otw-fill="employeeContrib" data-otw-value="6">6% of my pay</button>
+            <button type="button" data-otw-fill="employeeContrib" data-otw-value="10">10% of my pay</button>
+          </div>
+          <details class="otw-help" id="employeeContribNote">
+            <summary>Put 6 if 6 cents of every dollar you earn is taken out of your pay and saved</summary>
+            <p>It shows on your pay stub as a 401(k) or retirement line, and on your plan's website as your contribution or deferral percentage. Put 0 if nothing is going in yet.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="5" aria-labelledby="otwQ5">
+          <h2 class="otw-q" id="otwQ5"><label for="annualReturn">How much do you expect your savings to grow each year?</label></h2>
+          <input type="number" class="otw-in" id="annualReturn" inputmode="decimal" step="any" min="0" value="7" aria-describedby="annualReturnNote">
+          <div class="otw-chips" id="otwReturnChips">
+            <button type="button" data-otw-fill="annualReturn" data-otw-value="5">5% a year</button>
+            <button type="button" data-otw-fill="annualReturn" data-otw-value="6">6% a year</button>
+            <button type="button" data-otw-fill="annualReturn" data-otw-value="7">7% a year</button>
+          </div>
+          <details class="otw-help" id="annualReturnNote">
+            <summary>Nobody can know the real figure in advance, so 6 or 7 is a common, cautious guess</summary>
+            <p>The yearly investment return you want to assume. A real market does not hand you the same number every year, it goes up and down and sometimes falls, so treat this as an average over a long stretch rather than a forecast.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="6" aria-labelledby="otwQ6">
+          <h2 class="otw-q" id="otwQ6"><label for="employerMatch">For every dollar you put in, how many cents does your employer add?</label></h2>
+          <input type="number" class="otw-in" id="employerMatch" inputmode="decimal" step="any" min="0" value="100" aria-describedby="employerMatchNote">
+          <div class="otw-chips" id="otwMatchChips">
+            <button type="button" data-otw-fill="employerMatch" data-otw-value="0">They add nothing &rarr; 0</button>
+            <button type="button" data-otw-fill="employerMatch" data-otw-value="50">50 cents &rarr; 50</button>
+            <button type="button" data-otw-fill="employerMatch" data-otw-value="100">A full dollar &rarr; 100</button>
+          </div>
+          <details class="otw-help" id="employerMatchNote">
+            <summary>Put 100 if they match you dollar for dollar, or 50 if they add 50 cents for every dollar you save</summary>
+            <p>This is the employer match. Benefits paperwork usually writes it as "we match 100% of the first 6% of pay" — the first of those two numbers goes here, and the second one is the next question. Put 0 if your employer does not put anything in, and the next question drops out of the flow.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="7" aria-labelledby="otwQ7">
+          <h2 class="otw-q" id="otwQ7"><label for="matchCap">Up to what share of your pay do they keep adding?</label></h2>
+          <input type="number" class="otw-in" id="matchCap" inputmode="decimal" step="any" min="0" value="6" aria-describedby="matchCapNote">
+          <p class="otw-flag" id="otwMatchFlag" hidden></p>
+          <div class="otw-chips" id="otwCapChips">
+            <button type="button" data-otw-fill="matchCap" data-otw-value="3">Up to 3% of my pay</button>
+            <button type="button" data-otw-fill="matchCap" data-otw-value="6">Up to 6% of my pay</button>
+          </div>
+          <details class="otw-help" id="matchCapNote">
+            <summary>Put 6 if your plan matches you up to 6 percent of your pay and nothing above that</summary>
+            <p>In "we match 100% of the first 6% of pay", this is the second number. Paying in at least this much collects the whole match. Anything you save above it is still yours and still grows, it just is not matched.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="8" aria-labelledby="otwQ8">
+          <h2 class="otw-q" id="otwQ8"><label for="salaryGrowth">How much does your pay go up in a typical year?</label></h2>
+          <input type="number" class="otw-in" id="salaryGrowth" inputmode="decimal" step="any" min="0" value="2" aria-describedby="salaryGrowthNote">
+          <div class="otw-chips" id="otwGrowthChips">
+            <button type="button" data-otw-fill="salaryGrowth" data-otw-value="0">It doesn't go up &rarr; 0</button>
+            <button type="button" data-otw-fill="salaryGrowth" data-otw-value="2">Keeps pace with prices &rarr; 2</button>
+            <button type="button" data-otw-fill="salaryGrowth" data-otw-value="3">A little better &rarr; 3</button>
+          </div>
+          <details class="otw-help" id="salaryGrowthNote">
+            <summary>A raise that just keeps pace with rising prices is usually 2 or 3</summary>
+            <p>Because what you save is a share of your pay, a raise lifts both your own saving and the amount your employer adds. Skip this one and we assume your pay stays exactly where it is.</p>
+          </details>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip</button> <button type="button" class="otw-next">See my answer</button></span>
+          </div>
+        </section>
+
+        <section class="otw-card otw-result" data-step="9" aria-labelledby="otwQ9">
+          <h2 class="otw-q sr-only" id="otwQ9" tabindex="-1">Your answer</h2>
+          <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+          <div class="obbba-out" id="out" data-tb-result></div>
+          <details class="otw-help">
+            <summary>What this projection leaves out</summary>
+            <p>It grows your savings by the same percentage every single year, so it never shows you the bad years a real market has. It does not apply the yearly limit the law puts on how much you can pay into a 401(k), so a large share of a large salary can project more going in than you are actually allowed to save. And it takes no tax off: money in a traditional 401(k) is taxed when you take it out in retirement, while a Roth 401(k) is taxed now and comes out untaxed later.</p>
+          </details>
+          <div class="otw-answers" id="otwAnswers"></div>
+          <div class="otw-restart"><button type="button" id="otwRestart">Start over</button></div>
+        </section>
+      </form>
+      <p id="outStatus" role="status" class="sr-only"></p>
+    </section>
+
     <p class="lede">See how your 401(k) could grow by retirement. Enter your age, salary, contribution percentage, employer match and expected return — the projected balance, employer match, and investment growth update as you type, with a year-by-year breakdown.</p>
     <p class="note"><strong>A 401(k) grows by adding your yearly contribution plus the employer match to the balance, then earning your expected return on the whole amount, compounded every year until retirement.</strong> For example, contributing 6% of a $60,000 salary with a full 6% match adds $7,200 a year before any investment growth.</p>
 
-    <section class="calc" aria-label="401(k) retirement calculator">
-      <form id="retire401kForm" autocomplete="off" onsubmit="return false">
-        <!-- Every box on this page loads pre-filled, and two of the questions below
-             ship answered Yes over those figures, so say plainly that the numbers on
-             screen are a demonstration. Lives inside the form, not beside it:
-             section.calc is a two-column grid, and a third direct child would drop
-             the results panel onto a row of its own. -->
-        <p class="calc-example">These are example numbers. Type yours to see your own.</p>
-        <div class="field">
-          <label for="currentAge">How old are you now?</label>
-          <input id="currentAge" type="number" inputmode="decimal" step="any" min="0" value="30" placeholder="30">
-        </div>
-
-        <div class="field">
-          <label for="retirementAge">At what age do you want to stop working?</label>
-          <input id="retirementAge" type="number" inputmode="decimal" step="any" min="0" value="65" placeholder="65">
-        </div>
-
-        <div class="field">
-          <label for="currentBalance">How much is in the account today? ($)</label>
-          <input id="currentBalance" type="text" inputmode="decimal" data-money autocomplete="off" value="25000" placeholder="25000" aria-describedby="currentBalanceNote">
-          <p class="adv-q-note" id="currentBalanceNote">The balance your 401(k) or other workplace retirement plan shows right now. Put 0 if you are starting from nothing.</p>
-        </div>
-
-        <div class="field">
-          <label for="annualSalary">What do you earn in a year, before tax? ($)</label>
-          <input id="annualSalary" type="text" inputmode="decimal" data-money autocomplete="off" value="60000" placeholder="60000">
-        </div>
-
-        <div class="field">
-          <label for="employeeContrib">How much of your pay goes into the account? (%)</label>
-          <input id="employeeContrib" type="number" inputmode="decimal" step="any" min="0" value="6" placeholder="6" aria-describedby="employeeContribNote">
-          <p class="adv-q-note" id="employeeContribNote">Put 6 if 6 cents of every dollar you earn is taken out of your pay and saved.</p>
-        </div>
-
-        <div class="field">
-          <label for="annualReturn">How much do you expect your savings to grow each year? (%)</label>
-          <input id="annualReturn" type="number" inputmode="decimal" step="any" min="0" value="7" placeholder="7" aria-describedby="annualReturnNote">
-          <p class="adv-q-note" id="annualReturnNote">The yearly investment return you want to assume. Nobody can know the real figure in advance, so 6 or 7 is a common, cautious guess.</p>
-        </div>
-
-        <!-- Two plain questions instead of three jargon-labelled boxes. Each money
-             field lives inside a [data-reveal] wrapper that ships VISIBLE in the
-             HTML; question-flow.js hides the ones whose question is answered No, so
-             JavaScript off, JavaScript broken or a crawler still sees every field.
-             Of the terms these questions replace, only "employer match" survives, in
-             the note under its own question, because that is the one a visitor meets
-             in writing on a pay stub. "Match cap", "salary growth" and "salary
-             deferral" were dropped: naming a rule the reader will never look up buys
-             nothing and costs the sentence.
-             Both questions ship on Yes, matching the values the page has always
-             shipped with (a 100% match up to 6% of pay, and 2% yearly pay growth),
-             so an untouched page projects exactly what it projected before.
-             Answering No to either one would park its fields at 0 and change that
-             projection, which is why neither may default to No. -->
-        <fieldset class="adv">
-          <legend>A few more questions, only if they apply to you</legend>
-          <p class="adv-hint">Both start on Yes, because that is what most workplace plans look like. Switch either one to No if yours is different.</p>
-
-          <fieldset class="adv-q" aria-describedby="qMatchNote">
-            <legend>Does your employer put money in as well?</legend>
-            <p class="adv-q-note" id="qMatchNote">An employer match: your company adds money to the account whenever you pay into it. Answer Yes if yours does.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qMatch" value="no"><span>No</span></label>
-              <label class="seg"><input type="radio" name="qMatch" value="yes" checked><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qMatch">
-              <div class="field">
-                <label for="employerMatch">For every dollar you put in, how much does your employer add? (%)</label>
-                <input id="employerMatch" type="number" inputmode="decimal" step="any" min="0" value="100" placeholder="100" aria-describedby="employerMatchNote">
-                <p class="adv-q-note" id="employerMatchNote">Put 100 if they match you dollar for dollar, or 50 if they add 50 cents for every dollar you save.</p>
-              </div>
-              <div class="field">
-                <label for="matchCap">Your employer stops adding once you have paid in this share of your pay (%)</label>
-                <input id="matchCap" type="number" inputmode="decimal" step="any" min="0" value="6" placeholder="6" aria-describedby="matchCapNote">
-                <p class="adv-q-note" id="matchCapNote">Put 6 if your plan matches you up to 6 percent of your pay and nothing above that.</p>
-              </div>
-            </div>
-          </fieldset>
-
-          <fieldset class="adv-q" aria-describedby="qGrowthNote">
-            <legend>Do you expect your pay to go up over the years?</legend>
-            <p class="adv-q-note" id="qGrowthNote">Because what you save is a share of your pay, a raise lifts both your own saving and the amount your employer adds.</p>
-            <div class="yn">
-              <label class="seg"><input type="radio" name="qGrowth" value="no"><span>No</span></label>
-              <label class="seg"><input type="radio" name="qGrowth" value="yes" checked><span>Yes</span></label>
-            </div>
-            <div class="adv-reveal" data-reveal="qGrowth">
-              <div class="field">
-                <label for="salaryGrowth">How much does your pay go up in a typical year? (%)</label>
-                <input id="salaryGrowth" type="number" inputmode="decimal" step="any" min="0" value="2" placeholder="2" aria-describedby="salaryGrowthNote">
-                <p class="adv-q-note" id="salaryGrowthNote">A raise that just keeps pace with rising prices is usually 2 or 3.</p>
-              </div>
-            </div>
-          </fieldset>
-        </fieldset>
-      </form>
-
-      <div class="results" aria-live="polite">
-        <p class="net-big" id="fvBig">—</p>
-        <p class="net-sub" id="fvSub"></p>
-        <div class="line" id="startingLine" hidden><span class="lbl">Starting balance</span><span class="val"></span></div>
-        <div class="line" id="employeeLine" hidden><span class="lbl">Your contributions</span><span class="val"></span></div>
-        <div class="line" id="employerLine" hidden><span class="lbl">Employer match</span><span class="val"></span></div>
-        <div class="line" id="growthLine" hidden><span class="lbl">Investment growth</span><span class="val"></span></div>
-      </div>
-    </section>
-
     <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
-
-    <div class="amort-summary" id="summaryBox" hidden>
-      <strong>Retirement summary</strong>
-      <p id="summaryText" style="margin:6px 0 0;"></p>
-    </div>
-
-    <div id="scheduleWrap" hidden>
-      <details class="amort">
-        <summary>Show year-by-year breakdown</summary>
-        <div class="amort-table-wrap">
-          <table class="amort-table">
-            <thead>
-              <tr><th>Age</th><th>Your contribution</th><th>Employer match</th><th>Growth</th><th>Balance</th></tr>
-            </thead>
-            <tbody id="scheduleBody"></tbody>
-          </table>
-        </div>
-      </details>
-    </div>
 
     <section class="prose">
       <h2>How to use the 401(k) retirement calculator</h2>
@@ -187,6 +277,7 @@
       <p><strong>What return should I assume for a 401(k)?</strong> Historical long-term stock-market returns have averaged roughly 7% to 10% a year before inflation, but returns vary year to year and are never guaranteed. A 6% to 7% assumption is a common, moderately conservative estimate for projections.</p>
       <p><strong>Does this 401(k) calculator account for salary growth?</strong> Yes. You can enter an optional annual salary growth percentage, and the calculator increases your salary each year. Because your contributions and employer match are a percentage of salary, both grow as your salary does.</p>
       <p><strong>How is the projected balance calculated?</strong> Each year, your contribution and employer match are added to the balance, and the whole balance earns your expected annual return. This repeats every year from your current age to your retirement age, compounding the growth — exactly what the year-by-year table shows.</p>
+      <p><strong>What does "for every dollar you put in, how many cents does your employer add?" mean?</strong> It is the employer match written the way you experience it. A plan that matches "100% of the first 6% of pay" adds a full dollar — 100 cents — for every dollar you save, and stops once you have paid in 6% of your pay. Put 100 in the first box and 6 in the second. If your employer adds nothing, put 0 and the follow-up question about the cap drops out of the flow.</p>
     </section>
   </div>
 </main>
