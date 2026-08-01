@@ -74,15 +74,43 @@ const before = (first, second) => (html) => {
 
 const PAGES = [
   {
+    // REPINNED 2026-08-01 to the wizard, the first conversion onto
+    // wizard-core.js. This page's calculator was rewritten from the shared
+    // one-long-form layout into a card-by-card flow, so two of the four names
+    // below moved to different ids — the intent behind each pin is unchanged and
+    // each is still asserted, against the shape that now ships. The old form
+    // (#tipsForm) and the old #stateVerdict box still exist, and the old pins
+    // still hold, on the /embed/ build; that build is pinned separately below.
     file: 'tips-tax-calculator/index.html',
     pins: [
-      // The state select is a plain field on this page, not something a visitor
-      // has to answer a question to reach, which is why the qState group is gone
-      // and question-flow.js is no longer downloaded here.
-      ['state-select-is-a-plain-field', insideForm('id="tipsForm"', 'id="state"')],
+      // Same pin, new form id: the state select sits in the flow the visitor is
+      // already walking, not behind a yes/no they have to answer first.
+      ['state-select-is-a-step-in-the-flow', insideForm('id="tipsWizForm"', 'id="state"')],
       ['no-qState-question', absent('name="qState"')],
-      ['verdict-follows-the-result', before('data-tb-result', 'id="stateVerdict"')],
+      // Added, not moved: the two figures the answer is actually built from are
+      // asked outright in the flow. Nothing pinned that before, and a card flow
+      // is exactly the shape in which a question could quietly stop being asked.
+      ['tips-are-asked-outright', insideForm('id="tipsWizForm"', 'id="tips"')],
+      ['income-is-asked-outright', insideForm('id="tipsWizForm"', 'id="income"')],
+      // Same pin, new id: the state answer renders after the result, never above
+      // it. #stateVerdict became #otwStateNote when the result became a card.
+      ['verdict-follows-the-result', before('data-tb-result', 'id="otwStateNote"')],
       ['no-question-flow-script', absent(QUESTION_FLOW)],
+      ['wizard-script-shipped', contains('/assets/tips-wizard')],
+    ],
+  },
+  {
+    // The embed is deliberately NOT the wizard (a third party sizes the iframe
+    // once), so it keeps the old single-column form and the old ids. Pinned here
+    // because three of the pins that used to cover that shape moved off the full
+    // page above, and without this the shape would be unguarded on the one build
+    // that still ships it.
+    file: 'embed/tips-tax-calculator/index.html',
+    pins: [
+      ['state-select-is-a-plain-field', insideForm('id="tipsForm"', 'id="state"')],
+      ['verdict-follows-the-result', before('id="out"', 'id="stateVerdict"')],
+      ['no-question-flow-script', absent(QUESTION_FLOW)],
+      ['not-the-wizard', absent('/assets/tips-wizard')],
     ],
   },
   {

@@ -27,59 +27,132 @@
 <main id="main">
   <div class="wrap">
     <h1>No Tax on Tips Calculator</h1>
-    <section class="calc" aria-label="Tips tax deduction calculator">
+    <!-- THE WIZARD (rewritten 2026-08-01, the first conversion onto wizard-core.js).
+         This calculator used to be one long form: four labelled boxes and a results
+         panel, all on screen at once. The approved replacement, proven on
+         /overtime-tax-calculator/, asks ONE question per card and ends with the
+         answer written out as a story rather than as a stat card over a collapsed
+         derivation.
+
+         PROGRESSIVE ENHANCEMENT, NOT A JS APP. Every card below ships VISIBLE and
+         in reading order in the built HTML: with JavaScript off, blocked, or a
+         crawler reading the page, this is a plain sequential form with real
+         <label>s and native <details> helpers. tips-wizard.js sets data-js="on" on
+         the .otw section only after its first successful render, and ONLY THEN does
+         styles.css collapse the stack to one card at a time. Hide-on-demand, never
+         show-on-demand. The single exception is #out, the computed answer, which
+         has always been JS-only.
+
+         The controls that only mean something once the stepping exists (Next /
+         Back / Skip, the progress dots, the tip chips, the answer chips, Start
+         over) are also gated on data-js="on" in CSS, because a "Next" button that
+         cannot advance anything is worse than no button.
+
+         IDS ARE A CONTRACT with tips-wizard.js: tips, income, state and the radio
+         group named "filing" (values single / married / head_of_household). #out
+         and #outStatus keep their old names and roles (result panel + the one
+         polite live region). #outStatus deliberately sits OUTSIDE the cards: inside
+         one it would be display:none on every step but its own and the
+         announcement would never reach a screen reader.
+
+         THE ORDER IS TIPS FIRST, THEN TOTAL PAY. The old form asked for total pay
+         and then "how much of that was tips", which cannot be answered until the
+         first box is right. Asking the tool's own subject first also puts the
+         two-number cross-check (tips larger than the whole year's pay) on the
+         SECOND of the pair, which is where the visitor is standing when it can
+         first be true.
+
+         The /embed/ build is NOT this. It keeps its single-column form and is
+         still served by tips-tax-calculator.js, because a third party sizes that
+         iframe once and a flow whose height changes per card would clip inside it.
+         The two must stay independent.
+
+         Ad slots, prose, the worked example and the FAQ below are untouched. -->
+    <section class="otw" id="tipsWizard" aria-label="Tips tax deduction calculator">
       <h2 class="sr-only">Tips tax savings calculator</h2>
-      <form id="tipsForm" autocomplete="off" onsubmit="return false">
-        <!-- Each helper is a <details>: the one sentence a visitor needs in order to
-             answer the field is the <summary>, and the rest of the same words stay a
-             click away. #incomeNote and #tipsNote carry their ids on the <details>
-             itself so the aria-describedby on the input above still resolves.
+      <div class="otw-dots" id="otwDots" aria-hidden="true"></div>
+      <p class="otw-stepnum" id="otwStepnum"></p>
 
-             The ids income, tips, filing and state, and the filing option values
-             single / married / head_of_household, are read by
-             /assets/tips-tax-calculator.js and must not be renamed. -->
-        <div class="field">
-          <label for="income">How much did you earn in total this year, before anything was taken out?</label>
-          <input type="text" id="income" inputmode="decimal" data-money autocomplete="off" value="45000" aria-describedby="incomeNote">
-          <details class="derivation field-help" id="incomeNote">
-            <summary>Everything you were paid for the whole year, your wages and your tips together.</summary>
-            <p class="muted-small">Married and sending in one return together? Add both incomes. This number is what decides whether the tip break starts shrinking, which begins at $150,000 on your own or $300,000 filing jointly.</p>
+      <form id="tipsWizForm" autocomplete="off" onsubmit="return false">
+        <section class="otw-card" data-step="0" aria-labelledby="otwQ0">
+          <h2 class="otw-q" id="otwQ0"><label for="tips">How much did you make in tips this year?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="tips" inputmode="decimal" data-money autocomplete="off" value="18000">
+          </div>
+          <div class="otw-chips" id="otwTipChips">
+            <button type="button" data-otw-fill="tips" data-otw-value="5200">~$100 a week &rarr; 5,200</button>
+            <button type="button" data-otw-fill="tips" data-otw-value="13000">~$250 a week &rarr; 13,000</button>
+            <button type="button" data-otw-fill="tips" data-otw-value="20800">~$400 a week &rarr; 20,800</button>
+          </div>
+          <details class="otw-help">
+            <summary>Up to $25,000 of them can come off the income you are taxed on</summary>
+            <p>The tips customers chose to give you over the year, in cash or on a card, as you reported them. A charge the business adds by itself, such as an automatic 18% for a large table, is not a tip and does not count. A rough total is fine, you can change it at the end and watch the number update.</p>
           </details>
-        </div>
+          <div class="otw-nav"><span></span><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-        <div class="field">
-          <label for="tips">How much of that was tips?</label>
-          <input type="text" id="tips" inputmode="decimal" data-money autocomplete="off" value="18000" aria-describedby="tipsNote">
-          <details class="derivation field-help" id="tipsNote">
-            <summary>Up to $25,000 of them can come off the income you are taxed on.</summary>
-            <p class="muted-small">The tips customers chose to give you over the year, in cash or on a card, as you reported them. A charge the business adds by itself, such as an automatic 18% for a large table, is not a tip and does not count.</p>
+        <section class="otw-card" data-step="1" aria-labelledby="otwQ1">
+          <h2 class="otw-q" id="otwQ1"><label for="income">And how much did you earn in the whole year, tips included?</label></h2>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="income" inputmode="decimal" data-money autocomplete="off" value="45000">
+          </div>
+          <p class="otw-flag" id="otwIncomeFlag" hidden></p>
+          <details class="otw-help">
+            <summary>Everything you were paid for the whole year, your wages and your tips together</summary>
+            <p>A ballpark is fine. Married and sending in one return together? Add both incomes. It only changes the answer if you earn over $150,000 on your own ($300,000 filing jointly), where this tax break starts shrinking. Tax forms measure that against your <a href="/tax-glossary/#magi">modified adjusted gross income</a>, so if money leaves your pay before tax, into a 401(k) or a health plan, take those amounts off.</p>
           </details>
-        </div>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-        <div class="field">
-          <label for="filing">How do you send in your tax return?</label>
-          <select id="filing">
-            <option value="single">Single</option>
-            <option value="married">Married filing jointly</option>
-            <option value="head_of_household">Head of household</option>
-          </select>
-          <details class="derivation field-help">
-            <summary>Married but sending in separate returns means you cannot claim it.</summary>
-            <p class="muted-small">Form 1040 prints this at the top as your <a href="/tax-glossary/#filing-status">filing status</a>. Pick Single if you are not married. Pick Married filing jointly if you are married and you and your spouse send in one return together, which married couples have to do to claim this break. Pick Head of household if you are unmarried and pay most of the cost of a home for a child or another dependent.</p>
+        <section class="otw-card" data-step="2" aria-labelledby="otwQ2">
+          <h2 class="otw-q" id="otwQ2">How do you do your taxes?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ2">
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="single" checked>
+              <span><span class="otw-opt-t">On my own</span><span class="otw-opt-s">single</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="married">
+              <span><span class="otw-opt-t">Together with my husband or wife</span><span class="otw-opt-s">married, one return, which married couples have to do to claim this break</span></span>
+            </label>
+            <label class="otw-opt">
+              <input type="radio" name="filing" value="head_of_household">
+              <span><span class="otw-opt-t">On my own, with a child or dependent at home</span><span class="otw-opt-s">head of household</span></span>
+            </label>
+          </div>
+          <details class="otw-help">
+            <summary>What if I'm married but we file separately?</summary>
+            <p>Married couples who send in separate returns cannot claim this deduction at all. Tax forms call this your <a href="/tax-glossary/#filing-status">filing status</a>. It does not change the $25,000 limit, which is one limit per return either way, never doubled, it only moves the income at which the break starts shrinking.</p>
           </details>
-        </div>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
 
-        <div class="field">
-          <label for="state">Which state do you work in?</label>
-          <select id="state"><option value="">Select a state</option></select>
-        </div>
+        <section class="otw-card" data-step="3" aria-labelledby="otwQ3">
+          <h2 class="otw-q" id="otwQ3"><label for="state">Which state do you work in?</label></h2>
+          <select class="otw-in" id="state"><option value="">Choose a state…</option></select>
+          <details class="otw-help">
+            <summary>Why it matters</summary>
+            <p>This tax break is federal. Whether it also lowers your <em>state</em> income tax depends on your state: many states do not copy it, some copy it only from 2026, and nine states have no wage income tax at all.</p>
+          </details>
+          <div class="otw-nav">
+            <button type="button" class="otw-back">Back</button>
+            <span class="otw-nav-end"><button type="button" class="otw-skip">Skip</button> <button type="button" class="otw-next">See my answer</button></span>
+          </div>
+        </section>
+
+        <section class="otw-card otw-result" data-step="4" aria-labelledby="otwQ4">
+          <h2 class="otw-q sr-only" id="otwQ4" tabindex="-1">Your answer</h2>
+          <p class="calc-example">These are example numbers. Type yours to see your own.</p>
+          <div class="obbba-out" id="out" data-tb-result></div>
+          <details class="otw-help">
+            <summary>Do all my tips count?</summary>
+            <p>Only tips a customer chose to give you, in a job that customarily gets tipped, and the Treasury publishes the list, so you can <a href="/w2-box-decoder/#ttoc-lookup">check whether yours is on it</a>. A service charge the business adds by itself is treated as wages, not a tip. You also still report every tip as usual, the deduction is claimed separately when you file.</p>
+          </details>
+          <details class="otw-help" id="otwStateNote" hidden><summary></summary><div class="otw-state-body" data-otw-body></div></details>
+          <div class="otw-answers" id="otwAnswers"></div>
+          <div class="otw-restart"><button type="button" id="otwRestart">Start over</button></div>
+        </section>
       </form>
-
-      <div class="calc-answer">
-        <p class="calc-example">These are example numbers. Type yours to see your own.</p>
-        <div class="obbba-out" id="out" data-tb-result></div>
-        <div class="state-verdict" id="stateVerdict" hidden></div>
-      </div>
       <p id="outStatus" role="status" class="sr-only"></p>
     </section>
 
@@ -121,8 +194,11 @@
       <p>You need a Social Security number valid for employment, and if you're married you must file jointly (married filing separately is not eligible). Both employees (tips on your <a href="/tax-glossary/#w-2">W-2</a>) and self-employed workers can claim it — the self-employed are limited to their net business income, and specified service businesses are excluded. You must work in one of the occupations the Treasury lists as customarily tipped — <a href="/w2-box-decoder/#ttoc-lookup">look up your occupation and its Box 14b code here</a>.</p>
       </details>
       <h2>Does your state tax tips?</h2>
-      <!-- The general answer moved into the #stateVerdict box beside the result,
-           where the benchmark personas actually looked for it. -->
+      <!-- The general answer lives on the state card in the flow above ("Why it
+           matters") and the specific one lands in #otwStateNote on the answer card,
+           which is where the benchmark personas actually looked for it. It used to
+           be in a #stateVerdict box beside the result; that box is still the shape
+           the /embed/ build ships. -->
       <p>Pick your state above to see how it treats them, or open your state's paycheck calculator for the detail.</p>
     </section>
 
@@ -155,6 +231,6 @@
   window.__FED__ = {{FED_JSON}};
   window.__STATES__ = {{STATES_JSON}};
 </script>
-<script type="module" src="/assets/tips-tax-calculator.js"></script>
+<script type="module" src="/assets/tips-wizard.js"></script>
 </body>
 </html>
