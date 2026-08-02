@@ -5,12 +5,12 @@
     "federalConfirmed": "Federal 2026 figures confirmed 2026-06-16 against IRS Rev. Proc. 2025-32 (standard deduction + income-tax brackets) and the SSA 2026 COLA fact sheet (Social Security wage base $184,500).",
     "sources": {
       "federal_brackets": "https://www.irs.gov/newsroom/irs-releases-tax-inflation-adjustments-for-tax-year-2026-including-amendments-from-the-one-big-beautiful-bill",
-      "federal_brackets_hoh": "https://taxfoundation.org/data/all/federal/2026-tax-brackets/",
+      "federal_brackets_hoh": "https://www.irs.gov/pub/irs-drop/rp-25-32.pdf",
       "standard_deduction": "https://www.irs.gov/newsroom/irs-releases-tax-inflation-adjustments-for-tax-year-2026-including-amendments-from-the-one-big-beautiful-bill",
       "fica": "https://www.ssa.gov/oact/cola/cbb.html",
       "additional_medicare": "https://www.irs.gov/taxtopics/tc751"
     },
-    "lastSourced": "2026-07-31"
+    "lastSourced": "2026-08-02"
   },
   "filingStatuses": [
     {
@@ -110,7 +110,7 @@
         },
         {
           "rate": 0.24,
-          "upTo": 201775
+          "upTo": 201750
         },
         {
           "rate": 0.32,
@@ -506,7 +506,7 @@
           ]
         }
       },
-      "_source": "Vermont tax year 2026. BRACKETS for all three filing statuses this page models come from the Vermont Legislative Joint Fiscal Office 2026 Fiscal Facts booklet (issued February 2026), the table on page 50 headed 2026 VERMONT Personal Income Tax Rates and Brackets. Check you are on page 50, because page 49 shows the federal brackets. The four rates are 3.35%, 6.60%, 7.60% and 8.75%, and the table gives single 50,750 / 122,850 / 256,300, married filing jointly 84,700 / 204,750 / 312,050, and head of household 68,000 / 175,500 / 284,150. It also lists married filing separately, which this page does not model. Fiscal Facts is the Legislature's reference publication of current law, not a Department of Taxes schedule: 32 V.S.A. 5822(b)(2) assigns the annual inflation adjustment to the Commissioner of Taxes. It is cited here because it is the only official Vermont document that carries the 2026 brackets today. https://ljfo.vermont.gov/assets/Publications/2026-Fiscal-Facts-Booklet/Fiscal-Facts-2026.pdf STANDARD DEDUCTION figures are Vermont's tax year 2025 amounts, $7,650 single, $15,300 married filing jointly and $11,450 head of household, from the Vermont Department of Taxes 2025 Income Tax Return Booklet, the Form IN-111 Line 4 standard deduction chart. https://tax.vermont.gov/sites/tax/files/documents/Income-Booklet-2025.pdf WHY TWO YEARS: the Department of Taxes has not published 2026 income tax rate schedules or a 2026 standard deduction. The newest schedules on its own rate schedules page are tax year 2025. https://tax.vermont.gov/individuals/personal-income-tax/rates Vermont has published 2026 WITHHOLDING material (GB-1210-2026, RateSched-2026, TaxTables-2026), but those are employer withholding charts covering single and married only, with no head of household column, and their thresholds are not the bracket thresholds, so they are deliberately not cited for any figure on this page.",
+      "_source": "Vermont tax year 2026. BRACKETS for all three filing statuses this page models come from the Vermont Legislative Joint Fiscal Office 2026 Fiscal Facts booklet (issued February 2026), the table on page 50 headed 2026 VERMONT Personal Income Tax Rates and Brackets. Check you are on page 50, because page 49 shows the federal brackets. The four rates are 3.35%, 6.60%, 7.60% and 8.75%, and the table gives single 50,750 / 122,850 / 256,300, married filing jointly 84,700 / 204,750 / 312,050, and head of household 68,000 / 175,500 / 284,150. It also lists married filing separately, which this page does not model. Fiscal Facts is the Legislature's reference publication of current law, not a Department of Taxes schedule: 32 V.S.A. 5822(b)(2) assigns the annual inflation adjustment to the Commissioner of Taxes. https://ljfo.vermont.gov/assets/Publications/2026-Fiscal-Facts-Booklet/Fiscal-Facts-2026.pdf It is not the only official Vermont document carrying these brackets, and it is not the primary one. The Department of Taxes prints the same schedules itself in its 2026 Form IN-114 Instructions (Rev. 10/25), on the SECOND page of that two-page PDF, under the heading 2026 Preliminary Vermont Tax Rates: Schedule X single 50,750 / 122,850 / 256,300, Schedule Y-1 married filing jointly 84,700 / 204,750 / 312,050, Schedule Y-2 married filing separately 42,350 / 102,375 / 156,025, and Schedule Z head of household 68,000 / 175,500 / 284,150, at the same four rates. The Department labels that table Preliminary. The printed header on that page reads Page 1 of 2, so go by the PDF page count, not the header. IN-114 is the departmental authority for the bracket figures on this page and Fiscal Facts corroborates it; the two agree on every threshold. https://tax.vermont.gov/sites/tax/files/documents/IN-114-Instr-2026.pdf STANDARD DEDUCTION figures are Vermont's tax year 2025 amounts, $7,650 single, $15,300 married filing jointly and $11,450 head of household, from the Vermont Department of Taxes 2025 Income Tax Return Booklet, the Form IN-111 Line 4 standard deduction chart. https://tax.vermont.gov/sites/tax/files/documents/Income-Booklet-2025.pdf WHY TWO YEARS: the Department of Taxes has not published a 2026 standard deduction anywhere, including in the IN-114 instructions cited above, which carry rate schedules only. Its 2026 rate schedules exist only as the Preliminary ones in those instructions; the newest schedules on its rate schedules page are still tax year 2025. https://tax.vermont.gov/individuals/personal-income-tax/rates Vermont has published 2026 WITHHOLDING material (GB-1210-2026, RateSched-2026, TaxTables-2026), but those are employer withholding charts covering single and married only, with no head of household column, and their thresholds are not the bracket thresholds, so they are deliberately not cited for any figure on this page.",
       "disclaimer": [
         "Local income taxes are not included.",
         "Vermont's per-person personal exemption is not modeled, so this estimate runs slightly high.",
@@ -596,7 +596,7 @@
           ]
         }
       },
-      "_source": "WV 2026 schedule after the triggered rate cuts (5 rates 2.22/2.96/3.33/4.44/4.82%, same thresholds for all filing statuses), Tax Foundation as-of Jan 1 2026; cross-check WV Tax Division (tax.wv.gov). WV has NO standard deduction; the $2,000-per-exemption personal exemption is modeled here as the deduction. https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/",
+      "_source": "West Virginia's 2026 schedule is W. Va. Code 11-21-4j(a), added by Enrolled Committee Substitute for Senate Bill 392, passed 14 March 2026 and in effect 90 days from passage. The section is headed 'Rate of tax - Taxable years beginning on and after January 1, 2026' and its table for individuals other than married filing separately, joint filers, heads of household, estates and trusts reads: 'Not over $10,000 - 2.11% of the taxable income; Over $10,000 but not over $25,000 - $211 plus 2.81% of excess over $10,000; Over $25,000 but not over $40,000 - $632.50 plus 3.16% of excess over $25,000; Over $40,000 but not over $60,000 - $1,106.50 plus 4.22% of excess over $40,000; Over $60,000 - $1,950.50 plus 4.58% of excess over $60,000.' Corrected 2026-08-02: this field previously described the superseded tax-year-2025 set (2.22/2.96/3.33/4.44/4.82%) as if it were the 2026 schedule, and cited a think tank rather than the statute. WV has NO standard deduction; the $2,000-per-exemption personal exemption is modeled here as the deduction. https://www.wvlegislature.gov/Bill_Text_HTML/2026_SESSIONS/RS/bills/sb392%20sub1%20enr.pdf",
       "disclaimer": [
         "Local income taxes are not included. WV municipal service/city fees are not income taxes and are not modeled.",
         "WV has no standard deduction; we model one $2,000 personal exemption ($4,000 MFJ). Each dependent adds another $2,000 not modeled — estimates run slightly high for filers with dependents."
@@ -660,6 +660,15 @@
       "name": "Delaware",
       "abbr": "DE",
       "slug": "delaware",
+      "employeePrograms": [
+        {
+          "label": "DE Paid Leave",
+          "rate": 0.004,
+          "wageBase": 184500,
+          "_fullName": "Delaware Paid Leave employee share, the most an employer may take out of your pay. Delaware charges 0.80% of wages in total for 2026 (0.4% medical + 0.32% parental + 0.08% family caregiving) and lets the employer deduct up to half of it from you, so 0.40% is the employee ceiling. Many employers pay some or all of your half, and employers with an approved private plan are outside the state fund, so what you actually see may be less.",
+          "_source": "19 Del. C. 3705(b)(1)a., (b)(2)a. and (b)(3)a.: 'For 2025 and 2026, the contribution rate for medical leave benefits as a percentage of wages is 0.4%' / 'for family caregiving leave benefits as a percentage of wages is 0.08%' / 'for parental leave benefits as a percentage of wages is 0.32%', a 0.80% total. 19 Del. C. 3705(d), (e) and (f) each read 'an employer shall deduct not greater than 50% of the contribution required for the employee. However, an employer may elect to pay all or any portion of the employee's share', which caps the employee at 0.40%. The wage cap follows 19 Del. C. 3701(24): 'Wages means remuneration for employment as determined for purposes of old-age, survivors, and disability insurance for employees and employers under the Federal Insurance Contribution Act, 26 U.S.C. Chapter 21', and the 2026 OASDI ceiling is $184,500 (SSA, Contribution and Benefit Base: 'For earnings in 2026, this base is $184,500'; ssa.gov refuses programmatic fetch, so this was read from the Wayback capture of that same page, web.archive.org/web/20260707030358/https://www.ssa.gov/oact/cola/cbb.html). https://delcode.delaware.gov/title19/c037/index.html"
+        }
+      ],
       "hasIncomeTax": true,
       "figureYear": 2026,
       "tax": {
@@ -765,7 +774,8 @@
       "_source": "DE statutory graduated schedule (30 Del. C. ch. 11), unchanged for 2026 — same bracket thresholds for all filing statuses: 0% to $2,000, 2.2% to $5,000, 3.9% to $10,000, 4.8% to $20,000, 5.2% to $25,000, 5.55% to $60,000, 6.6% above $60,000. Standard deduction $3,250 single / $6,500 MFJ (HoH uses single). Confirmed via Tax Foundation 2026 (as of Jan 1 2026) + multiple 2026 aggregators; DE Division of Revenue (revenue.delaware.gov). https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/",
       "disclaimer": [
         "Local income taxes are not included. The Wilmington local earned-income/wage tax (~1.25%) is NOT included.",
-        "Delaware's personal-credit ($110 single / $220 MFJ) and itemized deductions are not modeled — estimates run slightly high."
+        "Delaware's personal-credit ($110 single / $220 MFJ) and itemized deductions are not modeled — estimates run slightly high.",
+        "Delaware Paid Leave is now included. It is 0.4% of your wages, the most your employer may take out of your pay, and it stops at the $184,500 wage base, so on $75,000 it is $300 a year."
       ],
       "notes": "Graduated 0%–6.6% (top rate over $60,000); same brackets for all filing statuses."
     },
@@ -929,6 +939,11 @@
       "slug": "virginia",
       "hasIncomeTax": true,
       "figureYear": 2026,
+      "_watch": {
+        "until": "2026-12-31",
+        "what": "Virginia's standard deduction steps up after 2026 and no longer sunsets in 2027. Va. Code § 58.1-322.03(1)(b), currency 8/1/2026, sets '$8,750 for single individuals and $17,500 for married persons' only 'for taxable years beginning on and after January 1, 2025, but before January 1, 2027', then '$9,200 ... and $18,400' for 2027, then '$9,300 ... and $18,600' for 2028 and 2029, with the $3,000/$6,000 fallback moved out to 'taxable years beginning ... on and after January 1, 2030'. Re-verify before the 2027 data file ships: use $9,200/$18,400, and confirm the General Assembly has not changed the ladder again. Source: https://law.lis.virginia.gov/vacode/title58.1/chapter3/section58.1-322.03/",
+        "decided": "Audit 2026-08-02: the 2026 amounts are right; the disclaimer's old 'reverts after 2026' line was corrected in the same pass."
+      },
       "tax": {
         "type": "bracket",
         "standardDeduction": {
@@ -993,11 +1008,11 @@
           ]
         }
       },
-      "_source": "VA individual income tax is statutory (Va. Code § 58.1-320), 2%-5.75% at $3k/$5k/$17k thresholds, unchanged since 1990 (same brackets for all filing statuses). Official 2026 standard deduction $8,750 single/HoH, $17,500 MFJ (Va. Code § 58.1-322.03, fixed for 2025-2026). Confirmed against the Va. Dept. of Taxation Tax Rate Schedule (Rev. 05/26); validated vs SmartAsset/Talent.com consensus. https://www.tax.virginia.gov/ ; https://law.lis.virginia.gov/vacode/title58.1/chapter3/section58.1-320/",
+      "_source": "VA individual income tax is statutory (Va. Code § 58.1-320), 2%-5.75% at $3k/$5k/$17k thresholds, unchanged since 1990 (same brackets for all filing statuses). Official 2026 standard deduction $8,750 single/HoH, $17,500 MFJ. Confirmed against the Va. Dept. of Taxation Tax Rate Schedule (Rev. 05/26). SUNSET CORRECTED 2026-08-02: the disclaimer used to tell readers the amount reverts to $3,000/$6,000 after tax year 2026. Va. Code § 58.1-322.03(1)(b), currency 8/1/2026, now reads '(v) for taxable years beginning on and after January 1, 2025, but before January 1, 2027, $8,750 for single individuals and $17,500 for married persons ...; (vi) for taxable years beginning on and after January 1, 2027, but before January 1, 2028, $9,200 ... and $18,400 ...; and (vii) for taxable years beginning on and after January 1, 2028, but before January 1, 2030, $9,300 ... and $18,600', with clause (i) putting the $3,000/$6,000 reversion at 'taxable years beginning ... on and after January 1, 2030'. https://www.tax.virginia.gov/ ; https://law.lis.virginia.gov/vacode/title58.1/chapter3/section58.1-320/ ; https://law.lis.virginia.gov/vacode/title58.1/chapter3/section58.1-322.03/",
       "disclaimer": [
         "Virginia has no local/city wage income tax.",
         "Virginia's personal exemptions ($930 per filer/dependent) and the $12,000 age 65+ deduction are not modeled.",
-        "The $8,750/$17,500 standard deduction is set in statute for 2026; it is scheduled to revert to $3,000/$6,000 after tax year 2026 unless the legislature extends it."
+        "The $8,750/$17,500 standard deduction is set in statute for 2026. The 2026 General Assembly extended and raised it, so it goes to $9,200/$18,400 for 2027 and $9,300/$18,600 for 2028 and 2029, and only drops back to $3,000/$6,000 for tax years beginning in 2030."
       ],
       "notes": "Progressive 2%-5.75% (statutory), top rate begins at just $17,000 taxable income."
     },
@@ -1027,6 +1042,11 @@
       "name": "Washington",
       "abbr": "WA",
       "slug": "washington",
+      "_watch": {
+        "until": "2027-06-30",
+        "what": "Washington enacted an individual income tax in 2026, but it does not touch a 2026 or 2027 paycheck. Engrossed Substitute Senate Bill 6346, Chapter 238, Laws of 2026, titled 'TAXES-INDIVIDUAL INCOME OVER $1 MILLION', section 201: 'Beginning January 1, 2028, a tax is imposed on the receipt of Washington taxable income. Only individuals are subject to payment of the tax, which equals 9.90 percent multiplied by an individual's Washington taxable income.' Section 314 allows 'a standard deduction of $1,000,000 per individual', and section 501(6) says 'Estimated payments are not required under this section before July 1, 2029.' There is no employer withholding. Re-verify before the 2028 data file: has the $1,000,000 deduction been indexed or the start date moved? Source: https://lawfilesext.leg.wa.gov/biennium/2025-26/Pdf/Bills/Session%20Laws/Senate/6346-S.SL.pdf",
+        "decided": "Audit 2026-08-02: hasIncomeTax stays false for 2026 and 2027; nothing to encode until the 2028 file."
+      },
       "employeePrograms": [
         {
           "label": "WA PFML",
@@ -1049,7 +1069,7 @@
       "tax": {
         "type": "none"
       },
-      "_source": "Washington has no tax on wage/salary income (WA Dept. of Revenue). A separate 7% capital-gains tax applies only to high investment gains, not wages. https://dor.wa.gov/",
+      "_source": "Washington has no tax on wage or salary income (WA Dept. of Revenue). A separate excise tax applies to large long-term capital gains, not to wages. Corrected 2026-08-02: this used to describe that tax as a flat 7%. RCW 82.87.040 reads '(1)(a) Beginning January 1, 2022, an excise tax is imposed on the sale or exchange of long-term capital assets. Only individuals are subject to payment of the tax, which equals seven percent multiplied by an individual's Washington capital gains. (b) Beginning January 1, 2025, an additional excise tax is imposed on the sale or exchange of long-term capital assets, which equals 2.90 percent multiplied by the portion of an individual's Washington capital gains exceeding $1,000,000.' So the top rate has been 9.90% since 2025. https://dor.wa.gov/ ; https://app.leg.wa.gov/rcw/default.aspx?cite=82.87.040",
       "notes": "No state income tax on wages."
     },
     "nevada": {
@@ -1148,9 +1168,11 @@
         "type": "flat",
         "rate": 0.0307
       },
-      "_source": "PA flat personal income tax 3.07% (unchanged since 2004), applied to compensation with no standard deduction or personal exemption. PA Dept. of Revenue. https://www.pa.gov/agencies/revenue/resources/tax-rates/personal-income-tax-rates",
+      "_source": "PA flat personal income tax 3.07% (unchanged since 2004), applied to compensation with no standard deduction or personal exemption. PA Dept. of Revenue. LOCAL TAXES, corrected 2026-08-02. Philadelphia's rate was previously written here as '~3.79%' and called an Act 32 EIT; both were wrong. The City of Philadelphia's own Wage Tax (employers) page states 'Tax rate 3.735% for residents of Philadelphia, or 3.425% for non-residents', effective 1 July 2026. And Philadelphia does not levy under Act 32: the Local Tax Enabling Act (Act 511 of 1965, whose Chapter 5 was added by Act 32 of 2008) is 'AN ACT Empowering cities of the second class, cities of the second class A, cities of the third class, boroughs, towns, townships of the first class, townships of the second class, school districts...', a list that does not reach Philadelphia, and Chapter 5's definitions of 'Municipality' and 'Political subdivision' repeat that same list. The Local Services Tax is the other local withholding a Pennsylvania paycheck can carry; the same act, section 301.1(f)(10)(vi), reads 'The local services tax shall be no more than fifty-two dollars ($52) on each person for each calendar year, irrespective of the number of political subdivisions within which a person may be employed', and DCED explains it is collected per payroll period once the combined rate exceeds $10 ('a $52 tax would be collected at $1 per week for taxpayers paid weekly, or at $4.33 per month for taxpayers paid monthly'). It is municipality-dependent, so it is disclosed but not computed. https://www.pa.gov/agencies/revenue/resources/tax-rates/personal-income-tax-rates ; https://www.phila.gov/services/payments-assistance-taxes/business-taxes/wage-tax-employers/ ; https://www.legis.state.pa.us/WU01/LI/LI/US/HTM/1965/0/0511..HTM ; https://dced.pa.gov/local-government/local-income-tax-information/local-services-tax/",
       "disclaimer": [
-        "Separate local Earned Income Taxes (Act 32 EIT — e.g. ~3.79% Philadelphia) are levied by municipalities/school districts and are not included in this estimate."
+        "Separate local Earned Income Taxes (Act 32 EIT) are levied by Pennsylvania municipalities and school districts and are not included in this estimate.",
+        "Philadelphia runs its own wage tax, separate from the Act 32 earned income taxes. Effective 1 July 2026 it is 3.735% if you live in Philadelphia and 3.425% if you work there but live elsewhere. It is not included here.",
+        "Many Pennsylvania municipalities also withhold a Local Services Tax where you work. State law caps it at $52 a year and it comes out a little at a time each pay period. It depends on your work municipality, so it is not computed here."
       ],
       "notes": "Flat 3.07% on wages, no deductions."
     },
@@ -1387,6 +1409,11 @@
       "slug": "georgia",
       "hasIncomeTax": true,
       "figureYear": 2026,
+      "_watch": {
+        "until": "2026-12-15",
+        "what": "Georgia's flat rate is on a downward schedule, so 4.99% may not be the 2027 number. The Georgia Department of Revenue's 2026 Income Tax Changes page states 'The Georgia income tax rate has been reduced to a flat rate of 4.99%. The Georgia standard deduction has been increased to $15,000 for single taxpayers, heads of households, and married taxpayers filing separately, or $30,000 for married taxpayers filing jointly', which is what is encoded here. The Governor's office says HB 463, signed 11 May 2026, 'lowers Georgia's state income tax rate from 5.19% to 4.99%, beginning January 1, 2026' and 'includes provisions for further annual reductions of the state income tax rate'. Re-verify: what rate does GA DOR publish for 2027? Sources: https://dor.georgia.gov/taxes/important-tax-updates ; https://gov.georgia.gov/press-releases/2026-05-11/gov-kemp-signs-legislation-lowering-taxes-and-supporting-economic-growth",
+        "decided": "Audit 2026-08-02: the 2026 rate and standard deduction match GA DOR exactly; this is a tripwire for the 2027 rollover."
+      },
       "tax": {
         "type": "flat",
         "rate": 0.0499,
@@ -1595,6 +1622,11 @@
       "figureYear": 2026,
       "tax": {
         "type": "bracket",
+        "standardDeduction": {
+          "single": 1000,
+          "married": 2000,
+          "head_of_household": 1000
+        },
         "brackets": {
           "single": [
             {
@@ -1696,13 +1728,14 @@
           ]
         }
       },
-      "_source": "NJ gross income tax rate schedules are statutory (N.J.S.A. 54A:2-1), 1.4%-10.75%, fixed in law and NOT inflation-indexed; unchanged for 2026 (NJ Division of Taxation announced no rate/bracket changes for 2025/2026). Schedule I = single/MFS; Schedule II = MFJ/HoH (extra 2.45% band $50k-$70k). NJ has no standard deduction (personal exemptions only). Validated vs SmartAsset/incometaxpro/PaycheckCity. https://www.nj.gov/treasury/taxation/taxtables.shtml",
+      "_source": "NJ gross income tax rate schedules are statutory (N.J.S.A. 54A:2-1), 1.4%-10.75%, fixed in law and NOT inflation-indexed; unchanged for 2026 (NJ Division of Taxation announced no rate/bracket changes for 2025/2026). Schedule I = single/MFS; Schedule II = MFJ/HoH (extra 2.45% band $50k-$70k). New Jersey has no standard deduction, so the standardDeduction field here carries the PERSONAL EXEMPTION instead, which is the same kind of subtraction from income and is what the field computes. Added 2026-08-02 from the 2025 NJ-1040 resident return instructions. The booklet posted at nj.gov/treasury/taxation/pdf/current/1040i.pdf carries 2025 on its cover; New Jersey has not published a 2026 edition of it, and the per-person exemption is a fixed statutory amount that is not inflation-indexed, so it is unchanged for 2026. Its 'Line 6 - Regular Exemptions' reads: 'You can claim a $1,000 exemption for yourself and your spouse/CU partner (if filing a joint return) or your domestic partner.' That is why married filing jointly is $2,000, two exemptions, and single and head of household are $1,000, one exemption. Dependents ($1,500 each), the age-65 and blind/disabled $1,000 exemptions, and the dependent-attending-college exemption are additional and are NOT modeled. https://www.nj.gov/treasury/taxation/taxtables.shtml ; https://www.nj.gov/treasury/taxation/pdf/current/1040i.pdf",
       "disclaimer": [
         "New Jersey has no local wage income tax for residents (Newark payroll tax is employer-side).",
-        "New Jersey has no standard deduction; its $1,000 personal exemption and $1,500-per-dependent exemptions are not modeled.",
+        "New Jersey has no standard deduction. What this calculator subtracts is New Jersey's $1,000 personal exemption ($2,000 for a couple filing jointly, because each spouse gets one).",
+        "New Jersey's other exemptions are not included: $1,500 for each dependent, $1,000 more if you are 65 or older, and $1,000 more if you are blind or disabled. If any apply to you, your real New Jersey tax is lower than shown.",
         "2026 brackets are statutory (not inflation-indexed) and unchanged from prior years per the NJ Division of Taxation."
       ],
-      "notes": "Progressive 1.4%-10.75% (statutory). No standard deduction; personal exemptions not modeled."
+      "notes": "Progressive 1.4%-10.75% (statutory). No standard deduction; the $1,000 personal exemption ($2,000 filing jointly) is applied, dependent and age-65 exemptions are not."
     },
     "ohio": {
       "name": "Ohio",
@@ -2003,6 +2036,25 @@
       "figureYear": 2026,
       "tax": {
         "type": "bracket",
+        "standardDeduction": {
+          "single": 13960,
+          "married": 25840,
+          "head_of_household": 13960
+        },
+        "standardDeductionPhaseout": {
+          "single": {
+            "over": 20120,
+            "denominator": 116333.33333333333
+          },
+          "married": {
+            "over": 29040,
+            "denominator": 130650.21741328748
+          },
+          "head_of_household": {
+            "over": 20120,
+            "denominator": 116333.33333333333
+          }
+        },
         "brackets": {
           "single": [
             {
@@ -2060,15 +2112,17 @@
           ]
         }
       },
-      "_source": "Wisconsin 2026 Tax Rate Schedules for Full-Year Residents, from the OFFICIAL Wisconsin Dept. of Revenue 2026 Form 1-ES instructions (D-101A, R. 1-26), revenue.wi.gov. Graduated 4-bracket schedule (3.5%/4.4%/5.3%/7.65%), inflation-indexed and officially PUBLISHED for tax year 2026. Schedule A (Single/Head of Household/Estates & Trusts): 3.5% to $15,110, 4.4% to $51,950, 5.3% to $332,720, 7.65% above. Schedule B (Married Filing Jointly): 3.5% to $20,150, 4.4% to $69,260, 5.3% to $443,630, 7.65% above. Note: a 2023 proposal (AB1/LeMahieu) to move WI to a flat 3.25% by 2026 was NOT enacted (partially vetoed); WI remains graduated. Modeled STATE ONLY. Our single key bundles single+MFS but uses the Single schedule (MFS Schedule C has narrower bands $10,080/$34,630/$221,820 — disclaimed). Validated vs ustax.tools, which confirms the same graduated 4-rate structure (its thresholds lag at an earlier indexing year; the official DOR 2026 schedule is used over it). https://www.revenue.wi.gov/TaxForms2026/2026-Form1-ES-Inst.pdf",
+      "_source": "Wisconsin 2026 Tax Rate Schedules for Full-Year Residents, from the OFFICIAL Wisconsin Dept. of Revenue 2026 Form 1-ES instructions (D-101A, R. 1-26), revenue.wi.gov. Graduated 4-bracket schedule (3.5%/4.4%/5.3%/7.65%), inflation-indexed and officially PUBLISHED for tax year 2026. Schedule A (Single/Head of Household/Estates & Trusts): 3.5% to $15,110, 4.4% to $51,950, 5.3% to $332,720, 7.65% above. Schedule B (Married Filing Jointly): 3.5% to $20,150, 4.4% to $69,260, 5.3% to $443,630, 7.65% above. Note: a 2023 proposal (AB1/LeMahieu) to move WI to a flat 3.25% by 2026 was NOT enacted (partially vetoed); WI remains graduated. Modeled STATE ONLY. Our single key bundles single+MFS but uses the Single schedule (MFS Schedule C has narrower bands $10,080/$34,630/$221,820 — disclaimed). STANDARD DEDUCTION, added 2026-08-02: the same official page prints the 2026 Standard Deduction schedules, and Wisconsin's deduction slides down with income rather than being a flat amount (Wis. Stat. 71.05(22)(dp)). Single: '$0 to $20,119 → $13,960' then '20,119 to 136,453 → 13,960 less 12% ... $20,120' then '136,453 → 0'. Married filing jointly: '$0 to $29,039 → $25,840' then '29,039 to 159,690 → 25,840 less 19.778% $29,040' then '159,690 → 0'. Head of household: '$0 to $20,119 → $18,030', then '20,119 to 58,827 → 18,030 less 22.515% $20,120', then '58,827 to 136,453 → 13,960 less 12% ... 20,120', then '136,453 → 0'. HOW IT IS ENCODED: the engine's standardDeductionPhaseout is one straight line per status (reduction = floor(base x excess / denominator)), so 'reduce by R% of the excess' is written as denominator = base / R. Single: 13,960 / 0.12 = 116,333.33, which puts the zero point at 20,120 + 116,333.33 = 136,453.33, matching the schedule's own 136,453 cutoff; at $75,000 it gives a $7,375 deduction against the statute's $7,374.40, the whole gap being the engine rounding the reduction down to a whole dollar. Married: 25,840 / 0.19778 = 130,650.22, zero at 29,040 + 130,650.22 = 159,690.22, matching 159,690; at $75,000 it gives $16,751 against the statute's $16,750.03. HEAD OF HOUSEHOLD IS AN APPROXIMATION, disclosed to readers: Wisconsin's head-of-household schedule bends twice, and the engine's single straight line cannot express that, so we use the schedule's own second segment (13,960 less 12% over $20,120). That is EXACT for Wisconsin income of $58,827 and above, including the $75,000 benchmark, and it understates the deduction below $58,827, where the statute allows up to $18,030, so head-of-household tax runs high there by at most about $140 a year. https://www.revenue.wi.gov/TaxForms2026/2026-Form1-ES-Inst.pdf",
       "disclaimer": [
         "Wisconsin does not levy local/municipal income taxes, but this estimate excludes any credits.",
-        "Wisconsin has NO fixed standard deduction: it uses an income-based sliding-scale standard deduction that phases out as income rises (e.g. 2026 single: $13,960 up to $20,119 income, declining to $0 at $136,453). The engine cannot model an income-dependent deduction, so NO standard deduction is applied here — estimates are computed on gross/taxable income and will run slightly HIGH (overstate WI tax), especially at lower incomes.",
+        "Wisconsin's standard deduction slides down as income rises rather than being one flat amount, and this calculator now applies it. For 2026 a single filer starts at $13,960 and loses 12 cents of it for every dollar of Wisconsin income above $20,120, reaching zero at $136,453; a couple filing jointly starts at $25,840 and loses 19.778 cents per dollar above $29,040, reaching zero at $159,690.",
+        "Head of household is close but not exact. Wisconsin gives head-of-household filers a bigger starting deduction ($18,030) that shrinks faster at first, and this calculator cannot bend the line twice, so it uses Wisconsin's own second segment. That matches the state exactly once your income reaches $58,827, and below that it gives you less deduction than Wisconsin does, so the tax shown runs high by up to about $145 a year.",
+        "Wisconsin measures the sliding deduction against your Wisconsin income. We use your wages minus pre-tax deductions, so if you have income or adjustments outside your paycheck your real deduction may differ from the one used here.",
         "Wisconsin personal exemptions ($700/person, +$250 if 65+), the married-couple credit, school-property-tax credit, and other credits are not modeled.",
         "The single column uses Wisconsin Schedule A (Single/Head of Household). Married-filing-separately filers use the narrower Schedule C, which is not separately modeled.",
         "A 2023 flat-tax proposal (3.25%) was not enacted; Wisconsin remains a graduated 4-bracket system for 2026."
       ],
-      "notes": "Graduated 4-bracket (official 2026 DOR schedule): 3.5% / 4.4% / 5.3% / 7.65%. Income-based standard deduction phase-out not modeled (estimate runs slightly high). No local income tax."
+      "notes": "Graduated 4-bracket (official 2026 DOR schedule): 3.5% / 4.4% / 5.3% / 7.65%. Wisconsin's sliding-scale standard deduction is now applied: $13,960 single and $25,840 married filing jointly at the top, shrinking to zero at $136,453 and $159,690. Head of household is exact from $58,827 up. No local income tax."
     },
     "connecticut": {
       "name": "Connecticut",
@@ -2180,14 +2234,14 @@
           ]
         }
       },
-      "_source": "CT 2026 Tax Calculation Schedule per the OFFICIAL Connecticut DRS Informational Publication 2026(7), \"Is My Connecticut Withholding Correct?\", effective Jan 1-Dec 31 2026 (issued 12/12/2025), Table B - Initial Tax Calculation. Rates are statutory (Conn. Gen. Stat. ch. 229), NOT inflation-indexed, and unchanged for 2026 (the 2024 cut of the lowest two rates to 2%/4.5% is fully phased in). Single=Code A, MFJ=Code C, HoH=Code B. Validated vs Tax Foundation 2026 + ustax.tools (same 7-rate 2%-6.99% schedule). Rejected tax-rates.org which still shows the pre-2024 3%/5% rates mislabeled as current. https://portal.ct.gov/-/media/drs/publications/pubsip/2026/ip-2026-7.pdf ; https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/",
+      "_source": "CT 2026 Tax Calculation Schedule per the OFFICIAL Connecticut DRS Informational Publication 2026(7), \"Is My Connecticut Withholding Correct?\", effective Jan 1-Dec 31 2026 (issued 12/12/2025), Table B - Initial Tax Calculation. Rates are statutory (Conn. Gen. Stat. ch. 229), NOT inflation-indexed, and unchanged for 2026 (the 2024 cut of the lowest two rates to 2%/4.5% is fully phased in). Single=Code A, MFJ=Code C, HoH=Code B. Rejected tax-rates.org which still shows the pre-2024 3%/5% rates mislabeled as current. DISCLAIMER FIXES 2026-08-02. (1) The personal-exemption amounts had lost their leading digits and rendered to readers as bare ',000'. They are restored from Conn. Gen. Stat. 12-702, which sets the exemption at 'twelve thousand dollars' for a married individual filing separately (phasing out above $24,000 of Connecticut AGI), 'fifteen thousand dollars' for an unmarried individual for taxable years commencing on or after January 1, 2016 (phasing out above $30,000), 'nineteen thousand dollars' for a head of household (above $38,000), and $24,000 for a joint return (above $48,000). DRS IP 2026(7) Table A prints the same four ladders under Withholding Codes F, A, B and C. Note the earlier draft of this fix had single and married-filing-separately swapped; the statute settles it, single is $15,000. (2) The phase-out add-back was called the '3%' phase-out and described as hitting only high earners. Since tax year 2024 it is the 2% phase-out: Conn. Gen. Stat. 12-700(a)(10), 'For taxable years commencing on or after January 1, 2024', subparagraph (A)(ii) reads 'for each taxpayer whose Connecticut adjusted gross income exceeds fifty-six thousand five hundred dollars, the amount of the taxpayer's Connecticut taxable income to which the two-per-cent tax rate applies shall be reduced by one thousand dollars for each five thousand dollars, or fraction thereof', and IP 2026(7) page 9 titles the table '2% Tax Rate Phase-Out Add-Back'. https://portal.ct.gov/-/media/drs/publications/pubsip/2026/ip-2026-7.pdf ; https://www.cga.ct.gov/current/pub/chap_229.htm",
       "disclaimer": [
         "Connecticut has no local/municipal income tax.",
-        "Connecticut has NO standard deduction; it uses income-based personal exemptions (,000 single / ,000 MFJ / ,000 HoH, phasing out as CT AGI rises) and personal tax credits, which this engine does not model. Estimates therefore run slightly HIGH for lower incomes.",
-        "Connecticut's 3% tax-rate phase-out (Table C add-back) and high-income tax recapture (Table D) — which claw back the benefit of the lower brackets for high earners and can push the effective rate above the stated 6.99% top marginal rate — are NOT modeled.",
+        "Connecticut has no standard deduction. It gives a personal exemption instead: up to $15,000 if you are single, $24,000 married filing jointly, $19,000 head of household, and $12,000 married filing separately. The exemption shrinks by $1,000 for every $1,000 of Connecticut income above $30,000 single, $48,000 jointly, $38,000 head of household and $24,000 filing separately, so it runs out entirely a little way above those points. Neither the exemption nor Connecticut's personal tax credits are modeled here, so this estimate runs HIGH for lower incomes.",
+        "Connecticut's 2% tax-rate phase-out (the Table C add-back) is NOT modeled, and it is not just a high-earner rule: for a single filer it starts at $56,500 of Connecticut income, so a $75,000 single filer is already in it and owes about $100 a year MORE than shown. The separate high-income tax recapture (Table D) is not modeled either.",
         "Single bracket key also covers Married Filing Separately (CT Code F uses the same Code A schedule)."
       ],
-      "notes": "Progressive 2%-6.99% (7 brackets, 2026 statutory rates from official DRS IP 2026(7)). No standard deduction; personal-exemption, 3% phase-out, and tax-recapture mechanisms not modeled. No local income tax."
+      "notes": "Progressive 2%-6.99% (7 brackets, 2026 statutory rates from official DRS IP 2026(7)). No standard deduction; the personal exemption, the 2% phase-out add-back and the high-income recapture are not modeled. No local income tax."
     },
     "oregon": {
       "name": "Oregon",
@@ -2200,6 +2254,12 @@
           "wageBase": 184500,
           "_fullName": "Paid Leave Oregon employee share (60% of the 1% total)",
           "_source": "https://paidleave.oregon.gov/employers-overview/"
+        },
+        {
+          "label": "OR Transit Tax",
+          "rate": 0.001,
+          "_fullName": "Statewide Transit Tax, one-tenth of 1% of your wages, paid by you and withheld by your employer. There is no wage cap, so it applies to every dollar.",
+          "_source": "Oregon Department of Revenue, Statewide Transit Tax: 'The Statewide Transit Tax was enacted by the Oregon Legislature in House Bill 2017 (2017) and codified in Oregon Revised Statutes (ORS 320.550). On July 1, 2018, employers began withholding the tax (one-tenth of 1 percent or .001) from: Wages of Oregon residents (regardless of where the work is performed). Wages of nonresidents who perform services in Oregon.' The same page adds that Measure 120 did not pass in the May 19, 2026 primary, so employers 'continue to withhold at the rate of one-tenth of 1 percent or .001', and that 'The Statewide Transit Tax is imposed on the wages of each employee, but the employer is responsible for withholding, reporting, and remitting'. https://www.oregon.gov/dor/programs/businesses/pages/statewide-transit-tax.aspx"
         }
       ],
       "hasIncomeTax": true,
@@ -2207,8 +2267,8 @@
       "tax": {
         "type": "bracket",
         "standardDeduction": {
-          "single": 2900,
-          "married": 5800,
+          "single": 2910,
+          "married": 5820,
           "head_of_household": 4650
         },
         "brackets": {
@@ -2268,11 +2328,12 @@
           ]
         }
       },
-      "_source": "Oregon tax year 2026 individual income tax rate charts and standard deduction per the OFFICIAL Oregon Dept. of Revenue 2026 Publication OR-ESTIMATE (150-101-026) and the 2026 Oregon Withholding Tax Formulas (150-206-436, Rev. 12-31-25). Oregon is inflation-indexed for the lower brackets (the two top breakpoints $125,000/$250,000 are statutory). Four statutory rates 4.75%/6.75%/8.75%/9.9%. Chart S (Single / Married filing separately): 4.75% to $4,550, 6.75% to $11,400, 8.75% to $125,000, 9.9% above. Chart J (Married filing jointly / Head of household / Qualifying surviving spouse): 4.75% to $9,100, 6.75% to $22,800, 8.75% to $250,000, 9.9% above. Standard deduction 2026: $2,900 single/MFS, $5,800 MFJ/QSS, $4,650 head of household. Some secondary sources (e.g. ustax.tools) still list stale prior-year breakpoints ($4,050/$10,200 single, $8,100/$20,400 joint) under a 2026 label; the official DOR 2026 charts override them. Modeled state-only. https://www.oregon.gov/dor/forms/FormsPubs/publication-or-estimate_101-026_2026.pdf ; https://www.oregon.gov/dor/forms/FormsPubs/withholding-tax-formulas_206-436_2026.pdf",
+      "_source": "Oregon tax year 2026 individual income tax rate charts and standard deduction per the OFFICIAL Oregon Dept. of Revenue 2026 Publication OR-ESTIMATE (150-101-026) and the 2026 Oregon Withholding Tax Formulas (150-206-436, Rev. 12-31-25). Oregon is inflation-indexed for the lower brackets (the two top breakpoints $125,000/$250,000 are statutory). Four statutory rates 4.75%/6.75%/8.75%/9.9%. Chart S (Single / Married filing separately): 4.75% to $4,550, 6.75% to $11,400, 8.75% to $125,000, 9.9% above. Chart J (Married filing jointly / Head of household / Qualifying surviving spouse): 4.75% to $9,100, 6.75% to $22,800, 8.75% to $250,000, 9.9% above. STANDARD DEDUCTION, corrected 2026-08-02. Publication OR-ESTIMATE prints its numbers under the heading 'Estimated Oregon indexed figures for tax year 2026' and lists $2,900 single/MFS, $4,650 head of household, $5,800 MFJ/QSS. The later Oregon Withholding Tax Formulas 150-206-436 (Rev. 12-31-25), titled 'Oregon Withholding Tax Formulas, Effective January 1, 2026' and stating that it 'reflects changes to the inflation adjusted amounts (such as exemption credit, standard deduction, and federal tax subtractions)', prints the final figures: FAQ 2, 'What standard deduction amount should be entered for the Oregon formula? For employees claiming single or head of household status, use $2,910 divided by the number of pay periods. For employees claiming married status, use $5,820 divided by the number of pay periods.' Its formulas repeat 'standard deduction ($2,910[S])' and '($5,820[M])'. So single is $2,910 and married is $5,820 here. HEAD OF HOUSEHOLD stays at $4,650: 150-206-436 gives head-of-household filers the single figure because that is a withholding convention, not the annual return amount, and Oregon's own head-of-household standard deduction is larger; $4,650 is the only 2026 head-of-household figure Oregon has published, so it stands until the 2026 Form OR-40 instructions appear. Some secondary sources (e.g. ustax.tools) still list stale prior-year breakpoints ($4,050/$10,200 single, $8,100/$20,400 joint) under a 2026 label; the official DOR 2026 charts override them. Modeled state-only. https://www.oregon.gov/dor/forms/FormsPubs/publication-or-estimate_101-026_2026.pdf ; https://www.oregon.gov/dor/forms/FormsPubs/withholding-tax-formulas_206-436_2026.pdf",
       "disclaimer": [
         "Local income taxes are not included. Oregon localities (e.g. Portland Metro Supportive Housing Services tax and Multnomah County Preschool For All tax) levy SEPARATE local personal income taxes that are not modeled here.",
         "Oregon allows a subtraction for federal income tax paid (up to $8,750 for 2026, phased out at higher incomes). This subtraction is NOT modeled, so estimates for filers who claim it will run HIGHER than the actual Oregon tax.",
         "Head of household uses Oregon's Chart J brackets (same as married filing jointly) but its own $4,650 standard deduction, per the DOR rate charts.",
+        "Oregon's Statewide Transit Tax is now included. It is one-tenth of 1% of your wages, comes out of your pay, and has no wage cap, so on $75,000 it is $75 a year.",
         "Oregon's personal exemption credit ($260/exemption for 2026), Earned Income Credit, and other credits/subtractions are not modeled."
       ],
       "notes": "Progressive 4.75%-9.9% (4 brackets, official 2026 inflation-indexed/statutory charts). Federal-tax subtraction and separate Portland/Multnomah local income taxes not modeled."
@@ -2430,6 +2491,11 @@
       "slug": "missouri",
       "hasIncomeTax": true,
       "figureYear": 2026,
+      "_watch": {
+        "until": "2026-12-15",
+        "what": "Missouri's top rate falls automatically when revenue clears a bar, so the 4.7% here can drop for 2027. Section 143.011.3 RSMo (as amended by 2022 1st Ex. Sess. S.B. 3 & 5) says the top rate 'may be reduced by fifteen hundredths of a percent' and that 'A reduction in the rate of tax shall only occur if the amount of net general revenue collected in the previous fiscal year exceeds the highest amount of net general revenue collected in any of the three fiscal years prior to such fiscal year by at least one hundred seventy-five million dollars', with subsection 4 allowing up to three further one-tenth-point cuts on a stricter test. Fiscal year 2026 closed 30 June 2026, and section 143.011.5 has the director publishing the next year's tables 'beginning on or after October 1'. Re-verify: did Missouri DOR announce a lower 2027 top rate? If so the 2027 data file needs it. Source: https://revisor.mo.gov/main/OneSection.aspx?section=143.011",
+        "decided": "Audit 2026-08-02: nothing changes for tax year 2026; this is a tripwire for the 2027 rollover."
+      },
       "tax": {
         "type": "bracket",
         "standardDeduction": {
@@ -2596,10 +2662,10 @@
           ]
         }
       },
-      "_source": "Kansas tax year 2026 individual income tax: two-bracket schedule 5.20% / 5.58% enacted by Senate Bill 1 (June 2024 special session), which consolidated Kansas's prior three brackets (3.10% / 5.25% / 5.70%) into two and lowered the rates to 5.20% (taxable income up to $23,000 single/HoH, $46,000 married filing jointly) and 5.58% on income above those thresholds. Tax Foundation's 2026 state income tax data lists exactly these 2026 rates/thresholds for Kansas, and the standard deduction $3,605 single / $8,240 MFJ (HoH $6,180 per Kansas DOR). These statutory amounts are unchanged for 2026: SB269's conditional phase-down toward 4.0% only triggers if the state budget stabilization fund reaches 15% of the prior year balance, and that trigger did NOT lower the 2026 rates (Tax Foundation still lists 5.20%/5.58% for 2026). RESOLVED a conflict: one secondary source (LegalClarity) claims Kansas uses 3.10%/5.70% for 2026 with $30k/$60k thresholds — those are the PRE-REFORM legacy rates (3.1%/5.7% were the old bottom/top rates) mislabeled as current; rejected in favor of Tax Foundation 2026 + AARP + EY tax-news + WebSearch consensus on 5.20%/5.58%. Head of household uses the single $23,000 threshold with its own $6,180 standard deduction. https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/ ; https://taxnews.ey.com/news/2025-1266-kansas-law-conditionally-lowers-personal-income-tax-rates-starting-in-2025",
+      "_source": "Kansas tax year 2026 individual income tax: two-bracket schedule 5.20% / 5.58% enacted by Senate Bill 1 (June 2024 special session), which consolidated Kansas's prior three brackets (3.10% / 5.25% / 5.70%) into two and lowered the rates to 5.20% (taxable income up to $23,000 single/HoH, $46,000 married filing jointly) and 5.58% on income above those thresholds. Tax Foundation's 2026 state income tax data lists exactly these 2026 rates/thresholds for Kansas, and the standard deduction $3,605 single / $8,240 MFJ (HoH $6,180 per Kansas DOR). These statutory amounts are unchanged for 2026: SB269's conditional phase-down toward 4.0% only triggers if the state budget stabilization fund reaches 15% of the prior year balance, and that trigger did NOT lower the 2026 rates (Tax Foundation still lists 5.20%/5.58% for 2026). RESOLVED a conflict: one secondary source (LegalClarity) claims Kansas uses 3.10%/5.70% for 2026 with $30k/$60k thresholds — those are the PRE-REFORM legacy rates (3.1%/5.7% were the old bottom/top rates) mislabeled as current; rejected in favor of Tax Foundation 2026 + AARP + EY tax-news + WebSearch consensus on 5.20%/5.58%. Head of household uses the single $23,000 threshold with its own $6,180 standard deduction. PERSONAL EXEMPTION CORRECTED 2026-08-02: the disclaimer used to give head-of-household filers the same $9,160 exemption as single filers. K.S.A. 79-32,121b(a)(2) allows '$9,160' to 'all other individuals with a filing status of single, head of household or married filing separate', and then (b)(1) adds: 'Any individual filing a federal income tax return under the status of head of household, as defined in 26 U.S.C. Sec. 2(b), shall be allowed an additional Kansas exemption of $2,320 for tax year 2024 and all tax years thereafter.' Head of household is therefore $11,480. https://www.ksrevisor.gov/statutes/chapters/ch79/079_032_0121b.html",
       "disclaimer": [
         "Kansas has no local/city income tax on wages.",
-        "Kansas grants a large personal exemption ($9,160 single / head of household, $18,320 married filing jointly, plus $2,320 per dependent) IN ADDITION to the standard deduction. This calculator models only the standard deduction, so for Kansas the estimated state tax will run HIGHER than actual for most filers (the personal exemption further reduces taxable income).",
+        "Kansas grants a large personal exemption ON TOP of the standard deduction: $9,160 single, $18,320 married filing jointly, and $11,480 head of household, because a head-of-household filer gets an extra $2,320 exemption. Add $2,320 more for each dependent. This calculator applies only the standard deduction, so the Kansas tax shown runs HIGHER than the real figure for most filers.",
         "Kansas itemized deductions, tax credits (e.g. food sales tax credit, child/dependent care), and the additional standard deduction for filers age 65+ or blind are not modeled."
       ],
       "notes": "Two-bracket 5.20% / 5.58% (Senate Bill 1, 2024; unchanged for 2026). Estimates run high because Kansas's separate personal exemption is not modeled. No local income tax."
@@ -2922,6 +2988,11 @@
       "slug": "south-carolina",
       "hasIncomeTax": true,
       "figureYear": 2026,
+      "_watch": {
+        "until": "2027-02-15",
+        "what": "South Carolina's 5.21% top rate can fall automatically from tax year 2027. H.4216 (Act 110 of 2026) writes into S.C. Code 12-6-510: 'beginning with Tax Year 2027 and each year thereafter, the top marginal income tax rate set forth in item (1) must be decreased if individual income tax revenues collected pursuant to this chapter, minus amounts credited to the Trust Fund for Tax Relief, are projected to increase by at least five percent in the fiscal year that begins during the tax year', and 'The reduction required by this item shall continue until the top marginal income tax rate equals 1.99 percent.' The size of the cut is set by the Board of Economic Advisors, and item (4) fixes the deadline: 'the forecast in effect on February fifteenth of the current fiscal year is the final forecast for which the percentage adjustment is determined.' Re-verify after 15 February 2027: was a 2027 rate below 5.21% certified? Source: https://www.scstatehouse.gov/sess126_2025-2026/bills/4216.htm",
+        "decided": "Audit 2026-08-02: the trigger cannot move the tax-year-2026 rates, which are the ones encoded here."
+      },
       "tax": {
         "type": "bracket",
         "standardDeduction": {
@@ -2978,7 +3049,7 @@
           ]
         }
       },
-      "_source": "South Carolina individual income tax — OFFICIAL South Carolina Dept. of Revenue guidance on H.4216 (Act 110, signed March 30, 2026), EFFECTIVE for tax year 2026 (returns due April 15, 2027). H.4216 REPLACES SC's old 0%/3%/6% three-bracket system entirely for TY2026 with a two-rate schedule on federal-AGI-based taxable income: 'the tax rate for income less than $30,000 is 1.99%' and 'the tax rate for income from $30,000 and above is 5.21%, minus $966.' The '5.21% minus $966' form is mathematically identical to a marginal two-bracket schedule (verified continuity at $30,000: 1.99% x 30000 = $597 = 5.21% x 30000 - 966), so modeled as marginal brackets: 1.99% to $30,000, 5.21% above — SAME rates for all filing statuses. SCDOR also created the new SC Income-Adjusted Deduction (SCIAD) replacing the federal standard/itemized deduction: $15,000 single/MFS, $22,500 head of household, $30,000 MFJ/surviving spouse (modeled as the standardDeduction). RESOLVED A GENUINE SOURCE CONFLICT: the Tax Foundation 2026 dataset still lists SC's OLD 0%/3%/6% system (top reverting to 6.2% on 7/1/2026) and federal std deduction $8,350/$16,700 — it predates H.4216, which was signed only March 30, 2026. The official SCDOR H.4216 page (ranked first per loop procedure) overrides the stale secondary, and PolicyEngine + ITEP corroborate the 1.99%/5.21% + SCIAD structure. figureYear=2026 (genuine official 2026 data, no prior-year fallback). Hand-verified single $75k -> $2,160.00 (taxable = 75000-15000 = 60000; = 1.99% x 30000 + 5.21% x 30000 = 597 + 1563). https://dor.sc.gov/news/information-about-h-4216 ; https://www.policyengine.org/us/south-carolina-2026-tax-changes",
+      "_source": "South Carolina individual income tax — OFFICIAL South Carolina Dept. of Revenue guidance on H.4216 (Act 110, signed March 30, 2026), EFFECTIVE for tax year 2026 (returns due April 15, 2027). H.4216 REPLACES SC's old 0%/3%/6% three-bracket system entirely for TY2026 with a two-rate schedule on federal-AGI-based taxable income: 'the tax rate for income less than $30,000 is 1.99%' and 'the tax rate for income from $30,000 and above is 5.21%, minus $966.' The '5.21% minus $966' form is mathematically identical to a marginal two-bracket schedule (verified continuity at $30,000: 1.99% x 30000 = $597 = 5.21% x 30000 - 966), so modeled as marginal brackets: 1.99% to $30,000, 5.21% above — SAME rates for all filing statuses. SCDOR also created the new SC Income-Adjusted Deduction (SCIAD) replacing the federal standard/itemized deduction: $15,000 single/MFS, $22,500 head of household, $30,000 MFJ/surviving spouse (modeled as the standardDeduction). RESOLVED A GENUINE SOURCE CONFLICT: the Tax Foundation 2026 dataset still lists SC's OLD 0%/3%/6% system (top reverting to 6.2% on 7/1/2026) and federal std deduction $8,350/$16,700 — it predates H.4216, which was signed only March 30, 2026. The official SCDOR H.4216 page (ranked first per loop procedure) overrides the stale secondary, and PolicyEngine + ITEP corroborate the 1.99%/5.21% + SCIAD structure. figureYear=2026 (genuine official 2026 data, no prior-year fallback). WORKED EXAMPLE, recomputed 2026-08-02. This field used to record $2,160.00 for a single filer at $75,000, which was measured before the SCIAD phase-down was encoded and no longer matches what the calculator returns. Redone from the data in this file: the reduction is floor(15,000 x (75,000 - 40,000) / 55,000) rounded down to the next lowest ten dollars = floor(9,545.45) -> $9,540, so the SCIAD is 15,000 - 9,540 = $5,460 and taxable income is 75,000 - 5,460 = $69,540. Tax = 1.99% x 30,000 + 5.21% x 39,540 = 597.00 + 2,060.03 = $2,657.03, which is what the calculator now shows. https://dor.sc.gov/news/information-about-h-4216 ; https://www.policyengine.org/us/south-carolina-2026-tax-changes",
       "disclaimer": [
         "South Carolina rewrote its income tax for 2026 (H. 4216, Act 110): 1.99% on taxable income below $30,000 and 5.21% above, with the South Carolina Income Adjusted Deduction (SCIAD) replacing the federal standard deduction. The SCIAD starts at $15,000 for single or married filing separately, $22,500 for head of household and $30,000 for married filing jointly, and shrinks as income rises until it reaches zero at $95,000, $142,500 and $190,000 respectively. This calculator now applies that reduction. The statute measures it against your federal adjusted gross income; we use your wages less pre-tax deductions, so if you have income or adjustments outside your paycheck your real deduction may be smaller than shown.",
         "South Carolina starts from federal AGI; this estimate approximates taxable income as wages minus the SCIAD and does not model federal-AGI adjustments, the capped state EITC ($200), or other SC credits.",
@@ -3067,7 +3138,7 @@
           ]
         }
       },
-      "_source": "Maine individual income tax — OFFICIAL Maine Revenue Services 2026 Individual Income Tax Rate Schedules (ind_tax_rate_sched_2026.pdf, MRS Income/Estate Tax Division, Revised May 5, 2026), parsed locally via pdftotext after WebFetch's reader failed on the binary PDF. GENUINE 2026 data (figureYear=2026, no fallback): Maine's brackets and standard deduction are inflation-indexed (36 M.R.S. § 5403) and the 2026 schedule IS officially published. Three statutory rates 5.8% / 6.75% / 7.15%, PLUS a NEW 2% surcharge (effective for tax years beginning on/after Jan 1, 2026) on Maine taxable income over $1,000,000 single / $1,500,000 MFJ and HoH / $750,000 MFS — modeled as a fourth marginal band at 9.15% (= 7.15% + 2%) beginning at those thresholds. Single/MFS: 5.8% to $27,400, 6.75% to $64,850, 7.15% to $1,000,000, 9.15% above. MFJ/surviving spouse: 5.8% to $54,850, 6.75% to $129,750, 7.15% to $1,500,000, 9.15% above. HoH: 5.8% to $41,100, 6.75% to $97,300, 7.15% to $1,500,000, 9.15% above (our 'single' key uses the SINGLE $1,000,000 surcharge threshold; MFS filers reach the surcharge at $750,000, which is disclaimed). 2026 standard deduction (official MRS schedule): $15,700 single/MFS, $31,400 MFJ, $23,550 HoH. RESOLVED a source conflict: Tax Foundation 2026 lists Maine's standard deduction as $8,350/$16,700 — those are Maine's lower phase-out FLOOR amounts, NOT the base 2026 standard deduction; the official MRS 2026 schedule ($15,700/$31,400/$23,550) ranks first and is used. Tax Foundation otherwise CONFIRMS the 5.8/6.75/7.15% rates and identical bracket thresholds ($27,400/$64,850 single; $54,850/$129,750 MFJ). SIMPLIFICATIONS (disclaimed, state-only): Maine's standard deduction and $5,300 personal exemption PHASE OUT for high earners, which the engine cannot model — so estimates run slightly LOW for high earners; the age/blindness additional deduction and Maine credits are not modeled. No Maine local/city income tax. Hand-verified single $75k -> $3,742.45 (taxable = 75000-15700 = 59300; = 5.8% x 27400 + 6.75% x (59300-27400) = 1589.20 + 2153.25), engine returned 3742.45. https://www.maine.gov/revenue/sites/maine.gov.revenue/files/inline-files/ind_tax_rate_sched_2026.pdf ; https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/",
+      "_source": "Maine individual income tax — OFFICIAL Maine Revenue Services 2026 Individual Income Tax Rate Schedules (ind_tax_rate_sched_2026.pdf, MRS Income/Estate Tax Division, Revised May 5, 2026), parsed locally via pdftotext after WebFetch's reader failed on the binary PDF. GENUINE 2026 data (figureYear=2026, no fallback): Maine's brackets and standard deduction are inflation-indexed (36 M.R.S. § 5403) and the 2026 schedule IS officially published. Three statutory rates 5.8% / 6.75% / 7.15%, PLUS a NEW 2% surcharge (effective for tax years beginning on/after Jan 1, 2026) on Maine taxable income over $1,000,000 single / $1,500,000 MFJ and HoH / $750,000 MFS — modeled as a fourth marginal band at 9.15% (= 7.15% + 2%) beginning at those thresholds. Single/MFS: 5.8% to $27,400, 6.75% to $64,850, 7.15% to $1,000,000, 9.15% above. MFJ/surviving spouse: 5.8% to $54,850, 6.75% to $129,750, 7.15% to $1,500,000, 9.15% above. HoH: 5.8% to $41,100, 6.75% to $97,300, 7.15% to $1,500,000, 9.15% above (our 'single' key uses the SINGLE $1,000,000 surcharge threshold; MFS filers reach the surcharge at $750,000, which is disclaimed). 2026 standard deduction (official MRS schedule): $15,700 single/MFS, $31,400 MFJ, $23,550 HoH. RESOLVED a source conflict: Tax Foundation 2026 lists Maine's standard deduction as $8,350/$16,700 — those are Maine's lower phase-out FLOOR amounts, NOT the base 2026 standard deduction; the official MRS 2026 schedule ($15,700/$31,400/$23,550) ranks first and is used. Tax Foundation otherwise CONFIRMS the 5.8/6.75/7.15% rates and identical bracket thresholds ($27,400/$64,850 single; $54,850/$129,750 MFJ). SIMPLIFICATIONS (disclaimed, state-only): Maine's standard deduction and $5,300 personal exemption PHASE OUT for high earners, which the engine cannot model — so estimates run slightly LOW for high earners; the age/blindness additional deduction and Maine credits are not modeled. No Maine local/city income tax. Hand-verified single $75k -> $3,742.45 (taxable = 75000-15700 = 59300; = 5.8% x 27400 + 6.75% x (59300-27400) = 1589.20 + 2153.25), engine returned 3742.45. SOURCE URL REPLACED 2026-08-02: the previously cited inline-files/ind_tax_rate_sched_2026.pdf returns HTTP 404 and named a superseded revision. The live file is files/2026-05/ind_tax_rate_sched_2026_rev.pdf, headed 'State of Maine 2026 Individual Income Tax Rates' and footed 'Prepared by Maine Revenue Services, Income/Estate Tax Division, Revised: May 20, 2026'. It confirms every figure encoded here: single/MFS 5.8% to $27,400 then 6.75% to $64,850 then 7.15%; head of household $41,100 and $97,300; married filing jointly $54,850 and $129,750; 'Standard Deduction: Single - $15,700, Married Filing Jointly - $31,400, Head of Household - $23,550, Married Filing Separately - $15,700'; 'Personal Exemption: $5,300'; and Note (1), 'For tax years beginning on or after January 1, 2026, the tax calculated above is increased by a surcharge of 2% on the portion of the taxpayer's Maine taxable income greater than $1,000,000 if filing single, $750,000 if married filing separate; or $1,500,000 if married filing jointly or head of household.' https://www.maine.gov/revenue/sites/maine.gov.revenue/files/2026-05/ind_tax_rate_sched_2026_rev.pdf",
       "disclaimer": [
         "Maine's standard deduction and personal exemption PHASE OUT for higher-income taxpayers; this estimate applies the full 2026 standard deduction, so for higher incomes the actual tax can be slightly HIGHER than shown.",
         "For 2026 Maine adds a 2% surcharge on taxable income above $1,000,000 (single), $1,500,000 (married filing jointly / head of household), or $750,000 (married filing separately). This estimate models the single/joint thresholds; married-filing-separately filers reach the surcharge sooner.",
@@ -3080,6 +3151,11 @@
       "name": "Hawaii",
       "abbr": "HI",
       "slug": "hawaii",
+      "_watch": {
+        "until": "2027-07-31",
+        "what": "Hawaii re-conformed to the federal code for tax year 2026, and part of that lands on wages this calculator cannot yet see. Department of Taxation Announcement No. 2026-06 (31 July 2026): 'Act 35 (House Bill 2329, H.D.1, S.D.1, C.D.1) amends section 235-2.3(a), HRS, to conform Hawai'i income tax law to the operative sections of subtitle A, chapter 1, of the Internal Revenue Code (IRC), as amended as of December 31, 2025', in response to the One Big Beautiful Bill Act, and it 'became effective on May 26, 2026, and applies to taxable years beginning after December 31, 2025'. Hawaii conforms to 'IRC section 224, which creates a deduction of up to $25,000 for qualified tips' but does NOT conform to 'IRC section 225, which creates a deduction of up to $12,500 for qualified overtime compensation' or to the $10,000 vehicle-loan-interest deduction. The engine has no tips or overtime input, so the tips deduction is unmodelled and Hawaii tax runs high for tipped workers. Re-verify when DOTAX publishes its next annual session-law announcement: did the 2027 legislature change conformity, and does the engine now take tip income? Source: https://files.hawaii.gov/tax/news/announce/ann26-06.pdf",
+        "decided": "Audit 2026-08-02: no encoded Hawaii figure is wrong; this tracks an unmodelled deduction, not a data defect."
+      },
       "employeePrograms": [
         {
           "label": "HI TDI",
@@ -3326,14 +3402,14 @@
           ]
         }
       },
-      "_source": "Rhode Island individual income tax — 2026 inflation-adjusted figures. RI is a three-bracket graduated state (3.75% / 4.75% / 5.99%) with the SAME bracket schedule for ALL filing statuses (only the standard deduction varies); brackets are inflation-indexed annually and the 2026 amounts ARE officially published (figureYear=2026, no fallback). The official source is RI Division of Taxation Advisory 2025-22 (ADV 2025-22, issued 11/03/2025, 2026 inflation-adjusted personal income tax amounts) — its PDF on tax.ri.gov is Cloudflare/WAF-protected (HTTP 403 to automated fetch and a 'verify you are human' challenge in-browser, which I did NOT bypass), so the figures were taken from authoritative sources that publish ADV 2025-22 verbatim: the official advisory itself confirms the FIRST bracket reaches $82,050 (3.75%) and the standard-deduction/personal-exemption phase-out begins at MAGI $254,250; Tax Foundation 2026 supplies the full schedule and standard deduction: 3.75% to $82,050, 4.75% to $186,450, 5.99% above; standard deduction $11,200 single, $22,400 MFJ. HEAD-OF-HOUSEHOLD standard deduction ($16,800) is DERIVED from RI's documented statutory structure (HoH = single + half the single-to-MFJ gap = 11,200 + (22,400-11,200)/2), which reproduces RI's published prior-year HoH figure exactly (2024: 10,550 + (21,150-10,550)/2 = 15,850 = the reported 2024 HoH); it is the documented RI pattern, not a fabricated value, and is disclaimed as derived. SIMPLIFICATIONS (disclaimed, state-only): RI's standard deduction AND personal exemptions PHASE OUT entirely for modified AGI above $254,250 (fully eliminated by ~$287,050), which the engine cannot model — so estimates run LOW for high earners; personal exemptions (~$5,100/exemption) and RI credits are not modeled. No RI local/city income tax. Hand-verified single $75k -> $2,392.50 exact (taxable = 75000-11200 = 63800; entirely in the 3.75% band = 3.75% x 63800; engine returned 2392.50). https://news.bloombergtax.com/daily-tax-report-state/rhode-island-tax-division-announces-2026-inflation-adjusted-personal-income-tax-amounts ; https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/",
+      "_source": "Rhode Island individual income tax — 2026 inflation-adjusted figures. RI is a three-bracket graduated state (3.75% / 4.75% / 5.99%) with the SAME bracket schedule for ALL filing statuses (only the standard deduction varies); brackets are inflation-indexed annually and the 2026 amounts ARE officially published (figureYear=2026, no fallback). The official source is RI Division of Taxation Advisory 2025-22 (ADV 2025-22, issued 11/03/2025, 2026 inflation-adjusted personal income tax amounts) — its PDF on tax.ri.gov is Cloudflare/WAF-protected (HTTP 403 to automated fetch and a 'verify you are human' challenge in-browser, which I did NOT bypass), so the figures were taken from authoritative sources that publish ADV 2025-22 verbatim: the official advisory itself confirms the FIRST bracket reaches $82,050 (3.75%) and the standard-deduction/personal-exemption phase-out begins at MAGI $254,250; Tax Foundation 2026 supplies the full schedule and standard deduction: 3.75% to $82,050, 4.75% to $186,450, 5.99% above; standard deduction $11,200 single, $22,400 MFJ. HEAD-OF-HOUSEHOLD standard deduction ($16,800) is DERIVED from RI's documented statutory structure (HoH = single + half the single-to-MFJ gap = 11,200 + (22,400-11,200)/2), which reproduces RI's published prior-year HoH figure exactly (2024: 10,550 + (21,150-10,550)/2 = 15,850 = the reported 2024 HoH); it is the documented RI pattern, not a fabricated value, and is disclaimed as derived. PHASE-OUT AND EXEMPTION CORRECTED 2026-08-02: this field and the disclaimer carried the tax-year-2025 figures. ADV 2025-22 was reached through the Wayback capture of that same tax.ri.gov PDF (tax.ri.gov sits behind a WAF that refuses automated fetch), read with pdftotext. Its 'Phase-out range for standard deduction, exemption amounts by Tax Year' table prints 2025 '$254,250 to $283,250' against 2026 '$261,000 to $290,800', and directly under it: 'Phaseout increment (amount used in computing phaseout), which was $7,250 for 2025, will be $7,450 for 2026.' Its 'Rhode Island personal and dependency exemption amounts by Tax Year' row prints 2025 '$5,100' against 2026 '$5,250'. The same advisory's standard-deduction table also confirms the amounts already encoded here: single $11,200, married filing jointly $22,400, head of household $16,800, married filing separately $11,200. SIMPLIFICATIONS (disclaimed, state-only): the standard deduction and exemptions phase out between $261,000 and $290,800 of modified AGI, which the engine cannot model, so estimates run LOW for high earners; the $5,250 exemptions and RI credits are not modeled. No RI local/city income tax. Hand-verified single $75k -> $2,392.50 exact (taxable = 75000-11200 = 63800; entirely in the 3.75% band = 3.75% x 63800; engine returned 2392.50). https://news.bloombergtax.com/daily-tax-report-state/rhode-island-tax-division-announces-2026-inflation-adjusted-personal-income-tax-amounts ; https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/",
       "disclaimer": [
-        "Rhode Island's standard deduction and personal exemptions PHASE OUT for higher-income filers (beginning at modified AGI of $254,250 for 2026 and fully eliminated above roughly $287,000); this estimate applies the full standard deduction, so for higher incomes the actual tax can be HIGHER than shown.",
-        "The head-of-household standard deduction shown ($16,800) is derived from Rhode Island's published filing-status structure (the official advisory PDF was not machine-readable); the single ($11,200) and married ($22,400) amounts and all bracket thresholds are from official/Tax Foundation 2026 figures.",
-        "Personal exemptions (~$5,100 each) and Rhode Island tax credits (property-tax relief, EITC, child & dependent care) are not modeled.",
+        "Rhode Island's standard deduction and personal exemptions PHASE OUT for higher-income filers. For 2026 the phase-out range runs from $261,000 to $290,800 of modified adjusted gross income, and above $290,800 you get neither. This estimate applies the full standard deduction, so for higher incomes the actual tax can be HIGHER than shown.",
+        "The standard deductions used here are Rhode Island's official 2026 amounts: $11,200 single, $22,400 married filing jointly, and $16,800 head of household. All three are printed in the RI Division of Taxation's Advisory ADV 2025-22 (2026 inflation-adjusted personal income tax amounts, issued November 3, 2025).",
+        "Personal and dependency exemptions ($5,250 each for 2026) and Rhode Island tax credits (property-tax relief, EITC, child & dependent care) are not modeled.",
         "Rhode Island has no local or city income tax on wages."
       ],
-      "notes": "Three graduated brackets 3.75% / 4.75% / 5.99% (2026, inflation-indexed), same thresholds for all filing statuses: 3.75% to $82,050, 4.75% to $186,450, 5.99% above. Standard deduction $11,200 single / $22,400 married / $16,800 head of household; it phases out above $254,250 MAGI. No local income tax."
+      "notes": "Three graduated brackets 3.75% / 4.75% / 5.99% (2026, inflation-indexed), same thresholds for all filing statuses: 3.75% to $82,050, 4.75% to $186,450, 5.99% above. Standard deduction $11,200 single / $22,400 married / $16,800 head of household; it phases out between $261,000 and $290,800 of MAGI for 2026. No local income tax."
     }
   }
 }

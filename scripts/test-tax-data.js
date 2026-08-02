@@ -239,12 +239,19 @@ t('South Carolina SCIAD phases down, rounding the reduction not the deduction', 
     assert.ok(stateTax('south-carolina', gross, 'married') > atBoundary,
       'past the boundary tax must keep rising, not jump from a negative deduction');
   }
-  // Structural: the phase-down is opt-in and South Carolina is its only user, so a stray copy into
-  // another state would silently change that state's tax.
+  // Structural: the phase-down is opt-in, so a stray copy into a state that does not have one
+  // would silently change that state's tax. The allow-list is therefore closed, not open-ended.
+  // 2026-08-02: Wisconsin joined. Its sliding-scale standard deduction (Wis. Stat. 71.05(22)(dp),
+  // published as the "2026 Standard Deduction" schedules in WI DOR Form 1-ES instructions, D-101A
+  // R. 1-26) is the same shape of rule, so it reuses this mechanism rather than growing a second
+  // one. Wisconsin's own parameters are pinned in the dedicated test below; what this list guards
+  // is that no THIRD state acquires a phase-down by accident.
   const users = Object.entries(tax.states)
     .filter(([, s]) => s.tax && s.tax.standardDeductionPhaseout)
-    .map(([slug]) => slug);
-  assert.deepEqual(users, ['south-carolina'], 'standardDeductionPhaseout must be South Carolina only');
+    .map(([slug]) => slug)
+    .sort();
+  assert.deepEqual(users, ['south-carolina', 'wisconsin'],
+    'standardDeductionPhaseout is South Carolina + Wisconsin only');
   const cfg = tax.states['south-carolina'].tax.standardDeductionPhaseout;
   assert.equal(cfg.roundReductionDownTo, 10, 'statute rounds to ten dollars');
   assert.deepEqual(cfg.single, { over: 40000, denominator: 55000 });
@@ -289,6 +296,67 @@ t('South Carolina SCIAD reduction survives the floating-point boundary', () => {
   approx(stateTax('south-carolina', 62970, 'head_of_household'), 1184.69, 0.02);
   approx(stateTax('south-carolina', 85300, 'head_of_household'), 2665.37, 0.02);
   approx(stateTax('south-carolina', 110600, 'head_of_household'), 4342.99, 0.02);
+});
+
+// --- Wisconsin sliding-scale standard deduction, Wis. Stat. 71.05(22)(dp) ---
+// Wisconsin has no flat standard deduction: it starts at a maximum and slides to zero. Until
+// 2026-08-02 this repo modelled NO Wisconsin standard deduction at all, so every Wisconsin
+// estimate was computed on the full wage and ran high (a $75,000 single filer was overtaxed by
+// about $391 a year). The numbers below are the 2026 Standard Deduction schedules printed in the
+// WI DOR 2026 Form 1-ES instructions (D-101A, R. 1-26), quoted exactly:
+//   Single            $13,960 to $20,119, then "13,960 less 12% of the amount over 20,120", 0 at 136,453
+//   Married jointly   $25,840 to $29,039, then "25,840 less 19.778% of the amount over 29,040", 0 at 159,690
+//   Head of household $18,030 to $20,119, then "18,030 less 22.515% over 20,120" to 58,827,
+//                     then it JOINS the single line, "13,960 less 12% over 20,120", 0 at 136,453
+// denominator = base / percentage, so it is the income span over which the deduction reaches zero:
+//   13,960 / 0.12     = 116,333.33 -> 20,120 + 116,333.33 = 136,453  (matches DOR)
+//   25,840 / 0.19778  = 130,650.22 -> 29,040 + 130,650.22 = 159,690  (matches DOR)
+// Head of household deliberately reuses the SINGLE row. The engine's phase-down is one straight
+// line and the HoH schedule bends twice, so the exact rule is not expressible here; the single row
+// is the second (and longer) of its two segments. That understates the HoH deduction below $58,827
+// and the state's disclaimer says so, which is why the assertion below pins HoH == single ON
+// PURPOSE rather than pinning 18,030 / 22.515%.
+t('Wisconsin sliding-scale standard deduction matches WI DOR D-101A', () => {
+  const wi = tax.states.wisconsin.tax;
+  assert.deepEqual(wi.standardDeduction, { single: 13960, married: 25840, head_of_household: 13960 });
+  const cfg = wi.standardDeductionPhaseout;
+  // South Carolina's statute floors the reduction to a multiple of ten. Wisconsin's does not, and
+  // borrowing SC's rounding would shift every Wisconsin answer, so its absence is load-bearing.
+  assert.equal(cfg.roundReductionDownTo, undefined,
+    'Wisconsin has no ten-dollar rounding rule; do not copy South Carolina\'s');
+  assert.equal(cfg.single.over, 20120);
+  assert.equal(cfg.married.over, 29040);
+  assert.deepEqual(cfg.head_of_household, cfg.single, 'HoH follows the single row by design');
+  // Recover the published percentage from the denominator, and the published zero-out income.
+  approx(13960 / cfg.single.denominator, 0.12, 1e-9);
+  approx(25840 / cfg.married.denominator, 0.19778, 1e-9);
+  approx(cfg.single.over + cfg.single.denominator, 136453, 0.5);
+  approx(cfg.married.over + cfg.married.denominator, 159690, 0.5);
+  // End to end, against the schedule itself. The engine floors the reduction to whole dollars, so
+  // it may sit up to $1 above the un-rounded schedule figure and never below it.
+  const sched = (base, pct, over, agi) => (agi <= over - 1 ? base : Math.max(0, base - pct * (agi - over)));
+  const cases = [
+    ['single', 13960, 0.12, 20120, [20119, 25000, 50000, 75000, 100000, 136453, 200000]],
+    ['married', 25840, 0.19778, 29040, [29039, 50000, 100000, 159690, 250000]],
+  ];
+  for (const [fs, base, pct, over, incomes] of cases) {
+    for (const agi of incomes) {
+      const want = sched(base, pct, over, agi);
+      const taxable = agi - want;
+      const bands = tax.states.wisconsin.tax.brackets[fs === 'married' ? 'married' : 'single'];
+      let expectedTax = 0, prev = 0;
+      for (const b of bands) {
+        const up = b.upTo === null ? Infinity : b.upTo;
+        if (taxable > prev) expectedTax += (Math.min(taxable, up) - prev) * b.rate;
+        prev = up;
+        if (taxable <= up) break;
+      }
+      const actual = stateTax('wisconsin', agi, fs);
+      // A $1 deduction difference is at most 5.3 cents of tax.
+      assert.ok(Math.abs(actual - expectedTax) <= 0.06,
+        `wisconsin ${fs} ${agi}: engine ${actual.toFixed(2)}, D-101A schedule ${expectedTax.toFixed(2)}`);
+    }
+  }
 });
 
 // --- Oklahoma 2026, HB2764 -------------------------------------------------

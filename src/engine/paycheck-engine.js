@@ -107,7 +107,20 @@ export function ficaTax(grossAnnual, filingStatus, fed, preTaxFica = 0) {
  * Optional income-tested reduction of a state's standard deduction. Opt-in: a state
  * without `tax.standardDeductionPhaseout` is untouched.
  *
- * South Carolina is the only user. Act 110 of 2026 replaced the federal standard
+ * Two users: South Carolina and (since 2026-08-02) Wisconsin.
+ *
+ * WISCONSIN. Wis. Stat. 71.05(22)(dp), printed as the "2026 Standard Deduction" schedules in
+ * WI DOR Form 1-ES instructions (D-101A, R. 1-26): the deduction starts at a maximum and slides
+ * to zero — single $13,960 less 12% of income over $20,120 (gone at $136,453), married jointly
+ * $25,840 less 19.778% over $29,040 (gone at $159,690). Wisconsin sets no
+ * `roundReductionDownTo`, so `step` below falls back to 1 and the reduction floors to whole
+ * dollars. Do NOT give Wisconsin South Carolina's $10 step: that is a South Carolina statute,
+ * and applying it here would move every Wisconsin answer. Head of household points at the single
+ * row on purpose — Wisconsin's HoH schedule bends twice ($18,030 less 22.515% to $58,827, then it
+ * joins the single line) and this function draws one straight line, so it models the second,
+ * longer segment and Wisconsin's disclaimer tells the reader it is approximate below $58,827.
+ *
+ * SOUTH CAROLINA. Act 110 of 2026 replaced the federal standard
  * deduction with the SC Income Adjusted Deduction (SCIAD) and phases it down to zero,
  * S.C. Code 12-6-1140(15)(b)-(c). Two details in that text are easy to get backwards
  * and both change the answer:
