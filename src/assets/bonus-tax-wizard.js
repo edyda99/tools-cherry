@@ -8,8 +8,10 @@
 // with a state picker) and src/templates/bonus-tax-calculator-state.html (the 51
 // state pages, state fixed by window.__BONUS_STATE__) ship the SAME cards minus
 // that one question, so their data-step numbers do not line up: the hub numbers
-// bonus/state/income/filing/paytype/method/earlier/result 0..7 and a state page
-// numbers the same list without `state` 0..6. Hard-coding either set would
+// bonus/state/income/filing/paytype/household/method/earlier/result 0..8 and a
+// state page numbers the same list without `state` 0..7, minus the paytype card
+// itself on the 50 pages that are not California, which build.js drops from the
+// served HTML and which leaves a hole at step 3 there. Hard-coding either set would
 // silently mis-drive the other, so the step numbers are read from each card's
 // data-card key at load (STEP below) and every card, chip and flag is declared
 // only if its key is actually on the page. Add a card to one template and the
@@ -67,6 +69,10 @@ function read() {
     bonus: moneyOf('bonus'),
     state: FIXED_STATE || selectOf('state'),
     regIncome: moneyOf('regIncome'),
+    // Both spouses' pay, asked only on the married path and left empty by
+    // default. 0 here means "not answered", which is the single-earner
+    // assumption the answer then says out loud.
+    householdIncome: moneyOf('householdIncome'),
     filing: radioOf('filingStatus', 'single'),
     paymentType: radioOf('paymentType', 'bonus'),
     method: radioOf('method', 'flat'),
@@ -77,6 +83,10 @@ function read() {
 const suppOf = (slug) => (suppData.states ? suppData.states[slug] : null) || null;
 const stateNameOf = (slug) => { const s = suppOf(slug); return s && s.name ? s.name : ''; };
 const isCalifornia = (s) => s.state === 'california';
+// The household card's path predicate, written the same way and for the same
+// reason as isCalifornia above: one question that only some visitors are asked,
+// kept OFF the path rather than hidden from the document.
+const isMarried = (s) => s.filing === 'married';
 
 function compute(s) {
   if (!suppOf(s.state)) return null;   // no state chosen yet: there is no answer
@@ -84,6 +94,7 @@ function compute(s) {
     {
       bonus: s.bonus,
       regIncome: s.regIncome,
+      householdIncome: s.householdIncome,
       filingStatus: s.filing,
       stateSlug: s.state,
       ytdSupp: s.ytdSupp,
@@ -302,6 +313,41 @@ function renderResult({ state: s, result: r }) {
       `rest sits above the ${usd(wageBase)} wage base for the year, where only Medicare applies.</p>`;
   }
 
+  // ---- Whose income the refund was worked out on --------------------------
+  // A joint return is taxed on both incomes at once, so for a married visitor
+  // the refund line is only as good as the income it was figured on, and the
+  // answer has to say which income that was. All THREE branches are written out:
+  // silence on the empty case is what made a one-earner figure read as a
+  // household one. The FICA half is named wherever a household figure was used,
+  // because that stays on this person's own pay whatever is entered here.
+  //
+  // The middle branch is the clamped one, and it is why this reads r.usesHousehold
+  // rather than "did they type something". A visitor with 90,000 of own pay who
+  // types 50,000 together is answered on their own 90,000, so the first branch's
+  // sentence would name a figure they never gave AND contradict the 50,000 their
+  // own summary chip is showing them. This branch names both numbers and says
+  // which one won.
+  let mfjNote = '';
+  if (s.filing === 'married') {
+    const typedTogether = Math.max(0, s.householdIncome || 0);
+    if (r.usesHousehold) {
+      mfjNote = `<p class="otw-note">The refund or amount owed above is figured on the ${usd(r.taxBase)} the two of you earn ` +
+        `together, because a joint return is taxed on both incomes at once. Social Security and Medicare are still ` +
+        `worked out on the ${usd(s.regIncome)} you earn yourself, as those are charged per person.</p>`;
+    } else if (typedTogether > 0) {
+      mfjNote = `<p class="otw-note">You put ${usd(typedTogether)} for what the two of you earn together, which is not more than ` +
+        `the ${usd(s.regIncome)} you told us you earn yourself, and a household cannot earn less than one of the people in ` +
+        `it. So the refund or amount owed above is worked out on your own ${usd(s.regIncome)}. If the pair of you really do ` +
+        `earn more than that between you, go back and change it: on a joint return both incomes are taxed as one, which ` +
+        `usually leaves less coming back than what is shown here.</p>`;
+    } else {
+      mfjNote = `<p class="otw-note">You file together with your husband or wife, and you left the question about what you earn ` +
+        `together empty, so this treats the ${usd(s.regIncome)} you entered as the household's whole income for the year. ` +
+        `If your husband or wife earns as well, go back and fill that in: on a joint return both incomes are taxed as one, ` +
+        `which usually leaves less coming back than what is shown here.</p>`;
+    }
+  }
+
   // ---- What this actually is ----------------------------------------------
   // NOT a filing-time deduction, so this box does not carry the deduction
   // family's "it arrives as a bigger refund, FICA is still owed, your paycheck
@@ -347,7 +393,7 @@ function renderResult({ state: s, result: r }) {
 
   return warnBox + kick +
     `<p class="otw-big${keepFinalR > 0 ? '' : ' otw-zero'}">${usd(keepFinalR)}</p>` +
-    fyNote + lead + rows + limitFlag + ssNote + plain + costFold;
+    fyNote + lead + rows + limitFlag + ssNote + mfjNote + plain + costFold;
 }
 
 // ---- The flow ---------------------------------------------------------------
@@ -360,6 +406,15 @@ const CARD_SPECS = {
   state: () => ({ fields: ['state'] }),
   income: () => ({ fields: ['regIncome'] }),
   filing: () => ({ radios: 'filingStatus' }),
+  // Off the path unless the visitor files jointly, the same mechanism as the
+  // California card below, for the same reason: a question that changes the
+  // answer for some visitors and means nothing to the rest. Off the path, never
+  // out of the document, so the no-JS stack is still complete, which is why the
+  // card's own copy says who it is for. It ships NO Skip button, unlike the
+  // earlier-bonuses card: Skip in this flow jumps straight to the answer, and
+  // from here that would silently pass over how the bonus was paid. The field is
+  // empty to begin with, so Next already means "we only earn my pay".
+  household: () => ({ fields: ['householdIncome'], when: isMarried }),
   // Off the path unless the chosen state is California — the only state that
   // holds back two supplemental rates. Off the path, never out of the document:
   // the card still ships visible in the no-JS stack.
@@ -392,6 +447,12 @@ function chips(s) {
   add('income', `${usd(s.regIncome)}/yr`);
   add('filing', FILING_WORDS[s.filing] || s.filing);
   if (isCalifornia(s)) add('paytype', s.paymentType === 'other' ? 'other extra pay' : 'bonus or stock');
+  // Chipped in card order, and chipped whether or not a figure was given: empty
+  // is a real answer here (it means "my pay is all we earn"), and a chip is the
+  // only way back to the card once the answer is on screen.
+  if (isMarried(s)) {
+    add('household', s.householdIncome > 0 ? `${usd(s.householdIncome)}/yr together` : 'no household total given', 'householdIncome');
+  }
   add('method', s.method === 'aggregate' ? 'paid on a paycheck' : 'paid on its own');
   // A chip for this card whatever the figure is. It used to appear only above
   // zero, which is the shipped default AND the state its own Skip leaves behind,

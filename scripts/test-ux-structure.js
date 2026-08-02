@@ -738,6 +738,14 @@ const PAGES = [
       ['state-select-is-a-step-in-the-flow', insideForm('id="bonusWizForm"', 'id="state"')],
       ['yearly-pay-is-asked-outright', insideForm('id="bonusWizForm"', 'id="regIncome"')],
       ['filing-status-is-asked-outright', insideForm('id="bonusWizForm"', 'name="filingStatus"')],
+      // ADDED 2026-08-02 with the married-filing-jointly fix. A joint return is
+      // taxed on both incomes at once, so a joint filer is asked what the two of
+      // them earn together and the bracket math runs on that. wizard-core keeps
+      // the card off the path for everyone else with `when: isMarried`, and that
+      // needs JavaScript, so, exactly as with the California card, the control
+      // has to be SERVED inside the flow's own form, or the no-JS stack loses
+      // the only question that makes a joint answer right.
+      ['household-pay-is-asked-outright', insideForm('id="bonusWizForm"', 'id="householdIncome"')],
       ['how-it-was-paid-is-asked-outright', insideForm('id="bonusWizForm"', 'name="method"')],
       ['earlier-bonuses-are-asked-outright', insideForm('id="bonusWizForm"', 'id="ytdSupp"')],
       ['no-qYtd-question', absent('name="qYtd"')],
@@ -759,6 +767,13 @@ const PAGES = [
     pins: [
       ['state-select-is-a-plain-field', insideForm('id="bonusForm"', 'id="state"')],
       ['paymentTypeRow-kept', contains('id="paymentTypeRow"')],
+      // ADDED 2026-08-02. The full pages grew a household-income question for
+      // joint filers; this build deliberately did NOT. A third party sizes this
+      // iframe once, at a fixed height, so a new form row would push the answer
+      // out of the frame on every site already embedding it. The embed states the
+      // single-earner assumption in words instead, and this pin is what stops the
+      // field being added here later without that trade-off being reopened.
+      ['no-household-field', absent('id="householdIncome"')],
       ['no-question-flow-script', absent(QUESTION_FLOW)],
       ['not-the-wizard', absent('/assets/bonus-tax-wizard')],
     ],
@@ -777,6 +792,11 @@ const PAGES = [
       ['bonus-is-asked-outright', insideForm('id="bonusWizForm"', 'id="bonus"')],
       ['yearly-pay-is-asked-outright', insideForm('id="bonusWizForm"', 'id="regIncome"')],
       ['filing-status-is-asked-outright', insideForm('id="bonusWizForm"', 'name="filingStatus"')],
+      // ADDED 2026-08-02, and the same pin the hub carries, for the same reason:
+      // these 51 pages run the same federal and state refund math from the same
+      // computeBonus call, so the joint-filer question is served here too, and it
+      // must be served inside the form because `when: isMarried` needs JavaScript.
+      ['household-pay-is-asked-outright', insideForm('id="bonusWizForm"', 'id="householdIncome"')],
       ['how-it-was-paid-is-asked-outright', insideForm('id="bonusWizForm"', 'name="method"')],
       // The strongest of the set. #ytdSupp used to sit inside a
       // [data-reveal="qYtd"] wrapper, inside a collapsed <details
@@ -801,6 +821,11 @@ const PAGES = [
       ['bonus-is-asked-outright', insideForm('id="bonusWizForm"', 'id="bonus"')],
       ['yearly-pay-is-asked-outright', insideForm('id="bonusWizForm"', 'id="regIncome"')],
       ['filing-status-is-asked-outright', insideForm('id="bonusWizForm"', 'name="filingStatus"')],
+      // ADDED 2026-08-02, and the same pin the hub carries, for the same reason:
+      // these 51 pages run the same federal and state refund math from the same
+      // computeBonus call, so the joint-filer question is served here too, and it
+      // must be served inside the form because `when: isMarried` needs JavaScript.
+      ['household-pay-is-asked-outright', insideForm('id="bonusWizForm"', 'id="householdIncome"')],
       ['how-it-was-paid-is-asked-outright', insideForm('id="bonusWizForm"', 'name="method"')],
       ['earlier-bonuses-are-asked-outright', insideForm('id="bonusWizForm"', 'id="ytdSupp"')],
       ['no-qYtd-question', absent('name="qYtd"')],
@@ -830,6 +855,11 @@ const PAGES = [
       ['bonus-is-asked-outright', insideForm('id="bonusWizForm"', 'id="bonus"')],
       ['yearly-pay-is-asked-outright', insideForm('id="bonusWizForm"', 'id="regIncome"')],
       ['filing-status-is-asked-outright', insideForm('id="bonusWizForm"', 'name="filingStatus"')],
+      // ADDED 2026-08-02, and the same pin the hub carries, for the same reason:
+      // these 51 pages run the same federal and state refund math from the same
+      // computeBonus call, so the joint-filer question is served here too, and it
+      // must be served inside the form because `when: isMarried` needs JavaScript.
+      ['household-pay-is-asked-outright', insideForm('id="bonusWizForm"', 'id="householdIncome"')],
       ['how-it-was-paid-is-asked-outright', insideForm('id="bonusWizForm"', 'name="method"')],
       ['earlier-bonuses-are-asked-outright', insideForm('id="bonusWizForm"', 'id="ytdSupp"')],
       ['no-qYtd-question', absent('name="qYtd"')],

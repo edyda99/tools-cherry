@@ -63,7 +63,17 @@
          path, not hidden from the document, so the stack under a broken script is still
          complete. Its own copy says who it is for.
 
-         IDS ARE A CONTRACT with bonus-tax-wizard.js: bonus, state, regIncome, ytdSupp,
+         THE HOUSEHOLD CARD IS THE SAME BRANCH, TAKEN ON THE FILING ANSWER (added
+         2026-08-02). A joint return is taxed on both incomes at once, and running the
+         married brackets and the married standard deduction on one spouse's pay alone
+         invented a refund for two-earner couples. So a joint filer is asked one extra
+         question, what the two of them earn together, and the FEDERAL AND STATE bracket
+         math runs on that figure. FICA does NOT: Social Security stops at a wage base per
+         person and the extra 0.9% Medicare is withheld on one person's wages, so both keep
+         using the pay from the card above. The field ships EMPTY, empty is a real answer
+         meaning "my pay is all we earn", and the result says which of the two it used.
+
+         IDS ARE A CONTRACT with bonus-tax-wizard.js: bonus, state, regIncome, householdIncome, ytdSupp,
          and the radio groups named filingStatus (single / married / head_of_household),
          paymentType (bonus / other) and method (flat / aggregate). Each card also carries
          a data-card key, which is how the JS finds its step number. #out and #outStatus
@@ -125,7 +135,7 @@
           </div>
           <details class="otw-help">
             <summary>Your normal salary or wages for the year, before tax</summary>
-            <p>A ballpark is fine. It is what decides the rate your bonus is really taxed at, your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>, and whether you have already passed the Social Security cap for the year. Married and sending in one return together? Enter only your own pay here.</p>
+            <p>A ballpark is fine. It is what decides the rate your bonus is really taxed at, your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a>, and whether you have already passed the Social Security cap for the year. Married and sending in one return together? Enter only your own pay here, and a later question asks what the two of you earn between you.</p>
           </details>
           <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
         </section>
@@ -172,9 +182,35 @@
           <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
         </section>
 
-        <section class="otw-card" data-step="5" data-card="method" aria-labelledby="otwQ5">
-          <h2 class="otw-q" id="otwQ5">How was this bonus paid to you?</h2>
-          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ5">
+        <!-- MARRIED ONLY, and a real card for the same reason the California one above
+             is: wizard-core keeps it off the path with `when: isMarried`, which needs
+             JavaScript, so the card still SHIPS visible in the stack underneath. That is
+             why its second line says out loud who it is for. Empty is its shipped value
+             and a real answer: it means the pay entered earlier is everything the
+             household earns, and the answer says so in those words.
+
+             IT SITS AFTER THE CALIFORNIA CARD, NOT BEFORE IT, which is load-bearing on the
+             twin rather than a judgement about question order: build.js drops the
+             California card from the other 50 state pages by matching its opening tag,
+             `data-step="3" data-card="paytype"`, and throws if it cannot find it. Both
+             templates keep the two branch cards in the same order so the pair stay
+             readable side by side. -->
+        <section class="otw-card" data-step="5" data-card="household" aria-labelledby="otwQ5">
+          <h2 class="otw-q" id="otwQ5"><label for="householdIncome">What do you two earn together in a year, counting the pay you just entered but not this bonus?</label></h2>
+          <p class="otw-note">Married filing jointly only, leave it blank otherwise. Leave it empty and we treat the pay you already entered as everything the household earns.</p>
+          <div class="otw-money">
+            <input type="text" class="otw-in" id="householdIncome" inputmode="decimal" data-money autocomplete="off" value="" placeholder="Leave empty if only you earn">
+          </div>
+          <details class="otw-help">
+            <summary>Why one return for two people needs both incomes</summary>
+            <p>When you and your husband or wife send in one return together, both incomes are taxed as one, so the rate your bonus really lands in depends on the pair of you and not on your own pay alone. Social Security and Medicare are still worked out on your own pay whatever you put here, because those are charged per person. If you enter less than the pay you already gave us, we use that pay instead, since a household cannot earn less than one of the people in it.</p>
+          </details>
+          <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
+        </section>
+
+        <section class="otw-card" data-step="6" data-card="method" aria-labelledby="otwQ6">
+          <h2 class="otw-q" id="otwQ6">How was this bonus paid to you?</h2>
+          <div class="otw-opts" role="radiogroup" aria-labelledby="otwQ6">
             <label class="otw-opt">
               <input type="radio" name="method" value="flat" checked>
               <span><span class="otw-opt-t">On its own, separate from my regular paycheck</span><span class="otw-opt-s">the usual way, and the answer already chosen</span></span>
@@ -192,8 +228,8 @@
           <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
         </section>
 
-        <section class="otw-card" data-step="6" data-card="earlier" aria-labelledby="otwQ6">
-          <h2 class="otw-q" id="otwQ6"><label for="ytdSupp">How much have you already been paid in other bonuses this year?</label></h2>
+        <section class="otw-card" data-step="7" data-card="earlier" aria-labelledby="otwQ7">
+          <h2 class="otw-q" id="otwQ7"><label for="ytdSupp">How much have you already been paid in other bonuses this year?</label></h2>
           <div class="otw-money">
             <input type="text" class="otw-in" id="ytdSupp" inputmode="decimal" data-money autocomplete="off" value="0">
           </div>
@@ -207,8 +243,8 @@
           </div>
         </section>
 
-        <section class="otw-card otw-result" data-step="7" data-card="result" aria-labelledby="otwQ7">
-          <h2 class="otw-q sr-only" id="otwQ7" tabindex="-1">Your answer</h2>
+        <section class="otw-card otw-result" data-step="8" data-card="result" aria-labelledby="otwQ8">
+          <h2 class="otw-q sr-only" id="otwQ8" tabindex="-1">Your answer</h2>
           <p class="calc-example">These are example numbers. Type yours to see your own.</p>
           <div class="obbba-out" id="out" data-tb-result></div>
           <details class="otw-help">
