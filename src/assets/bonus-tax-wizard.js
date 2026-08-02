@@ -309,7 +309,11 @@ function renderResult({ state: s, result: r }) {
   // of tool. What a visitor to THIS page leaves believing without it is that a
   // bonus is taxed at a punitive rate, so the box says the opposite in plain
   // words, names the part that really is gone for good, and says when the rest
-  // settles.
+  // settles. "Gone for good" carries its two real exceptions rather than an
+  // absolute: the 0.9% Additional Medicare withheld above $200,000 of wages is
+  // reconciled on Form 8959 (the LIABILITY threshold is $250,000 filing jointly,
+  // so a joint filer can get some of it back), and Social Security withheld past
+  // the wage base by TWO OR MORE employers is refundable as a Schedule 3 credit.
   const settleSentence = deltaR > 0
     ? `About ${usd(deltaR)} more was held back than the income tax this bonus really costs, so that much comes back as a ` +
       `bigger refund (or a smaller bill) when you file.`
@@ -319,8 +323,11 @@ function renderResult({ state: s, result: r }) {
       : `What was held back is almost exactly the income tax this bonus really costs, so there is little to come back and little to pay.`;
   const plain = `<div class="otw-plain">There is no special bonus tax rate. The ${pct(w.pctOfBonus)} that vanished on ` +
     `payday is <strong>withholding</strong>, a prepayment: a bonus is ordinary income, taxed at your normal rate once ` +
-    `the whole year runs through the brackets. ${settleSentence} The ${usd(ficaR)} of Social Security and Medicare is ` +
-    `not a prepayment — it is a real tax on the bonus and it does not come back.</div>`;
+    `the whole year runs through the brackets. ${settleSentence} The ${usd(ficaR)} of Social Security and Medicare is a ` +
+    `real tax on the bonus, not a prepayment, and for almost everyone none of it comes back. Two narrow exceptions: the ` +
+    `extra 0.9% Medicare withheld once your pay passes $200,000 is squared up on Form 8959 when you file, and if two or ` +
+    `more employers between them took Social Security past the wage base, the excess comes back as a credit on ` +
+    `Schedule 3.</div>`;
 
   // The at-tax-time half, folded. wizard-core carries a <details>' open state
   // across re-renders, so a visitor who opens this keeps it open while they type.

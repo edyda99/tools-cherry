@@ -195,8 +195,8 @@ function derivation(r, itemizedR) {
   return `<details class="otw-help" id="saltMath"><summary>How the saving was worked out</summary>` +
     `<p>Under the new limit your best deduction is ${usd(r.bestNew)}, the larger of your ${usd(itemizedR)} itemized ` +
     `total and the ${usd(r.standardDeduction)} standard deduction. Under the old ${usd(r.oldCap)} limit it would have ` +
-    `been ${usd(r.bestOld)}. That is ${usd(r.deductionBenefit)} more deducted, worth ${usd(r.taxSaved)} at an effective ` +
-    `federal rate of ${pct(r.marginalRate)} on this deduction.${blend}</p></details>`;
+    `been ${usd(r.bestOld)}. That is ${usd(r.deductionBenefit)} more deducted, worth ${usd(r.taxSaved)} at a blended ` +
+    `marginal federal rate of ${pct(r.marginalRate)} on this deduction.${blend}</p></details>`;
 }
 
 function renderResult({ state: s, result: r }) {
@@ -206,7 +206,7 @@ function renderResult({ state: s, result: r }) {
   const saved = r.taxSaved || 0;
   const benefits = saved > 0;
   const head =
-    `<p class="otw-kick">When you file your taxes for ${r.year}</p>` +
+    `<p class="otw-kick">Federal tax you save for ${r.year} vs the old ${usd(r.oldCap)} cap</p>` +
     `<p class="otw-big${benefits ? '' : ' otw-zero'}">${usd(saved)}</p>`;
 
   // ---- Rounded once ---------------------------------------------------------
@@ -247,7 +247,8 @@ function renderResult({ state: s, result: r }) {
       : `${ded}, with no other write-offs to add to it, comes to ${usd(itemizedR)}`;
     verdict = counts
       ? `<p class="otw-note">${total}, which beats the ${usd(r.standardDeduction)} standard deduction — so you would ` +
-        `itemize, and it counts.</p>`
+        `itemize, and it counts. Only the part of that total above the standard deduction lowers your tax, because the ` +
+        `standard deduction is what you would have got without listing anything.</p>`
       : `<p class="otw-flag">This does not change your return. ${total}, and the ${usd(r.standardDeduction)} standard ` +
         `deduction you can take without listing anything is bigger — so you would take the standard deduction instead.</p>`;
   }
@@ -259,9 +260,14 @@ function renderResult({ state: s, result: r }) {
   let rows = '';
   if (s.paid > 0) {
     // When the visitor would take the standard deduction, the middle row is what
-    // the limit WOULD allow, not what comes off their return. Saying "the
-    // government skips tax on this" over a return that never itemises is the one
-    // sentence on this page that would be flatly untrue.
+    // the limit WOULD allow, not what comes off their return, so the row carries
+    // no claim about tax at all on that path.
+    //
+    // Even when they DO itemise, the row says only that the money joins the
+    // itemised total. It used to say "the government skips tax on this", which
+    // overstates: the standard deduction was theirs for free, so only the part of
+    // the itemised total above it lowers any tax. The verdict sentence below the
+    // rows carries that qualifier.
     const capBinds = s.paid > r.effectiveCap;
     const dedLabel = capBinds
       ? `Deductible under your ${usd(r.effectiveCap)} limit`
@@ -271,7 +277,7 @@ function renderResult({ state: s, result: r }) {
       `<ul class="otw-story">` +
       `<li><span>The state and local tax you paid</span><span class="otw-amt">${usd(paidR)}</span></li>` +
       `<li><span>${counts ? dedLabel : 'What the limit would allow, if you itemized'}` +
-        `${counts && dedR > 0 ? ' — the government skips tax on this' : ''}</span>` +
+        `${counts && dedR > 0 ? ' — this counts toward your itemized total' : ''}</span>` +
         `<span class="otw-amt${counts && dedR > 0 ? ' otw-free' : ''}">${usd(dedR)}</span></li>` +
       (lostR > 0
         ? `<li><span>The rest, above the ${usd(r.effectiveCap)} limit — not deductible</span>` +

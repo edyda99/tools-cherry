@@ -200,7 +200,13 @@ function renderResult({ state: s, result: r }) {
     rows =
       `<ul class="otw-story">` +
       `<li><span>What you gave to charity</span><span class="otw-amt">${usd(giftR)}</span></li>` +
-      `<li><span>${deductibleLabel(r)}${dedR > 0 ? ' — the government skips tax on this' : ''}</span>` +
+      // The "skips tax" clause is TRUE only in the standard-deduction world, where
+      // §170(p) stacks on top of the flat amount and every deducted dollar really
+      // does escape tax. On the itemizing branch the standard deduction was theirs
+      // for free, so only the part of the list above it lowers any tax, and the
+      // label ("Deductible on your list of deductions") already says all we can
+      // honestly say about this row.
+      `<li><span>${deductibleLabel(r)}${dedR > 0 && !r.itemize ? ' — the government skips tax on this' : ''}</span>` +
         `<span class="otw-amt${dedR > 0 ? ' otw-free' : ''}">${usd(dedR)}</span></li>` +
       (restR > 0
         ? `<li><span>The rest — ${restReason(s, r)}</span><span class="otw-amt otw-taxed">${usd(restR)}</span></li>`

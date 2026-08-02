@@ -157,9 +157,14 @@ function stateParts(abbr) {
   const entry = OVERRIDES[abbr];
   if (!entry) {
     return {
-      summary: `What about my state? ${name} sets no lower limit of its own`,
+      // Claims only what the dataset covers. "Sets no lower limit of its own" was
+      // a negative asserted from a gap in OVERRIDES: a state we never carried
+      // reads identically to a state that genuinely has no rule, and only the
+      // second of those is a fact we hold.
+      summary: `What about my state? We do not track a lower limit for ${name}`,
       body: `<strong>${name}:</strong> we hold no separate state 1099-K limit for ${name}, so the federal answer above is ` +
-        `the whole story.<div class="otw-note">${STATE_CAVEAT}</div>`
+        `all this page can tell you. That is a gap in what we track, not a confirmation that ${name} has none.` +
+        `<div class="otw-note">${STATE_CAVEAT}</div>`
     };
   }
   const isObj = entry != null && typeof entry === 'object';
@@ -338,7 +343,8 @@ function renderResult({ state: s, result: r }) {
       `</ul>`;
     why = r.willIssue
       ? `Your ${usd(amtR)} has reached the ${usd(floorR)} where a ${name} starts for ${s.taxYear}, so the business should send ` +
-        `you one. This limit is "or more", so landing exactly on ${usd(floorR)} still gets a form.`
+        `you one, unless you bill through a corporation or an LLC taxed as one, which is exempt apart from legal and ` +
+        `medical work. This limit is "or more", so landing exactly on ${usd(floorR)} still gets a form.`
       : `Your ${usd(amtR)} is under the ${usd(floorR)} where a ${name} starts for ${s.taxYear}, so this business is not ` +
         `required to send one. Another ${usd(gap)} from the same business this year and it would be.`;
     if (r.indexed) {

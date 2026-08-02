@@ -250,8 +250,17 @@ const run = (input) => computeBonus(input, taxData, suppData);
   // Comptroller's 2026 Employer Withholding Guide gives a flat 6.5% state rate on a lump-sum
   // annual bonus (county piggyback rides on top and is not modelled). These counts are a
   // deliberate tripwire on silent method churn, so they move only with a stated reason.
-  is('flat = 20', count('flat'), 20);
-  is('regular = 19', count('regular'), 19);
+  // 2026-08-02: michigan moved regular -> flat 4.25%, so flat 20->21 and regular 19->18.
+  // Michigan Form 446 (2026 Michigan Income Tax Withholding Guide, Rev. 02-26): "Bonuses and
+  // other payments of employee compensation made separately from regular payroll payments are
+  // subject to Michigan income tax withholding. The withholding amount equals the payment amount
+  // multiplied by 4.25 percent (0.0425). Do not make any adjustment for exemptions." That is a
+  // published separate-payment flat rate, not the aggregate method. Only the Rev. 02-26 edition was
+  // read (michigan.gov returns 403 to automated fetch of older editions, so how far back the same
+  // sentence runs is unverified). The entry was simply mis-bucketed here, its source read
+  // "repoTaxData" and it carried no source URL.
+  is('flat = 21', count('flat'), 21);
+  is('regular = 18', count('regular'), 18);
   is('special = 3', count('special'), 3);
   is('buckets cover all 51', count('none') + count('flat') + count('regular') + count('special'), 51);
   // every entry has verified + source; flagged ones carry singleSourced
