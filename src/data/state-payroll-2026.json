@@ -1161,7 +1161,8 @@
       "distinctiveFacts": [
         {
           "fact": "Kentucky's flat state income tax fell to 3.5% effective Jan 1, 2026 (from 4.0%), the next step in a triggered phase-down toward eventual elimination authorized by 2022 reforms and HB 1 (2025).",
-          "source": "https://taxnews.ey.com/news/2025-0543-kentucky-lowers-personal-income-tax-rate-effective-january-1-2026"
+          "source": "https://revenue.ky.gov/Forms/740-ES%20Instructions%20(2025).pdf",
+          "_sourceNote": "Swapped 2026-08-02 off a tax-vendor newsletter onto the state's own forms. Kentucky DOR Form 740-ES, 'Instructions for Filing Estimated Tax Vouchers', 42A740-S4 (9-25), covering tax year 2026, fetched live from revenue.ky.gov on 2026-08-02: the estimated-tax worksheet line 8 reads 'Compute tax on estimated net income from line 7. Multiply line 7 by 3.5%', and 'WHAT'S NEW FOR 2026' gives the 2026 standard deduction as $3,360.00. The 4% figure it fell FROM is pinned by the other half of the same source family, the Form 740 packet 42A740(PKT) (10-25) at https://revenue.ky.gov/Forms/740%20Packet%20Instructions.pdf: 'INDIVIDUAL INCOME TAX RATE: For 2025, the tax rate for individual income tax is 4%.' NOT COVERED BY THIS CITATION: the clause about a triggered phase-down toward eventual elimination authorised by the 2022 reforms and HB 1 (2025). Kentucky DOR states the rates, not the trigger mechanism behind them, and legislature.ky.gov was unreachable from this host on 2026-08-02, so that clause is carried over from the previous citation and has not been re-verified against a primary source."
         },
         {
           "fact": "Unlike most states, Kentucky has no statewide payroll insurance tax but its local occupational license fees can stack city + county on the same wages — e.g. a Louisville resident pays a combined 2.2% local wage tax on top of the 3.5% state rate.",

@@ -166,7 +166,145 @@ function phaseOutStandardDeduction(base, agi, filingStatus, cfg) {
   return Math.max(0, base - reduction);
 }
 
-export function stateIncomeTax(grossAnnual, filingStatus, stateData, preTax = 0) {
+/**
+ * Optional deduction for the FICA the employee actually paid, capped in dollars.
+ * Opt-in: a state without `tax.ficaPaidDeduction` is untouched.
+ *
+ * One user: MASSACHUSETTS. M.G.L. c.62 s.3(B)(a)(3) lets a filer deduct from Part B
+ * adjusted gross income "Taxes paid to the United States under the provisions of the
+ * Federal Insurance Contributions Act or the Federal Railroad Retirement Act", and then
+ * caps it: "In no event shall the aggregate of the otherwise allowable deductions of this
+ * subparagraph and of all sums deducted from wages as contributions to an annuity, pension,
+ * endowment or retirement fund of the United States government, the commonwealth or any
+ * political subdivision thereof, attributable to any one taxpayer exceed two thousand
+ * dollars." MA DOR prints the same rule as Form 1 Line 11: "you may deduct those
+ * contributions, up to a maximum of $2,000 ... Enter in lines 11a and 11b the amount you,
+ * and your spouse if filing jointly, paid to Social Security (FICA), Medicare or Railroad
+ * Retirement ... but not more than $2,000 each. Payment amounts may not be combined or
+ * transferred from one spouse to the other."
+ *
+ * Three things that matter for how this is wired:
+ *
+ * 1. IT IS THE FICA THE EMPLOYEE PAID, NOT A FIXED $2,000. Below about $26,144 of wages
+ *    the 7.65% employee share is under the cap, so the deduction is the smaller FICA
+ *    figure. Hard-coding $2,000 would over-deduct for every part-time worker. The engine
+ *    passes the employee-side FICA it already computed for these exact wages, so the two
+ *    lines of the paycheck can never disagree.
+ * 2. THE CAP IS PER TAXPAYER, AND THIS ENGINE MODELS ONE EARNER. On a joint return the
+ *    statute gives each spouse their own up-to-$2,000 and forbids pooling, so a two-earner
+ *    couple can deduct up to $4,000 between them. We model one wage, so we return one
+ *    person's deduction, and Massachusetts' disclaimer tells joint filers that the second
+ *    earner's own deduction is not in the number.
+ * 3. MEDICARE COUNTS. DOR: "Be sure to add any amount of Medicare tax withheld as shown on
+ *    Form W-2". So the input is the whole employee FICA line, not the Social Security part.
+ *    Above the cap this is moot, and the cap binds at every income where Medicare is large.
+ *
+ * @param {number} ficaPaid - employee-side FICA for these wages (annual USD)
+ * @param {{cap:number}} cfg
+ */
+function ficaPaidDeduction(ficaPaid, cfg) {
+  if (!cfg || !(cfg.cap > 0)) return 0;
+  return Math.min(cfg.cap, Math.max(0, ficaPaid));
+}
+
+/**
+ * Optional stepped add-back / recapture: a flat dollar amount charged ON TOP of the
+ * bracket tax, climbing one rung at a time as income crosses fixed thresholds and then
+ * stopping at a ceiling. Opt-in and data-driven: a state without `tax.steppedRecapture`
+ * is untouched, and the field is an ARRAY so a state with several such ladders (Connecticut
+ * has two, and other states could add one) does not need a second mechanism.
+ *
+ * Ladder shape, per filing status: {over, step, amountPerStep, max}
+ *   over          income above which the ladder starts; at or below it the charge is 0
+ *   step          the rung width in dollars
+ *   amountPerStep dollars added per rung
+ *   max           ceiling in dollars, after which more income adds nothing
+ *
+ * One user: CONNECTICUT's 2% tax-rate phase-out add-back, Conn. Gen. Stat. 12-700(a)(10),
+ * printed as Table C, "2% Tax Rate Phase-Out Add-Back", in DRS IP 2026(7).
+ *
+ * WHY IT CANNOT BE A BRACKET. The statute does not add a rate band. For an unmarried filer,
+ * 12-700(a)(10)(A)(ii) says that once Connecticut AGI passes $56,500 "the amount of the
+ * taxpayer's Connecticut taxable income to which the two-per-cent tax rate applies shall be
+ * reduced by one thousand dollars for each five thousand dollars, or fraction thereof",
+ * and that the displaced income "shall be an amount to which the four-and-one-half-per-cent
+ * tax rate shall apply". Moving $1,000 from 2% to 4.5% costs exactly $25, so the effect is a
+ * $25 step every $5,000. applyBrackets sums slice times rate and is continuous by
+ * construction, so it can never produce a step. Same reason Ohio's baseAmount exists.
+ *
+ * TRAP 1, "OR FRACTION THEREOF" MEANS ROUND UP, NOT DOWN. A single filer $1 over $56,500
+ * already owes the first full $25. So the rung count is a ceiling, not a floor, and the
+ * threshold test is strictly greater than: at exactly $56,500 the charge is $0.
+ *
+ * TRAP 2, THE CEILING IS THE SIZE OF THE 2% BAND, NOT A NUMBER IN THE STATUTE. The band can
+ * only be emptied once. For a single filer it is $10,000 wide, so after ten rungs ($10,000
+ * of income moved) the charge stops at $250; head of household empties $16,000 in ten rungs
+ * of $1,600 for $400; married filing jointly empties $20,000 in ten rungs of $2,000 for
+ * $500. Table C prints those same ceilings as its "and up" rows, which is the cross-check.
+ *
+ * TRAP 3, THE WITHHOLDING CODES ARE NOT IN FILING-STATUS ORDER. Table C has four columns and
+ * it is easy to grab the wrong one. Table A settles it by personal exemption: Code F carries
+ * $15,000, which 12-702 gives an unmarried individual, so CODE F IS SINGLE. Code A carries
+ * $12,000, the married-filing-separately amount. Code B is head of household ($19,000) and
+ * Code C is married filing jointly ($24,000). Reading Code A as "single" would start the
+ * ladder at $50,250 on $2,500 rungs and overcharge a $75,000 single filer by $150.
+ *
+ * WHAT WE PASS AS THE INCOME TEST. The statute keys on CONNECTICUT ADJUSTED GROSS INCOME.
+ * We pass `grossAnnual - preTax`, the same wages-only proxy for AGI that the South Carolina
+ * phase-down above uses and that federalIncomeTax() uses before its own standard deduction.
+ * It is a proxy, not the real figure: this engine models no non-wage income and no
+ * above-the-line adjustments, so a filer with interest, dividends or a side business is
+ * further up the ladder than we can see. Connecticut's disclaimer says so.
+ *
+ * KNOWN SIMPLIFICATION. We do not clip the add-back to the 2% income actually present. The
+ * statute can only move income that is there, so a filer with a huge AGI but almost no
+ * taxable income could in principle owe less than the ladder says. Connecticut cannot reach
+ * that state through this engine, because it has no standard deduction here and so its
+ * taxable income equals the AGI the ladder is reading. The `taxable > 0` guard below is what
+ * keeps that honest for any future state that does have a deduction.
+ *
+ * @param {number} agi - the state's AGI proxy (grossAnnual - preTax)
+ */
+function steppedRecapture(agi, filingStatus, ladder) {
+  const row = ladder && (ladder[filingStatus] ?? ladder.single);
+  if (!row || !(row.step > 0)) return 0;
+  const excess = agi - row.over;
+  if (excess <= 0) return 0;
+  // Ceiling, per "or fraction thereof". Every threshold and rung in the statute is a whole
+  // number of dollars, and a whole-dollar income divides exactly in IEEE-754, so a filer
+  // sitting exactly on a rung gets that rung and not the next one. Only fractional incomes
+  // (an hourly rate that annualises to cents) can land off a rung, and those are never
+  // exactly on one, so there is no boundary for rounding error to fall off.
+  const rungs = Math.ceil(excess / row.step);
+  const amount = rungs * row.amountPerStep;
+  return row.max != null ? Math.min(amount, row.max) : amount;
+}
+
+/**
+ * @param {number} ficaPaid - employee-side FICA already computed for these wages. Only
+ *   states carrying `tax.ficaPaidDeduction` (Massachusetts) read it; every other state
+ *   ignores it entirely.
+ *
+ *   IT DOES NOT CANCEL OUT OF A MARGINAL DIFFERENCE, so a caller asking "how much more tax
+ *   does this extra income cost" must pass a figure to BOTH of its terms. The deduction is
+ *   min(FICA paid, $2,000): it only stops moving once the cap binds, which takes about
+ *   $26,144 of wages at the 7.65% employee rate. Below that the two ends of the difference
+ *   carry different deductions and the FICA term does not vanish. An earlier version of this
+ *   note claimed it cancelled and used that to justify leaving the argument at 0 in
+ *   bonus-tax.js; on Massachusetts wages of $20,000 with a $10,000 bonus that overstated the
+ *   state tax on the bonus by $23.50 ($500.00 against the correct $476.50).
+ *
+ *   WHO PASSES WHAT. computePaycheck() passes `fica.total` for the same wages it just
+ *   computed, so the FICA line and the state line of one paycheck always agree.
+ *   bonus-tax.js's trueTaxOnBonus() passes two figures, the employee FICA on the modelled
+ *   earner's own wages before the bonus and after it, one to each term. Both callers use
+ *   ONE person's wages: the statutory cap is per taxpayer and may not be pooled between
+ *   spouses, so a joint filer's household figure must never be the input here.
+ *
+ *   It still defaults to 0, which is the right default for a state that has no such
+ *   deduction and the honest "not known" for any caller that has no FICA figure to give.
+ */
+export function stateIncomeTax(grossAnnual, filingStatus, stateData, preTax = 0, ficaPaid = 0) {
   if (!stateData || !stateData.hasIncomeTax || !stateData.tax) return 0;
   const t = stateData.tax;
   if (t.type === 'none') return 0;
@@ -174,18 +312,23 @@ export function stateIncomeTax(grossAnnual, filingStatus, stateData, preTax = 0)
   let stdDed = (t.standardDeduction && (t.standardDeduction[filingStatus] ?? t.standardDeduction.single)) || 0;
   // grossAnnual - preTax is this engine's federal AGI: federalIncomeTax() above derives
   // federal TAXABLE income as exactly that minus the federal standard deduction, so the
-  // quantity before the deduction is AGI. That is the input SCIAD's phase-down needs.
+  // quantity before the deduction is AGI. That is the input SCIAD's phase-down needs,
+  // and the input Connecticut's 2% ladder needs.
+  const agi = Math.max(0, grossAnnual - preTax);
   if (t.standardDeductionPhaseout) {
-    stdDed = phaseOutStandardDeduction(stdDed, Math.max(0, grossAnnual - preTax), filingStatus, t.standardDeductionPhaseout);
+    stdDed = phaseOutStandardDeduction(stdDed, agi, filingStatus, t.standardDeductionPhaseout);
   }
-  const taxable = Math.max(0, grossAnnual - preTax - stdDed);
+  let taxable = Math.max(0, grossAnnual - preTax - stdDed);
+  if (t.ficaPaidDeduction) {
+    taxable = Math.max(0, taxable - ficaPaidDeduction(ficaPaid, t.ficaPaidDeduction));
+  }
 
+  let tax;
   if (t.type === 'flat') {
-    return taxable * t.rate;
-  }
-  if (t.type === 'bracket') {
+    tax = taxable * t.rate;
+  } else if (t.type === 'bracket') {
     const brackets = t.brackets[filingStatus] ?? t.brackets.single;
-    let tax = applyBrackets(taxable, brackets);
+    tax = applyBrackets(taxable, brackets);
     // Opt-in flat amount added once taxable income passes a threshold. Ohio is
     // the only user: ORC 5747.02(A)(3)(c) reads "$332.00 plus 2.75% of the
     // amount in excess of $26,050". applyBrackets is continuous by
@@ -194,9 +337,16 @@ export function stateIncomeTax(grossAnnual, filingStatus, stateData, preTax = 0)
     // the statute charges nothing, and using >= would bill $332 to a filer
     // Ohio exempts.
     if (t.baseAmount && taxable > t.baseAmount.over) tax += t.baseAmount.amount;
-    return tax;
+  } else {
+    return 0;
   }
-  return 0;
+
+  // Stepped add-backs sit on top of the bracket tax and are keyed on AGI, not on taxable
+  // income, so they run last and read `agi`. A filer with no taxable income owes none of it.
+  if (taxable > 0 && Array.isArray(t.steppedRecapture)) {
+    for (const ladder of t.steppedRecapture) tax += steppedRecapture(agi, filingStatus, ladder);
+  }
+  return tax;
 }
 
 /**
@@ -281,7 +431,10 @@ export function computePaycheck({ wage, filingStatus, payFrequency, stateSlug, a
   const federal = Math.max(0, fedBracket - dependentsCredit) + extraWithholding;
 
   const fica = ficaTax(grossAnnual, filingStatus, fed, preTaxFica);
-  const state = stateIncomeTax(grossAnnual, filingStatus, stateData, preTaxIncome);
+  // fica.total is handed to the state side because Massachusetts lets a filer deduct the
+  // FICA they paid (capped at $2,000). Passing the figure the engine just computed keeps
+  // the two lines of the same paycheck consistent; every other state ignores it.
+  const state = stateIncomeTax(grossAnnual, filingStatus, stateData, preTaxIncome, fica.total);
 
   // State disability / paid-leave employee contributions: post-tax, on gross
   // wages, kept OUT of totalTax and out of annual.state (so tax-only rates and
