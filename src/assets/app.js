@@ -1163,9 +1163,10 @@ function renderAtFiling(input, r, mergeTips) {
 
 // --- the tips block, under the results table ---------------------------------
 // The story the summary was missing. Four figures and a fifth DERIVED FROM THEM:
-// the labels invite the reader to subtract down the column, so "Tips you keep"
-// is what is left after the three printed, rounded amounts, never a sixth
-// independent Math.round that can land a dollar away from them.
+// the labels invite the reader to subtract down the column, so the last row
+// ("Tips you keep" yearly, "Tips in your pocket now" per paycheck) is what is
+// left after the three printed, rounded amounts, never a sixth independent
+// Math.round that can land a dollar away from them.
 //
 // WHICH FEDERAL FIGURE IS PRINTED IS THE EXACTLY-ONCE RULE, and it turns on the
 // view, not on a preference:
@@ -1202,9 +1203,35 @@ function renderTipsBlock(input, r, tips, annualView) {
   const stateR = hasStateTax ? Math.round(per(tips.state)) : 0;
   const keep = gross - fedR - ficaR - stateR;
 
+  // THE TWO NUMBERS THAT RECONCILE THE VIEWS, and the reason the per-paycheck
+  // block was unreadable without them. A visitor on $75,000 biweekly with $1,000
+  // of tips read "Tips you keep $25" here and "$873" in the yearly view, and
+  // 25 x 26 = 650 is not 873 to anybody. Two things are missing from that
+  // multiplication and neither was on the page: the withheld federal tax comes
+  // back at filing, and every row is rounded to the dollar.
+  //
+  // `back` is the SAME arithmetic the at-filing block prints for tips
+  // (fedWithheld - fedFiled IS federalTaxSaved's taxSaved, see tipsSlice), so
+  // the two say the same number rather than two numbers a few dollars apart.
+  // The rounding therefore has to land somewhere else, and it lands on `now`,
+  // which is why that one is the figure hedged with "about": it is the yearly
+  // total minus an exact refund, not 26 copies of a rounded $25.
+  //
+  // yKeep is computed EXACTLY as the yearly view computes it — round each of
+  // the four printed amounts, then subtract — so "the Annual view shows" is a
+  // claim about the page, not about the engine, and now + back = yKeep by
+  // construction rather than by luck.
+  const backR = Math.round(Math.max(0, tips.fedWithheld - tips.fedFiled));
+  const yKeep = Math.round(tips.tips) - Math.round(tips.fedFiled) - Math.round(tips.fica) -
+    (hasStateTax ? Math.round(tips.state) : 0);
+  const nowYear = yKeep - backR;
+  // Nothing comes back when the deduction is fully phased out, and a "(comes
+  // back when you file)" over a $0 refund is a promise the page cannot keep.
+  const comesBack = !annualView && backR > 0;
+
   const fedLabel = filed
     ? 'Federal income tax on them (usually $0 under the 2025 law)'
-    : 'Federal income tax withheld on them';
+    : 'Federal income tax withheld on them' + (comesBack ? ' (comes back when you file)' : '');
   const rows = [
     `<li><span>Tips before tax</span><span class="otw-amt">${usd(gross)}</span></li>`,
     `<li><span>${fedLabel}</span><span class="otw-amt otw-taxed">−${usd(fedR)}</span></li>`,
@@ -1213,7 +1240,12 @@ function renderTipsBlock(input, r, tips, annualView) {
   if (hasStateTax) {
     rows.push(`<li><span>${escLbl(stateName)} tax</span><span class="otw-amt otw-taxed">−${usd(stateR)}</span></li>`);
   }
-  rows.push(`<li class="otw-after"><span>Tips you keep</span><span class="otw-amt otw-free">${usd(keep)}</span></li>`);
+  // "Tips you keep" is true of the year and false of a paycheck: per period the
+  // federal line above it is withholding, so some of what this row subtracts is
+  // money the visitor gets back. The per-paycheck label says which one it is,
+  // and the note under the block says where the rest of it went.
+  const keepLabel = annualView ? 'Tips you keep' : 'Tips in your pocket now';
+  rows.push(`<li class="otw-after"><span>${keepLabel}</span><span class="otw-amt otw-free">${usd(keep)}</span></li>`);
 
   const notes = [];
   // BOTH NUMBERS, THE MOMENT THE CAP OR THE PHASE-OUT BINDS, and only in the
@@ -1231,6 +1263,15 @@ function renderTipsBlock(input, r, tips, annualView) {
   if (!filed && !tips.inside) {
     notes.push(`<p class="otw-note">A paycheck is withholding, so the no-tax-on-tips deduction is not in the ` +
       `federal figure above. It comes back when you file, and the block below works out how much.</p>`);
+  }
+  // The line that joins the two views. Only per paycheck, and only against the
+  // yearly figure that actually differs from it: with the tips already inside
+  // the pay, the yearly view prints the withheld federal tax too, so there is no
+  // gap to explain and this sentence would be inventing one.
+  if (comesBack && !tips.inside) {
+    notes.push(`<p class="otw-note">Over a year that is about ${usd(nowYear)} in your pocket now (the rows ` +
+      `above are rounded to the dollar), plus the ${usd(backR)} of withheld federal tax you get back when ` +
+      `you file, which together are the ${usd(yKeep)} the Annual view shows.</p>`);
   }
   if (tips.inside) {
     notes.push(`<p class="otw-note">These tips are already inside every figure above, so nothing here is added ` +
