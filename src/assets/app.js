@@ -1280,9 +1280,9 @@ function renderTipsBlock(input, r, tips, annualView) {
   // defeat the reason it exists.
   let reconciliation = '';
   if (comesBack && !tips.inside) {
-    reconciliation = `<p class="otw-note">Over a year that is about ${usd(nowYear)} in your pocket now, plus ` +
-      `the ${usd(backR)} of withheld federal tax you get back when you file, which together are the ` +
-      `${usd(yKeep)} the Annual view shows.</p>`;
+    reconciliation = `<div class="takeaway">Over a year that is about <b>${usd(nowYear)}</b> in your pocket now, plus ` +
+      `the <b>${usd(backR)}</b> of withheld federal tax you get back when you file, which together are the ` +
+      `<b>${usd(yKeep)}</b> the Annual view shows.</div>`;
   }
   if (tips.inside) {
     notes.push(`<p class="otw-note">These tips are already inside every figure above, so nothing here is added ` +
