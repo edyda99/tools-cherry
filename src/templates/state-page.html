@@ -68,8 +68,11 @@
            - app.js reads wageType / amount / hours / tipsYear / regRate /
              otHours / otRate / bonusAmount / retirement401k / cafeteria125 /
              depChildren / depOther / extraWithholding / postTax and the radio
-             groups named payFrequency, filingStatus, view and qTips / qOt /
-             qBonus / qAge / qRetire / qHealth / qDeps / qExtra / qPost;
+             groups named payFrequency, filingStatus, view, tipsInside and
+             qTips / qOt / qBonus / qAge / qRetire / qHealth / qDeps / qExtra /
+             qPost. tipsInside decides whether the tips figure is a SECOND pot of
+             money on top of the pay (the default) or a slice of it, which is the
+             difference between the headline moving and the headline not moving;
            - build.js pre-renders every id app.js writes on its first render
              (netLabel, netBig, netSub, advEcho, the rows, the rate row, the
              bracket table, depCredit) and assertPanelParity() fails the build if
@@ -245,7 +248,38 @@
               <div class="otw-money">
                 <input id="tipsYear" class="otw-in otw-in-sm" type="text" inputmode="decimal" data-money autocomplete="off" value="" placeholder="0" aria-describedby="tipsYearNote">
               </div>
-              <p class="otw-note" id="tipsYearNote">Cash and card tips together, for the whole year. Your pay figure on the first card is meant to include them.</p>
+              <p class="otw-note" id="tipsYearNote">Cash and card tips together, for the whole year.</p>
+            </div>
+            <!-- THE SUB-QUESTION THAT DECIDES WHETHER THE HEADLINE MOVES.
+                 The tips figure used to be assumed to be INSIDE the pay on card
+                 one ("your pay figure is meant to include them"), which is true
+                 of a salary with reported tips and flatly false of the commonest
+                 case this page has: an hourly rate times hours a week, which is
+                 arithmetic that cannot contain a tip. So a server on $9 an hour
+                 typed their $18,000 of tips, was told the deduction was worth
+                 $2,000 at filing, and was shown a take-home that had never heard
+                 of the other $16,000. The default is therefore ON TOP.
+
+                 It is a real radio group, not a checkbox and not a toggle, so
+                 the card answers before JavaScript runs. app.js binds its own
+                 change listener (wizard-core takes one radio group per card, and
+                 that slot belongs to qTips) and puts it back on Start over.
+
+                 The <label> carries no `for`: it labels a GROUP, not a control,
+                 and the group is named to assistive technology by
+                 aria-labelledby. It is a <label> rather than a <p> so it takes
+                 the .otw-field label styling every other field question uses —
+                 no new CSS, which this pass may not add. -->
+            <div class="otw-field">
+              <label id="tipsInsideQ">Are these tips already inside the pay you entered?</label>
+              <div class="otw-opts" role="radiogroup" aria-labelledby="tipsInsideQ">
+                <label class="otw-opt"><input type="radio" name="tipsInside" value="ontop" checked><span><span class="otw-opt-t">No, they are on top of my pay</span></span></label>
+                <label class="otw-opt"><input type="radio" name="tipsInside" value="inside"><span><span class="otw-opt-t">Yes, they are already counted in it</span></span></label>
+              </div>
+              <details class="otw-help">
+                <summary>An hourly rate times your hours never includes tips</summary>
+                <p>If you worked out your pay as a rate times the hours you work, that figure is your wages and nothing else, so your tips are on top of it. A yearly salary from an employer who reports your tips usually already has them in it, and your last payslip is the place to check: if the gross on it is bigger than your rate times your hours, the difference is your reported tips.</p>
+              </details>
             </div>
           </div>
           <p class="otw-flag" id="otwTipsFlag" hidden></p>
@@ -495,13 +529,29 @@
                all 51 state pages once before. Keep this attribute. -->
           <div class="results" data-tb-result>
             <div class="breakdown" id="breakdown" aria-hidden="true">
+              <!-- The fourth segment is TIPS ON TOP, and it ships at zero width
+                   because the tips question ships answered No. It carries the
+                   existing .seg-net styling rather than a colour of its own:
+                   this pass may not add a line to styles.css, and tips you keep
+                   ARE take-home, so one accent block reading across both is the
+                   honest picture. The legend below is what splits them.
+
+                   Neither this nor the legend figure is written through an id
+                   with textContent, so neither enters build.js's pre-render
+                   denominator: app.js sets #segTips.style.width and
+                   #lgTipsWrap.style.display, and the percentage itself goes into
+                   a [data-otw-slot]. All three are parity-neutral by
+                   construction — with tips answered No the first render writes
+                   0%, hidden and empty, which is exactly what ships. -->
               <div class="bar">
                 <span class="seg-net" id="segNet" style="width:{{SEG_NET}}"></span>
+                <span class="seg-net" id="segTips" style="width:0%"></span>
                 <span class="seg-tax" id="segTax" style="width:{{SEG_TAX}}"></span>
                 <span class="seg-ded" id="segDed" style="width:{{SEG_DED}}"></span>
               </div>
               <div class="legend">
                 <span><i class="k-net"></i>Take-home <b id="lgNet">{{LG_NET}}</b></span>
+                <span class="lg-ded" id="lgTipsWrap" style="display:none"><i class="k-net"></i>Tips you keep <b data-otw-slot="tipsPct"></b></span>
                 <span><i class="k-tax"></i>Taxes <b id="lgTax">{{LG_TAX}}</b></span>
                 <span class="lg-ded" id="lgDedWrap"{{LG_DED_STYLE}}><i class="k-ded"></i>Deductions <b id="lgDed">{{LG_DED}}</b></span>
               </div>
@@ -536,6 +586,28 @@
               <span>Effective tax rate: <strong id="rEff">{{RATE_EFF}}</strong></span>
               <span>Take-home: <strong id="rTake">{{RATE_TAKE}}</strong></span>
             </div>
+
+            <!-- WHAT HAPPENS TO TIPS THAT ARE ON TOP OF THE PAY. Filled by
+                 app.js from the same three engines the rows above it come from
+                 (federalIncomeTax, ficaTax, stateIncomeTax) plus the OBBBA
+                 deduction engine, so the tips figures and the paycheck figures
+                 are the same arithmetic measured at two incomes.
+
+                 IT IS NOT A ROW OF THE TABLE ABOVE, deliberately. Those rows are
+                 a subtraction that has to come to Net pay, and build.js asserts
+                 that per state; tips on top are a second pot of money with their
+                 own gross, so folding them in would break the one identity a
+                 reader can check with their eyes. They get their own small story
+                 instead, under the table, and the headline above adds the two
+                 together.
+
+                 EMPTY IN THE SERVED HTML, and empty is the correct served state:
+                 the tips question ships answered No, so the first render writes
+                 the same empty string and hydration changes nothing. Addressed
+                 by [data-otw-slot] for the same reason the filing block below
+                 is — see app.js's slot() for the whole note, including the
+                 build.js entry that would retire the arrangement. -->
+            <div data-otw-slot="tips"></div>
 
             <details class="brackets" id="bracketPanel">
               <summary>{{BRACKET_SUMMARY}}</summary>

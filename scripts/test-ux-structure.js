@@ -944,6 +944,45 @@ const PAGES = [
       // the build.js pre-render entry this element has no way to have. It sits
       // ABOVE the pointer lines, so the figures and the deep link that explains
       // them are read in that order.
+      // NEW PINS (2026-08-06), all strictly stronger: none of them was
+      // statable before the tips card grew its second question.
+      //
+      // The sub-question that decides whether the headline includes the tips.
+      // It is a real radio group inside the one form, so it is answerable
+      // before JavaScript runs, and its DEFAULT is the one that matters: an
+      // hourly rate times hours never contains a tip, so "on top" ships
+      // checked. If that default ever flips, a tipped worker is silently shown
+      // a take-home that leaves their tips out again.
+      ['tips-inside-question-is-asked-outright',
+        insideForm('id="paycheckForm"', 'name="tipsInside"')],
+      ['tips-inside-defaults-to-on-top',
+        contains('name="tipsInside" value="ontop" checked')],
+      ['tips-inside-offers-already-counted',
+        contains('name="tipsInside" value="inside"')],
+      ['tips-inside-follows-the-tips-figure',
+        before('id="tipsYear"', 'name="tipsInside"')],
+
+      // The tips block: SHIPPED and SERVED EMPTY, both halves asserted by the
+      // one string, exactly as the filing block below it is and for the same
+      // reason — the tips question ships answered No, so the first render
+      // writes the same empty string. It sits between the results table and the
+      // filing block, which is the order the answer reads in: the paycheck,
+      // then the tips on top of it, then what comes back at filing.
+      ['tips-block-ships-empty', contains('<div data-otw-slot="tips"></div>')],
+      ['tips-block-follows-the-result', before('data-tb-result', '<div data-otw-slot="tips">')],
+      ['tips-block-precedes-the-filing-block',
+        before('<div data-otw-slot="tips">', '<div data-otw-slot="filing">')],
+
+      // The bar's fourth segment and its legend entry. Both ship in the
+      // document and both ship at nothing — zero width, hidden legend, empty
+      // percentage — which is the served truth with no tips entered. These
+      // three stand in for the build.js pre-render entries the elements have no
+      // way to have, the same job 'amount-label-matches-the-shipped-default'
+      // does above.
+      ['tips-bar-segment-ships-at-zero', contains('id="segTips" style="width:0%"')],
+      ['tips-legend-entry-ships-hidden', contains('id="lgTipsWrap" style="display:none"')],
+      ['tips-legend-percent-ships-empty', contains('data-otw-slot="tipsPct"></b>')],
+
       ['filing-block-ships-empty', contains('<div data-otw-slot="filing"></div>')],
       ['filing-block-precedes-the-rules', before('data-otw-slot="filing"', 'id="appliesLines"')],
       ['filing-block-follows-the-result', before('data-tb-result', 'data-otw-slot="filing"')],

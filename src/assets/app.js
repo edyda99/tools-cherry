@@ -36,14 +36,43 @@
 // SAME engines the standalone calculators use — obbba-deduction.js for the three
 // deductions and bonus-tax.js for the bonus. No math is re-derived here.
 //
-// AND NONE OF IT TOUCHES THE PAYCHECK. Tips, overtime and the senior deduction
+// TIPS ARE THE ONE EXCEPTION, AND THEY EARNED IT (2026-08-06). The tips card now
+// asks a second question — are these tips already inside the pay you entered? —
+// and the default answer is NO. It has to be: the commonest way to fill in card
+// one here is an hourly rate times the hours you work, and that arithmetic
+// cannot contain a tip. So for a tipped worker the pay figure was only part of
+// their money, and the take-home printed above it was only part of their
+// take-home while a block underneath quietly agreed the tips existed. Tips ON
+// TOP are therefore a second pot with a story of their own: the headline adds
+// what is kept of them, the bar gains a segment, and a block under the results
+// table works out where the rest went. Tips INSIDE the pay move no total at all
+// — they are already in every row — and get the same block as an attribution.
+//
+// AND THE DEDUCTION IS SPENT EXACTLY ONCE PER VIEW. Yearly, on top, the tips
+// block prints the federal tax AFTER the no-tax-on-tips deduction and the
+// at-filing block's tips row is merged away. Per paycheck, or inside the pay,
+// the tips block prints withholding and the at-filing row keeps the saving. The
+// two routes are the same arithmetic — their difference IS federalTaxSaved — so
+// whichever one is on screen, the reader is told the benefit once and told the
+// same number.
+//
+// AND NONE OF THE REST OF IT TOUCHES THE PAYCHECK. Overtime and the senior deduction
 // are filing-time deductions: they arrive as a bigger refund or a smaller bill
 // next year, they do not change withholding during the year, and they never
 // enter computePaycheck's input or any row of the results table. They are
 // printed in a block of their own, below the table, labelled as money back when
 // you file. The bonus is the other way round — a payday figure — and its line
 // says so and carries the heavier rule that stops a reader adding it in.
-import { computePaycheck, PAY_PERIODS, federalBracketBreakdown, annualizeGross } from '/assets/paycheck-engine.js';
+// federalIncomeTax / ficaTax / stateIncomeTax are imported, never re-derived:
+// tips on top of the pay are the SAME three taxes measured at a second income,
+// so the tips block is three differences of the functions that already wrote the
+// rows above it. Deriving a marginal rate by hand here would be a fourth opinion
+// about the brackets on a page that already has one, and it would miss the
+// Social Security wage base the moment pay plus tips crosses it.
+import {
+  computePaycheck, PAY_PERIODS, federalBracketBreakdown, annualizeGross,
+  federalIncomeTax, ficaTax, stateIncomeTax
+} from '/assets/paycheck-engine.js';
 import { allowedDeduction, federalTaxSaved, overtimePremium, seniorDeduction } from '/assets/obbba-deduction.js';
 import { computeBonus } from '/assets/bonus-tax.js';
 
@@ -227,6 +256,12 @@ function readForm() {
     // five deduction fields below are: a No is worth zero whatever is in the box.
     rules: {
       tips: answeredYes('qTips') ? num('tipsYear') : 0,
+      // Whether that tips figure is a slice of the pay above or a second pot on
+      // top of it. Defaults to ON TOP, because the commonest way to fill in card
+      // one on this page is a rate times the hours you work, and that arithmetic
+      // cannot contain a tip. radioOf falls back to the shipped default for a
+      // page that serves no such group, exactly like every other reader here.
+      tipsInside: radioOf('tipsInside', 'ontop') === 'inside',
       otHours: answeredYes('qOt') ? numOf('otHours') : 0,
       otRate: answeredYes('qOt') ? num('otRate') : 0,
       // An hourly visitor's normal rate is the figure on card one; a salaried
@@ -279,11 +314,17 @@ function wageTypeWarning(s) {
     `comes to ${usd(yearlyPay(s))} a year. If that figure is your yearly salary, choose "A yearly salary" above.`;
 }
 
-// Tips are part of your pay, so tips above the whole year's pay is the same
-// number counted wrong. The contradiction can only exist once the tips figure
-// exists, so the flag lives on the tips card.
+// Tips above the whole year's pay is the same number counted wrong — but ONLY
+// when the visitor has said the pay figure already includes them. On top of the
+// pay there is no contradiction at all: a valet on a minimum wage really can
+// take more in tips than in wages, and flagging that as an error would tell a
+// correctly-filled-in card it was wrong. So the check is gated on the answer to
+// the sub-question, which is also what makes its closing sentence true.
+// The contradiction can only exist once the tips figure exists, so the flag
+// lives on the tips card.
 function tipsWarning(s) {
   const pay = yearlyPay(s);
+  if (!s.rules.tipsInside) return '';
   if (pay <= 0 || s.rules.tips <= 0 || s.rules.tips <= pay) return '';
   return `Check these numbers: the ${usd(s.rules.tips)} you entered as tips is more than the ${usd(pay)} you entered ` +
     `as your pay for the whole year, and your pay is supposed to include your tips.`;
@@ -361,7 +402,15 @@ function netLabelText(input) {
     : input.basis === 'monthly'
       ? `a ${usd(input.typed)} monthly salary`
       : `a ${usd(input.typed)} salary`;
-  return `Based on ${basis} in ${name}, ${filing}, ${paid}`;
+  // AND THE SECOND POT, NAMED, whenever there is one. The headline above this
+  // caption adds tips that sit on top of the pay, so a caption that named only
+  // the salary would be explaining a figure it does not account for. Tips the
+  // visitor said are already inside the pay add no clause: they are inside
+  // `basis` already, and saying so twice would double them to a reader.
+  const tipsClause = input.rules && input.rules.tips > 0 && !input.rules.tipsInside
+    ? `, plus ${usd(input.rules.tips)} a year in tips on top`
+    : '';
+  return `Based on ${basis} in ${name}, ${filing}, ${paid}${tipsClause}`;
 }
 
 // True while the pay figure in the box is still the $75,000 example this page
@@ -444,18 +493,18 @@ function renderAnswerLead(input, r) {
     text.slice(n[1]);
 }
 
-// --- the two slots build.js cannot pre-render --------------------------------
-// READ THIS BEFORE ADDING A THIRD ONE.
+// --- the four slots build.js cannot pre-render -------------------------------
+// READ THIS BEFORE ADDING A FIFTH ONE.
 //
 // build.js's pre-render guard (scanAppFirstRender + assertPanelParity) scans
 // THIS FILE for `$('someId').textContent = …` writes reachable from init(), and
 // fails the build for any id statePanel() has no pre-rendered value for. That
 // guard is right, and it is why twenty-five figures on this page are served real
 // and hydrate to the identical string. It is also in build.js, which the pass
-// that added these two elements was not allowed to edit, so these two are
+// that added these elements was not allowed to edit, so they are
 // addressed by ATTRIBUTE and stay out of its denominator.
 //
-// Both are parity-neutral BY CONSTRUCTION, which is the only reason this is
+// Every one is parity-neutral BY CONSTRUCTION, which is the only reason this is
 // acceptable rather than a hole in the guard:
 //   amountLabel — the template serves the SALARY wording and the select ships
 //     "A yearly salary" selected, so the first render writes back the identical
@@ -466,14 +515,25 @@ function renderAnswerLead(input, r) {
 //     the one thing that has always been JavaScript-only here (#out everywhere
 //     else in this family), and it hides nothing from a crawler: the per-state
 //     pointer lines it sits above are server-rendered and stay visible.
+//   tips       — ships EMPTY for the same reason: the tips question ships
+//     answered No, so there is no second pot of money to tell anyone about and
+//     the first render writes the same empty string. Pinned as the exact empty
+//     <div> the template serves.
+//   tipsPct    — the tips share in the bar legend. Ships EMPTY inside a legend
+//     entry that ships display:none, and the first render leaves both alone
+//     while there are no tips. (#segTips and #lgTipsWrap beside it need no slot
+//     at all: a style write is not a content write, so the guard never counted
+//     them.)
 //
 // THE RIGHT END STATE, written out here because it is the whole of the
-// follow-up. In build.js, statePanel().expected gains two entries:
+// follow-up. In build.js, statePanel().expected gains four entries:
 //   amountLabel: { expect: <AMOUNT_LABEL.salary, the string the template serves> }
 //   filing:      { expect: '' }
-// and these two writes move back onto $('id').textContent, which puts both back
-// inside the guard's denominator and retires slot() and the two
-// [data-otw-slot] attributes with it. Until that lands, the two
+//   tips:        { expect: '' }
+//   tipsPct:     { expect: '' }
+// and these four writes move back onto $('id').textContent, which puts them back
+// inside the guard's denominator and retires slot() and the four
+// [data-otw-slot] attributes with it. Until that lands, the
 // test-ux-structure pins named above are what stands in for the guard.
 // (This used to end "see notes/state-page-phase5.md". There is no notes/
 // directory in this repo and there never was: that file is a scratchpad note
@@ -566,6 +626,96 @@ function conformityClause(kind) {
   return say ? say(name) : '';
 }
 
+// --- tips, inside the take-home summary --------------------------------------
+// ONE FUNCTION, TWO MODES, THREE ENGINE DIFFERENCES. Everything the tips block,
+// the headline, the caption and the bar say about tips comes from here, so those
+// four can never disagree with each other.
+//
+// The whole thing is the same three taxes measured at two incomes:
+//   on top   base = the pay,        W = the pay + the tips
+//   inside   base = the pay - tips, W = the pay
+// and each figure is (tax at W) - (tax at base). That is exact across bracket
+// boundaries, it picks up the Social Security wage base for free the moment pay
+// plus tips crosses it (ficaTax caps at fed.fica.socialSecurity.wageBase, so the
+// difference above the base is Medicare only), and it needs no marginal rate.
+//
+// THE FEDERAL FIGURE COMES BACK TWICE, and which one is printed is the whole of
+// the exactly-once rule:
+//   fedWithheld  no deduction. What actually leaves the money during the year.
+//   fedFiled     after the no-tax-on-tips deduction. What is owed on the return.
+// Their difference IS federalTaxSaved(magi, filing, deduction, fed).taxSaved,
+// which is the number the at-filing block prints for tips. So the benefit is
+// inside fedFiled or it is the at-filing row, never both, and the two routes
+// agree to the cent.
+//
+// MAGI IS THE INCOME THAT REACHES THE RETURN, W minus the pre-tax money this
+// same page collects two cards further down: a traditional 401(k) deferral and a
+// Section 125 premium never enter W-2 box 1. renderAtFiling makes the identical
+// adjustment for the identical reason. Both are clamped to the pay exactly as
+// computePaycheck clamps them, so the two never disagree about how much pre-tax
+// money there was.
+//
+// Returns null when there is nothing to say: no tips, no pay, or the OBBBA
+// figures not fetched yet. Callers treat null as "no tips block, no tips in the
+// headline, no tips segment", which is the shipped default and the served state.
+function tipsSlice(input, r) {
+  const t = input.rules.tips;
+  const gross = r.annual.gross;
+  if (!(t > 0) || !(gross > 0) || ruleDataState !== 'ready') return null;
+  const inside = !!input.rules.tipsInside;
+  // A tips figure larger than the pay it is supposed to be a slice of is not a
+  // slice. tipsWarning already says so on the card; here it would mean a
+  // negative base income, so the block declines rather than inventing one.
+  if (inside && t >= gross) return null;
+
+  const fed = taxData.federal;
+  const filing = input.filingStatus;
+  const stateData = taxData.states ? taxData.states[stateSlug] : null;
+  const clamp = (v) => Math.min(Math.max(0, v || 0), gross);
+  const preTaxIncome = clamp(input.adv.retirement401k) + clamp(input.adv.cafeteria125);
+  const preTaxFica = clamp(input.adv.cafeteria125);
+
+  const W = inside ? gross : gross + t;
+  const base = W - t;
+  const magi = Math.max(0, W - preTaxIncome);
+
+  const d = allowedDeduction({
+    eligibleAmount: t, filingStatus: filing, magi, params: ruleData.obbba.federal.tips
+  });
+
+  const fedBase = federalIncomeTax(base, filing, fed, preTaxIncome);
+  const fedWithheld = Math.max(0, federalIncomeTax(W, filing, fed, preTaxIncome) - fedBase);
+  const fedFiled = Math.max(0, federalIncomeTax(W, filing, fed, preTaxIncome + d.deduction) - fedBase);
+  const fica = Math.max(0, ficaTax(W, filing, fed, preTaxFica).total - ficaTax(base, filing, fed, preTaxFica).total);
+
+  // THE STATE FOLLOWS THE STATE'S OWN LAW, not the federal deduction. The nine
+  // states that tax no wages return 0 from stateIncomeTax without being asked
+  // to. Of the rest, only a state whose 2026 verdict is a full "yes" gets the
+  // federal deduction subtracted from its base; "no" and "not confirmed yet"
+  // get none of it, and neither does "partial" — Georgia's smaller capped
+  // exclusion is $1,750 of tips written in the prose of its data entry, not in a
+  // machine-readable field, and guessing at a money number is worse than
+  // declining to model it. The note under the block says so in words.
+  const conformity = (ruleData.obbba.states && ruleData.obbba.states[stateSlug]
+    && ruleData.obbba.states[stateSlug].tips && ruleData.obbba.states[stateSlug].tips.y2026) || '';
+  const stateDed = conformity === 'yes' ? d.deduction : 0;
+  const stateTax = Math.max(0,
+    stateIncomeTax(W, filing, stateData, preTaxIncome + stateDed) -
+    stateIncomeTax(base, filing, stateData, preTaxIncome));
+
+  return {
+    tips: t, inside, deduction: d, conformity, stateDed,
+    fedWithheld, fedFiled, fica, state: stateTax,
+    // What the pay's own take-home has to gain, per view. The yearly answer is
+    // the filing truth, the per-paycheck answer is the withholding truth, and
+    // they differ by exactly the deduction's benefit — which is why the
+    // per-paycheck view still shows that benefit in the at-filing block and the
+    // yearly view does not.
+    keepFiled: t - fedFiled - fica - stateTax,
+    keepWithheld: t - fedWithheld - fica - stateTax
+  };
+}
+
 // The three deductions, in card order, each with the tax it saves. CHAINED, not
 // computed one at a time: obbba-deduction.js's own W-4 helper says why, and it
 // is the same reason — the tax saved by two deductions together is one
@@ -578,7 +728,16 @@ function conformityClause(kind) {
 // renderAtFiling for the derivation. Both engines below are measured against the
 // income that reaches the federal return, so the caller nets off the pre-tax
 // money this same page collected on its own cards.
-function filingRows(input, magi) {
+//
+// `mergeTips` does NOT take tips out of the chain, and that distinction is the
+// whole point. When the tips block above has already spent the deduction (the
+// yearly view, tips on top), the tips ROW must not print it a second time — but
+// the deduction is still the first link in the chain, because the overtime and
+// senior rows are worth what they add ON TOP of it and would be overstated by
+// hundreds of dollars if tips were dropped from the arithmetic as well as from
+// the list. So the row is computed exactly as before and marked `merged`, and
+// renderAtFiling leaves it out of what it prints and out of what it totals.
+function filingRows(input, magi, mergeTips) {
   const fed = taxData.federal;
   const obbba = ruleData.obbba.federal;
   const filing = input.filingStatus;
@@ -601,6 +760,7 @@ function filingRows(input, magi) {
     rows.push({
       label: 'Tips',
       saved: chain(d.deduction),
+      merged: !!mergeTips,
       // The wage this row is a deduction against, named, for the FICA sentence
       // in the plain box. A row with no wage behind it (the senior deduction)
       // leaves this empty and is left out of that sentence: there is no dollar
@@ -785,7 +945,7 @@ function syncOtRate() {
 
 // The block itself. Empty is a real answer here and the commonest one: four
 // questions answered No have nothing to say.
-function renderAtFiling(input, r) {
+function renderAtFiling(input, r, mergeTips) {
   const box = slot('filing');
   if (!box) return;
   const rules = input.rules;
@@ -817,7 +977,23 @@ function renderAtFiling(input, r) {
   // preTax figure from the identical input, so the card was printing two taxable
   // bases and saying so nowhere.
   const preTax = input.adv ? (input.adv.retirement401k || 0) + (input.adv.cafeteria125 || 0) : 0;
-  const magi = Math.max(0, income - preTax);
+  // AND TIPS ON TOP GO THE OTHER WAY, UP. This block used to add nothing to
+  // gross, on the assumption every figure the visitor gave was already inside
+  // the pay on card one. Tips that sit on top of the pay are not: they are wages
+  // that reach the return, so they are in MAGI, and leaving them out understated
+  // the whole block. Measured on the built georgia page — single, a $30,000
+  // salary, $10,000 of tips on top — the tips row printed "+$1,030" (the bracket
+  // difference taken at $30,000) while the tips block four lines above it showed
+  // $1,200 of federal tax withheld on the same tips and promised that this block
+  // said how much of it came back. Two routes to one number, $170 apart, on the
+  // same card. At the true $40,000 both are $1,200.
+  //
+  // Tips the visitor said are already INSIDE the pay add nothing here, because
+  // r.annual.gross already contains them. Same figure, two meanings, and the
+  // sub-question on the tips card is the only thing that can tell them apart.
+  const onTopTips = input.rules.tipsInside ? 0 : input.rules.tips;
+  const returnIncome = income + onTopTips;
+  const magi = Math.max(0, returnIncome - preTax);
   if (ruleDataState === 'failed') {
     box.innerHTML = `<p class="otw-note">We could not load the 2026 deduction figures just now, so these are not ` +
       `worked out here. The links below still do it in full.</p>`;
@@ -828,7 +1004,7 @@ function renderAtFiling(input, r) {
     return;
   }
 
-  const { rows, total } = filingRows(input, magi);
+  const { rows } = filingRows(input, magi, mergeTips);
 
   // A ROW WITH ITS OWN FIGURES MISSING PRINTS NO MONEY. "Extra hours +$0" in the
   // accent colour, under a lead saying this arrives when you file, is read down
@@ -836,7 +1012,10 @@ function renderAtFiling(input, r) {
   // in is the salaried visitor who does not know their hourly rate, which is
   // exactly the case the note under it exists for. The row leaves the list; its
   // note stays, so the ask is still on the card and still labelled.
-  const shown = rows.filter((row) => !row.pending);
+  // A MERGED ROW LEAVES FOR THE OPPOSITE REASON: not that its figure is
+  // missing, but that the tips block above has already printed it. Both leave
+  // the list here; only the pending one leaves its note behind.
+  const shown = rows.filter((row) => !row.pending && !row.merged);
 
   // ROUNDED ONCE, THEN DERIVED. The labels invite a reader to add these up, so
   // the printed rows have to come to the printed total: every row but the last
@@ -844,8 +1023,26 @@ function renderAtFiling(input, r) {
   // total. (If that derivation ever came out negative — possible only when the
   // last row is worth almost nothing and the others round up — the total
   // becomes the sum of the rounded rows instead, so the two are never at odds.)
-  // A pending row contributes exactly 0 to the chain, so dropping it above
-  // leaves this sum untouched.
+  //
+  // THE TOTAL IS THE SUM OF WHAT IS SHOWN, not the chain's own running total,
+  // and those are the same number in every case but one. A pending row
+  // contributes exactly 0 to the chain, so dropping it changes nothing; a MERGED
+  // row contributes its real saving, so a chain total would claim a figure the
+  // rows below it no longer add up to — the tips deduction counted once here and
+  // once again in the block above, which is the one thing this pass may not do.
+  const total = shown.reduce((a, row) => a + row.saved, 0);
+
+  // EVERYTHING THIS BLOCK HAD TO SAY IS NOW ABOVE IT. Tips merged into the tips
+  // block, nothing else answered, no bonus: printing the zero-case line here
+  // ("Nothing to claim at filing from your answers so far") would contradict, on
+  // the same card and four lines lower, a tips story that has just claimed the
+  // deduction. `merged` is required in the test so the genuine empty case — the
+  // tips question answered Yes with the box still blank — keeps its ask.
+  if (!shown.length && !rows.some((row) => row.pending) && rules.bonus <= 0 && rows.some((row) => row.merged)) {
+    box.innerHTML = '';
+    return;
+  }
+
   const amounts = shown.map((row) => Math.round(row.saved));
   let totalR = Math.round(total);
   if (shown.length > 1) {
@@ -877,12 +1074,21 @@ function renderAtFiling(input, r) {
   // the plain box below instead, where the reason belongs, and is not printed
   // twice.
   const pendingRows = rows.filter((row) => row.pending);
-  const noteRows = shown.length ? rows : rows.filter((row) => !row.pending);
+  // A merged row's note goes with its money: the cap sentence, the conformity
+  // sentence and the FICA sentence for tips are all printed by the tips block
+  // above, so repeating them here would be the same paragraph twice on one card.
+  const notable = rows.filter((row) => !row.merged);
+  const noteRows = shown.length ? notable : notable.filter((row) => !row.pending);
   const notes = noteRows.filter((row) => row.note || row.extra)
     .map((row) => `<p class="otw-note"><strong>${escLbl(row.label)}.</strong> ${escLbl(row.note)}` +
       `${row.extra ? ' ' + escLbl(row.extra) : ''}</p>`);
   if (rules.bonus > 0) {
-    const b = bonusLine(input, income);
+    // The same correction, for the same reason and with a second one of its
+    // own: regIncome drives the Social Security wage base and the additional
+    // Medicare threshold in the bonus engine, and tips are wages that count
+    // towards both. A tipped worker near the wage base was being told their
+    // bonus lost Social Security it would not actually lose.
+    const b = bonusLine(input, returnIncome);
     bonusRow = `<li class="otw-after"><span>Your ${usd(b.bonus)} bonus lands as about this on payday</span>` +
       `<span class="otw-amt">${usd(b.lands)}</span></li>`;
     // THE SENTENCE NAMES ONLY THE LINES THAT EXIST. It used to assert
@@ -955,6 +1161,105 @@ function renderAtFiling(input, r) {
   box.innerHTML = `<p class="otw-kick">${kick}</p>` + lead + story + plain;
 }
 
+// --- the tips block, under the results table ---------------------------------
+// The story the summary was missing. Four figures and a fifth DERIVED FROM THEM:
+// the labels invite the reader to subtract down the column, so "Tips you keep"
+// is what is left after the three printed, rounded amounts, never a sixth
+// independent Math.round that can land a dollar away from them.
+//
+// WHICH FEDERAL FIGURE IS PRINTED IS THE EXACTLY-ONCE RULE, and it turns on the
+// view, not on a preference:
+//   yearly, on top   the filed figure. The deduction is spent HERE, and
+//                    renderAtFiling is told to merge its tips row away.
+//   per paycheck     the withheld figure, because a paycheck is withholding.
+//                    The deduction is spent in the at-filing block instead, and
+//                    the note here points at it rather than restating a number.
+//   inside the pay   the withheld figure again, and no total moves: the money is
+//                    already in every row above. The at-filing block keeps its
+//                    tips row, so the deduction is still counted exactly once.
+//
+// The state row is OMITTED, not zeroed, on the nine states that tax no wages —
+// the same rule the results table itself follows, for the same reason: a
+// withholding line that does not exist must not be asserted beside a correct
+// figure. The subtraction still closes, with one row fewer.
+function renderTipsBlock(input, r, tips, annualView) {
+  const box = slot('tips');
+  if (!box) return;
+  if (!tips) { box.innerHTML = ''; return; }
+
+  const stateName = taxData.states[stateSlug]?.name || '';
+  const hasStateTax = !!taxData.states[stateSlug]?.hasIncomeTax;
+  // Per paycheck the whole panel is per period, so these are too. `filed` is the
+  // yearly, on-top case and nothing else.
+  const filed = annualView && !tips.inside;
+  const div = annualView ? 1 : (r.periods || 1);
+  const per = (v) => v / div;
+
+  const gross = Math.round(per(tips.tips));
+  const fedRaw = filed ? tips.fedFiled : tips.fedWithheld;
+  const fedR = Math.round(per(fedRaw));
+  const ficaR = Math.round(per(tips.fica));
+  const stateR = hasStateTax ? Math.round(per(tips.state)) : 0;
+  const keep = gross - fedR - ficaR - stateR;
+
+  const fedLabel = filed
+    ? 'Federal income tax on them (usually $0 under the 2025 law)'
+    : 'Federal income tax withheld on them';
+  const rows = [
+    `<li><span>Tips before tax</span><span class="otw-amt">${usd(gross)}</span></li>`,
+    `<li><span>${fedLabel}</span><span class="otw-amt otw-taxed">−${usd(fedR)}</span></li>`,
+    `<li><span>Social Security &amp; Medicare</span><span class="otw-amt otw-taxed">−${usd(ficaR)}</span></li>`
+  ];
+  if (hasStateTax) {
+    rows.push(`<li><span>${escLbl(stateName)} tax</span><span class="otw-amt otw-taxed">−${usd(stateR)}</span></li>`);
+  }
+  rows.push(`<li class="otw-after"><span>Tips you keep</span><span class="otw-amt otw-free">${usd(keep)}</span></li>`);
+
+  const notes = [];
+  // BOTH NUMBERS, THE MOMENT THE CAP OR THE PHASE-OUT BINDS, and only in the
+  // view that is actually spending the deduction: in the other two the at-filing
+  // row prints this same sentence, and one card may not say it twice.
+  if (filed && tips.deduction.deduction < tips.tips) {
+    const d = tips.deduction;
+    notes.push(`<p class="otw-note">${usd(d.deduction)} of your ${usd(tips.tips)} in tips is deductible` +
+      (d.fullyPhasedOut
+        ? `: your pay is high enough that the deduction is fully phased out, so the federal tax above is the ordinary tax on all of it.`
+        : d.phasedOut
+          ? `: the ${usd(d.statutoryCap)} cap falls to ${usd(d.allowedCap)} at your income, and the federal tax above is on the rest.`
+          : `. The deduction stops at ${usd(d.allowedCap)} a year, and the federal tax above is on the rest.`));
+  }
+  if (!filed && !tips.inside) {
+    notes.push(`<p class="otw-note">A paycheck is withholding, so the no-tax-on-tips deduction is not in the ` +
+      `federal figure above. It comes back when you file, and the block below works out how much.</p>`);
+  }
+  if (tips.inside) {
+    notes.push(`<p class="otw-note">These tips are already inside every figure above, so nothing here is added ` +
+      `to your take-home: this is the part of it your tips account for. What the no-tax-on-tips deduction is ` +
+      `worth is worked out below.</p>`);
+  }
+  // The state's own 2026 verdict, in the same words the rest of the page uses.
+  // The "partial" wording already says the state adds a smaller break of its
+  // own; here it has to also say that this figure does not include it, because
+  // the figure is right above the sentence.
+  const clause = conformityClause('tips');
+  if (clause) {
+    notes.push(`<p class="otw-note">${escLbl(clause)}` +
+      (tips.conformity === 'partial'
+        ? ` The state tax above does not take that smaller break off — ${escLbl(stateName)} sets its own cap, and ` +
+          `the state's own return is where it is claimed.`
+        : '') + `</p>`);
+  }
+  if (hasStateTax && tips.fica > 0) {
+    notes.push(`<p class="otw-note">Social Security and Medicare are owed on tips whatever the income-tax rules ` +
+      `say, which is why that line is never zero.</p>`);
+  }
+
+  const kick = tips.inside
+    ? 'Of that pay, your tips'
+    : (annualView ? 'Your tips, on top of that, over a year' : `Your tips, on top of that, ${PERIOD_LABEL[r.payFrequency] || PERIOD_LABEL.biweekly}`);
+  box.innerHTML = `<p class="otw-kick">${kick}</p><ul class="otw-story">${rows.join('')}</ul>${notes.join('')}`;
+}
+
 // --- zero state -------------------------------------------------------------
 // The money rows the results panel prints unconditionally. With no pay entered
 // they used to read "−$0.00" five times under a "$0.00" headline, which asserts
@@ -980,21 +1285,47 @@ function showResultRows(show) {
   }
 }
 
-function renderBreakdown(r) {
+// TIPS ON TOP WIDEN THE BAR RATHER THAN SQUEEZING INTO IT. The bar is a picture
+// of where a year's money goes, so when there is a second pot the denominator is
+// the pay PLUS the tips, the tax segment picks up the tax on the tips, and the
+// tips a person keeps get a segment of their own. The four segments then still
+// come to exactly 100%: net + tipsKeep + (taxes + tipsTax) + deductions is the
+// pay plus the tips, by construction and not by rounding luck.
+//
+// Tips the visitor said are already INSIDE the pay change nothing here, because
+// they are already inside every one of these four figures. That is the same
+// reason the headline does not move for them.
+function renderBreakdown(r, tips) {
   const g = r.annual.gross;
   if (g <= 0) { $('breakdown').style.display = 'none'; return; }
   $('breakdown').style.display = '';
-  const taxes = r.annual.totalTax;
+  const onTop = tips && !tips.inside;
+  // The FILED figures, always, whichever view is on screen: the bar has no
+  // per-paycheck mode — it has always drawn the annual shares — so it draws the
+  // year, and the year is the return.
+  const tipsKeep = onTop ? Math.max(0, tips.keepFiled) : 0;
+  const tipsTax = onTop ? (tips.fedFiled + tips.fica + tips.state) : 0;
+  const total = g + (onTop ? tips.tips : 0);
+  const taxes = r.annual.totalTax + tipsTax;
   const ded = r.annual.preTax + r.annual.postTax + (r.annual.statePrograms || 0);
   const net = r.annual.net;
-  const w = (v) => (v / g * 100).toFixed(2) + '%';
+  const w = (v) => (v / total * 100).toFixed(2) + '%';
   $('segNet').style.width = w(net);
+  $('segTips').style.width = w(tipsKeep);
   $('segTax').style.width = w(taxes);
   $('segDed').style.width = w(ded);
-  $('lgNet').textContent = pct(net / g);
-  $('lgTax').textContent = pct(taxes / g);
-  $('lgDed').textContent = pct(ded / g);
+  $('lgNet').textContent = pct(net / total);
+  $('lgTax').textContent = pct(taxes / total);
+  $('lgDed').textContent = pct(ded / total);
   $('lgDedWrap').style.display = ded > 0 ? '' : 'none';
+  // Written through the slot, never through an id with textContent, so this
+  // element stays out of build.js's pre-render denominator. Parity-neutral: with
+  // the tips question answered No the first render leaves it hidden and empty,
+  // which is what the template serves.
+  const tipsPct = slot('tipsPct');
+  if (tipsPct) tipsPct.textContent = onTop ? pct(tipsKeep / total) : '';
+  const tipsWrap = $('lgTipsWrap');
+  if (tipsWrap) tipsWrap.style.display = onTop ? '' : 'none';
 }
 
 function render() {
@@ -1021,6 +1352,22 @@ function render() {
   const annualView = currentView() === 'annual';
   const p = annualView ? r.annual : r.perPaycheck;
 
+  // TIPS, WORKED OUT ONCE FOR THE WHOLE RENDER. The headline, its caption, its
+  // sub-line, the running echo, the bar and the tips block all read this one
+  // object, so there is no second reading of the tips fields that could
+  // disagree with it. It is null until the OBBBA figures land, which is the same
+  // one-render wait the at-filing block already has; the fetch is kicked off
+  // here rather than three calls later so the wait is as short as it can be.
+  if (input.rules.tips > 0) ensureRuleData();
+  const tips = tipsSlice(input, r);
+  // What the pay's own take-home gains, in the truth of the view on screen: the
+  // year is the return (after the deduction), a paycheck is withholding (before
+  // it). Zero in every case the page shipped with, which is why the pre-rendered
+  // headline still hydrates to the identical string.
+  const tipsKeepYear = tips && !tips.inside ? tips.keepFiled : 0;
+  const tipsKeepPeriod = tips && !tips.inside ? tips.keepWithheld / (r.periods || 1) : 0;
+  const tipsAdd = annualView ? tipsKeepYear : tipsKeepPeriod;
+
   // "No pay entered yet", the state the three rate rows below decline to answer
   // in. Written as !(x > 0) rather than x <= 0 so a NaN gross — an unparseable
   // field — counts as no pay rather than as a real zero.
@@ -1029,7 +1376,7 @@ function render() {
   // Nothing entered yet: ask, do not answer. A blank headline and a caption that
   // says what to do next beat "$0.00" under "Based on a $0 salary", which is a
   // confident wrong answer about the visitor's own pay.
-  $('netBig').textContent = isZero ? '' : usd2(p.net);
+  $('netBig').textContent = isZero ? '' : usd2(p.net + tipsAdd);
   // The headline drops to body colour while there is nothing to report, so the
   // accent is spent on a real answer. announceResult() reads the same class.
   $('netBig').classList.toggle('is-zero', isZero);
@@ -1040,11 +1387,16 @@ function render() {
   // own number, and removes it then. Reading its presence rather than tracking a
   // second flag here is what stops the muted figure and the caption disagreeing.
   $('netBig').classList.toggle('is-example', !!document.querySelector('.calc-example'));
+  // The cross-reference to the OTHER view is quoted in the OTHER view's truth:
+  // the yearly line quotes a paycheck, which is withholding, and the paycheck
+  // line quotes a year, which is the return. Quoting one truth in both places
+  // would make the two figures on this line come from different arithmetic
+  // depending on which radio was on.
   $('netSub').textContent = isZero
     ? ''
     : (annualView
-      ? `take-home per year · ${usd2(r.perPaycheck.net)} ${PERIOD_LABEL[r.payFrequency]}`
-      : `take-home ${PERIOD_LABEL[r.payFrequency]} · ${usd(r.annual.net)}/yr`);
+      ? `take-home per year · ${usd2(r.perPaycheck.net + tipsKeepPeriod)} ${PERIOD_LABEL[r.payFrequency]}`
+      : `take-home ${PERIOD_LABEL[r.payFrequency]} · ${usd(r.annual.net + tipsKeepYear)}/yr`);
 
   // Only the state paycheck pages carry the caption; guard so shared consumers
   // of this module are unaffected.
@@ -1060,7 +1412,7 @@ function render() {
   if (echo) {
     echo.textContent = isZero
       ? NO_PAY_YET_ASK
-      : `Take-home now: ${usd2(p.net)} ${annualView ? PERIOD_LABEL.annual : PERIOD_LABEL[r.payFrequency]}`;
+      : `Take-home now: ${usd2(p.net + tipsAdd)} ${annualView ? PERIOD_LABEL.annual : PERIOD_LABEL[r.payFrequency]}`;
   }
 
   showResultRows(!isZero);
@@ -1137,12 +1489,19 @@ function render() {
   $('postTaxLine').style.display = postTaxOn ? '' : 'none';
   $('rPostTax').textContent = postTaxOn ? '−' + usd2(p.postTax) : usd2(p.postTax);
 
-  renderBreakdown(r);
+  renderBreakdown(r, tips);
+  renderTipsBlock(input, r, tips, annualView);
   // The four rule answers, worked out. Deliberately AFTER every row above and
   // outside the results table: not one figure in it belongs to the paycheck, so
   // none of it may be subtracted from Net pay or appear as a row that a reader
   // would take off the top line.
-  renderAtFiling(input, r);
+  //
+  // THE MERGE FLAG IS THE EXACTLY-ONCE RULE IN ONE EXPRESSION. The tips block
+  // above spends the no-tax-on-tips deduction only in the yearly view of tips
+  // that sit on top of the pay; in every other combination it prints withholding
+  // and the deduction is this block's to print. So the tips row leaves this list
+  // exactly when, and only when, the block above has already claimed it.
+  renderAtFiling(input, r, !!tips && !tips.inside && annualView);
   renderCompare();
   announceResult();
 }
@@ -1323,8 +1682,14 @@ function answerChips(s) {
   // call silently doing nothing.
   const rule = (step, yes, onLabel, offLabel, field) =>
     list.push(yes ? { step, label: onLabel, field } : { step, label: offLabel });
+  // The chip quotes BOTH halves of that card, because both are answers and the
+  // second one decides whether the headline the visitor is looking at includes
+  // the first. A chip reading "$10,000/yr in tips" beside a take-home that did
+  // or did not contain them was the same chip in two different worlds.
   rule(Q_TIPS, answeredYes('qTips'),
-    s.rules.tips > 0 ? `${usd(s.rules.tips)}/yr in tips` : 'tips, no figure yet',
+    s.rules.tips > 0
+      ? `${usd(s.rules.tips)}/yr in tips${s.rules.tipsInside ? ', inside my pay' : ', on top'}`
+      : 'tips, no figure yet',
     'no tips', 'tipsYear');
   rule(Q_OT, answeredYes('qOt'),
     s.rules.otHours > 0 ? `${count(s.rules.otHours)} extra hours` : 'extra hours, no figures yet',
@@ -1393,6 +1758,15 @@ function init() {
   // flow's question set, so they keep their own listeners. Everything else is
   // wired by wizard-core from the card list below.
   document.querySelectorAll('input[name="view"]').forEach((el) =>
+    el.addEventListener('change', render));
+
+  // The tips sub-question is the SECOND radio group on the tips card, and
+  // wizard-core takes one per card — that slot belongs to qTips, which is the
+  // question the card's dots, pointer and Start over are keyed to. So this group
+  // is wired here, the same way the view toggle above it is, and put back by
+  // onReset below (the core restores only the groups it was told about). It is
+  // never given `fields`, because it is not a field: nothing types into it.
+  document.querySelectorAll('input[name="tipsInside"]').forEach((el) =>
     el.addEventListener('change', render));
   const cmpPanel = $('comparePanel');
   if (cmpPanel) cmpPanel.addEventListener('toggle', () => { if (cmpPanel.open) populateCompare().then(renderCompare); });
@@ -1500,6 +1874,12 @@ function init() {
     // The overtime rate goes back to following the normal rate too: it is not a
     // number the visitor typed any more, so it must not keep behaving like one.
     onReset: () => {
+      // wizard-core restores one radio group per card and the tips card's is
+      // qTips, so the sub-question is put back here. Without this, Start over
+      // left "already inside my pay" ticked over a re-filled $75,000 example and
+      // the next visitor's tips silently stopped moving the headline.
+      const onTop = document.querySelector('input[name="tipsInside"][value="ontop"]');
+      if (onTop) onTop.checked = true;
       otRateTouched = false;
       answerReached = false;
       payIsOurs = true;
