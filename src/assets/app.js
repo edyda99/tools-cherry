@@ -1196,12 +1196,18 @@ function renderTipsBlock(input, r, tips, annualView) {
   const div = annualView ? 1 : (r.periods || 1);
   const per = (v) => v / div;
 
-  const gross = Math.round(per(tips.tips));
+  // Cent-exact, in integer cents so the subtraction cannot drift the way
+  // repeated float rounding can, because the four rows have to visibly sum on
+  // screen: 38.46 − 8.46 − 2.96 − 1.92 = 25.12 is arithmetic a reader can
+  // check, which four independently dollar-rounded lines never promised.
+  const toCents = (v) => Math.round(v * 100);
+  const money = (c) => usd2(c / 100);
+  const grossC = toCents(per(tips.tips));
   const fedRaw = filed ? tips.fedFiled : tips.fedWithheld;
-  const fedR = Math.round(per(fedRaw));
-  const ficaR = Math.round(per(tips.fica));
-  const stateR = hasStateTax ? Math.round(per(tips.state)) : 0;
-  const keep = gross - fedR - ficaR - stateR;
+  const fedC = toCents(per(fedRaw));
+  const ficaC = toCents(per(tips.fica));
+  const stateC = hasStateTax ? toCents(per(tips.state)) : 0;
+  const keepC = grossC - fedC - ficaC - stateC;
 
   // THE TWO NUMBERS THAT RECONCILE THE VIEWS, and the reason the per-paycheck
   // block was unreadable without them. A visitor on $75,000 biweekly with $1,000
@@ -1233,19 +1239,19 @@ function renderTipsBlock(input, r, tips, annualView) {
     ? 'Federal income tax on them (usually $0 under the 2025 law)'
     : 'Federal income tax withheld on them' + (comesBack ? ' (comes back when you file)' : '');
   const rows = [
-    `<li><span>Tips before tax</span><span class="otw-amt">${usd(gross)}</span></li>`,
-    `<li><span>${fedLabel}</span><span class="otw-amt otw-taxed">−${usd(fedR)}</span></li>`,
-    `<li><span>Social Security &amp; Medicare</span><span class="otw-amt otw-taxed">−${usd(ficaR)}</span></li>`
+    `<li><span>Tips before tax</span><span class="otw-amt">${money(grossC)}</span></li>`,
+    `<li><span>${fedLabel}</span><span class="otw-amt otw-taxed">−${money(fedC)}</span></li>`,
+    `<li><span>Social Security &amp; Medicare</span><span class="otw-amt otw-taxed">−${money(ficaC)}</span></li>`
   ];
   if (hasStateTax) {
-    rows.push(`<li><span>${escLbl(stateName)} tax</span><span class="otw-amt otw-taxed">−${usd(stateR)}</span></li>`);
+    rows.push(`<li><span>${escLbl(stateName)} tax</span><span class="otw-amt otw-taxed">−${money(stateC)}</span></li>`);
   }
   // "Tips you keep" is true of the year and false of a paycheck: per period the
   // federal line above it is withholding, so some of what this row subtracts is
   // money the visitor gets back. The per-paycheck label says which one it is,
   // and the note under the block says where the rest of it went.
   const keepLabel = annualView ? 'Tips you keep' : 'Tips in your pocket now';
-  rows.push(`<li class="otw-after"><span>${keepLabel}</span><span class="otw-amt otw-free">${usd(keep)}</span></li>`);
+  rows.push(`<li class="otw-after"><span>${keepLabel}</span><span class="otw-amt otw-free">${money(keepC)}</span></li>`);
 
   const notes = [];
   // BOTH NUMBERS, THE MOMENT THE CAP OR THE PHASE-OUT BINDS, and only in the
@@ -1267,11 +1273,16 @@ function renderTipsBlock(input, r, tips, annualView) {
   // The line that joins the two views. Only per paycheck, and only against the
   // yearly figure that actually differs from it: with the tips already inside
   // the pay, the yearly view prints the withheld federal tax too, so there is no
-  // gap to explain and this sentence would be inventing one.
+  // gap to explain and this sentence would be inventing one. Kept OUT of
+  // `notes` (and so out of the fold below) on purpose: this is the sentence a
+  // visitor lands on to reconcile the per-paycheck row above with the Annual
+  // view, and burying the answer to that exact question behind a toggle would
+  // defeat the reason it exists.
+  let reconciliation = '';
   if (comesBack && !tips.inside) {
-    notes.push(`<p class="otw-note">Over a year that is about ${usd(nowYear)} in your pocket now (the rows ` +
-      `above are rounded to the dollar), plus the ${usd(backR)} of withheld federal tax you get back when ` +
-      `you file, which together are the ${usd(yKeep)} the Annual view shows.</p>`);
+    reconciliation = `<p class="otw-note">Over a year that is about ${usd(nowYear)} in your pocket now, plus ` +
+      `the ${usd(backR)} of withheld federal tax you get back when you file, which together are the ` +
+      `${usd(yKeep)} the Annual view shows.</p>`;
   }
   if (tips.inside) {
     notes.push(`<p class="otw-note">These tips are already inside every figure above, so nothing here is added ` +
@@ -1295,10 +1306,21 @@ function renderTipsBlock(input, r, tips, annualView) {
       `say, which is why that line is never zero.</p>`);
   }
 
+  // The withholding-or-phase-out / state-conformity / FICA trio reads as a tax
+  // class next to four rows a visitor came to check in five seconds, so it
+  // collapses behind one toggle in the same field-help idiom the wizard cards
+  // use (.otw-help, see state-page.html) — plain <details>, closed on load.
+  // Not .prose-fold: that class is for server-rendered sections build.js walks
+  // at build time (PROSE_FOLD_OPEN), and this markup is written at runtime, so
+  // it would never see that pass.
+  const notesFold = notes.length
+    ? `<details class="otw-help"><summary>Why the paycheck and yearly figures differ</summary>${notes.join('')}</details>`
+    : '';
+
   const kick = tips.inside
     ? 'Of that pay, your tips'
     : (annualView ? 'Your tips, on top of that, over a year' : `Your tips, on top of that, ${PERIOD_LABEL[r.payFrequency] || PERIOD_LABEL.biweekly}`);
-  box.innerHTML = `<p class="otw-kick">${kick}</p><ul class="otw-story">${rows.join('')}</ul>${notes.join('')}`;
+  box.innerHTML = `<p class="otw-kick">${kick}</p><ul class="otw-story">${rows.join('')}</ul>${reconciliation}${notesFold}`;
 }
 
 // --- zero state -------------------------------------------------------------
