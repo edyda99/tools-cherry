@@ -94,7 +94,7 @@
 
     <section class="prose">
       <h2 id="method">How these figures were computed</h2>
-      <p>Every figure is computed at build time by the same open paycheck engine behind the California paycheck calculator, from the {{TAX_YEAR}} tax data file in this repository. Federal tax uses the {{TAX_YEAR}} brackets after the {{FED_STD_DED}} single standard deduction; Social Security is 6.2% up to the {{SS_WAGE_BASE}} wage base and Medicare 1.45% with no cap; California income tax uses its own schedule after its {{CA_STD_DED}} single standard deduction; and California SDI is {{SDI_RATE}} of the whole salary, uncapped since SB 951. Nothing on this page is hand-typed, and nothing is fetched: a person updates the tax data file when a figure changes and the next build recomputes all {{RUNG_COUNT}} rows.</p>
+      <p>Every figure is computed at build time by the same open paycheck engine behind the California paycheck calculator, from the {{TAX_YEAR}} tax data file in this repository. Federal tax uses the {{TAX_YEAR}} brackets after the {{FED_STD_DED}} single standard deduction; Social Security is {{SS_RATE}} up to the {{SS_WAGE_BASE}} wage base and Medicare {{MEDICARE_RATE}} with no cap; California income tax uses its own schedule after its {{CA_STD_DED}} single standard deduction; and California SDI is {{SDI_RATE}} of the whole salary, uncapped since SB 951. Nothing on this page is hand-typed, and nothing is fetched: a person updates the tax data file when a figure changes and the next build recomputes all {{RUNG_COUNT}} rows.</p>
     </section>
 
     <section class="prose faq">

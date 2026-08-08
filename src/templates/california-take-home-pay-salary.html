@@ -86,7 +86,7 @@
     <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
 
     <h2 id="breakdown">Where every dollar of {{SALARY}} goes</h2>
-    <p class="sal-note">Single filer, {{TAX_YEAR}} rules, standard deduction, no 401(k), no health premiums, no dependents. Same figure shown a year, a month and per two-week paycheck.</p>
+    <p class="sal-note">{{BREAKDOWN_INTRO}}</p>
     <div class="sal-scroll">
       <table class="sal-t">
         <caption class="sr-only">Annual, monthly and biweekly breakdown of federal tax, FICA, California income tax and California SDI on a {{SALARY}} salary</caption>
@@ -96,7 +96,7 @@
     </div>
 
     <h2 id="federal">The federal income tax on {{SALARY}}, bracket by bracket</h2>
-    <p>Federal tax is not one rate applied to the whole salary. The {{FED_STD_DED}} standard deduction comes off first, leaving <strong>{{FED_TAXABLE}}</strong> of taxable income, and that amount is then sliced across the {{TAX_YEAR}} brackets. Only the last slice is taxed at your top rate of {{FED_MARGINAL}}.</p>
+    <p>{{FED_INTRO}}</p>
     <div class="sal-scroll">
       <table class="sal-t">
         <caption class="sr-only">Federal income tax bands reached on a {{SALARY}} salary, single filer, {{TAX_YEAR}}</caption>
@@ -107,7 +107,7 @@
     <p class="sal-note">{{FED_NOTE}}</p>
 
     <h2 id="california">The California income tax on {{SALARY}}, bracket by bracket</h2>
-    <p>California runs its own ladder with its own standard deduction of {{CA_STD_DED}} for a single filer, so the taxable amount here ({{CA_TAXABLE}}) is different from the federal one. Your top California rate on this salary is {{CA_MARGINAL}}.</p>
+    <p>{{CA_INTRO}}</p>
     <div class="sal-scroll">
       <table class="sal-t">
         <caption class="sr-only">California income tax bands reached on a {{SALARY}} salary, single filer</caption>
@@ -125,7 +125,7 @@
     </section>
 
     <h2 id="filing">The same {{SALARY}} on the other filing statuses</h2>
-    <p>Filing status changes the standard deduction and the width of every band, so it moves the answer more than most people expect. FICA and California SDI do not change at all.</p>
+    <p>{{FILING_INTRO}}</p>
     <div class="sal-scroll">
       <table class="sal-t">
         <caption class="sr-only">California take-home pay on {{SALARY}} by filing status</caption>
@@ -133,17 +133,7 @@
         <tbody>{{STATUS_ROWS}}</tbody>
       </table>
     </div>
-    <p class="sal-note">Married filing jointly is modelled here as one earner on {{SALARY}} with a joint return, which is the situation this comparison can honestly answer. A two-income household is not the same calculation.</p>
 
-    <h2 id="ladder">{{SALARY}} against every other salary in California</h2>
-    <p>The row you are on is highlighted. Each step is {{STEP_TEXT}} of extra gross pay, and the last column shows how much of that step actually reaches your bank account.</p>
-    <div class="sal-scroll">
-      <table class="sal-t">
-        <caption class="sr-only">California take-home pay by salary, {{LADDER_LOW}} to {{LADDER_HIGH}}</caption>
-        <thead><tr><th>Salary</th><th class="num">Take-home a year</th><th class="num">A month</th><th class="num">Share withheld</th><th class="num">Kept from the last step</th></tr></thead>
-        <tbody>{{LADDER_ROWS}}</tbody>
-      </table>
-    </div>
     <div class="sal-prevnext">{{PREV_NEXT}}</div>
 
     <div class="cta-tools">
@@ -154,20 +144,14 @@
 
     <section class="prose">
       <h2 id="method">How this figure was computed</h2>
-      <p>Every number on this page is computed at build time by the same open paycheck engine behind the California paycheck calculator, from the {{TAX_YEAR}} tax data file in this repository. Nothing here is typed in by hand, and nothing is copied from another site's table. When California or the IRS publishes a new figure we edit that data file, and the next build recomputes this page from it.</p>
-      <dl>
-        <dt>Gross pay</dt><dd>{{SALARY}} a year, taken as an even salary across the year.</dd>
-        <dt>Federal income tax</dt><dd>{{TAX_YEAR}} brackets applied to gross pay less the {{FED_STD_DED}} single standard deduction (IRS Rev. Proc. 2025-32). No credits, no itemizing, no W-4 adjustments.</dd>
-        <dt>Social Security and Medicare</dt><dd>6.2% on wages up to the {{TAX_YEAR}} wage base of {{SS_WAGE_BASE}}, and 1.45% on all wages with no cap. {{ADDL_MEDICARE_SENTENCE}}</dd>
-        <dt>California income tax</dt><dd>California's own rate schedule applied after its {{CA_STD_DED}} single standard deduction. Personal exemption credits, dependent credits and itemized deductions are not modelled.</dd>
-        <dt>California SDI</dt><dd>State Disability Insurance, which also funds Paid Family Leave, at {{SDI_RATE}} of gross wages. SB 951 removed the taxable-wage ceiling from 1 January 2024, so this one is charged on the whole salary. It is withheld after tax, so it lowers take-home pay without lowering taxable income.</dd>
-      </dl>
+      <p>{{METHOD_INTRO}}</p>
+      <dl>{{METHOD_ROWS}}</dl>
     </section>
 
     <section class="prose">
       <h2 id="limits">What this does not include</h2>
       <ul>{{LIMIT_ITEMS}}</ul>
-      <p class="sal-note">This is a computed estimate, not tax advice, and not a substitute for your employer's withholding or a tax professional. Your own W-4, benefits and credits will move the number.</p>
+      <p class="sal-note">A computed estimate, not tax advice. Your own W-4, benefits and credits move the number.</p>
     </section>
 
     <section class="prose faq">
@@ -183,7 +167,7 @@
 
     <div class="sal-authorbox">
       <div class="av" aria-hidden="true">ED</div>
-      <div><strong>Edmond Daher</strong> is a software engineer and the creator of Tools Berry, a suite of free calculators that run entirely in your browser. He maintains the {{TAX_YEAR}} tax dataset and the paycheck engine that produced every figure above. This is general information, not tax advice, and Edmond is not a CPA.</div>
+      <div><strong>Edmond Daher</strong> built the {{TAX_YEAR}} tax dataset and the paycheck engine behind every figure above. Not a CPA; this is general information, not tax advice.</div>
     </div>
 
     <p class="sal-note">Found an error? <a href="/corrections/">See our corrections log</a> or <a href="/contact/">contact us</a>.</p>
