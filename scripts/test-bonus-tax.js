@@ -13,7 +13,8 @@ import {
   supplementalStateWithholding,
   bonusFicaWithholding,
   wisconsinBandedRate,
-  trueTaxOnBonus
+  trueTaxOnBonus,
+  bracketBaseIncome
 } from '../src/engine/bonus-tax.js';
 import { federalIncomeTax } from '../src/engine/paycheck-engine.js';
 
@@ -250,8 +251,17 @@ const run = (input) => computeBonus(input, taxData, suppData);
   // Comptroller's 2026 Employer Withholding Guide gives a flat 6.5% state rate on a lump-sum
   // annual bonus (county piggyback rides on top and is not modelled). These counts are a
   // deliberate tripwire on silent method churn, so they move only with a stated reason.
-  is('flat = 20', count('flat'), 20);
-  is('regular = 19', count('regular'), 19);
+  // 2026-08-02: michigan moved regular -> flat 4.25%, so flat 20->21 and regular 19->18.
+  // Michigan Form 446 (2026 Michigan Income Tax Withholding Guide, Rev. 02-26): "Bonuses and
+  // other payments of employee compensation made separately from regular payroll payments are
+  // subject to Michigan income tax withholding. The withholding amount equals the payment amount
+  // multiplied by 4.25 percent (0.0425). Do not make any adjustment for exemptions." That is a
+  // published separate-payment flat rate, not the aggregate method. Only the Rev. 02-26 edition was
+  // read (michigan.gov returns 403 to automated fetch of older editions, so how far back the same
+  // sentence runs is unverified). The entry was simply mis-bucketed here, its source read
+  // "repoTaxData" and it carried no source URL.
+  is('flat = 21', count('flat'), 21);
+  is('regular = 18', count('regular'), 18);
   is('special = 3', count('special'), 3);
   is('buckets cover all 51', count('none') + count('flat') + count('regular') + count('special'), 51);
   // every entry has verified + source; flagged ones carry singleSourced
@@ -267,6 +277,204 @@ const run = (input) => computeBonus(input, taxData, suppData);
   const direct = federalIncomeTax(70000, 'single', fed) - federalIncomeTax(60000, 'single', fed);
   const viaTrue = trueTaxOnBonus(10000, 60000, 'single', taxData.states.texas, fed).federal;
   eq('trueTaxOnBonus parity', viaTrue, direct);
+}
+
+// --- MARRIED FILING JOINTLY: the household income question -------------------
+// Added 2026-08-02 with the household card. A joint return is taxed on BOTH
+// incomes at once, so running the married brackets and the $32,200 married
+// standard deduction on one spouse's pay invented a refund. The bracket math now
+// takes the household figure; FICA never does, because Social Security stops at
+// a wage base PER PERSON and the extra 0.9% Medicare is withheld on ONE person's
+// wages. Every figure below is derived by hand from src/data/tax-data-2026.json
+// (2026 MFJ standard deduction $32,200; MFJ bands 10% to $24,800, 12% to
+// $100,800, 22% to $211,400, 24% to $403,550; SS 6.2% to the $184,500 wage base;
+// Medicare 1.45%; the extra 0.9% above $250,000 for a joint filer) and, for
+// Montana, its tax-data entry (married standard deduction $32,200; 4.7% to
+// $95,000 then 5.65%) plus its 5% flat supplemental rate from
+// state-supplemental-2026.json. No new tax parameter is introduced here.
+
+// M1: the defect case, Montana. Own pay 70,000, household 140,000, bonus 10,000.
+// HAND DERIVATION
+//   federal, on the HOUSEHOLD: taxable 140,000 - 32,200 = 107,800, and with the
+//     bonus 150,000 - 32,200 = 117,800. Both sit in the 22% band (100,800 to
+//     211,400), so the true federal tax on the bonus is 10,000 x 0.22 = 2,200.
+//   federal withheld: the flat supplemental rate, 10,000 x 0.22 = 2,200.
+//   Montana, on the HOUSEHOLD: taxable 107,800 -> 117,800, both above 95,000, so
+//     10,000 x 0.0565 = 565. Withheld is Montana's flat 5% of the bonus = 500.
+//   FICA, on the PERSON: 70,000 is under the 184,500 wage base and the whole
+//     bonus fits under it, so SS = 10,000 x 0.062 = 620, Medicare =
+//     10,000 x 0.0145 = 145, and 70,000 + 10,000 is under 250,000 so no extra
+//     0.9%. Total 765.
+//   delta = (2,200 + 500) - (2,200 + 565) = -65, i.e. 65 still owed.
+{
+  const r = run({ bonus: 10000, regIncome: 70000, householdIncome: 140000, filingStatus: 'married', stateSlug: 'montana' });
+  eq('M1 taxBase is the household', r.taxBase, 140000);
+  is('M1 usesHousehold', r.usesHousehold, true);
+  eq('M1 trueFed on 140k', r.trueLiability.federal, 2200);
+  eq('M1 trueState on 140k', r.trueLiability.state, 565);
+  eq('M1 fedWH unchanged', r.withheld.federal, 2200);
+  eq('M1 stateWH unchanged', r.withheld.state, 500);
+  eq('M1 fica on own pay', r.withheld.fica, 765);
+  eq('M1 ss on own pay', r.withheld.ficaBreakdown.socialSecurity, 620);
+  eq('M1 delta', r.delta, -65);
+  is('M1 owes', r.refund, false);
+}
+
+// M1b: the same shape where FICA and the brackets DISAGREE, so the per-person
+// rule is actually under test. Texas (no state tax), own pay 180,000, household
+// 360,000, bonus 10,000.
+// HAND DERIVATION
+//   Social Security: only 184,500 - 180,000 = 4,500 of the bonus is still under
+//     the wage base, so SS = 4,500 x 0.062 = 279. On the household figure there
+//     would be no room at all and SS would be 0, which is the wrong answer: the
+//     wage base is per person.
+//   Medicare 10,000 x 0.0145 = 145. Extra 0.9%: 180,000 + 10,000 = 190,000 is
+//     under the 250,000 joint threshold, so none. FICA total 424.
+//   federal, on the HOUSEHOLD: taxable 360,000 - 32,200 = 327,800 -> 337,800,
+//     both inside the 24% band (211,400 to 403,550), so 10,000 x 0.24 = 2,400.
+//   Withheld 2,200 flat, so delta = 2,200 - 2,400 = -200.
+{
+  const r = run({ bonus: 10000, regIncome: 180000, householdIncome: 360000, filingStatus: 'married', stateSlug: 'texas' });
+  eq('M1b ss is per person', r.withheld.ficaBreakdown.socialSecurity, 279);
+  eq('M1b addl medicare per person', r.withheld.ficaBreakdown.additionalMedicare, 0);
+  eq('M1b fica total', r.withheld.fica, 424);
+  eq('M1b trueFed on 360k', r.trueLiability.federal, 2400);
+  eq('M1b delta', r.delta, -200);
+}
+
+// M2: married with NO household figure is byte-identical to the behaviour that
+// shipped before the input existed, and it is the single-earner answer.
+// HAND DERIVATION (Montana, own pay 70,000, bonus 10,000)
+//   federal: taxable 37,800 -> 47,800, both in the 12% band (24,800 to 100,800),
+//     so 10,000 x 0.12 = 1,200.
+//   Montana: taxable 37,800 -> 47,800, both under 95,000, so 10,000 x 0.047 = 470.
+//   delta = (2,200 + 500) - (1,200 + 470) = 1,030 coming back.
+{
+  const base = { bonus: 10000, regIncome: 70000, filingStatus: 'married', stateSlug: 'montana' };
+  const r = run(base);
+  eq('M2 trueFed single-earner', r.trueLiability.federal, 1200);
+  eq('M2 trueState single-earner', r.trueLiability.state, 470);
+  eq('M2 delta', r.delta, 1030);
+  is('M2 refund', r.refund, true);
+  eq('M2 taxBase is own pay', r.taxBase, 70000);
+  is('M2 usesHousehold', r.usesHousehold, false);
+  // The three ways of not answering the question all mean the same thing, and
+  // none of them may differ from the run that never had the key at all.
+  const asJson = (x) => JSON.stringify(run(Object.assign({}, base, x)));
+  is('M2 absent == 0', asJson({ householdIncome: 0 }), JSON.stringify(r));
+  is('M2 absent == empty string', asJson({ householdIncome: '' }), JSON.stringify(r));
+  is('M2 absent == undefined', asJson({ householdIncome: undefined }), JSON.stringify(r));
+}
+
+// M3: the clamp, and what the pages are then allowed to SAY about it.
+// A household cannot earn less than the person in it, so a figure below the pay
+// already entered is replaced by that pay, and the answer is the single-earner one.
+//
+// usesHousehold IS FALSE HERE. It used to be true whenever the box held anything at
+// all, on the reasoning that the card had been answered. That let the wizard print
+// "figured on the $90,000 the two of you earn together" for this exact input, where
+// $90,000 is the visitor's OWN pay and the only household figure they ever typed was
+// $50,000, a number the same screen was showing back to them on their summary chip.
+// The flag now means "the household figure became the base", which is the only
+// question the copy keyed on it is really asking.
+//
+// DERIVATION of the semantics, not of a tax figure: bracketBaseIncome returns
+// max(reg, hh) for a joint filer, so the base moved off reg if and only if hh > reg.
+// At hh == reg nothing moved either, so that is false too: the sentence "worked out
+// on what the two of you earn together" would be true by coincidence, not because
+// the figure was used, and the clamped-case sentence covers it correctly instead.
+{
+  const own = run({ bonus: 10000, regIncome: 90000, filingStatus: 'married', stateSlug: 'montana' });
+  const under = run({ bonus: 10000, regIncome: 90000, householdIncome: 50000, filingStatus: 'married', stateSlug: 'montana' });
+  eq('M3 clamped taxBase', under.taxBase, 90000);
+  eq('M3 clamped trueFed == own-pay trueFed', under.trueLiability.federal, own.trueLiability.federal);
+  eq('M3 clamped delta == own-pay delta', under.delta, own.delta);
+  // The base never moved, so no page may claim a household figure was used.
+  is('M3 usesHousehold is false when the figure was clamped away', under.usesHousehold, false);
+  // Exactly equal is the same story: nothing moved.
+  const equalHh = run({ bonus: 10000, regIncome: 90000, householdIncome: 90000, filingStatus: 'married', stateSlug: 'montana' });
+  is('M3 usesHousehold is false when the figure equals own pay', equalHh.usesHousehold, false);
+  // One dollar above own pay is the first input that genuinely moves the base.
+  const overHh = run({ bonus: 10000, regIncome: 90000, householdIncome: 90001, filingStatus: 'married', stateSlug: 'montana' });
+  is('M3 usesHousehold is true one dollar above own pay', overHh.usesHousehold, true);
+  eq('M3 that base is the household figure', overHh.taxBase, 90001);
+  // And the helper itself, directly.
+  eq('M3 clamp helper below', bracketBaseIncome(90000, 'married', 50000), 90000);
+  eq('M3 clamp helper equal', bracketBaseIncome(90000, 'married', 90000), 90000);
+  eq('M3 clamp helper above', bracketBaseIncome(90000, 'married', 150000), 150000);
+  eq('M3 clamp helper negative', bracketBaseIncome(90000, 'married', -5), 90000);
+}
+
+// M4: a household figure is ignored by every filing status but married. Both
+// of the others are pinned, because both have brackets and a standard deduction
+// of their own and neither is ever a two-person return.
+{
+  for (const status of ['single', 'head_of_household']) {
+    const without = run({ bonus: 10000, regIncome: 70000, filingStatus: status, stateSlug: 'montana' });
+    const with_ = run({ bonus: 10000, regIncome: 70000, householdIncome: 140000, filingStatus: status, stateSlug: 'montana' });
+    is(`M4 ${status} ignores householdIncome`, JSON.stringify(with_), JSON.stringify(without));
+    eq(`M4 ${status} taxBase is own pay`, with_.taxBase, 70000);
+    is(`M4 ${status} usesHousehold false`, with_.usesHousehold, false);
+    eq(`M4 ${status} clamp helper`, bracketBaseIncome(70000, status, 140000), 70000);
+  }
+}
+
+// M5: trueTaxOnBonus takes the same optional argument, and omitting it is the
+// pre-existing behaviour to the cent.
+{
+  const fed = taxData.federal;
+  const mt = taxData.states.montana;
+  eq('M5 household base', trueTaxOnBonus(10000, 70000, 'married', mt, fed, 140000).federal, 2200);
+  eq('M5 omitted base', trueTaxOnBonus(10000, 70000, 'married', mt, fed).federal, 1200);
+  eq('M5 zero base', trueTaxOnBonus(10000, 70000, 'married', mt, fed, 0).federal, 1200);
+}
+
+// --- MASSACHUSETTS: the FICA-paid deduction reaches the bonus tool ------------
+// Added 2026-08-02. Massachusetts deducts the FICA the employee actually paid,
+// capped at $2,000 (M.G.L. c.62 s.3(B)(a)(3)), and trueTaxOnBonus used to hand
+// stateIncomeTax a zero for it at BOTH income levels on the theory that a constant
+// cancels out of a difference. It is not a constant below the cap: 7.65% of wages
+// only reaches $2,000 at about $26,144, so under that the deduction still grows
+// with income and the difference keeps a share of it.
+//
+// HAND DERIVATION, every figure from src/data/tax-data-2026.json (MA: single
+// standard deduction $4,400, flat 5% to $1,107,750, ficaPaidDeduction cap $2,000;
+// federal FICA: SS 6.2% to the $184,500 wage base, Medicare 1.45%, extra 0.9% over
+// $200,000 single). Own pay 20,000, bonus 10,000, single.
+//
+//   FICA the employee paid, on their OWN wages, before the bonus:
+//     SS       20,000 x 0.062  = 1,240.00   (well under the 184,500 wage base)
+//     Medicare 20,000 x 0.0145 =   290.00
+//     extra 0.9%: 20,000 is under 200,000, so 0.00
+//     ficaPaid1                = 1,530.00
+//   and after the bonus, on 30,000:
+//     SS       30,000 x 0.062  = 1,860.00
+//     Medicare 30,000 x 0.0145 =   435.00
+//     ficaPaid2                = 2,295.00
+//
+//   MA tax at 20,000: taxable 20,000 - 4,400 = 15,600, less min(2,000, 1,530)
+//     = 1,530, so 14,070 x 0.05 = 703.50.
+//   MA tax at 30,000: taxable 30,000 - 4,400 = 25,600, less min(2,000, 2,295)
+//     = 2,000 (THE CAP BINDS HERE AND NOT BELOW), so 23,600 x 0.05 = 1,180.00.
+//   true MA tax on the bonus = 1,180.00 - 703.50 = 476.50.
+//
+//   With the argument left at zero it was 1,280.00 - 780.00 = 500.00, i.e. the old
+//   answer overstated the state tax on this bonus by 23.50, exactly 5% of the
+//   470.00 of deduction the filer gains by earning the bonus.
+{
+  const r = run({ bonus: 10000, regIncome: 20000, filingStatus: 'single', stateSlug: 'massachusetts' });
+  eq('MA1 true state tax on the bonus is FICA-aware', r.trueLiability.state, 476.50);
+  // The withheld column is NOT FICA-aware and must not be: it is what comes off the
+  // check on payday, and an employer's withholding tables do not carry a Form 1 line
+  // 11 deduction the filer claims on the return. So Massachusetts genuinely
+  // over-withholds here, and the 23.50 gap is a real refund, not a rounding artifact.
+  eq('MA1 withheld state tax is the plain 5% aggregate delta', r.withheld.state, 500);
+  eq('MA1 the gap shows up as delta', r.delta - (r.withheld.federal - r.trueLiability.federal), 23.50);
+  // Above the crossover the cap binds at BOTH ends and the deduction really does
+  // cancel, so a high earner's answer is unchanged by this fix.
+  const hi = run({ bonus: 10000, regIncome: 90000, filingStatus: 'single', stateSlug: 'massachusetts' });
+  eq('MA2 above the crossover the deduction cancels', hi.trueLiability.state, 500);
+  eq('MA2 and matches the withheld column', hi.withheld.state, 500);
 }
 
 console.log(`\nbonus-tax: ${pass} passed, ${fail} failed`);

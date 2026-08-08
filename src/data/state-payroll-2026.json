@@ -169,7 +169,7 @@
       "localIncomeTax": {
         "exists": true,
         "notes": "West Virginia has no percentage-based local income tax, but several municipalities impose a flat per-worker 'City Service Fee' on anyone employed within city limits. Charleston charges $3.00/week ($6.00 per bi-weekly pay period); similar weekly fees apply in Huntington, Parkersburg, Morgantown ('Safe Streets' fee), Weirton and other cities. It is a fixed dollar fee, not a tax on income.",
-        "source": "https://payroll.org/news-resources/resources/resource-library/west-virginia-charleston-city-service-fee"
+        "source": "https://www.charlestonwv.gov/sites/default/files/documents/2018-02/CITY%20SERVICE%20FEE%20OVERVIEW%20revised%202-2018.pdf"
       },
       "payrollContributions": [],
       "salesTax": {
@@ -196,7 +196,7 @@
       "distinctiveFacts": [
         {
           "fact": "Several West Virginia cities charge a flat weekly 'City Service Fee' on everyone who works inside city limits — Charleston's is $3.00 per week ($6.00 per bi-weekly paycheck) regardless of how much you earn — a fixed deduction unrelated to income level.",
-          "source": "https://payroll.org/news-resources/resources/resource-library/west-virginia-charleston-city-service-fee"
+          "source": "https://www.charlestonwv.gov/sites/default/files/documents/2018-02/CITY%20SERVICE%20FEE%20OVERVIEW%20revised%202-2018.pdf"
         },
         {
           "fact": "West Virginia cut its individual income tax rates again for 2026 (top rate dropped from 4.82% to 4.58%, bottom to 2.11%) as part of a multi-year phased reduction tied to revenue triggers.",
@@ -383,8 +383,8 @@
           "source": "https://www.tax.virginia.gov/income-tax-calculator"
         },
         {
-          "fact": "Virginia's minimum wage is now indexed to inflation: the Jan 1, 2026 bump to $12.77 came from an automatic CPI cost-of-living formula rather than a new legislative vote.",
-          "source": "https://doli.virginia.gov/2025/07/29/virginia-minimum-wage-rate-increasing-effective-january-1-2026/"
+          "fact": "Virginia's minimum wage is not indexed to inflation going forward: the Jan 1, 2026 bump to $12.77 did come from an automatic CPI formula under the prior law, but the 2026 General Assembly replaced that with fixed dollar steps, $13.75 in 2027 and $15.00 in 2028, and pushed CPI indexing out to 2029.",
+          "source": "https://law.lis.virginia.gov/vacode/40.1-28.10/"
         }
       ],
       "confidence": "high"
@@ -406,7 +406,7 @@
       "minWage2026": {
         "amountUsd": 7.25,
         "notes": "Texas has no state minimum wage above the federal floor of $7.25/hr; state law also preempts local minimum-wage ordinances.",
-        "source": "https://onpay.com/insights/minimum-wage-by-state-summary/texas/"
+        "source": "https://www.twc.texas.gov/programs/wage-and-hour/texas-minimum-wage-law"
       },
       "medianHouseholdIncome": {
         "amountUsd": 79721,
@@ -447,7 +447,7 @@
       "minWage2026": {
         "amountUsd": 14,
         "notes": "$14.00/hr through Sep 29, 2026; rises to $15.00/hr on Sep 30, 2026 (final Amendment 2 step). Tipped cash wage $10.98, then $11.98 from Sep 30. Indexed to CPI from 2027.",
-        "source": "https://onpay.com/insights/minimum-wage-by-state-summary/florida/"
+        "source": "https://floridajobs.org/docs/default-source/business-growth-and-partnerships/for-employers/posters-and-required-notices/2025-minimum-wage/2025-minimum-wage-poster---english-031302926.pdf?sfvrsn=912eb6fe_1"
       },
       "medianHouseholdIncome": {
         "amountUsd": 77735,
@@ -466,7 +466,7 @@
         },
         {
           "fact": "Florida is the only one of these states whose minimum wage rises mid-year on Sep 30 (not Jan 1): it hits $14.00 through Sep 29, 2026 and steps to $15.00 on Sep 30, 2026 under voter-approved Amendment 2.",
-          "source": "https://onpay.com/insights/minimum-wage-by-state-summary/florida/"
+          "source": "https://floridajobs.org/docs/default-source/business-growth-and-partnerships/for-employers/posters-and-required-notices/2025-minimum-wage/2025-minimum-wage-poster---english-031302926.pdf?sfvrsn=912eb6fe_1"
         }
       ],
       "confidence": "high"
@@ -623,8 +623,8 @@
       },
       "minWage2026": {
         "amountUsd": 11.85,
-        "notes": "South Dakota's minimum wage is indexed to inflation by constitutional amendment; the 2026 rate is $11.85/hr (up from $11.50 in 2025).",
-        "source": "https://onpay.com/insights/minimum-wage-by-state-summary/"
+        "notes": "South Dakota's minimum wage is indexed to inflation by voter-approved 2014 ballot measure; the 2026 rate is $11.85/hr (up from $11.50 in 2025).",
+        "source": "https://dlr.sd.gov/employment_laws/minimum_wage.aspx"
       },
       "medianHouseholdIncome": {
         "amountUsd": 76881,
@@ -642,8 +642,8 @@
           "source": "https://taxcloud.com/sales-tax-radar/south-dakota-sales-tax-rate-increase-in-2027/"
         },
         {
-          "fact": "South Dakota's minimum wage is automatically inflation-adjusted each January 1 under a 2014 voter-approved constitutional amendment, reaching $11.85/hr in 2026 — well above the federal $7.25 floor used by neighboring no-tax states.",
-          "source": "https://onpay.com/insights/minimum-wage-by-state-summary/"
+          "fact": "South Dakota's minimum wage is automatically inflation-adjusted each January 1 under a 2014 voter-approved voter-approved 2014 ballot measure, reaching $11.85/hr in 2026 — well above the federal $7.25 floor used by neighboring no-tax states.",
+          "source": "https://dlr.sd.gov/employment_laws/minimum_wage.aspx"
         }
       ],
       "confidence": "high"
@@ -713,7 +713,7 @@
       "minWage2026": {
         "amountUsd": 14,
         "notes": "$13.00/hr through June 30, 2026, rising to $14.00/hr on July 1, 2026 under Ballot Measure 1 (2024). Increases again to $15.00 on July 1, 2027. No tip credit allowed.",
-        "source": "https://labor.alaska.gov/news/2026/news26-11.htm"
+        "source": "https://labor.alaska.gov/news/2025/news25-11.htm"
       },
       "medianHouseholdIncome": {
         "amountUsd": 95665,
@@ -820,7 +820,7 @@
           "source": "https://www.pa.gov/agencies/dli/resources/for-employers-and-educators/how-to-file/uc-tax/employee-withholding"
         },
         {
-          "fact": "PA's 3.07% state rate is flat with no standard deduction or personal exemption, so it applies from the first dollar of taxable compensation — and a Philadelphia resident also pays the 3.74% city Wage Tax, for a combined ~6.81% wage tax before federal.",
+          "fact": "PA's 3.07% state rate is flat with no standard deduction or personal exemption, so it applies from the first dollar of taxable compensation — and a Philadelphia resident also pays the city Wage Tax, 3.735% for residents and 3.425% for non-residents effective July 1, 2026, for a combined ~6.81% wage tax before federal.",
           "source": "https://www.phila.gov/services/payments-assistance-taxes/taxes/income-taxes/earnings-tax-employees/"
         }
       ],
@@ -831,7 +831,7 @@
       "localIncomeTax": {
         "exists": false,
         "notes": "No municipality or county in Illinois levies a local income or wage tax — Chicago and Cook County impose no city wage tax on employees. All wage income is taxed only at the flat state rate of 4.95%.",
-        "source": "https://onpay.com/payroll/calculator-tax-rates/illinois/"
+        "source": "https://tax.illinois.gov/research/taxrates/income.html"
       },
       "payrollContributions": [],
       "salesTax": {
@@ -842,8 +842,8 @@
       },
       "minWage2026": {
         "amountUsd": 15,
-        "notes": "Statewide $15.00/hr reached Jan 1, 2026, completing the 2019 phase-in. No state CPI indexing afterward, but Chicago ($17.05 as of July 1, 2026) and Cook County ($15.40) set higher local minimums.",
-        "source": "https://labor.illinois.gov/laws-rules/fls/minimum-wage-law.html"
+        "notes": "Statewide $15.00/hr, unchanged since it reached that level on Jan 1, 2025, completing the 2019 phase-in. Jan 1, 2026 was a no-change year, and there is no state CPI indexing afterward, but Chicago ($17.05 as of July 1, 2026) and Cook County ($15.40) set higher local minimums.",
+        "source": "https://labor.illinois.gov/content/dam/soi/en/web/idol/laws-rules/fls/documents/minimumwagehistoricrates.pdf"
       },
       "medianHouseholdIncome": {
         "amountUsd": 83211,
@@ -861,8 +861,8 @@
           "source": "https://taxfoundation.org/location/illinois/"
         },
         {
-          "fact": "Illinois has no employee-side payroll deductions for disability, paid family leave, or unemployment — SUI is fully employer-paid (0.675%-6.875% on the first $13,271 of wages in 2026), so an Illinois paycheck shows only the flat 4.95% state income tax beyond federal items.",
-          "source": "https://onpay.com/payroll/calculator-tax-rates/illinois/"
+          "fact": "Illinois has no employee-side payroll deductions for disability, paid family leave, or unemployment — SUI is fully employer-paid (0.750%-7.050% on the first $14,250 of wages in 2026), so an Illinois paycheck shows only the flat 4.95% state income tax beyond federal items.",
+          "source": "https://ides.illinois.gov/content/dam/soi/en/web/ides/ides_forms_and_publications/EA-50_2026.pdf"
         }
       ],
       "confidence": "high"
@@ -879,7 +879,8 @@
         "stateBaseRatePct": 4.75,
         "combinedAvgRatePct": 6.99,
         "year": "2026",
-        "source": "https://taxfoundation.org/location/north-carolina/"
+        "notes": "This combined average predates Mecklenburg County's additional 1.00% local sales and use tax, effective July 1, 2026, which takes Mecklenburg's own combined rate to 8.25%. NCDOR publishes no statewide combined-average rate, so the average here cannot be re-verified against an official source and is carried forward pending recalculation.",
+        "source": "https://www.ncdor.gov/news/press-releases/2026/06/24/mecklenburg-county-impose-additional-one-percent-sales-tax-beginning-july-1"
       },
       "minWage2026": {
         "amountUsd": 7.25,
@@ -1077,8 +1078,8 @@
       },
       "distinctiveFacts": [
         {
-          "fact": "Colorado's flat income tax was temporarily cut from 4.40% to 4.25% via a TABOR (Taxpayer's Bill of Rights) surplus mechanism that applies to the 2025 tax year filed in 2026; the standing statutory rate is 4.40%, and TABOR can refund excess state revenue directly to taxpayers.",
-          "source": "https://taxfoundation.org/location/colorado/"
+          "fact": "Colorado's flat income tax is 4.40% for tax year 2025, the return filed in 2026. It was temporarily cut to 4.25% for tax year 2024 under a TABOR (Taxpayer's Bill of Rights) surplus mechanism, and the Department of Revenue's own rate history lists 4.40% for 2022, 2023 and 2025 against 4.25% for 2024. That mechanism has not expired: Senate Bill 24-228 keeps the temporary rate reduction available for tax years 2024 through 2034, so a large enough TABOR surplus can lower a future year's rate again.",
+          "source": "https://web.archive.org/web/20260626191335/https://tax.colorado.gov/sites/tax/files/documents/Individual_Income_Tax_Guide_January_2026.pdf"
         },
         {
           "fact": "Colorado's FAMLI paid-leave premium dropped to 0.88% of wages for 2026 (from 0.90% in 2025), split evenly so employees pay 0.44%; employers with 9 or fewer workers owe no employer share, meaning a small-business employee still pays only 0.44%.",
@@ -1160,7 +1161,8 @@
       "distinctiveFacts": [
         {
           "fact": "Kentucky's flat state income tax fell to 3.5% effective Jan 1, 2026 (from 4.0%), the next step in a triggered phase-down toward eventual elimination authorized by 2022 reforms and HB 1 (2025).",
-          "source": "https://taxnews.ey.com/news/2025-0543-kentucky-lowers-personal-income-tax-rate-effective-january-1-2026"
+          "source": "https://revenue.ky.gov/Forms/740-ES%20Instructions%20(2025).pdf",
+          "_sourceNote": "Swapped 2026-08-02 off a tax-vendor newsletter onto the state's own forms. Kentucky DOR Form 740-ES, 'Instructions for Filing Estimated Tax Vouchers', 42A740-S4 (9-25), covering tax year 2026, fetched live from revenue.ky.gov on 2026-08-02: the estimated-tax worksheet line 8 reads 'Compute tax on estimated net income from line 7. Multiply line 7 by 3.5%', and 'WHAT'S NEW FOR 2026' gives the 2026 standard deduction as $3,360.00. The 4% figure it fell FROM is pinned by the other half of the same source family, the Form 740 packet 42A740(PKT) (10-25) at https://revenue.ky.gov/Forms/740%20Packet%20Instructions.pdf: 'INDIVIDUAL INCOME TAX RATE: For 2025, the tax rate for individual income tax is 4%.' NOT COVERED BY THIS CITATION: the clause about a triggered phase-down toward eventual elimination authorised by the 2022 reforms and HB 1 (2025). Kentucky DOR states the rates, not the trigger mechanism behind them, and legislature.ky.gov was unreachable from this host on 2026-08-02, so that clause is carried over from the previous citation and has not been re-verified against a primary source."
         },
         {
           "fact": "Unlike most states, Kentucky has no statewide payroll insurance tax but its local occupational license fees can stack city + county on the same wages — e.g. a Louisville resident pays a combined 2.2% local wage tax on top of the 3.5% state rate.",
@@ -1302,7 +1304,7 @@
       },
       "localIncomeTax": {
         "exists": true,
-        "notes": "Iowa school districts levy a local income surtax assessed as a percentage of state income tax liability (up to 20%), not of income. About 87% of districts impose it; the income-weighted average is roughly 0.3%. Three counties (Appanoose, Pocahontas, Winnebago) also use a surtax for EMS. It is filed with the state IA 1040 return based on the district you reside in on the last day of the tax year.",
+        "notes": "Iowa school districts levy a local income surtax assessed as a percentage of state income tax liability (up to 20%), not of income. About 87% of districts impose it; the income-weighted average is roughly 0.3%. Six counties (Appanoose, Cass, Pocahontas, Sac, Shelby, Winnebago) also use a surtax for EMS. It is filed with the state IA 1040 return based on the district you reside in on the last day of the tax year.",
         "source": "https://revenue.iowa.gov/taxes/tax-guidance/individual-income-tax/1040-expanded-instructions/school-district-surtaxemergency"
       },
       "payrollContributions": [],
@@ -1612,8 +1614,8 @@
           "source": "https://pl.mn.gov/resources/calculators/premium-rate-and-contributions"
         },
         {
-          "fact": "Minnesota's top marginal income tax rate of 9.85% is among the highest in the nation and kicks in above $193,240 (single) / $321,450 (married filing jointly) for tax year 2026; brackets were inflation-adjusted 2.369% from 2025.",
-          "source": "https://www.revenue.state.mn.us/press-release/2025-12-16/minnesota-income-tax-brackets-standard-deduction-and-dependent-exemption"
+          "fact": "Minnesota's top marginal income tax rate of 9.85% is among the highest in the nation and kicks in above $203,150 (single) / $337,930 (married filing jointly) for tax year 2026.",
+          "source": "https://www.revenue.state.mn.us/sites/default/files/2025-12/inflation-adjusted-amounts-2026.pdf"
         }
       ],
       "confidence": "high"

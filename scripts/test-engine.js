@@ -101,6 +101,99 @@ t('Mississippi 0% on first $10k of taxable income', () => {
   approx(r.annual.state, 1668);
 });
 
+// --- Connecticut: the 2% tax-rate phase-out add-back -------------------------
+// Conn. Gen. Stat. 12-700(a)(10)(A)(ii)/(B)(ii)/(C)(ii), printed as DRS IP 2026(7) Table C.
+// Every figure below is derived by hand from the statutory bracket schedule plus the ladder,
+// NOT read off the engine. Bracket tax first, then the add-back.
+//
+//   single brackets      2% to 10,000 | 4.5% to 50,000 | 5.5% to 100,000 | 6% to 200,000
+//   married brackets     2% to 20,000 | 4.5% to 100,000 | 5.5% to 200,000 | 6% to 400,000
+//   head of household    2% to 16,000 | 4.5% to 80,000 | 5.5% to 160,000 | 6% to 320,000
+//
+// Connecticut has no standard deduction here, so taxable income equals the wage figure.
+const ctTax = (amount, fs) =>
+  computePaycheck(
+    { wage: { type: 'salary', amount }, filingStatus: fs, payFrequency: 'annual', stateSlug: 'connecticut' },
+    taxData
+  ).annual.state;
+
+t('Connecticut at the single threshold, $56,500: no add-back for anyone', () => {
+  // The ladder starts ABOVE the threshold, so at exactly 56,500 a single filer owes $0 of it,
+  // and married (starts 100,500) and head of household (starts 78,500) are nowhere near theirs.
+  // single   10,000@2%=200 + 40,000@4.5%=1,800 + 6,500@5.5%=357.50            = 2,357.50
+  approx(ctTax(56500, 'single'), 2357.5, 0.01);
+  // married  20,000@2%=400 + 36,500@4.5%=1,642.50                             = 2,042.50
+  approx(ctTax(56500, 'married'), 2042.5, 0.01);
+  // hoh      16,000@2%=320 + 40,500@4.5%=1,822.50                             = 2,142.50
+  approx(ctTax(56500, 'head_of_household'), 2142.5, 0.01);
+});
+
+t('Connecticut $75,000: single pays exactly $100 of add-back, others pay none', () => {
+  // THE AUDIT ANCHOR. Single excess = 75,000 - 56,500 = 18,500. "Or fraction thereof" rounds
+  // the rung count UP: ceil(18,500 / 5,000) = 4 rungs x $25 = $100.00. Table C, Withholding
+  // Code F, agrees: the row "more than $71,500, less than or equal to $76,500" prints $100.
+  // single   200 + 1,800 + 25,000@5.5%=1,375 = 3,375, plus 100                 = 3,475
+  approx(ctTax(75000, 'single'), 3475, 0.01);
+  // married  400 + 55,000@4.5%=2,475 = 2,875, add-back 0 (starts at 100,500)   = 2,875
+  approx(ctTax(75000, 'married'), 2875, 0.01);
+  // hoh      320 + 59,000@4.5%=2,655 = 2,975, add-back 0 (starts at 78,500)    = 2,975
+  approx(ctTax(75000, 'head_of_household'), 2975, 0.01);
+});
+
+t('Connecticut $200,000: every status is pinned at the top of Table C', () => {
+  // The ceiling is the 2% band emptied: single $250, hoh $400, married $500. 200,000 clears
+  // all three "and up" rows (single above 101,500, hoh above 114,500, married above 145,500).
+  // single   200 + 1,800 + 50,000@5.5%=2,750 + 100,000@6%=6,000 = 10,750, +250  = 11,000
+  approx(ctTax(200000, 'single'), 11000, 0.01);
+  // married  400 + 80,000@4.5%=3,600 + 100,000@5.5%=5,500 = 9,500, +500         = 10,000
+  approx(ctTax(200000, 'married'), 10000, 0.01);
+  // hoh      320 + 64,000@4.5%=2,880 + 80,000@5.5%=4,400 + 40,000@6%=2,400
+  //          = 10,000, +400                                                     = 10,400
+  approx(ctTax(200000, 'head_of_household'), 10400, 0.01);
+});
+
+t('Connecticut add-back steps on the first dollar past the threshold', () => {
+  // "Or fraction thereof": $1 of excess buys a whole rung. The threshold test is strictly
+  // greater than, so 56,500 itself is clean and 56,501 already carries the first $25.
+  approx(ctTax(56501, 'single') - ctTax(56500, 'single'), 25 + 0.055, 0.01);
+});
+
+// --- Massachusetts: the FICA-paid deduction ----------------------------------
+// M.G.L. c.62 s.3(B)(a)(3): deduct the FICA you paid, capped at $2,000 per taxpayer.
+// MA gives a $4,400 personal exemption (single) and taxes at 5%. Employee FICA is 7.65%
+// of wages up to the Social Security wage base, so the $2,000 cap binds from about
+// $26,144 of wages upward and the deduction is worth a flat $2,000 x 5% = $100.00 a year.
+const maTax = (amount, fs = 'single') =>
+  computePaycheck(
+    { wage: { type: 'salary', amount }, filingStatus: fs, payFrequency: 'annual', stateSlug: 'massachusetts' },
+    taxData
+  ).annual.state;
+
+t('Massachusetts $40,000 single: cap binds, deduction is the full $2,000', () => {
+  // FICA = 40,000 x 0.0765 = 3,060, above the cap. taxable = 40,000 - 4,400 - 2,000 = 33,600
+  approx(maTax(40000), 33600 * 0.05, 0.01); // 1,680.00
+});
+
+t('Massachusetts $75,000 single: the audit anchor, exactly $100 less tax', () => {
+  // FICA = 75,000 x 0.0765 = 5,737.50, above the cap. 75,000 - 4,400 - 2,000 = 68,600
+  approx(maTax(75000), 68600 * 0.05, 0.01); // 3,430.00
+  // and the deduction is worth exactly 2,000 x 5% = 100.00 versus the no-deduction figure
+  approx((75000 - 4400) * 0.05 - maTax(75000), 100, 0.01);
+});
+
+t('Massachusetts $200,000 single: cap still binds, still $100', () => {
+  // FICA = 184,500@6.2% = 11,439 + 200,000@1.45% = 2,900 -> 14,339, far above the cap.
+  // taxable = 200,000 - 4,400 - 2,000 = 193,600, all below the 1,107,750 surtax line.
+  approx(maTax(200000), 193600 * 0.05, 0.01); // 9,680.00
+});
+
+t('Massachusetts below the cap: the deduction is the FICA actually paid', () => {
+  // The statute deducts FICA PAID, not a flat 2,000. At 20,000 of wages FICA is
+  // 20,000 x 0.0765 = 1,530, under the cap, so only 1,530 comes off.
+  // taxable = 20,000 - 4,400 - 1,530 = 14,070
+  approx(maTax(20000), 14070 * 0.05, 0.01); // 703.50
+});
+
 // --- advanced mode: deductions + W-4 ----------------------------------------
 t('adv omitted == adv all-zero (backward compatible)', () => {
   const base = { wage: { type: 'salary', amount: 60000 }, filingStatus: 'single', payFrequency: 'annual', stateSlug: 'texas' };

@@ -239,12 +239,19 @@ t('South Carolina SCIAD phases down, rounding the reduction not the deduction', 
     assert.ok(stateTax('south-carolina', gross, 'married') > atBoundary,
       'past the boundary tax must keep rising, not jump from a negative deduction');
   }
-  // Structural: the phase-down is opt-in and South Carolina is its only user, so a stray copy into
-  // another state would silently change that state's tax.
+  // Structural: the phase-down is opt-in, so a stray copy into a state that does not have one
+  // would silently change that state's tax. The allow-list is therefore closed, not open-ended.
+  // 2026-08-02: Wisconsin joined. Its sliding-scale standard deduction (Wis. Stat. 71.05(22)(dp),
+  // published as the "2026 Standard Deduction" schedules in WI DOR Form 1-ES instructions, D-101A
+  // R. 1-26) is the same shape of rule, so it reuses this mechanism rather than growing a second
+  // one. Wisconsin's own parameters are pinned in the dedicated test below; what this list guards
+  // is that no THIRD state acquires a phase-down by accident.
   const users = Object.entries(tax.states)
     .filter(([, s]) => s.tax && s.tax.standardDeductionPhaseout)
-    .map(([slug]) => slug);
-  assert.deepEqual(users, ['south-carolina'], 'standardDeductionPhaseout must be South Carolina only');
+    .map(([slug]) => slug)
+    .sort();
+  assert.deepEqual(users, ['south-carolina', 'wisconsin'],
+    'standardDeductionPhaseout is South Carolina + Wisconsin only');
   const cfg = tax.states['south-carolina'].tax.standardDeductionPhaseout;
   assert.equal(cfg.roundReductionDownTo, 10, 'statute rounds to ten dollars');
   assert.deepEqual(cfg.single, { over: 40000, denominator: 55000 });
@@ -289,6 +296,67 @@ t('South Carolina SCIAD reduction survives the floating-point boundary', () => {
   approx(stateTax('south-carolina', 62970, 'head_of_household'), 1184.69, 0.02);
   approx(stateTax('south-carolina', 85300, 'head_of_household'), 2665.37, 0.02);
   approx(stateTax('south-carolina', 110600, 'head_of_household'), 4342.99, 0.02);
+});
+
+// --- Wisconsin sliding-scale standard deduction, Wis. Stat. 71.05(22)(dp) ---
+// Wisconsin has no flat standard deduction: it starts at a maximum and slides to zero. Until
+// 2026-08-02 this repo modelled NO Wisconsin standard deduction at all, so every Wisconsin
+// estimate was computed on the full wage and ran high (a $75,000 single filer was overtaxed by
+// about $391 a year). The numbers below are the 2026 Standard Deduction schedules printed in the
+// WI DOR 2026 Form 1-ES instructions (D-101A, R. 1-26), quoted exactly:
+//   Single            $13,960 to $20,119, then "13,960 less 12% of the amount over 20,120", 0 at 136,453
+//   Married jointly   $25,840 to $29,039, then "25,840 less 19.778% of the amount over 29,040", 0 at 159,690
+//   Head of household $18,030 to $20,119, then "18,030 less 22.515% over 20,120" to 58,827,
+//                     then it JOINS the single line, "13,960 less 12% over 20,120", 0 at 136,453
+// denominator = base / percentage, so it is the income span over which the deduction reaches zero:
+//   13,960 / 0.12     = 116,333.33 -> 20,120 + 116,333.33 = 136,453  (matches DOR)
+//   25,840 / 0.19778  = 130,650.22 -> 29,040 + 130,650.22 = 159,690  (matches DOR)
+// Head of household deliberately reuses the SINGLE row. The engine's phase-down is one straight
+// line and the HoH schedule bends twice, so the exact rule is not expressible here; the single row
+// is the second (and longer) of its two segments. That understates the HoH deduction below $58,827
+// and the state's disclaimer says so, which is why the assertion below pins HoH == single ON
+// PURPOSE rather than pinning 18,030 / 22.515%.
+t('Wisconsin sliding-scale standard deduction matches WI DOR D-101A', () => {
+  const wi = tax.states.wisconsin.tax;
+  assert.deepEqual(wi.standardDeduction, { single: 13960, married: 25840, head_of_household: 13960 });
+  const cfg = wi.standardDeductionPhaseout;
+  // South Carolina's statute floors the reduction to a multiple of ten. Wisconsin's does not, and
+  // borrowing SC's rounding would shift every Wisconsin answer, so its absence is load-bearing.
+  assert.equal(cfg.roundReductionDownTo, undefined,
+    'Wisconsin has no ten-dollar rounding rule; do not copy South Carolina\'s');
+  assert.equal(cfg.single.over, 20120);
+  assert.equal(cfg.married.over, 29040);
+  assert.deepEqual(cfg.head_of_household, cfg.single, 'HoH follows the single row by design');
+  // Recover the published percentage from the denominator, and the published zero-out income.
+  approx(13960 / cfg.single.denominator, 0.12, 1e-9);
+  approx(25840 / cfg.married.denominator, 0.19778, 1e-9);
+  approx(cfg.single.over + cfg.single.denominator, 136453, 0.5);
+  approx(cfg.married.over + cfg.married.denominator, 159690, 0.5);
+  // End to end, against the schedule itself. The engine floors the reduction to whole dollars, so
+  // it may sit up to $1 above the un-rounded schedule figure and never below it.
+  const sched = (base, pct, over, agi) => (agi <= over - 1 ? base : Math.max(0, base - pct * (agi - over)));
+  const cases = [
+    ['single', 13960, 0.12, 20120, [20119, 25000, 50000, 75000, 100000, 136453, 200000]],
+    ['married', 25840, 0.19778, 29040, [29039, 50000, 100000, 159690, 250000]],
+  ];
+  for (const [fs, base, pct, over, incomes] of cases) {
+    for (const agi of incomes) {
+      const want = sched(base, pct, over, agi);
+      const taxable = agi - want;
+      const bands = tax.states.wisconsin.tax.brackets[fs === 'married' ? 'married' : 'single'];
+      let expectedTax = 0, prev = 0;
+      for (const b of bands) {
+        const up = b.upTo === null ? Infinity : b.upTo;
+        if (taxable > prev) expectedTax += (Math.min(taxable, up) - prev) * b.rate;
+        prev = up;
+        if (taxable <= up) break;
+      }
+      const actual = stateTax('wisconsin', agi, fs);
+      // A $1 deduction difference is at most 5.3 cents of tax.
+      assert.ok(Math.abs(actual - expectedTax) <= 0.06,
+        `wisconsin ${fs} ${agi}: engine ${actual.toFixed(2)}, D-101A schedule ${expectedTax.toFixed(2)}`);
+    }
+  }
 });
 
 // --- Oklahoma 2026, HB2764 -------------------------------------------------
@@ -347,6 +415,192 @@ t('Ohio steps at the threshold, strictly above it', () => {
   assert.equal(stateTax('ohio', 26050), 0);
   approx(stateTax('ohio', 26051), 332.03, 0.01);
   approx(stateTax('ohio', 75000), 1678.13, 0.01);
+});
+
+// --- steppedRecapture: the opt-in stepped add-back, Connecticut only ----------
+// Conn. Gen. Stat. 12-700(a)(10), subparagraphs (A)(ii) unmarried, (B)(ii) head of household,
+// (C)(ii) married filing jointly: once Connecticut AGI passes a threshold, income is pushed
+// out of the 2% band into the 4.5% band "for each five thousand dollars, or fraction thereof".
+// The 2.5-point difference turns that into a flat dollar step, which a marginal bracket table
+// cannot express, so it lives in its own field. DRS IP 2026(7) page 9 prints the same thing as
+// "Table C - 2% Tax Rate Phase-Out Add-Back" and is what these numbers are checked against.
+// THE PUBLISHED TABLE, TRANSCRIBED. Every number below is a LITERAL read off the printed
+// "Table C - 2% Tax Rate Phase-Out Add-Back", not a value computed from tax-data-2026.json,
+// and that is the whole point of the file: nothing here may be derived from the data under
+// test, or a silent edit to the data would move the expectation with it and pass.
+//
+// SOURCE, READ 2026-08-02. The table is in the attachment "TPG-211, 2026 Withholding
+// Calculation Rules (Rev. 12/25)" carried by CT DRS Informational Publication 2026(1),
+// "Connecticut Employer's Tax Guide, Circular CT",
+// https://portal.ct.gov/-/media/drs/publications/pubsip/2026/ip-2026-1.pdf (fetched live).
+// Heads up for whoever revises this: the tax-data entries cite the same table as "IP
+// 2026(7) page 9", and portal.ct.gov/-/media/drs/publications/pubsip/2026/ip-2026-7.pdf
+// returns 404, and IP 2026(7) is the separate "Is My Connecticut Withholding Correct?".
+// The FIGURES below were confirmed against IP 2026(1) either way, so they stand; it is the
+// publication number in the citations that is unresolved.
+//
+// The statute behind it is Conn. Gen. Stat. 12-700(a)(10): (A)(ii) unmarried, (B)(ii) head
+// of household, (C)(ii) married filing jointly, (D)(ii) married filing separately.
+//
+// capReachedAt is the income printed on the table's "and up" row, transcribed, not computed,
+// precisely so that a wrong `step` or a wrong `max` in the data cannot hide behind a matching
+// arithmetic.
+//
+// ONE DOLLAR OF CONVENTION, AND IT IS DELIBERATE. Table C prints half-open withholding rows,
+// "at least $56,500 but less than $61,500", so the printed "and up" row is where the LAST rung
+// begins: over + (rungs - 1) x step. The statute is written the other way round, "for each
+// five thousand dollars, or fraction thereof, by which the taxpayer's Connecticut adjusted
+// gross income EXCEEDS said amount", so a filer sitting exactly on a printed boundary has not
+// yet exceeded it and is one rung lower. The engine follows the statute, because this is a
+// return-time estimate and the withholding table is an approximation of it. The assertions
+// below pin BOTH: the printed income yields max - amountPerStep, and one dollar past it
+// yields max. Anything that moves either boundary breaks the test.
+const TABLE_C = [
+  { label: 'Code F, single', fs: 'single', over: 56500, step: 5000, amountPerStep: 25, max: 250, capReachedAt: 101500 },
+  { label: 'Code B, head of household', fs: 'head_of_household', over: 78500, step: 4000, amountPerStep: 40, max: 400, capReachedAt: 114500 },
+  { label: 'Code C, married filing jointly', fs: 'married', over: 100500, step: 5000, amountPerStep: 50, max: 500, capReachedAt: 145500 }
+];
+// Code A, MARRIED FILING SEPARATELY: over $50,250, $25 for each $2,500, max $250, "$72,750
+// and up". Deliberately NOT in the list above, because it is not in the data either: this
+// site's filing input offers single / married filing jointly / head of household, and folds
+// a separate filer into the single bucket. A fourth ladder with no filing status able to
+// select it would be dead weight that reads as coverage. Connecticut's disclaimer carries
+// the gap in words instead, telling a separate filer their real tax can run up to about
+// $150 higher (this ladder against the single one, worst case, at $72,750 of income).
+//
+// Code A is also the reason the single row above must be Code F. Table A settles it by
+// personal exemption: Code A carries $12,000, the 12-702 married-filing-separately amount,
+// and Code F carries $15,000, the unmarried amount. Reading Code A as "single" would start
+// the ladder at $50,250 on $2,500 rungs and overcharge a $75,000 single filer by $150.
+
+t('Connecticut carries the statutory 2% phase-out ladder for all three statuses', () => {
+  const ladders = tax.states.connecticut.tax.steppedRecapture;
+  assert.ok(Array.isArray(ladders) && ladders.length === 1, 'connecticut needs exactly one ladder');
+  const l = ladders[0];
+  // The data must equal the transcription, field for field, with nothing extra.
+  for (const row of TABLE_C) {
+    assert.deepEqual(l[row.fs], {
+      over: row.over, step: row.step, amountPerStep: row.amountPerStep, max: row.max
+    }, `${row.label}: does not match the printed Table C`);
+  }
+  assert.deepEqual(
+    Object.keys(l).filter((k) => !k.startsWith('_') && k !== 'label').sort(),
+    ['head_of_household', 'married', 'single'],
+    'the ladder must encode exactly the three statuses this site can select'
+  );
+  // Two consistency checks on the TRANSCRIPTION itself, both literal-against-literal, so
+  // they catch a typo in the table above rather than blessing the data. The ceiling is the
+  // 2% band emptied once, so it is a whole number of rungs, and the "and up" income is the
+  // income at which that last rung lands.
+  for (const row of TABLE_C) {
+    const rungsToCap = row.max / row.amountPerStep;
+    assert.equal(rungsToCap, Math.round(rungsToCap), `${row.label}: cap is not a whole number of rungs`);
+    assert.equal(row.capReachedAt, row.over + (rungsToCap - 1) * row.step,
+      `${row.label}: the printed "and up" income does not start the last rung`);
+  }
+});
+
+// Row-for-row against the published table. This is the check that would have caught a wrong
+// Withholding Code column, a floor instead of a ceiling on the rung count, or a missing cap.
+// The add-back is isolated by differencing Connecticut against a copy of itself with the
+// ladder removed, so the bracket schedule cancels and only Table C is under test.
+const ctNoLadder = JSON.parse(JSON.stringify(tax.states.connecticut));
+delete ctNoLadder.tax.steppedRecapture;
+const addBack = (fs, income) =>
+  stateIncomeTax(income, fs, tax.states.connecticut) - stateIncomeTax(income, fs, ctNoLadder);
+const near = (a, b, msg) => assert.ok(Math.abs(a - b) <= 0.001, `${msg}: ${a} !~= ${b}`);
+
+t('Connecticut reproduces every row of the printed Table C', () => {
+  let checked = 0;
+  for (const { label, fs, over, step, amountPerStep: per, max, capReachedAt } of TABLE_C) {
+    // At or below the threshold Table C prints $0.
+    near(addBack(fs, over), 0, `${label}: threshold row must be 0`);
+    checked++;
+    // Rows 1..N, where N is taken from the printed cap and per-step amount, NOT from the
+    // data. The whole of row n is (over + (n-1)*step, over + n*step] and prints min(n*per,
+    // max), because "or fraction thereof" makes any part of a rung a whole rung.
+    const rows = max / per;
+    for (let n = 1; n <= rows; n++) {
+      const lo = over + (n - 1) * step;
+      const hi = over + n * step;
+      const expect = Math.min(n * per, max);
+      near(addBack(fs, lo + 1), expect, `${label}: row ${n} low end`);
+      near(addBack(fs, hi), expect, `${label}: row ${n} high end`);
+      checked += 2;
+    }
+    // The "and up" row, pinned at the income the table actually prints for it, on both
+    // sides of the statute's "exceeds". A wrong step or a wrong ceiling in the data shows
+    // up here as the cap arriving early or late.
+    near(addBack(fs, capReachedAt), max - per, `${label}: printed and-up income ${capReachedAt} is one rung short under "exceeds"`);
+    near(addBack(fs, capReachedAt + 1), max, `${label}: cap must be reached one dollar past ${capReachedAt}`);
+    // Once the 2% band is empty, more income adds nothing, forever.
+    near(addBack(fs, capReachedAt + 500000), max, `${label}: and-up row`);
+    checked += 3;
+  }
+  assert.equal(checked, 72, 'measured the wrong number of Table C rows');
+});
+
+t('steppedRecapture is opt-in: Connecticut is the only state that carries it', () => {
+  const carriers = Object.entries(tax.states)
+    .filter(([, s]) => s.tax && s.tax.steppedRecapture)
+    .map(([slug]) => slug)
+    .sort();
+  assert.deepEqual(carriers, ['connecticut'],
+    'steppedRecapture is Connecticut only; a stray copy would silently raise another state');
+});
+
+t('every steppedRecapture ladder is well formed', () => {
+  let checked = 0;
+  for (const [slug, s] of Object.entries(tax.states)) {
+    const ladders = s.tax && s.tax.steppedRecapture;
+    if (!ladders) continue;
+    assert.ok(Array.isArray(ladders), `${slug}: steppedRecapture must be an array`);
+    for (const l of ladders) {
+      assert.ok(l.label && l._statute && l._source, `${slug}: a ladder needs label, statute and source`);
+      for (const fs of ['single', 'married', 'head_of_household']) {
+        const r = l[fs];
+        assert.ok(r, `${slug}: ladder is missing ${fs}`);
+        assert.ok(r.over > 0 && r.step > 0 && r.amountPerStep > 0,
+          `${slug}/${fs}: over, step and amountPerStep must all be positive`);
+        assert.ok(r.max >= r.amountPerStep, `${slug}/${fs}: ceiling below one rung`);
+        checked++;
+      }
+    }
+  }
+  assert.equal(checked, 3, 'measured nothing, refusing to pass');
+});
+
+// --- ficaPaidDeduction: the opt-in FICA deduction, Massachusetts only ---------
+// M.G.L. c.62 s.3(B)(a)(3) deducts "Taxes paid to the United States under the provisions of
+// the Federal Insurance Contributions Act", then caps the aggregate "attributable to any one
+// taxpayer" at "two thousand dollars". MA DOR's Form 1 Line 11 instructions say the same and
+// add that Medicare counts and that the cap cannot be shared between spouses. The cap is a
+// fixed statutory figure, so it must NOT drift with inflation the way an indexed one would.
+t('Massachusetts carries the statutory $2,000 FICA-deduction cap', () => {
+  const d = tax.states.massachusetts.tax.ficaPaidDeduction;
+  assert.ok(d, 'massachusetts.tax.ficaPaidDeduction is missing');
+  assert.equal(d.cap, 2000);
+  assert.ok(/two thousand dollars/.test(d._statute), 'the statutory cap wording must be quoted');
+});
+
+t('ficaPaidDeduction is opt-in: Massachusetts is the only state that carries it', () => {
+  const carriers = Object.entries(tax.states)
+    .filter(([, s]) => s.tax && s.tax.ficaPaidDeduction)
+    .map(([slug]) => slug)
+    .sort();
+  assert.deepEqual(carriers, ['massachusetts'],
+    'ficaPaidDeduction is Massachusetts only; a stray copy would silently cut another state');
+});
+
+t('Massachusetts deducts FICA PAID, not a flat $2,000', () => {
+  // Below roughly $26,144 of wages the 7.65% employee share is under the cap, so the
+  // deduction has to shrink with it. Hard-coding the cap would over-deduct for part-timers.
+  // 20,000: FICA 1,530 -> taxable 20,000 - 4,400 - 1,530 = 14,070 -> 5% = 703.50
+  approx(stateTax('massachusetts', 20000), 703.5, 0.01);
+  // 75,000: FICA 5,737.50, capped at 2,000 -> 75,000 - 4,400 - 2,000 = 68,600 -> 3,430.00
+  approx(stateTax('massachusetts', 75000), 3430, 0.01);
+  // and the cap is worth exactly 2,000 x 5% = 100.00 a year to anyone who reaches it
+  approx((75000 - 4400) * 0.05 - stateTax('massachusetts', 75000), 100, 0.01);
 });
 
 

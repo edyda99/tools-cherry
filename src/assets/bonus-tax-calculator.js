@@ -99,15 +99,43 @@ function render() {
 
   const w = r.withheld, t = r.trueLiability;
 
+  // ---- The joint-filer caveat, and why it is a SENTENCE and not a field ------
+  // The full pages ask a married visitor what the two of them earn together and
+  // run the brackets on that, because a joint return is taxed on both incomes at
+  // once. This build cannot ask: a third party sizes this iframe once, at a fixed
+  // height, so a new form row would push the answer out of the frame on every
+  // site that already embeds it. So it does the honest thing instead and states
+  // the assumption it is actually making, in the same breath as the number that
+  // assumption moves.
+  //
+  // WHICH NUMBER THAT IS. It is the refund-or-owe headline this sentence now hangs
+  // off, not the withheld percentage it used to hang off. Nothing withheld on payday
+  // can move with a spouse's pay: an employer computes withholding from this
+  // employee's own wages under either method the embed offers and knows nothing about
+  // a household, so the percentage is byte-identical whether or not the spouse earns.
+  // Attaching the caveat there invited the reader to distrust the one figure the
+  // household question does not touch, and left the figure it DOES move uncaveated.
+  //
+  // AND WHY IT NO LONGER SAYS "less comes back". That sentence is only true on the
+  // refund branch. This paragraph also renders when the estimate says money is
+  // still OWED, where a second income makes the bill BIGGER, and "less comes back
+  // than shown here" reads as though the shortfall shrinks. The wording below is
+  // shape-safe: it names the assumption and gives both directions.
+  const mfjCaveat = filingStatus === 'married'
+    ? ` This estimate assumes the pay you entered is the household's only income. On a joint return both incomes are ` +
+      `taxed as one, so if your husband or wife earns as well, expect a smaller refund or a bigger bill than shown here. ` +
+      `The <a href="/bonus-tax-calculator/" target="_blank" rel="noopener">full calculator</a> asks what you earn together.`
+    : '';
+
   // ---- One headline caveat (the refund/owe gap), shown OUTSIDE the details.
   // Income-tax only; FICA is a true tax and doesn't true up.
   let headlineCaveat;
   if (Math.abs(r.delta) < 1) {
-    headlineCaveat = `<div class="bt-headline even"><strong>${usd(Math.abs(r.delta))}</strong> — your withholding is almost exactly your real income tax on this bonus. Little to refund or owe.</div>`;
+    headlineCaveat = `<div class="bt-headline even"><strong>${usd(Math.abs(r.delta))}</strong> — your withholding is almost exactly your real income tax on this bonus. Little to refund or owe.${mfjCaveat}</div>`;
   } else if (r.refund) {
-    headlineCaveat = `<div class="bt-headline refund">About <strong>${usd(r.delta)}</strong> of this bonus is <strong>over-withheld</strong> income tax — money you can expect back as a refund when you file.</div>`;
+    headlineCaveat = `<div class="bt-headline refund">About <strong>${usd(r.delta)}</strong> of this bonus is <strong>over-withheld</strong> income tax — money you can expect back as a refund when you file.${mfjCaveat}</div>`;
   } else {
-    headlineCaveat = `<div class="bt-headline owe">Heads up: withholding is about <strong>${usd(-r.delta)}</strong> <strong>short</strong> of the income tax you'll actually owe on this bonus. Set that aside for tax time.</div>`;
+    headlineCaveat = `<div class="bt-headline owe">Heads up: withholding is about <strong>${usd(-r.delta)}</strong> <strong>short</strong> of the income tax you'll actually owe on this bonus. Set that aside for tax time.${mfjCaveat}</div>`;
   }
 
   const stateWLine = supp.method === 'none'

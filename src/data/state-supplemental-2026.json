@@ -32,7 +32,7 @@
       "rate": 0.05,
       "verified": true,
       "singleSourced": false,
-      "source": "Alabama DOR employer withholding tables (rev. Jan 2026); corroborated by Deel/OnPay",
+      "source": "Alabama DOR employer withholding tables (rev. Jan 2026)",
       "_sourceUrl": "https://www.revenue.alabama.gov/forms/withholding-tax-tables-and-instructions-for-employers-and-withholding-agents-2/"
     },
     "alaska": {
@@ -56,11 +56,11 @@
       "name": "Arkansas",
       "abbr": "AR",
       "method": "flat",
-      "rate": 0.039,
+      "rate": 0.037,
       "verified": true,
       "singleSourced": false,
-      "source": "Arkansas DFA withholding instructions (3.9% since 7/1/2024); corroborated by OnPay",
-      "_sourceUrl": "https://www.dfa.arkansas.gov/wp-content/uploads/withholdInstructions.pdf"
+      "source": "Arkansas DFA Withholding Tax Employer's Instructions (effective 01/01/2026, reissued May 2026): 'Deduct 3.7% of the bonus or commission for state income tax.'",
+      "_sourceUrl": "https://www.dfa.arkansas.gov/wp-content/uploads/Withholding-Tax-Instructions-for-Employers.pdf"
     },
     "california": {
       "name": "California",
@@ -140,7 +140,7 @@
       "rate": 0.053,
       "verified": true,
       "singleSourced": false,
-      "source": "Idaho State Tax Commission (optional flat 5.3%, HB 40); corroborated by Deel",
+      "source": "Idaho State Tax Commission (optional flat 5.3%, HB 40)",
       "_sourceUrl": "https://tax.idaho.gov/taxes/income-tax/withholding/computing/",
       "note": "Optional flat method when the bonus is paid separately; otherwise aggregate. Matches Idaho's top income rate of 5.3%."
     },
@@ -169,7 +169,7 @@
       "rate": 0.038,
       "verified": true,
       "singleSourced": false,
-      "source": "Iowa DOR withholding tax information (flat 3.8%, ties to 2026 flat income tax); corroborated by Netchex",
+      "source": "Iowa DOR withholding tax information (flat 3.8%, ties to 2026 flat income tax)",
       "_sourceUrl": "https://revenue.iowa.gov/taxes/tax-guidance/withholding-tax/iowa-withholding-tax-information",
       "note": "Applied when the bonus is paid separately."
     },
@@ -180,7 +180,7 @@
       "rate": 0.05,
       "verified": true,
       "singleSourced": false,
-      "source": "Kansas DOR KW-100 withholding guide; corroborated by OnPay/Netchex",
+      "source": "Kansas DOR KW-100 withholding guide",
       "_sourceUrl": "https://www.ksrevenue.gov/kw100.html",
       "note": "Applied when the bonus is paid separately."
     },
@@ -209,8 +209,8 @@
       "rate": 0.05,
       "verified": true,
       "singleSourced": false,
-      "source": "Maine Revenue Services 2026 withholding (flat 5% separate pay, eff. 1/1/2026, via APA/PayrollOrg); corroborated by Deel",
-      "_sourceUrl": "https://payroll.org/news-resources/news/news-detail/2025/11/07/maine-2026-withholding-tables-now-available",
+      "source": "Maine Revenue Services 2026 Withholding Tables for Individual Income Tax: 'If the supplemental wages are paid separately, the payer may withhold a flat five percent.'",
+      "_sourceUrl": "https://www.maine.gov/revenue/sites/maine.gov.revenue/files/inline-files/26_wh_tab_instr.pdf",
       "note": "Optional flat method if the bonus is paid separately; otherwise aggregate."
     },
     "maryland": {
@@ -218,7 +218,9 @@
       "abbr": "MD",
       "method": "flat",
       "verified": true,
-      "source": "Maryland Comptroller, 2026 Employer Withholding Guide: highest state rate of 6.5% on a lump sum annual bonus.",
+      "source": "Comptroller of Maryland 2026 Employer Withholding Guide (rev. December 2025)",
+      "_sourceQuote": "Comptroller of Maryland Employer Withholding Guide (effective January 2026, revised December 2025): 'For lump sum distribution of annual bonus, the withholding amount should be calculated at the highest State tax rate (6.50%), and the highest local tax rate for the county of residence.'",
+      "_sourceUrl": "https://www.marylandcomptroller.gov/content/dam/mdcomp/tax/instructions/withholding/2026/withholding-guide.pdf",
       "note": "Maryland withholds a lump sum annual bonus at the highest state rate of 6.5%, plus the local income tax rate of the county where the employee lives. This estimate shows the 6.5% state portion only. The county piggyback rate, which runs from 2.25% to 3.30% in 2026, is withheld on top and is not included here.",
       "rate": 0.065
     },
@@ -228,16 +230,19 @@
       "method": "regular",
       "verified": true,
       "source": "repoTaxData",
-      "note": "No separate supplemental rate; aggregate method. Massachusetts is 5% flat with a 4% surtax on income over $1M."
+      "note": "No separate supplemental rate; aggregate method. Massachusetts is 5% flat, plus a 4% surtax on the part of your income above $1,107,750 for 2026 (the threshold is adjusted every year)."
     },
     "michigan": {
       "name": "Michigan",
       "abbr": "MI",
-      "method": "regular",
-      "incomeRate": 0.0425,
+      "method": "flat",
+      "rate": 0.0425,
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate supplemental rate; aggregate method. Michigan income tax is a flat 4.25% (some city income taxes apply on top and are not modeled)."
+      "singleSourced": false,
+      "source": "Michigan Treasury Form 446 (Rev. 02-26), Bonuses and Other Payments",
+      "_sourceQuote": "Michigan Department of Treasury Form 446 (2026 Michigan Income Tax Withholding Guide, Rev. 02-26): 'Bonuses and other payments of employee compensation made separately from regular payroll payments are subject to Michigan income tax withholding. The withholding amount equals the payment amount multiplied by 4.25 percent (0.0425). Do not make any adjustment for exemptions.'",
+      "_sourceUrl": "https://www.michigan.gov/taxes/-/media/Project/Websites/taxes/Forms/SUW/TY2026/446_Withholding-Guide_2026.pdf",
+      "note": "A bonus paid separately from your regular payroll is withheld at a flat 4.25%, with no adjustment for exemptions. Some city income taxes apply on top and are not included here."
     },
     "minnesota": {
       "name": "Minnesota",
@@ -246,8 +251,9 @@
       "rate": 0.0625,
       "verified": true,
       "singleSourced": false,
-      "source": "EY 2026 supplemental-rate chart",
-      "_sourceUrl": "https://taxnews.ey.com/news/2026-0153-2026-state-supplemental-flat-tax-and-highest-income-tax-withholding-rates-with-hyperlinks-to-the-latest-withholding-tables-instructions"
+      "source": "Minnesota Department of Revenue Withholding Tax Instructions (2026, wh-inst-26)",
+      "_sourceQuote": "Minnesota Department of Revenue 2026 Income Tax Withholding Instruction Booklet and Tax Tables: 'Supplemental payments made to an employee separately from regular wages are subject to the 6.25% Minnesota withholding rate regardless of how many allowances employees claim.'",
+      "_sourceUrl": "https://www.revenue.state.mn.us/sites/default/files/2025-12/wh-inst-26.pdf"
     },
     "mississippi": {
       "name": "Mississippi",
@@ -284,7 +290,7 @@
       "rate": 0.035,
       "verified": true,
       "singleSourced": false,
-      "source": "Nebraska DOR Circular EN (2026): flat 3.5%; corroborated by OnPay",
+      "source": "Nebraska DOR Circular EN (2026): flat 3.5%",
       "_sourceUrl": "https://revenue.nebraska.gov/sites/default/files/doc/business/Cir_En_2025/2026cir_en_whole.pdf"
     },
     "nevada": {
@@ -318,9 +324,10 @@
       "rate": 0.059,
       "verified": true,
       "singleSourced": false,
-      "source": "New Mexico top marginal rate 5.9% applied to separately-paid supplemental wages (Deel; no distinct state flat-supplemental method published)",
-      "_sourceUrl": "https://www.deel.com/blog/supplemental-tax-rates-by-state/",
-      "note": "New Mexico does not publish a dedicated separate-payment flat rate; 5.9% (the top marginal rate) is the rate payroll providers apply to a separately paid bonus."
+      "source": "New Mexico Taxation and Revenue Department FYI-104 (Rev. 11/2025)",
+      "_sourceQuote": "New Mexico Taxation and Revenue Department publication FYI-104 (Rev. 11/2025, effective January 1, 2026): 'If the federal withholding is calculated using a flat percent, a flat 5.9% of the supplemental wage or fringe benefit amount should be withheld for state tax purposes.'",
+      "_sourceUrl": "https://realfile.tax.newmexico.gov/FYI-104.pdf",
+      "note": "New Mexico publishes this rate itself. When your employer figures the federal withholding on the extra pay at a flat percent, FYI-104 tells them to hold back a flat 5.9% for New Mexico."
     },
     "new-york": {
       "name": "New York",
@@ -339,9 +346,10 @@
       "rate": 0.0409,
       "verified": true,
       "singleSourced": false,
-      "source": "NC-30, 2026 Income Tax Withholding Tables and Instructions for Employers (Web 11-25), NCDOR — Section 12 (p.10): flat 4.09 percent supplemental rate; cover page: 3.99% individual rate per Session Law 2023-134",
+      "source": "NCDOR Form NC-30 (Web 11-25), 2026 Withholding Tables, Sections 12 and 27",
+      "_sourceQuote": "NC-30, 2026 Income Tax Withholding Tables and Instructions for Employers (Web 11-25), NCDOR, Section 12 (p.10): 'Withhold a flat 4.09 percent'; Section 27 (p.16): 'The withholding calculations are based on the individual income tax rate of 3.99% plus 0.1%. This results in a withholding tax rate of 4.09%.'",
       "_sourceUrl": "https://www.ncdor.gov/income-tax-withholding-tables-and-instructions-employers/open",
-      "note": "North Carolina's 4.09% supplemental withholding rate is deliberately DISTINCT from its 3.99% flat income-tax rate - NC-30 states the two rates independently, not as a formula - both primary-confirmed against NC-30 (2026)."
+      "note": "North Carolina's 4.09% bonus rate is its 3.99% flat income-tax rate plus 0.1%, which is how NC-30 arrives at the number. That is why the bonus rate is a little higher than the income-tax rate."
     },
     "north-dakota": {
       "name": "North Dakota",
@@ -360,7 +368,7 @@
       "rate": 0.0275,
       "verified": true,
       "singleSourced": false,
-      "source": "Ohio Administrative Rule 5703-7-10 / ODT: supplemental rate dropped 3.5% -> 2.75% eff. 1/1/2026 (flat-tax alignment); corroborated by OnPay/Deel/PaycheckCity 2026",
+      "source": "Ohio Administrative Rule 5703-7-10 / ODT: supplemental rate dropped 3.5% -> 2.75% eff. 1/1/2026 (flat-tax alignment)",
       "_sourceUrl": "https://codes.ohio.gov/ohio-administrative-code/rule-5703-7-10",
       "note": "Ohio's supplemental withholding rate fell to 2.75% for 2026 to match its new flat income-tax rate (was 3.5% in 2025)."
     },
@@ -369,11 +377,12 @@
       "abbr": "OK",
       "method": "flat",
       "rate": 0.045,
-      "verified": false,
+      "verified": true,
       "singleSourced": false,
-      "source": "Oklahoma publishes NO flat supplemental rate. OTC Packet OW-2 (2026, Rev 11-2025) contains no mention of supplemental, bonus or lump-sum wages and offers only the percentage formula and wage bracket methods. The 4.5% used here is the payroll-industry convention of applying the top marginal rate, not an Oklahoma-published figure.",
-      "_sourceUrl": "https://oklahoma.gov/content/dam/ok/en/tax/documents/resources/publications/businesses/withholding-tables/WHTables-2026.pdf",
-      "note": "Oklahoma does not publish a dedicated separate-payment flat rate; 4.5% (the top marginal rate) is the rate payroll providers apply to a separately paid bonus."
+      "source": "Oklahoma Tax Commission Packet OW-2 (Rev. 11-2025) and OAC 710:90-1-6(b)(1)(A)",
+      "_sourceQuote": "Oklahoma Tax Commission withholding rule (OAC 710:90-1-6(b)(1)(A)), which lets a separately paid bonus be withheld at 'the highest applicable rate set out in 68 O.S. Section 2355(B)(1) for Oklahoma Income Taxes for the taxable year'. The 2026 Oklahoma withholding tables, OTC Packet OW-2 (Rev. 11-2025, effective January 1, 2026), top out at 4.50%.",
+      "_sourceUrl": "https://oklahoma.gov/content/dam/ok/en/tax/documents/resources/rules-and-policies/agency-rules/Chapter90-2022.pdf",
+      "note": "Oklahoma's own withholding rule lets an employer take a bonus paid on its own at the state's highest income-tax rate, which is 4.5% for 2026. The rule also allows the aggregate method instead, so your employer may use either."
     },
     "oregon": {
       "name": "Oregon",
@@ -401,7 +410,7 @@
       "rate": 0.0599,
       "verified": true,
       "singleSourced": false,
-      "source": "Rhode Island DOR 2026 Withholding Tax Booklet: 5.99%; corroborated by Deel",
+      "source": "Rhode Island DOR 2026 Withholding Tax Booklet: 5.99%",
       "_sourceUrl": "https://tax.ri.gov/sites/g/files/xkgbur541/files/2025-12/2026%20Withholding%20Tax%20Booklet.pdf"
     },
     "south-carolina": {
@@ -440,10 +449,11 @@
       "name": "Utah",
       "abbr": "UT",
       "method": "regular",
-      "incomeRate": 0.045,
+      "incomeRate": 0.0445,
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate supplemental rate; aggregate method. Utah income tax is a flat 4.5%."
+      "source": "Utah State Tax Commission Publication 14 (Withholding Tax Guide, Rev. 4/26): every withholding schedule reads '2. Multiply line 1 by .0445 (4.45%)'",
+      "_sourceUrl": "https://tax.utah.gov/forms-pubs/pub-14/",
+      "note": "No separate supplemental rate; aggregate method. Utah income tax is a flat 4.45%, down from 4.5%."
     },
     "vermont": {
       "name": "Vermont",
@@ -454,8 +464,9 @@
       "rateDeferredComp": 0.06,
       "verified": true,
       "singleSourced": false,
-      "source": "Vermont Dept. of Taxes GB-1210 (2026): 30% of federal withholding; corroborated by Deel + NFC/USDA 2026 bulletin",
-      "_sourceUrl": "https://www.deel.com/blog/supplemental-tax-rates-by-state/",
+      "source": "Vermont Department of Taxes GB-1210 (2026 Withholding Instructions and Tables)",
+      "_sourceQuote": "Vermont Department of Taxes GB-1210 (2026 Income Tax Withholding Instructions, Tables, and Charts, effective January 1, 2026): 'For non-periodic payments, the Vermont withholding can be estimated at 30% of the federal withholding.' A payment from a non-qualified deferred compensation plan is 6%.",
+      "_sourceUrl": "https://tax.vermont.gov/sites/tax/files/documents/GB-1210-2026.pdf",
       "note": "Vermont supplemental withholding is 30% of the FEDERAL income tax withheld on the bonus (not a percent of the bonus). 6% applies to nonqualified deferred comp."
     },
     "virginia": {
@@ -465,7 +476,7 @@
       "rate": 0.0575,
       "verified": true,
       "singleSourced": false,
-      "source": "Virginia Tax employer withholding instructions: flat 5.75%; corroborated by Deel",
+      "source": "Virginia Tax employer withholding instructions: flat 5.75%",
       "_sourceUrl": "https://www.tax.virginia.gov/sites/default/files/vatax-pdf/employer-withholding-instructions.pdf",
       "note": "Optional flat method, or aggregate if income tax was already withheld from regular wages."
     },
@@ -492,7 +503,7 @@
       "special": "wi_banded",
       "verified": true,
       "singleSourced": false,
-      "source": "Wisconsin DOR Publication W-166 (2026): four-band graduated supplemental rate (all bands + thresholds verified verbatim)",
+      "source": "Wisconsin DOR Publication W-166 (2026): four-band graduated supplemental rate",
       "_sourceUrl": "https://www.revenue.wi.gov/DOR%20Publications/pb166.pdf",
       "bands": [
         {

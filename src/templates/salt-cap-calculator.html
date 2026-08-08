@@ -141,14 +141,15 @@
         </section>
 
         <section class="otw-card" data-step="3" aria-labelledby="otwQ3">
-          <h2 class="otw-q" id="otwQ3"><label for="magi">How much did you make that year, before tax?</label></h2>
+          <h2 class="otw-q" id="otwQ3"><label for="magi">What was your adjusted gross income that year?</label></h2>
           <div class="otw-money">
-            <input type="text" class="otw-in" id="magi" inputmode="decimal" data-money autocomplete="off" value="300000">
+            <input type="text" class="otw-in" id="magi" inputmode="decimal" data-money autocomplete="off" value="300000" aria-describedby="magiNote">
           </div>
+          <p class="otw-note" id="magiNote">Not your gross pay: your adjusted gross income is line 11a on your Form 1040, after money you put into a 401(k) or an HSA has already come out.</p>
           <p class="otw-flag" id="otwIncomeFlag" hidden></p>
           <details class="otw-help">
             <summary>This figure is what decides whether your limit gets cut</summary>
-            <p>If you filed last year, this is line 11 on your Form 1040. Married and filing one return together? Add both incomes. It only matters above $500,000 ($505,000 in 2026), where the limit starts shrinking. Tax forms measure that against your <a href="/tax-glossary/#magi">modified adjusted gross income</a>, which for almost everyone is the same figure.</p>
+            <p>If you filed last year, this is line 11a on your Form 1040. Married and filing one return together? Use the one figure from your joint return. It only matters above $500,000 ($505,000 in 2026), where the limit starts shrinking. Tax forms measure that against your <a href="/tax-glossary/#magi">modified adjusted gross income</a>, which for almost everyone is the same figure.</p>
           </details>
           <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
         </section>
@@ -166,7 +167,7 @@
             </label>
             <label class="otw-opt">
               <input type="radio" name="filing" value="married_separate">
-              <span><span class="otw-opt-t">Married, but we each send our own return</span><span class="otw-opt-s">married filing separately, and every figure on this page is halved</span></span>
+              <span><span class="otw-opt-t">Married, but we each send our own return</span><span class="otw-opt-s">married filing separately, and the limit, the income level and the $10,000 floor are each halved</span></span>
             </label>
             <label class="otw-opt">
               <input type="radio" name="filing" value="head_of_household">
@@ -174,8 +175,8 @@
             </label>
           </div>
           <details class="otw-help">
-            <summary>Sending in separate returns halves every figure on this page</summary>
-            <p>The limit, the income level where it starts shrinking, and the floor it stops at are each cut in half for married couples who each send their own return. Filing one return together does not double anything: a couple gets the same limit as a single person, which is the same "marriage penalty" the old $10,000 limit had.</p>
+            <summary>Sending in separate returns halves the limit, the income level and the floor</summary>
+            <p>The limit, the income level where it starts shrinking, and the floor it stops at are each cut in half for married couples who each send their own return. Your standard deduction is not halved, though: filing separately, it is the same amount a single filer gets. Filing one return together does not double anything either: a couple gets the same limit as a single person, which is the same "marriage penalty" the old $10,000 limit had.</p>
           </details>
           <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
         </section>

@@ -145,10 +145,11 @@
         <section class="otw-card" data-step="2" aria-labelledby="otwQ2">
           <h2 class="otw-q" id="otwQ2"><label for="amount">How much were you paid this year, in total?</label></h2>
           <div class="otw-money">
-            <input type="text" class="otw-in" id="amount" inputmode="decimal" data-money autocomplete="off" value="8000">
+            <input type="text" class="otw-in" id="amount" inputmode="decimal" data-money autocomplete="off" value="8000" aria-describedby="amountNote">
           </div>
+          <p class="otw-note" id="amountNote">If this came through a payment app or card processor, only money for goods and services counts towards that test, not personal transfers or a friend paying you back.</p>
           <details class="otw-help">
-            <summary>Count everything this one app, card processor, or business paid you over the calendar year</summary>
+            <summary>Count what this one app, card processor, or business paid you over the calendar year</summary>
             <p>Use the figure before any fees or refunds came out. Each one is tested on its own total: $15,000 on PayPal plus $15,000 on Venmo triggers nothing from either, because neither of them alone is over the limit. A rough total is fine, you can change it at the end and watch the answer update.</p>
           </details>
           <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
@@ -183,8 +184,8 @@
             </label>
           </div>
           <details class="otw-help">
-            <summary>Both use exactly the same dollar limit</summary>
-            <p>So this only changes which name is printed on the form, never the number you have to reach.</p>
+            <summary>Both use the same dollar limit, with one exception: royalties</summary>
+            <p>For work you did and for rent, the answer changes only which name is printed on the form, never the number you have to reach. Royalties are the exception: a business has to send a 1099-MISC for royalties of $10 or more for the year, far below the limit shown here, so if the money was royalties expect a form whatever the total.</p>
           </details>
           <div class="otw-nav"><button type="button" class="otw-back">Back</button><button type="button" class="otw-next">Next</button></div>
         </section>
