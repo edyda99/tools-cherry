@@ -411,6 +411,11 @@ function sitemapLastmod(u) {
   if (!seg) return gitDate('src/templates/home.html') || CONTENT_DATE;
   if (/-paycheck-calculator$/.test(seg))
     return gitDate('src/data/state-payroll-2026.json') || CONTENT_DATE;
+  // California salary-ladder rungs: 14 URLs, one shared template. Without this
+  // they all fall through to CONTENT_DATE and advertise a lastmod older than the
+  // content they serve, which is the one thing a lastmod must not do.
+  if (/^california-take-home-pay-\d+$/.test(seg))
+    return gitDate('src/templates/california-take-home-pay-salary.html') || CONTENT_DATE;
   const tpl = `src/templates/${seg}.html`;
   if (existsSync(join(__dirname, tpl))) return gitDate(tpl) || CONTENT_DATE;
   // Nested URLs whose template lives at the flat top level under a hyphenated
@@ -3797,6 +3802,441 @@ function bonusHubLinks(roster, builtSlugs) {
     .join('\n');
 }
 
+// ===========================================================================
+// CALIFORNIA SALARY LADDER — /california-take-home-pay/ hub + one page per
+// salary rung (/california-take-home-pay-60000/ …).
+//
+// The commercial query here is "take-home pay on $X in California", and the
+// site had no page that answers it with a number. Every figure below is
+// computed at build time by the SAME engine the calculator ships (computePaycheck
+// / federalBracketBreakdown) reading src/data/tax-data-2026.json. Nothing is
+// hard-coded: not a rate, not a bracket edge, not a standard deduction, not the
+// SDI rate. That is deliberate — the freshness checks and the tax-data edits
+// that keep this site honest only work if the pages derive from the data file.
+//
+// The thin/doorway risk is real (three AdSense "low value content" rejections),
+// so a rung page is NOT the same paragraph with a different number swapped in.
+// Each one carries its own bracket-by-bracket working for both the federal and
+// the California ladder, a filing-status comparison, a marginal-keep figure for
+// the step it sits on, and conditional prose that only says a thing when the
+// data at THAT salary makes it true (the Social Security cap, the Additional
+// Medicare threshold, SDI overtaking the state income tax at the bottom of the
+// ladder, how many of California's nine bands the salary actually reaches).
+// ===========================================================================
+
+// The rungs. $10,000 steps, low first. Changing this array changes the pages,
+// the hub table, the prev/next links and the sitemap together.
+const CA_LADDER_SALARIES = (() => {
+  const out = [];
+  for (let s = 30000; s <= 160000; s += 10000) out.push(s);
+  return out;
+})();
+const CA_LADDER_SLUG = 'california-take-home-pay';
+const caLadderPath = (amount) => `/${CA_LADDER_SLUG}-${amount}/`;
+
+const usdCents = (n) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const pct1 = (n) => (n * 100).toFixed(1) + '%';
+const pct2 = (n) => (n * 100).toFixed(2) + '%';
+
+// One rung's full computation. Everything a rung page or the hub needs, and
+// nothing computed twice: the prose, the tables, the FAQ and the JSON-LD all
+// read this one object, so the page cannot contradict itself.
+function caRung(amount, taxData) {
+  const ca = taxData.states.california;
+  const run = (filingStatus) => computePaycheck(
+    { wage: { type: 'salary', amount }, filingStatus, payFrequency: 'annual', stateSlug: 'california' },
+    taxData
+  ).annual;
+  const a = run('single');
+  const fed = federalBracketBreakdown(amount, 'single', taxData.federal, 0);
+  // The California ladder, through the SAME engine function, by handing it
+  // California's own deduction + bracket tables in the shape it expects. That is
+  // what makes the per-band figures below provably the decomposition of the
+  // state tax the engine charged, rather than a second, drifting calculation.
+  const st = federalBracketBreakdown(amount, 'single', { standardDeduction: ca.tax.standardDeduction, brackets: ca.tax.brackets }, 0);
+  const stSum = st.bands.reduce((s, b) => s + b.tax, 0);
+  if (Math.abs(stSum - a.state) > 0.01) {
+    throw new Error(
+      `California band decomposition does not reproduce the engine's state tax on $${amount}: ` +
+      `bands sum to ${stSum} but computePaycheck charged ${a.state}. The page would print a table ` +
+      `that does not add up to its own total — fix the decomposition, do not ship it.`
+    );
+  }
+  const sdi = a.statePrograms;
+  const withheld = a.totalTax + sdi;
+  return {
+    amount,
+    path: caLadderPath(amount),
+    a,
+    fed,
+    st,
+    sdi,
+    withheld,
+    // effectiveRate on the engine's `annual` covers taxes only. SDI is a real
+    // deduction from the same paycheck, so the rate this page shows the reader
+    // is everything withheld over gross, and it is labelled as that.
+    allInRate: amount > 0 ? withheld / amount : 0,
+    byStatus: { single: a, married: run('married'), head_of_household: run('head_of_household') },
+  };
+}
+
+function caLadderRungs(taxData) {
+  return CA_LADDER_SALARIES.map((s) => caRung(s, taxData));
+}
+
+// Rows of the "where every dollar goes" table: annual / monthly / biweekly and
+// the share of gross, one row per withholding line the engine actually produced.
+function caBreakdownRows(r) {
+  // A withheld line prints as "−$1,420", not "$-1,420": the sign belongs in
+  // front of the whole amount, and the share column stays a positive share of
+  // gross (a line that took 4.7% of your pay did not take "-4.7%" of it).
+  const line = (label, amount, { minus = false, cls = '' } = {}) => {
+    const share = r.amount > 0 ? pct1(amount / r.amount) : '—';
+    const money = (v) => (minus ? '−' : '') + usd0(v);
+    const cents = (v) => (minus ? '−' : '') + usdCents(v);
+    return `<tr${cls ? ` class="${cls}"` : ''}><td>${label}</td>` +
+      `<td class="num">${money(amount)}</td>` +
+      `<td class="num">${money(amount / 12)}</td>` +
+      `<td class="num">${cents(amount / 26)}</td>` +
+      `<td class="num">${share}</td></tr>`;
+  };
+  const out = (label, v, cls) => line(label, v, { minus: true, cls });
+  return [
+    line('Gross salary', r.amount),
+    out('Federal income tax', r.a.federal),
+    out('Social Security (6.2%)', r.a.socialSecurity),
+    out('Medicare (1.45%)', r.a.medicare),
+    out('California income tax', r.a.state),
+    out('California SDI', r.sdi),
+    out('Total withheld', r.withheld, 'tot'),
+    line('Take-home pay', r.a.net, { cls: 'net' }),
+  ].join('\n');
+}
+
+// Band rows for either ladder. Only the bands the salary actually reaches are
+// printed, because a table listing California's 12.3% band against $0 of income
+// on a $40,000 page is padding, not information.
+function caBandRows(bd) {
+  return bd.bands.filter((b) => b.amount > 0).map((b) => {
+    const range = b.upper === Infinity
+      ? `${usd0(b.lower)} and up`
+      : `${usd0(b.lower)} – ${usd0(b.upper)}`;
+    return `<tr><td>${range}</td><td class="num">${pctStr(b.rate)}</td>` +
+      `<td class="num">${usd0(b.amount)}</td><td class="num">${usd0(b.tax)}</td></tr>`;
+  }).join('\n') + `\n<tr class="tot"><td>Total</td><td class="num"></td>` +
+    `<td class="num">${usd0(bd.taxable)}</td>` +
+    `<td class="num">${usd0(bd.bands.reduce((s, b) => s + b.tax, 0))}</td></tr>`;
+}
+
+function caStatusRows(r, taxData) {
+  return taxData.filingStatuses.map((fs) => {
+    const v = r.byStatus[fs.id];
+    const rate = r.amount > 0 ? (v.totalTax + v.statePrograms) / r.amount : 0;
+    return `<tr><td>${esc(fs.label)}</td><td class="num">${usd0(v.federal)}</td>` +
+      `<td class="num">${usd0(v.state)}</td><td class="num">${usd0(v.net)}</td>` +
+      `<td class="num">${pct1(rate)}</td></tr>`;
+  }).join('\n');
+}
+
+// The ladder table that appears on every rung page, with the current rung
+// highlighted and the "kept from the last step" column computed from the rung
+// below it. That column is the reason the ladder is worth cross-linking at all:
+// it answers "is the raise worth it", which no single-salary page can.
+function caLadderRows(rungs, currentAmount) {
+  return rungs.map((r, i) => {
+    const prev = i > 0 ? rungs[i - 1] : null;
+    const kept = prev
+      ? `${usd0(r.a.net - prev.a.net)} of ${usd0(r.amount - prev.amount)} (${pct1((r.a.net - prev.a.net) / (r.amount - prev.amount))})`
+      : '—';
+    const here = r.amount === currentAmount;
+    const label = here
+      ? `<strong>${usd0(r.amount)}</strong> (this page)`
+      : `<a href="${r.path}">${usd0(r.amount)}</a>`;
+    return `<tr${here ? ' class="here"' : ''}><td>${label}</td>` +
+      `<td class="num">${usd0(r.a.net)}</td><td class="num">${usd0(r.a.net / 12)}</td>` +
+      `<td class="num">${pct1(r.allInRate)}</td>` +
+      `<td class="num${prev ? '' : ' zero'}">${kept}</td></tr>`;
+  }).join('\n');
+}
+
+// The conditional prose. Every paragraph is gated on a fact about THIS salary,
+// so a rung only carries the paragraphs its own numbers earn. Two rungs never
+// end up with the same set.
+function caLadderProse(r, rungs, taxData, ca) {
+  const i = rungs.findIndex((x) => x.amount === r.amount);
+  const prev = i > 0 ? rungs[i - 1] : null;
+  const next = i < rungs.length - 1 ? rungs[i + 1] : null;
+  const fedTop = r.fed.bands.filter((b) => b.amount > 0).slice(-1)[0];
+  const stTop = r.st.bands.filter((b) => b.amount > 0).slice(-1)[0];
+  const bandsUsed = r.st.bands.filter((b) => b.amount > 0).length;
+  const bandsTotal = ca.tax.brackets.single.length;
+  const wageBase = taxData.federal.fica.socialSecurity.wageBase;
+  const addlThreshold = taxData.federal.fica.additionalMedicare.threshold.single;
+  const sdiRate = ca.employeePrograms[0].rate;
+  const out = [];
+
+  out.push(
+    `<h3>Your top rate is not your real rate</h3>` +
+    `<p>On ${usd0(r.amount)} the last slice of taxable income is taxed at ${pctStr(fedTop.rate)} federally ` +
+    `and ${pctStr(stTop.rate)} by California, but those are the rates on the last dollar only. Averaged ` +
+    `across the whole salary, federal income tax costs ${pct1(r.a.federal / r.amount)} of gross pay and ` +
+    `California income tax costs ${pct1(r.a.state / r.amount)}. Everything withheld together — federal ` +
+    `tax, Social Security, Medicare, California tax and SDI — comes to ${pct1(r.allInRate)}, which is ` +
+    `${usd0(r.withheld)} a year.</p>`
+  );
+
+  out.push(
+    `<h3>How far up California's ladder ${usd0(r.amount)} reaches</h3>` +
+    `<p>California has ${numWord(bandsTotal)} rate bands for a single filer. A ${usd0(r.amount)} salary ` +
+    `reaches ${numWord(bandsUsed)} of them, topping out in the ${pctStr(stTop.rate)} band. ` +
+    (bandsUsed < bandsTotal
+      ? `The ${numWord(bandsTotal - bandsUsed)} band${bandsTotal - bandsUsed === 1 ? '' : 's'} above it, ` +
+        `running to ${pctStr(ca.tax.brackets.single[bandsTotal - 1].rate)}, start above ` +
+        `${usd0(ca.tax.brackets.single[bandsUsed - 1].upTo)} of taxable income and do not touch this salary at all. ` +
+        `California's headline top rate is a number about very high earners, not about this paycheck.`
+      : `That is the top of the published schedule, so every further dollar is taxed at the same rate.`) +
+    `</p>`
+  );
+
+  // Social Security cap: a fact only if the salary is near or over the base.
+  if (r.amount >= wageBase) {
+    out.push(
+      `<h3>Social Security stops before the year does</h3>` +
+      `<p>The ${taxData.taxYear} Social Security wage base is ${usd0(wageBase)}, and ${usd0(r.amount)} is ` +
+      `above it. Social Security is charged on the first ${usd0(wageBase)} only, so the contribution is ` +
+      `capped at ${usd0(r.a.socialSecurity)} however much more you earn. Medicare has no such ceiling and ` +
+      `keeps taking 1.45% of every dollar, which is ${usd0(r.a.medicare)} here.</p>`
+    );
+  } else {
+    out.push(
+      `<h3>Every dollar is still carrying Social Security</h3>` +
+      `<p>Social Security stops being charged above the ${taxData.taxYear} wage base of ${usd0(wageBase)}. ` +
+      `At ${usd0(r.amount)} you are ${usd0(wageBase - r.amount)} short of it, so all ${usd0(r.amount)} is ` +
+      `subject to the 6.2%, which is ${usd0(r.a.socialSecurity)} a year. Medicare adds ${usd0(r.a.medicare)} ` +
+      `on top and has no ceiling at any salary.</p>`
+    );
+  }
+
+  // Additional Medicare: says N/A with the distance, or applies with the amount.
+  if (r.amount > addlThreshold) {
+    out.push(
+      `<h3>The 0.9% Additional Medicare surtax applies here</h3>` +
+      `<p>A single filer pays an extra 0.9% Medicare tax on wages above ${usd0(addlThreshold)}. ` +
+      `${usd0(r.amount)} clears that line by ${usd0(r.amount - addlThreshold)}, so the surtax is in the ` +
+      `Medicare figure above. Note the mismatch employees hit here: an employer starts withholding it at ` +
+      `that same ${usd0(addlThreshold)} of wages whatever your filing status, so a joint filer can see it ` +
+      `withheld before they actually owe it and settle up on the return.</p>`
+    );
+  } else {
+    out.push(
+      `<h3>The 0.9% Additional Medicare surtax does not apply</h3>` +
+      `<p>That surtax starts at ${usd0(addlThreshold)} of wages for a single filer, and ${usd0(r.amount)} ` +
+      `is ${usd0(addlThreshold - r.amount)} below it. The Medicare line above is the plain 1.45% only. ` +
+      `It is worth knowing the threshold is not indexed for inflation, so it catches more people each year ` +
+      `without anyone changing it.</p>`
+    );
+  }
+
+  // SDI, and the genuinely salary-dependent comparison against the state income tax.
+  // Where SDI stops being the bigger of California's two lines, read off the
+  // computed ladder rather than asserted, so the sentence corrects itself if a
+  // rate or a bracket moves.
+  const lastSdiWins = [...rungs].reverse().find((x) => x.sdi > x.a.state);
+  const crossover = lastSdiWins
+    ? ` Across this ladder SDI is the bigger of California's two lines up to ${usd0(lastSdiWins.amount)}, ` +
+      `and the income tax is bigger above that, because SDI is a flat rate while the income tax is graduated.`
+    : '';
+  const sdiVsState = (r.sdi > r.a.state
+    ? `At this salary SDI actually costs more than California income tax does: ${usd0(r.sdi)} against ` +
+      `${usd0(r.a.state)}. People budgeting for "California taxes" almost never account for that.`
+    : `At this salary California income tax is the larger of the two: ${usd0(r.a.state)} of income tax ` +
+      `against ${usd0(r.sdi)} of SDI.`) + crossover;
+  out.push(
+    `<h3>California SDI has no wage ceiling</h3>` +
+    `<p>State Disability Insurance, which also pays for Paid Family Leave, is withheld at ` +
+    `${pct2(sdiRate)} of wages. Since SB 951 removed the taxable-wage ceiling on 1 January 2024 there is ` +
+    `no cap, so the charge on ${usd0(r.amount)} is the full ${usd0(r.sdi)} — ${usdCents(r.sdi / 26)} out of ` +
+    `every two-week paycheck. ${sdiVsState} It is withheld after tax, so unlike a 401(k) contribution it ` +
+    `does not reduce what you owe anywhere else.</p>`
+  );
+
+  // The step: what the raise into or out of this rung is actually worth.
+  if (prev || next) {
+    const stepBits = [];
+    if (prev) {
+      const keptA = r.a.net - prev.a.net;
+      stepBits.push(
+        `Coming up from ${usd0(prev.amount)}, the ${usd0(r.amount - prev.amount)} raise added ` +
+        `${usd0(keptA)} of take-home pay, so you kept ${pct1(keptA / (r.amount - prev.amount))} of it and ` +
+        `${usd0((r.amount - prev.amount) - keptA)} went to withholding.`
+      );
+    }
+    if (next) {
+      const keptB = next.a.net - r.a.net;
+      stepBits.push(
+        `Going up to ${usd0(next.amount)} would add ${usd0(keptB)} a year, ` +
+        `${usd0(keptB / 12)} a month, out of ${usd0(next.amount - r.amount)} of extra gross — ` +
+        `${pct1(keptB / (next.amount - r.amount))} of the raise.`
+      );
+    }
+    out.push(
+      `<h3>What the next step up is actually worth</h3><p>${stepBits.join(' ')} ` +
+      `Nothing in California's schedule creates a cliff where earning more leaves you with less; ` +
+      `each band only ever applies to the income inside it.</p>`
+    );
+  }
+
+  // Hourly, which is how a large share of the searches for this figure are framed.
+  const hours = 2080;
+  out.push(
+    `<h3>What ${usd0(r.amount)} works out to per hour, after tax</h3>` +
+    `<p>At 40 hours a week for 52 weeks (${hours.toLocaleString('en-US')} hours), ${usd0(r.amount)} is ` +
+    `${usdCents(r.amount / hours)} an hour gross and ${usdCents(r.a.net / hours)} an hour after federal ` +
+    `tax, FICA, California income tax and SDI. Per two-week paycheck that is ${usdCents(r.a.net / 26)}, ` +
+    `and per month ${usd0(r.a.net / 12)}.</p>`
+  );
+
+  return out.join('\n      ');
+}
+
+function caLadderFaq(r, rungs, taxData, ca, payrollCA) {
+  const i = rungs.findIndex((x) => x.amount === r.amount);
+  const next = i < rungs.length - 1 ? rungs[i + 1] : null;
+  const fedTop = r.fed.bands.filter((b) => b.amount > 0).slice(-1)[0];
+  const stTop = r.st.bands.filter((b) => b.amount > 0).slice(-1)[0];
+  const addlThreshold = taxData.federal.fica.additionalMedicare.threshold.single;
+  const mhi = payrollCA && payrollCA.medianHouseholdIncome && payrollCA.medianHouseholdIncome.amountUsd;
+  const S = usd0(r.amount);
+  const faq = [
+    {
+      q: `What is the take-home pay on a ${S} salary in California?`,
+      a: `About ${usd0(r.a.net)} a year for a single filer taking the standard deduction, once federal ` +
+        `income tax (${usd0(r.a.federal)}), Social Security (${usd0(r.a.socialSecurity)}), Medicare ` +
+        `(${usd0(r.a.medicare)}), California income tax (${usd0(r.a.state)}) and California SDI ` +
+        `(${usd0(r.sdi)}) are withheld. That is ${pct1(r.allInRate)} of gross pay withheld in total.`,
+    },
+    {
+      q: `How much is ${S} a year per month after taxes in California?`,
+      a: `${usd0(r.a.net / 12)} a month. Paid every two weeks it is ${usdCents(r.a.net / 26)} per paycheck ` +
+        `across 26 paychecks; paid twice a month it is ${usdCents(r.a.net / 24)} across 24.`,
+    },
+    {
+      q: `What tax bracket does ${S} put me in in California?`,
+      a: `Federally the ${pctStr(fedTop.rate)} bracket, and in California the ${pctStr(stTop.rate)} band. ` +
+        `Neither rate applies to the whole salary: they apply only to the income inside that band. ` +
+        `Your average federal rate on ${S} is ${pct1(r.a.federal / r.amount)} and your average California ` +
+        `rate is ${pct1(r.a.state / r.amount)}.`,
+    },
+    {
+      q: `How much California state tax comes out of ${S}?`,
+      a: `${usd0(r.a.state)} of income tax a year, worked out on ${usd0(r.st.taxable)} of California ` +
+        `taxable income after the ${usd0(ca.tax.standardDeduction.single)} single standard deduction. ` +
+        `Separately, ${usd0(r.sdi)} of California SDI is withheld on the full ${S}, because SDI has no ` +
+        `wage ceiling.`,
+    },
+    {
+      q: r.amount > addlThreshold
+        ? `Do I pay the Additional Medicare tax on ${S}?`
+        : `Does the 0.9% Additional Medicare tax apply to ${S}?`,
+      a: r.amount > addlThreshold
+        ? `Yes. It applies to wages above ${usd0(addlThreshold)} for a single filer, and ${S} is ` +
+          `${usd0(r.amount - addlThreshold)} above that line. It is already inside the ${usd0(r.a.medicare)} ` +
+          `Medicare figure on this page.`
+        : `No. The surtax starts at ${usd0(addlThreshold)} of wages for a single filer and ${S} is ` +
+          `${usd0(addlThreshold - r.amount)} short of it, so Medicare here is the flat 1.45%, ` +
+          `${usd0(r.a.medicare)} a year.`,
+    },
+    next ? {
+      q: `How much more would I keep on ${usd0(next.amount)} instead of ${S}?`,
+      a: `${usd0(next.a.net - r.a.net)} more a year, or ${usd0((next.a.net - r.a.net) / 12)} a month. ` +
+        `That is ${pct1((next.a.net - r.a.net) / (next.amount - r.amount))} of the ` +
+        `${usd0(next.amount - r.amount)} raise; the rest goes to federal tax, FICA, California tax and SDI.`,
+    } : null,
+    mhi ? {
+      q: `Is ${S} a good salary in California?`,
+      a: `For context rather than advice: California's median HOUSEHOLD income is ${usd0(mhi)}, and a ` +
+        `household can hold more than one earner. A single earner on ${S} takes home ${usd0(r.a.net)} ` +
+        `after payroll withholding. Housing cost varies enormously inside the state and is not modelled ` +
+        `anywhere on this page, so treat the take-home figure as the payroll half of the question only.`,
+    } : null,
+    {
+      q: `Will this match my actual paycheck?`,
+      a: `Probably not exactly, and it is not meant to. This models a single filer taking the standard ` +
+        `deduction with no 401(k), no health premiums, no dependents and no other income. Your W-4, your ` +
+        `benefits and any credits move the number. Use the California paycheck calculator to enter your ` +
+        `own figures.`,
+    },
+  ].filter(Boolean);
+  return faq;
+}
+
+function caFaqBlocks(faq) {
+  return faq.map((f) => `<h3>${esc(f.q)}</h3>\n      <p>${esc(f.a)}</p>`).join('\n\n      ');
+}
+
+// Sources, built from the URLs the data file already carries for California and
+// for the federal figures. Titles are ours; the URLs are the data's, so a source
+// swap in tax-data-2026.json moves the citation with it.
+function caLadderSources(taxData, ca) {
+  const named = [];
+  const seen = new Set();
+  const add = (title, url) => {
+    if (!url || !/^https?:\/\//.test(url) || seen.has(url)) return;
+    seen.add(url);
+    named.push({ title, url });
+  };
+  // California's own citations, pulled out of the data file's _source note. Each
+  // gets a title describing what that particular document settles — four links
+  // all captioned "Franchise Tax Board" is a list a reader cannot use.
+  const FTB_TITLES = [
+    [/tax-rate-schedules/, 'California FTB: Form 540 tax rate schedules'],
+    [/540-booklet/, 'California FTB: Form 540 booklet, standard deduction chart'],
+    [/540-es-instructions/, 'California FTB: Form 540-ES instructions, which year’s tables apply'],
+    [/tax-news/, 'California FTB: annual inflation indexing of the standard deduction'],
+  ];
+  const stateUrls = String(ca._source || '').match(/https?:\/\/\S+/g) || [];
+  stateUrls.forEach((raw) => {
+    const u = raw.replace(/[;,)]+$/, '');
+    const hit = FTB_TITLES.find(([re]) => re.test(u));
+    add(hit ? hit[1] : 'California Franchise Tax Board', u);
+  });
+  (ca.employeePrograms || []).forEach((p) => add('California EDD: SDI rates and withholding', p._source));
+  const SOURCE_TITLES = {
+    federal_brackets: `IRS: ${taxData.taxYear} inflation-adjusted tax brackets`,
+    federal_brackets_hoh: `IRS: Rev. Proc. 2025-32 (${taxData.taxYear} brackets, all statuses)`,
+    standard_deduction: `IRS: ${taxData.taxYear} standard deduction`,
+    fica: 'Social Security Administration: Contribution and Benefit Base',
+    additional_medicare: 'IRS: Topic no. 751, Additional Medicare Tax',
+  };
+  Object.entries((taxData._meta && taxData._meta.sources) || {})
+    .forEach(([k, u]) => add(SOURCE_TITLES[k] || k.replace(/_/g, ' '), u));
+  return named.map((s) => `<li><a href="${esc(s.url)}" rel="noopener" target="_blank">${esc(s.title)}</a></li>`).join('');
+}
+
+// The "what this does not include" list. The local-income-tax item is written
+// from the payroll data's own answer for California rather than asserted.
+function caLimitItems(ca, payrollCA, year) {
+  const items = [];
+  const lt = payrollCA && payrollCA.localIncomeTax;
+  if (lt) {
+    items.push(lt.exists
+      ? `<li><strong>Local income tax.</strong> California localities levy one where it applies, and it is not modelled here.</li>`
+      : `<li><strong>Local income tax.</strong> There is none to include: California has no city or county income tax on wages, so nothing is missing on this line.</li>`);
+  }
+  items.push(`<li><strong>Pre-tax deductions.</strong> No 401(k), no HSA or FSA, no health premiums. All of those cut taxable income, so a real paycheck with benefits keeps more than this page shows.</li>`);
+  items.push(`<li><strong>Credits and itemizing.</strong> Standard deduction only, no dependents, no child tax credit, no itemized deductions.</li>`);
+  items.push(`<li><strong>Non-wage income and the employer's share.</strong> Investment income, self-employment income and the employer half of FICA are all out of scope.</li>`);
+  // The state's own caveats, straight out of the data file so a new one appears
+  // here the day it is added. The prior-year-tables caveat is dropped: it is the
+  // same sentence figureYearBanner() already puts at the top of the page, and
+  // printing it twice reads as padding. Detected rather than hard-listed — an
+  // entry naming BOTH the fallback year and the build year is that caveat.
+  (ca.disclaimer || [])
+    .filter((d) => !(String(d).includes(String(ca.figureYear)) && String(d).includes(String(year))))
+    .forEach((n) => items.push(`<li>${esc(String(n))}</li>`));
+  return items.join('\n        ');
+}
+
 // --- Content-hashed /assets/*.js pipeline -----------------------------------
 // FIXES A LIVE P0: every asset file used to ship as a flat, unhashed name on a
 // blind `Cache-Control: max-age=86400` (see the old _headers block). A shared
@@ -4708,6 +5148,12 @@ async function main() {
     // State pages relate to the paycheck/OBBBA cluster, not the full tool
     // directory: the 2 OBBBA calculators, the 2 data studies, salary-to-hourly.
     const stateRelated = relatedLinksHtml(orderAncillary(slug, [
+      // California alone has the salary ladder (/california-take-home-pay/), so
+      // only California's page links to it. Gated on the slug rather than added
+      // to all 51, which would be 50 links to a page about another state.
+      ...(slug === 'california'
+        ? [{ name: `${state.name} Take-Home Pay by Salary`, path: `/${CA_LADDER_SLUG}/` }]
+        : []),
       { name: `${state.name} Bonus Tax Calculator`, path: `/${slug}-bonus-tax-calculator/` },
       { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
       { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
@@ -4835,6 +5281,287 @@ async function main() {
     assertPanelParity(state, net75, panel, pageHtml, appScan);
     await writeFile(join(dir, 'index.html'), pageHtml);
     urls.push(`${SITE.url}/${slug}-paycheck-calculator/`);
+  }
+
+  // --- California salary ladder: hub + one page per salary rung -------------
+  // See the CALIFORNIA SALARY LADDER block above for why these exist and what
+  // keeps them off the doorway shape. Every figure is computed here, at build
+  // time, from taxData; the templates carry no numbers of their own.
+  {
+    const ca = taxData.states.california;
+    const payrollCA = payroll.california;
+    const rungTpl = await read(join(SRC, 'templates', 'california-take-home-pay-salary.html'));
+    const hubTpl = await read(join(SRC, 'templates', 'california-take-home-pay.html'));
+    const rungs = caLadderRungs(taxData);
+    const low = rungs[0];
+    const high = rungs[rungs.length - 1];
+    const step = rungs.length > 1 ? rungs[1].amount - rungs[0].amount : 0;
+    const fedStdDed = usd0(taxData.federal.standardDeduction.single);
+    const ssBase = usd0(taxData.federal.fica.socialSecurity.wageBase);
+    const caStdDed = usd0(ca.tax.standardDeduction.single);
+    const sdiRateText = pct2(ca.employeePrograms[0].rate);
+    const addlThreshold = taxData.federal.fica.additionalMedicare.threshold.single;
+    // Coverage claim in the byline, from the state's own figureYear. California
+    // is on its 2025 schedules while the FTB has not published 2026 ones, and a
+    // byline that said "2026 figures" would be a plain untruth on 14 pages.
+    const ladderBasis = esc(Number(ca.figureYear) === Number(year)
+      ? `Computed from published ${year} federal and California tables`
+      : `Computed from published ${year} federal tables; California on its ${ca.figureYear} schedules`);
+    const sourceRows = caLadderSources(taxData, ca);
+    const limitItems = caLimitItems(ca, payrollCA, year);
+    const pubDate = humanDate(gitDate('src/data/tax-data-2026.json') || CONTENT_DATE)
+      || humanDate(CONTENT_DATE);
+    const ladderRelated = relatedLinksHtml([
+      { name: 'California Paycheck Calculator', path: '/california-paycheck-calculator/' },
+      { name: 'California Take-Home Pay by Salary', path: `/${CA_LADDER_SLUG}/` },
+      { name: 'California Bonus Tax Calculator', path: '/california-bonus-tax-calculator/' },
+      { name: `Take-Home Pay by State on ${STUDY_SALARY_TEXT} (Data Study)`, path: '/data/take-home-pay-by-state/' },
+      { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
+      { name: 'Biweekly vs Semimonthly Pay', path: '/biweekly-vs-semimonthly/' },
+    ]);
+
+    for (let i = 0; i < rungs.length; i++) {
+      const r = rungs[i];
+      const prev = i > 0 ? rungs[i - 1] : null;
+      const next = i < rungs.length - 1 ? rungs[i + 1] : null;
+      const S = usd0(r.amount);
+      const faq = caLadderFaq(r, rungs, taxData, ca, payrollCA);
+      const title = `${S} After Taxes in California (${year}): Take-Home Pay`;
+      const metaDesc = `A ${S} salary in California takes home ${usd0(r.a.net)} a year, ` +
+        `${usd0(r.a.net / 12)} a month, ${usdCents(r.a.net / 26)} every two weeks. Full ${year} breakdown ` +
+        `of federal tax, Social Security, Medicare, California income tax and SDI, bracket by bracket.`;
+      const articleLd = JSON.stringify({
+        '@context': 'https://schema.org', '@type': 'Article',
+        headline: `Take-home pay on a ${S} salary in California (${year})`,
+        description: metaDesc,
+        datePublished: CONTENT_DATE,
+        dateModified: gitDate('src/data/tax-data-2026.json') || CONTENT_DATE,
+        author: { '@type': 'Person', '@id': `${SITE.url}/#edmond-daher`, name: 'Edmond Daher', url: `${SITE.url}/about/` },
+        publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+        mainEntityOfPage: `${SITE.url}${r.path}`,
+        about: { '@type': 'Thing', name: `California take-home pay on a ${S} salary` },
+        isAccessibleForFree: true,
+      });
+      const prevNext = [
+        prev ? `<a href="${prev.path}">&larr; ${usd0(prev.amount)} in California</a>` : '',
+        `<a href="/${CA_LADDER_SLUG}/">All California salary levels</a>`,
+        next ? `<a href="${next.path}">${usd0(next.amount)} in California &rarr;</a>` : '',
+      ].filter(Boolean).join('\n      ');
+
+      const html = fill(rungTpl, {
+        SITE_NAME: SITE.name, SITE_URL: SITE.url,
+        TAX_YEAR: year,
+        PAGE_PATH: r.path,
+        PAGE_TITLE: title,
+        OG_TITLE: `${S} after taxes in California: ${usd0(r.a.net)} take-home`,
+        META_DESC: metaDesc,
+        OG_DESC: `Computed ${year} take-home pay on ${S} in California — ${usd0(r.a.net)} a year, ` +
+          `${usd0(r.a.net / 12)} a month, with the federal and California brackets worked out line by line.`,
+        H1: `Take-home pay on a ${S} salary in California`,
+        SALARY: S,
+        PUB_DATE: pubDate,
+        FIGURE_BASIS: ladderBasis,
+        FIGURE_BANNER: figureYearBanner(ca, year),
+        LEDE: `A ${S} salary in California leaves <strong>${usd0(r.a.net)}</strong> a year after federal ` +
+          `income tax, Social Security, Medicare, California income tax and California SDI — ` +
+          `${usd0(r.a.net / 12)} a month, or ${usdCents(r.a.net / 26)} in a two-week paycheck. That is a ` +
+          `single filer taking the standard deduction, with every figure below computed from the ` +
+          `published tax tables rather than estimated.`,
+        NET_ANNUAL: usd0(r.a.net),
+        NET_MONTHLY: usd0(r.a.net / 12),
+        NET_BIWEEKLY: usdCents(r.a.net / 26),
+        EFF_RATE: pct1(r.allInRate),
+        SHORT_VERSION: `${usd0(r.withheld)} of the ${S} is withheld (${pct1(r.allInRate)} of gross) and ` +
+          `${usd0(r.a.net)} reaches you. The largest single line is ` +
+          `${(() => {
+            const lines = [
+              ['federal income tax', r.a.federal], ['Social Security', r.a.socialSecurity],
+              ['Medicare', r.a.medicare], ['California income tax', r.a.state], ['California SDI', r.sdi],
+            ].sort((x, y) => y[1] - x[1])[0];
+            return `${lines[0]} at ${usd0(lines[1])}`;
+          })()}, and California's own two lines together come to ${usd0(r.a.state + r.sdi)}.`,
+        BREAKDOWN_ROWS: caBreakdownRows(r),
+        FED_STD_DED: fedStdDed,
+        FED_TAXABLE: usd0(r.fed.taxable),
+        FED_MARGINAL: pctStr(r.fed.marginalRate),
+        FED_BRACKET_ROWS: caBandRows(r.fed),
+        FED_NOTE: `Federal tax on ${S} totals ${usd0(r.a.federal)}, which is ` +
+          `${pct1(r.a.federal / r.amount)} of gross pay even though the top band reached is ` +
+          `${pctStr(r.fed.marginalRate)}. The gap between those two numbers is the whole point of a ` +
+          `graduated system.`,
+        CA_STD_DED: caStdDed,
+        CA_TAXABLE: usd0(r.st.taxable),
+        CA_MARGINAL: pctStr(r.st.marginalRate),
+        CA_BRACKET_ROWS: caBandRows(r.st),
+        CA_NOTE: `California income tax on ${S} totals ${usd0(r.a.state)}, ` +
+          `${pct1(r.a.state / r.amount)} of gross pay. California SDI is charged separately, on the full ` +
+          `salary and not on taxable income, so it is not in this table.`,
+        PROSE_BLOCKS: caLadderProse(r, rungs, taxData, ca),
+        STATUS_ROWS: caStatusRows(r, taxData),
+        LADDER_ROWS: caLadderRows(rungs, r.amount),
+        LADDER_LOW: usd0(low.amount),
+        LADDER_HIGH: usd0(high.amount),
+        STEP_TEXT: usd0(step),
+        PREV_NEXT: prevNext,
+        SS_WAGE_BASE: ssBase,
+        SDI_RATE: sdiRateText,
+        ADDL_MEDICARE_SENTENCE: r.amount > addlThreshold
+          ? `The extra 0.9% Additional Medicare tax on single-filer wages above ${usd0(addlThreshold)} ` +
+            `applies at this salary and is included.`
+          : `The extra 0.9% Additional Medicare tax starts at ${usd0(addlThreshold)} of wages for a ` +
+            `single filer, above this salary, so it does not apply here.`,
+        LIMIT_ITEMS: limitItems,
+        FAQ_BLOCKS: caFaqBlocks(faq),
+        FAQ_LD: faqJsonLd(faq),
+        ARTICLE_LD: articleLd,
+        SOURCE_ROWS: sourceRows,
+        LAST_SOURCED: esc(LAST_SOURCED || CONTENT_DATE),
+      }).replace('<footer class="site">', `${ladderRelated}\n<footer class="site">`);
+
+      const dir = join(DIST, `${CA_LADDER_SLUG}-${r.amount}`);
+      await mkdir(dir, { recursive: true });
+      await writeFile(join(dir, 'index.html'), html);
+      urls.push(`${SITE.url}${r.path}`);
+    }
+
+    // The hub. Same computed rungs, so it can never quote a figure a rung page
+    // does not also show.
+    {
+      const spread = high.a.net - low.a.net;
+      const hubRows = rungs.map((r) =>
+        `<tr><td><a href="${r.path}">${usd0(r.amount)}</a></td>` +
+        `<td class="num">${usd0(r.a.net)}</td><td class="num">${usd0(r.a.net / 12)}</td>` +
+        `<td class="num">${usdCents(r.a.net / 26)}</td><td class="num">${usd0(r.withheld)}</td>` +
+        `<td class="num">${pct1(r.allInRate)}</td></tr>`).join('\n');
+      const hubLinks = rungs.map((r) =>
+        `<a href="${r.path}"><span class="amt">${usd0(r.amount)}</span>` +
+        `<span class="net">${usd0(r.a.net)} take-home</span></a>`).join('\n');
+      // The keep-rate on each step, computed, so the hub says something the rung
+      // pages cannot: how the marginal keep rate moves as you climb.
+      const steps = rungs.slice(1).map((r, i) => ({
+        from: rungs[i], to: r, keep: (r.a.net - rungs[i].a.net) / (r.amount - rungs[i].amount),
+      }));
+      const bestStep = [...steps].sort((a, b) => b.keep - a.keep)[0];
+      const worstStep = [...steps].sort((a, b) => a.keep - b.keep)[0];
+      // Several steps can tie on the keep rate once the salary sits inside one
+      // long federal band. Naming only the first of them would be a quietly
+      // wrong answer to "which raise is worth the least", so the tie is counted.
+      const worstTies = steps.filter((s) => pct1(s.keep) === pct1(worstStep.keep));
+      const worstPhrase = worstTies.length > 1
+        ? `every step from ${usd0(worstTies[0].from.amount)} to ${usd0(worstTies[worstTies.length - 1].to.amount)}, ` +
+          `all of which keep ${pct1(worstStep.keep)}`
+        : `${usd0(worstStep.from.amount)} to ${usd0(worstStep.to.amount)} at ${pct1(worstStep.keep)}`;
+      const hubProse = [
+        `<h3>The rate climbs, but never to a cliff</h3>` +
+        `<p>At ${usd0(low.amount)} a single Californian keeps ${pct1(low.a.net / low.amount)} of gross pay; ` +
+        `at ${usd0(high.amount)} they keep ${pct1(high.a.net / high.amount)}. The whole ` +
+        `${usd0(high.amount - low.amount)} climb adds ${usd0(spread)} of take-home pay, so about ` +
+        `${pct1(spread / (high.amount - low.amount))} of the extra gross survives withholding across the ` +
+        `ladder. No step leaves you with less than the step below it.</p>`,
+        `<h3>Which raise is worth the most</h3>` +
+        `<p>The step that keeps the most is ${usd0(bestStep.from.amount)} to ${usd0(bestStep.to.amount)}, ` +
+        `where ${pct1(bestStep.keep)} of the raise reaches you. The least is ${worstPhrase}. ` +
+        `The difference is which federal and California bands the extra income lands in — and, above the ` +
+        `${ssBase} Social Security wage base, whether the 6.2% is still being charged at all.</p>`,
+        `<h3>What California adds on top of the federal bill</h3>` +
+        `<p>California takes two bites from a paycheck, not one: graduated income tax, and State ` +
+        `Disability Insurance at ${sdiRateText} of wages with no ceiling since SB 951. On ` +
+        `${usd0(low.amount)} that pair costs ${usd0(low.a.state + low.sdi)} a year; on ` +
+        `${usd0(high.amount)} it costs ${usd0(high.a.state + high.sdi)}. SDI is the part people forget, ` +
+        `because it is not an income tax and does not appear in any bracket table.</p>`,
+      ].join('\n      ');
+      const hubFaq = [
+        {
+          q: `How much is ${usd0(low.amount)} after taxes in California?`,
+          a: `${usd0(low.a.net)} a year, or ${usd0(low.a.net / 12)} a month, for a single filer taking the ` +
+            `standard deduction. Every salary from ${usd0(low.amount)} to ${usd0(high.amount)} has its own ` +
+            `page here with the full working.`,
+        },
+        {
+          q: `What is the effective tax rate on a California salary?`,
+          a: `It depends entirely on the salary. Across this ladder the share of gross pay withheld runs ` +
+            `from ${pct1(low.allInRate)} at ${usd0(low.amount)} to ${pct1(high.allInRate)} at ` +
+            `${usd0(high.amount)}, counting federal income tax, Social Security, Medicare, California ` +
+            `income tax and California SDI.`,
+        },
+        {
+          q: `Why is my California take-home pay lower than a bracket table suggests?`,
+          a: `Because income tax is only part of it. On ${usd0(rungs[Math.floor(rungs.length / 2)].amount)} ` +
+            `the California income tax is ` +
+            `${usd0(rungs[Math.floor(rungs.length / 2)].a.state)}, but Social Security, Medicare and ` +
+            `California SDI take a further ` +
+            `${usd0(rungs[Math.floor(rungs.length / 2)].a.socialSecurity + rungs[Math.floor(rungs.length / 2)].a.medicare + rungs[Math.floor(rungs.length / 2)].sdi)} ` +
+            `on the same wages, and none of those appear in a bracket table.`,
+        },
+        {
+          q: `Do these figures cover married filing jointly?`,
+          a: `The tables here are single filers. Each salary's own page carries a filing-status comparison ` +
+            `showing the same salary as single, married filing jointly and head of household, and the ` +
+            `California paycheck calculator lets you set the status yourself along with 401(k), health ` +
+            `premiums and dependents.`,
+        },
+        {
+          q: `How often are these updated?`,
+          a: `Whenever the tax data behind them is. Nothing here fetches figures automatically: we edit ` +
+            `the ${year} tax data file when the IRS or the FTB publishes a new number, and the next build ` +
+            `recomputes all ${rungs.length} salary pages and this table from it.`,
+        },
+      ];
+      const hubTitle = `California Take-Home Pay by Salary (${year}): ${usd0(low.amount)} to ${usd0(high.amount)}`;
+      const hubDesc = `Computed ${year} California take-home pay for every salary from ${usd0(low.amount)} ` +
+        `to ${usd0(high.amount)}. ${usd0(low.amount)} nets ${usd0(low.a.net)} and ${usd0(high.amount)} nets ` +
+        `${usd0(high.a.net)} after federal tax, FICA, California income tax and SDI.`;
+      const hubHtml = fill(hubTpl, {
+        SITE_NAME: SITE.name, SITE_URL: SITE.url,
+        TAX_YEAR: year,
+        PAGE_TITLE: hubTitle,
+        META_DESC: hubDesc,
+        OG_TITLE: `California take-home pay by salary (${year})`,
+        OG_DESC: hubDesc,
+        PUB_DATE: pubDate,
+        FIGURE_BASIS: ladderBasis,
+        FIGURE_BANNER: figureYearBanner(ca, year),
+        LEDE: `What a California salary actually pays, computed for ${numWord(rungs.length)} salary levels ` +
+          `from ${usd0(low.amount)} to ${usd0(high.amount)}. A single filer on ${usd0(low.amount)} takes ` +
+          `home <strong>${usd0(low.a.net)}</strong> a year; on ${usd0(high.amount)} it is ` +
+          `<strong>${usd0(high.a.net)}</strong>. Pick a salary for the full federal and California ` +
+          `bracket-by-bracket working.`,
+        SHORT_VERSION: `Across this ladder the share of gross pay withheld runs from ` +
+          `${pct1(low.allInRate)} at ${usd0(low.amount)} to ${pct1(high.allInRate)} at ` +
+          `${usd0(high.amount)}. Over the whole ${usd0(high.amount - low.amount)} climb, ` +
+          `${pct1(spread / (high.amount - low.amount))} of the extra gross survives federal tax, FICA, ` +
+          `California income tax and SDI.`,
+        HUB_ROWS: hubRows,
+        HUB_LINKS: hubLinks,
+        LADDER_LOW: usd0(low.amount),
+        LADDER_HIGH: usd0(high.amount),
+        RUNG_COUNT: String(rungs.length),
+        PROSE_BLOCKS: hubProse,
+        FED_STD_DED: fedStdDed,
+        SS_WAGE_BASE: ssBase,
+        CA_STD_DED: caStdDed,
+        SDI_RATE: sdiRateText,
+        FAQ_BLOCKS: caFaqBlocks(hubFaq),
+        FAQ_LD: faqJsonLd(hubFaq),
+        ARTICLE_LD: JSON.stringify({
+          '@context': 'https://schema.org', '@type': 'Article',
+          headline: hubTitle,
+          description: hubDesc,
+          datePublished: CONTENT_DATE,
+          dateModified: gitDate('src/data/tax-data-2026.json') || CONTENT_DATE,
+          author: { '@type': 'Person', '@id': `${SITE.url}/#edmond-daher`, name: 'Edmond Daher', url: `${SITE.url}/about/` },
+          publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+          mainEntityOfPage: `${SITE.url}/${CA_LADDER_SLUG}/`,
+          isAccessibleForFree: true,
+        }),
+        SOURCE_ROWS: sourceRows,
+        LAST_SOURCED: esc(LAST_SOURCED || CONTENT_DATE),
+      }).replace('<footer class="site">', `${ladderRelated}\n<footer class="site">`);
+      const hubDir = join(DIST, CA_LADDER_SLUG);
+      await mkdir(hubDir, { recursive: true });
+      await writeFile(join(hubDir, 'index.html'), hubHtml);
+      urls.push(`${SITE.url}/${CA_LADDER_SLUG}/`);
+    }
   }
 
   // Bonus (supplemental-wage) tax calculator — 51-page state cluster. One
