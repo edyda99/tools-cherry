@@ -4896,14 +4896,20 @@ function caProseBlocks(r, rungs, ctx) {
         `<h3>${frame('locH', [
           `The tax this page leaves out, and what it would cost`,
           `${S} before any local wage tax`,
-          `Why ${NAME} take-home pay depends on which town you live in`,
+          `Local wage taxes, and where they would sit beside ${usd0(r.a.net)}`,
         ])}</h3>` +
-        `<p>Nothing above includes a local wage tax, and ${NAME} is one of the states where local wage ` +
-        `taxation is in play. What it costs depends entirely on the municipality, so it cannot be ` +
-        `computed here — but its shape can: a local wage tax is charged on gross wages rather than on ` +
-        `taxable income, so it does not interact with a single deduction on this page. Every ` +
-        `${pct1(0.01)} of it costs ${usd0(r.amount * 0.01)} a year at ${S}, ` +
-        `${usdCents(r.amount * 0.01 / 26)} a paycheck, straight off the ${usd0(r.a.net)} above.</p>` +
+        // Deliberately says only what the flag itself supports. New Jersey also
+        // carries exists:true, but its own note underneath explains that the one
+        // local levy (Newark) is employer-paid and never reaches an employee's
+        // payslip — so any lead asserting that a local tax DOES reach the reader
+        // would be contradicted by the sourced note printed directly below it.
+        `<p>Nothing above includes a local wage tax. Whether one reaches you in ${NAME}, and at what ` +
+        `rate, is a municipal question rather than a state one, so it cannot be computed here — ` +
+        `${NAME}'s own position is set out below. What can be said is the shape of it: a local wage tax ` +
+        `is charged on gross wages rather than on taxable income, so it does not interact with a single ` +
+        `deduction on this page. Every ${pct1(0.01)} of one would cost ${usd0(r.amount * 0.01)} a year ` +
+        `at ${S}, ${usdCents(r.amount * 0.01 / 26)} a paycheck, straight off the ${usd0(r.a.net)} ` +
+        `above.</p>` +
         `<p class="sal-note">${esc(String(lt.notes))}</p>`);
     }
   }
@@ -4951,10 +4957,16 @@ function caProseBlocks(r, rungs, ctx) {
       const tpY = String(ob.tips.y2026);
       if (otY !== 'no' || tpY !== 'no' || federalLive) {
         const verdict = (what, v) => (v === 'yes'
-          ? `follows the federal ${what} deduction`
-          : (v === 'partial' ? `only partly follows the federal ${what} deduction` : `does not follow the federal ${what} deduction`));
-        const stateBite = stMarginal == null ? ''
-          : ` Where it does not, a dollar of qualified ${otY === 'yes' ? 'tips' : 'overtime'} that escapes ` +
+          ? `follows the federal ${what}`
+          : (v === 'partial' ? `only partly follows the federal ${what}` : `does not follow the federal ${what}`));
+        // What the state does NOT fully follow, named. Michigan follows both, so
+        // this list is empty there and the sentence below is omitted rather than
+        // asserting a state charge that does not exist.
+        const notFollowed = [];
+        if (tpY !== 'yes') notFollowed.push('tips');
+        if (otY !== 'yes') notFollowed.push('overtime premium');
+        const stateBite = (stMarginal == null || !notFollowed.length) ? ''
+          : ` Where it does not, a dollar of qualified ${caList(notFollowed)} that escapes ` +
             `${pctStr(fedTop.rate)} of federal tax at ${S} is still charged ${pctStr(stMarginal)} by ${NAME}.`;
         push('obbbastate',
           `<h3>${frame('obH', [
@@ -4962,9 +4974,14 @@ function caProseBlocks(r, rungs, ctx) {
             `The federal tips and overtime break, and what ${NAME} does with it`,
             `${NAME} and the OBBBA tips and overtime deductions`,
           ])}</h3>` +
+          // "the two can be worth different amounts" is only true where the two
+          // answers actually differ, which is New York and nowhere else in wave 1.
           `<p>The tips and overtime deductions described on this page are federal. On the state return ` +
-          `${NAME} ${verdict('tips', tpY)} and ${verdict('overtime', otY)}, which is why the two can be ` +
-          `worth different amounts to the same paycheck.${(otY === 'no' && tpY === 'no') ? '' : stateBite}</p>` +
+          (tpY === otY
+            ? `${NAME} treats them alike: it ${verdict('tips and overtime deductions', tpY)}.`
+            : `${NAME} ${verdict('tips deduction', tpY)} but ${verdict('overtime deduction', otY)}, so the ` +
+              `same paycheck can carry two different answers.`) +
+          `${stateBite}</p>` +
           (ob.note ? `<p class="sal-note">${esc(String(ob.note))}</p>` : ''));
       }
     }
