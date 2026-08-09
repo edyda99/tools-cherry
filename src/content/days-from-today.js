@@ -261,8 +261,10 @@ export const DFT_PAGES = [
         leases and supplier contracts often ask for sixty rather than thirty. On the credit
         side, Net 60 is common where the buyer has leverage, and "60 days past due" is the
         second bucket on an ageing report — the point at which most collection processes
-        escalate. Sixty days is a touch under two calendar months in every month pair except
-        July–August, so a "60 days" clause and a "two months" clause rarely agree.`
+        escalate. Two consecutive calendar months run 59 to 62 days — 59 across January and
+        February in a common year, 62 across July and August — so sixty days is usually a day or
+        two short of the two-month mark and occasionally a day past it. A "60 days" clause and a
+        "two months" clause therefore rarely land on the same date.`
       }
     ],
     faq: [
@@ -291,10 +293,10 @@ export const DFT_PAGES = [
         h2: 'The 90-in-180 travel rule, and why the pair matters',
         p: `Short-stay visa-free access to the Schengen area is capped at 90 days within any
         rolling 180-day period. The rolling part is what trips people: the window is not a
-        calendar half-year, it is the 180 days ending on whichever day you are counting, so
-        every day of travel ages out exactly 180 days later. To see the other end of that
-        window, use <a href="/180-days-ago/">180 days ago</a>, which gives the earliest date
-        that still counts against today's allowance.`
+        calendar half-year, it is the day you are counting plus the 179 days before it, so every
+        day of travel ages out of the count 180 days later. To find the far edge of that window,
+        use <a href="/180-days-ago/">180 days ago</a>: the date it shows has just dropped out,
+        and the first day still counting against today's allowance is the day after it.`
       },
       {
         h2: 'Ninety days is not a quarter',
@@ -308,7 +310,7 @@ export const DFT_PAGES = [
       { q: 'Is 90 days from today the same as three months?',
         a: 'No. Three calendar months run 89 to 92 days depending on which months they are, so the two counts usually land on different dates.' },
       { q: 'How does the Schengen 90/180 rule count days?',
-        a: 'It allows 90 days of stay inside any rolling 180-day window, counting backwards from the day in question — not inside a fixed calendar period.' },
+        a: 'It allows 90 days of stay inside any rolling 180-day window — the day in question plus the 179 days before it — rather than inside a fixed calendar period.' },
       { q: 'Does a 90-day probation period skip weekends?',
         a: 'No. Probation is counted in calendar days from the start date, so weekends and holidays are inside the ninety.' }
     ]
@@ -836,7 +838,7 @@ export const DFT_PAGES = [
       { q: 'Is 30 days ago the same as last month?',
         a: 'No. Last month means the same date in the previous calendar month, which is 28 to 31 days back. A fixed 30-day count rarely matches it.' },
       { q: 'Do "last 30 days" reports include today?',
-        a: 'Usually they cover the 30 days up to and including today, so the earliest day included is the date shown above.' }
+        a: 'Usually they cover 30 days up to and including today — that is today plus the 29 days before it, so the earliest day included is the day after the date shown above.' }
     ]
   },
   {
@@ -887,8 +889,9 @@ export const DFT_PAGES = [
         delinquent, and the horizon used for a great many eligibility questions: recent travel
         declarations, recent-activity checks, and the "have you, in the last 90 days" style of
         screening question. If you are counting Schengen days, remember that the allowance is 90
-        days inside a rolling 180-day window — the earlier edge is on
-        <a href="/180-days-ago/">180 days ago</a>, not this page.`
+        days inside a rolling 180-day window — today plus the 179 days before it — so the far
+        edge of that window sits just after the date on
+        <a href="/180-days-ago/">180 days ago</a>, not on this page.`
       }
     ],
     faq: [
@@ -897,7 +900,7 @@ export const DFT_PAGES = [
       { q: 'What does a rolling 90-day window mean?',
         a: 'A window that always ends today and starts 90 days earlier, so it moves forward every day rather than resetting on a fixed date.' },
       { q: 'Does 90 days ago include today?',
-        a: 'The date shown is 90 full days before today. A "last 90 days" range that includes today therefore starts on that date.' }
+        a: 'The date shown is 90 full days before today, so it is the 91st day of any range that also includes today. A "last 90 days" window counted inclusively — today plus the 89 days before it — starts on the day after the date shown.' }
     ]
   },
   {
@@ -906,11 +909,12 @@ export const DFT_PAGES = [
     uses: [
       {
         h2: 'The far edge of a rolling half-year',
-        p: `A hundred and eighty days back is the earliest day that still counts inside a rolling
-        180-day window — most notably the Schengen short-stay rule, where no more than 90 days
-        of stay are permitted in any such window. Every day you spent abroad drops out of the
-        count exactly 180 days later, which is why the date above is the one to check your
-        travel history against rather than 1 January.`
+        p: `A rolling 180-day window is today plus the 179 days before it, so the date above — a
+        full 180 days back — is the day that has just dropped out of it, and the first day still
+        inside the window is the one after. That one-day distinction matters most under the
+        Schengen short-stay rule, where no more than 90 days of stay are permitted in any such
+        window: every day spent abroad ages out of the count exactly 180 days later. The date
+        above is the marker to check your travel history against, rather than 1 January.`
       },
       {
         h2: 'Six-month lookbacks in records and eligibility',
@@ -925,9 +929,9 @@ export const DFT_PAGES = [
       { q: 'Is 180 days ago six months ago?',
         a: 'Close, but one to four days later. Six calendar months back is 181 to 184 days depending on the months in the span.' },
       { q: 'How does this help with the Schengen 90/180 rule?',
-        a: 'The date above is the start of the current rolling window. Only stays on or after that date count against the 90-day allowance.' },
+        a: 'It marks the far edge of the current rolling window. The window is today plus the 179 days before it, so stays from the day after the date shown onwards still count against the 90-day allowance, and anything earlier has aged out.' },
       { q: 'Does the count include today?',
-        a: 'The date shown is 180 full days before today, so a window described as "the last 180 days" runs from that date up to today.' }
+        a: 'No. The date shown is 180 full days before today, so today and that date are 181 days apart when both are counted. An inclusive "last 180 days" window starts the day after the date shown.' }
     ]
   }
 ];

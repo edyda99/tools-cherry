@@ -51,10 +51,16 @@ export function dftUnitPhrase(p) {
   return `${n} day${n === 1 ? '' : 's'}`;
 }
 
+// The same phrase for a <title>, which is title-cased around it. Without this
+// the interval token stayed lowercase mid-title ("What Date Is 30 days From
+// Today?") on every one of the 29 SERP titles.
+const dftUnitPhraseTitle = (p) =>
+  dftUnitPhrase(p).replace(/\b[a-z]/g, (c) => c.toUpperCase());
+
 const crossLabel = (p) => (p.unit === 'business' ? 'On the calendar' : 'Weekdays vs weekend days');
 
 function title(p) {
-  const iv = dftUnitPhrase(p);
+  const iv = dftUnitPhraseTitle(p);
   if (p.dir === 'back') {
     return frame(p.slug, 'title', [
       `What Date Was ${iv} Ago?`,
