@@ -3906,6 +3906,13 @@ function programLabel(state, p) {
   return label;
 }
 
+// "a Ohio salary" was reaching the page. Article agreement by first letter, with
+// the one exception the fifty-one-state roster actually contains: Utah opens on a
+// consonant sound ("a Utah salary"), every other vowel-initial name does not
+// (Alabama, Alaska, Arizona, Arkansas, Idaho, Illinois, Indiana, Iowa, Ohio,
+// Oklahoma, Oregon).
+const anFor = (name) => (/^[AEIO]/.test(String(name)) ? 'an' : 'a');
+
 // "a, b and c". The study has its own copy scoped inside main(); this is the
 // module-level one the ladder blocks use.
 const caList = (arr) => (arr.length <= 1
@@ -5021,7 +5028,7 @@ function caProseBlocks(r, rungs, ctx) {
         `<h3>${frame('bonH', [
           `A bonus is withheld differently from a raise in ${NAME}`,
           `What ${NAME} takes from a bonus at ${S}`,
-          `Why a ${NAME} bonus does not follow the rate on this page`,
+          `Why ${anFor(NAME)} ${NAME} bonus does not follow the rate on this page`,
         ])}</h3>` +
         `<p>${NAME} withholds supplemental wages — a bonus, a commission, a payout — at a flat ` +
         `${pctStr(sr)}, not at the rate the rest of your pay is charged. That is ${relation}. On ` +
@@ -7127,7 +7134,7 @@ async function main() {
         } else if (kind === 'none' && !progs.length) {
           hubStateBlock = `<h3>Why the federal bill is the whole bill in ${NAME}</h3>` +
             `<p>${NAME} taxes no wage income and withholds no employee-side payroll premium, so every ` +
-            `dollar deducted from a ${NAME} paycheck on this ladder is federal. That is why the take-home ` +
+            `dollar deducted from ${anFor(NAME)} ${NAME} paycheck on this ladder is federal. That is why the take-home ` +
             `share here moves from ${pct1(low.a.net / low.amount)} at ${usd0(low.amount)} to ` +
             `${pct1(high.a.net / high.amount)} at ${usd0(high.amount)} purely on federal arithmetic: the ` +
             `bands, the ${ssBase} Social Security wage base and the Additional Medicare threshold are the ` +
@@ -7139,7 +7146,7 @@ async function main() {
             `${progs.length === 1 ? 'an insurance premium' : 'insurance premiums'} rather than as tax. ` +
             `On ${usd0(low.amount)} that costs ${usdCents(low.progTotal)} a year and on ` +
             `${usd0(high.amount)} it costs ${usdCents(high.progTotal)}. It appears in no bracket table ` +
-            `anywhere, which is why it is the line people miss when they estimate a ${NAME} salary.</p>`;
+            `anywhere, which is why it is the line people miss when they estimate ${anFor(NAME)} ${NAME} salary.</p>`;
         } else {
           const structure = kind === 'flat'
             ? `a single ${pctStr(state.tax.rate)} rate`
@@ -7180,7 +7187,7 @@ async function main() {
               `page here with the full working.`,
           },
           {
-            q: `What is the effective tax rate on a ${NAME} salary?`,
+            q: `What is the effective tax rate on ${anFor(NAME)} ${NAME} salary?`,
             a: `It depends entirely on the salary. Across this ladder the share of gross pay withheld runs ` +
               `from ${pct1(low.allInRate)} at ${usd0(low.amount)} to ${pct1(high.allInRate)} at ` +
               `${usd0(high.amount)}, counting ${caList([
@@ -7274,7 +7281,7 @@ async function main() {
           PUB_DATE: pubDate,
           FIGURE_BASIS: ladderBasis,
           FIGURE_BANNER: figureYearBanner(state, year),
-          LEDE: `What a ${NAME} salary actually pays, computed for ${numWord(rungs.length)} salary levels ` +
+          LEDE: `What ${anFor(NAME)} ${NAME} salary actually pays, computed for ${numWord(rungs.length)} salary levels ` +
             `from ${usd0(low.amount)} to ${usd0(high.amount)}. A single filer on ${usd0(low.amount)} takes ` +
             `home <strong>${usd0(low.a.net)}</strong> a year; on ${usd0(high.amount)} it is ` +
             `<strong>${usd0(high.a.net)}</strong>. Pick a salary for the full ` +
