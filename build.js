@@ -15,6 +15,8 @@ import { withholdingProfile, programKindsOf } from './src/content/withholding-pr
 import { computePaycheck, federalBracketBreakdown } from './src/engine/paycheck-engine.js';
 import { computeBonus } from './src/engine/bonus-tax.js';
 import { verifyDist, reportFailures } from './scripts/verify-dist.js';
+import { DFT_PAGES, DFT_GROUPS } from './src/content/days-from-today.js';
+import { dftPageParts, dftHubGroups, dftPath } from './src/content/days-from-today-blocks.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SRC = join(__dirname, 'src');
@@ -396,6 +398,9 @@ const CONTENT_DATE = '2026-06-28';
 // for the generated paycheck pages); a brand-new tool's freshly-committed template
 // naturally returns its commit date. Non-template/static URLs fall back to
 // CONTENT_DATE (the hand-bumped real content date) — never today-for-all.
+// Slugs of the fixed-interval date pages, used by sitemapLastmod below.
+const DFT_SLUG_SET = new Set(DFT_PAGES.map((p) => p.slug));
+
 function gitDate(relFile) {
   try {
     const d = execSync(`git log -1 --format=%cs -- "${relFile}"`, { cwd: __dirname })
@@ -423,6 +428,14 @@ function sitemapLastmod(u) {
     const hub = /^([a-z-]+)-take-home-pay$/.exec(seg);
     if (hub && LADDER_STATE_SET.has(hub[1]))
       return gitDate('src/templates/state-take-home-pay.html') || CONTENT_DATE;
+  }
+  // Fixed-interval date pages: 29 pages + a hub, all built from one template and
+  // one content module. Without this they fall through to CONTENT_DATE and
+  // advertise a lastmod older than the content they serve.
+  if (DFT_SLUG_SET.has(seg) || seg === 'days-from-today') {
+    return gitDate('src/content/days-from-today.js')
+      || gitDate('src/templates/days-from-today.html')
+      || CONTENT_DATE;
   }
   const tpl = `src/templates/${seg}.html`;
   if (existsSync(join(__dirname, tpl))) return gitDate(tpl) || CONTENT_DATE;
@@ -530,6 +543,7 @@ const TOOLS = [
   { name: 'Age Calculator', path: '/age-calculator/', cat: 'calc' },
   { name: 'Days Between Dates', path: '/days-between-dates/', cat: 'calc' },
   { name: 'Date Calculator (Add or Subtract)', path: '/date-calculator/', cat: 'calc' },
+  { name: 'Days From Today', path: '/days-from-today/', cat: 'calc' },
   { name: 'Time Zone Converter', path: '/time-zone-converter/', cat: 'calc' },
   { name: 'Holiday Countdown', path: '/holiday-countdown/', cat: 'calc' },
   { name: 'Countdown Timer', path: '/countdown-timer/', cat: 'calc' },
@@ -638,6 +652,7 @@ const TOOL_DESCRIPTIONS = {
   '/age-calculator/': 'Find an exact age in years, months, and days from a birth date.',
   '/days-between-dates/': 'Count the number of days, weeks, or months between two dates.',
   '/date-calculator/': 'Add or subtract days, weeks, months, or years from any date.',
+  '/days-from-today/': 'A page per interval: 30, 60, 90 and 180 days from today, weeks, business days, and dates in the past.',
   '/time-zone-converter/': 'Convert a time across multiple time zones at once.',
   '/holiday-countdown/': 'See a live countdown to upcoming holidays and events.',
   '/countdown-timer/': 'Set a custom countdown timer to any date and time.',
@@ -6239,6 +6254,8 @@ async function main() {
   const daysBetweenTpl = await read(join(SRC, 'templates', 'days-between-dates.html'));
   const timeZoneTpl = await read(join(SRC, 'templates', 'time-zone-converter.html'));
   const dateCalcTpl = await read(join(SRC, 'templates', 'date-calculator.html'));
+  const dftTpl = await read(join(SRC, 'templates', 'days-from-today.html'));
+  const dftHubTpl = await read(join(SRC, 'templates', 'days-from-today-hub.html'));
   const cookingTpl = await read(join(SRC, 'templates', 'cooking-converter.html'));
   const recipeScalerTpl = await read(join(SRC, 'templates', 'recipe-scaler.html'));
   const unitConverterTpl = await read(join(SRC, 'templates', 'unit-converter.html'));
@@ -6645,6 +6662,7 @@ async function main() {
   registerAsset('assets', 'time-zone-converter.js');
   registerAsset('engine', 'timezone.js');
   registerAsset('assets', 'date-calculator.js');
+  registerAsset('assets', 'days-from-today.js');
   registerAsset('engine', 'date-add.js');
   registerAsset('assets', 'cooking-converter.js');
   registerAsset('engine', 'percentage-math.js');
@@ -7837,6 +7855,68 @@ async function main() {
     fillTool(dateCalcTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/date-calculator/')
   );
   urls.push(`${SITE.url}/date-calculator/`);
+
+  // Fixed-interval date pages (/30-days-from-today/, /12-weeks-from-today/,
+  // /10-business-days-from-today/, /90-days-ago/ …) plus their hub.
+  //
+  // These pages carry NO computed answer in their HTML, deliberately: the date
+  // that is "30 days from today" changes every midnight, so anything baked at
+  // build time would be wrong by the next morning. The interval is markup, the
+  // clock is the reader's, and /assets/days-from-today.js does the arithmetic
+  // through the same date engine /date-calculator/ uses.
+  //
+  // Related-tools is overridden per page to the date cluster rather than the
+  // random calc pick: someone on "60 days from today" wants the neighbouring
+  // intervals and the general date tools, not a paint calculator.
+  for (const p of DFT_PAGES) {
+    const path = dftPath(p);
+    RELATED_OVERRIDES[path] = [
+      { name: 'Date Calculator (Add or Subtract)', path: '/date-calculator/' },
+      { name: 'Days Between Dates', path: '/days-between-dates/' },
+      { name: 'All "days from today" intervals', path: '/days-from-today/' },
+      { name: 'Age Calculator', path: '/age-calculator/' },
+      { name: 'Holiday Countdown', path: '/holiday-countdown/' },
+      { name: 'Countdown Timer', path: '/countdown-timer/' },
+    ];
+    const dir = join(DIST, p.slug);
+    await mkdir(dir, { recursive: true });
+    await writeFile(
+      join(dir, 'index.html'),
+      fillTool(dftTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, ...dftPageParts(p) }, path)
+    );
+    urls.push(`${SITE.url}${path}`);
+  }
+  {
+    RELATED_OVERRIDES['/days-from-today/'] = [
+      { name: 'Date Calculator (Add or Subtract)', path: '/date-calculator/' },
+      { name: 'Days Between Dates', path: '/days-between-dates/' },
+      { name: 'Age Calculator', path: '/age-calculator/' },
+      { name: 'Holiday Countdown', path: '/holiday-countdown/' },
+      { name: 'Hours Calculator', path: '/hours-calculator/' },
+      { name: 'Time Zone Converter', path: '/time-zone-converter/' },
+    ];
+    await mkdir(join(DIST, 'days-from-today'), { recursive: true });
+    await writeFile(
+      join(DIST, 'days-from-today', 'index.html'),
+      fillTool(dftHubTpl, {
+        SITE_NAME: SITE.name,
+        SITE_URL: SITE.url,
+        TITLE: 'Days From Today — 30, 60, 90, 180 Days and More',
+        DESC: 'Ready-made answers for the intervals people count: 30, 60, 90 and 180 days from today, weeks from today, business days from today, and dates in the past. Each page works the date out in your browser.',
+        APP_LD: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'WebApplication',
+          name: 'Days From Today',
+          applicationCategory: 'UtilitiesApplication',
+          operatingSystem: 'Any',
+          offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+          description: 'A page per interval — days, weeks and business days from today, and dates counted backwards — each computing the answer in the browser from the current date.',
+        }),
+        GROUPS: dftHubGroups(DFT_GROUPS),
+      }, '/days-from-today/')
+    );
+    urls.push(`${SITE.url}/days-from-today/`);
+  }
 
   // cooking measurement converter (pure-math tool page, built on cooking-units)
   await mkdir(join(DIST, 'cooking-converter'), { recursive: true });

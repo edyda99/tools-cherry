@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{TITLE}}</title>
+<meta name="description" content="{{DESC}}">
+<link rel="canonical" href="{{SITE_URL}}{{PATH}}">
+<meta property="og:title" content="{{OG_TITLE}}">
+<meta property="og:description" content="{{OG_DESC}}">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<script type="application/ld+json">{{APP_LD}}</script>
+<script type="application/ld+json">{{FAQ_LD}}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>{{H1}}</h1>
+    <p class="lede">{{LEDE}}</p>
+
+    <section class="calc" id="dft" data-amount="{{AMOUNT}}" data-unit="{{UNIT}}" data-dir="{{DIR}}" aria-label="{{ARIA}}">
+      <div class="results results-first" aria-live="polite">
+        <p class="net-big" id="dftBig">&mdash;</p>
+        <p class="net-sub" id="dftSub">Working it out from your device&rsquo;s clock&hellip;</p>
+        <div class="line"><span class="lbl">Today</span><span id="dftToday">&mdash;</span></div>
+        <div class="line"><span class="lbl">Day of the week</span><span id="dftDow">&mdash;</span></div>
+        <div class="line"><span class="lbl">Written as YYYY-MM-DD</span><span id="dftIso">&mdash;</span></div>
+        <div class="line"><span class="lbl">{{CROSS_LABEL}}</span><span id="dftCross">&mdash;</span></div>
+      </div>
+      <noscript><p class="note">This answer is worked out in your browser from today&rsquo;s date, so it needs JavaScript switched on. With it off, the <a href="/date-calculator/">date calculator</a> page explains the same arithmetic.</p></noscript>
+    </section>
+
+    <p class="note">The date above is calculated on your own device when the page opens, from your device&rsquo;s clock and time zone. Nothing is uploaded and no date is stored on this page.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+{{SECTIONS}}
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+{{FAQ_HTML}}
+    </section>
+
+    <section class="prose">
+      <h2>{{SIB_H2}}</h2>
+      <p>{{SIB_INTRO}}</p>
+      <div class="more-tools-grid">
+{{SIBLINGS}}
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a> · <a href="/embed/">Embed our calculators</a> · <a href="/corrections/">Corrections log</a></span>
+  </div>
+</footer>
+
+<script type="module" src="/assets/days-from-today.js"></script>
+</body>
+</html>

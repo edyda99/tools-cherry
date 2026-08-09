@@ -74,6 +74,35 @@ export function addToDate(base, { years = 0, months = 0, weeks = 0, days = 0 } =
   return result;
 }
 
+// Move a whole number of BUSINESS days (Mon-Fri) from a base date. Weekends are
+// skipped rather than counted, so "5 business days from a Monday" is the
+// following Monday. Public holidays are NOT skipped — they vary by country,
+// state and employer, and a calculator that guessed at them would be wrong more
+// often than one that says plainly which days it skips.
+//
+// A base date that itself falls on a weekend is not counted as day zero; the
+// count starts from the base and each step lands on the next weekday.
+//
+// `sign` of -1 walks backwards. Returns a new local-midnight Date, or null for
+// an invalid base.
+//
+// Examples:
+//   addBusinessDays(Mon 2026-06-15, 5)   -> Mon 2026-06-22
+//   addBusinessDays(Fri 2026-06-19, 1)   -> Mon 2026-06-22
+//   addBusinessDays(Mon 2026-06-22, 1, -1) -> Fri 2026-06-19
+export function addBusinessDays(base, count, sign = 1) {
+  if (!(base instanceof Date) || Number.isNaN(base.getTime())) return null;
+  const s = sign < 0 ? -1 : 1;
+  let n = Number.isFinite(Number(count)) ? Math.abs(Math.trunc(Number(count))) : 0;
+  const d = startOfDay(base);
+  while (n > 0) {
+    d.setDate(d.getDate() + s);
+    const dow = d.getDay(); // 0=Sun .. 6=Sat
+    if (dow !== 0 && dow !== 6) n--;
+  }
+  return d;
+}
+
 // Whole calendar days between two dates (b - a), ignoring time-of-day.
 // Positive when b is after a. Used to summarize the result vs. today.
 export function daysBetween(a, b) {
