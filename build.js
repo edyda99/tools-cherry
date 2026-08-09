@@ -4927,19 +4927,33 @@ function caProseBlocks(r, rungs, ctx) {
       ).annual;
       const floorWithheld = floorRun.totalTax + floorRun.statePrograms;
       const mult = r.amount / floorAnnual;
+      // The bottom rung is not always above the floor. A full-time year at
+      // Washington's $17.13 is $35,630 and at Illinois' $15.00 is $31,200, both
+      // of which clear the $30,000 rung — so the "the extra $X of gross" sentence
+      // has to have a branch, or it prints a negative dollar amount and asserts
+      // the opposite of what the data says.
+      const above = r.amount >= floorAnnual;
+      const comparison = above
+        ? `${S} is ${mult.toFixed(1)} times that.`
+        : `${S} is BELOW that: a full-time year at the ${NAME} minimum pays ` +
+          `${usd0(floorAnnual - r.amount)} more than this rung.`;
+      const closer = above
+        ? `The gap between those two shares is the graduated system doing its work: the extra ` +
+          `${usd0(r.amount - floorAnnual)} of gross is charged at higher rates than the first ` +
+          `${usd0(floorAnnual)} ever is.`
+        : `Both salaries sit low enough that the standard deduction is doing most of the work, which is ` +
+          `why the two withholding shares are so close together despite the ` +
+          `${usd0(floorAnnual - r.amount)} between the salaries.`;
       push('minwage',
         `<h3>${frame('mwH', [
           `${S} against ${NAME}'s wage floor`,
-          `How far ${S} is above the ${NAME} minimum`,
+          `${S} beside the ${NAME} minimum wage`,
           `What ${NAME}'s minimum wage keeps, and what ${S} keeps`,
         ])}</h3>` +
         `<p>The minimum wage in ${NAME} is ${usdCents(mw.amountUsd)} an hour, which is ${usd0(floorAnnual)} ` +
-        `a year at forty hours a week. ${S} is ${mult.toFixed(1)} times that. Run the floor through the ` +
+        `a year at forty hours a week. ${comparison} Run the floor through the ` +
         `same engine and it keeps ${usd0(floorRun.net)} of that ${usd0(floorAnnual)} — ` +
-        `${pct1(floorWithheld / floorAnnual)} withheld — against ${pct1(r.allInRate)} at ${S}. The gap ` +
-        `between those two shares is the graduated system doing its work: the extra ` +
-        `${usd0(r.amount - floorAnnual)} of gross is charged at higher rates than the first ` +
-        `${usd0(floorAnnual)} ever is.</p>` +
+        `${pct1(floorWithheld / floorAnnual)} withheld — against ${pct1(r.allInRate)} at ${S}. ${closer}</p>` +
         (mw.notes ? `<p class="sal-note">${esc(String(mw.notes))}</p>` : ''));
     }
   }
@@ -7247,6 +7261,11 @@ async function main() {
         const hubHtml = fill(hubTpl, {
           SITE_NAME: SITE.name, SITE_URL: SITE.url,
           TAX_YEAR: year,
+          // The hub template used to hard-code California's path into its
+          // <link rel="canonical">, which was harmless while California was the
+          // only hub and catastrophic the moment there were thirteen: all twelve
+          // new hubs would have declared themselves duplicates of California's.
+          PAGE_PATH: `/${HUB}/`,
           H1: `${NAME} take-home pay by salary (${year})`,
           PAGE_TITLE: hubTitle,
           META_DESC: hubDesc,
