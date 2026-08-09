@@ -50,7 +50,7 @@
 <main id="main">
   <div class="wrap">
     <article class="sal-page">
-    <h1>California take-home pay by salary ({{TAX_YEAR}})</h1>
+    <h1>{{H1}}</h1>
     <div class="sal-byline">
       <span>By <span class="who">Edmond Daher</span></span>
       <span>·</span>
@@ -71,7 +71,7 @@
     <p class="sal-note">Single filer, {{TAX_YEAR}} rules, standard deduction, no 401(k), no health premiums, no dependents. Each salary opens its own page with the full bracket-by-bracket working.</p>
     <div class="sal-scroll">
       <table class="sal-t">
-        <caption class="sr-only">California annual take-home pay, tax and effective rate by salary, {{LADDER_LOW}} to {{LADDER_HIGH}}</caption>
+        <caption class="sr-only">{{HUB_CAPTION}}</caption>
         <thead><tr><th>Salary</th><th class="num">Take-home a year</th><th class="num">A month</th><th class="num">Every 2 weeks</th><th class="num">Total withheld</th><th class="num">Share of gross</th></tr></thead>
         <tbody>{{HUB_ROWS}}</tbody>
       </table>
@@ -87,14 +87,12 @@
     </section>
 
     <div class="cta-tools">
-      <a class="primary" href="/california-paycheck-calculator/">Run your own number in the California paycheck calculator &rarr;</a>
-      <a href="/data/take-home-pay-by-state/">Compare California with the other 50 &rarr;</a>
-      <a href="/salary-to-hourly/">Salary to hourly &rarr;</a>
+      {{CTA_LINKS}}
     </div>
 
     <section class="prose">
       <h2 id="method">How these figures were computed</h2>
-      <p>Every figure is computed at build time by the same open paycheck engine behind the California paycheck calculator, from the {{TAX_YEAR}} tax data file in this repository. Federal tax uses the {{TAX_YEAR}} brackets after the {{FED_STD_DED}} single standard deduction; Social Security is {{SS_RATE}} up to the {{SS_WAGE_BASE}} wage base and Medicare {{MEDICARE_RATE}} with no cap; California income tax uses its own schedule after its {{CA_STD_DED}} single standard deduction; and California SDI is {{SDI_RATE}} of the whole salary, uncapped since SB 951. Nothing on this page is hand-typed, and nothing is fetched: a person updates the tax data file when a figure changes and the next build recomputes all {{RUNG_COUNT}} rows.</p>
+      <p>{{METHOD_PARA}}</p>
     </section>
 
     <section class="prose faq">
