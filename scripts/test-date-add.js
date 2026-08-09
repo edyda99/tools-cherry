@@ -1,7 +1,7 @@
 // test-date-add.js — unit tests for the pure date add/subtract module.
 // Run via `npm test`.
 import assert from 'node:assert/strict';
-import { parseISODate, toISODate, addToDate, daysBetween, formatLong } from '../src/engine/date-add.js';
+import { parseISODate, toISODate, addToDate, addBusinessDays, daysBetween, formatLong } from '../src/engine/date-add.js';
 
 let pass = 0;
 const t = (name, fn) => {
@@ -94,6 +94,36 @@ t('formatLong produces a weekday label', () => {
   assert.ok(s.includes('2026'));
   assert.ok(s.includes('September'));
   assert.equal(formatLong(new Date(NaN)), '');
+});
+
+t('addBusinessDays skips weekends', () => {
+  // 2026-06-15 is a Monday.
+  assert.equal(toISODate(addBusinessDays(parseISODate('2026-06-15'), 5)), '2026-06-22');
+  assert.equal(toISODate(addBusinessDays(parseISODate('2026-06-15'), 1)), '2026-06-16');
+  // Friday + 1 business day lands on the following Monday.
+  assert.equal(toISODate(addBusinessDays(parseISODate('2026-06-19'), 1)), '2026-06-22');
+  // 10 business days = two full weeks of weekdays.
+  assert.equal(toISODate(addBusinessDays(parseISODate('2026-06-15'), 10)), '2026-06-29');
+});
+
+t('addBusinessDays never lands on a weekend', () => {
+  const base = parseISODate('2026-06-13'); // a Saturday
+  for (let n = 1; n <= 40; n++) {
+    const d = addBusinessDays(base, n);
+    assert.ok(d.getDay() !== 0 && d.getDay() !== 6, `n=${n} landed on a weekend`);
+  }
+});
+
+t('addBusinessDays walks backwards with sign -1', () => {
+  assert.equal(toISODate(addBusinessDays(parseISODate('2026-06-22'), 1, -1)), '2026-06-19');
+  assert.equal(toISODate(addBusinessDays(parseISODate('2026-06-22'), 5, -1)), '2026-06-15');
+});
+
+t('addBusinessDays handles zero, junk and an invalid base', () => {
+  assert.equal(toISODate(addBusinessDays(parseISODate('2026-06-15'), 0)), '2026-06-15');
+  assert.equal(toISODate(addBusinessDays(parseISODate('2026-06-15'), NaN)), '2026-06-15');
+  assert.equal(addBusinessDays(null, 5), null);
+  assert.equal(addBusinessDays(new Date(NaN), 5), null);
 });
 
 console.log(`\n${pass} passing`);
