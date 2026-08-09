@@ -3928,6 +3928,30 @@ function programCapPhrase(p) {
   return null;
 }
 
+// The same ceiling without the "at most" prefix, for sentences that already
+// supply their own "capped at". Returns null for a wage-base ceiling, which caps
+// the WAGES the rate applies to rather than the contribution itself.
+function programCapCeiling(p) {
+  if (p.wageBase != null) return null;
+  if (p.annualMax != null) return `${usdCents(p.annualMax)} a year`;
+  if (p.weeklyMax != null) return `${usdCents(p.weeklyMax)} a week, ${usdCents(p.weeklyMax * 52)} a year`;
+  return null;
+}
+
+// WHETHER THE CEILING ACTUALLY BINDS AT THIS SALARY, tested against the money and
+// not against which FIELD the ceiling happens to live in. The first version asked
+// only `wageBase != null && gross > wageBase`, which is blind to the other two
+// shapes the engine supports: New York DBL is capped by `weeklyMax` ($0.60/wk,
+// $31.20/yr) and New York PFL by `annualMax` ($411.91), so on a $100,000 salary
+// the rate would take $500 and $432 and the engine clamps both — yet the page
+// said the cap was not reached and "the whole salary carries it". Comparing the
+// unclamped rate-times-wages against what stateEmployeePrograms actually charged
+// covers all three shapes at once and cannot drift from the engine.
+function programCapBinds(p, grossAnnual, chargedAnnual) {
+  const uncapped = grossAnnual * (p.rate || 0);
+  return uncapped - chargedAnnual > 0.005;
+}
+
 // One rung's full computation. Everything a rung page or the hub needs, and
 // nothing computed twice: the prose, the tables, the FAQ and the JSON-LD all
 // read this one object, so the page cannot contradict itself.
@@ -4236,6 +4260,43 @@ function caProseBlocks(r, rungs, ctx) {
   // means to them, and a single templated sentence with the rate swapped is the
   // exact thing that failed review.
   {
+    // THE SUPERLATIVE HAS TO BE MEASURED, NOT ASSERTED. This block used to call
+    // the 12% band "the widest band in the schedule". It is not: on the published
+    // single schedule the 12% band is $38,000 wide and fifth of the six finite
+    // bands, behind 35% ($384,375), 24% ($96,075), 22% ($55,300) and 32%
+    // ($54,450). The claim was inherited from California's live pages and was
+    // wrong there too, so it is corrected everywhere rather than grandfathered.
+    // What IS true, and is computed here from the same table the tax comes from:
+    // how wide this band is against the one below it, whether it is the widest
+    // band the salary actually reaches, and which edge carries the largest rate
+    // step in the schedule.
+    let lower0 = 0;
+    const schedule = taxData.federal.brackets.single.map((x) => {
+      const upper = x.upTo == null ? Infinity : x.upTo;
+      const w = { rate: x.rate, lower: lower0, upper, width: upper - lower0 };
+      lower0 = upper;
+      return w;
+    });
+    const at = schedule.findIndex((x) => x.rate === fedTop.rate);
+    const bandBelow = at > 0 ? schedule[at - 1] : null;
+    const bandAbove = at >= 0 && at < schedule.length - 1 ? schedule[at + 1] : null;
+    const widthHere = at >= 0 ? schedule[at].width : null;
+    // "N times as wide as the one below it" — a ratio, not a superlative.
+    const timesBelow = (bandBelow && bandBelow.width > 0 && Number.isFinite(widthHere))
+      ? (widthHere / bandBelow.width).toFixed(1)
+      : null;
+    // Widest of the bands this salary actually reaches. A narrower, checkable
+    // claim than "widest in the schedule", and emitted only when it holds.
+    const reached = r.fed.bands.filter((x) => x.amount > 0);
+    const widestReached = Number.isFinite(widthHere)
+      && reached.every((x) => (x.upper - x.lower) <= widthHere);
+    // The largest rate step anywhere in the schedule, computed. On the published
+    // table it is the 12%-to-22% edge at ten percentage points.
+    const steps = schedule.slice(1).map((x, k) => ({ from: schedule[k], to: x, jump: x.rate - schedule[k].rate }));
+    const biggestStep = steps.reduce((a, x) => (x.jump > a.jump ? x : a), steps[0]);
+    const pts = (v) => `${+(v * 100).toFixed(2)} percentage points`;
+    const stepOutIsBiggest = bandAbove && biggestStep && biggestStep.from.rate === fedTop.rate;
+    const stepInIsBiggest = bandBelow && biggestStep && biggestStep.to.rate === fedTop.rate;
     const headroom = fedTop.upper === Infinity ? null : fedTop.upper - r.fed.taxable;
     const roomLine = headroom == null
       ? bodyFrame('fedroomTop', [
@@ -4258,28 +4319,37 @@ function caProseBlocks(r, rungs, ctx) {
         `federal bill of ${usd0(r.a.federal)} is so much smaller than the headline rate suggests. ` +
         `${roomLine}</p>`,
       '0.12': `<p>${bodyFrame('fb12', [
-        `The next dollar you earn at ${S} is taxed in the second federal band. This is the ` +
-        `widest band in the schedule and most full-time American earners spend their career inside it, ` +
-        `which is why a raise at this level is unusually efficient: nothing about the extra income ` +
+        `The next dollar you earn at ${S} is taxed in the second federal band. It runs ` +
+        `${usd0(widthHere)} from edge to edge` +
+        (timesBelow ? `, ${timesBelow} times the width of the band beneath it` : '') +
+        (widestReached ? `, and it is the widest band your taxable income reaches` : '') +
+        `, which is why a raise at this level is unusually efficient: nothing about the extra income ` +
         `changes its treatment until you leave the band.`,
-        `At ${S} your next dollar falls in the second band up. It is the longest run in the whole federal ` +
-        `schedule, and a great many full-time workers never leave it, so a raise here is about as cheap ` +
-        `as a raise gets: the extra income is treated exactly like the income below it.`,
-        `${S} puts the next dollar in the band just above the lowest one. Because that band is by far the ` +
-        `widest in the schedule, a pay rise at this level does not change how any of your income is ` +
-        `treated until the rise is large enough to leave it altogether.`,
+        `At ${S} your next dollar falls in the second band up, a stretch of ${usd0(widthHere)}` +
+        (timesBelow ? ` — ${timesBelow} times the run of the band below it` : '') +
+        `. A raise here is about as cheap as a raise gets: the extra income is treated exactly like the ` +
+        `income underneath it, all the way to the edge.`,
+        `${S} puts the next dollar in the band just above the lowest one, ${usd0(widthHere)} wide` +
+        (stepOutIsBiggest
+          ? ` and closed off by the largest rate step in the schedule, ${pts(biggestStep.jump)} in a single move`
+          : '') +
+        `. Until a pay rise is large enough to leave it, none of your income changes how it is treated.`,
       ])} ${roomLine}</p>`,
       '0.22': `<p>${bodyFrame('fb22', [
         `At ${S} the next dollar lands in the band immediately above the wide one below it, and ` +
         `the jump between those two is the largest single step in the federal schedule. That is the step ` +
         `people feel when a raise disappoints them: the raise did not shrink, the rate on the part of it ` +
         `above the band edge went up.`,
-        `${S} sits one band above the long middle stretch, and that boundary is the sharpest rate rise ` +
-        `anywhere in the federal table. It explains the common complaint that a raise arrived smaller ` +
+        `${S} sits one band above the schedule's long middle stretch, and` +
+        (stepInIsBiggest
+          ? ` that boundary is the sharpest rate rise anywhere in the federal table, ${pts(biggestStep.jump)} at once`
+          : ` that boundary is where the rate last moved`) +
+        `. It explains the common complaint that a raise arrived smaller ` +
         `than expected: the raise was whole, but the slice of it past the edge met a higher rate.`,
-        `The next dollar at ${S} is charged in the band directly above the schedule's widest one. Crossing ` +
-        `that particular edge costs more than crossing any other, which is why a pay rise around this ` +
-        `level so often lands lighter in the bank than it looked on the letter.`,
+        `The next dollar at ${S} is charged in the band directly above ` +
+        (stepInIsBiggest ? `the largest rate step in the whole schedule` : `the band below it`) +
+        `. Crossing that particular edge costs more than crossing any other, which is why a pay rise ` +
+        `around this level so often lands lighter in the bank than it looked on the letter.`,
       ])} ${roomLine}</p>`,
       '0.24': `<p>${bodyFrame('fb24', [
         `${S} puts your next dollar two bands above the one most earners sit in. The gap between ` +
@@ -4554,12 +4624,28 @@ function caProseBlocks(r, rungs, ctx) {
       // fact too), and what it actually costs at THIS salary.
       const lines = r.programs.map((p) => {
         const capped = programCapPhrase(p.data);
-        const bound = p.data.wageBase != null && r.amount > p.data.wageBase;
-        const capNote = capped
-          ? (bound
-            ? ` It is charged on ${capped}, and ${S} is over that, so the contribution is pegged at ${usdCents(p.amount)} however much more you earn.`
-            : ` It is charged on ${capped}, which ${S} does not reach, so the whole salary carries it.`)
-          : ` No ceiling applies to it, so it is charged on every dollar of wages.`;
+        const binds = programCapBinds(p.data, r.amount, p.amount);
+        // A wage-base ceiling and a dollar ceiling need different sentences: one
+        // stops the rate at a level of WAGES, the other stops the CONTRIBUTION at
+        // a number of dollars, and describing the second as the first is how the
+        // "which $100,000 does not reach" error read.
+        const onWages = p.data.wageBase != null;
+        let capNote;
+        if (!capped) {
+          capNote = ` No ceiling applies to it, so it is charged on every dollar of wages.`;
+        } else if (binds && onWages) {
+          capNote = ` It is charged on ${capped}, and ${S} is over that, so the contribution is pegged at ` +
+            `${usdCents(p.amount)} however much more you earn.`;
+        } else if (binds) {
+          capNote = ` The contribution is capped at ${programCapCeiling(p.data)}, and that ceiling binds here: the rate alone ` +
+            `on ${S} would come to ${usdCents(r.amount * p.rate)}, so ${usdCents(p.amount)} is what is ` +
+            `actually withheld and it does not rise again.`;
+        } else if (onWages) {
+          capNote = ` It is charged on ${capped}, which ${S} does not reach, so the whole salary carries it.`;
+        } else {
+          capNote = ` The contribution is capped at ${programCapCeiling(p.data)}, but the rate on ${S} does not reach ` +
+            `that ceiling, so the full ${pct2(p.rate)} is what comes out.`;
+        }
         return `<li><strong>${p.label}</strong> at ${pct2(p.rate)} costs ${usdCents(p.amount)} a year, ` +
           `${usdCents(p.amount / 26)} a paycheck.${capNote}</li>`;
       }).join('\n        ');
@@ -4671,7 +4757,12 @@ function caProseBlocks(r, rungs, ctx) {
         `${usd0(left)} of the allowance survives, and it reaches zero at ${usd0(gone)}. This is a ` +
         `deduction, not a credit, so what it is actually worth to you is that figure times your federal ` +
         `marginal rate.</p>`);
-    } else if (next && next.amount >= start) {
+      // STRICTLY GREATER THAN, not >=. Every variant below tells the reader the
+      // next rung up loses part of the allowance. At a rung sitting exactly ON
+      // the phase-out start the reduction is floor(0/1000) x $200 = $0, so the
+      // next rung keeps all of it too and the sentence contradicted that rung's
+      // own page ("you are $0 past that line, so roughly $10,000 survives").
+    } else if (next && next.amount > start) {
       push('carloan', bodyFrame('clFull', [
         `<h3>${S} keeps the full car-loan interest deduction</h3>` +
         `<p>Interest on a qualifying new-vehicle loan is deductible up to ${usd0(cap)} a year under ` +
@@ -4707,7 +4798,11 @@ function caProseBlocks(r, rungs, ctx) {
         `allowance falls by ${pct1(mip.reductionPerStep)} of itself for every ${usd0(mip.stepSize.single)} ` +
         `of AGI above ${usd0(start)} and vanishes above ${usd0(gone)}. That is a ${usd0(gone - start)} ` +
         `window, and ${S} is inside it: roughly ${pct1(left)} of the deduction remains. It is the ` +
-        `steepest phase-out anywhere near this salary — nine thousand dollars of income removes all of ` +
+        // Was the string "nine thousand dollars" sitting in the same sentence
+        // that computes usd0(gone - start) from the data. No rung currently lands
+        // in the window so it emitted nowhere, but a hardcoded threshold in
+        // emitted copy is exactly what this cluster is not allowed to carry.
+        `steepest phase-out anywhere near this salary — ${usd0(gone - start)} of income removes all of ` +
         `it — and it only matters if you itemize and pay PMI.</p>`);
     } else if (r.amount >= gone && (prev == null || prev.amount < gone)) {
       push('mip',
@@ -4901,22 +4996,26 @@ function caProseBlocks(r, rungs, ctx) {
     if (r.slug !== 'california' && lt && lt.exists && lt.notes) {
       push('localtax',
         `<h3>${frame('locH', [
-          `The tax this page leaves out, and what it would cost`,
-          `${S} before any local wage tax`,
-          `Local wage taxes, and where they would sit beside ${usd0(r.a.net)}`,
+          `What the ${usd0(r.a.net)} above does not account for`,
+          `${S} before anything local`,
+          `Where local wage taxes sit relative to this figure`,
         ])}</h3>` +
-        // Deliberately says only what the flag itself supports. New Jersey also
-        // carries exists:true, but its own note underneath explains that the one
-        // local levy (Newark) is employer-paid and never reaches an employee's
-        // payslip — so any lead asserting that a local tax DOES reach the reader
-        // would be contradicted by the sourced note printed directly below it.
-        `<p>Nothing above includes a local wage tax. Whether one reaches you in ${NAME}, and at what ` +
-        `rate, is a municipal question rather than a state one, so it cannot be computed here — ` +
-        `${NAME}'s own position is set out below. What can be said is the shape of it: a local wage tax ` +
-        `is charged on gross wages rather than on taxable income, so it does not interact with a single ` +
-        `deduction on this page. Every ${pct1(0.01)} of one would cost ${usd0(r.amount * 0.01)} a year ` +
-        `at ${S}, ${usdCents(r.amount * 0.01 / 26)} a paycheck, straight off the ${usd0(r.a.net)} ` +
-        `above.</p>` +
+        // NO EMPLOYEE-SIDE COST SENTENCE. This used to end "every 1% of one would
+        // cost $1,000 a year at $100,000, straight off the $74,390 above", which
+        // reads as a live deduction the reader should expect. `localIncomeTax
+        // .exists` is the wrong gate for that: it is true for New Jersey, whose
+        // own sourced note printed directly beneath says the single local levy
+        // (Newark, 1%) is EMPLOYER-paid and never leaves an employee's paycheck.
+        // Nothing in the repo separates employer-side from employee-side levies,
+        // so the honest move — and the one the shipped localTaxBlock() on the
+        // state paycheck pages already makes — is to assert nothing and let the
+        // sourced note carry the whole answer. The rung-varying figure that
+        // remains is this page's own net, which is a fact about this page.
+        `<p>The ${usd0(r.a.net)} above is what ${S} leaves after federal withholding, FICA and ` +
+        `${NAME} state withholding, and nothing else. Anything a city, county or school district ` +
+        `levies on wages sits outside that figure, and whether any of it reaches your paycheck is a ` +
+        `municipal question rather than a state one — so it is not modelled here. ${NAME}'s own ` +
+        `published position is below.</p>` +
         `<p class="sal-note">${esc(String(lt.notes))}</p>`);
     }
   }
@@ -5501,9 +5600,16 @@ function caLadderFaq(r, rungs, taxData, payrollState, obbba, secure2) {
   ];
   const stateBandClause = stMarginal == null
     ? `Federally you are in the ${pctStr(fedTop.rate)} bracket, and ${NAME} adds no income tax of its own.`
+    // "neither applies to the whole salary" is true of the federal rate always,
+    // and of a flat state rate ONLY where the state subtracts something first.
+    // Pennsylvania subtracts nothing, so its 3.07% does apply to the whole
+    // salary — and the same page says exactly that two paragraphs further down.
     : (r.kind === 'flat'
-      ? `Federally you are in the ${pctStr(fedTop.rate)} bracket, and ${NAME} charges its single ` +
-        `${pctStr(stMarginal)} rate, though neither applies to the whole salary.`
+      ? (r.stDed > 0
+        ? `Federally you are in the ${pctStr(fedTop.rate)} bracket, and ${NAME} charges its single ` +
+          `${pctStr(stMarginal)} rate, though neither applies to the whole salary.`
+        : `Federally you are in the ${pctStr(fedTop.rate)} bracket, which applies only to the top slice ` +
+          `of your income; ${NAME}'s single ${pctStr(stMarginal)} rate applies to all of it.`)
       : `Federally you are in the ${pctStr(fedTop.rate)} bracket and in ${NAME} the ` +
         `${pctStr(stMarginal)} band, though neither rate applies to the whole salary.`);
 
@@ -6979,14 +7085,22 @@ async function main() {
         ].filter(Boolean).join('\n      ');
         const stateLinesTotal = r.a.state + r.progTotal;
         const stateLineCount = (r.kind === 'none' ? 0 : 1) + r.programs.length;
+        // The tax-state branch continues the previous clause with ", and …"; this
+        // one starts a new sentence, so it needs the full stop the other branch
+        // does not. Without it Texas and Florida read "…federal income tax at
+        // $13,170 Texas takes nothing out of it".
         const shortStateTail = stateLineCount === 0
-          ? ` ${NAME} takes nothing out of it: there is no state income tax and no state payroll premium ` +
-            `on this paycheck.`
+          ? `. ${NAME} takes nothing out of it: there is no state income tax and no state payroll ` +
+            `premium on this paycheck.`
           : (ladderSlugKey === 'california'
             // legacy CA wording
             ? `, and California's own two lines together come to ${usd0(stateLinesTotal)}.`
-            : `, and ${NAME}'s own ${numWord(stateLineCount)} line${stateLineCount === 1 ? '' : 's'} ` +
-              `together come to ${usd0(stateLinesTotal)}.`);
+            // One line does not "together come to" anything. Six states have
+            // exactly one state line and read "own one line together come to".
+            : (stateLineCount === 1
+              ? `, and ${NAME}'s own single state line comes to ${usd0(stateLinesTotal)}.`
+              : `, and ${NAME}'s own ${numWord(stateLineCount)} lines together come to ` +
+                `${usd0(stateLinesTotal)}.`));
 
         const html = fill(rungTpl, {
           SITE_NAME: SITE.name, SITE_URL: SITE.url,
@@ -7148,15 +7262,25 @@ async function main() {
             `${usd0(high.amount)} it costs ${usdCents(high.progTotal)}. It appears in no bracket table ` +
             `anywhere, which is why it is the line people miss when they estimate ${anFor(NAME)} ${NAME} salary.</p>`;
         } else {
+          // The structure has to be able to REPRODUCE the dollar figures quoted
+          // in the same sentence. Ohio's two bands alone give $108.63 on $30,000,
+          // not the $441 printed beside them: ORC 5747.02 adds a flat statutory
+          // base amount on top once taxable income passes its threshold, and the
+          // engine charges it. The rung pages disclose it; the hub said "two
+          // bands" and left the reader unable to arrive at its own number.
+          const baseAmt = kind === 'bracket' && state.tax.baseAmount ? state.tax.baseAmount : null;
           const structure = kind === 'flat'
             ? `a single ${pctStr(state.tax.rate)} rate`
-            : `a graduated schedule of ${numWord(state.tax.brackets.single.length)} bands`;
+            : `a graduated schedule of ${numWord(state.tax.brackets.single.length)} bands` +
+              (baseAmt
+                ? `, plus a flat statutory ${usd0(baseAmt.amount)} once taxable income passes ${usd0(baseAmt.over)}`
+                : '');
           const both = progs.length
             ? `${NAME} takes two kinds of deduction from a paycheck, not one: income tax on ${structure}, ` +
               `and ${caList(progLabels)}. On ${usd0(low.amount)} that pair costs ${usd0(lowState)} a year; ` +
               `on ${usd0(high.amount)} it costs ${usd0(highState)}. The premiums are the part people ` +
               `forget, because they are not income tax and appear in no bracket table.`
-            : `${NAME} charges income tax on ${structure} and withholds no separate employee-side payroll ` +
+            : `${NAME} charges income tax on ${structure}, and withholds no separate employee-side payroll ` +
               `premium, so its whole contribution to this ladder is one line: ${usd0(lowState)} a year on ` +
               `${usd0(low.amount)}, ${usd0(highState)} on ${usd0(high.amount)}. That is ` +
               `${pct1(lowState / low.amount)} of gross at the bottom of the ladder and ` +
@@ -7253,9 +7377,18 @@ async function main() {
           ? (ladderSlugKey === 'california'
             // legacy CA wording
             ? `; and California SDI is ${pct2(progs[0].rate)} of the whole salary, uncapped since SB 951`
+            // Same distinction the rung pages make: a wage-base ceiling is a
+            // level of WAGES the rate stops at, a dollar ceiling is a cap on the
+            // CONTRIBUTION. "0.43% of at most $411.91 a year" was the first,
+            // meaningless, version of this.
             : `; and ${caList(progs.map((p) => {
-              const cap = programCapPhrase(p.data);
-              return `${p.label} is ${pct2(p.rate)} of ${cap ? cap : 'all wages'}`;
+              if (p.data.wageBase != null) {
+                return `${p.label} is ${pct2(p.rate)} of ${programCapPhrase(p.data)}`;
+              }
+              const cap = programCapCeiling(p.data);
+              return cap
+                ? `${p.label} is ${pct2(p.rate)} of wages, capped at ${cap}`
+                : `${p.label} is ${pct2(p.rate)} of all wages`;
             }))}`)
           : '';
         const methodPara = `Every figure is computed at build time by the same open paycheck engine behind ` +
