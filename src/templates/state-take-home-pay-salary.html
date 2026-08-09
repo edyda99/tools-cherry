@@ -89,7 +89,7 @@
     <p class="sal-note">{{BREAKDOWN_INTRO}}</p>
     <div class="sal-scroll">
       <table class="sal-t">
-        <caption class="sr-only">Annual, monthly and biweekly breakdown of federal tax, FICA, California income tax and California SDI on a {{SALARY}} salary</caption>
+        <caption class="sr-only">{{BREAKDOWN_CAPTION}}</caption>
         <thead><tr><th>Line</th><th class="num">Per year</th><th class="num">Per month</th><th class="num">Per 2 weeks</th><th class="num">% of gross</th></tr></thead>
         <tbody>{{BREAKDOWN_ROWS}}</tbody>
       </table>
@@ -106,16 +106,7 @@
     </div>
     <p class="sal-note">{{FED_NOTE}}</p>
 
-    <h2 id="california">The California income tax on {{SALARY}}, bracket by bracket</h2>
-    <p>{{CA_INTRO}}</p>
-    <div class="sal-scroll">
-      <table class="sal-t">
-        <caption class="sr-only">California income tax bands reached on a {{SALARY}} salary, single filer</caption>
-        <thead><tr><th>California band</th><th class="num">Rate</th><th class="num">Income taxed here</th><th class="num">Tax from this band</th></tr></thead>
-        <tbody>{{CA_BRACKET_ROWS}}</tbody>
-      </table>
-    </div>
-    <p class="sal-note">{{CA_NOTE}}</p>
+{{STATE_SECTION}}
 
     <div class="ad-slot" data-ad="incontent">Advertisement</div>
 
@@ -128,8 +119,8 @@
     <p>{{FILING_INTRO}}</p>
     <div class="sal-scroll">
       <table class="sal-t">
-        <caption class="sr-only">California take-home pay on {{SALARY}} by filing status</caption>
-        <thead><tr><th>Filing status</th><th class="num">Federal tax</th><th class="num">CA income tax</th><th class="num">Take-home a year</th><th class="num">Share withheld</th></tr></thead>
+        <caption class="sr-only">{{STATUS_CAPTION}}</caption>
+        <thead><tr>{{STATUS_HEAD}}</tr></thead>
         <tbody>{{STATUS_ROWS}}</tbody>
       </table>
     </div>
@@ -137,9 +128,7 @@
     <div class="sal-prevnext">{{PREV_NEXT}}</div>
 
     <div class="cta-tools">
-      <a class="primary" href="/california-paycheck-calculator/">Change the inputs in the California paycheck calculator &rarr;</a>
-      <a href="/california-take-home-pay/">All California salary levels &rarr;</a>
-      <a href="/data/take-home-pay-by-state/">Compare California with the other 50 &rarr;</a>
+      {{CTA_LINKS}}
     </div>
 
     <section class="prose">
