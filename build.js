@@ -4198,6 +4198,15 @@ function caProseBlocks(r, rungs, ctx) {
   const next = i < rungs.length - 1 ? rungs[i + 1] : null;
   const S = usd0(r.amount);
   const frame = (salt, arr) => pickFrame(ladderSalt(r.slug, 'ladder', r.amount), salt, arr);
+  // BODY wording, not just headings. The federal half of these pages states the
+  // same fact in every state, so with thirteen ladders the same four hundred
+  // words would otherwise appear on all thirteen $70,000 pages — a measured 93%
+  // shared-shingle overlap on the first cut, against ~68% on this site's own live
+  // state-paycheck cluster. The fix is the one the paycheck pages already use:
+  // pickFrame, salted on the slug, over wordings that all say the identical
+  // thing. arr[0] is always the wording California's nine live pages carry and
+  // California is pinned to it, so generalising cannot rewrite them.
+  const bodyFrame = (salt, arr) => (r.slug === 'california' ? arr[0] : frame(salt, arr));
   const B = [];
   const push = (key, html) => B.push({ key, html });
 
@@ -4222,26 +4231,58 @@ function caProseBlocks(r, rungs, ctx) {
   {
     const headroom = fedTop.upper === Infinity ? null : fedTop.upper - r.fed.taxable;
     const roomLine = headroom == null
-      ? `There is no band above this one, so every further dollar is taxed at the same rate.`
-      : `You have ${usd0(headroom)} of taxable income left inside it, which is about ` +
-        `${usd0(headroom)} more salary before the next band starts taking a larger share of the extra.`;
+      ? bodyFrame('fedroomTop', [
+        `There is no band above this one, so every further dollar is taxed at the same rate.`,
+        `Nothing sits above this band, so the rate on the next dollar is the rate on the last one.`,
+        `This is the final band in the schedule; no further income is treated any differently.`,
+      ])
+      : bodyFrame('fedroom', [
+        `You have ${usd0(headroom)} of taxable income left inside it, which is about ` +
+        `${usd0(headroom)} more salary before the next band starts taking a larger share of the extra.`,
+        `There is ${usd0(headroom)} of room left in the band, so roughly ${usd0(headroom)} of further ` +
+        `salary is charged at this rate before any of it meets the next one.`,
+        `The band still has ${usd0(headroom)} of headroom, which is about ${usd0(headroom)} of raise ` +
+        `before a higher rate touches any part of it.`,
+      ]);
     const byBand = {
       '0.1': `<p>${S} sits in the lowest federal band there is. Almost the whole of the ` +
         `${usd0(taxData.federal.standardDeduction.single)} standard deduction is doing the work here: ` +
         `it wipes out a large fraction of the salary before a single dollar is taxed, which is why the ` +
         `federal bill of ${usd0(r.a.federal)} is so much smaller than the headline rate suggests. ` +
         `${roomLine}</p>`,
-      '0.12': `<p>The next dollar you earn at ${S} is taxed in the second federal band. This is the ` +
+      '0.12': `<p>${bodyFrame('fb12', [
+        `The next dollar you earn at ${S} is taxed in the second federal band. This is the ` +
         `widest band in the schedule and most full-time American earners spend their career inside it, ` +
         `which is why a raise at this level is unusually efficient: nothing about the extra income ` +
-        `changes its treatment until you leave the band. ${roomLine}</p>`,
-      '0.22': `<p>At ${S} the next dollar lands in the band immediately above the wide one below it, and ` +
+        `changes its treatment until you leave the band.`,
+        `At ${S} your next dollar falls in the second band up. It is the longest run in the whole federal ` +
+        `schedule, and a great many full-time workers never leave it, so a raise here is about as cheap ` +
+        `as a raise gets: the extra income is treated exactly like the income below it.`,
+        `${S} puts the next dollar in the band just above the lowest one. Because that band is by far the ` +
+        `widest in the schedule, a pay rise at this level does not change how any of your income is ` +
+        `treated until the rise is large enough to leave it altogether.`,
+      ])} ${roomLine}</p>`,
+      '0.22': `<p>${bodyFrame('fb22', [
+        `At ${S} the next dollar lands in the band immediately above the wide one below it, and ` +
         `the jump between those two is the largest single step in the federal schedule. That is the step ` +
         `people feel when a raise disappoints them: the raise did not shrink, the rate on the part of it ` +
-        `above the band edge went up. ${roomLine}</p>`,
-      '0.24': `<p>${S} puts your next dollar two bands above the one most earners sit in. The gap between ` +
+        `above the band edge went up.`,
+        `${S} sits one band above the long middle stretch, and that boundary is the sharpest rate rise ` +
+        `anywhere in the federal table. It explains the common complaint that a raise arrived smaller ` +
+        `than expected: the raise was whole, but the slice of it past the edge met a higher rate.`,
+        `The next dollar at ${S} is charged in the band directly above the schedule's widest one. Crossing ` +
+        `that particular edge costs more than crossing any other, which is why a pay rise around this ` +
+        `level so often lands lighter in the bank than it looked on the letter.`,
+      ])} ${roomLine}</p>`,
+      '0.24': `<p>${bodyFrame('fb24', [
+        `${S} puts your next dollar two bands above the one most earners sit in. The gap between ` +
         `this band and the one below it is narrow, so unlike the step below, crossing into it barely ` +
-        `changes what a raise is worth. ${roomLine}</p>`,
+        `changes what a raise is worth.`,
+        `At ${S} the next dollar is two bands above the one most workers occupy. The rise from the band ` +
+        `below is small, so crossing this particular edge costs far less than crossing the one before it.`,
+        `${S} reaches two bands past the schedule's busiest one, and this edge is a gentle one: the rates ` +
+        `either side of it are close enough that a raise across it is worth nearly what it was worth below.`,
+      ])} ${roomLine}</p>`,
       '0.32': `<p>At ${S} the next dollar is taxed near the upper end of the federal schedule. From here ` +
         `the bands widen sharply, so this rate governs a long stretch of further income. Pre-tax saving ` +
         `is worth more at this level than anywhere lower on this ladder, because every dollar deferred ` +
@@ -4391,11 +4432,22 @@ function caProseBlocks(r, rungs, ctx) {
       `compute. Every dollar of tax withheld from ${S} is federal: ${usd0(r.a.federal)} of income tax and ` +
       `${usd0(ficaTotal)} of Social Security and Medicare, ${pct1(r.a.totalTax / r.amount)} of gross ` +
       `between them.${progClause}</p>` +
-      `<p>That makes the federal working above the entire tax story at this salary, and it changes what ` +
-      `is worth paying attention to: in a bracket state a raise can move you up two ladders at once, ` +
-      `while here the only questions are which federal band the next dollar lands in and whether the ` +
-      `Social Security wage base or the Additional Medicare threshold has been crossed. Both are answered ` +
-      `on this page.</p>`);
+      bodyFrame('notaxC', [
+        `<p>That makes the federal working above the entire tax story at this salary, and it changes what ` +
+        `is worth paying attention to: in a bracket state a raise can move you up two ladders at once, ` +
+        `while here the only questions are which federal band the next dollar lands in and whether the ` +
+        `Social Security wage base or the Additional Medicare threshold has been crossed. Both are ` +
+        `answered on this page.</p>`,
+        `<p>So the federal breakdown further up is the whole of it. That is worth knowing when you weigh a ` +
+        `raise: somewhere with a graduated state tax, extra income can cross two sets of band edges at ` +
+        `once, whereas in ${NAME} there is only one schedule to cross, plus the ${usd0(wageBase)} Social ` +
+        `Security ceiling and the ${usd0(addlThreshold)} Additional Medicare line. All three are worked ` +
+        `out on this page.</p>`,
+        `<p>Everything that decides what ${S} is worth after tax in ${NAME} is therefore in the federal ` +
+        `table above. A raise here meets one set of band edges rather than two, and the only other things ` +
+        `that can change its treatment are the Social Security wage base at ${usd0(wageBase)} and the ` +
+        `Additional Medicare threshold at ${usd0(addlThreshold)} — both of which this page tests.</p>`,
+      ]));
   }
 
   // --- The Child and Dependent Care Credit's applicable percentage. IRC §21 as
@@ -4409,38 +4461,53 @@ function caProseBlocks(r, rungs, ctx) {
       const s1 = p.stage1, s2 = p.stage2;
       const plateauStart = s1.threshold + ((p.top - p.stage1Floor) * 100) * s1.increment;
       const floorAt = s2.thresholdSingle + ((p.stage1Floor - p.stage2Floor) * 100) * s2.incrementSingle;
-      let rate, body;
+      let rate, bodyText;
       if (r.amount <= s1.threshold) {
         rate = p.top;
-        body = `you are at the top rate the credit ever pays.`;
+        bodyText = `you are at the top rate the credit ever pays.`;
       } else if (r.amount < plateauStart) {
         rate = Math.max(p.stage1Floor, p.top - Math.floor((r.amount - s1.threshold) / s1.increment) / 100);
-        body = `you are on the first slide, where the rate drops a point for every ` +
+        bodyText = `you are on the first slide, where the rate drops a point for every ` +
           `${usd0(s1.increment)} of income above ${usd0(s1.threshold)}. It levels off at ` +
           `${pct1(p.stage1Floor)} once income reaches ${usd0(plateauStart)}, so a raise from here costs ` +
           `you a little of this credit on the way.`;
       } else if (r.amount <= s2.thresholdSingle) {
         rate = p.stage1Floor;
-        body = `you are on the flat middle of the schedule. Between ${usd0(plateauStart)} and ` +
+        bodyText = `you are on the flat middle of the schedule. Between ${usd0(plateauStart)} and ` +
           `${usd0(s2.thresholdSingle)} the rate does not move at all, so this is the one stretch of the ` +
           `ladder where a raise does not erode the credit.`;
       } else if (r.amount < floorAt) {
         rate = Math.max(p.stage2Floor, p.stage1Floor - Math.floor((r.amount - s2.thresholdSingle) / s2.incrementSingle) / 100);
-        body = `you are on the second slide, which OBBBA added above ${usd0(s2.thresholdSingle)}: another ` +
+        bodyText = `you are on the second slide, which OBBBA added above ${usd0(s2.thresholdSingle)}: another ` +
           `point off for every ${usd0(s2.incrementSingle)} of income, bottoming out at ` +
           `${pct1(p.stage2Floor)} at ${usd0(floorAt)}.`;
       } else {
         rate = p.stage2Floor;
-        body = `you are at the floor. The rate cannot fall below ${pct1(p.stage2Floor)} however much more ` +
+        bodyText = `you are at the floor. The rate cannot fall below ${pct1(p.stage2Floor)} however much more ` +
           `you earn, so unlike most things on this page, further raises cost you nothing here.`;
       }
       const cap = ctx.depCare.cdctc.expenseCap;
       push('cdctc',
-        `<h3>If you pay for childcare, ${S} sets your credit rate</h3>` +
-        `<p>The Child and Dependent Care Credit pays a percentage of qualifying care costs, up to ` +
-        `${usd0(cap.oneChild)} of expenses for one dependent and ${usd0(cap.twoOrMore)} for two or more, ` +
-        `and that percentage is set by your income. At ${S} it is ${pct1(rate)}: ${body} The credit is ` +
-        `nonrefundable and is not modelled in the take-home figures above, which assume no dependents.</p>`);
+        `<h3>${bodyFrame('cdcH', [
+          `If you pay for childcare, ${S} sets your credit rate`,
+          `What ${S} does to the childcare credit`,
+          `The childcare credit rate that ${S} buys you`,
+        ])}</h3>` +
+        `<p>${bodyFrame('cdcI', [
+          `The Child and Dependent Care Credit pays a percentage of qualifying care costs, up to ` +
+          `${usd0(cap.oneChild)} of expenses for one dependent and ${usd0(cap.twoOrMore)} for two or more, ` +
+          `and that percentage is set by your income.`,
+          `The Child and Dependent Care Credit refunds a share of what you spend on qualifying care, ` +
+          `counting up to ${usd0(cap.oneChild)} of expenses for one dependent or ${usd0(cap.twoOrMore)} ` +
+          `for two or more, and income decides what that share is.`,
+          `Qualifying childcare costs earn a credit worth a percentage of the spend, on expenses of up to ` +
+          `${usd0(cap.oneChild)} for a single dependent and ${usd0(cap.twoOrMore)} where there are two or ` +
+          `more. Which percentage you get depends on what you earn.`,
+        ])} At ${S} it is ${pct1(rate)}: ${bodyText} ${bodyFrame('cdcC', [
+          `The credit is nonrefundable and is not modelled in the take-home figures above, which assume no dependents.`,
+          `It is a nonrefundable credit and none of the figures above include it: they model a filer with no dependents.`,
+          `Being nonrefundable, it can only cancel tax you already owe, and the take-home numbers on this page do not include it at all.`,
+        ])}</p>`);
     }
   }
 
@@ -4522,12 +4589,23 @@ function caProseBlocks(r, rungs, ctx) {
     const amount = sen.amountPerPerson;
     const nearBelow = prev == null ? false : (r.amount < start && next && next.amount > start);
     if (r.amount >= full) {
-      push('senior',
+      push('senior', bodyFrame('senGone', [
         `<h3>The senior deduction is fully phased out at ${S}</h3>` +
         `<p>If you are 65 or over, the OBBBA senior deduction of ${usd0(amount)} per person is worth ` +
         `nothing at this income. It reduces by ${pct1(sen.phaseoutRate)} of every dollar of modified AGI ` +
         `above ${usd0(start)} and reaches zero at ${usd0(full)}, which ${S} clears. Nothing on this page ` +
-        `assumes you claim it, and an older filer on this salary should not plan around it.</p>`);
+        `assumes you claim it, and an older filer on this salary should not plan around it.</p>`,
+        `<h3>${S} is past the end of the senior deduction</h3>` +
+        `<p>The ${usd0(amount)}-per-person deduction OBBBA gives filers aged 65 and over has already run ` +
+        `out at this salary. It shrinks by ${pct1(sen.phaseoutRate)} of each dollar of modified AGI over ` +
+        `${usd0(start)} and is exhausted by ${usd0(full)}, which ${S} is above. None of the figures on ` +
+        `this page count on it, and nor should an older filer earning this much.</p>`,
+        `<h3>Being 65 or over changes nothing at ${S}</h3>` +
+        `<p>OBBBA's extra ${usd0(amount)} a head for older filers is gone by the time income reaches ` +
+        `${usd0(full)}, having come down ${pct1(sen.phaseoutRate)} for every dollar above ${usd0(start)}. ` +
+        `${S} clears that ceiling, so the deduction is worth nothing here, and this page never assumed ` +
+        `otherwise.</p>`,
+      ]));
     } else if (r.amount > start) {
       const reduced = Math.max(0, amount - (r.amount - start) * sen.phaseoutRate);
       push('senior',
@@ -4539,13 +4617,24 @@ function caProseBlocks(r, rungs, ctx) {
         `it — they model a filer under 65 — but it is the one deduction at this income level that a ` +
         `raise quietly erodes.</p>`);
     } else if (nearBelow) {
-      push('senior',
+      push('senior', bodyFrame('senNear', [
         `<h3>${S} is just under the senior deduction phase-out</h3>` +
         `<p>OBBBA gives filers 65 and over an extra ${usd0(amount)} per person, and it is one of the few ` +
         `deductions left that is worth full value here: the phase-out does not begin until ${usd0(start)} ` +
         `of modified AGI, and ${S} is ${usd0(start - r.amount)} below that. Above the line it comes off ` +
         `at ${pct1(sen.phaseoutRate)} of every extra dollar, so this is the last rung of the ladder where ` +
-        `an older filer keeps all of it.</p>`);
+        `an older filer keeps all of it.</p>`,
+        `<h3>An older filer keeps the whole senior deduction at ${S}</h3>` +
+        `<p>OBBBA's extra ${usd0(amount)} per person for filers aged 65 and over survives intact here. Its ` +
+        `phase-out starts at ${usd0(start)} of modified AGI and ${S} is ${usd0(start - r.amount)} short of ` +
+        `that, so nothing has been taken off it yet. Past the line it erodes by ${pct1(sen.phaseoutRate)} ` +
+        `of every further dollar earned, and the next rung up this ladder is already into it.</p>`,
+        `<h3>${S} is the last rung with the senior deduction untouched</h3>` +
+        `<p>If you are 65 or over, OBBBA adds ${usd0(amount)} per person to what comes off before tax, and ` +
+        `at ${S} it is still worth every cent: the taper does not start until ${usd0(start)} of modified ` +
+        `AGI, ${usd0(start - r.amount)} above this salary. From there it falls away at ` +
+        `${pct1(sen.phaseoutRate)} of each extra dollar of income.</p>`,
+      ]));
     }
   }
 
@@ -4576,12 +4665,23 @@ function caProseBlocks(r, rungs, ctx) {
         `deduction, not a credit, so what it is actually worth to you is that figure times your federal ` +
         `marginal rate.</p>`);
     } else if (next && next.amount >= start) {
-      push('carloan',
+      push('carloan', bodyFrame('clFull', [
         `<h3>${S} keeps the full car-loan interest deduction</h3>` +
         `<p>Interest on a qualifying new-vehicle loan is deductible up to ${usd0(cap)} a year under ` +
         `OBBBA without itemizing, and the phase-out does not start until ${usd0(start)} of modified AGI ` +
         `for a single filer. At ${S} you are ${usd0(start - r.amount)} below it and keep the whole ` +
-        `allowance; the very next step up this ladder does not.</p>`);
+        `allowance; the very next step up this ladder does not.</p>`,
+        `<h3>The whole new-car interest allowance survives at ${S}</h3>` +
+        `<p>OBBBA lets a single filer deduct up to ${usd0(cap)} a year of interest on a qualifying ` +
+        `new-vehicle loan without itemising, and nothing comes off it below ${usd0(start)} of modified ` +
+        `AGI. ${S} sits ${usd0(start - r.amount)} under that line, so the allowance is untouched here — ` +
+        `which is not true of the next rung up.</p>`,
+        `<h3>${S} is the last rung with the car-loan deduction whole</h3>` +
+        `<p>Interest on a qualifying new-vehicle loan is deductible up to ${usd0(cap)} a year under OBBBA, ` +
+        `and no itemising is required. The taper begins at ${usd0(start)} of modified AGI for a single ` +
+        `filer; ${S} is ${usd0(start - r.amount)} below it, so all of the allowance is available and the ` +
+        `step above this one already loses some.</p>`,
+      ]));
     }
   }
 
@@ -4631,13 +4731,26 @@ function caProseBlocks(r, rungs, ctx) {
         `Neither touches FICA either way: Social Security and Medicare are still charged on tips and ` +
         `overtime in full.</p>`);
     } else if (next && next.amount >= start) {
-      push('tipsot',
+      push('tipsot', bodyFrame('otFull', [
         `<h3>${S} still gets the tips and overtime deductions in full</h3>` +
         `<p>If part of your pay is tips or FLSA overtime premium, OBBBA lets you deduct up to ` +
         `${usd0(tp.cap.single)} of tips and ${usd0(ot.cap.single)} of overtime premium without ` +
         `itemizing, and the phase-out does not begin until ${usd0(start)} of modified AGI. ${S} is ` +
         `${usd0(start - r.amount)} below that line, so both survive intact. They cut income tax only — ` +
-        `Social Security and Medicare are charged on that income regardless.</p>`);
+        `Social Security and Medicare are charged on that income regardless.</p>`,
+        `<h3>Both the tips and overtime deductions survive at ${S}</h3>` +
+        `<p>Where some of your pay arrives as tips or as FLSA overtime premium, OBBBA allows a deduction ` +
+        `of up to ${usd0(tp.cap.single)} on the tips and ${usd0(ot.cap.single)} on the premium, with no ` +
+        `need to itemise. Nothing starts phasing out below ${usd0(start)} of modified AGI, and ${S} is ` +
+        `${usd0(start - r.amount)} under it, so both are worth their full value. Neither touches FICA: ` +
+        `Social Security and Medicare are charged on tips and overtime like any other wages.</p>`,
+        `<h3>Tips and overtime are still fully deductible at ${S}</h3>` +
+        `<p>OBBBA's deductions — up to ${usd0(tp.cap.single)} of qualified tips and ${usd0(ot.cap.single)} ` +
+        `of FLSA overtime premium, claimable without itemising — do not begin to shrink until modified ` +
+        `AGI reaches ${usd0(start)}. At ${S} you are ${usd0(start - r.amount)} short of that, so both are ` +
+        `intact. What they reduce is income tax and nothing else; the FICA on that same income is ` +
+        `unchanged.</p>`,
+      ]));
     }
   }
 
@@ -4689,14 +4802,27 @@ function caProseBlocks(r, rungs, ctx) {
           `${stateRateClause}, so even a small contribution is bought at a real ` +
           `discount.</p>`);
       } else if (share < 0.18) {
-        push('deferral',
+        push('deferral', bodyFrame('defHi', [
           `<h3>Pre-tax saving does the most work at ${S}</h3>` +
           `<p>The ${taxData.taxYear} elective deferral cap of ${usd0(yr.deferral)} is only ${pct1(share)} ` +
           `of this salary, so unlike lower down the ladder it is comfortably reachable — and it is worth ` +
           `more here than anywhere below, because each deferred dollar comes off the top at ` +
           `${pctStr(fedTop.rate)} federally${stateRateClause2} rather than at an ` +
           `averaged rate. Deferring the full amount is the single largest lever on the figures at the ` +
-          `top of this page. FICA is unaffected either way.</p>`);
+          `top of this page. FICA is unaffected either way.</p>`,
+          `<h3>The 401(k) cap is within reach at ${S}</h3>` +
+          `<p>At ${usd0(yr.deferral)}, the ${taxData.taxYear} elective deferral limit is ${pct1(share)} of ` +
+          `this salary — reachable in a way it simply is not further down this ladder, and worth more ` +
+          `here too, because each deferred dollar is taken off the top at ${pctStr(fedTop.rate)} ` +
+          `federally${stateRateClause2} instead of at some blended rate. Nothing else available to you ` +
+          `moves the numbers at the top of this page as far. FICA is charged either way.</p>`,
+          `<h3>What deferring the maximum is worth at ${S}</h3>` +
+          `<p>The ${taxData.taxYear} cap on elective deferrals, ${usd0(yr.deferral)}, works out at ` +
+          `${pct1(share)} of this salary. That makes it both achievable and unusually valuable: the ` +
+          `dollars you defer are the top dollars, charged at ${pctStr(fedTop.rate)} ` +
+          `federally${stateRateClause2}, not at an average of every band below. It is the largest single ` +
+          `lever over the figures on this page, and it leaves FICA exactly where it was.</p>`,
+        ]));
       }
     }
   }
@@ -4743,6 +4869,134 @@ function caProseBlocks(r, rungs, ctx) {
         `the Medicare figure here is the plain ${medRate}. One more dollar of wages starts it, and ` +
         `because the threshold has never been indexed for inflation, the salary that lands on this line ` +
         `is more ordinary every year.</p>`);
+    }
+  }
+
+  // --- CROSS-STATE DIFFERENTIATION. Four blocks that exist because the twelve
+  // new ladders were measurably too alike without them: a shingle pass put the
+  // flat-with-a-deduction states (Illinois, Georgia, North Carolina, Michigan) at
+  // 92-94% shared 8-word text, which is the doorway shape, not a cluster. Every
+  // one of these reads a per-state file this repo already sources and the state
+  // pages already ship, so nothing here is asserted:
+  //   local wage taxes        state-payroll-2026.json  .localIncomeTax
+  //   the state wage floor    state-payroll-2026.json  .minWage2026
+  //   OBBBA conformity        obbba-deductions-2026.json .states
+  //   supplemental method     state-supplemental-2026.json .states
+  // They are skipped for California, whose nine pages are already live and whose
+  // build output is pinned byte-for-byte; adding them there is a separate change.
+
+  // --- Local wage taxes. Only where the payroll data says the state has them,
+  // and the substance is that file's own sourced note rather than anything
+  // asserted here. This alone separates Michigan, Ohio, Pennsylvania, New York
+  // and New Jersey from the states that have nothing on this line.
+  {
+    const lt = ctx.payrollState && ctx.payrollState.localIncomeTax;
+    if (r.slug !== 'california' && lt && lt.exists && lt.notes) {
+      push('localtax',
+        `<h3>${frame('locH', [
+          `The tax this page leaves out, and what it would cost`,
+          `${S} before any local wage tax`,
+          `Why ${NAME} take-home pay depends on which town you live in`,
+        ])}</h3>` +
+        `<p>Nothing above includes a local wage tax, and ${NAME} is one of the states where local wage ` +
+        `taxation is in play. What it costs depends entirely on the municipality, so it cannot be ` +
+        `computed here — but its shape can: a local wage tax is charged on gross wages rather than on ` +
+        `taxable income, so it does not interact with a single deduction on this page. Every ` +
+        `${pct1(0.01)} of it costs ${usd0(r.amount * 0.01)} a year at ${S}, ` +
+        `${usdCents(r.amount * 0.01 / 26)} a paycheck, straight off the ${usd0(r.a.net)} above.</p>` +
+        `<p class="sal-note">${esc(String(lt.notes))}</p>`);
+    }
+  }
+
+  // --- The state wage floor. A ratio that moves with BOTH axes: the rung and
+  // the state ($7.25 in Georgia against $17.13 in Washington), and the two
+  // withholding rates either end of it are computed through the same engine.
+  {
+    const mw = ctx.payrollState && ctx.payrollState.minWage2026;
+    if (r.slug !== 'california' && mw && mw.amountUsd > 0) {
+      const floorAnnual = mw.amountUsd * 40 * 52;
+      const floorRun = computePaycheck(
+        { wage: { type: 'salary', amount: floorAnnual }, filingStatus: 'single', payFrequency: 'annual', stateSlug: r.slug },
+        taxData
+      ).annual;
+      const floorWithheld = floorRun.totalTax + floorRun.statePrograms;
+      const mult = r.amount / floorAnnual;
+      push('minwage',
+        `<h3>${frame('mwH', [
+          `${S} against ${NAME}'s wage floor`,
+          `How far ${S} is above the ${NAME} minimum`,
+          `What ${NAME}'s minimum wage keeps, and what ${S} keeps`,
+        ])}</h3>` +
+        `<p>The minimum wage in ${NAME} is ${usdCents(mw.amountUsd)} an hour, which is ${usd0(floorAnnual)} ` +
+        `a year at forty hours a week. ${S} is ${mult.toFixed(1)} times that. Run the floor through the ` +
+        `same engine and it keeps ${usd0(floorRun.net)} of that ${usd0(floorAnnual)} — ` +
+        `${pct1(floorWithheld / floorAnnual)} withheld — against ${pct1(r.allInRate)} at ${S}. The gap ` +
+        `between those two shares is the graduated system doing its work: the extra ` +
+        `${usd0(r.amount - floorAnnual)} of gross is charged at higher rates than the first ` +
+        `${usd0(floorAnnual)} ever is.</p>` +
+        (mw.notes ? `<p class="sal-note">${esc(String(mw.notes))}</p>` : ''));
+    }
+  }
+
+  // --- Whether the state follows OBBBA on tips and overtime. Emitted where the
+  // state actually offers something (Michigan yes, Georgia capped, New York on
+  // tips only) or where the federal phase-out is live at this rung; silent where
+  // a flat "no" would be the same sentence on every page.
+  {
+    const ob = ctx.obbbaStates && ctx.obbbaStates[r.slug];
+    const otStart = obbba.federal.overtime.phaseoutStartMagi.single;
+    const federalLive = r.amount >= otStart || (next && next.amount >= otStart);
+    if (r.slug !== 'california' && ob && ob.hasWageTax && ob.overtime && ob.tips) {
+      const otY = String(ob.overtime.y2026);
+      const tpY = String(ob.tips.y2026);
+      if (otY !== 'no' || tpY !== 'no' || federalLive) {
+        const verdict = (what, v) => (v === 'yes'
+          ? `follows the federal ${what} deduction`
+          : (v === 'partial' ? `only partly follows the federal ${what} deduction` : `does not follow the federal ${what} deduction`));
+        const stateBite = stMarginal == null ? ''
+          : ` Where it does not, a dollar of qualified ${otY === 'yes' ? 'tips' : 'overtime'} that escapes ` +
+            `${pctStr(fedTop.rate)} of federal tax at ${S} is still charged ${pctStr(stMarginal)} by ${NAME}.`;
+        push('obbbastate',
+          `<h3>${frame('obH', [
+            `Does ${NAME} follow the tips and overtime deductions?`,
+            `The federal tips and overtime break, and what ${NAME} does with it`,
+            `${NAME} and the OBBBA tips and overtime deductions`,
+          ])}</h3>` +
+          `<p>The tips and overtime deductions described on this page are federal. On the state return ` +
+          `${NAME} ${verdict('tips', tpY)} and ${verdict('overtime', otY)}, which is why the two can be ` +
+          `worth different amounts to the same paycheck.${(otY === 'no' && tpY === 'no') ? '' : stateBite}</p>` +
+          (ob.note ? `<p class="sal-note">${esc(String(ob.note))}</p>` : ''));
+      }
+    }
+  }
+
+  // --- Supplemental (bonus) withholding. Emitted only where the state publishes
+  // a SEPARATE flat rate for it, because that is the only case where there is an
+  // answer a salary page does not already give. In a bracket state the comparison
+  // moves rung by rung; in a flat state it is one fixed, and often surprising,
+  // gap between the bonus rate and the wage rate.
+  {
+    const sp = ctx.suppStates && ctx.suppStates[r.slug];
+    if (r.slug !== 'california' && sp && sp.method === 'flat' && sp.rate > 0 && stMarginal != null) {
+      const sr = sp.rate;
+      const per1000 = 1000 * sr;
+      const per1000Wage = 1000 * stMarginal;
+      const relation = Math.abs(sr - stMarginal) < 1e-9
+        ? `exactly the rate your salary is charged at this rung, so a bonus and a raise are withheld identically here`
+        : (sr > stMarginal
+          ? `above the ${pctStr(stMarginal)} your salary is charged at this rung, so a bonus is over-withheld and the difference comes back at filing`
+          : `below the ${pctStr(stMarginal)} your salary is charged at this rung, so a bonus is under-withheld and the difference is owed at filing`);
+      push('bonus',
+        `<h3>${frame('bonH', [
+          `A bonus is withheld differently from a raise in ${NAME}`,
+          `What ${NAME} takes from a bonus at ${S}`,
+          `Why a ${NAME} bonus does not follow the rate on this page`,
+        ])}</h3>` +
+        `<p>${NAME} withholds supplemental wages — a bonus, a commission, a payout — at a flat ` +
+        `${pctStr(sr)}, not at the rate the rest of your pay is charged. That is ${relation}. On ` +
+        `${usd0(1000)} of bonus it is the difference between ${usdCents(per1000)} and ` +
+        `${usdCents(per1000Wage)} of ${NAME} withholding. Withholding is not the tax: what you owe is ` +
+        `settled on the return either way.</p>`);
     }
   }
 
@@ -4808,13 +5062,27 @@ function caProseBlocks(r, rungs, ctx) {
           `The raise into ${S}, and the raise out of it`,
           `Moving up from ${S}, and how you got here`,
         ])}</h3>` +
-        `<p>Coming up from ${usd0(prev.amount)}, a ${usd0(r.amount - prev.amount)} raise added ` +
-        `${usd0(keptA)} of take-home pay — ${pct1(keptA / (r.amount - prev.amount))} of it survived ` +
-        `withholding. Going on to ${usd0(next.amount)} would add ${usd0(keptB)} a year, ` +
-        `${usd0(keptB / 12)} a month, out of ${usd0(next.amount - r.amount)} of extra gross, or ` +
-        `${pct1(keptB / (next.amount - r.amount))}. Nothing in either schedule creates a cliff where ` +
-        `earning more leaves you with less: a band rate only ever applies to the income inside that ` +
-        `band.</p>`);
+        bodyFrame('stepMid', [
+          `<p>Coming up from ${usd0(prev.amount)}, a ${usd0(r.amount - prev.amount)} raise added ` +
+          `${usd0(keptA)} of take-home pay — ${pct1(keptA / (r.amount - prev.amount))} of it survived ` +
+          `withholding. Going on to ${usd0(next.amount)} would add ${usd0(keptB)} a year, ` +
+          `${usd0(keptB / 12)} a month, out of ${usd0(next.amount - r.amount)} of extra gross, or ` +
+          `${pct1(keptB / (next.amount - r.amount))}. Nothing in either schedule creates a cliff where ` +
+          `earning more leaves you with less: a band rate only ever applies to the income inside that ` +
+          `band.</p>`,
+          `<p>The last step, ${usd0(prev.amount)} to ${S}, was worth ${usd0(r.amount - prev.amount)} of ` +
+          `gross and ${usd0(keptA)} of it reached you: ${pct1(keptA / (r.amount - prev.amount))} survived. ` +
+          `The next one, up to ${usd0(next.amount)}, is worth ${usd0(next.amount - r.amount)} of gross and ` +
+          `${usd0(keptB)} of take-home — ${usd0(keptB / 12)} a month, or ` +
+          `${pct1(keptB / (next.amount - r.amount))} of the raise. Neither schedule can leave you worse ` +
+          `off for earning more; a rate only ever touches the income sitting inside its own band.</p>`,
+          `<p>Getting here from ${usd0(prev.amount)} meant a ${usd0(r.amount - prev.amount)} rise, of ` +
+          `which ${usd0(keptA)} landed in your account — ${pct1(keptA / (r.amount - prev.amount))}. ` +
+          `Leaving for ${usd0(next.amount)} would mean another ${usd0(next.amount - r.amount)}, and this ` +
+          `time ${usd0(keptB)} a year reaches you, ${usd0(keptB / 12)} a month, ` +
+          `${pct1(keptB / (next.amount - r.amount))} of it. No point on either ladder pays you less for ` +
+          `earning more: each rate applies only to the slice of income inside its own band.</p>`,
+        ]));
     } else if (next) {
       const keptB = next.a.net - r.a.net;
       push('step',
@@ -4870,6 +5138,9 @@ function caPageCopy(r, rungs, ctx) {
   const NAME = st.name;
   const S = usd0(r.amount);
   const frame = (salt, arr) => pickFrame(ladderSalt(r.slug, 'copy', r.amount), salt, arr);
+  // Same pinned-for-California body framer as caProseBlocks: arr[0] is the live
+  // California wording, every other state picks by slug-and-rung hash.
+  const bodyFrame = (salt, arr) => (r.slug === 'california' ? arr[0] : frame(salt, arr));
   const fica = taxData.federal.fica;
   const wageBase = fica.socialSecurity.wageBase;
   const fedStd = taxData.federal.standardDeduction.single;
@@ -4894,13 +5165,20 @@ function caPageCopy(r, rungs, ctx) {
   const biggest = lines[0];
   const smallest = lines[lines.length - 1];
 
-  const BREAKDOWN_INTRO =
+  const BREAKDOWN_INTRO = bodyFrame('bdintro', [
     `Single filer, ${year} rules, standard deduction, no 401(k), no health premiums, no dependents. ` +
     `The biggest single line at ${S} is ${biggest[0]} at ${usd0(biggest[1])}; the smallest is ` +
-    `${smallest[0]} at ${usd0(smallest[1])}.`;
+    `${smallest[0]} at ${usd0(smallest[1])}.`,
+    `Modelled as a single filer on ${year} rules taking the standard deduction, with no 401(k), no ` +
+    `health premiums and no dependents. ${biggest[0]} is the heaviest line here at ${usd0(biggest[1])}, ` +
+    `and ${smallest[0]} the lightest at ${usd0(smallest[1])}.`,
+    `${year} rules, single filer, standard deduction, nothing pre-tax and nobody to claim. Of the lines ` +
+    `below, ${biggest[0]} takes the most at ${usd0(biggest[1])} and ${smallest[0]} the least at ` +
+    `${usd0(smallest[1])}.`,
+  ]);
 
   const dedShare = fedStd / r.amount;
-  const FED_INTRO =
+  const FED_INTRO = bodyFrame('fedintro', [
     `Federal tax is never one rate on the whole salary. The ${usd0(fedStd)} standard deduction comes off ` +
     `first — that is ${pct1(dedShare)} of ${S}, ` +
     (dedShare > 0.3
@@ -4910,7 +5188,28 @@ function caPageCopy(r, rungs, ctx) {
         : `a small share of pay at this level, so most of the salary is exposed to the brackets`)) +
     ` — leaving <strong>${usd0(r.fed.taxable)}</strong> of taxable income to be sliced across ` +
     `${numWord(fedBands.length)} band${fedBands.length === 1 ? '' : 's'}. Only the last slice is taxed at ` +
-    `your top rate of ${pctStr(r.fed.marginalRate)}.`;
+    `your top rate of ${pctStr(r.fed.marginalRate)}.`,
+    `No single rate is applied to a whole salary federally. The ${usd0(fedStd)} standard deduction is ` +
+    `subtracted before anything else, and on ${S} that is ${pct1(dedShare)} of the pay ` +
+    (dedShare > 0.3
+      ? `— enough that a large part of this salary never meets a bracket at all`
+      : (dedShare > 0.15
+        ? `— a real slice, though it covers less of the pay here than it does lower down this ladder`
+        : `— not much of the pay at this level, so the brackets reach nearly all of it`)) +
+    `. What is left, <strong>${usd0(r.fed.taxable)}</strong>, is then cut across ` +
+    `${numWord(fedBands.length)} band${fedBands.length === 1 ? '' : 's'}, and only the topmost cut is ` +
+    `charged at ${pctStr(r.fed.marginalRate)}.`,
+    `The federal bill is built in slices, never as one rate on the lot. First ${usd0(fedStd)} comes off ` +
+    `as the standard deduction, ${pct1(dedShare)} of ${S} ` +
+    (dedShare > 0.3
+      ? `— a big enough share that much of this salary is untaxed before the brackets start`
+      : (dedShare > 0.15
+        ? `— meaningful, but a smaller share of pay than at the bottom of this ladder`
+        : `— a thin share at this level, leaving most of the salary exposed to the brackets`)) +
+    `. The remaining <strong>${usd0(r.fed.taxable)}</strong> is then spread over ` +
+    `${numWord(fedBands.length)} band${fedBands.length === 1 ? '' : 's'}, with ` +
+    `${pctStr(r.fed.marginalRate)} touching only the final slice.`,
+  ]);
 
   // The state section's own intro. Three shapes, three different sentences —
   // there is nothing to say about "a separate ladder" in a state that has one
@@ -4953,17 +5252,33 @@ function caPageCopy(r, rungs, ctx) {
   const invariantClause = progLabels.length
     ? `${caList(['FICA', ...progLabels])} are identical in all three — they take no notice of who you are ` +
       `married to.`
-    : `FICA is identical in all three — it takes no notice of who you are married to.`;
+    : bodyFrame('filingTail', [
+      `FICA is identical in all three — it takes no notice of who you are married to.`,
+      `FICA does not move at all across the three: Social Security and Medicare are indifferent to who ` +
+      `you are married to.`,
+      `The FICA lines are the same on every row, because Social Security and Medicare do not ask about ` +
+      `marital status.`,
+    ]);
   const FILING_INTRO = r.slug === 'california'
     // legacy CA wording
     ? `Filing status changes both the standard deduction and the width of every band, and at ${S} it is ` +
       `worth real money: a joint return on this same salary keeps ${usd0(mfj.net - single.net)} more a ` +
       `year than a single one, and head of household keeps ${usd0(hoh.net - single.net)} more. FICA and ` +
       `California SDI are identical in all three — they take no notice of who you are married to.`
-    : `Filing status changes both the standard deduction and the width of every federal band, and at ${S} ` +
+    : bodyFrame('filing', [
+      `Filing status changes both the standard deduction and the width of every federal band, and at ${S} ` +
       `it is worth real money: a joint return on this same salary keeps ${usd0(mfj.net - single.net)} more ` +
       `a year than a single one, and head of household keeps ${usd0(hoh.net - single.net)} more. ` +
-      `${statusStateClause}${invariantClause}`;
+      `${statusStateClause}${invariantClause}`,
+      `Your filing status moves the standard deduction and stretches every federal band, and on ${S} that ` +
+      `is worth having: filing jointly on this same salary leaves ${usd0(mfj.net - single.net)} more in ` +
+      `the year than filing single, and head of household ${usd0(hoh.net - single.net)} more. ` +
+      `${statusStateClause}${invariantClause}`,
+      `The status you file under decides how big the standard deduction is and how wide each federal band ` +
+      `runs. On ${S} the difference is real: ${usd0(mfj.net - single.net)} a year in favour of a joint ` +
+      `return over a single one, and ${usd0(hoh.net - single.net)} for head of household. ` +
+      `${statusStateClause}${invariantClause}`,
+    ]);
   const FILING_NOTE = frame('filenote', [
     `Married filing jointly is modelled as ONE earner on ${S} filing a joint return, which is the ` +
     `question this table can honestly answer. Two incomes are a different calculation.`,
@@ -4974,7 +5289,7 @@ function caPageCopy(r, rungs, ctx) {
   ]);
 
   const keepFromPrev = prev ? (r.a.net - prev.a.net) / (r.amount - prev.amount) : null;
-  const LADDER_INTRO =
+  const LADDER_INTRO = bodyFrame('ladintro', [
     `${S} is rung ${numWord(i + 1)} of ${numWord(rungs.length)}` +
     (keepFromPrev != null
       ? `, reached by a step that kept ${pct1(keepFromPrev)} of the raise`
@@ -4982,7 +5297,24 @@ function caPageCopy(r, rungs, ctx) {
     `. Its immediate neighbours are below` +
     (next ? `, and the full ladder is on the hub page` : `; the hub page has the full ladder`) +
     `. The last column is the part of each step that survives withholding — the number that actually ` +
-    `answers "is the raise worth taking".`;
+    `answers "is the raise worth taking".`,
+    `This is level ${numWord(i + 1)} of ${numWord(rungs.length)}` +
+    (keepFromPrev != null
+      ? `, arrived at by a step that handed over ${pct1(keepFromPrev)} of the raise`
+      : `, and the lowest one modelled here`) +
+    `. Its nearest neighbours are shown below` +
+    (next ? `; the hub page carries every level` : `, and the hub page carries every level`) +
+    `. Read the final column as the share of each raise that survives withholding, which is the only ` +
+    `honest answer to "is it worth taking".`,
+    `Of the ${numWord(rungs.length)} levels on this ladder, ${S} is the ${numWord(i + 1)}` +
+    (keepFromPrev != null
+      ? `, and the step onto it kept ${pct1(keepFromPrev)} of the raise`
+      : `, and there is nothing below it here`) +
+    `. The levels either side are in the table` +
+    (next ? `, with the complete ladder on the hub page` : `; the complete ladder is on the hub page`) +
+    `. That last column — how much of each step actually survives withholding — is the figure that ` +
+    `settles whether a raise is worth taking.`,
+  ]);
 
   const METHOD_INTRO = frame('methintro', [
     `Every number above is computed at build time by the same engine that runs the ${NAME} paycheck ` +
@@ -5048,10 +5380,22 @@ function caPageCopy(r, rungs, ctx) {
   // Limits: the generic four, plus whatever is actually live at THIS income.
   const generic = [];
   const lt = payrollState && payrollState.localIncomeTax;
-  generic.push(`<li><strong>Not in the arithmetic.</strong> Pre-tax deductions (401(k), HSA, FSA, ` +
+  generic.push(bodyFrame('limit1', [
+    `<li><strong>Not in the arithmetic.</strong> Pre-tax deductions (401(k), HSA, FSA, ` +
     `premiums), dependents and credits, itemizing, non-wage income, and the employer's half of FICA` +
     (lt && !lt.exists ? `. ${NAME} has no local wage income tax, so nothing is missing on that line` : '') +
-    `.</li>`);
+    `.</li>`,
+    `<li><strong>Left out of the sums.</strong> Anything taken pre-tax (401(k), HSA, FSA, insurance ` +
+    `premiums), any dependants or credits, itemised deductions, income that is not wages, and the half ` +
+    `of FICA your employer pays` +
+    (lt && !lt.exists ? `. There is no local wage income tax in ${NAME}, so that line is not missing anything` : '') +
+    `.</li>`,
+    `<li><strong>What the figures do not touch.</strong> Pre-tax money of any kind — 401(k), HSA, FSA, ` +
+    `health premiums — plus credits, dependants, itemising, non-wage income and the employer's own FICA ` +
+    `share` +
+    (lt && !lt.exists ? `. ${NAME} levies no local wage income tax, so nothing is absent there` : '') +
+    `.</li>`,
+  ]));
 
   // The rung-specific part: name the thresholds that are actually in play at
   // this salary and are NOT in the arithmetic above. A $40,000 page and a
@@ -5263,11 +5607,32 @@ function caLadderFaq(r, rungs, taxData, payrollState, obbba, secure2) {
           `${usd0(mhi)}, which often covers two earners. Housing cost is not modelled anywhere here.`,
     });
   }
-  faq.push({
-    q: `Will this match my actual paycheck?`,
-    a: `Not exactly. It models a single filer on the standard deduction with no 401(k), no premiums and ` +
-      `no dependents; your W-4 and benefits move it. Use the ${NAME} paycheck calculator for your own.`,
-  });
+  faq.push(r.slug === 'california'
+    // legacy CA wording
+    ? {
+      q: `Will this match my actual paycheck?`,
+      a: `Not exactly. It models a single filer on the standard deduction with no 401(k), no premiums and ` +
+        `no dependents; your W-4 and benefits move it. Use the California paycheck calculator for your own.`,
+    }
+    : frame('faqLast', [
+      {
+        q: `Will this match my actual paycheck?`,
+        a: `Not exactly. It models a single filer on the standard deduction with no 401(k), no premiums ` +
+          `and no dependents; your W-4 and benefits move it. Use the ${NAME} paycheck calculator for your own.`,
+      },
+      {
+        q: `Is this what I will actually see on my payslip?`,
+        a: `Close, but not to the cent. The model is a single filer on the standard deduction with nothing ` +
+          `pre-tax and nobody to claim, so a real W-4, real benefits and real dependants all shift it. Put ` +
+          `your own figures into the ${NAME} paycheck calculator.`,
+      },
+      {
+        q: `Why might my own paycheck differ from this?`,
+        a: `Because this page models one specific person: a single filer, standard deduction, no 401(k), ` +
+          `no premiums, no dependants. Every one of those that is different for you moves the number, and ` +
+          `so does what you put on your W-4. The ${NAME} paycheck calculator takes all of them.`,
+      },
+    ]));
   return faq;
 }
 
@@ -6533,6 +6898,11 @@ async function main() {
         const prev = i > 0 ? rungs[i - 1] : null;
         const next = i < rungs.length - 1 ? rungs[i + 1] : null;
         const S = usd0(r.amount);
+        // Same pinned-for-California body framer the prose blocks use: arr[0] is the
+        // wording California's live pages carry, everyone else varies by slug+rung.
+        const bodyFrame = (salt, arr) => (ladderSlugKey === 'california'
+          ? arr[0]
+          : pickFrame(ladderSalt(ladderSlugKey, 'copy', r.amount), salt, arr));
         const faq = caLadderFaq(r, rungs, taxData, payrollState, obbba, secure2);
         // Section intros, method list and limits, all computed for THIS rung.
         const copy = caPageCopy(r, rungs, { taxData, obbba, secure2, depCare, payrollState, year });
@@ -6600,9 +6970,15 @@ async function main() {
           FIGURE_BANNER: figureYearBanner(state, year),
           LEDE: `A ${S} salary in ${NAME} leaves <strong>${usd0(r.a.net)}</strong> a year after ` +
             `${caList(lineNames)} — ` +
-            `${usd0(r.a.net / 12)} a month, or ${usdCents(r.a.net / 26)} in a two-week paycheck. That is a ` +
-            `single filer taking the standard deduction, with every figure below computed from the ` +
-            `published tax tables rather than estimated.`,
+            `${usd0(r.a.net / 12)} a month, or ${usdCents(r.a.net / 26)} in a two-week paycheck. ` +
+            bodyFrame('ledeTail', [
+              `That is a single filer taking the standard deduction, with every figure below computed from ` +
+              `the published tax tables rather than estimated.`,
+              `Those are the figures for a single filer on the standard deduction, and every one of them ` +
+              `below is computed from the published tables, not estimated.`,
+              `The model is a single filer taking the standard deduction; nothing below is an estimate, it ` +
+              `is all worked out from the published tables.`,
+            ]),
           NET_ANNUAL: usd0(r.a.net),
           NET_MONTHLY: usd0(r.a.net / 12),
           NET_BIWEEKLY: usdCents(r.a.net / 26),
@@ -6634,7 +7010,11 @@ async function main() {
             `${pctStr(r.fed.marginalRate)}. The gap between those two numbers is the whole point of a ` +
             `graduated system.`,
           STATE_SECTION: ladderStateSection(r, copy.CA_INTRO, S),
-          PROSE_BLOCKS: caProseBlocks(r, rungs, { taxData, obbba, secure2, depCare, allStates }),
+          PROSE_BLOCKS: caProseBlocks(r, rungs, {
+            taxData, obbba, secure2, depCare, allStates, payrollState,
+            obbbaStates: (obbba && obbba.states) || {},
+            suppStates: (suppData && suppData.states) || {},
+          }),
           STATUS_CAPTION: `${NAME} take-home pay on ${S} by filing status`,
           STATUS_HEAD: `<th>Filing status</th><th class="num">Federal tax</th>` +
             (r.kind === 'none' ? '' : `<th class="num">${state.abbr} income tax</th>`) +
