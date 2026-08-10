@@ -6396,6 +6396,107 @@ function stripHtmlComments(html) {
   return out;
 }
 
+// ---- "On this page" jump list ------------------------------------------
+// The 2026-08-11 competitor race had 4 of 6 personas cite OnPay's numbered
+// jump list: a short set of links, sitting just above the long
+// below-calculator content, into the sections they actually came for.
+//
+// Generated here, at the very end of the build, from the headings each page
+// ACTUALLY renders — never a hardcoded list. The bonus-state template and the
+// 51 state pages assemble their below-calculator sections from data
+// ({{SECTIONS_A}}, {{ANCILLARY_B}}, {{STATE_FAQ}} …), so a list written by
+// hand would go stale the first time a state gains or loses a section, and
+// would point at anchors that no longer exist on that one page.
+//
+// Anchors are plain #id links: `main [id]` already carries the sticky-header
+// scroll-margin-top set by fix/anchor-scroll-margin, so the browser's own
+// jump lands the heading clear of the header with no scroll JS of our own.
+// The only behaviour we add is opening a collapsed .prose-fold the link
+// points into, which matters the moment PROSE_FOLD_OPEN flips back to false.
+const JUMP_LIST_MARKER = '<nav class="jump-list" data-jump-list></nav>';
+const JUMP_LIST_MAX = 6;
+const JUMP_LIST_MIN = 3;
+// Headings that are navigation, legal furniture or the trust anchor rather
+// than an answer someone arrived hunting for.
+const JUMP_LIST_SKIP = [/^sources$/i, /calculators (for|near)\b/i, /^related\b/i];
+// Plain-English relabels for the few headings written as editorial titles
+// rather than as the question the persona asked.
+const JUMP_LIST_LABELS = [
+  [/^the myth\b/i, 'The "40% bonus tax" myth'],
+  [/^how a bonus is withheld/i, 'How the numbers are calculated'],
+  [/^how the .no tax on tips. deduction works/i, 'How the tips deduction works'],
+  [/^a worked example/i, 'A worked example'],
+];
+function jumpLabel(text) {
+  for (const [re, label] of JUMP_LIST_LABELS) if (re.test(text)) return label;
+  // State-page headings are written as full sentences with the answer trailing
+  // the topic ("No state income tax in Texas — so what still shrinks your
+  // 2026 paycheck?"). The leading clause is the part a reader scans a nav for,
+  // so cut at the first strong break and keep a question mark when it is one.
+  const clause = text.match(/^(.{12,}?\?)\s|^(.{12,}?)\s*(?:[—–:]|\()/);
+  let out = clause ? (clause[1] || clause[2]).trim() : text;
+  if (out.length > 52) {
+    const cut = out.slice(0, 52);
+    const sp = cut.lastIndexOf(' ');
+    out = (sp > 24 ? cut.slice(0, sp) : cut).replace(/[\s,:;.–—-]+$/, '') + '…';
+  }
+  return out;
+}
+function jumpSlug(text) {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+}
+const JUMP_LIST_SCRIPT = '<script>document.addEventListener("click",function(e){' +
+  'var a=e.target&&e.target.closest&&e.target.closest(".jump-list a[href^=\\"#\\"]");if(!a)return;' +
+  'var t=document.getElementById(a.getAttribute("href").slice(1));if(!t)return;' +
+  'var d=t.closest("details");while(d){d.open=true;d=d.parentElement&&d.parentElement.closest("details");}' +
+  '},true);</script>';
+function buildJumpList(html) {
+  const at = html.indexOf(JUMP_LIST_MARKER);
+  if (at < 0) return html;
+  const head = html.slice(0, at);
+  const used = new Set((html.match(/\bid="([^"]+)"/g) || []).map((s) => s.slice(4, -1)));
+  const entries = [];
+  const seen = new Set();
+  // Only the page's own content is navigable: past </main> lie the site search
+  // block and the footer, whose h2s are furniture on all ~240 pages.
+  const rest = html.slice(at + JUMP_LIST_MARKER.length);
+  const endsAt = rest.lastIndexOf('</main>');
+  const tail = endsAt < 0 ? '' : rest.slice(endsAt);
+  const body = (endsAt < 0 ? rest : rest.slice(0, endsAt))
+    .replace(/<h2\b([^>]*)>([\s\S]*?)<\/h2>/g, (whole, attrs, inner) => {
+      if (entries.length >= JUMP_LIST_MAX) return whole;
+      // .otw-q headings are the wizard's questions (above the marker on every
+      // page but one) and .sr-only ones are screen-reader labels, not sections.
+      if (/\b(otw-q|sr-only)\b/.test(attrs)) return whole;
+      const text = inner.replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
+        .replace(/\s+/g, ' ').trim();
+      if (!text || JUMP_LIST_SKIP.some((re) => re.test(text))) return whole;
+      const label = jumpLabel(text);
+      if (seen.has(label)) return whole;
+      const existing = attrs.match(/\bid="([^"]+)"/);
+      let id = existing ? existing[1] : '';
+      if (!id) {
+        const base = jumpSlug(text) || 'section';
+        id = base;
+        for (let n = 2; used.has(id); n++) id = `${base}-${n}`;
+      }
+      used.add(id);
+      seen.add(label);
+      entries.push({ id, label });
+      return existing ? whole : `<h2${attrs} id="${id}">${inner}</h2>`;
+    }) + tail;
+  // Too few sections to be worth a nav: drop the marker and leave the page as
+  // it was rather than ship a two-item list of links to what is already onscreen.
+  if (entries.length < JUMP_LIST_MIN) return html.replace(JUMP_LIST_MARKER, '');
+  const items = entries.map((e) =>
+    `<li><a href="#${e.id}">${e.label.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</a></li>`).join('');
+  return head +
+    `<nav class="jump-list" aria-labelledby="jumpListTitle">` +
+    `<p class="jump-list-title" id="jumpListTitle">On this page</p><ol>${items}</ol></nav>` +
+    JUMP_LIST_SCRIPT + body;
+}
+
 // Final pass: walk the whole dist/ tree, strip the internal HTML comments from
 // every page, and rewrite every `src="/assets/X.js"` (or similarly-quoted)
 // reference to its hashed name. Run once at the very end of the build instead of
@@ -6422,6 +6523,9 @@ async function rewriteHtmlAssetRefs(dir, hashMap) {
       html = html.replaceAll('<details class="prose-fold">', '<details class="prose-fold" open>');
       changed = true;
     }
+    // After the fold pass, so the list is built against the markup that ships.
+    const jumped = buildJumpList(html);
+    if (jumped !== html) { html = jumped; changed = true; }
     for (const [orig, hashed] of hashMap) {
       const re = new RegExp(`(["'])/assets/${orig.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\1`, 'g');
       if (re.test(html)) {

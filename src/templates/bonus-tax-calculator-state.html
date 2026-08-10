@@ -247,6 +247,11 @@
 
     <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
 
+    <!-- Populated at build time by buildJumpList() in build.js from the h2
+         sections this page actually renders. Left empty here on purpose: a
+         hardcoded list drifts the moment a page gains or loses a section. -->
+    <nav class="jump-list" data-jump-list></nav>
+
     {{SECTIONS_A}}
 
     <div class="ad-slot" data-ad="incontent">Advertisement</div>
