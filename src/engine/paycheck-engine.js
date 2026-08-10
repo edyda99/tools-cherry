@@ -146,8 +146,12 @@ export function ficaTax(grossAnnual, filingStatus, fed, preTaxFica = 0) {
  * (b)(iv) makes the two clamps explicit: a fraction of zero means no reduction, and a
  * fraction "equal to or exceeds one" means the deduction "is not allowed", so the
  * phase-out completes exactly at over + denominator (95,000 / 142,500 / 190,000).
+ *
+ * EXPORTED for build.js: the salary-ladder pages print the state's taxable income and
+ * the amount subtracted to reach it. Those must be the engine's own figures, so the
+ * generator calls this rather than keeping a second copy of the statute's arithmetic.
  */
-function phaseOutStandardDeduction(base, agi, filingStatus, cfg) {
+export function phaseOutStandardDeduction(base, agi, filingStatus, cfg) {
   const row = cfg[filingStatus] ?? cfg.single;
   if (!row || !row.denominator) return base;
   const excess = Math.max(0, agi - row.over);
@@ -199,10 +203,14 @@ function phaseOutStandardDeduction(base, agi, filingStatus, cfg) {
  *    Form W-2". So the input is the whole employee FICA line, not the Social Security part.
  *    Above the cap this is moot, and the cap binds at every income where Medicare is large.
  *
+ * EXPORTED for the same reason as phaseOutStandardDeduction above: a page that prints
+ * Massachusetts taxable income has to name every subtraction that produced it, and this
+ * is one of them.
+ *
  * @param {number} ficaPaid - employee-side FICA for these wages (annual USD)
  * @param {{cap:number}} cfg
  */
-function ficaPaidDeduction(ficaPaid, cfg) {
+export function ficaPaidDeduction(ficaPaid, cfg) {
   if (!cfg || !(cfg.cap > 0)) return 0;
   return Math.min(cfg.cap, Math.max(0, ficaPaid));
 }
