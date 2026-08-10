@@ -843,6 +843,20 @@ details.estimator summary { cursor: pointer; font-size: .92rem; opacity: .9; }
 .prose-fold[open] > summary { margin-bottom: 8px; display: block; }
 @media (max-width: 640px) { .bt-cols { grid-template-columns: 1fr; } }
 
+/* ---- "On this page" jump list --------------------------------------- */
+/* One compact numbered nav above the long below-calculator content, built by
+   buildJumpList() in build.js. .jump-list is a new class used by nothing else,
+   so these rules cannot reach the other ~240 pages. Deliberately light: no
+   card, no border box, just a rule and a tight two-column list, because it
+   sits between the answer someone came for and the reading they may not do. */
+.jump-list { margin: 0 0 22px; padding: 12px 0 0; border-top: 1px solid var(--border); max-width: 60ch; }
+.jump-list-title { margin: 0 0 6px; font-size: 13px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: var(--muted); }
+.jump-list ol { margin: 0; padding-left: 1.25em; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 20px; font-size: 15px; }
+.jump-list li { margin: 0; }
+.jump-list a { color: var(--link); text-decoration: none; }
+.jump-list a:hover, .jump-list a:focus-visible { text-decoration: underline; }
+@media (max-width: 640px) { .jump-list ol { grid-template-columns: 1fr; } }
+
 /* ---- QR colour pickers + scannability warning ----------------------- */
 .field input[type="color"] { height: 44px; padding: 4px; cursor: pointer; }
 .qr-warn { margin: 10px 0 0; padding: 9px 12px; font-size: 13px; border-radius: var(--radius-sm);
