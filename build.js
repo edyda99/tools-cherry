@@ -3595,14 +3595,16 @@ function bonusSizeTable(state, supp, taxData, suppData) {
 // pages "at the second table"; the FAQ and Sources blocks are not run through
 // this and stay open (scannable answers and the trust anchor respectively).
 //
-// AdSense-review guard: the re-review requested 2026-07-25 was made against
-// pages whose prose was fully visible; the folds shipped 07-31 hide 27-55% of
-// it on load. Until that verdict lands, every prose fold renders expanded by
-// default (still user-collapsible) so a human reviewer sees the same content
-// density the review request attested to. Flip to false after the verdict to
-// restore collapsed-by-default. Applied in rewriteHtmlAssetRefs so template
-// folds (tips/overtime/state-page) get it too, not just foldProse output.
-const PROSE_FOLD_OPEN = true;
+// The 2026-07-25 AdSense re-review guard that forced every fold open is
+// RETIRED (Edmond, 2026-08-11, traffic-first call): the verdict never landed,
+// and all 6 personas in the 08-11 competitor race complained, unprompted,
+// about the tax-law wall between the answer and the exit. Folds are
+// collapsed by default again. Nothing leaves the DOM either way — the body is
+// still in the HTML for crawlers and the AI-citation channel, and the jump
+// list above the content opens whichever fold you point it at.
+// Applied in rewriteHtmlAssetRefs so template folds (tips/overtime/state-page)
+// get it too, not just foldProse output.
+const PROSE_FOLD_OPEN = false;
 function foldProse(html) {
   const m = html.match(/^(\s*<section class="prose[^"]*"[^>]*>)([\s\S]*?)(<h2[^>]*>[\s\S]*?<\/h2>)([\s\S]*?)(<\/section>\s*)$/);
   if (!m) return html;
@@ -6445,11 +6447,24 @@ function jumpLabel(text) {
 function jumpSlug(text) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
 }
-const JUMP_LIST_SCRIPT = '<script>document.addEventListener("click",function(e){' +
-  'var a=e.target&&e.target.closest&&e.target.closest(".jump-list a[href^=\\"#\\"]");if(!a)return;' +
-  'var t=document.getElementById(a.getAttribute("href").slice(1));if(!t)return;' +
-  'var d=t.closest("details");while(d){d.open=true;d=d.parentElement&&d.parentElement.closest("details");}' +
-  '},true);</script>';
+// Now that PROSE_FOLD_OPEN is false again, most jump targets are headings
+// inside a COLLAPSED <details>, so the link has to open its fold before the
+// browser's own jump can land on it. Capture phase, so the fold is open
+// before the default anchor navigation runs. The hash pass covers arriving
+// with a fragment already in the URL (a shared link, a back button, a search
+// result deep-linking a section) — no click ever happens in that case.
+const JUMP_LIST_SCRIPT = '<script>(function(){' +
+  'function open(id){var t=id&&document.getElementById(id);if(!t)return;' +
+  'var d=t.closest("details");while(d){d.open=true;d=d.parentElement&&d.parentElement.closest("details");}}' +
+  'document.addEventListener("click",function(e){' +
+  'var a=e.target&&e.target.closest&&e.target.closest("a[href^=\\"#\\"]");if(!a)return;' +
+  'open(a.getAttribute("href").slice(1));},true);' +
+  'function fromHash(){if(location.hash.length>1)open(decodeURIComponent(location.hash.slice(1)));}' +
+  'window.addEventListener("hashchange",fromHash);' +
+  // The script tag sits above the sections it opens, so at parse time the
+  // target may not exist yet; DOMContentLoaded is the first moment it does.
+  'if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",fromHash);else fromHash();' +
+  '})();</script>';
 function buildJumpList(html) {
   const at = html.indexOf(JUMP_LIST_MARKER);
   if (at < 0) return html;
