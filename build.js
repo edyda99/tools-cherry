@@ -12,7 +12,14 @@ import { STATIC_PAGES } from './src/content/static-pages.js';
 import { buildWamParts } from './src/content/what-applies-to-me.js';
 import { buildStateApplies } from './src/content/state-applies.js';
 import { withholdingProfile, programKindsOf } from './src/content/withholding-profile.js';
-import { computePaycheck, federalBracketBreakdown } from './src/engine/paycheck-engine.js';
+import {
+  computePaycheck, federalBracketBreakdown,
+  // The two optional state-side subtractions. Imported rather than reimplemented so the
+  // salary-ladder pages can name the exact amounts the engine subtracted (Wisconsin and
+  // South Carolina phase their deduction down with income; Massachusetts also deducts the
+  // FICA you paid, capped). See caRung().
+  phaseOutStandardDeduction, ficaPaidDeduction,
+} from './src/engine/paycheck-engine.js';
 import { computeBonus } from './src/engine/bonus-tax.js';
 import { verifyDist, reportFailures } from './scripts/verify-dist.js';
 import { DFT_PAGES, DFT_GROUPS } from './src/content/days-from-today.js';
@@ -3879,10 +3886,33 @@ const CA_LADDER_SALARIES = [30000, 40000, 50000, 70000, 80000, 100000, 120000, 1
 // twelve largest states by payroll interest. Adding a slug here adds a hub, nine
 // rung pages, their sitemap entries, their freshness rule and the cross-link on
 // that state's paycheck page — all of it, from this one list.
+//
+// WAVE 2 added twelve more, and they are not a repeat of wave 1's shapes: three of
+// them carry a state-side subtraction the first thirteen never exercised, and the
+// generator had to learn each one before the pages could be true.
+//   massachusetts  a two-band schedule whose second band is the millionaire surtax, so
+//                  every rung on this ladder reaches only the FIRST band — plus M.G.L.
+//                  c.62 s.3(B)(a)(3), which deducts the FICA the filer paid up to $2,000
+//                  ON TOP of the standard deduction. Both are handled in caRung() and in
+//                  the "which band" prose, which used to tell a first-band filer that
+//                  most of their income was charged "at the lower rates below".
+//   wisconsin      a standard deduction that SLIDES DOWN with income (Wis. Stat.
+//   south-carolina 71.05(22)(dp)) and SCIAD's phase-down (S.C. Code 12-6-1140(15)). The
+//                  amount subtracted is a different number on every rung, so the pages
+//                  print the phased figure the engine used, never the published maximum.
+//   missouri       the first state on the ladder whose own subtraction is LARGER than
+//                  the federal standard deduction, which reverses the sign of the
+//                  "state taxable income is higher than federal" sentence.
+// Tennessee is the fourth no-income-tax ladder and the first with no employee programs
+// at all; Maryland, Indiana, Missouri and Alabama are the local-tax states, and the
+// local block asserts nothing beyond the payroll file's own sourced note.
 const LADDER_STATES = [
   'california', 'texas', 'florida', 'new-york', 'pennsylvania', 'illinois',
   'ohio', 'georgia', 'north-carolina', 'michigan', 'new-jersey', 'virginia',
   'washington',
+  // wave 2
+  'arizona', 'massachusetts', 'tennessee', 'indiana', 'missouri', 'maryland',
+  'wisconsin', 'colorado', 'minnesota', 'south-carolina', 'alabama', 'louisiana',
 ];
 const LADDER_STATE_SET = new Set(LADDER_STATES);
 const ladderHubSlug = (slug) => `${slug}-take-home-pay`;
@@ -3990,10 +4020,34 @@ function caRung(amount, taxData, slug) {
   // table.
   let st = null;
   let stBase = 0;
-  const stDed = (t.standardDeduction && t.standardDeduction.single) || 0;
+  // WHAT THE STATE ACTUALLY SUBTRACTED, not what its table publishes. Three states on
+  // this ladder subtract something other than the flat headline figure, and the pages
+  // print the taxable income that results — so if these do not match the engine, the
+  // page prints a subtraction the reader cannot reproduce.
+  //   Wisconsin / South Carolina: the deduction phases down with income, so it is a
+  //     different number on every rung ($13,960 at the bottom of Wisconsin's ladder, far
+  //     less at the top). Printing the published maximum would be wrong on eight rungs
+  //     out of nine.
+  //   Massachusetts: on top of the $4,400 deduction, M.G.L. c.62 s.3(B)(a)(3) deducts the
+  //     FICA the filer paid, capped at $2,000 per taxpayer. The engine passes the FICA it
+  //     just computed; we pass the same figure back so the two can never disagree.
+  // Both helpers are the ENGINE'S OWN, imported at the top of this file. The band/flat
+  // assertions below are what keep this honest: a subtraction that does not reproduce the
+  // engine's tax fails the build rather than shipping a table that does not add up.
+  const stDedPublished = (t.standardDeduction && t.standardDeduction.single) || 0;
+  const stDedAfterPhaseout = t.standardDeductionPhaseout
+    ? phaseOutStandardDeduction(stDedPublished, amount, 'single', t.standardDeductionPhaseout)
+    : stDedPublished;
+  const stFicaDed = t.ficaPaidDeduction
+    ? ficaPaidDeduction(a.socialSecurity + a.medicare, t.ficaPaidDeduction)
+    : 0;
+  // `stDed` keeps its old meaning for every wave-1 state (none of them phases anything
+  // down or deducts FICA, so it is still the published figure) and becomes the whole of
+  // what came off the salary where a state does more than one thing.
+  const stDed = stDedAfterPhaseout + stFicaDed;
   if (kind === 'bracket') {
     st = federalBracketBreakdown(amount, 'single',
-      { standardDeduction: t.standardDeduction || { single: 0 }, brackets: t.brackets }, 0);
+      { standardDeduction: { single: stDed }, brackets: t.brackets }, 0);
     // Ohio's ORC 5747.02(A)(3) charges "$332.00 plus 2.75% of the amount in
     // excess of $26,050". applyBrackets is continuous and can never produce that
     // step, so the engine adds it separately and so must the decomposition —
@@ -4044,6 +4098,13 @@ function caRung(amount, taxData, slug) {
     fed,
     st,
     stDed,
+    // The parts of stDed, so a sentence can name each subtraction separately where
+    // there is more than one, and so the phase-out prose can say what the published
+    // maximum was and how much of it survives at this rung.
+    stDedPublished,
+    stDedAfterPhaseout,
+    stFicaDed,
+    stDedPhases: !!t.standardDeductionPhaseout,
     stBase,
     programs,
     progTotal,
@@ -4227,11 +4288,29 @@ function stateMarginalRate(r) {
 // neutral about what the subtraction is called, except for California, whose
 // live pages already say "state standard deduction" and whose figure genuinely
 // is one.
+// A state with TWO subtractions has to name both, or the taxable figure printed beside
+// the phrase cannot be arrived at from it. Massachusetts is the case: $4,400 of standard
+// deduction plus the capped deduction for the FICA the filer paid, and a page that named
+// only the first left $2,000 of the arithmetic unexplained.
 function stateDeductionPhrase(r) {
   if (r.stDed <= 0) return null;
-  return r.slug === 'california'
-    ? `the ${usd0(r.stDed)} state standard deduction`      // legacy CA wording
-    : `the ${usd0(r.stDed)} ${r.state.name} takes off first`;
+  if (r.slug === 'california') return `the ${usd0(r.stDed)} state standard deduction`; // legacy CA wording
+  const base = `the ${usd0(r.stDedAfterPhaseout)} ${r.state.name} takes off first`;
+  if (r.stFicaDed <= 0) return base;
+  return `${base} and the ${usd0(r.stFicaDed)} it allows for the FICA already withheld from this salary`;
+}
+
+// WHY NOTHING CAME OFF. A state whose deduction has been phased ALL THE WAY OUT at this
+// salary has not "subtracted nothing before its own rate applies" — that reads as a fact
+// about the state's whole regime, and it is false of Wisconsin (deduction gone above
+// $136,453) and South Carolina (gone above $95,000), which between them put six rungs of
+// this cluster at a zero deduction for a reason the reader is entitled to. Every other
+// state keeps the wording it already shipped.
+function stateNoDeductionReason(r) {
+  return (r.stDedPhases && r.stDedPublished > 0)
+    ? `${r.state.name}'s ${usd0(r.stDedPublished)} deduction is income-tested and has phased out ` +
+      `completely by this salary`
+    : `${r.state.name} subtracts nothing before its own rate applies`;
 }
 
 // A block: { key, html }. `key` feeds the ordering hash and nothing else.
@@ -4402,9 +4481,28 @@ function caProseBlocks(r, rungs, ctx) {
     // and the next raise is not. Both are true, useful, and different.
     const bandWidth = stTop.upper === Infinity ? null : stTop.upper - stTop.lower;
     const intoBand = bandWidth == null ? null : (r.st.taxable - stTop.lower) / bandWidth;
+    // THE "LOWER RATES BELOW" CLAUSE NEEDS A BAND BELOW. Massachusetts publishes two
+    // bands and the second is the millionaire surtax, so every rung on its ladder tops
+    // out in the FIRST one — and South Carolina's $30,000 and $40,000 rungs do the same.
+    // The <34%-through wording told those readers that most of their state taxable income
+    // was "still being charged at the lower rates below", when there is no rate below it
+    // and the single rate covers every dollar. Gated on the band count, which is a fact
+    // about the salary rather than about the state.
+    const onlyBand = stBands.length === 1;
     const position = intoBand == null
       ? `<p>There is no band above this one, so where you sit inside it changes nothing.</p>`
-      : (intoBand < 0.34
+      : (onlyBand
+        ? `<p>This is the first band ${NAME} publishes and ${S} does not leave it, so every dollar of ` +
+          `${NAME} taxable income here is charged at the one rate — there is nothing below it to be ` +
+          `charged at less. The next edge is ${usd0(distance)} of taxable income further on` +
+          // Measured across the ladder rather than assumed: South Carolina's $30,000 and
+          // $40,000 rungs sit in the first band alone but its $50,000 rung does not, so
+          // "no rung reaches it" is true in Massachusetts and false in South Carolina.
+          (rungs.every((x) => x.kind === 'bracket' && x.st.bands.filter((b) => b.amount > 0).length <= 1)
+            ? `, which no rung of this ladder reaches`
+            : `, and higher rungs of this ladder do cross it`) +
+          `.</p>`
+        : intoBand < 0.34
         ? `<p>You have only just crossed into this band — about ${pct1(intoBand)} of the way through it — ` +
           `so most of your ${NAME} taxable income is still being charged at the lower rates below, and ` +
           `there is a long run before the next edge.</p>`
@@ -4450,7 +4548,7 @@ function caProseBlocks(r, rungs, ctx) {
     const dedPhrase = stateDeductionPhrase(r);
     const takenOff = dedPhrase
       ? `(${usd0(r.st.taxable)} after ${dedPhrase})`
-      : `(all ${usd0(r.st.taxable)} of it, because ${NAME} subtracts nothing before its own rate applies)`;
+      : `(all ${usd0(r.st.taxable)} of it, because ${stateNoDeductionReason(r)})`;
     // Ohio's statutory base amount is a flat dollar charge on top of the bands,
     // not a band, so it gets its own sentence rather than being hidden inside a
     // rate. Emitted only where the data says it actually bites.
@@ -4540,6 +4638,75 @@ function caProseBlocks(r, rungs, ctx) {
         `that can change its treatment are the Social Security wage base at ${usd0(wageBase)} and the ` +
         `Additional Medicare threshold at ${usd0(addlThreshold)} — both of which this page tests.</p>`,
       ]));
+  }
+
+  // --- A STATE DEDUCTION THAT SHRINKS AS THE LADDER CLIMBS. Two states on this ladder
+  // do not publish one flat figure: Wisconsin's slides down 12% of income over its
+  // threshold (Wis. Stat. 71.05(22)(dp)) and South Carolina's SCIAD phases down under
+  // S.C. Code 12-6-1140(15). That makes the amount subtracted a different number on every
+  // rung, which is exactly the kind of thing a salary ladder exists to show — and it also
+  // means the figure this page prints is NOT the maximum the state advertises, so the
+  // page has to say so. Emitted only where the data carries a phase-out and it has
+  // actually bitten at this salary.
+  if (r.stDedPhases && r.stDedPublished > 0 && r.stDedAfterPhaseout < r.stDedPublished - 0.5) {
+    const cfg = st.tax.standardDeductionPhaseout.single || {};
+    const goneAt = (cfg.over != null && cfg.denominator != null) ? cfg.over + cfg.denominator : null;
+    const lost = r.stDedPublished - r.stDedAfterPhaseout;
+    const bottom = rungs[0];
+    push('statededuction',
+      `<h3>${frame('sdedH', [
+        `${NAME}'s deduction is smaller at ${S} than the table says`,
+        `Why the ${NAME} deduction on this page is not the published figure`,
+        `What ${S} does to the ${NAME} standard deduction`,
+      ])}</h3>` +
+      `<p>${NAME} publishes a standard deduction of ${usd0(r.stDedPublished)} for a single filer, but it ` +
+      `is income-tested rather than fixed: it comes down as income rises` +
+      (cfg.over != null ? ` from ${usd0(cfg.over)}` : '') +
+      (goneAt != null ? ` and is gone entirely at ${usd0(goneAt)}` : '') +
+      // Comma after the salary: "At $120,000 $15,000 of it" runs two dollar figures
+      // together and reads as one number.
+      `. At ${S}, ${usd0(lost)} of it has already been taken away, so the figure used everywhere on this ` +
+      `page is ${usd0(r.stDedAfterPhaseout)}` +
+      (r.stDedAfterPhaseout <= 0 ? `, which is to say none of it survives` : '') +
+      `. ` +
+      (bottom.stDedAfterPhaseout > r.stDedAfterPhaseout + 0.5
+        ? `At the bottom of this ladder, ${usd0(bottom.amount)}, the same filer keeps ` +
+          `${usd0(bottom.stDedAfterPhaseout)} of it — the gap between those two is a real cost of the ` +
+          `raise that no bracket table shows.`
+        : `That is why the ${NAME} share of this salary rises faster than the bracket rates alone would ` +
+          `suggest.`) +
+      `</p>`);
+  }
+
+  // --- THE DEDUCTION FOR THE FICA YOU ALREADY PAID. One state on this ladder allows it:
+  // Massachusetts, under M.G.L. c.62 s.3(B)(a)(3), capped at $2,000 per taxpayer. It is
+  // worth its own paragraph because it is invisible on every bracket table and because
+  // whether the cap binds is a fact about the salary — below roughly $26,000 of wages the
+  // 7.65% employee share is under the cap and the deduction is the smaller FICA figure.
+  // Every number here comes from the data file's own cap and the engine's own FICA line.
+  if (r.stFicaDed > 0 && st.tax && st.tax.ficaPaidDeduction) {
+    const cap = st.tax.ficaPaidDeduction.cap;
+    const ficaPaid = r.a.socialSecurity + r.a.medicare;
+    const binds = ficaPaid > cap + 0.005;
+    push('ficadeduction',
+      `<h3>${frame('ficadH', [
+        `${NAME} lets you deduct the FICA you paid on ${S}`,
+        `The ${NAME} deduction that no bracket table shows`,
+        `What ${NAME} does with the Social Security and Medicare taken from ${S}`,
+      ])}</h3>` +
+      `<p>On top of its standard deduction, ${NAME} subtracts the Social Security and Medicare you paid ` +
+      `from the income it taxes, up to ${usd0(cap)} for one taxpayer. ` +
+      (binds
+        ? `${S} pays ${usd0(ficaPaid)} of employee-side FICA, comfortably over that ceiling, so the ` +
+          `deduction is the full ${usd0(cap)} and does not grow with a raise.`
+        : `${S} pays ${usd0(ficaPaid)} of employee-side FICA, which is under that ceiling, so the ` +
+          `deduction is the ${usd0(ficaPaid)} actually paid rather than the ${usd0(cap)} maximum.`) +
+      (stMarginal == null ? '' :
+        ` It is worth ${usd0(r.stFicaDed * stMarginal)} at the ${pctStr(stMarginal)} rate this salary is ` +
+        `charged.`) +
+      ` It is already inside the ${usd0(r.a.state)} of ${NAME} income tax on this ` +
+      `page. The cap is per taxpayer and cannot be pooled, so a two-earner couple has two of them; this ` +
+      `page models one earner.</p>`);
   }
 
   // --- The Child and Dependent Care Credit's applicable percentage. IRC §21 as
@@ -5376,13 +5543,55 @@ function caPageCopy(r, rungs, ctx) {
           `so the taxable figure here — ${usd0(r.st.taxable)} — is ${usd0(r.st.taxable - r.fed.taxable)} higher ` +
           `than the federal one. ${S} works through ${numWord(stBands.length)} of California's bands, topping ` +
           `out at ${pctStr(r.st.marginalRate)}.`
-        : `${NAME} runs a separate ladder and subtracts a separate, much smaller amount before it starts: ` +
-          `${usd0(r.stDed)}, against the federal ${usd0(fedStd)}. That leaves ${usd0(r.st.taxable)} of ` +
-          `${NAME} taxable income, ${usd0(r.st.taxable - r.fed.taxable)} more than the federal figure. ` +
-          `${S} works through ${numWord(stBands.length)} of ${NAME}'s bands, topping out at ` +
-          `${pctStr(r.st.marginalRate)}.`)
-      : `${NAME} subtracts nothing before its own schedule applies, so its taxable figure is the whole ` +
-        `${usd0(r.st.taxable)} — ${usd0(r.st.taxable - r.fed.taxable)} more than the federal one, which ` +
+        // SIZE AND DIRECTION ARE BOTH MEASURED. "a separate, much smaller amount" and
+        // "more than the federal figure" were written against wave 1, where every state
+        // subtracted less than the federal standard deduction. Missouri does not: its
+        // deduction is larger than the federal one, so its state taxable income is LOWER
+        // than the federal figure and the old sentence stated the opposite while printing
+        // a negative dollar amount beside it. Minnesota's and South Carolina's are within
+        // a few hundred dollars of federal, which "much smaller" also misdescribes.
+        : (() => {
+          const ratio = fedStd > 0 ? r.stDed / fedStd : 1;
+          const sizeClause = Math.abs(r.stDed - fedStd) < 0.5
+            // Missouri's is the federal figure to the dollar, which is worth saying
+            // outright rather than hedging it as "much the same size".
+            ? `exactly what the federal side subtracts`
+            : (ratio < 0.5
+              ? `a separate and much smaller amount`
+              : (ratio < 0.95
+                ? `a separate and somewhat smaller amount`
+                : (ratio < 1
+                  ? `a separate amount only a little smaller`
+                  : `a separate and larger amount`)));
+          // Massachusetts subtracts two things. Naming only the standard deduction would
+          // leave the taxable figure in the next clause unreachable from this one.
+          const dedDesc = r.stFicaDed > 0
+            ? `${usd0(r.stDedAfterPhaseout)} of standard deduction plus ${usd0(r.stFicaDed)} for the ` +
+              `FICA already withheld from this salary, ${usd0(r.stDed)} in all`
+            : usd0(r.stDed);
+          const gap = r.st.taxable - r.fed.taxable;
+          const gapClause = Math.abs(gap) < 0.5
+            ? `the same as the federal figure`
+            : (gap > 0
+              ? `${usd0(gap)} more than the federal figure`
+              : `${usd0(-gap)} less than the federal figure`);
+          const opening = Math.abs(r.stDed - fedStd) < 0.5
+            ? `${NAME} runs a separate ladder, but it subtracts ${sizeClause} before it starts: ` +
+              `${dedDesc} either side`
+            : `${NAME} runs a separate ladder and subtracts ${sizeClause} before it starts: ` +
+              `${dedDesc}, against the federal ${usd0(fedStd)}`;
+          return `${opening}. That leaves ${usd0(r.st.taxable)} of ` +
+            `${NAME} taxable income, ${gapClause}. ` +
+            `${S} works through ${numWord(stBands.length)} of ${NAME}'s bands, topping out at ` +
+            `${pctStr(r.st.marginalRate)}.`;
+        })())
+      // Ohio subtracts nothing at any income and keeps the sentence it already ships;
+      // Wisconsin and South Carolina reach zero only because the income test took it.
+      : `${(r.stDedPhases && r.stDedPublished > 0)
+          ? `${NAME}'s ${usd0(r.stDedPublished)} standard deduction is income-tested and has phased out ` +
+            `completely by this salary`
+          : `${NAME} subtracts nothing before its own schedule applies`}, so its taxable figure is ` +
+        `the whole ${usd0(r.st.taxable)} — ${usd0(r.st.taxable - r.fed.taxable)} more than the federal one, which ` +
         `is what the ${usd0(fedStd)} federal standard deduction takes off. ${S} works through ` +
         `${numWord(stBands.length)} of ${NAME}'s bands, topping out at ${pctStr(r.st.marginalRate)}.`;
   } else if (r.kind === 'flat') {
@@ -5499,8 +5708,23 @@ function caPageCopy(r, rungs, ctx) {
       ? ` Plus ${caList(r.programs.map((p) => `${p.label} at ${pct2(p.rate)} → ${usdCents(p.amount)}`))}.`
       : '';
     if (r.kind === 'bracket') {
+      // The method row has to be readable as arithmetic: gross, minus what came off,
+      // equals the taxable figure printed beside it. Where the subtraction has two parts
+      // (Massachusetts) both are named, or the row does not reconcile.
+      const dedText = r.stFicaDed > 0
+        ? ` after the ${usd0(r.stDedAfterPhaseout)} ${NAME} subtracts first and the ${usd0(r.stFicaDed)} ` +
+          `it allows for FICA already withheld`
+        : ` after the ${usd0(r.stDed)} ${NAME} subtracts first` +
+          // Only where the phase-out has actually reduced it at THIS rung. South Carolina's
+          // $30,000 rung is below the threshold and keeps the published figure whole.
+          (r.stDedPhases && r.stDedAfterPhaseout < r.stDedPublished - 0.5
+            ? ` (income-tested down at this salary from a published ${usd0(r.stDedPublished)})`
+            : '');
+      const nothingText = (r.stDedPhases && r.stDedPublished > 0)
+        ? ` (its ${usd0(r.stDedPublished)} deduction is income-tested and phased out at this salary)`
+        : ` (nothing is subtracted first)`;
       stateMethod = `Its own schedule on ${usd0(r.st.taxable)}` +
-        (r.stDed > 0 ? ` after the ${usd0(r.stDed)} ${NAME} subtracts first` : ` (nothing is subtracted first)`) +
+        (r.stDed > 0 ? dedText : nothingText) +
         `, through ${numWord(stBands.length)} band${stBands.length === 1 ? '' : 's'}` +
         (r.stBase > 0 ? ` plus the statutory ${usd0(r.stBase)} base amount` : '') +
         ` → ${usd0(r.a.state)}.${progSentence}`;
@@ -7381,16 +7605,29 @@ async function main() {
         // The method paragraph. The federal half is the same everywhere because
         // the federal rules are; the state half is built from this state's own
         // shape, so a no-income-tax state does not claim a schedule it lacks.
+        // What the state subtracts, described so the hub cannot contradict the rung pages.
+        // `stDedText` is the PUBLISHED figure, which is the right thing to name only where
+        // the state subtracts that same amount at every rung. Wisconsin and South Carolina
+        // income-test theirs down, and Massachusetts adds a second, FICA-based deduction
+        // on top, so both of those get a description rather than a single number.
+        const dedClause = low.stDedPhases
+          ? `after a standard deduction that is income-tested down as the ladder climbs, from ` +
+            `${usd0(low.stDedAfterPhaseout)} at ${usd0(low.amount)} to ${usd0(high.stDedAfterPhaseout)} at ` +
+            `${usd0(high.amount)}`
+          : (low.stFicaDed > 0
+            ? `after the ${usd0(low.stDedAfterPhaseout)} it subtracts first plus the capped deduction it ` +
+              `allows for the FICA already withheld`
+            : `after the ${stDedText} it subtracts first`);
         const methodStateClause = kind === 'none'
           ? `${NAME} levies no income tax on wages, so there is nothing to compute on that line`
           : (kind === 'flat'
             ? `${NAME} income tax is ${pctStr(state.tax.rate)} of ` +
-              (low.stDed > 0 ? `what is left after the ${stDedText} it subtracts first` : `the whole salary`)
+              (low.stDed > 0 ? `what is left ${dedClause}` : `the whole salary`)
             : (ladderSlugKey === 'california'
               // legacy CA wording
               ? `California income tax uses its own schedule after its ${stDedText} single standard deduction`
               : `${NAME} income tax uses its own schedule of ${numWord(state.tax.brackets.single.length)} bands` +
-                (low.stDed > 0 ? ` after the ${stDedText} it subtracts first` : ` on the whole salary`)));
+                (low.stDed > 0 ? ` ${dedClause}` : ` on the whole salary`)));
         const methodProgClause = progs.length
           ? (ladderSlugKey === 'california'
             // legacy CA wording
