@@ -10,7 +10,19 @@
       "fica": "https://www.ssa.gov/oact/cola/cbb.html",
       "additional_medicare": "https://www.irs.gov/taxtopics/tc751"
     },
-    "lastSourced": "2026-08-02"
+    "lastSourced": "2026-08-02",
+    "revenueProcedure": {
+      "_comment": "Provenance of the federal block above, as renderable fields rather than prose in a page template. /2026-tax-brackets/ states the Revenue Procedure and its publication date on the page, and both must come from here so they cannot be typed into a template and drift from the figures they describe. ANNUAL REFRESH: replace with the next Revenue Procedure when the following tax year's figures land.",
+      "name": "Rev. Proc. 2025-32",
+      "publishedDate": "2025-10-09",
+      "sourceUrl": "https://www.irs.gov/pub/irs-drop/rp-25-32.pdf",
+      "newsroomUrl": "https://www.irs.gov/newsroom/irs-releases-tax-inflation-adjustments-for-tax-year-2026-including-amendments-from-the-one-big-beautiful-bill",
+      "nextYear": {
+        "taxYear": 2027,
+        "expectedTiming": "in the autumn of 2026",
+        "timingBasis": "The IRS has no published deadline for the annual inflation Revenue Procedure. Recent years have landed in the second half of October — the tax-year-2026 procedure was published on 2025-10-09 — so autumn is a pattern, not a commitment, and the page must not state a date the IRS has not announced."
+      }
+    }
   },
   "filingStatuses": [
     {

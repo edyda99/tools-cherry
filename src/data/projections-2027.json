@@ -80,7 +80,9 @@
       "2025-10": {
         "status": "canceled",
         "due": null,
-        "note": "Never published. Data collection for October 2025 did not happen during the 2025 lapse in appropriations, and BLS has said it cannot collect those prices retroactively, so no October 2025 index exists and none is expected. The BLS series itself returns the footnote \"Data unavailable due to the 2025 lapse in appropriations\" for this month.",
+        "note": "There is no October 2025 value in the published C-CPI-U series: the month is simply absent between September 2025 and November 2025. The documented cause is the 2025 lapse in appropriations, which stopped price collection for October; the scheduled October release (13 November 2025) was cancelled rather than rescheduled, unlike the November 2025 release, which was moved from 10 December to 18 December and did appear.",
+        "_evidence": "Verified two ways on 2026-08-11. (1) The BLS public timeseries API returns no M10 datum at all for SUUR0000SA0 between 2025-M09 and 2025-M11. (2) The same API call for the CPI-W series CWUR0000SA0 does return a 2025-M10 row, with the value \"-\" and the footnote text \"Data unavailable due to the 2025 lapse in appropriations\" — so that verbatim footnote belongs to the CPI-W series, not to C-CPI-U, and must not be attributed to C-CPI-U on the page.",
+        "_scheduleEvidence": "Release-date status (cancelled vs rescheduled) taken from a published CPI release-schedule table, not from BLS directly: bls.gov blocks automated retrieval, so this is a secondary source and is labelled as such.",
         "sourceUrl": "https://www.bls.gov/bls/news-release/cpi.htm"
       },
       "2026-07": {
@@ -154,10 +156,11 @@
       {
         "publisher": "The Senior Citizens League (TSCL)",
         "figure": 3.8,
-        "asOf": "2026-07-14",
+        "asOf": "2026-06-10",
         "title": "COLA prediction remains high at 3.8% as Social Security falls behind cost of living",
         "sourceUrl": "https://seniorsleague.org/cola-prediction-remains-high-at-3-8-percent-as-social-security-falls-behind-cost-of-living/",
-        "note": "TSCL's monthly model. Unchanged from its June 2026 reading and down from 3.9% in April 2026. Retrieved 2026-08-11; the page itself carries no publication date, the 2026-07-14 date is the monthly update TSCL describes."
+        "note": "TSCL's monthly model. The date shown is the publication date in the cited article's own structured data; the article text carries no visible date. Retrieved 2026-08-11.",
+        "_dateNote": "Originally dated 2026-07-14 here on the strength of a search summary. Corrected to the article's own datePublished (2026-06-10), which is the only date the cited page actually asserts. The figure itself, 3.8%, is stated in the article body."
       },
       {
         "publisher": "Mary Johnson (independent Social Security and Medicare policy analyst)",
@@ -170,27 +173,26 @@
     ]
   },
   "base2026": {
-    "_note": "The official tax-year-2026 figures a 2027 projection would be indexed from are NOT copied here. They live once, in src/data/tax-data-2026.json, which is the file the paycheck engine and every other tax page on this site already computes from. Duplicating them into this file would create two copies that can silently disagree. Recorded here is only the provenance of that file's federal block.",
+    "_note": "The official tax-year-2026 figures a 2027 projection would be indexed from are NOT copied here, and neither is their provenance. Both live once, in src/data/tax-data-2026.json — the figures under `federal`, the Revenue Procedure name, its publication date and its source URLs under `_meta.revenueProcedure`. This key exists only to say where to look; anything more would be a second copy that can silently disagree with the first.",
     "from": "src/data/tax-data-2026.json",
-    "revenueProcedure": "Rev. Proc. 2025-32",
-    "publishedDate": "2025-10-09",
-    "sourceUrl": "https://www.irs.gov/pub/irs-drop/rp-25-32.pdf",
-    "newsroomUrl": "https://www.irs.gov/newsroom/irs-releases-tax-inflation-adjustments-for-tax-year-2026-including-amendments-from-the-one-big-beautiful-bill"
+    "provenanceAt": "_meta.revenueProcedure"
   },
   "statute": {
+    "_quoteRule": "Every `quote` below is the statutory text reproduced WORD FOR WORD from the source at `sourceUrl`, including the statute's own em-dashes and clause markers. Do not smooth, re-punctuate, or condense a quote to make it read better on the page: if a passage needs shortening, use an ellipsis or square brackets so the reader can see the edit. A quotation mark is a promise.",
     "ccpiuDefinition": {
       "cite": "26 U.S.C. § 1(f)(6)(B)",
-      "quote": "the value of the C-CPI-U for any calendar year is the average of the C-CPI-U as of the close of the 12-month period ending on August 31 of such calendar year.",
+      "quote": "The C-CPI-U for any calendar year is the average of the C-CPI-U as of the close of the 12-month period ending on August 31 of such calendar year.",
       "sourceUrl": "https://www.law.cornell.edu/uscode/text/26/1"
     },
     "cumulativeBase": {
-      "cite": "26 U.S.C. § 1(f)(3)",
-      "quote": "The cost-of-living adjustment for any calendar year is the percentage (if any) by which the C-CPI-U for the preceding calendar year exceeds the CPI for calendar year 2016, multiplied by the amount determined under subparagraph (B).",
+      "cite": "26 U.S.C. § 1(f)(3)(A)",
+      "quote": "The cost-of-living adjustment for any calendar year is the percentage (if any) by which— (i) the C-CPI-U for the preceding calendar year, exceeds (ii) the CPI for calendar year 2016, multiplied by the amount determined under subparagraph (B).",
       "sourceUrl": "https://www.law.cornell.edu/uscode/text/26/1"
     },
     "roundingBrackets": {
       "cite": "26 U.S.C. § 1(f)(7)(A)",
-      "quote": "If any increase determined under paragraph (2)(A), section 63(c)(4), section 68(b)(2), or section 151(d)(4) is not a multiple of $50, such increase shall be rounded to the next lowest multiple of $50.",
+      "quote": "If any increase determined under paragraph (2)(A), section 63(c)(4), section 68(b)(2) or section 151(d)(4) is not a multiple of $50, such increase shall be rounded to the next lowest multiple of $50.",
+      "note": "Reproduced exactly, including the missing serial comma before \"or section 151(d)(4)\", which the U.S. Code annotates \"so in original\".",
       "sourceUrl": "https://www.law.cornell.edu/uscode/text/26/1"
     },
     "roundingMfs": {
@@ -199,7 +201,7 @@
       "sourceUrl": "https://www.law.cornell.edu/uscode/text/26/1"
     },
     "roundingStandardDeduction": {
-      "cite": "26 U.S.C. § 63(c)(7)(B)(ii), as amended by P.L. 119-21 (One Big Beautiful Bill Act)",
+      "cite": "26 U.S.C. § 63(c)(7) (rounding clause), as amended by P.L. 119-21 (One Big Beautiful Bill Act)",
       "quote": "If any increase under this clause is not a multiple of $50, such increase shall be rounded to the next lowest multiple of $50.",
       "sourceUrl": "https://www.law.cornell.edu/uscode/text/26/63"
     }

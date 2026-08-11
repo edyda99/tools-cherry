@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>Why Your W-2 Box 1, Box 3 and Box 5 Don't Match — Reconciliation Calculator</title>
-<meta name="description" content="Box 1, Box 3 and Box 5 on your W-2 are supposed to be different. Enter your pay and pre-tax amounts to see exactly where each difference came from — 401(k), health premiums, and the Social Security wage cap.">
+<meta name="description" content="Box 1, Box 3 and Box 5 are meant to differ. Enter your pay and pre-tax amounts to see exactly where each gap on your W-2 came from.">
 <link rel="canonical" href="{{SITE_URL}}/w2-box-1-vs-box-3-vs-box-5/">
 <meta property="og:title" content="Why W-2 Box 1, Box 3 and Box 5 don't match">
 <meta property="og:description" content="A free calculator that reconciles the three wage boxes on your W-2 line by line, and explains which deduction came out of which box. Runs in your browser.">
@@ -146,12 +146,24 @@
 
     <section class="prose">
       <h2>Common questions</h2>
-      <p><strong>Box 1 is lower than Box 3. Did my employer make a mistake?</strong> Almost certainly not. Check whether the gap equals your traditional 401(k) contributions for the year. If it does, the form is right.</p>
-      <p><strong>Box 3 is lower than Box 5. Is that wrong?</strong> No — that is what earning more than the Social Security wage base looks like. Box 3 caps, Box 5 does not.</p>
-      <p><strong>All three of my boxes are identical. Is something missing?</strong> No. With no pre-tax retirement contributions, no pre-tax benefits and pay under the wage base, all three definitions land on the same number.</p>
+      <!-- Every paragraph carrying data-faq is lifted verbatim into this page's
+           FAQPage structured data by build.js. There is therefore exactly ONE
+           copy of each answer, and schema can no longer say something the page
+           does not visibly say. Keep the shape each one below already has: a
+           paragraph carrying data-faq, opening with the question inside a strong
+           tag and the answer as the rest of the paragraph. A paragraph without
+           the attribute is ordinary prose the schema makes no claim about.
+           (Do not write that shape out as an example anywhere on this page —
+           build.js matches the real markup, and an illustration of it would be
+           picked up as a real question.) -->
+      <p data-faq><strong>Why is my W-2 Box 1 lower than Box 3 and Box 5?</strong> Almost always because of a traditional 401(k), 403(b) or 457(b) contribution. Money you defer into a traditional retirement plan is exempt from federal income tax, so it comes out of Box 1, but it is not exempt from Social Security and Medicare tax, so it stays in Box 3 and Box 5. If the gap equals your contributions for the year, the form is correct and you were not taxed twice.</p>
+      <p data-faq><strong>Do health insurance premiums lower all three W-2 wage boxes?</strong> Yes, when they run through a Section 125 cafeteria plan, which is how nearly all employer payroll deductions for medical, dental and vision premiums are set up. The same is true of a health FSA, a dependent-care FSA and an HSA funded through payroll. Unlike a retirement deferral, these come out of Box 1, Box 3 and Box 5 alike.</p>
+      <p data-faq><strong>Does a Roth 401(k) change any of my W-2 wage boxes?</strong> No. Roth contributions are made from pay that has already been taxed, so they do not reduce Box 1, Box 3 or Box 5. The amount appears in Box 12 with code AA or BB as information only.</p>
+      <p data-faq><strong>Why is my Box 3 lower than my Box 5?</strong> Because Social Security tax stops at the wage base — {{CAP_AMOUNT}} for {{CAP_YEAR}} — and Medicare tax has no ceiling at all. Once you earn more than the wage base, Box 3 stops there while Box 5 keeps counting, so the gap between them is exactly the wages you earned above the ceiling.</p>
+      <p data-faq><strong>All three of my wage boxes are the same number. Is that a mistake?</strong> No. If nothing came out of your pay before tax — no traditional retirement contribution and no Section 125 benefits — and your pay was under the Social Security wage base, then all three definitions of wages land on the same figure. Identical boxes are what a simple W-2 looks like.</p>
       <p><strong>Box 1 is higher than Box 5.</strong> Less common but legitimate: income counted for income tax in a different year than it was counted for Social Security and Medicare, usually deferred compensation or equity. Worth confirming with payroll.</p>
       <p><strong>Why does my last payslip's gross not match any box?</strong> Because no box is your gross. Box 1 is gross minus pre-tax retirement and pre-tax benefits, Box 3 and Box 5 are gross minus pre-tax benefits only.</p>
-      <p><strong>Which box do I actually type into my tax return?</strong> Box 1 is the wages figure that goes on your return. Box 3 and Box 5 are how Social Security and Medicare tax were worked out, and Box 4 and Box 6 are what was withheld for each.</p>
+      <p data-faq><strong>Which W-2 box goes on my tax return as wages?</strong> Box 1. Box 3 and Box 5 are the wage figures Social Security and Medicare tax were computed from, and Box 4 and Box 6 are the amounts withheld for each of those two taxes.</p>
       <p><strong>What about the codes in Box 12 and Box 14?</strong> Different question, different tool: <a href="/w2-box-decoder/">the W-2 Box 12 code decoder</a> covers TA, TP and TT and the Box 14b tipped occupation codes.</p>
     </section>
 

@@ -142,9 +142,33 @@ for (const e of data.cpiw.thirdPartyEstimates) {
   ok(/^https:\/\//.test(e.sourceUrl || ''), `third-party estimate from ${e.publisher} has an https sourceUrl`);
 }
 for (const [k, s] of Object.entries(data.statute)) {
+  // "_"-prefixed keys are the repo's convention for internal notes, not data.
+  if (k.startsWith('_')) continue;
   ok(typeof s.cite === 'string' && s.cite.includes('U.S.C.'), `statute.${k} carries a U.S. Code citation`);
   ok(typeof s.quote === 'string' && s.quote.length > 40, `statute.${k} carries the statutory text, not a paraphrase`);
   ok(/^https:\/\//.test(s.sourceUrl || ''), `statute.${k} links to the statute`);
+}
+
+// --- quote fidelity -------------------------------------------------------
+// A quotation mark is a promise, and these four quotes are the page's entire
+// claim to authority. Each assertion below locks in a specific way the quote was
+// wrong once: words inserted inside the quotation marks, statutory (i)/(ii)
+// structure smoothed into flowing prose, and punctuation "corrected" to what the
+// drafter should have written rather than what they did write.
+const q = (k) => data.statute[k].quote;
+ok(q('ccpiuDefinition').startsWith('The C-CPI-U for any calendar year is the average'),
+  '§1(f)(6)(B) is quoted from its first word — no "the value of" spliced in ahead of it');
+ok(q('cumulativeBase').includes('(i)') && q('cumulativeBase').includes('(ii)'),
+  '§1(f)(3)(A) keeps the statute\'s (i)/(ii) structure rather than flattening it into one sentence');
+ok(q('cumulativeBase').includes('percentage (if any) by which—'),
+  '§1(f)(3)(A) keeps the statute\'s em-dash before the clauses');
+ok(q('roundingBrackets').includes('section 68(b)(2) or section 151(d)(4)'),
+  '§1(f)(7)(A) reproduces the missing serial comma the U.S. Code marks "so in original"');
+ok(!q('roundingBrackets').includes('68(b)(2), or'),
+  '§1(f)(7)(A) has no comma added before "or section 151(d)(4)"');
+for (const [k, s] of Object.entries(data.statute)) {
+  if (k.startsWith('_')) continue;
+  ok(!/^[a-z]/.test(s.quote), `statute.${k}: a quote starting mid-sentence needs a bracket or ellipsis`);
 }
 
 // The whole reason the projected-brackets page ships without dollar figures.

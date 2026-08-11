@@ -1577,6 +1577,16 @@ function fillTool(tpl, map, currentPath) {
   // (near the top) as an AI/reader freshness signal for the 2026 figures.
   if (DATED_TAX_TOOLS.has(currentPath)) {
     out = out.replace('</h1>', `</h1>\n    ${toolUpdatedLine(currentPath)}`);
+    // ...and make the machine-readable date agree with the one the reader can
+    // see. injectEntitySchema stamps every page's WebPage node with the
+    // site-wide CONTENT_DATE, which on these pages contradicts the byline right
+    // under the H1 — the page tells a person one date and a crawler another.
+    // Rewritten here, in the same branch that writes the byline, so the two
+    // cannot drift: there is one source, toolUpdatedLine's git date.
+    const seen = /datetime="(\d{4}-\d{2}-\d{2})"/.exec(out);
+    if (seen && seen[1] !== CONTENT_DATE) {
+      out = out.replace(`"dateModified":"${CONTENT_DATE}"`, `"dateModified":"${seen[1]}"`);
+    }
   }
   out = out.replace('<footer class="site">', `${toolSourcesBlock(currentPath)}\n${relatedToolsBlock(currentPath)}\n<footer class="site">`);
   // Plain-question reveal controller, on the listed tax pages only (no-op on
@@ -8962,6 +8972,12 @@ async function main() {
       const m = /^(\d{4})-(\d{2})$/.exec(k);
       return m ? `${MONTH_NAMES[+m[2] - 1]} ${m[1]}` : k;
     };
+    // Revenue Procedure provenance and the (deliberately vague) expected timing
+    // of the next one, read from tax-data-2026.json rather than typed into a
+    // template: they are external facts about the dataset, and the rule on this
+    // site is that a fact a page states comes from a data file with a source URL.
+    const revProc = taxData._meta.revenueProcedure;
+    const nextRpTiming = revProc.nextYear.expectedTiming;
     const srcLink = (url, label) =>
       `<a href="${escHtml(url)}" rel="noopener" target="_blank">${escHtml(label)}</a>`;
     const quoteBlock = (s, cls) =>
@@ -9108,8 +9124,10 @@ async function main() {
       QUOTE_ROUNDING_SD: quoteBlock(proj2027.statute.roundingStandardDeduction, 'p27-quote'),
       MATH_BLOCK: mathBlock,
       THIRD_PARTY_BLOCK: thirdPartyBlock,
-      RP2026_URL: proj2027.base2026.sourceUrl,
-      RP2026_DATE: humanDate(proj2027.base2026.publishedDate),
+      NEXT_RP_TIMING: nextRpTiming,
+      RP2026_NAME: revProc.name,
+      RP2026_URL: revProc.sourceUrl,
+      RP2026_DATE: humanDate(revProc.publishedDate),
     }, '/2027-tax-brackets/'));
     urls.push(`${SITE.url}/2027-tax-brackets/`);
 
@@ -9215,36 +9233,39 @@ async function main() {
     const yearOptions = wbYears.map((y) =>
       `<option value="${escHtml(y)}"${y === wbDefault ? ' selected' : ''}>${escHtml(y)}</option>`).join('');
 
+    // The FAQ structured data is LIFTED FROM THE VISIBLE PAGE, not written a
+    // second time here. Each `<p data-faq><strong>Question?</strong> Answer.</p>`
+    // in the template becomes one Question node, after the same placeholder
+    // substitution the visible copy gets, so the two cannot disagree. A page
+    // that answers a question in its schema but not on screen is the site
+    // telling a crawler something it does not tell a reader; keeping two
+    // hand-written copies in sync is exactly the discipline that fails quietly.
+    const wbSubs = {
+      CAP_YEAR: wbDefault,
+      CAP_AMOUNT: usd0(wageBoxData.years[wbDefault].socialSecurityWageBase),
+    };
+    const wbPlain = (s) => s
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ').replace(/&mdash;/g, '—').replace(/&ndash;/g, '–')
+      .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+      .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+      .replace(/\s+/g, ' ').trim();
+    const wbFaqItems = [];
+    for (const m of wageBoxTpl.matchAll(/<p data-faq><strong>([\s\S]*?)<\/strong>([\s\S]*?)<\/p>/g)) {
+      const sub = (t) => wbPlain(t.replace(/\{\{(\w+)\}\}/g, (_, k) => {
+        if (!(k in wbSubs)) throw new Error(`w2 FAQ: unknown placeholder {{${k}}} in a data-faq paragraph`);
+        return wbSubs[k];
+      }));
+      wbFaqItems.push({ q: sub(m[1]), a: sub(m[2]) });
+    }
+    if (wbFaqItems.length < 4)
+      throw new Error(`w2 FAQ: only ${wbFaqItems.length} data-faq paragraph(s) found in the template. The ` +
+        'visible FAQ is the ONLY source for this page\'s FAQPage schema, so a broken match would ship ' +
+        'near-empty structured data rather than fail.');
     const wbFaq = JSON.stringify({
       '@context': 'https://schema.org',
       '@type': 'FAQPage',
-      mainEntity: [
-        ['Why is my W-2 Box 1 lower than Box 3 and Box 5?',
-          'Almost always because of a traditional 401(k), 403(b) or 457(b) contribution. Money you defer ' +
-          'into a traditional retirement plan is exempt from federal income tax, so it comes out of Box 1, ' +
-          'but it is not exempt from Social Security and Medicare tax, so it stays in Box 3 and Box 5. ' +
-          'If the gap equals your contributions for the year, the form is correct and you were not taxed twice.'],
-        ['Why is my Box 3 lower than my Box 5?',
-          `Because Social Security tax stops at the wage base — ` +
-          `${usd0(wageBoxData.years[wbDefault].socialSecurityWageBase)} for ${wbDefault} — and Medicare ` +
-          'tax has no ceiling at all. Once you earn more than the wage base, Box 3 stops there while Box 5 ' +
-          'keeps counting, so the gap between them is exactly the wages you earned above the ceiling.'],
-        ['Do health insurance premiums lower all three W-2 wage boxes?',
-          'Yes, when they run through a Section 125 cafeteria plan, which is how nearly all employer ' +
-          'payroll deductions for medical, dental and vision premiums are set up. The same is true of a ' +
-          'health FSA, a dependent-care FSA and an HSA funded through payroll. Unlike a retirement ' +
-          'deferral, these come out of Box 1, Box 3 and Box 5 alike.'],
-        ['Does a Roth 401(k) change any of my W-2 wage boxes?',
-          'No. Roth contributions are made from pay that has already been taxed, so they do not reduce ' +
-          'Box 1, Box 3 or Box 5. The amount appears in Box 12 with code AA or BB as information only.'],
-        ['All three of my wage boxes are the same number. Is that a mistake?',
-          'No. If nothing came out of your pay before tax — no traditional retirement contribution and no ' +
-          'Section 125 benefits — and your pay was under the Social Security wage base, then all three ' +
-          'definitions of wages land on the same figure. Identical boxes are what a simple W-2 looks like.'],
-        ['Which W-2 box goes on my tax return as wages?',
-          'Box 1. Box 3 and Box 5 are the wage figures Social Security and Medicare tax were computed ' +
-          'from, and Box 4 and Box 6 are the amounts withheld for each of those two taxes.'],
-      ].map(([q, a]) => ({
+      mainEntity: wbFaqItems.map(({ q, a }) => ({
         '@type': 'Question', name: q,
         acceptedAnswer: { '@type': 'Answer', text: a },
       })),
@@ -9331,7 +9352,7 @@ async function main() {
       '@type': 'Article',
       headline: `${taxData.taxYear} federal tax brackets and standard deduction`,
       description: `The official ${taxData.taxYear} federal income tax brackets and standard deduction as ` +
-        `published by the IRS in ${proj2027.base2026.revenueProcedure}, with a worked example of what a ` +
+        `published by the IRS in ${revProc.name}, with a worked example of what a ` +
         'marginal rate actually costs.',
       mainEntityOfPage: `${SITE.url}/2026-tax-brackets/`,
       publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
@@ -9343,12 +9364,14 @@ async function main() {
       SITE_NAME: SITE.name,
       SITE_URL: SITE.url,
       ARTICLE_LD: ld26,
-      RP_DATE: humanDate(proj2027.base2026.publishedDate),
+      RP_NAME: revProc.name,
+      RP_DATE: humanDate(revProc.publishedDate),
+      NEXT_RP_TIMING: nextRpTiming,
       STANDARD_DEDUCTION: standardDeductionHtml,
-      SD_SOURCE: `IRS, ${proj2027.base2026.revenueProcedure} ` +
+      SD_SOURCE: `IRS, ${revProc.name} ` +
         `(<a href="${escHtml(taxData._meta.sources.standard_deduction)}" rel="noopener" target="_blank">IRS newsroom</a>). ` +
         `Figures last checked against source ${humanDate(taxData._meta.lastSourced)}.`,
-      BRACKETS_SOURCE: `IRS, ${proj2027.base2026.revenueProcedure} ` +
+      BRACKETS_SOURCE: `IRS, ${revProc.name} ` +
         `(<a href="${escHtml(taxData._meta.sources.federal_brackets_hoh)}" rel="noopener" target="_blank">full text, PDF</a>). ` +
         'Married filing separately is not tabulated here because it is not carried separately in the dataset ' +
         'this page is generated from.',

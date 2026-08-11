@@ -233,6 +233,49 @@ async function verifySeasonal2027(DIST, ROOT) {
     const decoder = await readPage('w2-box-decoder');
     if (decoder && !decoder.includes(`/${WAGEBOX_PAGE}/`))
       fails.push(`/w2-box-decoder/: does not link back to /${WAGEBOX_PAGE}/.`);
+    // Every FAQ answer in the structured data must also be answered in the
+    // visible body. Schema that answers a question the page does not visibly
+    // answer is a rich-result violation and, worse, it is the site telling a
+    // crawler something it does not tell a reader. Checked by taking a
+    // distinctive phrase from each answer and requiring it in the rendered text.
+    let faq = null;
+    for (const m of wb.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
+      let node;
+      try { node = JSON.parse(m[1]); } catch { continue; }
+      if (node && node['@type'] === 'FAQPage') { faq = node; break; }
+    }
+    {
+      if (!faq) fails.push(`/${WAGEBOX_PAGE}/: FAQPage structured data is missing or does not parse.`);
+      else {
+        const visible = wb.split('<main')[1] || '';
+        const text = visible.replace(/<script[^]*?<\/script>/g, '').replace(/<[^>]+>/g, ' ')
+          .replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, ' ');
+        for (const q of faq.mainEntity || []) {
+          // The longest word-run in the answer that is specific enough to be a
+          // fingerprint: take the answer's last clause, which is where each of
+          // these answers puts its distinguishing fact.
+          const answer = (q.acceptedAnswer && q.acceptedAnswer.text) || '';
+          const probe = answer.split(/(?<=\.)\s+/).pop().replace(/\s+/g, ' ').trim().slice(0, 60);
+          if (probe && !text.includes(probe))
+            fails.push(`/${WAGEBOX_PAGE}/: the FAQ answer to "${q.name}" is in the structured data but ` +
+              `not in the visible page (looked for "${probe}").`);
+        }
+      }
+    }
+  }
+
+  // The visible "Last updated" byline and the machine-readable dateModified must
+  // agree on all four pages. They come from different code paths, and a page that
+  // shows a reader one date and a crawler another is not a cosmetic defect on
+  // pages whose whole claim is that they are current.
+  for (const slug of [PROJECTED_PAGE, COLA_PAGE, WAGEBOX_PAGE, '2026-tax-brackets']) {
+    const html = await readPage(slug);
+    if (!html) continue;
+    const seen = (/datetime="(\d{4}-\d{2}-\d{2})"/.exec(html) || [])[1];
+    const schema = (/"dateModified":"(\d{4}-\d{2}-\d{2})"/.exec(html) || [])[1];
+    if (seen && schema && seen !== schema)
+      fails.push(`/${slug}/: visible "Last updated" says ${seen} but the JSON-LD dateModified says ` +
+        `${schema}. The page must not tell a reader and a crawler different dates.`);
   }
 
   return fails;
