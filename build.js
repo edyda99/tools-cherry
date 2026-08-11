@@ -7840,7 +7840,7 @@ async function main() {
               return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
             })() +
             `. This page computes ` +
-            `${numWord(rungs.length)} salary levels between the two. Pick a salary for the full ` +
+            `${numWord(rungs.length)} salary levels from ${usd0(low.amount)} to ${usd0(high.amount)}. Pick a salary for the full ` +
             `${kind === 'bracket' ? `federal and ${NAME} bracket-by-bracket` : (kind === 'flat' ? `federal bracket-by-bracket, and the ${NAME}` : `federal bracket-by-bracket`)} working.`,
           SHORT_VERSION: `Across this ladder the share of gross pay withheld runs from ` +
             `${pct1(low.allInRate)} at ${usd0(low.amount)} to ${pct1(high.allInRate)} at ` +
@@ -10607,9 +10607,10 @@ async function main() {
     }).filter(Boolean).sort((a, b) => b.rate - a.rate);
     if (topRates.length) {
       const hi = topRates[0], lo = topRates[topRates.length - 1];
+      const loNames = topRates.filter(t => t.rate === lo.rate).map(t => t.name);
       lines.push(`- Highest top marginal state income tax rate on wages: ${hi.name} at ` +
         `${(hi.rate * 100).toFixed(2).replace(/\.?0+$/, '')}%. Lowest, among states that levy one: ` +
-        `${lo.name} at ${(lo.rate * 100).toFixed(2).replace(/\.?0+$/, '')}%.`);
+        `${loNames.join(' and ')} at ${(lo.rate * 100).toFixed(2).replace(/\.?0+$/, '')}%.`);
     }
     if (dataPageStats.supp) lines.push(`- Supplemental (bonus) withholding: ${dataPageStats.supp}`);
     return lines.join('\n');
