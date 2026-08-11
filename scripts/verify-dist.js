@@ -35,6 +35,22 @@ const ASSET_REF = /(?:href|src)="(\/assets\/[^"]+)"/g;
 const LOADER = 'pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
 const MANUAL_AD = /<ins[^>]*class="[^"]*\badsbygoogle\b/;
 
+// --- AI-citability checks. Answer engines quote the first sentence they can lift
+// whole and read /llms.txt to find out what a site holds, so both are load-bearing
+// output, not decoration. They are generated, which is exactly why they need a gate:
+// a placeholder that never got filled, or a section that silently emptied because
+// its source array went away, produces a file that still looks fine and says nothing.
+//
+// Every /data/ page must open with one computed answer sentence. Checked for three
+// things: the element exists, it is not an unsubstituted {{ANSWER}} placeholder, and
+// it is long enough and ends in a full stop, i.e. it is a real sentence rather than a
+// stub. It must also carry a digit — the whole point is that it answers with a figure.
+const ANSWER_EL = /<p class="answer-first">([\s\S]*?)<\/p>/;
+// The sections /llms.txt must carry. The blockquote summary is part of the llms.txt
+// convention; the other three are the site's actual substance.
+const LLMS_REQUIRED = ['\n> ', '## Data and reference tables', '## Tools', '## State paycheck calculators'];
+const LLMS_FULL_REQUIRED = ['## Key ', '## Tools', '## Datasets'];
+
 async function walk(dir, out = []) {
   for (const e of await readdir(dir, { withFileTypes: true })) {
     const p = join(dir, e.name);
@@ -74,6 +90,8 @@ export async function verifyDist(distPath) {
   if (!pages.length) failures.push('dist/ contains no index.html at all.');
 
   const unhashed = [];
+  const badAnswers = [];
+  let dataPages = 0;
   const missingLoader = [];
   const embedWithLoader = [];
   const manualAds = [];
@@ -103,6 +121,43 @@ export async function verifyDist(distPath) {
     if (isEmbedWidget && hasLoader) embedWithLoader.push(rel);
     if (!isEmbedWidget && !hasLoader) missingLoader.push(rel);
     if (MANUAL_AD.test(html)) manualAds.push(rel);
+
+    // The quotable answer sentence, on the /data/ reference pages only (parts[0] is
+    // 'data' and it is a page, not the CSV/JSON siblings). Their /embed/data/ twins
+    // are bare tables with no headline and are correctly skipped by this path test.
+    if (parts[0] === 'data' && parts.length === 3) {
+      dataPages++;
+      const m = html.match(ANSWER_EL);
+      const text = m ? m[1].replace(/<[^>]+>/g, '').trim() : null;
+      if (!text) badAnswers.push(`${rel}: no <p class="answer-first"> element`);
+      else if (text.includes('{{')) badAnswers.push(`${rel}: unsubstituted placeholder (${text.slice(0, 40)})`);
+      else if (text.length < 80 || !text.endsWith('.')) badAnswers.push(`${rel}: not a complete sentence (${text.slice(0, 60)}…)`);
+      else if (!/\d/.test(text)) badAnswers.push(`${rel}: answer carries no figure (${text.slice(0, 60)}…)`);
+    }
+  }
+
+  // /llms.txt, /llm.txt and /llms-full.txt — the AI discovery files. Each must exist,
+  // carry every required section, and contain no unsubstituted template placeholder.
+  for (const [name, required] of [['llms.txt', LLMS_REQUIRED], ['llm.txt', LLMS_REQUIRED],
+    ['llms-full.txt', LLMS_FULL_REQUIRED]]) {
+    let txt;
+    try {
+      txt = await readFile(join(DIST, name), 'utf8');
+    } catch {
+      failures.push(`/${name} was not written — AI crawlers request it and would get a 404.`);
+      continue;
+    }
+    const missing = required.filter((s) => !txt.includes(s));
+    if (missing.length)
+      failures.push(`/${name} is missing required section(s): ${missing.map((s) => s.trim()).join(', ')}`);
+    if (txt.includes('{{'))
+      failures.push(`/${name} contains an unsubstituted {{...}} placeholder.`);
+    // A section heading with nothing under it is the failure mode a silently-emptied
+    // source array produces, and it reads as a complete file.
+    for (const h of required.filter((s) => s.startsWith('##'))) {
+      const body = (txt.split(h)[1] || '').split('\n## ')[0].trim();
+      if (body.length < 40) failures.push(`/${name}: section "${h}" is empty or near-empty.`);
+    }
   }
 
   // Every referenced asset must actually be on disk. This is the check that
@@ -134,6 +189,10 @@ export async function verifyDist(distPath) {
     failures.push(`${embedWithLoader.length} iframe widget page(s) under dist/embed/ carry the AdSense loader and must not:` + list(embedWithLoader));
   if (manualAds.length)
     failures.push(`${manualAds.length} page(s) contain a manual <ins class="adsbygoogle"> unit; this site is Auto ads only:` + list(manualAds));
+  if (badAnswers.length)
+    failures.push(`${badAnswers.length} /data/ page(s) lack a usable one-sentence computed answer under the H1:` + list(badAnswers));
+  if (!dataPages)
+    failures.push('dist/ contains no /data/ reference pages at all — the citation kit did not build.');
 
   return { pages: pages.length, withLoader, failures };
 }
