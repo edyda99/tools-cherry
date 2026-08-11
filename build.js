@@ -9926,15 +9926,22 @@ async function main() {
     // and never recomputed, so it cannot drift from the per-rung file.
     const lowAmt = CA_LADDER_SALARIES[0];
     const highAmt = CA_LADDER_SALARIES[CA_LADDER_SALARIES.length - 1];
-    const csvH = [['State', 'Abbr', `Take-home on ${lowAmt}`, `Effective rate on ${lowAmt}`,
-      `Take-home on ${highAmt}`, `Effective rate on ${highAmt}`, 'Extra take-home over the climb',
+    const csvH = [['State', 'Abbr', `Take-home at ${usd0(lowAmt)}`, `Effective rate at ${usd0(lowAmt)}`,
+      `Take-home at ${usd0(highAmt)}`, `Effective rate at ${usd0(highAmt)}`, 'Extra take-home over the climb',
       'Share of the extra gross kept', 'Hub page']];
     for (const s of roster.filter((x) => taxData.states[x.slug])) {
       const lo = ladderRows.find((r) => r.slug === s.slug && r.salary === lowAmt);
       const hi = ladderRows.find((r) => r.slug === s.slug && r.salary === highAmt);
-      csvH.push([lo.name, lo.abbr, Math.round(lo.net), (lo.totalRate * 100).toFixed(2) + '%',
-        Math.round(hi.net), (hi.totalRate * 100).toFixed(2) + '%', Math.round(hi.net - lo.net),
-        (((hi.net - lo.net) / (highAmt - lowAmt)) * 100).toFixed(2) + '%',
+      // The climb columns are derived from the ROUNDED take-home figures this same
+      // row publishes, not from the unrounded engine values. Rounding the difference
+      // of two unrounded numbers is off by a dollar wherever both ends round the same
+      // way (Colorado, Maryland, Minnesota, South Carolina, Wisconsin), and a reader
+      // subtracting column 5 from column 3 would get a different answer than column 7.
+      const loNet = Math.round(lo.net);
+      const hiNet = Math.round(hi.net);
+      csvH.push([lo.name, lo.abbr, loNet, (lo.totalRate * 100).toFixed(2) + '%',
+        hiNet, (hi.totalRate * 100).toFixed(2) + '%', hiNet - loNet,
+        (((hiNet - loNet) / (highAmt - lowAmt)) * 100).toFixed(2) + '%',
         LADDER_STATE_SET.has(s.slug) ? `${SITE.url}/${ladderHubSlug(s.slug)}/` : '']);
     }
     await writeFile(join(DIST, 'data', `take-home-pay-ladder-by-state-${year}.csv`),

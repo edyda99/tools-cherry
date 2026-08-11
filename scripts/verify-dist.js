@@ -59,19 +59,25 @@ const LLMS_FULL_REQUIRED = ['## Key ', '## Tools', '## Datasets'];
 //   2. it covers exactly LADDER_JURISDICTIONS jurisdictions, each carrying the
 //      identical set of salary rungs (a state missing one rung, or one state
 //      short, means the generator silently dropped rows);
-//   3. a sample of rows is RE-COMPUTED here from the engine and the tax data,
+//   3. EVERY row is RE-COMPUTED here from the engine and the tax data,
 //      independently of build.js, and must match the published figures to the
 //      dollar. A CSV whose numbers came from a stale build, a hand edit or a
-//      different filing status passes checks 1 and 2 without complaint.
+//      different filing status passes checks 1 and 2 without complaint. This was
+//      a spread-out sample of six rows; it is now all 459, because a sample lets
+//      a one-row corruption through and the full pass measures under a second.
 const LADDER_CSV = 'take-home-pay-ladder-2026.csv';
 const LADDER_HUB_CSV = 'take-home-pay-ladder-by-state-2026.csv';
 const LADDER_HEADER = 'State,Abbr,Gross salary,Federal income tax,FICA,State income tax,' +
   'State payroll programs,Annual take-home,Total effective tax rate,Page';
+// The hub header's money columns carry a formatted salary ("Take-home at $30,000"),
+// so the cells are comma-quoted and the header must be parsed, not string-matched.
+const LADDER_HUB_HEADER_CELLS = [/^State$/, /^Abbr$/, /^Take-home at \$[\d,]+$/,
+  /^Effective rate at \$[\d,]+$/, /^Take-home at \$[\d,]+$/, /^Effective rate at \$[\d,]+$/,
+  /^Extra take-home over the climb$/, /^Share of the extra gross kept$/, /^Hub page$/];
 const LADDER_JURISDICTIONS = 51;
-// How many rows to re-derive through the engine. Spot-check, not a full re-run:
-// the build already computes all of them, and this gate exists to catch a file
-// that is not the build's output, which a handful of rows detects just as well.
-const LADDER_SPOT_ROWS = 6;
+// Cap on how many individual mismatches are listed before the failure message is
+// truncated. Every row is still checked; this only bounds the output.
+const LADDER_MAX_REPORTED = 12;
 
 // Minimal RFC-4180 line splitter — enough for this file, which quotes only on
 // commas inside state names it does not currently have.
@@ -138,16 +144,6 @@ async function verifyLadderCsv(DIST, ROOT) {
   if (rows.length !== expectedRows && !shortStates.length && byState.size === LADDER_JURISDICTIONS)
     fails.push(`/data/${LADDER_CSV} has ${rows.length} data rows, expected ${expectedRows}.`);
 
-  // The hub-level cut, one row per jurisdiction plus a header.
-  try {
-    const hub = (await readFile(join(DIST, 'data', LADDER_HUB_CSV), 'utf8')).trim().split('\n');
-    if (hub.length - 1 !== LADDER_JURISDICTIONS)
-      fails.push(`/data/${LADDER_HUB_CSV} has ${hub.length - 1} data rows, expected one per jurisdiction ` +
-        `(${LADDER_JURISDICTIONS}).`);
-  } catch {
-    fails.push(`/data/${LADDER_HUB_CSV} was not written — the per-state ladder summary is missing.`);
-  }
-
   // --- Re-computation. Independent of build.js: this imports the engine and the
   // tax data itself and asks for the same paycheck the CSV row claims.
   if (!rows.length) return fails;
@@ -160,12 +156,14 @@ async function verifyLadderCsv(DIST, ROOT) {
     return fails;
   }
   const slugOf = new Map(Object.entries(taxData.states).map(([slug, s]) => [s.name, slug]));
-  // Spread the sample across the file rather than taking the first N, which would
-  // all be one state at the bottom of the ladder.
-  const step = Math.max(1, Math.floor(rows.length / LADDER_SPOT_ROWS));
   const mismatches = [];
-  for (let i = 0; i < rows.length && mismatches.length < 12; i += step) {
+  // EVERY row, not a sample. `checked` is reported so a gate that silently stopped
+  // checking (an early return, an empty file) cannot look like a pass.
+  let checked = 0;
+  for (let i = 0; i < rows.length; i++) {
+    if (mismatches.length >= LADDER_MAX_REPORTED) break;
     const r = rows[i];
+    checked++;
     const slug = slugOf.get(r[0]);
     if (!slug) { mismatches.push(`row ${i + 2}: "${r[0]}" is not a state in tax-data-2026.json`); continue; }
     const a = computePaycheck({
@@ -189,8 +187,59 @@ async function verifyLadderCsv(DIST, ROOT) {
       mismatches.push(`${r[0]} @ $${r[2]}: effective rate published ${r[8]}, engine computes ${rate}`);
   }
   if (mismatches.length)
-    fails.push(`/data/${LADDER_CSV} does not reproduce from the engine — the published dataset is wrong:` +
-      list(mismatches));
+    fails.push(`/data/${LADDER_CSV} does not reproduce from the engine (${checked} of ${rows.length} rows ` +
+      `checked) — the published dataset is wrong:` + list(mismatches));
+
+  // --- The hub-level cut. Every one of its numbers is a restatement of two rung
+  // rows, so it is checked by RE-DERIVING it from the rung rows above rather than
+  // by counting its lines: a summary that disagrees with the detail file it
+  // summarises is the failure worth catching, and a row count never sees it.
+  // The rung rows are trustworthy at this point because they just reproduced from
+  // the engine.
+  let hubLines;
+  try {
+    hubLines = (await readFile(join(DIST, 'data', LADDER_HUB_CSV), 'utf8')).trim().split('\n');
+  } catch {
+    fails.push(`/data/${LADDER_HUB_CSV} was not written — the per-state ladder summary is missing.`);
+    return fails;
+  }
+  const hubHead = csvSplit(hubLines[0]);
+  const headBad = LADDER_HUB_HEADER_CELLS
+    .map((re, i) => (re.test(hubHead[i] || '') ? null : `column ${i + 1}: "${hubHead[i] || ''}"`))
+    .filter(Boolean);
+  if (hubHead.length !== LADDER_HUB_HEADER_CELLS.length || headBad.length)
+    fails.push(`/data/${LADDER_HUB_CSV} header changed (${hubHead.length} columns, expected ` +
+      `${LADDER_HUB_HEADER_CELLS.length}). Anyone consuming the published file parses by column, so ` +
+      'update this gate deliberately:' + list(headBad.length ? headBad : ['column count']));
+  const hubRows = hubLines.slice(1).map(csvSplit);
+  if (hubRows.length !== LADDER_JURISDICTIONS)
+    fails.push(`/data/${LADDER_HUB_CSV} has ${hubRows.length} data rows, expected one per jurisdiction ` +
+      `(${LADDER_JURISDICTIONS}).`);
+  const lowAmt = rungs[0];
+  const highAmt = rungs[rungs.length - 1];
+  // state -> salary -> the rung row, for the two ends the summary restates.
+  const rungAt = new Map();
+  for (const r of rows) rungAt.set(`${r[0]}|${r[2]}`, r);
+  const hubBad = [];
+  for (const h of hubRows) {
+    if (hubBad.length >= LADDER_MAX_REPORTED) break;
+    const lo = rungAt.get(`${h[0]}|${lowAmt}`);
+    const hi = rungAt.get(`${h[0]}|${highAmt}`);
+    if (!lo || !hi) { hubBad.push(`${h[0]}: no matching rung rows in ${LADDER_CSV}`); continue; }
+    const want = [lo[7], lo[8], hi[7], hi[8],
+      String(Number(hi[7]) - Number(lo[7])),
+      (((Number(hi[7]) - Number(lo[7])) / (highAmt - lowAmt)) * 100).toFixed(2) + '%'];
+    const labels = [`take-home at $${lowAmt}`, `effective rate at $${lowAmt}`,
+      `take-home at $${highAmt}`, `effective rate at $${highAmt}`,
+      'extra take-home over the climb', 'share of the extra gross kept'];
+    want.forEach((v, k) => {
+      if (h[k + 2] !== v)
+        hubBad.push(`${h[0]}: ${labels[k]} published ${h[k + 2]}, the rung rows give ${v}`);
+    });
+  }
+  if (hubBad.length)
+    fails.push(`/data/${LADDER_HUB_CSV} does not re-derive from /data/${LADDER_CSV} — the summary and the ` +
+      'detail file disagree:' + list(hubBad));
   return fails;
 }
 
