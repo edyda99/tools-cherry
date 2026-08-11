@@ -7858,6 +7858,9 @@ async function main() {
           LADDER_LOW: usd0(low.amount),
           LADDER_HIGH: usd0(high.amount),
           RUNG_COUNT: String(rungs.length),
+          // Coverage claim in the download block, counted off the same roster the
+          // ladder CSV is generated from rather than typed as "51".
+          LADDER_JURISDICTIONS: String(roster.filter((s) => taxData.states[s.slug]).length),
           PROSE_BLOCKS: hubProse,
           CTA_LINKS: [
             `<a class="primary" href="/${ladderSlugKey}-paycheck-calculator/">Run your own number in the ${NAME} paycheck calculator &rarr;</a>`,
@@ -9744,7 +9747,9 @@ async function main() {
       description: `Computed ${year} annual take-home pay, state income tax, state payroll deductions and ` +
         `total effective tax rate for a single filer earning ${salaryList}, in all 50 US states and the ` +
         `District of Columbia. Derived from ${year} IRS federal brackets, the SSA wage base and each state's ` +
-        `own income tax tables.`,
+        `own income tax tables. The salary-ladder distributions extend the same computation to ` +
+        `${CA_LADDER_SALARIES.length} salary levels from ${usd0(CA_LADDER_SALARIES[0])} to ` +
+        `${usd0(CA_LADDER_SALARIES[CA_LADDER_SALARIES.length - 1])} in every jurisdiction.`,
       url: `${SITE.url}/data/take-home-pay-by-state/`,
       creator: { '@type': 'Person', name: 'Edmond Daher' },
       publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
@@ -9752,11 +9757,18 @@ async function main() {
       temporalCoverage: String(year),
       dateModified: STUDY_UPDATED_ISO,
       spatialCoverage: { '@type': 'Country', name: 'United States' },
-      variableMeasured: ['Gross salary', 'Annual take-home pay', 'State income tax',
-        'State payroll deductions', 'Total effective tax rate'],
+      variableMeasured: ['Gross salary', 'Annual take-home pay', 'Federal income tax', 'FICA',
+        'State income tax', 'State payroll deductions', 'Total effective tax rate'],
+      // The two study files first (they are what this page renders), then the two
+      // salary-ladder cuts, which carry the same computation across every rung
+      // rather than the two salaries the tables above show. `name` is what tells
+      // a consumer which file is which; without it three CSVs on one Dataset are
+      // indistinguishable.
       distribution: [
-        { '@type': 'DataDownload', encodingFormat: 'text/csv', contentUrl: `${SITE.url}/data/take-home-pay-by-state-${year}.csv` },
-        { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/take-home-pay-by-state-${year}.json` },
+        { '@type': 'DataDownload', name: `Take-home pay by state on ${salaryList}, ${year} (CSV)`, encodingFormat: 'text/csv', contentUrl: `${SITE.url}/data/take-home-pay-by-state-${year}.csv` },
+        { '@type': 'DataDownload', name: `Take-home pay by state on ${salaryList}, ${year} (JSON)`, encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/take-home-pay-by-state-${year}.json` },
+        { '@type': 'DataDownload', name: `Full salary ladder: ${rowCount} jurisdictions x ${CA_LADDER_SALARIES.length} salary levels, ${year} (CSV)`, encodingFormat: 'text/csv', contentUrl: `${SITE.url}/data/take-home-pay-ladder-${year}.csv` },
+        { '@type': 'DataDownload', name: `Salary ladder summary, one row per jurisdiction, ${year} (CSV)`, encodingFormat: 'text/csv', contentUrl: `${SITE.url}/data/take-home-pay-ladder-by-state-${year}.csv` },
       ],
       isAccessibleForFree: true,
     });
@@ -9771,6 +9783,11 @@ async function main() {
       fillTool(thpTpl, {
         SITE_NAME: SITE.name, SITE_URL: SITE.url,
         TAX_YEAR: String(year), ROW_COUNT: String(rowCount),
+        // The ladder-CSV offer in the "Cite this data" block describes the file the
+        // build is about to write, from the same constant that generates it.
+        LADDER_RUNG_COUNT: String(CA_LADDER_SALARIES.length),
+        LADDER_LOW: usd0(CA_LADDER_SALARIES[0]),
+        LADDER_HIGH: usd0(CA_LADDER_SALARIES[CA_LADDER_SALARIES.length - 1]),
         // The lede's coverage claim, from the same figureYear the byline reads.
         RULES_BASIS: esc(studyRulesPhrase(thpRows, year, 'all 50 states and the District of Columbia')),
         BASE_SALARY: usd0(base.salary), HIGH_SALARY: usd0(high.salary),
@@ -9862,6 +9879,67 @@ async function main() {
     }
     await writeFile(join(DIST, 'data', `take-home-pay-by-state-${year}.csv`),
       csvT.map((r) => r.map(csvEscT).join(',')).join('\n') + '\n');
+
+    // THE FULL SALARY-LADDER DATASET, the citable version of what the ladder pages
+    // show. The two-salary file above is the study; this one is every rung of
+    // CA_LADDER_SALARIES in every jurisdiction on the roster, which is the grid a
+    // journalist or a researcher actually wants and which no page can render whole.
+    //
+    // It is deliberately computed for ALL 51 jurisdictions and not only for the
+    // LADDER_STATES that have pages: the ladder rollout is a publishing decision,
+    // not a data one, and a dataset with holes in it where a state has not been
+    // written up yet is not a dataset. Every figure comes from the same
+    // computePaycheck call the rung pages read (caRung() calls it with the same
+    // arguments), so a row here and the page for that state and salary can never
+    // disagree — and where a page exists, the CSV names it in the last column.
+    const ladderRows = [];
+    for (const s of roster.filter((x) => taxData.states[x.slug])) {
+      const st = taxData.states[s.slug];
+      for (const amount of CA_LADDER_SALARIES) {
+        const a = computePaycheck({
+          wage: { type: 'salary', amount },
+          filingStatus: 'single', payFrequency: 'annual', stateSlug: s.slug,
+        }, taxData).annual;
+        ladderRows.push({
+          name: st.name, abbr: st.abbr, slug: s.slug, salary: amount,
+          federal: a.federal, fica: a.socialSecurity + a.medicare,
+          stateTax: a.state, programs: a.statePrograms, net: a.net,
+          // Same definition as the study's totalRate: everything withheld over
+          // gross, programs included, because the take-home column nets them out.
+          totalRate: amount > 0 ? (amount - a.net) / amount : 0,
+          page: LADDER_STATE_SET.has(s.slug) ? `${SITE.url}${ladderPath(s.slug, amount)}` : '',
+        });
+      }
+    }
+    const csvL = [['State', 'Abbr', 'Gross salary', 'Federal income tax', 'FICA',
+      'State income tax', 'State payroll programs', 'Annual take-home', 'Total effective tax rate', 'Page']];
+    for (const r of ladderRows) {
+      csvL.push([r.name, r.abbr, r.salary, Math.round(r.federal), Math.round(r.fica),
+        Math.round(r.stateTax), Math.round(r.programs), Math.round(r.net),
+        (r.totalRate * 100).toFixed(2) + '%', r.page]);
+    }
+    await writeFile(join(DIST, 'data', `take-home-pay-ladder-${year}.csv`),
+      csvL.map((r) => r.map(csvEscT).join(',')).join('\n') + '\n');
+
+    // The hub-level cut of the same numbers: one row per jurisdiction, the two ends
+    // of the ladder and what the climb between them costs. Derived from ladderRows
+    // and never recomputed, so it cannot drift from the per-rung file.
+    const lowAmt = CA_LADDER_SALARIES[0];
+    const highAmt = CA_LADDER_SALARIES[CA_LADDER_SALARIES.length - 1];
+    const csvH = [['State', 'Abbr', `Take-home on ${lowAmt}`, `Effective rate on ${lowAmt}`,
+      `Take-home on ${highAmt}`, `Effective rate on ${highAmt}`, 'Extra take-home over the climb',
+      'Share of the extra gross kept', 'Hub page']];
+    for (const s of roster.filter((x) => taxData.states[x.slug])) {
+      const lo = ladderRows.find((r) => r.slug === s.slug && r.salary === lowAmt);
+      const hi = ladderRows.find((r) => r.slug === s.slug && r.salary === highAmt);
+      csvH.push([lo.name, lo.abbr, Math.round(lo.net), (lo.totalRate * 100).toFixed(2) + '%',
+        Math.round(hi.net), (hi.totalRate * 100).toFixed(2) + '%', Math.round(hi.net - lo.net),
+        (((hi.net - lo.net) / (highAmt - lowAmt)) * 100).toFixed(2) + '%',
+        LADDER_STATE_SET.has(s.slug) ? `${SITE.url}/${ladderHubSlug(s.slug)}/` : '']);
+    }
+    await writeFile(join(DIST, 'data', `take-home-pay-ladder-by-state-${year}.csv`),
+      csvH.map((r) => r.map(csvEscT).join(',')).join('\n') + '\n');
+
     await writeFile(join(DIST, 'data', `take-home-pay-by-state-${year}.json`),
       JSON.stringify({
         name: `US take-home pay on ${salaryList} salaries by state, tax year ${year}`,
