@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Treasury Tipped Occupation Codes (TTOC): All 71 Occupations for W-2 Box 14b — Tools Berry</title>
-<meta name="description" content="The complete Treasury Tipped Occupation Code (TTOC) list — all 71 occupations across 8 categories from 26 CFR 1.224-1, Table 1 to paragraph (h). Searchable, sortable, with codes, descriptions, examples, and SOC codes for the 2025 no-tax-on-tips deduction and W-2 Box 14b.">
+<title>Treasury Tipped Occupation Codes (TTOC): All {{ROW_COUNT}} Occupations for W-2 Box 14b — Tools Berry</title>
+<meta name="description" content="The complete Treasury Tipped Occupation Code (TTOC) list — all {{ROW_COUNT}} occupations across {{CAT_COUNT}} categories from 26 CFR 1.224-1, Table 1 to paragraph (h). Searchable, sortable, with codes, descriptions, examples, and SOC codes for the 2025 no-tax-on-tips deduction and W-2 Box 14b.">
 <link rel="canonical" href="{{SITE_URL}}/data/treasury-tipped-occupation-codes/">
-<meta property="og:title" content="Treasury Tipped Occupation Codes (TTOC): All 71 Occupations">
-<meta property="og:description" content="The full, searchable 71-occupation Treasury Tipped Occupation Code list from 26 CFR 1.224-1 — codes, descriptions, examples, and SOC codes for W-2 Box 14b and the no-tax-on-tips deduction.">
+<meta property="og:title" content="Treasury Tipped Occupation Codes (TTOC): All {{ROW_COUNT}} Occupations">
+<meta property="og:description" content="The full, searchable {{ROW_COUNT}}-occupation Treasury Tipped Occupation Code list from 26 CFR 1.224-1 — codes, descriptions, examples, and SOC codes for W-2 Box 14b and the no-tax-on-tips deduction.">
 <meta property="og:type" content="article">
 <meta name="author" content="Edmond Daher">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -16,6 +16,10 @@
 <style>
   .study-byline { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; font-size:.92rem; color:var(--muted); margin:2px 0 18px; }
   .study-byline .who { font-weight:600; color:var(--text); }
+  /* The one-sentence computed answer, first thing under the H1. It is written to
+     stand on its own if an answer engine quotes it without the headline, so it
+     repeats the subject and carries the number rather than pointing at a table. */
+  .answer-first { font-size:1.1rem; font-weight:600; line-height:1.5; margin:0 0 10px; color:var(--text); }
   .stat-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:18px 0 6px; }
   .stat-card { border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; background:var(--surface); }
   .stat-card .n { font-size:2rem; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums; }
@@ -68,7 +72,8 @@
 <main id="main">
   <div class="wrap">
     <article>
-    <h1>Treasury Tipped Occupation Codes (TTOC): all 71 occupations</h1>
+    <h1>Treasury Tipped Occupation Codes (TTOC): all {{ROW_COUNT}} occupations</h1>
+    <p class="answer-first">{{ANSWER}}</p>
     <div class="study-byline">
       <span>By <span class="who">Edmond Daher</span></span>
       <span>·</span>
@@ -98,7 +103,7 @@
     <h2>Search the full TTOC list</h2>
     <p class="muted-small">Type a job title, code, or SOC code to filter; tap a column header to sort. If your job is not on this list, tips you earn do not qualify for the federal deduction (they are still taxable as usual).</p>
     <div class="table-tools">
-      <input type="search" data-filter-for="ttocTable" placeholder="Search 71 occupations — e.g. bartender, 509, nail, driver" aria-label="Search occupations">
+      <input type="search" data-filter-for="ttocTable" placeholder="Search {{ROW_COUNT}} occupations — e.g. bartender, 509, nail, driver" aria-label="Search occupations">
       <span class="count"><strong data-filter-count="ttocTable">{{ROW_COUNT}}</strong> of {{ROW_COUNT}} shown</span>
     </div>
     <div class="table-scroll">
@@ -140,7 +145,7 @@
     <section class="prose">
       <h2 id="cite">Cite this data</h2>
       <p>Free to use and republish with attribution. Suggested citation:</p>
-      <blockquote class="cite">Tools Berry, "Treasury Tipped Occupation Codes (TTOC): All 71 Occupations", tools-berry.com/data/treasury-tipped-occupation-codes/ (updated {{PUB_DATE}}), transcribed from 26 CFR &sect; 1.224-1, Table 1.</blockquote>
+      <blockquote class="cite">Tools Berry, "Treasury Tipped Occupation Codes (TTOC): All {{ROW_COUNT}} Occupations", tools-berry.com/data/treasury-tipped-occupation-codes/ (updated {{PUB_DATE}}), transcribed from 26 CFR &sect; 1.224-1, Table 1.</blockquote>
       <p class="muted-small">Deep-link a single occupation by appending its code to the URL — e.g. <code>#code-101</code> jumps to Bartenders. Every row on this page has a stable <code>#code-&lt;code&gt;</code> anchor.</p>
       <p class="muted-small">Download: <a href="/data/treasury-tipped-occupation-codes-2026.csv">CSV</a> · <a href="/data/treasury-tipped-occupation-codes-2026.json">JSON</a> · licensed CC BY 4.0.</p>
     </section>

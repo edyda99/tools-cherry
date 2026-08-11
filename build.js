@@ -752,6 +752,32 @@ const STUDY_SALARY_TEXT = (() => {
     : m(STUDY_SALARIES[0]);
 })();
 
+// The one-sentence quotable answer for the two OBBBA state-conformity studies
+// (/data/tips-tax-by-state/ and /data/overtime-tax-by-state/). Both pages ask the
+// same shape of question about a different kind of pay, and both count the same
+// four buckets, so the sentence is written once here and given the subject and the
+// tallies the page itself computed — never a hand-typed count.
+//
+// Why the pages need it at all: an answer engine quotes the first sentence it can
+// lift whole. The lede under each H1 opens on the federal law rather than on the
+// state answer, so a quote of it answers a question nobody asked. This sentence
+// names the subject, the tax year and every count, so it survives being pulled out
+// of the page with no headline attached.
+//
+// The partial/unclear clause appears only when those buckets are non-empty, so the
+// sentence shrinks to the truth rather than asserting "0 states are unsettled".
+function conformityAnswer(subject, total, cnt) {
+  const other = (cnt.partial || 0) + (cnt.unclear || 0);
+  return `For tax year 2026, ${cnt.no} of the ${total} US state-level jurisdictions (50 states plus the ` +
+    `District of Columbia) still tax ${subject} at the state level, ${cnt.yes} let the federal ` +
+    `no-tax-on-${subject === 'tip income' ? 'tips' : 'overtime'} deduction flow through so it is ` +
+    `effectively state-tax-free, and ${cnt.nowage} have no state wage income tax at all` +
+    (other
+      ? `; the remaining ${other} ${other === 1 ? 'offers' : 'offer'} only a partial exclusion or ` +
+        `${other === 1 ? 'has' : 'have'} not settled the question.`
+      : '.');
+}
+
 // Hand-picked related links for pages that aren't in TOOLS (data studies, the
 // embed gallery). Keyed by currentPath.
 const RELATED_OVERRIDES = {
@@ -6729,6 +6755,12 @@ async function main() {
   // Key-figures line for the take-home study, computed inside its build block below
   // and consumed by llms-full.txt after that block's scope closes.
   let dataPageStatsTakeHome = '';
+  // The one-sentence computed answer each /data/ page now leads with, keyed by page
+  // path. Every entry is written by the build block that renders that page, in the
+  // form `ANSWER: (dataPageAnswers['/data/x/'] = <expr>)`, so the sentence in
+  // llms.txt is byte-identical to the sentence on the page rather than a second,
+  // drifting copy of it. Read by the llms.txt writer at the end of main().
+  const dataPageAnswers = {};
   // Standalone /data/ reference tables (citable link-bait): each re-packages an
   // already-sourced dataset that lives inside an existing tool page, plus an
   // iframe-able /embed/data/* twin.
@@ -7788,10 +7820,27 @@ async function main() {
           PUB_DATE: pubDate,
           FIGURE_BASIS: ladderBasis,
           FIGURE_BANNER: figureYearBanner(state, year),
-          LEDE: `What ${anFor(NAME)} ${NAME} salary actually pays, computed for ${numWord(rungs.length)} salary levels ` +
-            `from ${usd0(low.amount)} to ${usd0(high.amount)}. A single filer on ${usd0(low.amount)} takes ` +
-            `home <strong>${usd0(low.a.net)}</strong> a year; on ${usd0(high.amount)} it is ` +
-            `<strong>${usd0(high.a.net)}</strong>. Pick a salary for the full ` +
+          // The number-bearing sentence leads. It used to sit second, behind a
+          // sentenceless fragment ("What a California salary actually pays,
+          // computed for nine salary levels..."), which is what an answer engine
+          // lifts first and which answers nothing on its own. This version names
+          // the state, the year, both ends of the ladder and both computed
+          // figures, so it stands up quoted with no headline attached.
+          LEDE: `In ${NAME} for ${year}, a single filer earning ${usd0(low.amount)} takes home ` +
+            `<strong>${usd0(low.a.net)}</strong> a year and one earning ${usd0(high.amount)} takes home ` +
+            `<strong>${usd0(high.a.net)}</strong>, after ` +
+            // Names only the withholdings this state actually has, and joins them as
+            // English rather than as a trailing comma list. A no-income-tax state
+            // that still runs an employee-paid premium (Washington) has to say so, or
+            // the sentence explains its own figure wrongly.
+            (() => {
+              const parts = ['federal income tax', 'Social Security', 'Medicare'];
+              if (kind !== 'none') parts.push(`${NAME} income tax`);
+              if (low.a.statePrograms > 0) parts.push(`${NAME}'s employee-paid state payroll premiums`);
+              return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
+            })() +
+            `. This page computes ` +
+            `${numWord(rungs.length)} salary levels from ${usd0(low.amount)} to ${usd0(high.amount)}. Pick a salary for the full ` +
             `${kind === 'bracket' ? `federal and ${NAME} bracket-by-bracket` : (kind === 'flat' ? `federal bracket-by-bracket, and the ${NAME}` : `federal bracket-by-bracket`)} working.`,
           SHORT_VERSION: `Across this ladder the share of gross pay withheld runs from ` +
             `${pct1(low.allInRate)} at ${usd0(low.amount)} to ${pct1(high.allInRate)} at ` +
@@ -8972,11 +9021,23 @@ async function main() {
       '@context': 'https://schema.org', '@type': 'Dataset',
       name: 'OBBBA overtime & tips state conformity, tax year 2026',
       description: 'Per-jurisdiction conformity of all 50 US states and DC to the 2025 One Big Beautiful Bill Act federal deductions for overtime (IRC §225) and tips (IRC §224), for tax year 2026.',
+      url: `${SITE.url}/data/overtime-tax-by-state/`,
       creator: { '@type': 'Person', name: 'Edmond Daher' },
       publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
       license: 'https://creativecommons.org/licenses/by/4.0/',
       temporalCoverage: '2026',
-      distribution: { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/obbba-deductions-2026.json` },
+      // Freshness. Without it a consumer has no way to tell a 2026 dataset that was
+      // checked last week from one abandoned a year ago, and the whole point of the
+      // page is that state conformity keeps moving.
+      dateModified: STUDY_UPDATED_ISO,
+      spatialCoverage: { '@type': 'Place', name: 'United States' },
+      // The page publishes a CSV of exactly these rows a few lines below; it was
+      // missing here, so the only machine-readable copy schema advertised was the
+      // upstream JSON.
+      distribution: [
+        { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/obbba-deductions-2026.json` },
+        { '@type': 'DataDownload', encodingFormat: 'text/csv', contentUrl: `${SITE.url}/data/overtime-tax-by-state-2026.csv` },
+      ],
       isAccessibleForFree: true,
     });
 
@@ -8989,6 +9050,7 @@ async function main() {
         CNT_TAX: String(cnt.no), CNT_FREE: String(cnt.yes),
         CNT_NOWAGE: String(cnt.nowage), CNT_OTHER: String(cntOther),
         CALLOUT_MOVERS: calloutMovers, PUB_DATE: STUDY_DATE_HUMAN,
+        ANSWER: (dataPageAnswers['/data/overtime-tax-by-state/'] = conformityAnswer('overtime pay', entries.length, cnt)),
         ARTICLE_LD: articleLd, DATASET_LD: datasetLd,
       }, '/data/overtime-tax-by-state/')
     );
@@ -9083,11 +9145,17 @@ async function main() {
       '@context': 'https://schema.org', '@type': 'Dataset',
       name: 'OBBBA tips & overtime state conformity, tax year 2026',
       description: 'Per-jurisdiction conformity of all 50 US states and DC to the 2025 One Big Beautiful Bill Act federal deductions for tips (IRC §224) and overtime (IRC §225), for tax year 2026.',
+      url: `${SITE.url}/data/tips-tax-by-state/`,
       creator: { '@type': 'Person', name: 'Edmond Daher' },
       publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
       license: 'https://creativecommons.org/licenses/by/4.0/',
       temporalCoverage: '2026',
-      distribution: { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/obbba-deductions-2026.json` },
+      dateModified: STUDY_UPDATED_ISO,
+      spatialCoverage: { '@type': 'Place', name: 'United States' },
+      distribution: [
+        { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/obbba-deductions-2026.json` },
+        { '@type': 'DataDownload', encodingFormat: 'text/csv', contentUrl: `${SITE.url}/data/tips-tax-by-state-2026.csv` },
+      ],
       isAccessibleForFree: true,
     });
 
@@ -9100,6 +9168,7 @@ async function main() {
         CNT_TAX: String(cnt.no), CNT_FREE: String(cnt.yes),
         CNT_NOWAGE: String(cnt.nowage), CNT_OTHER: String(cntOther),
         CALLOUT_MOVERS: calloutMovers, PUB_DATE: STUDY_DATE_HUMAN,
+        ANSWER: (dataPageAnswers['/data/tips-tax-by-state/'] = conformityAnswer('tip income', entries.length, cnt)),
         ARTICLE_LD: articleLd, DATASET_LD: datasetLd,
       }, '/data/tips-tax-by-state/')
     );
@@ -9681,6 +9750,7 @@ async function main() {
       publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
       license: 'https://creativecommons.org/licenses/by/4.0/',
       temporalCoverage: String(year),
+      dateModified: STUDY_UPDATED_ISO,
       spatialCoverage: { '@type': 'Country', name: 'United States' },
       variableMeasured: ['Gross salary', 'Annual take-home pay', 'State income tax',
         'State payroll deductions', 'Total effective tax rate'],
@@ -9752,6 +9822,22 @@ async function main() {
         FIGURE_BASIS: figureBasis,
         SOURCE_ROWS: sourceRows,
         LAST_SOURCED: esc((taxData._meta && taxData._meta.lastSourced) || ''),
+        // Quotable first sentence. Every figure in it is one of the computed values
+        // the table itself renders (best/worst/spread at the base salary), so it can
+        // never say something the table below it contradicts. The leader phrasing is
+        // guarded on the tie, because "the top state" is false whenever several
+        // no-income-tax states share rank 1, which is the usual case.
+        ANSWER: (dataPageAnswers['/data/take-home-pay-by-state/'] = esc(
+          `On an identical ${usd0(base.salary)} salary in ${year}, a single filer taking the standard ` +
+          `deduction keeps ${usd0(best.net)} a year in ` +
+          (topTied.length > 1
+            ? `the ${numWord(topTied.length).toLowerCase()} highest-take-home jurisdictions (${listAnd(topNames)})`
+            : best.name) +
+          ` but only ${usd0(worst.net)} in ${worst.name}, a ${usd0(spread)} difference in annual ` +
+          `take-home pay across the ${rowCount} US jurisdictions, entirely from state income tax and ` +
+          `employee-paid state payroll premiums, because the ${usd0(fedFica)} of federal income tax ` +
+          `and FICA is the same in every one of them.`
+        )),
         ARTICLE_LD: articleLd, DATASET_LD: datasetLd, FAQ_LD: faqLd,
       }, '/data/take-home-pay-by-state/')
     );
@@ -9866,7 +9952,7 @@ async function main() {
       dataPageStats.ttoc = `${occCount} Treasury Tipped Occupation Codes across ${catCount} categories (${addedCount} added in the final rule), 26 CFR 1.224-1 Table 1.`;
       const articleLd = JSON.stringify({
         '@context': 'https://schema.org', '@type': 'Article',
-        headline: 'Treasury Tipped Occupation Codes (TTOC): All 71 Occupations',
+        headline: `Treasury Tipped Occupation Codes (TTOC): All ${occCount} Occupations`,
         description: `The complete list of ${occCount} Treasury Tipped Occupation Codes across ${catCount} categories, from 26 CFR 1.224-1, Table 1, used for W-2 Box 14b and the 2025 no-tax-on-tips deduction.`,
         datePublished: '2026-07-12', dateModified: DATA_PUB_ISO,
         author: { '@type': 'Person', '@id': `${SITE.url}/#edmond-daher`, name: 'Edmond Daher', url: `${SITE.url}/about/` },
@@ -9883,6 +9969,8 @@ async function main() {
         publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
         license: 'https://creativecommons.org/licenses/by/4.0/',
         temporalCoverage: '2025/2028',
+        dateModified: DATA_PUB_ISO,
+        spatialCoverage: { '@type': 'Place', name: 'United States' },
         distribution: [
           { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/treasury-tipped-occupation-codes-2026.json` },
           { '@type': 'DataDownload', encodingFormat: 'text/csv', contentUrl: `${SITE.url}/data/treasury-tipped-occupation-codes-2026.csv` },
@@ -9892,6 +9980,12 @@ async function main() {
       const ttocMap = {
         SITE_NAME: SITE.name, SITE_URL: SITE.url, TABLE_ROWS: ttocRows,
         ROW_COUNT: String(occCount), CAT_COUNT: String(catCount), ADDED_COUNT: String(addedCount),
+        // Quotable first sentence: counted from ttoc-occupations.json, so it can
+        // never disagree with the table below it.
+        ANSWER: (dataPageAnswers['/data/treasury-tipped-occupation-codes/'] = `Treasury's official tipped-occupation list contains ${occCount} occupations in ` +
+          `${catCount} categories (26 CFR 1.224-1, Table 1), and only a job on that list qualifies ` +
+          `for the federal no-tax-on-tips deduction under IRC 224 for tax years 2025 through 2028; ` +
+          `the employer reports the matching Treasury Tipped Occupation Code in W-2 Box 14b.`),
         PUB_DATE: DATA_PUB_HUMAN, ARTICLE_LD: articleLd, DATASET_LD: datasetLd,
       };
       await mkdir(join(DIST, 'data', 'treasury-tipped-occupation-codes'), { recursive: true });
@@ -9974,6 +10068,8 @@ async function main() {
         publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
         license: 'https://creativecommons.org/licenses/by/4.0/',
         temporalCoverage: '2026',
+        dateModified: DATA_PUB_ISO,
+        spatialCoverage: { '@type': 'Place', name: 'United States' },
         distribution: [
           { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/2026-student-loan-limits.json` },
           { '@type': 'DataDownload', encodingFormat: 'text/csv', contentUrl: `${SITE.url}/data/2026-student-loan-limits.csv` },
@@ -9983,6 +10079,13 @@ async function main() {
       const slMap = {
         SITE_NAME: SITE.name, SITE_URL: SITE.url, TABLE_ROWS: slRows,
         ROW_COUNT: String(rowCount), PUB_DATE: DATA_PUB_HUMAN, ARTICLE_LD: articleLd, DATASET_LD: datasetLd,
+        // Quotable first sentence: the caps come straight out of
+        // student-loan-limits-2026.json, the same object the table renders from.
+        ANSWER: (dataPageAnswers['/data/2026-student-loan-limits/'] = `For enrollment periods beginning on or after July 1, 2026, federal student loan ` +
+          `borrowing is capped at ${usd(sl.lifetime.cap)} per borrower for life, with a ` +
+          `${usd(sl.graduate.aggregate)} aggregate limit for graduate study and ` +
+          `${usd(sl.professional.aggregate)} for professional study, under P.L. 119-21; ` +
+          `undergraduate limits were not changed and Parent PLUS sits outside the lifetime cap.`),
       };
       await mkdir(join(DIST, 'data', '2026-student-loan-limits'), { recursive: true });
       await writeFile(join(DIST, 'data', '2026-student-loan-limits', 'index.html'),
@@ -10065,6 +10168,8 @@ async function main() {
         publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
         license: 'https://creativecommons.org/licenses/by/4.0/',
         temporalCoverage: '2026',
+        dateModified: DATA_PUB_ISO,
+        spatialCoverage: { '@type': 'Place', name: 'United States' },
         distribution: [
           { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/state-supplemental-withholding-rates-2026.json` },
           { '@type': 'DataDownload', encodingFormat: 'text/csv', contentUrl: `${SITE.url}/data/state-supplemental-withholding-rates-2026.csv` },
@@ -10074,6 +10179,13 @@ async function main() {
       const suppMap = {
         SITE_NAME: SITE.name, SITE_URL: SITE.url, TABLE_ROWS: suppRows, ROW_COUNT: String(rowCount),
         CNT_FLAT: String(cnt.flat), CNT_REGULAR: String(cnt.regular), CNT_NONE: String(cnt.none), CNT_SPECIAL: String(cnt.special),
+        // Quotable first sentence: every count is the tally taken while building the
+        // rows above, so the sentence moves when a state changes method.
+        ANSWER: (dataPageAnswers['/data/state-supplemental-withholding-rates-2026/'] = `For 2026, a bonus paid separately from regular wages is withheld federally at a flat ` +
+          `22% (37% on supplemental pay above $1,000,000 a year), and at the state level ` +
+          `${cnt.flat} of the ${rowCount} US jurisdictions apply their own flat supplemental rate, ` +
+          `${cnt.regular} withhold using the regular aggregate method instead, ${cnt.special} use a ` +
+          `special formula, and ${cnt.none} have no state wage income tax at all.`),
         PUB_DATE: DATA_PUB_HUMAN, ARTICLE_LD: articleLd, DATASET_LD: datasetLd,
       };
       await mkdir(join(DIST, 'data', 'state-supplemental-withholding-rates-2026'), { recursive: true });
@@ -10308,16 +10420,67 @@ async function main() {
     .filter((s) => builtSlugs.has(s.slug))
     .map((s) => `- [${s.name} Paycheck Calculator](${SITE.url}/${s.slug}-paycheck-calculator/)`)
     .join('\n');
+  // The /data/ reference tables, described by the exact one-sentence computed answer
+  // each of those pages now opens with (dataPageAnswers, written by the blocks that
+  // rendered them). Two consequences worth stating: the descriptions carry real
+  // figures rather than a topic label, and they cannot drift from the pages, because
+  // there is only one string. Pages are listed in a fixed order so the file is stable
+  // build-to-build; a page whose block did not run is dropped rather than described
+  // with an empty sentence.
+  const LLMS_DATA_PAGES = [
+    ['/data/take-home-pay-by-state/', `Take-Home Pay on ${STUDY_SALARY_TEXT} in All 51 States (${year})`],
+    ['/data/state-supplemental-withholding-rates-2026/', `${year} State Supplemental (Bonus) Tax Withholding Rates`],
+    ['/data/tips-tax-by-state/', `Which States Still Tax Tips in ${year}?`],
+    ['/data/overtime-tax-by-state/', `Which States Still Tax Overtime in ${year}?`],
+    ['/data/treasury-tipped-occupation-codes/', 'Treasury Tipped Occupation Codes (TTOC)'],
+    ['/data/2026-student-loan-limits/', `${year} Federal Student Loan Borrowing Limits`],
+  ];
+  // These sentences were escaped for HTML on their way into a page. llms.txt is
+  // plain markdown, so the entities have to come back off or a consumer quotes
+  // "&amp;" at a reader.
+  const unesc = (s) => String(s)
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&');
+  const llmsDataLines = LLMS_DATA_PAGES
+    .filter(([p]) => dataPageAnswers[p])
+    .map(([p, title]) => `- [${title}](${SITE.url}${p}): ${unesc(dataPageAnswers[p])}`)
+    .join('\n');
+  // The per-state salary ladders. Only the states actually built get listed, so the
+  // file never advertises a hub that 404s as the rollout waves land.
+  const llmsLadderLines = LADDER_STATES
+    .filter((slug) => builtSlugs.has(slug))
+    .map((slug) => {
+      const st = roster.find((s) => s.slug === slug);
+      return `- [${st ? st.name : slug} Take-Home Pay by Salary](${SITE.url}/${ladderHubSlug(slug)}/)`;
+    })
+    .join('\n');
   const llmsTxt =
     `# ${SITE.name}\n\n` +
-    `${SITE.name} is a collection of free, fast, privacy-friendly online tools and calculators. ` +
-    `Every tool runs entirely in the browser — nothing you enter or upload is sent to a server.\n\n` +
+    // Blockquote summary, per the llms.txt convention: the single paragraph a
+    // consumer reads to decide whether the rest of the file is worth parsing.
+    `> ${SITE.name} (${SITE.url}) publishes free US payroll and tax calculators plus computed ` +
+    `${year} tax reference tables covering all 50 states and the District of Columbia. Every ` +
+    `calculator runs entirely in the visitor's browser: no account, no upload, no server. Every ` +
+    `figure in the reference tables is computed at build time by the site's own open paycheck ` +
+    `engine from published IRS, SSA and state Department of Revenue tables, and the datasets are ` +
+    `free to quote and republish with attribution under CC BY 4.0.\n\n` +
+    `## Data and reference tables\n\n` +
+    `Computed ${year} datasets, each with a CSV and JSON download and a stated primary source. ` +
+    `The sentence after each link is that page's own computed headline figure.\n\n` +
+    `${llmsDataLines}\n\n` +
     `## Tools\n\n${llmsTools}\n\n` +
     `## State paycheck calculators\n\n` +
     `Take-home pay (paycheck) calculators for all ${builtSlugs.size} US states and Washington, D.C. ` +
     `Each estimates ${year} take-home pay after federal income tax, Social Security, Medicare, and (where applicable) state income tax. ` +
     `Start at the [paycheck calculator hub](${SITE.url}/#paycheck).\n\n` +
-    `${builtStateLines}\n`;
+    `${builtStateLines}\n` +
+    (llmsLadderLines
+      ? `\n## State take-home pay by salary\n\n` +
+        `Hubs that answer "what does a given salary actually pay in this state", with a computed ` +
+        `page per salary level. Currently published for ${llmsLadderLines.split('\n').length} states.\n\n` +
+        `${llmsLadderLines}\n`
+      : '');
   await writeFile(join(DIST, 'llms.txt'), llmsTxt);
   // Also emit the singular /llm.txt path. AI crawlers request BOTH the plural
   // (llms.txt convention) and the singular spelling; the singular one was 404ing
@@ -10366,15 +10529,104 @@ async function main() {
       what: 'Lists the 2026 supplemental-wage (bonus/commission) withholding method and rate for all 50 US states and DC.',
       figures: dataPageStats.supp,
     },
+    // The two OBBBA state-conformity studies. They were the only /data/ pages this
+    // file did not list at all, so an assistant reading llms-full.txt could not learn
+    // the site answers "does my state still tax tips/overtime" even though those are
+    // the two questions the pages exist for. Their key-figures line is the page's own
+    // computed answer sentence, so it cannot drift from what the page says.
+    {
+      name: `Which States Still Tax Tips in ${year}?`,
+      path: '/data/tips-tax-by-state/',
+      what: `Records, per jurisdiction, whether the state income tax follows the federal no-tax-on-tips deduction (IRC 224) for ${year}, or keeps taxing tip income.`,
+      figures: dataPageAnswers['/data/tips-tax-by-state/'],
+    },
+    {
+      name: `Which States Still Tax Overtime in ${year}?`,
+      path: '/data/overtime-tax-by-state/',
+      what: `Records, per jurisdiction, whether the state income tax follows the federal no-tax-on-overtime deduction (IRC 225) for ${year}, or keeps taxing the overtime premium.`,
+      figures: dataPageAnswers['/data/overtime-tax-by-state/'],
+    },
   ]
-    .map((d) => `### ${d.name}\nURL: ${SITE.url}${d.path}\nWhat it computes: ${d.what}\nKey figures: ${d.figures}`)
+    .filter((d) => d.figures)
+    .map((d) => `### ${d.name}\nURL: ${SITE.url}${d.path}\nWhat it computes: ${d.what}\nKey figures: ${unesc(d.figures)}`)
     .join('\n\n');
+  // Key computed facts: the handful of figures an assistant most often needs to
+  // answer a payroll question, derived HERE from src/data/tax-data-2026.json rather
+  // than typed, so the file cannot outlive the data behind it. Everything below is
+  // counted or read out of the same object the calculators run on. If a fact cannot
+  // be derived it is omitted rather than guessed.
+  const llmsKeyFacts = (() => {
+    const F = taxData.federal || {};
+    const lines = [];
+    const money = (n) => '$' + Number(n).toLocaleString('en-US');
+    const rosterStates = roster.filter((s) => taxData.states[s.slug]);
+    const noTax = rosterStates.filter((s) => !taxData.states[s.slug].hasIncomeTax)
+      .map((s) => taxData.states[s.slug].name).sort();
+    const flat = rosterStates.filter((s) => {
+      const t = taxData.states[s.slug];
+      return t.hasIncomeTax && t.tax && t.tax.type === 'flat';
+    }).map((s) => taxData.states[s.slug].name).sort();
+    if (noTax.length) {
+      lines.push(`- No state income tax on wages (${noTax.length} states): ${noTax.join(', ')}. ` +
+        `A paycheck in these states still has federal income tax and FICA withheld, and some of ` +
+        `them still withhold employee-paid state payroll premiums.`);
+    }
+    if (flat.length) {
+      lines.push(`- Single flat state income tax rate (${flat.length} jurisdictions): ${flat.join(', ')}.`);
+    }
+    const sd = F.standardDeduction;
+    if (sd) {
+      // The data file keys filing statuses in snake_case. Spelled out here, because
+      // "head_of_household" read back to someone as an answer is not English.
+      const STATUS_LABEL = {
+        single: 'single', married: 'married filing jointly',
+        married_joint: 'married filing jointly', married_separate: 'married filing separately',
+        head_of_household: 'head of household',
+      };
+      lines.push('- ' + year + ' federal standard deduction: ' +
+        Object.entries(sd).filter(([, v]) => typeof v === 'number')
+          .map(([k, v]) => `${STATUS_LABEL[k] || k.replace(/_/g, ' ')} ${money(v)}`).join(', ') + '.');
+    }
+    const fica = F.fica || {};
+    if (fica.socialSecurity) {
+      lines.push(`- ${year} Social Security: ${(fica.socialSecurity.rate * 100).toFixed(2).replace(/\.?0+$/, '')}% ` +
+        `of wages up to a ${money(fica.socialSecurity.wageBase)} wage base. Medicare: ` +
+        `${(fica.medicare.rate * 100).toFixed(2).replace(/\.?0+$/, '')}% with no cap` +
+        (fica.additionalMedicare && fica.additionalMedicare.threshold
+          ? `, plus a ${(fica.additionalMedicare.rate * 100).toFixed(2).replace(/\.?0+$/, '')}% ` +
+            `Additional Medicare surtax above ${money(fica.additionalMedicare.threshold.single)} (single).`
+          : '.'));
+    }
+    // Highest and lowest top marginal state rate among the states that levy one.
+    const topRates = rosterStates.map((s) => {
+      const t = taxData.states[s.slug];
+      if (!t.hasIncomeTax || !t.tax) return null;
+      if (t.tax.type === 'flat') return { name: t.name, rate: t.tax.rate };
+      const b = (t.tax.brackets && t.tax.brackets.single) || [];
+      return b.length ? { name: t.name, rate: b[b.length - 1].rate } : null;
+    }).filter(Boolean).sort((a, b) => b.rate - a.rate);
+    if (topRates.length) {
+      const hi = topRates[0], lo = topRates[topRates.length - 1];
+      const loNames = topRates.filter(t => t.rate === lo.rate).map(t => t.name);
+      lines.push(`- Highest top marginal state income tax rate on wages: ${hi.name} at ` +
+        `${(hi.rate * 100).toFixed(2).replace(/\.?0+$/, '')}%. Lowest, among states that levy one: ` +
+        `${loNames.join(' and ')} at ${(lo.rate * 100).toFixed(2).replace(/\.?0+$/, '')}%.`);
+    }
+    if (dataPageStats.supp) lines.push(`- Supplemental (bonus) withholding: ${dataPageStats.supp}`);
+    return lines.join('\n');
+  })();
   const llmsFullTxt =
     `# ${SITE.name} — full tool reference\n\n` +
     `Machine-readable reference for every tool and dataset on ${SITE.name}. Generated at build ` +
     `time from the same descriptions and data files the site itself uses — see /llms.txt for a ` +
     `shorter index. Every tool runs entirely in the browser; nothing you enter or upload is sent ` +
     `to a server. Order is stable across builds.\n\n` +
+    (llmsKeyFacts
+      ? `## Key ${year} figures\n\n` +
+        `Read out of src/data/tax-data-2026.json at build time, the same file every calculator ` +
+        `on this site computes from. Sourced from IRS Rev. Proc. 2025-32, the SSA ${year} COLA ` +
+        `fact sheet and each state's Department of Revenue.\n\n${llmsKeyFacts}\n\n`
+      : '') +
     `## Tools\n\n${llmsFullTools}\n\n` +
     `## Datasets\n\n${llmsFullDatasets}\n\n` +
     `## State paycheck calculators\n\n` +

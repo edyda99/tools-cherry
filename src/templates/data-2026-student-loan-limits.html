@@ -16,6 +16,10 @@
 <style>
   .study-byline { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; font-size:.92rem; color:var(--muted); margin:2px 0 18px; }
   .study-byline .who { font-weight:600; color:var(--text); }
+  /* The one-sentence computed answer, first thing under the H1. It is written to
+     stand on its own if an answer engine quotes it without the headline, so it
+     repeats the subject and carries the number rather than pointing at a table. */
+  .answer-first { font-size:1.1rem; font-weight:600; line-height:1.5; margin:0 0 10px; color:var(--text); }
   .stat-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:18px 0 6px; }
   .stat-card { border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; background:var(--surface); }
   .stat-card .n { font-size:1.7rem; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums; }
@@ -67,6 +71,7 @@
   <div class="wrap">
     <article>
     <h1>2026 federal student loan borrowing limits</h1>
+    <p class="answer-first">{{ANSWER}}</p>
     <div class="study-byline">
       <span>By <span class="who">Edmond Daher</span></span>
       <span>·</span>
