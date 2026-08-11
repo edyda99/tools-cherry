@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>2027 Social Security COLA (ESTIMATE) — Running Tracker and Benefit Calculator</title>
+<meta name="description" content="ESTIMATE, not official. See what any cost-of-living increase would do to your monthly Social Security benefit, plus a live tracker of the three CPI-W months the 2027 COLA is computed from and when each one is published.">
+<link rel="canonical" href="{{SITE_URL}}/2027-social-security-cola/">
+<meta property="og:title" content="2027 Social Security COLA — estimate tracker and benefit calculator">
+<meta property="og:description" content="Type your benefit and any COLA percentage to see the new monthly amount. Plus: which of the three CPI-W months the official figure needs are published, and when the rest land.">
+<meta property="og:type" content="article">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Page-scoped only; styles.css is shared by every page on the site. */
+  .cola-banner { margin:14px 0 18px; padding:14px 16px; border-left:5px solid #8a4b00;
+    border-radius:8px; background:rgba(178,107,0,.10); }
+  .cola-banner strong.cola-tag { display:inline-block; font-size:.78rem; letter-spacing:.08em;
+    padding:2px 8px; border-radius:5px; background:rgba(138,75,0,.18); color:#8a4b00; margin-right:8px; }
+  .cola-banner p { margin:8px 0 0; font-size:.95rem; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .cola-banner strong.cola-tag { color:#f0b86e; }
+  }
+  :root[data-theme="dark"] .cola-banner strong.cola-tag { color:#f0b86e; }
+  .cola-big { font-size:2rem; font-weight:700; font-variant-numeric:tabular-nums; }
+  .cola-grid { display:grid; grid-template-columns:1fr auto; gap:6px 14px; margin-top:10px; font-size:.95rem; }
+  .cola-grid .v { text-align:right; font-variant-numeric:tabular-nums; font-weight:600; }
+  .cola-chips { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 0; }
+  .cola-chips button { font:inherit; font-size:.85rem; padding:5px 10px; border-radius:999px;
+    border:1px solid rgba(128,128,128,.4); background:transparent; color:inherit; cursor:pointer; }
+  .cola-chips button:hover { border-color:currentColor; }
+  .cola-wrap { overflow-x:auto; }
+  .cola-table { width:100%; border-collapse:collapse; font-size:.9rem; }
+  .cola-table th, .cola-table td { text-align:left; padding:8px 10px;
+    border-bottom:1px solid rgba(128,128,128,.22); vertical-align:top; }
+  .cola-table td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .cola-table tr.is-pending td, .cola-table tr.is-pending th { background:rgba(178,107,0,.07); }
+  .cola-src { font-size:.8rem; opacity:.85; }
+</style>
+<script type="application/ld+json">{{ARTICLE_LD}}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>2027 Social Security COLA estimate</h1>
+
+    <div class="cola-banner">
+      <p><strong class="cola-tag">ESTIMATE</strong> <strong>Not official.</strong> The Social Security Administration announces the real 2027 cost-of-living increase in mid-October 2026, and it takes effect with January 2027 payments.</p>
+      <p>{{STATUS_LINE}}</p>
+    </div>
+
+    <p class="lede">Nobody knows the 2027 increase yet, including us — the government has not published the numbers it is computed from. What you <em>can</em> do today is see what any given increase would mean for your own payment. Put your current monthly benefit in below and try a percentage. The estimates people are quoting in the news are loaded as one-tap buttons, with the name of whoever published each one, so you can see whose number you are trying.</p>
+
+    <section class="calc" aria-label="Social Security benefit increase calculator">
+      <h2 style="margin-top:0">What would an increase do to your payment?</h2>
+      <form id="colaForm" autocomplete="off" onsubmit="return false">
+        <div class="field">
+          <label for="benefit">Your current monthly benefit, before deductions</label>
+          <input type="text" id="benefit" inputmode="decimal" data-money autocomplete="off" value="2000" aria-describedby="benefitNote">
+          <p class="adv-q-note" id="benefitNote">The gross monthly amount on your benefit letter, before Medicare or tax is taken out. If you only know the amount that lands in your bank account, use that and read the answer the same way — the increase applies to the gross figure.</p>
+        </div>
+        <div class="field">
+          <label for="colaPct">Cost-of-living increase, as a percentage</label>
+          <input type="text" id="colaPct" inputmode="decimal" autocomplete="off" aria-describedby="colaPctNote">
+          <p class="adv-q-note" id="colaPctNote">Type any percentage you want to test. There is no official 2027 figure to fill in yet, so this box starts on a published outside estimate, named below — it is somebody else's forecast, not ours and not the government's.</p>
+          <div class="cola-chips" id="colaChips">{{ESTIMATE_CHIPS}}</div>
+        </div>
+      </form>
+      <div class="calc-answer">
+        <div id="colaOut" data-tb-result data-state="empty">
+          <p class="cola-big" id="newMonthly">—</p>
+          <div class="cola-grid">
+            <span>More each month</span><span class="v" id="monthlyUp">—</span>
+            <span>More over a year</span><span class="v" id="annualUp">—</span>
+            <span>New yearly total</span><span class="v" id="newAnnual">—</span>
+          </div>
+          <p class="muted-small" id="colaSummary"></p>
+        </div>
+      </div>
+      <p id="colaStatus" role="status" class="sr-only"></p>
+    </section>
+
+    <p class="note">General information only, not financial or benefits advice. The figures above are arithmetic on the percentage you typed, not a forecast of what your 2027 payment will be.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose" id="tracker">
+      <h2>The three months the official figure is waiting on</h2>
+      <p>The increase is not a judgement call, it is a division. Take the average of the price index called <strong>CPI-W</strong> for July, August and September <strong>2026</strong>, divide it by the average for the same three months of <strong>2025</strong>, and that percentage is the COLA. So there are exactly three numbers still outstanding, on three known dates:</p>
+      <div class="cola-wrap">
+        <table class="cola-table">
+          <caption class="sr-only">CPI-W months required for the 2027 Social Security COLA (ESTIMATE page — input status)</caption>
+          <thead><tr><th scope="col">Month</th><th scope="col">Index value</th><th scope="col">Published or due</th><th scope="col">Source</th></tr></thead>
+          <tbody>{{Q3_2026_ROWS}}</tbody>
+        </table>
+      </div>
+      <p>{{Q3_2026_STATUS}}</p>
+      <h3>The half of the sum that is already settled</h3>
+      <p>The bottom of the fraction is finished and cannot change: the July–September 2025 CPI-W average is <strong>{{Q3_2025_AVG}}</strong>.</p>
+      <div class="cola-wrap">
+        <table class="cola-table">
+          <caption class="sr-only">CPI-W months for the third quarter of 2025, the base for the 2027 COLA</caption>
+          <thead><tr><th scope="col">Month</th><th scope="col">Index value</th><th scope="col">Published</th><th scope="col">Source</th></tr></thead>
+          <tbody>{{Q3_2025_ROWS}}</tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose" id="estimates">
+      <h2>What other people are estimating, and when they said it</h2>
+      <p>These are not our figures. Each one belongs to the organisation named, on the date named, and they move every month as new price data lands — which is exactly why the date matters as much as the number.</p>
+      <div class="cola-wrap">
+        <table class="cola-table">
+          <caption class="sr-only">Published third-party estimates of the 2027 Social Security COLA</caption>
+          <thead><tr><th scope="col">Who</th><th scope="col">Estimate</th><th scope="col">As of</th><th scope="col">Source</th></tr></thead>
+          <tbody>{{ESTIMATE_ROWS}}</tbody>
+        </table>
+      </div>
+      <p class="muted-small">If you see a figure quoted without a date beside it, treat it as stale until proven otherwise. One of the estimates above moved by a full percentage point in a single month.</p>
+    </section>
+
+    <section class="prose" id="how">
+      <h2>How the COLA is actually calculated</h2>
+      <ul>
+        <li><strong>The index is CPI-W</strong>, not the headline inflation number you hear on the news. CPI-W tracks prices for urban wage earners and clerical workers, a different basket from the CPI-U figure usually reported.</li>
+        <li><strong>The comparison is quarter to quarter</strong>: the July–September average of this year against the July–September average of the last year a COLA was set. Not December to December, not a twelve-month average.</li>
+        <li><strong>It is rounded to the nearest tenth of a percent.</strong> A raw 3.84% becomes 3.8%; 3.86% becomes 3.9%.</li>
+        <li><strong>It can never be negative.</strong> If prices fall, the COLA is 0.0% and benefits stay where they are. Benefits are not cut.</li>
+        <li><strong>Each person's new monthly amount is rounded down to the whole dollar</strong>, which is why the calculator above will not show you an exact percentage of your benefit.</li>
+        <li><strong>Announced mid-October, paid from January.</strong> The announcement normally comes the same morning the September price data is published.</li>
+      </ul>
+    </section>
+
+    <section class="prose" id="partb">
+      <h2>The catch nobody puts in the headline: Medicare Part B</h2>
+      <p>If your Medicare Part B premium comes out of your Social Security payment — for most people it does — then the amount that actually reaches your bank account goes up by less than the COLA suggests, because the Part B premium for 2027 rises too. That premium is set separately, by a different agency, and is normally announced in November, a month <em>after</em> the COLA. So in October you will know your increase and not yet know how much of it you keep. We are not going to compute that for you with a premium nobody has published; when the figure exists it is a straight subtraction from the monthly increase shown above.</p>
+    </section>
+
+    <section class="prose" id="disagree">
+      <h2>Why the estimates disagree with each other</h2>
+      <p>None of the outside forecasters have more data than anyone else — the published price index is the same for everybody. What differs is the assumption each one makes about the months that are not out yet. Some carry recent monthly changes forward, some model them. That assumption is the entire difference between one estimate and another, and it is why they all converge as the real months land, and why the spread between them is a better guide to uncertainty than any single figure.</p>
+      <p>We publish no estimate of our own here for the same reason: with none of the three required months published, our number would be nothing but our assumption, dressed as arithmetic.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Related</h2>
+      <ul>
+        <li><a href="/2027-tax-brackets/">Projected 2027 federal tax brackets</a> — the tax side of the same October news cycle, running on a different index and a different window.</li>
+        <li><a href="/2026-tax-brackets/">Official 2026 federal tax brackets</a> — the figures that are settled.</li>
+        <li><a href="/ss-wage-base-calculator/">Social Security wage base max-out date</a> — when you stop paying Social Security tax for the year.</li>
+        <li><a href="/inflation-calculator/">Inflation calculator</a> — what a past amount is worth today.</li>
+      </ul>
+    </section>
+
+    <p class="note">General information only, not financial, benefits or tax advice. Figures marked ESTIMATE are not from the Social Security Administration. Check ssa.gov or your own benefit letter for anything that matters.</p>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a> · <a href="/embed/">Embed our calculators</a> · <a href="/corrections/">Corrections log</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__COLA__ = {{COLA_CFG}};
+</script>
+<script type="module" src="/assets/2027-social-security-cola.js"></script>
+</body>
+</html>

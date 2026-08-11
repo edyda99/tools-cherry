@@ -402,5 +402,98 @@
    "url": "https://biblio.ugent.be/publication/8647789",
    "publisher": "Journal of Memory and Language (Elsevier); Ghent University institutional repository record"
   }
+ ],
+ "2027-tax-brackets": [
+  {
+   "title": "26 U.S.C. § 1(f) — Adjustments in tax tables so that inflation will not result in tax increases",
+   "url": "https://www.law.cornell.edu/uscode/text/26/1",
+   "publisher": "Legal Information Institute, Cornell Law School (United States Code)"
+  },
+  {
+   "title": "26 U.S.C. § 63(c) — Standard deduction, as amended by P.L. 119-21",
+   "url": "https://www.law.cornell.edu/uscode/text/26/63",
+   "publisher": "Legal Information Institute, Cornell Law School (United States Code)"
+  },
+  {
+   "title": "Chained CPI for All Urban Consumers (C-CPI-U), U.S. city average, all items — series SUUR0000SA0",
+   "url": "https://data.bls.gov/timeseries/SUUR0000SA0",
+   "publisher": "U.S. Bureau of Labor Statistics"
+  },
+  {
+   "title": "Consumer Price Index news release schedule",
+   "url": "https://www.bls.gov/schedule/news_release/cpi.htm",
+   "publisher": "U.S. Bureau of Labor Statistics"
+  },
+  {
+   "title": "Rev. Proc. 2025-32 — inflation-adjusted figures for tax year 2026",
+   "url": "https://www.irs.gov/pub/irs-drop/rp-25-32.pdf",
+   "publisher": "Internal Revenue Service"
+  }
+ ],
+ "2026-tax-brackets": [
+  {
+   "title": "Rev. Proc. 2025-32 — inflation-adjusted figures for tax year 2026",
+   "url": "https://www.irs.gov/pub/irs-drop/rp-25-32.pdf",
+   "publisher": "Internal Revenue Service"
+  },
+  {
+   "title": "IRS releases tax inflation adjustments for tax year 2026",
+   "url": "https://www.irs.gov/newsroom/irs-releases-tax-inflation-adjustments-for-tax-year-2026-including-amendments-from-the-one-big-beautiful-bill",
+   "publisher": "Internal Revenue Service"
+  },
+  {
+   "title": "Contribution and Benefit Base — the annual Social Security taxable maximum",
+   "url": "https://www.ssa.gov/oact/cola/cbb.html",
+   "publisher": "Social Security Administration"
+  },
+  {
+   "title": "Topic no. 751, Social Security and Medicare withholding rates",
+   "url": "https://www.irs.gov/taxtopics/tc751",
+   "publisher": "Internal Revenue Service"
+  }
+ ],
+ "2027-social-security-cola": [
+  {
+   "title": "Cost-of-Living Adjustment (COLA) — how the increase is computed from third-quarter CPI-W",
+   "url": "https://www.ssa.gov/oact/cola/colaseries.html",
+   "publisher": "Social Security Administration"
+  },
+  {
+   "title": "CPI for Urban Wage Earners and Clerical Workers (CPI-W), U.S. city average, all items — series CWUR0000SA0",
+   "url": "https://data.bls.gov/timeseries/CWUR0000SA0",
+   "publisher": "U.S. Bureau of Labor Statistics"
+  },
+  {
+   "title": "Consumer Price Index news release schedule",
+   "url": "https://www.bls.gov/schedule/news_release/cpi.htm",
+   "publisher": "U.S. Bureau of Labor Statistics"
+  },
+  {
+   "title": "COLA prediction remains high at 3.8% (a third-party estimate, not an SSA figure)",
+   "url": "https://seniorsleague.org/cola-prediction-remains-high-at-3-8-percent-as-social-security-falls-behind-cost-of-living/",
+   "publisher": "The Senior Citizens League"
+  }
+ ],
+ "w2-box-1-vs-box-3-vs-box-5": [
+  {
+   "title": "General Instructions for Forms W-2 and W-3 — what belongs in Box 1, Box 3 and Box 5",
+   "url": "https://www.irs.gov/instructions/iw2w3",
+   "publisher": "Internal Revenue Service"
+  },
+  {
+   "title": "Publication 15-B, Employer's Tax Guide to Fringe Benefits — cafeteria plans and imputed income",
+   "url": "https://www.irs.gov/publications/p15b",
+   "publisher": "Internal Revenue Service"
+  },
+  {
+   "title": "Contribution and Benefit Base — the wage base that caps Box 3",
+   "url": "https://www.ssa.gov/oact/cola/cbb.html",
+   "publisher": "Social Security Administration"
+  },
+  {
+   "title": "Topic no. 751, Social Security and Medicare withholding rates",
+   "url": "https://www.irs.gov/taxtopics/tc751",
+   "publisher": "Internal Revenue Service"
+  }
  ]
 }

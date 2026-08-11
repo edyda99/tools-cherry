@@ -21,6 +21,13 @@ import {
   phaseOutStandardDeduction, ficaPaidDeduction,
 } from './src/engine/paycheck-engine.js';
 import { computeBonus } from './src/engine/bonus-tax.js';
+// The 2027 seasonal pages. `assertComplete` is the one that matters: it is the
+// build-time refusal that stops a projected dollar figure being rendered while
+// any month of the statutory window is still unpublished.
+import {
+  monthKeys as p27MonthKeys, windowStatus as p27WindowStatus, average as p27Average,
+  assertComplete as p27AssertComplete, colaPercent as p27ColaPercent,
+} from './src/engine/projections-2027.js';
 import { verifyDist, reportFailures } from './scripts/verify-dist.js';
 import { DFT_PAGES, DFT_GROUPS } from './src/content/days-from-today.js';
 import { dftPageParts, dftHubGroups, dftPath } from './src/content/days-from-today-blocks.js';
@@ -470,6 +477,13 @@ function humanDate(iso) {
 // its <h1> (injected in fillTool) so the freshness date is machine-readable —
 // dated from the template's real last-change commit, never today-for-all.
 const DATED_TAX_TOOLS = new Set([
+  // The 2027 pages carry a visible date for a stronger reason than the rest:
+  // they publish the STATUS of unpublished government data, and a status is
+  // only meaningful next to the date it was true.
+  '/2026-tax-brackets/',
+  '/2027-tax-brackets/',
+  '/2027-social-security-cola/',
+  '/w2-box-1-vs-box-3-vs-box-5/',
   '/1099-threshold-checker/',
   '/1099-vs-w2-calculator/',
   '/able-account-calculator/',
@@ -565,6 +579,10 @@ const TOOLS = [
   { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/', cat: 'money' },
   { name: '1099-K / 1099-NEC Threshold Checker', path: '/1099-threshold-checker/', cat: 'money' },
   { name: 'W-2 Box 12 Decoder & Tipped Occupation Lookup', path: '/w2-box-decoder/', cat: 'money' },
+  { name: 'W-2 Box 1 vs Box 3 vs Box 5 Reconciliation', path: '/w2-box-1-vs-box-3-vs-box-5/', cat: 'money' },
+  { name: '2026 Federal Tax Brackets', path: '/2026-tax-brackets/', cat: 'money' },
+  { name: '2027 Federal Tax Brackets (Projected)', path: '/2027-tax-brackets/', cat: 'money' },
+  { name: '2027 Social Security COLA Estimate & Calculator', path: '/2027-social-security-cola/', cat: 'money' },
   { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/', cat: 'money' },
   { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/', cat: 'money' },
   { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/', cat: 'money' },
@@ -681,6 +699,10 @@ const TOOL_DESCRIPTIONS = {
   '/debt-avalanche-calculator/': 'Plan a debt avalanche payoff that targets the highest-interest balance first to minimize total interest.',
   '/1099-vs-w2-calculator/': 'Compare 1099 contractor versus W-2 employee take-home pay.',
   '/1099-threshold-checker/': 'See whether you\'ll get a 1099-K, 1099-NEC, or 1099-MISC under the 2025/2026 rules: payment apps at $20,000 and 200 transactions, card processors like Stripe/Square with no minimum at all, or a business paying you directly at $2,000 (2026) / $600 (2025) — plus the myth-bust that a 1099 is paperwork, not a tax.',
+  '/w2-box-1-vs-box-3-vs-box-5/': 'Reconcile the three wage boxes on a W-2 and see line by line where each difference came from — a traditional 401(k) deferral lowers Box 1 only, Section 125 health and FSA amounts lower all three, and Box 3 stops at the Social Security wage base while Box 5 does not. Covers the current and prior tax year, because a W-2 is read in January for the year that just ended.',
+  '/2026-tax-brackets/': 'The official 2026 federal income tax brackets and standard deduction from IRS Rev. Proc. 2025-32, rendered from the same dataset this site\'s paycheck engine computes with, plus a worked example of what a marginal rate actually costs.',
+  '/2027-tax-brackets/': 'PROJECTED, not official. Shows the statutory method the 2027 brackets will be indexed by, every monthly C-CPI-U value the calculation needs with its source and publication date, and which months remain unpublished — including October 2025, which was never collected and never will be. Publishes no projected dollar figures while any month is missing.',
+  '/2027-social-security-cola/': 'ESTIMATE, not official. Type your monthly benefit and any cost-of-living percentage to see the new payment, the monthly increase and the annual increase. Plus a tracker of the three CPI-W months the official 2027 COLA is computed from, with their release dates, and published third-party estimates attributed to whoever made them.',
   '/w2-box-decoder/': 'Decode the three new 2026 W-2 Box 12 codes — TA (Trump account, excluded from Box 1), TP (reported tips) and TT (overtime premium, both still fully taxed inside Box 1, flagging the Schedule 1-A deduction) — plus a searchable lookup of all 71 Treasury Tipped Occupation Codes for Box 14b, including what code 000 means.',
   '/overtime-tax-calculator/': 'See how much of your overtime is deductible under the 2025 "no tax on overtime" law and what it saves you.',
   '/tips-tax-calculator/': 'See how much of your tips are deductible under the 2025 "no tax on tips" law (up to $25,000) and what it saves you.',
@@ -975,10 +997,49 @@ const RELATED_OVERRIDES = {
     { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' },
     { name: 'Savings Goal Calculator', path: '/savings-goal-calculator/' }
   ],
+  // The 2027 seasonal trio + the official-2026 companion. Each points back at
+  // the others so the projected page always has an official page to hand a
+  // visitor who wants settled figures, and vice versa.
+  '/2027-tax-brackets/': [
+    { name: '2026 Federal Tax Brackets', path: '/2026-tax-brackets/' },
+    { name: '2027 Social Security COLA Estimate & Calculator', path: '/2027-social-security-cola/' },
+    { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
+    { name: 'Inflation Calculator', path: '/inflation-calculator/' },
+    { name: 'W-2 Box 1 vs Box 3 vs Box 5 Reconciliation', path: '/w2-box-1-vs-box-3-vs-box-5/' },
+    { name: 'Take-Home Pay by State (Data Study)', path: '/data/take-home-pay-by-state/' }
+  ],
+  '/2026-tax-brackets/': [
+    { name: '2027 Federal Tax Brackets (Projected)', path: '/2027-tax-brackets/' },
+    { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
+    { name: 'W-2 Box 1 vs Box 3 vs Box 5 Reconciliation', path: '/w2-box-1-vs-box-3-vs-box-5/' },
+    { name: 'Social Security Wage Base Max-Out Date Calculator', path: '/ss-wage-base-calculator/' },
+    { name: 'What Tax Rules Apply to Me', path: '/what-applies-to-me/' },
+    { name: 'Take-Home Pay by State (Data Study)', path: '/data/take-home-pay-by-state/' }
+  ],
+  '/2027-social-security-cola/': [
+    { name: '2027 Federal Tax Brackets (Projected)', path: '/2027-tax-brackets/' },
+    { name: 'Social Security Wage Base Max-Out Date Calculator', path: '/ss-wage-base-calculator/' },
+    { name: 'Inflation Calculator', path: '/inflation-calculator/' },
+    { name: '2026 Federal Tax Brackets', path: '/2026-tax-brackets/' },
+    { name: '401(k) Retirement Calculator', path: '/401k-calculator/' },
+    { name: 'Compound Interest Calculator', path: '/compound-interest-calculator/' }
+  ],
+  '/w2-box-1-vs-box-3-vs-box-5/': [
+    { name: 'W-2 Box 12 Decoder & Tipped Occupation Lookup', path: '/w2-box-decoder/' },
+    { name: 'Social Security Wage Base Max-Out Date Calculator', path: '/ss-wage-base-calculator/' },
+    { name: '401(k) Retirement Calculator', path: '/401k-calculator/' },
+    { name: '2026 Federal Tax Brackets', path: '/2026-tax-brackets/' },
+    { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
+    { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' }
+  ],
   // W-2 Box 12 TA/TP/TT decoder + TTOC lookup: the tips/overtime information
   // cluster (spec §8 — tips + W-4 pages link forward here), plus the form-
   // reading sibling (1099 threshold checker) and paycheck utilities.
   '/w2-box-decoder/': [
+    // First slot goes to the wage-box reconciliation on purpose: this page
+    // decodes the CODES on a W-2 and says nothing about why Box 1, Box 3 and
+    // Box 5 differ, which is the other half of "I am staring at my W-2".
+    { name: 'W-2 Box 1 vs Box 3 vs Box 5 Reconciliation', path: '/w2-box-1-vs-box-3-vs-box-5/' },
     { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
     { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
     { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
@@ -6770,6 +6831,17 @@ async function main() {
   const embedDataStudentLoanTpl = await read(join(SRC, 'templates', 'embed', 'data-2026-student-loan-limits.html'));
   const dataSuppTpl = await read(join(SRC, 'templates', 'data-state-supplemental-withholding-rates-2026.html'));
   const embedDataSuppTpl = await read(join(SRC, 'templates', 'embed', 'data-state-supplemental-withholding-rates-2026.html'));
+  // The 2027 "seasonal" trio + its official-2026 companion. projections-2027.json
+  // carries the monthly BLS index values (a month that is not published is the
+  // literal null); w2-wage-boxes.json carries the per-year Social Security wage
+  // base the Box 3 cap needs, for the current year AND the prior one, because a
+  // W-2 is read in January for the year that just ended.
+  const brackets2027Tpl = await read(join(SRC, 'templates', '2027-tax-brackets.html'));
+  const brackets2026Tpl = await read(join(SRC, 'templates', '2026-tax-brackets.html'));
+  const cola2027Tpl = await read(join(SRC, 'templates', '2027-social-security-cola.html'));
+  const wageBoxTpl = await read(join(SRC, 'templates', 'w2-box-1-vs-box-3-vs-box-5.html'));
+  const proj2027 = await readJSON(join(SRC, 'data', 'projections-2027.json'));
+  const wageBoxData = await readJSON(join(SRC, 'data', 'w2-wage-boxes.json'));
   const obbba = await readJSON(join(SRC, 'data', 'obbba-deductions-2026.json'));
   // Client-injected JSON for the OBBBA tools (internal _keys stripped).
   const OBBBA_FED_JSON = JSON.stringify(stripInternal(obbba.federal));
@@ -7191,6 +7263,10 @@ async function main() {
   registerAsset('assets', '1099-threshold-checker.js');
   registerAsset('engine', 'w2-box-engine.js');
   registerAsset('assets', 'w2-box-decoder.js');
+  registerAsset('engine', 'w2-wage-boxes.js');
+  registerAsset('assets', 'w2-box-1-vs-box-3-vs-box-5.js');
+  registerAsset('engine', 'projections-2027.js');
+  registerAsset('assets', '2027-social-security-cola.js');
   registerAsset('engine', 'ss-maxout-engine.js');
   registerAsset('assets', 'ss-wage-base-calculator.js');
   registerAsset('engine', 'student-loan-cap.js');
@@ -8868,6 +8944,423 @@ async function main() {
     fillTool(w2BoxTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, TTOC_JSON, TTOC_TABLE_HTML }, '/w2-box-decoder/')
   );
   urls.push(`${SITE.url}/w2-box-decoder/`);
+
+  // ---------------------------------------------------------------------------
+  // The 2027 seasonal block: /2027-tax-brackets/, /2027-social-security-cola/,
+  // /w2-box-1-vs-box-3-vs-box-5/ and their official-figures companion
+  // /2026-tax-brackets/.
+  //
+  // The rule that governs the first two pages: a projected DOLLAR figure may
+  // only be rendered when every month of the statutory window is published.
+  // p27AssertComplete() throws if a code path tries otherwise, so a build that
+  // would have shipped a fabricated number dies instead of deploying quietly.
+  // As of writing the C-CPI-U window is short three months, one of which
+  // (October 2025) was never collected and never will be, so the brackets page
+  // renders methodology and input status and no dollar projections at all.
+  {
+    const monthHuman = (k) => {
+      const m = /^(\d{4})-(\d{2})$/.exec(k);
+      return m ? `${MONTH_NAMES[+m[2] - 1]} ${m[1]}` : k;
+    };
+    const srcLink = (url, label) =>
+      `<a href="${escHtml(url)}" rel="noopener" target="_blank">${escHtml(label)}</a>`;
+    const quoteBlock = (s, cls) =>
+      `<blockquote class="${cls}">&ldquo;${escHtml(s.quote)}&rdquo;` +
+      `<cite>${escHtml(s.cite)} &mdash; ${srcLink(s.sourceUrl, 'read the statute')}</cite></blockquote>`;
+
+    // ---- 1. /2027-tax-brackets/ (PROJECTED) --------------------------------
+    const cc = proj2027.ccpiu;
+    const ccKeys = p27MonthKeys(cc.window.start, cc.window.end);
+    const ccStatus = p27WindowStatus(ccKeys, cc.months);
+    const windowHuman = `${monthHuman(cc.window.start)} through ${monthHuman(cc.window.end)}`;
+
+    const inputRows = ccKeys.map((k) => {
+      const e = cc.months[k];
+      const sch = (cc.schedule || {})[k];
+      if (e === null) {
+        const gone = sch && sch.status === 'canceled';
+        const when = gone
+          ? '<strong>never published</strong>'
+          : `not yet published &mdash; due ${escHtml(humanDate(sch && sch.due) || 'a date BLS has not set')}`;
+        return `<tr class="${gone ? 'is-gone' : 'is-pending'}"><th scope="row">${escHtml(monthHuman(k))}</th>` +
+          `<td class="num">&mdash;</td><td class="p27-vintage">&mdash;</td><td>${when}</td>` +
+          `<td>${sch ? srcLink(sch.sourceUrl, 'BLS') : '&mdash;'}</td></tr>`;
+      }
+      return `<tr><th scope="row">${escHtml(monthHuman(k))}</th>` +
+        `<td class="num">${e.value.toFixed(3)}</td>` +
+        `<td class="p27-vintage">${escHtml(e.vintage)}</td>` +
+        `<td>${escHtml(humanDate(e.publishedDate))}</td>` +
+        `<td>${srcLink(e.sourceUrl, 'BLS series')}</td></tr>`;
+    }).join('');
+
+    const canceledKeys = ccKeys.filter((k) => cc.months[k] === null
+      && (cc.schedule || {})[k] && cc.schedule[k].status === 'canceled');
+    const pendingKeys = ccKeys.filter((k) => cc.months[k] === null && !canceledKeys.includes(k));
+
+    // The status sentence, and the body. Both are derived from ccStatus, so the
+    // page cannot claim one thing in the banner and another in the body.
+    let statusLine27;
+    let projectionBody;
+    let mathBlock;
+    if (ccStatus.complete) {
+      // Reachable only once every month is published. The assert is kept in the
+      // path deliberately: it documents which figures are gated on it, and it
+      // will fail loudly if this branch is ever entered by mistake.
+      p27AssertComplete(ccStatus, 'projected 2027 bracket thresholds');
+      const avg = p27Average(ccKeys, cc.months);
+      statusLine27 = `All ${ccStatus.total} required months are published. The figures below are our own ` +
+        'calculation, not the IRS’s.';
+      projectionBody = '<div class="p27-hold"><h2>Window complete</h2><p>Every month of the statutory ' +
+        'window is now published. Projected figures are computed from them and are marked PROJECTED ' +
+        'throughout; they remain our calculation and not an IRS figure until the Revenue Procedure lands.</p></div>';
+      mathBlock = `<p class="p27-quote">Average C-CPI-U over ${escHtml(windowHuman)}: ` +
+        `<strong>${avg.toFixed(4)}</strong>, from the ${ccStatus.total} published monthly values in the table above.</p>`;
+    } else {
+      const n = ccStatus.missing.length;
+      statusLine27 = `We are not publishing projected dollar figures yet &mdash; ` +
+        `<span class="p27-count">${n}</span> of ${ccStatus.total} required months are unpublished ` +
+        `(${escHtml(ccStatus.missing.map(monthHuman).join(', '))}).`;
+      const dueList = pendingKeys.length
+        ? pendingKeys.map((k) => `${monthHuman(k)} on ${humanDate(cc.schedule[k].due)}`).join(', and ')
+        : '';
+      projectionBody =
+        '<div class="p27-hold">' +
+        '<h2>There is no 2027 bracket table on this page yet, on purpose</h2>' +
+        `<p><strong>${escHtml(String(ccStatus.present.length))} of ${ccStatus.total}</strong> of the monthly ` +
+        'index values the calculation needs have been published. Until the rest are out, any 2027 dollar ' +
+        'figure &mdash; ours or anyone else’s &mdash; contains a guess about months that do not exist yet, ' +
+        'and we would rather show you the gap than hide it inside a table. Not even an approximate figure, ' +
+        'because an approximation with an assumption baked into it reads exactly like a fact once it is in a table.</p>' +
+        (dueList ? `<p>What we are waiting on: ${escHtml(dueList)}. This page is updated within a day of each release.</p>` : '') +
+        (canceledKeys.length
+          ? `<p><strong>One of the missing months is not coming.</strong> ${escHtml(canceledKeys.map(monthHuman).join(' and '))} ` +
+            'was never collected. See below for what that means, because it is the part no other 2027 page mentions.</p>'
+          : '') +
+        '<p>What is on this page instead: the exact statutory method, every input with its source and date, ' +
+        'and the outside estimates that do exist, attributed to whoever published them.</p>' +
+        '</div>';
+      // No average, no factor, no dollar figure. The math block shows the shape
+      // of the calculation with the months named, and stops where the data stops.
+      mathBlock = '<p class="p27-quote">We can show you the arithmetic but not the answer: ' +
+        `the first step is the average of the ${ccStatus.total} monthly values over ${escHtml(windowHuman)}, ` +
+        `and ${escHtml(String(n))} of those values do not exist yet, so there is no average to take. ` +
+        'Everything downstream of it &mdash; the factor, the thresholds, the standard deduction &mdash; ' +
+        'is blocked on the same step. The build for this site refuses to render a projected dollar amount ' +
+        'while any month is missing; that refusal is a test, not a policy.</p>';
+    }
+
+    const gapSection = canceledKeys.length
+      ? '<section class="prose" id="gap"><h2>The missing month nobody else mentions</h2>' +
+        canceledKeys.map((k) => {
+          const s = cc.schedule[k];
+          return `<p><strong>${escHtml(monthHuman(k))} does not exist.</strong> ${escHtml(s.note)}</p>`;
+        }).join('') +
+        '<p>This matters more than a footnote. The law describes the value for a year as the average of the ' +
+        'index &ldquo;as of the close of the 12-month period ending on August 31&rdquo; &mdash; and one of ' +
+        'those twelve months was never measured. Whatever the IRS does about it, and it has not said, an ' +
+        'eleven-month average is not the twelve-month average the statute describes. Any site publishing ' +
+        'confident 2027 figures today has silently made a decision about this month, and none of them tell ' +
+        'you which decision they made.</p>' +
+        '<p>We will update this page when the IRS or BLS says something on the record about it, and not before.</p>' +
+        '</section>'
+      : '';
+
+    const tp = proj2027.thirdPartyProjections;
+    const thirdPartyBlock = (tp.items && tp.items.length)
+      ? '<div class="p27-wrap"><table class="p27-inputs"><caption class="sr-only">Published 2027 bracket ' +
+        'projections by other publishers (PROJECTED, not official)</caption><thead><tr><th scope="col">Publisher</th>' +
+        '<th scope="col">Figure</th><th scope="col">Published</th><th scope="col">Source</th></tr></thead><tbody>' +
+        tp.items.map((i) => `<tr><th scope="row">${escHtml(i.publisher)}</th><td>${escHtml(i.figure)}</td>` +
+          `<td>${escHtml(humanDate(i.publishedDate))}</td><td>${srcLink(i.sourceUrl, 'source')}</td></tr>`).join('') +
+        '</tbody></table></div>'
+      : `<p>As of ${escHtml(humanDate(tp.checkedDate))}, the publishers whose 2027 projections are worth ` +
+        'comparing against &mdash; Bloomberg Tax, Thomson Reuters, Wolters Kluwer &mdash; have not published ' +
+        'theirs. That is not an oversight on their part: they wait for the last month of the statutory window, ' +
+        'which is the same thing this page is waiting for. When theirs appear, they will be listed here with ' +
+        'their figures and their dates, including where they disagree with us.</p>';
+
+    const ld27 = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: 'Projected 2027 federal tax brackets: method, inputs, and what is still pending',
+      description: 'A projected-2027-brackets page that publishes its inputs: the statutory 12-month ' +
+        'C-CPI-U window, every published monthly index value with its source and publication date, and ' +
+        'the months that remain unpublished. Not official IRS figures.',
+      mainEntityOfPage: `${SITE.url}/2027-tax-brackets/`,
+      publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+      isAccessibleForFree: true,
+    });
+
+    await mkdir(join(DIST, '2027-tax-brackets'), { recursive: true });
+    await writeFile(join(DIST, '2027-tax-brackets', 'index.html'), fillTool(brackets2027Tpl, {
+      SITE_NAME: SITE.name,
+      SITE_URL: SITE.url,
+      ARTICLE_LD: ld27,
+      STATUS_LINE: statusLine27,
+      PROJECTION_BODY: projectionBody,
+      WINDOW_HUMAN: windowHuman,
+      INPUT_TABLE: inputRows,
+      GAP_SECTION: gapSection,
+      QUOTE_WINDOW: quoteBlock(proj2027.statute.ccpiuDefinition, 'p27-quote'),
+      QUOTE_BASE: quoteBlock(proj2027.statute.cumulativeBase, 'p27-quote'),
+      QUOTE_ROUNDING: quoteBlock(proj2027.statute.roundingBrackets, 'p27-quote'),
+      QUOTE_ROUNDING_MFS: quoteBlock(proj2027.statute.roundingMfs, 'p27-quote'),
+      QUOTE_ROUNDING_SD: quoteBlock(proj2027.statute.roundingStandardDeduction, 'p27-quote'),
+      MATH_BLOCK: mathBlock,
+      THIRD_PARTY_BLOCK: thirdPartyBlock,
+      RP2026_URL: proj2027.base2026.sourceUrl,
+      RP2026_DATE: humanDate(proj2027.base2026.publishedDate),
+    }, '/2027-tax-brackets/'));
+    urls.push(`${SITE.url}/2027-tax-brackets/`);
+
+    // ---- 2. /2027-social-security-cola/ (ESTIMATE) -------------------------
+    const cw = proj2027.cpiw;
+    const q3PriorKeys = Object.keys(cw.q3_2025).sort();
+    const q3CurKeys = Object.keys(cw.q3_2026).sort();
+    const q3PriorStatus = p27WindowStatus(q3PriorKeys, cw.q3_2025);
+    const q3CurStatus = p27WindowStatus(q3CurKeys, cw.q3_2026);
+    // The denominator is settled and can be averaged; the numerator cannot, and
+    // p27Average would throw if anything tried. That is the intended behaviour.
+    const q3PriorAvg = q3PriorStatus.complete ? p27Average(q3PriorKeys, cw.q3_2025) : null;
+
+    const cpiwRow = (k, entry, sched, pendingClass) => {
+      if (entry === null) {
+        return `<tr class="${pendingClass}"><th scope="row">${escHtml(monthHuman(k))}</th>` +
+          `<td class="num">&mdash;</td><td>due ${escHtml(humanDate(sched && sched.due) || 'unscheduled')}</td>` +
+          `<td>${sched ? srcLink(sched.sourceUrl, 'BLS schedule') : '&mdash;'}</td></tr>`;
+      }
+      return `<tr><th scope="row">${escHtml(monthHuman(k))}</th><td class="num">${entry.value.toFixed(3)}</td>` +
+        `<td>${escHtml(humanDate(entry.publishedDate))}</td><td>${srcLink(entry.sourceUrl, 'BLS series')}</td></tr>`;
+    };
+    const q3CurRows = q3CurKeys.map((k) => cpiwRow(k, cw.q3_2026[k], (cw.schedule || {})[k], 'is-pending')).join('');
+    const q3PriorRows = q3PriorKeys.map((k) => cpiwRow(k, cw.q3_2025[k], null, '')).join('');
+
+    let colaStatusLine;
+    let q3CurStatusText;
+    if (q3CurStatus.complete && q3PriorAvg) {
+      const pct = p27ColaPercent(q3PriorAvg, p27Average(q3CurKeys, cw.q3_2026));
+      colaStatusLine = `All three months are published. The arithmetic gives <strong>${pct.toFixed(1)}%</strong> ` +
+        '&mdash; our calculation from the published index values, not an SSA announcement.';
+      q3CurStatusText = `With all three months in, the July&ndash;September 2026 average divided by the ` +
+        `July&ndash;September 2025 average gives ${pct.toFixed(1)}% after rounding to the nearest tenth.`;
+    } else {
+      const n = q3CurStatus.missing.length;
+      colaStatusLine = `<strong>${q3CurStatus.present.length} of ${q3CurStatus.total}</strong> of the months ` +
+        'the official calculation needs have been published, so we are not putting a figure of our own on ' +
+        'this page. The calculator below works at any percentage you type.';
+      q3CurStatusText = q3CurStatus.present.length === 0
+        ? `None of the three are out yet, which is why nobody &mdash; us, the news, or the Social Security ` +
+          'Administration &mdash; can tell you the 2027 figure today. Anyone quoting one is quoting a forecast.'
+        : `That is ${q3CurStatus.present.length} of ${q3CurStatus.total}. A ${q3CurStatus.present.length}-month ` +
+          `comparison is not the COLA and we do not publish one as though it were; ${n} month(s) can still move it.`;
+    }
+
+    const est = cw.thirdPartyEstimates;
+    const estimateChips = est.map((e) =>
+      `<button type="button" data-cola-pct="${escHtml(String(e.figure))}">${escHtml(String(e.figure))}% &mdash; ` +
+      `${escHtml(e.publisher.replace(/\s*\(.*\)$/, ''))}</button>`).join('') +
+      '<button type="button" data-cola-pct="0">0% &mdash; no increase</button>';
+    const estimateRows = est.map((e) =>
+      `<tr><th scope="row">${escHtml(e.publisher)}</th><td class="num">${escHtml(String(e.figure))}%</td>` +
+      `<td>${escHtml(humanDate(e.asOf))}</td><td>${srcLink(e.sourceUrl, e.title || 'source')}</td></tr>` +
+      (e.note ? `<tr><td colspan="4" class="cola-src">${escHtml(e.note)}</td></tr>` : '')).join('');
+
+    const ldCola = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: '2027 Social Security COLA: running estimate tracker and benefit calculator',
+      description: 'What any cost-of-living increase would do to a monthly Social Security benefit, plus ' +
+        'the publication status of the three CPI-W months the official 2027 figure is computed from. ' +
+        'Estimates shown are attributed third-party forecasts, not official SSA figures.',
+      mainEntityOfPage: `${SITE.url}/2027-social-security-cola/`,
+      publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+      isAccessibleForFree: true,
+    });
+
+    await mkdir(join(DIST, '2027-social-security-cola'), { recursive: true });
+    await writeFile(join(DIST, '2027-social-security-cola', 'index.html'), fillTool(cola2027Tpl, {
+      SITE_NAME: SITE.name,
+      SITE_URL: SITE.url,
+      ARTICLE_LD: ldCola,
+      STATUS_LINE: colaStatusLine,
+      ESTIMATE_CHIPS: estimateChips,
+      ESTIMATE_ROWS: estimateRows,
+      Q3_2026_ROWS: q3CurRows,
+      Q3_2026_STATUS: q3CurStatusText,
+      Q3_2025_ROWS: q3PriorRows,
+      Q3_2025_AVG: q3PriorAvg ? q3PriorAvg.toFixed(3) : 'not yet complete',
+      // The percentage box is pre-filled from a PUBLISHED third-party estimate,
+      // never from a figure of ours, and the chips name whose it is.
+      COLA_CFG: JSON.stringify({ prefill: est.length ? est[0].figure : 0 }),
+    }, '/2027-social-security-cola/'));
+    urls.push(`${SITE.url}/2027-social-security-cola/`);
+
+    // ---- 3. /w2-box-1-vs-box-3-vs-box-5/ -----------------------------------
+    // Distinct from /w2-box-decoder/, which is a Box 12 code + Box 14b tipped
+    // occupation lookup and carries no Box 3 or Box 5 content at all. The two
+    // link to each other.
+    const wbYears = Object.keys(wageBoxData.years).sort().reverse();
+    const wbDefault = String(taxData.taxYear);
+    if (!wbYears.includes(wbDefault))
+      throw new Error(`w2-wage-boxes.json has no entry for tax year ${wbDefault}`);
+    // One figure, two files. If they ever disagree, the paycheck engine and this
+    // page tell a visitor different things about the same year.
+    if (wageBoxData.years[wbDefault].socialSecurityWageBase
+      !== taxData.federal.fica.socialSecurity.wageBase)
+      throw new Error(
+        `Social Security wage base disagreement: w2-wage-boxes.json says ` +
+        `${wageBoxData.years[wbDefault].socialSecurityWageBase}, tax-data-${wbDefault}.json says ` +
+        `${taxData.federal.fica.socialSecurity.wageBase}.`
+      );
+    const yearOptions = wbYears.map((y) =>
+      `<option value="${escHtml(y)}"${y === wbDefault ? ' selected' : ''}>${escHtml(y)}</option>`).join('');
+
+    const wbFaq = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: [
+        ['Why is my W-2 Box 1 lower than Box 3 and Box 5?',
+          'Almost always because of a traditional 401(k), 403(b) or 457(b) contribution. Money you defer ' +
+          'into a traditional retirement plan is exempt from federal income tax, so it comes out of Box 1, ' +
+          'but it is not exempt from Social Security and Medicare tax, so it stays in Box 3 and Box 5. ' +
+          'If the gap equals your contributions for the year, the form is correct and you were not taxed twice.'],
+        ['Why is my Box 3 lower than my Box 5?',
+          `Because Social Security tax stops at the wage base — ` +
+          `${usd0(wageBoxData.years[wbDefault].socialSecurityWageBase)} for ${wbDefault} — and Medicare ` +
+          'tax has no ceiling at all. Once you earn more than the wage base, Box 3 stops there while Box 5 ' +
+          'keeps counting, so the gap between them is exactly the wages you earned above the ceiling.'],
+        ['Do health insurance premiums lower all three W-2 wage boxes?',
+          'Yes, when they run through a Section 125 cafeteria plan, which is how nearly all employer ' +
+          'payroll deductions for medical, dental and vision premiums are set up. The same is true of a ' +
+          'health FSA, a dependent-care FSA and an HSA funded through payroll. Unlike a retirement ' +
+          'deferral, these come out of Box 1, Box 3 and Box 5 alike.'],
+        ['Does a Roth 401(k) change any of my W-2 wage boxes?',
+          'No. Roth contributions are made from pay that has already been taxed, so they do not reduce ' +
+          'Box 1, Box 3 or Box 5. The amount appears in Box 12 with code AA or BB as information only.'],
+        ['All three of my wage boxes are the same number. Is that a mistake?',
+          'No. If nothing came out of your pay before tax — no traditional retirement contribution and no ' +
+          'Section 125 benefits — and your pay was under the Social Security wage base, then all three ' +
+          'definitions of wages land on the same figure. Identical boxes are what a simple W-2 looks like.'],
+        ['Which W-2 box goes on my tax return as wages?',
+          'Box 1. Box 3 and Box 5 are the wage figures Social Security and Medicare tax were computed ' +
+          'from, and Box 4 and Box 6 are the amounts withheld for each of those two taxes.'],
+      ].map(([q, a]) => ({
+        '@type': 'Question', name: q,
+        acceptedAnswer: { '@type': 'Answer', text: a },
+      })),
+    });
+    const wbApp = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: 'W-2 Box 1 vs Box 3 vs Box 5 Reconciliation Calculator',
+      applicationCategory: 'FinanceApplication',
+      operatingSystem: 'Any',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      description: 'Reconciles the three wage boxes on a W-2 from gross pay and pre-tax amounts, showing ' +
+        'line by line which deduction came out of which box, and applying the Social Security wage base ' +
+        'cap to Box 3. Runs entirely in the browser.',
+    });
+
+    await mkdir(join(DIST, 'w2-box-1-vs-box-3-vs-box-5'), { recursive: true });
+    await writeFile(join(DIST, 'w2-box-1-vs-box-3-vs-box-5', 'index.html'), fillTool(wageBoxTpl, {
+      SITE_NAME: SITE.name,
+      SITE_URL: SITE.url,
+      APP_LD: wbApp,
+      FAQ_LD: wbFaq,
+      YEAR_OPTIONS: yearOptions,
+      CAP_YEAR: wbDefault,
+      CAP_AMOUNT: usd0(wageBoxData.years[wbDefault].socialSecurityWageBase),
+      W2BOXES_CFG: JSON.stringify({ defaultYear: wbDefault, years: stripInternal(wageBoxData.years) }),
+    }, '/w2-box-1-vs-box-3-vs-box-5/'));
+    urls.push(`${SITE.url}/w2-box-1-vs-box-3-vs-box-5/`);
+
+    // ---- 4. /2026-tax-brackets/ (official, zero new facts) ------------------
+    // Every figure here is read from tax-data-2026.json, the same file the
+    // paycheck engine computes from. Nothing is typed into the template.
+    const fed = taxData.federal;
+    const sdLabels = { single: 'Single', married: 'Married filing jointly', head_of_household: 'Head of household' };
+    const standardDeductionHtml = Object.entries(sdLabels)
+      .filter(([k]) => Number.isFinite(fed.standardDeduction[k]))
+      .map(([k, label]) => `<div><span>${escHtml(label)}</span>` +
+        `<span class="b26-amt">${usd0(fed.standardDeduction[k])}</span></div>`).join('');
+
+    const bandRange = (rows, i) => {
+      const from = i === 0 ? 0 : rows[i - 1].upTo;
+      const to = rows[i].upTo;
+      return to == null
+        ? `${usd0(from)} and above`
+        : `${usd0(from)} &ndash; ${usd0(to)}`;
+    };
+    const bracketTables = Object.entries(sdLabels)
+      .filter(([k]) => Array.isArray(fed.brackets[k]))
+      .map(([k, label]) => {
+        const rows = fed.brackets[k];
+        return '<div class="b26-wrap"><table class="b26-table">' +
+          `<caption>${escHtml(label)} &mdash; ${taxData.taxYear} federal income tax</caption>` +
+          '<thead><tr><th scope="col">Rate</th><th scope="col" class="num">Taxable income in this band</th></tr></thead><tbody>' +
+          rows.map((_, i) => `<tr><th scope="row">${pctStr(rows[i].rate)}</th>` +
+            `<td class="num">${bandRange(rows, i)}</td></tr>`).join('') +
+          '</tbody></table></div>';
+      }).join('');
+
+    // Worked example, computed through the same bracket ladder rather than
+    // asserted: a single filer on the site's standard study salary.
+    const exSalary = DEFAULT_SALARY;
+    const exTaxable = Math.max(0, exSalary - fed.standardDeduction.single);
+    let exTax = 0;
+    let exPrev = 0;
+    let exTopRate = 0;
+    for (const b of fed.brackets.single) {
+      const top = b.upTo == null ? Infinity : b.upTo;
+      if (exTaxable > exPrev) {
+        exTax += (Math.min(exTaxable, top) - exPrev) * b.rate;
+        exTopRate = b.rate;
+      }
+      exPrev = top;
+      if (exTaxable <= top) break;
+    }
+    const workedExample =
+      `A single filer earning ${usd0(exSalary)} takes the ${usd0(fed.standardDeduction.single)} standard ` +
+      `deduction first, leaving ${usd0(exTaxable)} of taxable income. Running that through the bands above ` +
+      `gives ${usd0(exTax)} of federal income tax. That is a top bracket of ${pctStr(exTopRate)}, but only ` +
+      `${pctStr(exTax / exSalary)} of the whole ${usd0(exSalary)} &mdash; the gap between those two numbers ` +
+      'is the entire point of the word "marginal".';
+
+    const ld26 = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: `${taxData.taxYear} federal tax brackets and standard deduction`,
+      description: `The official ${taxData.taxYear} federal income tax brackets and standard deduction as ` +
+        `published by the IRS in ${proj2027.base2026.revenueProcedure}, with a worked example of what a ` +
+        'marginal rate actually costs.',
+      mainEntityOfPage: `${SITE.url}/2026-tax-brackets/`,
+      publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+      isAccessibleForFree: true,
+    });
+
+    await mkdir(join(DIST, '2026-tax-brackets'), { recursive: true });
+    await writeFile(join(DIST, '2026-tax-brackets', 'index.html'), fillTool(brackets2026Tpl, {
+      SITE_NAME: SITE.name,
+      SITE_URL: SITE.url,
+      ARTICLE_LD: ld26,
+      RP_DATE: humanDate(proj2027.base2026.publishedDate),
+      STANDARD_DEDUCTION: standardDeductionHtml,
+      SD_SOURCE: `IRS, ${proj2027.base2026.revenueProcedure} ` +
+        `(<a href="${escHtml(taxData._meta.sources.standard_deduction)}" rel="noopener" target="_blank">IRS newsroom</a>). ` +
+        `Figures last checked against source ${humanDate(taxData._meta.lastSourced)}.`,
+      BRACKETS_SOURCE: `IRS, ${proj2027.base2026.revenueProcedure} ` +
+        `(<a href="${escHtml(taxData._meta.sources.federal_brackets_hoh)}" rel="noopener" target="_blank">full text, PDF</a>). ` +
+        'Married filing separately is not tabulated here because it is not carried separately in the dataset ' +
+        'this page is generated from.',
+      BRACKET_TABLES: bracketTables,
+      WORKED_EXAMPLE: workedExample,
+      SS_RATE: pctStr(fed.fica.socialSecurity.rate),
+      SS_WAGE_BASE: usd0(fed.fica.socialSecurity.wageBase),
+      MEDICARE_RATE: pctStr(fed.fica.medicare.rate),
+      ADDL_MEDICARE_RATE: pctStr(fed.fica.additionalMedicare.rate),
+    }, '/2026-tax-brackets/'));
+    urls.push(`${SITE.url}/2026-tax-brackets/`);
+  }
 
   // Social Security wage-base max-out date calculator (SSA cbb.html $184,500 /
   // 6.2% for 2026) — projects the exact paycheck date SS withholding stops for

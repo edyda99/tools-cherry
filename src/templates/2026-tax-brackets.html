@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>2026 Federal Tax Brackets and Standard Deduction — Official IRS Figures</title>
+<meta name="description" content="The official 2026 federal income tax brackets and standard deduction, from IRS Rev. Proc. 2025-32, with a plain explanation of what a marginal rate actually costs you.">
+<link rel="canonical" href="{{SITE_URL}}/2026-tax-brackets/">
+<meta property="og:title" content="2026 federal tax brackets and standard deduction (official)">
+<meta property="og:description" content="Official 2026 IRS brackets by filing status, the standard deduction, and what being 'in the 22% bracket' really means for your next dollar.">
+<meta property="og:type" content="article">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Page-scoped. styles.css serves every page on the site. */
+  .b26-wrap { overflow-x:auto; }
+  .b26-table { width:100%; border-collapse:collapse; font-size:.92rem; }
+  .b26-table th, .b26-table td { text-align:left; padding:8px 10px;
+    border-bottom:1px solid rgba(128,128,128,.22); }
+  .b26-table td.num, .b26-table th.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .b26-table caption { text-align:left; font-weight:700; padding:10px 0 6px; font-size:1rem; }
+  .b26-note { font-size:.85rem; opacity:.9; margin-top:6px; }
+  .b26-sd { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:8px 0 4px; }
+  .b26-sd div { padding:12px 10px; border:1px solid rgba(128,128,128,.28); border-radius:10px; text-align:center; }
+  .b26-sd .b26-amt { display:block; font-size:1.3rem; font-weight:700; font-variant-numeric:tabular-nums; margin-top:4px; }
+  @media (max-width:520px) { .b26-sd { grid-template-columns:1fr; } }
+</style>
+<script type="application/ld+json">{{ARTICLE_LD}}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>2026 federal tax brackets and standard deduction</h1>
+
+    <p class="lede">These are the <strong>official</strong> figures for tax year 2026, published by the IRS in Revenue Procedure 2025-32 on {{RP_DATE}}. They are the numbers that apply to money you earn during 2026 and to the return you file in early 2027. Nothing on this page is a projection — the whole table below is exactly what the IRS published, and it is the same data our paycheck and bonus calculators run on.</p>
+
+    <section class="prose">
+      <h2>The standard deduction for 2026</h2>
+      <p>Most people never touch the brackets on their whole income. The standard deduction comes off first, and only what is left runs through the rates.</p>
+      <div class="b26-sd">{{STANDARD_DEDUCTION}}</div>
+      <p class="b26-note">Source: {{SD_SOURCE}}</p>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose" id="brackets">
+      <h2>The 2026 brackets, by filing status</h2>
+      <p>Read each row as "this rate applies to the part of your taxable income inside this range" — not to all of it. The income figures are <strong>taxable</strong> income: what is left after the standard deduction above.</p>
+      {{BRACKET_TABLES}}
+      <p class="b26-note">Source: {{BRACKETS_SOURCE}}</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>What "I'm in the 22% bracket" actually means</h2>
+      <p>It means your <em>next</em> dollar is taxed at 22%. It does not mean 22% of everything you earn. The first slice of your taxable income is taxed at 10%, the next slice at 12%, and so on — you only pay the higher rate on the part of your income that reaches into that band. That is why a raise can never leave you worse off, and why the share of your income you actually hand over is always lower than your bracket.</p>
+      <p>{{WORKED_EXAMPLE}}</p>
+      <p>To see the whole thing including Social Security, Medicare and your state, use the <a href="/#paycheck">paycheck calculator for your state</a>.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Payroll taxes that sit outside the brackets</h2>
+      <p>Income tax is not the only thing taken out. Social Security is charged at {{SS_RATE}} on wages up to {{SS_WAGE_BASE}} for 2026, and Medicare at {{MEDICARE_RATE}} with no ceiling at all, plus an extra {{ADDL_MEDICARE_RATE}} on wages above $200,000. None of it runs through the brackets above.</p>
+      <ul>
+        <li><a href="/ss-wage-base-calculator/">When you stop paying Social Security tax this year</a></li>
+        <li><a href="/w2-box-1-vs-box-3-vs-box-5/">Why your W-2 wage boxes don't match each other</a></li>
+      </ul>
+    </section>
+
+    <section class="prose">
+      <h2>What about 2027?</h2>
+      <p>The 2027 figures do not exist yet. The IRS publishes them in a Revenue Procedure in late October 2026, after the government publishes the last of the price-index months the adjustment is computed from. If you want to see how that calculation works and how much of it is actually knowable today, we keep a page that shows its inputs rather than just a table: <a href="/2027-tax-brackets/">projected 2027 tax brackets, and what is still pending</a>.</p>
+    </section>
+
+    <p class="note">For general information only, not tax advice. Figures are reproduced from the IRS Revenue Procedure cited above; check irs.gov or a tax professional for your own situation.</p>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a> · <a href="/embed/">Embed our calculators</a> · <a href="/corrections/">Corrections log</a></span>
+  </div>
+</footer>
+</body>
+</html>

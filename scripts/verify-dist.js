@@ -79,6 +79,165 @@ const LADDER_JURISDICTIONS = 51;
 // truncated. Every row is still checked; this only bounds the output.
 const LADDER_MAX_REPORTED = 12;
 
+// --- The 2027 seasonal pages. Two of them publish a position about data that
+// does not exist yet, which is a different kind of risk from a wrong number: the
+// failure mode is a page that quietly stops saying "projected" or starts showing
+// dollar amounts it has no inputs for. Neither would look broken. Both are
+// checked here, against the same data file the build reads, so this gate is
+// independent of whatever build.js believed at the time.
+//
+// PROJECTED_PAGE must carry the label everywhere a reader could land, and must
+// carry NO dollar figure in its projection region while any window month is
+// unpublished. COLA_PAGE must carry a working calculator, because the calculator
+// is the entire reason that page is publishable before the data exists.
+const PROJECTED_PAGE = '2027-tax-brackets';
+const COLA_PAGE = '2027-social-security-cola';
+const WAGEBOX_PAGE = 'w2-box-1-vs-box-3-vs-box-5';
+// Any US dollar amount on the page. Every match is then filtered by SIZE: the
+// page legitimately quotes the statutory rounding increments ($25 and $50) and
+// the additional-Medicare threshold, which are rules rather than projections,
+// while every figure a projection would produce — a bracket threshold, a
+// standard deduction — is in the thousands. So anything at or above
+// PROJECTION_FLOOR is treated as a projected amount and fails. Deliberately
+// crude in that direction: a false positive costs a build, a miss ships a
+// fabricated tax figure.
+const DOLLAR_FIGURE = /\$\s?\d[\d,]*(?:\.\d+)?/g;
+const PROJECTION_FLOOR = 1000;
+
+/**
+ * Gate the 2027 seasonal pages.
+ * @param {string} DIST dist directory
+ * @param {string} ROOT repo root (holds src/data and src/engine)
+ * @returns {Promise<string[]>} failures, empty when good
+ */
+async function verifySeasonal2027(DIST, ROOT) {
+  const fails = [];
+  const readPage = async (slug) => {
+    try { return await readFile(join(DIST, slug, 'index.html'), 'utf8'); } catch { return null; }
+  };
+
+  let proj;
+  try {
+    proj = JSON.parse(await readFile(join(ROOT, 'src', 'data', 'projections-2027.json'), 'utf8'));
+  } catch (e) {
+    fails.push(`cannot read src/data/projections-2027.json (${e.message}) — the 2027 pages have no inputs.`);
+    return fails;
+  }
+  // Re-derive completeness here rather than trusting the page. Every non-null
+  // month must also carry its citation, which is the standing rule that no
+  // number reaches a page without a sourceUrl and a publishedDate.
+  const months = proj.ccpiu.months;
+  const keys = Object.keys(months).sort();
+  const missing = keys.filter((k) => months[k] === null);
+  for (const k of keys) {
+    const m = months[k];
+    if (m === null) continue;
+    if (!Number.isFinite(m.value) || !m.sourceUrl || !m.publishedDate)
+      fails.push(`projections-2027.json: month ${k} has a value without a complete citation ` +
+        '(sourceUrl + publishedDate). Source fields are user-facing; an uncited figure must not ship.');
+  }
+  const windowComplete = missing.length === 0;
+
+  // --- the projected brackets page
+  const p27 = await readPage(PROJECTED_PAGE);
+  if (!p27) {
+    fails.push(`/${PROJECTED_PAGE}/ was not written.`);
+  } else {
+    const title = (/<title>([\s\S]*?)<\/title>/.exec(p27) || [])[1] || '';
+    const h1 = (/<h1[^>]*>([\s\S]*?)<\/h1>/.exec(p27) || [])[1] || '';
+    const desc = (/<meta name="description" content="([^"]*)"/.exec(p27) || [])[1] || '';
+    if (!/PROJECTED/i.test(title)) fails.push(`/${PROJECTED_PAGE}/: <title> does not say PROJECTED.`);
+    if (!/projected/i.test(h1)) fails.push(`/${PROJECTED_PAGE}/: <h1> does not say projected.`);
+    if (!/projected/i.test(desc)) fails.push(`/${PROJECTED_PAGE}/: meta description does not say projected.`);
+    if (!p27.includes('PROJECTED')) fails.push(`/${PROJECTED_PAGE}/: the PROJECTED status banner is gone.`);
+    // Structured data must not assert authority. The site injects its own
+    // Organization / WebSite / BreadcrumbList nodes on every page and those are
+    // fine; what must never appear here is a type that presents unofficial
+    // projections as answered questions or as a published dataset.
+    const BANNED_LD = new Set(['FAQPage', 'HowTo', 'Dataset', 'QAPage', 'Table']);
+    const ldTypes = [];
+    for (const m of p27.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
+      let node;
+      try { node = JSON.parse(m[1]); } catch { fails.push(`/${PROJECTED_PAGE}/: unparseable JSON-LD.`); continue; }
+      const collect = (n) => {
+        if (Array.isArray(n)) return n.forEach(collect);
+        if (!n || typeof n !== 'object') return;
+        if (n['@type']) ldTypes.push(...[].concat(n['@type']));
+        if (n['@graph']) collect(n['@graph']);
+      };
+      collect(node);
+    }
+    const banned = ldTypes.filter((t) => BANNED_LD.has(t));
+    if (banned.length)
+      fails.push(`/${PROJECTED_PAGE}/: JSON-LD declares ${[...new Set(banned)].join(', ')}. A page of ` +
+        'figures that are not official must not emit structured data that presents them as answers or data.');
+    if (!ldTypes.includes('Article'))
+      fails.push(`/${PROJECTED_PAGE}/: no Article JSON-LD node; the page must describe itself as an article, ` +
+        'not as authoritative tax data.');
+    if (!windowComplete) {
+      // The load-bearing check. Everything above the sources/related/footer
+      // furniture is the page's own body; no dollar amount may appear in it.
+      const body = p27.split('<section class="sources">')[0].split('<footer class="site">')[0];
+      const found = [...new Set(body.match(DOLLAR_FIGURE) || [])]
+        .filter((s) => Number(s.replace(/[$,\s]/g, '')) >= PROJECTION_FLOOR);
+      if (found.length)
+        fails.push(`/${PROJECTED_PAGE}/ shows ${found.length} dollar figure(s) while ${missing.length} of ` +
+          `${keys.length} required month(s) are unpublished (${missing.join(', ')}): ` +
+          list(found) + '\n    A dollar amount on this page right now can only have come from a guess.');
+      if (!/not publishing projected dollar figures yet/i.test(p27))
+        fails.push(`/${PROJECTED_PAGE}/: partial-data mode is active but the page does not say so in ` +
+          'the words a reader would recognise ("not publishing projected dollar figures yet").');
+      for (const k of missing)
+        if (!p27.includes(k.slice(0, 4)))
+          fails.push(`/${PROJECTED_PAGE}/: unpublished month ${k} is not named on the page.`);
+    }
+  }
+
+  // --- the COLA page: the calculator is what makes it publishable today
+  const cola = await readPage(COLA_PAGE);
+  if (!cola) {
+    fails.push(`/${COLA_PAGE}/ was not written.`);
+  } else {
+    if (!/ESTIMATE/.test(cola)) fails.push(`/${COLA_PAGE}/: the ESTIMATE banner is gone.`);
+    if (!/id="benefit"/.test(cola) || !/id="colaPct"/.test(cola))
+      fails.push(`/${COLA_PAGE}/: the benefit calculator inputs are missing — that calculator is the ` +
+        'only part of this page that works before the data exists, so without it the page is a stub.');
+    // The asset filename is content-hashed at build time, so match the stem.
+    if (!/\/assets\/2027-social-security-cola\.[\w.]*js/.test(cola))
+      fails.push(`/${COLA_PAGE}/: the calculator script is not loaded, so the inputs do nothing.`);
+    for (const id of ['newMonthly', 'monthlyUp', 'annualUp', 'newAnnual'])
+      if (!cola.includes(`id="${id}"`))
+        fails.push(`/${COLA_PAGE}/: calculator output element #${id} is missing; the script writes to it.`);
+    // Third-party figures must never read as ours.
+    for (const e of proj.cpiw.thirdPartyEstimates) {
+      if (!cola.includes(e.publisher))
+        fails.push(`/${COLA_PAGE}/: the ${e.figure}% estimate is shown without naming ${e.publisher}. ` +
+          'Somebody else\'s forecast must always carry their name.');
+      if (!cola.includes(e.sourceUrl))
+        fails.push(`/${COLA_PAGE}/: no link to the source of ${e.publisher}'s estimate.`);
+    }
+  }
+
+  // --- the wage-box page: it must actually be about Box 3 and Box 5, i.e. it
+  // must not have collapsed into a duplicate of the existing Box 12 decoder.
+  const wb = await readPage(WAGEBOX_PAGE);
+  if (!wb) {
+    fails.push(`/${WAGEBOX_PAGE}/ was not written.`);
+  } else {
+    for (const needle of ['Box 3', 'Box 5', 'id="gross"', 'id="r401k"', 'id="s125"'])
+      if (!wb.includes(needle))
+        fails.push(`/${WAGEBOX_PAGE}/: missing "${needle}" — the page is not the reconciliation tool.`);
+    if (!wb.includes('/w2-box-decoder/'))
+      fails.push(`/${WAGEBOX_PAGE}/: does not link to /w2-box-decoder/; the two W-2 pages must ` +
+        'cross-link or they read as duplicates of each other.');
+    const decoder = await readPage('w2-box-decoder');
+    if (decoder && !decoder.includes(`/${WAGEBOX_PAGE}/`))
+      fails.push(`/w2-box-decoder/: does not link back to /${WAGEBOX_PAGE}/.`);
+  }
+
+  return fails;
+}
+
 // Minimal RFC-4180 line splitter — enough for this file, which quotes only on
 // commas inside state names it does not currently have.
 function csvSplit(line) {
@@ -390,6 +549,10 @@ export async function verifyDist(distPath) {
   // ROOT is this script's repo, not the dist under test, because the engine and
   // the tax data are what the file is being checked AGAINST.
   failures.push(...await verifyLadderCsv(DIST, join(dirname(fileURLToPath(import.meta.url)), '..')));
+
+  // The 2027 seasonal pages, checked against the data file rather than against
+  // what the build thought it was doing.
+  failures.push(...await verifySeasonal2027(DIST, join(dirname(fileURLToPath(import.meta.url)), '..')));
 
   return { pages: pages.length, withLoader, failures };
 }

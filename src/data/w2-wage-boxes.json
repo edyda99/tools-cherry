@@ -1,0 +1,32 @@
+{
+  "_comment": "Per-tax-year figures the W-2 Box 1 / Box 3 / Box 5 reconciliation needs. Two years are carried on purpose: a W-2 is read in January for the year that just ended, so the page has to answer for the prior year as well as the current one. ANNUAL REFRESH: when SSA announces the next year's COLA (mid-October), add the new year here with its own sourceUrl and publishedDate. The current year's wage base is ALSO carried in src/data/tax-data-2026.json (federal.fica.socialSecurity.wageBase) for the paycheck engine; build.js asserts the two agree and throws if they drift.",
+  "years": {
+    "2025": {
+      "socialSecurityWageBase": 176100,
+      "socialSecurityRate": 0.062,
+      "medicareRate": 0.0145,
+      "additionalMedicareRate": 0.009,
+      "additionalMedicareWithholdingThreshold": 200000,
+      "source": "Social Security Administration — Contribution and Benefit Base, the annual maximum taxable earnings figure",
+      "sourceUrl": "https://www.ssa.gov/oact/cola/cbb.html",
+      "publishedDate": "2024-10-10",
+      "retrievedDate": "2026-08-11"
+    },
+    "2026": {
+      "socialSecurityWageBase": 184500,
+      "socialSecurityRate": 0.062,
+      "medicareRate": 0.0145,
+      "additionalMedicareRate": 0.009,
+      "additionalMedicareWithholdingThreshold": 200000,
+      "source": "Social Security Administration — Contribution and Benefit Base, the annual maximum taxable earnings figure",
+      "sourceUrl": "https://www.ssa.gov/oact/cola/cbb.html",
+      "publishedDate": "2025-10-24",
+      "retrievedDate": "2026-08-11"
+    }
+  },
+  "additionalMedicareSource": {
+    "source": "Internal Revenue Service — Topic no. 751, Social Security and Medicare withholding rates",
+    "sourceUrl": "https://www.irs.gov/taxtopics/tc751",
+    "retrievedDate": "2026-08-11"
+  }
+}
