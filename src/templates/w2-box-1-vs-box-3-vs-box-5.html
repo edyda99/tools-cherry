@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Why Your W-2 Box 1, Box 3 and Box 5 Don't Match — Reconciliation Calculator</title>
+<meta name="description" content="Box 1, Box 3 and Box 5 are meant to differ. Enter your pay and pre-tax amounts to see exactly where each gap on your W-2 came from.">
+<link rel="canonical" href="{{SITE_URL}}/w2-box-1-vs-box-3-vs-box-5/">
+<meta property="og:title" content="Why W-2 Box 1, Box 3 and Box 5 don't match">
+<meta property="og:description" content="A free calculator that reconciles the three wage boxes on your W-2 line by line, and explains which deduction came out of which box. Runs in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Page-scoped. styles.css is shared by every page on the site. */
+  .wb-boxes { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:6px 0 4px; }
+  .wb-box { padding:12px 10px; border:1px solid rgba(128,128,128,.28); border-radius:10px; text-align:center; }
+  .wb-box .wb-label { display:block; font-size:.8rem; opacity:.85; }
+  .wb-box .wb-amt { display:block; font-size:1.35rem; font-weight:700; font-variant-numeric:tabular-nums; margin-top:4px; }
+  .wb-box .wb-what { display:block; font-size:.75rem; opacity:.8; margin-top:3px; }
+  @media (max-width:520px) { .wb-boxes { grid-template-columns:1fr; } }
+  .wb-wrap { overflow-x:auto; }
+  .wb-table { width:100%; border-collapse:collapse; font-size:.88rem; }
+  .wb-table th, .wb-table td { text-align:left; padding:8px 10px;
+    border-bottom:1px solid rgba(128,128,128,.22); vertical-align:top; }
+  .wb-table td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .wb-table td.mark { text-align:center; font-weight:700; }
+  .wb-table td.why { font-size:.84rem; opacity:.92; }
+  .wb-yes { color:#8a4b00; }
+  .wb-no { opacity:.45; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .wb-yes { color:#f0b86e; } }
+  :root[data-theme="dark"] .wb-yes { color:#f0b86e; }
+  .wb-flags { margin:10px 0 0; padding-left:18px; font-size:.9rem; }
+  .wb-flags li { margin:6px 0; }
+</style>
+<script type="application/ld+json">{{APP_LD}}</script>
+<script type="application/ld+json">{{FAQ_LD}}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Why Box 1, Box 3 and Box 5 are different numbers</h1>
+
+    <p class="lede">Three boxes on your W-2 all claim to be your wages, and all three say something different. That is normal. They are three different definitions, used for three different taxes, and the gaps between them are almost always your retirement contributions and your health insurance. The short version: <strong>money you put into a traditional 401(k) comes out of Box 1 but not out of Box 3 or Box 5</strong> — you skip income tax on it now, you do not skip Social Security and Medicare tax. Fill in the amounts below and the tool will show you where each gap on your own form came from.</p>
+
+    <section class="calc" aria-label="W-2 wage box reconciliation">
+      <h2 style="margin-top:0">Reconcile your three wage boxes</h2>
+      <form id="wbForm" autocomplete="off" onsubmit="return false">
+        <p class="muted-small">These figures are examples. Type your own over them, and leave anything that does not apply to you at zero.</p>
+        <div class="field">
+          <label for="taxYear">Which year is the W-2 for?</label>
+          <select id="taxYear">{{YEAR_OPTIONS}}</select>
+          <p class="adv-q-note">Only one thing changes with the year: the point where Social Security tax stops, currently <strong id="wbCapNote">—</strong>. A W-2 you receive in January is for the year that just ended.</p>
+        </div>
+        <div class="field">
+          <label for="gross">Your total pay for the year, before anything came out</label>
+          <input type="text" id="gross" inputmode="decimal" data-money autocomplete="off" value="85000" aria-describedby="grossNote">
+          <p class="adv-q-note" id="grossNote">Your full salary or total wages. Not a number from the W-2 — this is what you earned before any deduction. If you are not sure, your final payslip of the year usually shows it as year-to-date gross.</p>
+        </div>
+        <div class="field">
+          <label for="r401k">How much you put into a traditional 401(k), 403(b) or 457(b)</label>
+          <input type="text" id="r401k" inputmode="decimal" data-money autocomplete="off" value="9000" aria-describedby="r401kNote">
+          <p class="adv-q-note" id="r401kNote">Your own contributions only, not your employer's match, and only the traditional (pre-tax) kind. <strong>Leave this at zero if yours is a Roth 401(k)</strong> — Roth money is taxed on the way in, so it does not change any of the three boxes.</p>
+        </div>
+        <div class="field">
+          <label for="s125">Health premiums, FSA or HSA taken out of your pay</label>
+          <input type="text" id="s125" inputmode="decimal" data-money autocomplete="off" value="4200" aria-describedby="s125Note">
+          <p class="adv-q-note" id="s125Note">Your share of medical, dental and vision premiums, plus anything you put into a health FSA, a dependent-care FSA, or an HSA through payroll. These run through what your employer calls a "Section 125" or "cafeteria" plan. This is the group that comes out of <em>all three</em> boxes.</p>
+        </div>
+        <div class="field">
+          <label for="otherPreTax">Anything else taken out before income tax</label>
+          <input type="text" id="otherPreTax" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="otherPreTaxNote">
+          <p class="adv-q-note" id="otherPreTaxNote">Uncommon. Qualified commuter or parking benefits are the usual example. Behaves like the retirement line: out of Box 1 only.</p>
+        </div>
+        <div class="field">
+          <label for="imputed">Taxable pay you never received as cash</label>
+          <input type="text" id="imputed" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="imputedNote">
+          <p class="adv-q-note" id="imputedNote">Company car used personally, or employer-paid life insurance over $50,000. It counts as pay for tax even though no money reached you, so it is added to all three boxes.</p>
+        </div>
+        <div class="field">
+          <label for="box1Only">Pay counted for income tax but not for Social Security and Medicare</label>
+          <input type="text" id="box1Only" inputmode="decimal" data-money autocomplete="off" value="0" aria-describedby="box1OnlyNote">
+          <p class="adv-q-note" id="box1OnlyNote">Rare, and the usual cause when Box 1 is <em>bigger</em> than Box 5. Certain deferred compensation and equity awards get counted for the two taxes in different years. If none of that applies to you, leave it at zero.</p>
+        </div>
+      </form>
+      <div class="calc-answer">
+        <div id="wbOut" data-tb-result>
+          <div class="wb-boxes">
+            <div class="wb-box"><span class="wb-label">Box 1</span><span class="wb-amt" id="box1Val">—</span><span class="wb-what">Federal income tax wages</span></div>
+            <div class="wb-box"><span class="wb-label">Box 3</span><span class="wb-amt" id="box3Val">—</span><span class="wb-what">Social Security wages</span></div>
+            <div class="wb-box"><span class="wb-label">Box 5</span><span class="wb-amt" id="box5Val">—</span><span class="wb-what">Medicare wages</span></div>
+          </div>
+          <p class="muted-small" id="wbSummary"></p>
+          <div class="wb-wrap">
+            <table class="wb-table">
+              <caption class="sr-only">Where each difference between the wage boxes came from</caption>
+              <thead><tr><th scope="col">Amount</th><th scope="col" class="num">Value</th><th scope="col">Box 1</th><th scope="col">Box 3</th><th scope="col">Box 5</th><th scope="col">Why</th></tr></thead>
+              <tbody id="wbLines"></tbody>
+            </table>
+          </div>
+          <div id="wbFlagsWrap" hidden>
+            <ul class="wb-flags" id="wbFlags"></ul>
+          </div>
+        </div>
+      </div>
+      <p id="wbStatus" role="status" class="sr-only"></p>
+    </section>
+
+    <p class="note">Nothing you type is uploaded — the whole calculation happens in your browser. For general information only, not tax advice. This explains a W-2 you already have; it does not prepare your return.</p>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose">
+      <h2>The one rule that explains most of it</h2>
+      <p>Two kinds of money come out of your pay before tax, and they do not behave the same way.</p>
+      <div class="wb-wrap">
+        <table class="wb-table">
+          <thead><tr><th scope="col">What came out</th><th scope="col">Box 1 (income tax)</th><th scope="col">Box 3 (Social Security)</th><th scope="col">Box 5 (Medicare)</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Traditional 401(k), 403(b), 457(b)</th><td>Comes out</td><td><strong>Stays in</strong></td><td><strong>Stays in</strong></td></tr>
+            <tr><th scope="row">Health, dental, vision premiums</th><td>Comes out</td><td>Comes out</td><td>Comes out</td></tr>
+            <tr><th scope="row">Health FSA, dependent-care FSA, payroll HSA</th><td>Comes out</td><td>Comes out</td><td>Comes out</td></tr>
+            <tr><th scope="row">Roth 401(k)</th><td><strong>Stays in</strong></td><td><strong>Stays in</strong></td><td><strong>Stays in</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>So if the only thing that came out of your pay was a traditional 401(k) contribution, <strong>Box 1 will be lower than Box 3 and Box 5 by exactly that contribution</strong>, and Box 3 and Box 5 will be identical to each other. That is a correct W-2, not a payroll error, and it does not mean you were taxed twice. Retirement money escapes income tax now and pays it later; it pays Social Security and Medicare tax now and never again.</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose">
+      <h2>The other reason: Social Security stops, Medicare doesn't</h2>
+      <p>There is a ceiling on the wages Social Security tax applies to, called the wage base. For <strong>{{CAP_YEAR}}</strong> it is <strong>{{CAP_AMOUNT}}</strong>. Earn more than that and Box 3 simply stops there while Box 5 keeps counting, so Box 3 comes out lower than Box 5 by however much you earned above the ceiling. Medicare has no ceiling at all, and above $200,000 there is an extra 0.9% on top, withheld regardless of your filing status.</p>
+      <p>If you want to know the date in the year you personally stop paying Social Security tax, that is what the <a href="/ss-wage-base-calculator/">wage base max-out calculator</a> works out.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Common questions</h2>
+      <!-- Every paragraph carrying data-faq is lifted verbatim into this page's
+           FAQPage structured data by build.js. There is therefore exactly ONE
+           copy of each answer, and schema can no longer say something the page
+           does not visibly say. Keep the shape each one below already has: a
+           paragraph carrying data-faq, opening with the question inside a strong
+           tag and the answer as the rest of the paragraph. A paragraph without
+           the attribute is ordinary prose the schema makes no claim about.
+           (Do not write that shape out as an example anywhere on this page —
+           build.js matches the real markup, and an illustration of it would be
+           picked up as a real question.) -->
+      <p data-faq><strong>Why is my W-2 Box 1 lower than Box 3 and Box 5?</strong> Almost always because of a traditional 401(k), 403(b) or 457(b) contribution. Money you defer into a traditional retirement plan is exempt from federal income tax, so it comes out of Box 1, but it is not exempt from Social Security and Medicare tax, so it stays in Box 3 and Box 5. If the gap equals your contributions for the year, the form is correct and you were not taxed twice.</p>
+      <p data-faq><strong>Do health insurance premiums lower all three W-2 wage boxes?</strong> Yes, when they run through a Section 125 cafeteria plan, which is how nearly all employer payroll deductions for medical, dental and vision premiums are set up. The same is true of a health FSA, a dependent-care FSA and an HSA funded through payroll. Unlike a retirement deferral, these come out of Box 1, Box 3 and Box 5 alike.</p>
+      <p data-faq><strong>Does a Roth 401(k) change any of my W-2 wage boxes?</strong> No. Roth contributions are made from pay that has already been taxed, so they do not reduce Box 1, Box 3 or Box 5. The amount appears in Box 12 with code AA or BB as information only.</p>
+      <p data-faq><strong>Why is my Box 3 lower than my Box 5?</strong> Because Social Security tax stops at the wage base — {{CAP_AMOUNT}} for {{CAP_YEAR}} — and Medicare tax has no ceiling at all. Once you earn more than the wage base, Box 3 stops there while Box 5 keeps counting, so the gap between them is exactly the wages you earned above the ceiling.</p>
+      <p data-faq><strong>All three of my wage boxes are the same number. Is that a mistake?</strong> No. If nothing came out of your pay before tax — no traditional retirement contribution and no Section 125 benefits — and your pay was under the Social Security wage base, then all three definitions of wages land on the same figure. Identical boxes are what a simple W-2 looks like.</p>
+      <p><strong>Box 1 is higher than Box 5.</strong> Less common but legitimate: income counted for income tax in a different year than it was counted for Social Security and Medicare, usually deferred compensation or equity. Worth confirming with payroll.</p>
+      <p><strong>Why does my last payslip's gross not match any box?</strong> Because no box is your gross. Box 1 is gross minus pre-tax retirement and pre-tax benefits, Box 3 and Box 5 are gross minus pre-tax benefits only.</p>
+      <p data-faq><strong>Which W-2 box goes on my tax return as wages?</strong> Box 1. Box 3 and Box 5 are the wage figures Social Security and Medicare tax were computed from, and Box 4 and Box 6 are the amounts withheld for each of those two taxes.</p>
+      <p><strong>What about the codes in Box 12 and Box 14?</strong> Different question, different tool: <a href="/w2-box-decoder/">the W-2 Box 12 code decoder</a> covers TA, TP and TT and the Box 14b tipped occupation codes.</p>
+    </section>
+
+    <section class="prose">
+      <h2>Related</h2>
+      <ul>
+        <li><a href="/w2-box-decoder/">W-2 Box 12 decoder and tipped occupation lookup</a> — what the letter codes mean.</li>
+        <li><a href="/ss-wage-base-calculator/">Social Security wage base max-out date</a> — when Box 3 stops growing.</li>
+        <li><a href="/401k-calculator/">401(k) calculator</a> — what the contribution that created the Box 1 gap is doing for you.</li>
+        <li><a href="/2026-tax-brackets/">2026 federal tax brackets</a> — the rates Box 1 runs through.</li>
+      </ul>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a> · <a href="/embed/">Embed our calculators</a> · <a href="/corrections/">Corrections log</a></span>
+  </div>
+</footer>
+
+<script>
+  window.__W2BOXES__ = {{W2BOXES_CFG}};
+</script>
+<script type="module" src="/assets/w2-box-1-vs-box-3-vs-box-5.js"></script>
+</body>
+</html>

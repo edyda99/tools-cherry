@@ -1,0 +1,214 @@
+{
+  "_comment": "Inputs for /2027-tax-brackets/ and /2027-social-security-cola/. REFRESH after each BLS CPI release (2026-08-12 for reference month July 2026, 2026-09-11 for August 2026, 2026-10-14 for September 2026). REPLACE the projected-brackets page once the IRS Revenue Procedure for tax year 2027 lands (expected late October 2026) and replace the COLA figure once SSA announces (expected mid-October 2026). A month that BLS has not published is the literal null with a `due` date beside it in `schedule`: never interpolate it, never carry the previous month forward, never 'estimate the remaining months'.",
+  "retrievedDate": "2026-08-11",
+  "ccpiu": {
+    "_what": "Chained CPI for All Urban Consumers (C-CPI-U), U.S. city average, all items, not seasonally adjusted. BLS series SUUR0000SA0. This is the index 26 U.S.C. 1(f)(6) uses to index federal tax figures, after the Tax Cuts and Jobs Act (P.L. 115-97) replaced CPI-U with it.",
+    "seriesId": "SUUR0000SA0",
+    "seriesUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
+    "scheduleUrl": "https://www.bls.gov/schedule/news_release/cpi.htm",
+    "_vintageNote": "BLS issues C-CPI-U first as `initial`, revises it to `interim`, then finalises it roughly a year later as `final`. The vintage on each month below is the footnote BLS attached to that value on the date we retrieved it. Values without an initial/interim footnote are final.",
+    "window": { "start": "2025-09", "end": "2026-08" },
+    "months": {
+      "2025-09": {
+        "value": 180.196,
+        "vintage": "interim",
+        "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
+        "publishedDate": "2025-10-24",
+        "retrievedDate": "2026-08-11"
+      },
+      "2025-10": null,
+      "2025-11": {
+        "value": 179.712,
+        "vintage": "interim",
+        "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
+        "publishedDate": "2025-12-18",
+        "retrievedDate": "2026-08-11"
+      },
+      "2025-12": {
+        "value": 179.598,
+        "vintage": "interim",
+        "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
+        "publishedDate": "2026-01-13",
+        "retrievedDate": "2026-08-11"
+      },
+      "2026-01": {
+        "value": 180.232,
+        "vintage": "interim",
+        "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
+        "publishedDate": "2026-02-13",
+        "retrievedDate": "2026-08-11"
+      },
+      "2026-02": {
+        "value": 181.080,
+        "vintage": "interim",
+        "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
+        "publishedDate": "2026-03-11",
+        "retrievedDate": "2026-08-11"
+      },
+      "2026-03": {
+        "value": 183.013,
+        "vintage": "interim",
+        "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
+        "publishedDate": "2026-04-10",
+        "retrievedDate": "2026-08-11"
+      },
+      "2026-04": {
+        "value": 184.499,
+        "vintage": "initial",
+        "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
+        "publishedDate": "2026-05-12",
+        "retrievedDate": "2026-08-11"
+      },
+      "2026-05": {
+        "value": 185.589,
+        "vintage": "initial",
+        "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
+        "publishedDate": "2026-06-10",
+        "retrievedDate": "2026-08-11"
+      },
+      "2026-06": {
+        "value": 184.992,
+        "vintage": "initial",
+        "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
+        "publishedDate": "2026-07-14",
+        "retrievedDate": "2026-08-11"
+      },
+      "2026-07": null,
+      "2026-08": null
+    },
+    "schedule": {
+      "2025-10": {
+        "status": "canceled",
+        "due": null,
+        "note": "There is no October 2025 value in the published C-CPI-U series: the month is simply absent between September 2025 and November 2025. The documented cause is the 2025 lapse in appropriations, which stopped price collection for October; the scheduled October release (13 November 2025) was cancelled rather than rescheduled, unlike the November 2025 release, which was moved from 10 December to 18 December and did appear.",
+        "_evidence": "Verified two ways on 2026-08-11. (1) The BLS public timeseries API returns no M10 datum at all for SUUR0000SA0 between 2025-M09 and 2025-M11. (2) The same API call for the CPI-W series CWUR0000SA0 does return a 2025-M10 row, with the value \"-\" and the footnote text \"Data unavailable due to the 2025 lapse in appropriations\" — so that verbatim footnote belongs to the CPI-W series, not to C-CPI-U, and must not be attributed to C-CPI-U on the page.",
+        "_scheduleEvidence": "Release-date status (cancelled vs rescheduled) taken from a published CPI release-schedule table, not from BLS directly: bls.gov blocks automated retrieval, so this is a secondary source and is labelled as such.",
+        "sourceUrl": "https://www.bls.gov/bls/news-release/cpi.htm"
+      },
+      "2026-07": {
+        "status": "scheduled",
+        "due": "2026-08-12",
+        "note": "July 2026 Consumer Price Index news release.",
+        "sourceUrl": "https://www.bls.gov/schedule/news_release/cpi.htm"
+      },
+      "2026-08": {
+        "status": "scheduled",
+        "due": "2026-09-11",
+        "note": "August 2026 Consumer Price Index news release. This is the last month of the statutory window for tax year 2027.",
+        "sourceUrl": "https://www.bls.gov/schedule/news_release/cpi.htm"
+      }
+    }
+  },
+  "cpiw": {
+    "_what": "CPI for Urban Wage Earners and Clerical Workers (CPI-W), U.S. city average, all items, not seasonally adjusted. BLS series CWUR0000SA0. This is the index the Social Security cost-of-living adjustment is computed from, comparing the third-quarter average of one year with the third-quarter average of the last year a COLA was set.",
+    "seriesId": "CWUR0000SA0",
+    "seriesUrl": "https://data.bls.gov/timeseries/CWUR0000SA0",
+    "scheduleUrl": "https://www.bls.gov/schedule/news_release/cpi.htm",
+    "q3_2025": {
+      "2025-07": {
+        "value": 316.349,
+        "vintage": "final",
+        "sourceUrl": "https://data.bls.gov/timeseries/CWUR0000SA0",
+        "publishedDate": "2025-08-12",
+        "retrievedDate": "2026-08-11"
+      },
+      "2025-08": {
+        "value": 317.306,
+        "vintage": "final",
+        "sourceUrl": "https://data.bls.gov/timeseries/CWUR0000SA0",
+        "publishedDate": "2025-09-11",
+        "retrievedDate": "2026-08-11"
+      },
+      "2025-09": {
+        "value": 318.139,
+        "vintage": "final",
+        "sourceUrl": "https://data.bls.gov/timeseries/CWUR0000SA0",
+        "publishedDate": "2025-10-24",
+        "retrievedDate": "2026-08-11"
+      }
+    },
+    "q3_2026": {
+      "2026-07": null,
+      "2026-08": null,
+      "2026-09": null
+    },
+    "schedule": {
+      "2026-07": {
+        "status": "scheduled",
+        "due": "2026-08-12",
+        "note": "July 2026 Consumer Price Index news release.",
+        "sourceUrl": "https://www.bls.gov/schedule/news_release/cpi.htm"
+      },
+      "2026-08": {
+        "status": "scheduled",
+        "due": "2026-09-11",
+        "note": "August 2026 Consumer Price Index news release.",
+        "sourceUrl": "https://www.bls.gov/schedule/news_release/cpi.htm"
+      },
+      "2026-09": {
+        "status": "scheduled",
+        "due": "2026-10-14",
+        "note": "September 2026 Consumer Price Index news release. The Social Security Administration normally announces the official COLA the same morning this release lands.",
+        "sourceUrl": "https://www.bls.gov/schedule/news_release/cpi.htm"
+      }
+    },
+    "thirdPartyEstimates": [
+      {
+        "publisher": "The Senior Citizens League (TSCL)",
+        "figure": 3.8,
+        "asOf": "2026-06-10",
+        "title": "COLA prediction remains high at 3.8% as Social Security falls behind cost of living",
+        "sourceUrl": "https://seniorsleague.org/cola-prediction-remains-high-at-3-8-percent-as-social-security-falls-behind-cost-of-living/",
+        "note": "TSCL's monthly model. The date shown is the publication date in the cited article's own structured data; the article text carries no visible date. Retrieved 2026-08-11.",
+        "_dateNote": "Originally dated 2026-07-14 here on the strength of a search summary. Corrected to the article's own datePublished (2026-06-10), which is the only date the cited page actually asserts. The figure itself, 3.8%, is stated in the article body."
+      },
+      {
+        "publisher": "Mary Johnson (independent Social Security and Medicare policy analyst)",
+        "figure": 3.7,
+        "asOf": "2026-07-14",
+        "title": "Social Security COLA in 2027: Cooling inflation lowers estimate",
+        "sourceUrl": "https://www.cnbc.com/2026/07/14/social-security-cola-in-2027-cooling-inflation-lowers-estimate.html",
+        "note": "Revised down a full point from the 4.7% she published in June 2026 after the June CPI report. Anyone still quoting 4.7% is quoting the June figure."
+      }
+    ]
+  },
+  "base2026": {
+    "_note": "The official tax-year-2026 figures a 2027 projection would be indexed from are NOT copied here, and neither is their provenance. Both live once, in src/data/tax-data-2026.json — the figures under `federal`, the Revenue Procedure name, its publication date and its source URLs under `_meta.revenueProcedure`. This key exists only to say where to look; anything more would be a second copy that can silently disagree with the first.",
+    "from": "src/data/tax-data-2026.json",
+    "provenanceAt": "_meta.revenueProcedure"
+  },
+  "statute": {
+    "_quoteRule": "Every `quote` below is the statutory text reproduced WORD FOR WORD from the source at `sourceUrl`, including the statute's own em-dashes and clause markers. Do not smooth, re-punctuate, or condense a quote to make it read better on the page: if a passage needs shortening, use an ellipsis or square brackets so the reader can see the edit. A quotation mark is a promise.",
+    "ccpiuDefinition": {
+      "cite": "26 U.S.C. § 1(f)(6)(B)",
+      "quote": "The C-CPI-U for any calendar year is the average of the C-CPI-U as of the close of the 12-month period ending on August 31 of such calendar year.",
+      "sourceUrl": "https://www.law.cornell.edu/uscode/text/26/1"
+    },
+    "cumulativeBase": {
+      "cite": "26 U.S.C. § 1(f)(3)(A)",
+      "quote": "The cost-of-living adjustment for any calendar year is the percentage (if any) by which— (i) the C-CPI-U for the preceding calendar year, exceeds (ii) the CPI for calendar year 2016, multiplied by the amount determined under subparagraph (B).",
+      "sourceUrl": "https://www.law.cornell.edu/uscode/text/26/1"
+    },
+    "roundingBrackets": {
+      "cite": "26 U.S.C. § 1(f)(7)(A)",
+      "quote": "If any increase determined under paragraph (2)(A), section 63(c)(4), section 68(b)(2) or section 151(d)(4) is not a multiple of $50, such increase shall be rounded to the next lowest multiple of $50.",
+      "note": "Reproduced exactly, including the missing serial comma before \"or section 151(d)(4)\", which the U.S. Code annotates \"so in original\".",
+      "sourceUrl": "https://www.law.cornell.edu/uscode/text/26/1"
+    },
+    "roundingMfs": {
+      "cite": "26 U.S.C. § 1(f)(7)(B)",
+      "quote": "In the case of a married individual filing a separate return, subparagraph (A) (other than with respect to sections 63(c)(4) and 151(d)(4)(A)) shall be applied by substituting \"$25\" for \"$50\" each place it appears.",
+      "sourceUrl": "https://www.law.cornell.edu/uscode/text/26/1"
+    },
+    "roundingStandardDeduction": {
+      "cite": "26 U.S.C. § 63(c)(7) (rounding clause), as amended by P.L. 119-21 (One Big Beautiful Bill Act)",
+      "quote": "If any increase under this clause is not a multiple of $50, such increase shall be rounded to the next lowest multiple of $50.",
+      "sourceUrl": "https://www.law.cornell.edu/uscode/text/26/63"
+    }
+  },
+  "thirdPartyProjections": {
+    "_note": "Projected 2027 federal bracket figures published by a named, checkable publisher. Empty as of 2026-08-11: Bloomberg Tax, Thomson Reuters and Wolters Kluwer all publish their first-look projections in September, after the August CPI release completes the statutory window, and none had published for tax year 2027 when this file was written. Machine-generated calculator sites are already ranking with 2027 figures; they are deliberately not listed, because none of them state a window, a month list, or a source.",
+    "checkedDate": "2026-08-11",
+    "items": []
+  }
+}

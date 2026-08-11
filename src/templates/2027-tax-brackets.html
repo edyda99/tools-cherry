@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>2027 Tax Brackets (PROJECTED) — Method, Inputs, and What's Still Pending</title>
+<meta name="description" content="PROJECTED 2027 federal tax brackets. See the statutory method, every index value the calculation needs, and which months are still unpublished.">
+<link rel="canonical" href="{{SITE_URL}}/2027-tax-brackets/">
+<meta property="og:title" content="2027 Tax Brackets (PROJECTED) — and what is still missing">
+<meta property="og:description" content="A projected-2027-brackets page that shows its inputs. The statutory 12-month window, every published index value with its source and date, and the months still outstanding.">
+<meta property="og:type" content="article">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Page-scoped. styles.css serves every page on the site, so nothing here
+     styles a bare shared class name. */
+  .p27-banner { margin:14px 0 18px; padding:14px 16px; border-left:5px solid #8a4b00;
+    border-radius:8px; background:rgba(178,107,0,.10); }
+  .p27-banner strong.p27-tag { display:inline-block; font-size:.78rem; letter-spacing:.08em;
+    padding:2px 8px; border-radius:5px; background:rgba(138,75,0,.18); color:#8a4b00; margin-right:8px; }
+  .p27-banner p { margin:8px 0 0; font-size:.95rem; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .p27-banner strong.p27-tag { color:#f0b86e; }
+  }
+  :root[data-theme="dark"] .p27-banner strong.p27-tag { color:#f0b86e; }
+  .p27-hold { margin:18px 0; padding:16px 18px; border:2px dashed rgba(128,128,128,.45);
+    border-radius:10px; }
+  .p27-hold h2 { margin-top:0; font-size:1.08rem; }
+  .p27-hold p { font-size:.95rem; }
+  .p27-wrap { overflow-x:auto; }
+  .p27-inputs { width:100%; border-collapse:collapse; font-size:.9rem; }
+  .p27-inputs th, .p27-inputs td { text-align:left; padding:8px 10px;
+    border-bottom:1px solid rgba(128,128,128,.22); vertical-align:top; }
+  .p27-inputs td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .p27-inputs tr.is-pending td, .p27-inputs tr.is-pending th { background:rgba(178,107,0,.07); }
+  .p27-inputs tr.is-gone td, .p27-inputs tr.is-gone th { background:rgba(160,60,60,.09); }
+  .p27-vintage { font-size:.78rem; opacity:.85; white-space:nowrap; }
+  .p27-quote { margin:12px 0; padding:10px 14px; border-left:4px solid #2a5d8f;
+    background:rgba(42,93,143,.07); border-radius:0 8px 8px 0; font-size:.93rem; }
+  .p27-quote cite { display:block; margin-top:6px; font-size:.82rem; opacity:.85; font-style:normal; }
+  .p27-count { font-variant-numeric:tabular-nums; font-weight:700; }
+</style>
+<script type="application/ld+json">{{ARTICLE_LD}}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Projected 2027 federal tax brackets</h1>
+
+    <div class="p27-banner">
+      <p><strong class="p27-tag">PROJECTED</strong> <strong>Not official.</strong> The IRS publishes the real 2027 figures in a Revenue Procedure {{NEXT_RP_TIMING}}. Nothing on this page comes from the IRS.</p>
+      <p>{{STATUS_LINE}}</p>
+    </div>
+
+    <p class="lede">Every year the tax brackets move with inflation, and the formula is public: it is written into the tax code, and it runs on a specific set of monthly price-index numbers the government publishes. That means a projection is possible before the IRS announces anything, so long as all the numbers it needs are out. This page is about whether they are. It shows the formula, lists every month the formula needs, and marks the ones the government has not published, so you can see for yourself how much is genuinely known today and how much anyone quoting a 2027 figure right now is filling in themselves.</p>
+
+    {{PROJECTION_BODY}}
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose" id="inputs">
+      <h2>What's still pending: the twelve months the 2027 figures are built from</h2>
+      <p>The law adjusts tax figures using an average of twelve monthly readings of a price index called the <strong>Chained CPI for All Urban Consumers</strong>, or C-CPI-U. For tax year 2027 the twelve months run from <strong>{{WINDOW_HUMAN}}</strong>. Here is every one of them, with the value, when it was published, and where it came from.</p>
+      <div class="p27-wrap">
+        <table class="p27-inputs">
+          <caption class="sr-only">C-CPI-U index values for the statutory tax-year-2027 window (PROJECTED page — inputs only)</caption>
+          <thead><tr><th scope="col">Month</th><th scope="col">Index value</th><th scope="col">Vintage</th><th scope="col">Published</th><th scope="col">Source</th></tr></thead>
+          <tbody>{{INPUT_TABLE}}</tbody>
+        </table>
+      </div>
+      <p class="muted-small">"Vintage" matters more than it looks. The government issues this index first as <em>initial</em>, then revises it to <em>interim</em>, and only finalises it about a year later. The IRS computes from the values as published at the time, so a figure derived from initial readings can move even after every month is out.</p>
+    </section>
+
+    {{GAP_SECTION}}
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose" id="method">
+      <h2>How this is computed</h2>
+      <p>Three rules do all the work, and all three are in the tax code rather than in anyone's spreadsheet.</p>
+      <h3>1. The twelve months are fixed by statute</h3>
+      {{QUOTE_WINDOW}}
+      <p>That sentence is what pins the window to <strong>{{WINDOW_HUMAN}}</strong> and no other twelve months. It is also why the professional publishers release their first 2027 estimates in September and not before: the last month of the window is not published until then.</p>
+      <h3>2. The adjustment is measured from a fixed year, not from last year</h3>
+      {{QUOTE_BASE}}
+      <p>This is the part most write-ups get wrong. The law does not take last year's bracket and grow it. It takes the original statutory dollar amount and grows it by the change since <strong>2016</strong>, every year, from scratch.</p>
+      <h3>3. The increase is rounded down, in steps of $50</h3>
+      {{QUOTE_ROUNDING}}
+      {{QUOTE_ROUNDING_MFS}}
+      <p>Note what is rounded: the <em>increase</em>, not the final amount, and it is rounded <strong>down</strong> to the next lowest multiple of $50 rather than to the nearest one. The standard deduction follows the same $50 step under its own provision:</p>
+      {{QUOTE_ROUNDING_SD}}
+      <h3>The known limitation, in plain English</h3>
+      <p>Because the law works cumulatively from a fixed base year, a shortcut that takes the 2026 brackets and multiplies them by one year of inflation is <strong>not the same calculation</strong>. The 2026 figures have already been rounded down once. Growing an already-rounded number and rounding again can land one $50 step away from what the IRS publishes, on some thresholds but not others. Any projection built that way — including one we might publish here later — is right to the dollar on most lines and can be $50 out on a few. We would rather tell you that up front than present a table that looks more precise than it is.</p>
+      {{MATH_BLOCK}}
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose" id="others">
+      <h2>Why our number may differ from other people's</h2>
+      {{THIRD_PARTY_BLOCK}}
+      <p>There is also a category of site worth naming without linking to. Several pages ranking for "2027 tax brackets" today publish a full set of dollar figures derived from a flat inflation rate with no stated window, no month list, and no source. A rate quoted to two decimal places with nothing behind it is not a projection, it is a guess with a table around it. The test to apply to any 2027 figure you find, ours included: <strong>can you see which months it used, and can you click through to them?</strong></p>
+    </section>
+
+    <section class="prose" id="when">
+      <h2>When the real numbers arrive</h2>
+      <p>The IRS publishes the official tax-year-2027 amounts in a <strong>Revenue Procedure</strong>. There is no announced date &mdash; recent years have landed in the second half of October, and the 2026 figures came out in <a href="{{RP2026_URL}}" rel="noopener" target="_blank">{{RP2026_NAME}}</a> on {{RP2026_DATE}}. When the 2027 procedure lands, the content on this page is replaced with the official figures — the projection does not quietly turn into a fact, and nothing here flips automatically.</p>
+      <p>In the meantime, the numbers that are official and final today are the <strong>2026</strong> ones, and they are the ones that govern the return you file next spring: <a href="/2026-tax-brackets/">see the official 2026 federal tax brackets</a>.</p>
+    </section>
+
+    <section class="prose">
+      <h2>What you can actually do with this today</h2>
+      <ul>
+        <li>Working out what you take home now: <a href="/#paycheck">paycheck calculator for your state</a>.</li>
+        <li>A bonus coming: <a href="/bonus-tax-calculator/">bonus tax calculator</a>.</li>
+        <li>Reading a W-2 and wondering why the wage boxes disagree: <a href="/w2-box-1-vs-box-3-vs-box-5/">Box 1 vs Box 3 vs Box 5</a>.</li>
+        <li>Social Security's 2027 increase runs on a different index and a different window: <a href="/2027-social-security-cola/">2027 COLA estimate and calculator</a>.</li>
+      </ul>
+    </section>
+
+    <p class="note">For general information only, not tax advice. Every figure marked PROJECTED on this page is our own calculation from published government index values, not an IRS figure, and the IRS may publish something different. Check your own situation with the IRS or a tax professional.</p>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a> · <a href="/embed/">Embed our calculators</a> · <a href="/corrections/">Corrections log</a></span>
+  </div>
+</footer>
+</body>
+</html>
