@@ -37,7 +37,12 @@ function buildStateSelect() {
   // option) wins when it names a real state.
   if (taxData.states.california) sel.value = 'california';
   const pre = new URLSearchParams(location.search).get('state');
-  if (pre && taxData.states[pre]) sel.value = pre;
+  // hasOwnProperty, not a plain truthy lookup: ?state=constructor (or toString,
+  // valueOf, __proto__) hits Object.prototype and reads as a real state, which
+  // sets sel.value to a slug no <option> carries. The select silently falls back
+  // to '', render() finds no state and returns, and the visitor gets a blank
+  // panel inside somebody else's page.
+  if (pre && Object.prototype.hasOwnProperty.call(taxData.states, pre)) sel.value = pre;
 }
 
 function seg(color, frac) {

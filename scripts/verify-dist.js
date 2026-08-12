@@ -135,6 +135,38 @@ const PAYCHECK_PROBE_STATES = ['ohio', 'california', 'texas', 'new-york'];
 // comparison above cannot pass by both sides being equally wrong.
 const PAYCHECK_PROBE_OHIO_NET = '63294.38';
 
+// --- The gallery snippet itself. Two of its parts are load-bearing in a way that
+// nothing else on this site is, because they ship to somebody ELSE's page where no
+// one here will ever look at them again:
+//
+//   HEIGHT. 960 is a MEASURED value, not a guess — 918px was the tallest of the 51
+//   states (New Jersey, which adds UI, DI and FLI rows to the breakdown) at the
+//   snippet's 560px max-width. Height here is data-dependent, so an innocent-looking
+//   smaller number makes the widget scroll inside its own frame for some states and
+//   not others. Checked in the copyable snippet AND in the preview beside it, so the
+//   two cannot drift apart and show a visitor one thing while handing them another.
+//
+//   ATTRIBUTION. The backlink under the widget is the entire consideration for the
+//   embed program: a third party gets a free, self-updating calculator, we get one
+//   link. It is also, character for character, the string embed-gallery.js searches
+//   for when it rewrites the snippet for a preselected state — so an edit to it does
+//   double damage, dropping the link AND silently turning the state preselect into a
+//   no-op that copies the generic snippet instead. Neither failure is visible on the
+//   page. Both are fatal here.
+//
+// The expected URL is built from the gallery's own canonical rather than a host
+// hardcoded in this file, so a deliberate SITE_URL change does not need a gate edit.
+const PAYCHECK_EMBED_HEIGHT = '960';
+const PAYCHECK_ATTRIBUTION_PATH = '/data/take-home-pay-by-state/';
+const PAYCHECK_ATTRIBUTION_TEXT = 'Take-Home Paycheck Calculator';
+const GALLERY_CANONICAL_RE = /<link rel="canonical" href="([^"]+)\/embed\/">/;
+// The snippet lives inside a <textarea>, so its markup is entity-encoded in the
+// built page; the preview iframe beside it is raw. That difference is what lets one
+// regex address each of them unambiguously.
+const SNIP_PAY_RE = /<textarea id="snip-pay"[^>]*>([\s\S]*?)<\/textarea>/;
+const PAYCHECK_PREVIEW_RE = /<iframe src="[^"]*\/embed\/paycheck-calculator\/"[^>]*\sheight="(\d+)"/;
+const HEIGHT_ATTR_RE = /height="(\d+)"/;
+
 /**
  * Gate the 2027 seasonal pages.
  * @param {string} DIST dist directory
@@ -542,6 +574,38 @@ async function verifyPaycheckEmbed(DIST, ROOT) {
     fails.push(`/embed/ does not link or embed /embed/${PAYCHECK_EMBED_DIR}/ — the widget has no snippet to copy.`);
   if (gallery.includes('{{'))
     fails.push('/embed/ contains an unsubstituted {{...}} placeholder.');
+
+  // The measured height and the attribution backlink, in the snippet a third party
+  // copies and in the preview shown beside it. See the constants above for why both.
+  if (gallery) {
+    const site = (gallery.match(GALLERY_CANONICAL_RE) || [])[1];
+    const snip = (gallery.match(SNIP_PAY_RE) || [])[1];
+    if (!site)
+      fails.push('/embed/ has no canonical link, so the expected attribution URL cannot be derived.');
+    if (!snip) {
+      fails.push('/embed/ has no <textarea id="snip-pay"> — the paycheck card has no snippet to copy.');
+    } else {
+      const snipHeight = (snip.match(HEIGHT_ATTR_RE) || [])[1];
+      if (snipHeight !== PAYCHECK_EMBED_HEIGHT)
+        fails.push(`/embed/ paycheck snippet hands out height="${snipHeight || '(none)'}", expected ` +
+          `"${PAYCHECK_EMBED_HEIGHT}". That number was measured (918px was the tallest of the 51 states); ` +
+          'a smaller one makes the widget scroll inside its own frame on a third-party page.');
+      if (site) {
+        // Entity-encoded, because it sits inside a <textarea>.
+        const wantAttribution = `Free &lt;a href="${site}${PAYCHECK_ATTRIBUTION_PATH}"&gt;` +
+          `${PAYCHECK_ATTRIBUTION_TEXT}&lt;/a&gt; by Tools Berry`;
+        if (!snip.includes(wantAttribution))
+          fails.push('/embed/ paycheck snippet no longer carries the attribution backlink verbatim. Expected:' +
+            list([wantAttribution]) + '\n    That link is the whole consideration for the embed program, and ' +
+            'embed-gallery.js matches this exact string to build the per-state snippet — an edit drops the ' +
+            'backlink AND makes the state preselect a silent no-op.');
+      }
+    }
+    const previewHeight = (gallery.match(PAYCHECK_PREVIEW_RE) || [])[1];
+    if (previewHeight !== PAYCHECK_EMBED_HEIGHT)
+      fails.push(`/embed/ paycheck preview iframe is height="${previewHeight || '(none)'}", expected ` +
+        `"${PAYCHECK_EMBED_HEIGHT}" — the preview must show what the snippet hands out, not a different size.`);
+  }
 
   // --- Re-computation, from the injected copy AND from the source file.
   let computePaycheck, taxData;
