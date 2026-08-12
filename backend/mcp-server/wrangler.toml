@@ -7,5 +7,12 @@ name = "tools-berry-mcp"
 main = "worker.js"
 compatibility_date = "2026-07-18"
 
+# Canonical endpoint. workers.dev stays live as a fallback alias; every listing
+# (registry, directories, /mcp page, README) cites mcp.tools-berry.com.
+routes = [
+  { pattern = "mcp.tools-berry.com", custom_domain = true }
+]
+workers_dev = true
+
 [observability]
 enabled = true
