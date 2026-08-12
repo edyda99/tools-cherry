@@ -4,8 +4,12 @@ A remote [MCP](https://modelcontextprotocol.io) server that exposes the site's o
 US payroll-tax engine to AI clients. Standalone Cloudflare Worker — **not** part of the
 `tools-cherry` Pages project, and it changes no page on the site.
 
-Endpoint: `https://tools-berry-mcp.<account>.workers.dev` (POST JSON-RPC 2.0, Streamable HTTP).
-A `GET` on the same URL returns a plain-JSON description of the server; `GET /health` returns `{ok:true}`.
+Endpoint: `https://mcp.tools-berry.com` (POST JSON-RPC 2.0, Streamable HTTP); alias
+`https://tools-berry-mcp.<account>.workers.dev`. A `GET` on the same URL returns a plain-JSON
+description of the server; `GET /health` returns `{ok:true}`; `GET /?rpc=<url-encoded JSON-RPC>`
+executes one read-only request (smoke probe for networks that block POST or `*.workers.dev`).
+Public mirror of this directory (engine + data included): https://github.com/edyda99/tools-berry-mcp
+— listed in the MCP registry as `com.tools-berry/paycheck`.
 
 ## Why it exists
 
