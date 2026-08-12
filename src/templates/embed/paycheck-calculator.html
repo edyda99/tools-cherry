@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Take-Home Paycheck Calculator {{TAX_YEAR}} — Tools Berry (embed)</title>
+<meta name="robots" content="noindex, follow">
+<link rel="canonical" href="{{SITE_URL}}/data/take-home-pay-by-state/">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  body { margin: 0; padding: 14px; background: transparent; }
+  .embed-wrap { max-width: 520px; margin: 0 auto; }
+  .embed-wrap h1 { font-size: 1.15rem; margin: 0 0 10px; }
+  .pw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  @media (max-width: 430px) { .pw-grid { grid-template-columns: 1fr; } }
+  .pw-big { font-size: 1.9rem; font-weight: 750; letter-spacing: -.01em; color: var(--accent); margin: 14px 0 2px; font-variant-numeric: tabular-nums; }
+  .pw-big small { font-size: .85rem; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+  .pw-sub { color: var(--muted); font-size: .85rem; margin: 0 0 10px; font-variant-numeric: tabular-nums; }
+  .pw-bar { display: flex; height: 11px; border-radius: 999px; overflow: hidden; background: rgba(128,128,128,.18); }
+  .pw-bar i { display: block; height: 100%; }
+  .pw-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 7px 0 8px; font-size: .78rem; color: var(--muted); }
+  .pw-legend b { display: inline-block; width: 8px; height: 8px; border-radius: 3px; margin-right: 5px; }
+  .pw-rows { border-top: 1px solid rgba(128,128,128,.25); }
+  .pw-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: .92rem; border-bottom: 1px dashed rgba(128,128,128,.2); }
+  .pw-row span:first-child { color: var(--muted); }
+  .pw-row span:last-child { font-variant-numeric: tabular-nums; }
+  .pw-row.pw-total { border-bottom: none; font-weight: 700; }
+  .pw-row.pw-total span { color: var(--accent); }
+  .pw-more { margin: 8px 0 0; font-size: .88rem; }
+  .embed-credit { margin-top: 14px; text-align: center; font-size: .85rem; opacity: .9; }
+</style>
+</head>
+<body>
+<div class="embed-wrap">
+  <h1>Take-Home Paycheck Calculator ({{TAX_YEAR}})</h1>
+  <section class="calc" aria-label="Take-home paycheck calculator">
+    <form id="paycheckForm" autocomplete="off" onsubmit="return false">
+      <div class="pw-grid">
+        <div class="field">
+          <label for="salary">Salary (USD a year)</label>
+          <input id="salary" type="text" inputmode="decimal" data-money autocomplete="off" value="80000">
+        </div>
+        <div class="field">
+          <label for="state">State</label>
+          <select id="state"></select>
+        </div>
+        <div class="field">
+          <label for="filingStatus">Filing status</label>
+          <select id="filingStatus">
+            <option value="single">Single / Married filing separately</option>
+            <option value="married">Married filing jointly</option>
+            <option value="head_of_household">Head of household</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="frequency">Paid</label>
+          <select id="frequency">
+            <option value="weekly">Every week</option>
+            <option value="biweekly" selected>Every 2 weeks</option>
+            <option value="semimonthly">Twice a month</option>
+            <option value="monthly">Every month</option>
+            <option value="annual">Once a year</option>
+          </select>
+        </div>
+      </div>
+    </form>
+    <div id="out" aria-live="polite"></div>
+    <p class="muted-small">Estimate for even wages across {{TAX_YEAR}}, before local city or county income taxes. Not tax advice.</p>
+  </section>
+  <p class="embed-credit">Free <a href="{{SITE_URL}}/data/take-home-pay-by-state/" target="_blank" rel="noopener">Take-Home Paycheck Calculator</a> by {{SITE_NAME}}</p>
+</div>
+
+<script>
+  window.__PAYCHECK_EMBED__ = {{PAYCHECK_EMBED_JSON}};
+</script>
+<script type="module" src="/assets/embed-paycheck.js"></script>
+</body>
+</html>
