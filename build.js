@@ -47,6 +47,38 @@ const SITE = {
   indexNowKey: '9372e11bcbe34b0e993865299aae29dc'
 };
 
+// --- the remote MCP server, as the two llms*.txt files describe it -----------
+// The server itself is backend/mcp-server/ (a standalone Cloudflare Worker, not
+// part of this Pages project) and its human-readable page is /mcp/. Both files
+// below are written for machines, so the endpoint belongs in them: an assistant
+// reading llms.txt can CALL this and get the real figure instead of quoting a
+// page. Stated once here because llms.txt and llms-full.txt would otherwise carry
+// two hand-typed copies of the same URL and the same four tool names.
+// Both take the build's tax year rather than hard-coding one, the same way every
+// other year-bearing sentence in this file does.
+const MCP_ENDPOINT = 'https://mcp.tools-berry.com';
+const MCP_PAGE = `${SITE.url}/mcp/`;
+const MCP_TOOL_NAMES = 'compute_take_home, compute_bonus_withholding, compare_states, get_state_rates';
+const mcpOneLiner = (year) =>
+  `A live MCP (Model Context Protocol) server exposing this site's own ${year} US paycheck and ` +
+  `payroll-tax engine as callable tools, so a computed answer matches the corresponding page on ` +
+  `this site exactly.`;
+const mcpLlmsSection = (year) =>
+  `## MCP server\n\n` +
+  `${mcpOneLiner(year)} Endpoint: ${MCP_ENDPOINT} (Streamable HTTP, JSON-RPC 2.0, no signup, no ` +
+  `API key, free). Tools: ${MCP_TOOL_NAMES}.\n\n` +
+  `- [MCP server](${MCP_PAGE}): How to connect Claude, Cursor or any other MCP client, what each ` +
+  `of the four tools answers, and a curl example.\n\n`;
+const mcpLlmsFullSection = (year) =>
+  `## MCP server\n\n` +
+  `### Tools Berry MCP server\n` +
+  `Endpoint: ${MCP_ENDPOINT}\n` +
+  `Page: ${MCP_PAGE}\n` +
+  `What it does: ${mcpOneLiner(year)}\n` +
+  `Transport: Streamable HTTP, JSON-RPC 2.0. No signup, no API key, free. Rate limit 120 ` +
+  `requests/minute/IP.\n` +
+  `Tools: ${MCP_TOOL_NAMES}\n\n`;
+
 // Cloudflare Turnstile site key for the PDF->Word server-fallback widget. The site
 // key is PUBLIC, so it's safe to hardcode — and defaulting to the real one means a
 // build that forgets the env var still works (a forgotten env var was baking in the
@@ -1178,6 +1210,20 @@ const RELATED_OVERRIDES = {
     { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
     { name: 'Hours Calculator (Time Card)', path: '/hours-calculator/' },
     { name: 'Overtime Tax by State (Data Study)', path: '/data/overtime-tax-by-state/' }
+  ],
+  // /mcp/ is a developer page about the remote MCP server, and TOOLS has no entry
+  // for it, so the cat-based pick fell through to the 'calc' default and put a
+  // Pomodoro timer and an ovulation calculator under a JSON-RPC endpoint. The
+  // honest set is the pages the server's four tools actually compute: paycheck,
+  // bonus, the by-state comparison, and the rate tables behind them.
+  '/mcp/': [
+    { name: 'Take-Home Pay by State (Data Study)', path: '/data/take-home-pay-by-state/' },
+    { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
+    { name: '2026 State Bonus Withholding Rates', path: '/data/state-supplemental-withholding-rates-2026/' },
+    { name: '2026 Federal Tax Brackets', path: '/2026-tax-brackets/' },
+    { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
+    { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
+    { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' }
   ],
   '/embed/': [
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
@@ -6675,6 +6721,7 @@ async function main() {
   const compressPdfTpl = await read(join(SRC, 'templates', 'compress-pdf.html'));
   const pdfToolsTpl = await read(join(SRC, 'templates', 'pdf-tools.html'));
   const pdfAltTpl = await read(join(SRC, 'templates', 'pdf-word-converter-alternatives.html'));
+  const mcpTpl = await read(join(SRC, 'templates', 'mcp.html'));
   const qrTpl = await read(join(SRC, 'templates', 'qr-generator.html'));
   const circleTpl = await read(join(SRC, 'templates', 'circle-crop.html'));
   const photoTpl = await read(join(SRC, 'templates', 'passport-photo-maker.html'));
@@ -8168,6 +8215,17 @@ async function main() {
     fillTool(pdfAltTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/pdf-word-converter-alternatives/')
   );
   urls.push(`${SITE.url}/pdf-word-converter-alternatives/`);
+
+  // /mcp/ — the landing page for the remote MCP server (backend/mcp-server/,
+  // deployed separately at mcp.tools-berry.com, NOT part of this Pages project).
+  // Pure content page, no JS asset and no calculator, so it takes the same
+  // fillTool() path as /pdf-tools/ and /pdf-word-converter-alternatives/ above.
+  await mkdir(join(DIST, 'mcp'), { recursive: true });
+  await writeFile(
+    join(DIST, 'mcp', 'index.html'),
+    fillTool(mcpTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/mcp/')
+  );
+  urls.push(`${SITE.url}/mcp/`);
 
   // qr code generator (standalone tool page)
   await mkdir(join(DIST, 'qr-code-generator'), { recursive: true });
@@ -10971,7 +11029,15 @@ async function main() {
     // the gallery listing, not a widget, and unlike the widgets it does carry
     // the AdSense loader. A framable ad-bearing page invites invisible-iframe
     // impression fraud, so the wildcard must not be allowed to cover it.
-    `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: DENY\n  Cache-Control: public, max-age=0, must-revalidate\n\n/embed/*\n  ! X-Frame-Options\n  Content-Security-Policy: frame-ancestors *\n\n/embed/\n  ! Content-Security-Policy\n  X-Frame-Options: DENY\n\n/assets/*\n  ! Cache-Control\n  Cache-Control: public, max-age=300, must-revalidate\n\n/assets/*.js\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n\n/assets/*.css\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n`
+    // The last block is the MCP-registry verification file. It is the only
+    // artifact we serve with no filename extension, so Cloudflare has nothing to
+    // infer a type from, and `/*` above sets `nosniff`, which forbids the client
+    // from guessing either. Between them that is a file no consumer is allowed to
+    // read as text. Stating the type is the fix; it sets ONLY Content-Type, which
+    // no other block sets, so there is no value to unset and nothing to join
+    // against. Cache-Control is deliberately left as the `/*` default
+    // (max-age=0, must-revalidate) — re-verification must see the live line.
+    `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: DENY\n  Cache-Control: public, max-age=0, must-revalidate\n\n/embed/*\n  ! X-Frame-Options\n  Content-Security-Policy: frame-ancestors *\n\n/embed/\n  ! Content-Security-Policy\n  X-Frame-Options: DENY\n\n/assets/*\n  ! Cache-Control\n  Cache-Control: public, max-age=300, must-revalidate\n\n/assets/*.js\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n\n/assets/*.css\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n\n/.well-known/mcp-registry-auth\n  Content-Type: text/plain; charset=utf-8\n`
   );
 
   // robots + sitemap
@@ -11007,6 +11073,27 @@ async function main() {
   if (SITE.indexNowKey) {
     await writeFile(join(DIST, `${SITE.indexNowKey}.txt`), `${SITE.indexNowKey}\n`);
   }
+
+  // /.well-known/mcp-registry-auth — MCP-registry domain verification for the
+  // remote MCP server (backend/mcp-server/, served at mcp.tools-berry.com, and
+  // described on /mcp/). The registry fetches this over the APEX domain to prove
+  // we control tools-berry.com before it will publish a server namespaced under
+  // it, so the file has to come off this Pages project even though the Worker it
+  // vouches for lives elsewhere.
+  //
+  // Written, not copied. build.js `rm -rf dist/` then writes every file
+  // explicitly, so there is no static-passthrough step that could skip a
+  // dot-directory. Cloudflare Pages ignores dotfiles in an upload with exactly
+  // one documented exception, `.well-known/`, which is the reason this path
+  // works at all and the reason it must stay under that directory.
+  //
+  // Single line, terminated by one newline. `p=` is the public half of the
+  // registry signing key; the private half is not in this repo and never should be.
+  await mkdir(join(DIST, '.well-known'), { recursive: true });
+  await writeFile(
+    join(DIST, '.well-known', 'mcp-registry-auth'),
+    'v=MCPv1; k=ed25519; p=rEFVmGI0wnlH86QEcXw4ZzvN7qQmBAAcGkLPXCPUDZQ=\n'
+  );
 
   // llms.txt — AI/LLM discovery file (llms.txt markdown convention). Regenerated
   // every build from TOOLS + the built state list; NOT added to the sitemap.
@@ -11066,6 +11153,10 @@ async function main() {
     `figure in the reference tables is computed at build time by the site's own open paycheck ` +
     `engine from published IRS, SSA and state Department of Revenue tables, and the datasets are ` +
     `free to quote and republish with attribution under CC BY 4.0.\n\n` +
+    // First section on purpose. This file's audience is an assistant deciding what
+    // to do with the site, and the endpoint lets it COMPUTE the answer rather than
+    // read one off a page, so it is the most useful thing here.
+    mcpLlmsSection(year) +
     `## Data and reference tables\n\n` +
     `Computed ${year} datasets, each with a CSV and JSON download and a stated primary source. ` +
     `The sentence after each link is that page's own computed headline figure.\n\n` +
@@ -11221,7 +11312,13 @@ async function main() {
     `Machine-readable reference for every tool and dataset on ${SITE.name}. Generated at build ` +
     `time from the same descriptions and data files the site itself uses — see /llms.txt for a ` +
     `shorter index. Every tool runs entirely in the browser; nothing you enter or upload is sent ` +
-    `to a server. Order is stable across builds.\n\n` +
+    // This sentence used to end at "sent to a server", which the section directly
+    // below it now contradicts. The MCP endpoint IS a server, so the claim has to
+    // name it as the exception rather than be quietly false about it.
+    `to a server, with one exception: the opt-in MCP server described next, which computes and ` +
+    `stores nothing. Order is stable across builds.\n\n` +
+    // Same reasoning as llms.txt: a consumer of this file can call the endpoint.
+    mcpLlmsFullSection(year) +
     (llmsKeyFacts
       ? `## Key ${year} figures\n\n` +
         `Read out of src/data/tax-data-2026.json at build time, the same file every calculator ` +
