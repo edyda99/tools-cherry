@@ -35,8 +35,22 @@ if (paySel && paySnip) {
     .replace('/embed/paycheck-calculator/', `/embed/paycheck-calculator/?state=${slug}`)
     .replace('/data/take-home-pay-by-state/">Take-Home Paycheck Calculator<',
       `/${slug}-paycheck-calculator/">${name} Paycheck Calculator<`);
-  paySel.addEventListener('change', () => {
+  const sync = () => {
     const name = (paySel.selectedOptions[0]?.textContent || '').trim();
     paySnip.value = paySel.value ? forState(paySel.value, name) : DEFAULT_SNIP;
-  });
+  };
+  paySel.addEventListener('change', sync);
+
+  // Arriving from a state page's "Embed this calculator" link (/embed/?state=ohio):
+  // preselect that state and run the SAME rewrite the change handler runs, so what
+  // the visitor lands on is exactly what the dropdown would have produced. Matched
+  // against the actual <option> values via a Set — like the widget's hasOwnProperty
+  // guard, this cannot be fooled by an inherited key such as ?state=constructor,
+  // which a plain-object lookup would wave through and leave the select on ''.
+  const pre = new URLSearchParams(location.search).get('state');
+  const known = new Set([...paySel.options].map((o) => o.value));
+  if (pre && known.has(pre)) {
+    paySel.value = pre;
+    sync();
+  }
 }

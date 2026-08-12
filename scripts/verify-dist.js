@@ -156,6 +156,20 @@ const PAYCHECK_PROBE_OHIO_NET = '63294.38';
 //
 // The expected URL is built from the gallery's own canonical rather than a host
 // hardcoded in this file, so a deliberate SITE_URL change does not need a gate edit.
+// The contextual embed note on the 51 state paycheck pages and the 51 state bonus
+// pages. It is NOT the generic footer link ("Embed our calculators", small print,
+// on every page with a footer) — this is the in-context door, and on a paycheck page
+// its href carries ?state=<slug> so the gallery preselects the state whose page sent
+// the visitor. A page that silently stops rendering it loses its only contextual
+// entry to the embed program and nothing else about the page would look wrong.
+//
+// Both halves are checked because they fail independently: the bold lead is what a
+// reader scans for, the anchor is what actually carries the (per-state) URL. The
+// shape is copied from the 18 tool templates that already ship this note, so the
+// state pages cannot drift into a second, competing convention for one thing.
+const EMBED_NOTE_LEAD = '<strong>Embed this calculator.</strong>';
+const EMBED_NOTE_ANCHOR_TEXT = 'Get the snippet';
+
 const PAYCHECK_EMBED_HEIGHT = '960';
 const PAYCHECK_ATTRIBUTION_PATH = '/data/take-home-pay-by-state/';
 const PAYCHECK_ATTRIBUTION_TEXT = 'Take-Home Paycheck Calculator';
@@ -651,6 +665,41 @@ async function verifyPaycheckEmbed(DIST, ROOT) {
   if (drift.length)
     fails.push(`/embed/${PAYCHECK_EMBED_DIR}/ disagrees with the tax data the 51 state pages use, so the ` +
       'widget on a third-party site would answer differently from ours:' + list(drift));
+
+  // --- The contextual embed note on both state families. The paycheck half is the
+  // one that carries state, and it is checked per slug: a page pointing at another
+  // state's preselect is worse than no link, because the visitor copies a widget for
+  // the wrong state and never finds out.
+  const missingCta = [];
+  let ctaChecked = 0;
+  for (const slug of Object.keys(taxData.states)) {
+    for (const [dir, href] of [
+      [`${slug}-paycheck-calculator`, `/embed/?state=${slug}`],
+      [`${slug}-bonus-tax-calculator`, '/embed/'],
+    ]) {
+      let page;
+      try {
+        page = await readFile(join(DIST, dir, 'index.html'), 'utf8');
+      } catch {
+        missingCta.push(`/${dir}/ was not written at all`);
+        continue;
+      }
+      ctaChecked++;
+      if (!page.includes(EMBED_NOTE_LEAD))
+        missingCta.push(`/${dir}/ has no ${EMBED_NOTE_LEAD} lead`);
+      if (!page.includes(`<a href="${href}">${EMBED_NOTE_ANCHOR_TEXT}</a>`))
+        missingCta.push(`/${dir}/ has no <a href="${href}">${EMBED_NOTE_ANCHOR_TEXT}</a>`);
+    }
+  }
+  // Reported so a loop that silently stopped covering the full roster (a shrunken
+  // taxData, a renamed directory) cannot look identical to a clean pass.
+  const ctaExpected = PAYCHECK_JURISDICTIONS * 2;
+  if (ctaChecked !== ctaExpected && !missingCta.length)
+    fails.push(`the contextual embed-note gate examined ${ctaChecked} state page(s), expected ${ctaExpected} ` +
+      `(${PAYCHECK_JURISDICTIONS} paycheck + ${PAYCHECK_JURISDICTIONS} bonus).`);
+  if (missingCta.length)
+    fails.push(`${missingCta.length} problem(s) with the contextual embed note across the ${ctaExpected} ` +
+      'state pages:' + list(missingCta));
 
   return fails;
 }
