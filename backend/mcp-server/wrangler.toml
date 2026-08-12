@@ -1,0 +1,11 @@
+# Standalone Worker (NOT part of the tools-cherry Pages project). Remote MCP
+# server exposing the site's 2026 paycheck engine over Streamable HTTP.
+# Deploy: npx wrangler deploy   (from this directory, stored OAuth login).
+# NEVER set CLOUDFLARE_API_TOKEN — the account token is Analytics-only and fails
+# deploys with auth 10000; wrangler must fall through to OAuth.
+name = "tools-berry-mcp"
+main = "worker.js"
+compatibility_date = "2026-07-18"
+
+[observability]
+enabled = true
