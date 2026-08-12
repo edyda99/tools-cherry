@@ -75,8 +75,16 @@ const mcpLlmsFullSection = (year) =>
   `Endpoint: ${MCP_ENDPOINT}\n` +
   `Page: ${MCP_PAGE}\n` +
   `What it does: ${mcpOneLiner(year)}\n` +
-  `Transport: Streamable HTTP, JSON-RPC 2.0. No signup, no API key, free. Rate limit 120 ` +
-  `requests/minute/IP.\n` +
+  `Transport: Streamable HTTP, JSON-RPC 2.0. No signup, no API key, free.\n` +
+  // Both numbers stated, and the first one hedged. The counter lives in the
+  // Worker isolate, so 120/min is what ONE instance enforces, not a fleet-wide
+  // guarantee — a consumer sizing a batch job against an exact figure would be
+  // sizing against something we do not actually promise.
+  `Limits: about 120 requests a minute per IP, counted per Worker isolate and therefore ` +
+  `approximate, and at most 50 messages in one JSON-RPC batch.\n` +
+  `Storage: it computes an answer and stores nothing — no account, no session, no database. The ` +
+  `only state it holds is an in-memory request counter keyed by IP address, covering the last ` +
+  `minute, which is what the rate limit is counted from.\n` +
   `Tools: ${MCP_TOOL_NAMES}\n\n`;
 
 // Cloudflare Turnstile site key for the PDF->Word server-fallback widget. The site
@@ -11311,12 +11319,21 @@ async function main() {
     `# ${SITE.name} — full tool reference\n\n` +
     `Machine-readable reference for every tool and dataset on ${SITE.name}. Generated at build ` +
     `time from the same descriptions and data files the site itself uses — see /llms.txt for a ` +
-    `shorter index. Every tool runs entirely in the browser; nothing you enter or upload is sent ` +
-    // This sentence used to end at "sent to a server", which the section directly
-    // below it now contradicts. The MCP endpoint IS a server, so the claim has to
-    // name it as the exception rather than be quietly false about it.
-    `to a server, with one exception: the opt-in MCP server described next, which computes and ` +
-    `stores nothing. Order is stable across builds.\n\n` +
+    // This sentence used to be a flat "nothing you enter or upload is sent to a
+    // server". It was already false before the MCP section existed: functions/api/
+    // holds three opt-in endpoints that send user data by design (the server-mode
+    // PDF conversion uploads the file, the rating widget posts a rating and
+    // comment, the report link posts the inputs and the result shown). An
+    // assistant quotes this file verbatim, so a claim that SOUNDS exhaustive has
+    // to BE exhaustive. The MCP server is deliberately not framed as one of those
+    // exceptions: nothing a visitor types into a page reaches it, its callers are
+    // AI clients, so it is a separate fact rather than a carve-out from this one.
+    `shorter index. The calculators run in the browser and what you type into a page stays on ` +
+    `your device, except where the page itself says otherwise: the optional server-side PDF ` +
+    `conversion, the rating widget and the "report a wrong result" link each send exactly what ` +
+    `they describe. The MCP server below sits outside all of that — AI assistants call it ` +
+    `directly, and nothing a visitor types into a page reaches it. Order is stable across ` +
+    `builds.\n\n` +
     // Same reasoning as llms.txt: a consumer of this file can call the endpoint.
     mcpLlmsFullSection(year) +
     (llmsKeyFacts

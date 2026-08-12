@@ -55,20 +55,6 @@
       arithmetic and the figure it gives you matches the page on this site to the cent, instead of
       being a plausible-looking number a language model produced from memory.</p>
 
-      <h2>The endpoint</h2>
-      <div class="mcp-endpoint">
-        <span class="mcp-url">https://mcp.tools-berry.com</span>
-        <dl>
-          <dt>Transport</dt><dd>Streamable HTTP (POST to that URL)</dd>
-          <dt>Protocol</dt><dd>JSON-RPC 2.0</dd>
-          <dt>Auth</dt><dd>None. No signup, no API key, no account.</dd>
-          <dt>Price</dt><dd>Free.</dd>
-        </dl>
-        <p class="mcp-alias">Also reachable at its Cloudflare alias,
-        <span class="mcp-inline">https://tools-berry-mcp.edydaherz.workers.dev</span>, if you ever
-        need to bypass the custom domain. Both serve the same worker.</p>
-      </div>
-
       <h2>What your AI can do with it</h2>
       <p>Four tools. You do not have to name them: an assistant that has connected to the server
       picks the right one from a plain question.</p>
@@ -85,7 +71,7 @@
             </tr>
             <tr>
               <td><span class="mcp-inline">compute_bonus_withholding</span></td>
-              <td>What is actually withheld from a bonus: the federal flat 22% supplemental rate (37% above $1,000,000), how the state treats supplemental wages, and FICA.</td>
+              <td>What is actually withheld from a bonus: the federal flat 22% supplemental rate (37% above $1,000,000 of supplemental wages), how the state treats supplemental wages, and FICA.</td>
               <td>"How much of a $15,000 bonus do I keep in Georgia?"</td>
             </tr>
             <tr>
@@ -102,6 +88,20 @@
         </table>
       </div>
       <p class="muted-small">Coverage is all 50 states plus the District of Columbia, tax year 2026.</p>
+
+      <h2>The endpoint</h2>
+      <div class="mcp-endpoint">
+        <span class="mcp-url">https://mcp.tools-berry.com</span>
+        <dl>
+          <dt>Transport</dt><dd>Streamable HTTP (POST to that URL)</dd>
+          <dt>Protocol</dt><dd>JSON-RPC 2.0, a plain-JSON request format</dd>
+          <dt>Auth</dt><dd>None. No signup, no API key, no account.</dd>
+          <dt>Price</dt><dd>Free.</dd>
+        </dl>
+        <p class="mcp-alias">Also reachable at its Cloudflare alias,
+        <span class="mcp-inline">https://tools-berry-mcp.edydaherz.workers.dev</span>, if you ever
+        need to bypass the custom domain. Both serve the same worker.</p>
+      </div>
 
       <h2>Connect</h2>
 
@@ -140,12 +140,15 @@
         <li><strong>The same engine as the pages.</strong> The server imports this site's own paycheck
         engine and the same 2026 data files, rather than a second copy of the math. This site's test
         suite recomputes the server's answers against that engine and requires them to match to the
-        cent across all 51 jurisdictions, so the server cannot quietly drift away from the pages.</li>
-        <li><strong>Stateless.</strong> Nothing you send is stored. No session, no database, no
-        bindings, nothing kept between one request and the next.</li>
-        <li><strong>No account, and a generous ceiling.</strong> No signup and no API key. The only
-        limit is 120 requests per minute per IP, which exists to stop a runaway loop rather than to
-        meter you.</li>
+        cent across all 51 jurisdictions, and the server you are calling runs that same tested code.</li>
+        <li><strong>Nothing you ask is stored.</strong> No account, no session, no database: your
+        questions and the figures that come back are not written down anywhere. The one thing the
+        server holds is a request counter keyed by IP address, covering the last minute and living
+        in memory only, which is what the rate limit below is counted from.</li>
+        <li><strong>A generous ceiling.</strong> Two limits apply, both there to stop a runaway loop
+        rather than to meter you: about 120 requests a minute per IP address, and at most 50
+        messages in a single JSON-RPC batch. The first is counted separately by each server
+        instance, so treat it as a rough ceiling rather than an exact quota.</li>
         <li><strong>Estimates, not advice.</strong> Figures are withholding-style estimates for a
         single filer by default, one job, no pre-tax deductions and no credits beyond the standard
         deduction. Local and city income taxes are not included. This is not tax advice and it is
