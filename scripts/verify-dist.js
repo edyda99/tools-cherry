@@ -104,6 +104,37 @@ const WAGEBOX_PAGE = 'w2-box-1-vs-box-3-vs-box-5';
 const DOLLAR_FIGURE = /\$\s?\d[\d,]*(?:\.\d+)?/g;
 const PROJECTION_FLOOR = 1000;
 
+// --- The all-states take-home paycheck widget at /embed/paycheck-calculator/.
+// It is the one thing on this site a stranger puts in front of their own readers
+// with our name under it, and unlike every page here it computes from a COPY of
+// the tax data injected into the page (build.js runs the source through
+// stripInternal to drop provenance keys) rather than from the file itself. That
+// copy is the risk: a strip that took one key too many, or a payload that lost
+// states, produces a widget that renders perfectly and answers wrong, on somebody
+// else's site, where nobody here would ever see it.
+//
+// So the gate below re-computes the SAME paycheck twice — once from the JSON
+// actually embedded in the built page, once from src/data/tax-data-2026.json —
+// and requires them to agree to the cent. The four probe states are chosen to
+// exercise different code paths in the engine: Ohio (graduated, with a
+// zero-tax bottom band), California (graduated, high rate, plus a state
+// disability payroll program), Texas (no state income tax at all), and New York
+// (graduated plus its own payroll program). One absolute figure is pinned too,
+// so a change that corrupts BOTH sides identically still fails.
+const PAYCHECK_EMBED_DIR = 'paycheck-calculator';
+// The payload is written on one line as `window.__PAYCHECK_EMBED__ = {...};`.
+// Greedy to the LAST `;` on that line, because a disclaimer string inside the
+// JSON may legitimately contain one.
+const PAYCHECK_EMBED_JSON_RE = /window\.__PAYCHECK_EMBED__\s*=\s*(.+);\s*$/m;
+const PAYCHECK_EMBED_SCRIPT_RE = /src="(\/assets\/embed-paycheck\.[A-Za-z0-9_-]+\.js)"/;
+const PAYCHECK_OPTION_RE = /<option value="([^"]*)"/g;
+const PAYCHECK_JURISDICTIONS = 51;
+const PAYCHECK_PROBE_SALARY = 80000;
+const PAYCHECK_PROBE_STATES = ['ohio', 'california', 'texas', 'new-york'];
+// Ohio, single, biweekly, $80,000 gross. Pinned as a literal so the two-sided
+// comparison above cannot pass by both sides being equally wrong.
+const PAYCHECK_PROBE_OHIO_NET = '63294.38';
+
 /**
  * Gate the 2027 seasonal pages.
  * @param {string} DIST dist directory
@@ -445,6 +476,121 @@ async function verifyLadderCsv(DIST, ROOT) {
   return fails;
 }
 
+/**
+ * Gate the all-states take-home paycheck widget and its gallery card.
+ * @param {string} DIST dist directory
+ * @param {string} ROOT repo root (holds src/data and src/engine)
+ * @returns {Promise<string[]>} failure messages, empty when good
+ */
+async function verifyPaycheckEmbed(DIST, ROOT) {
+  const fails = [];
+  let html;
+  try {
+    html = await readFile(join(DIST, 'embed', PAYCHECK_EMBED_DIR, 'index.html'), 'utf8');
+  } catch {
+    fails.push(`/embed/${PAYCHECK_EMBED_DIR}/ was not written — the flagship embed widget is missing.`);
+    return fails;
+  }
+
+  // An embed that Google can index competes with the real tool for its own terms.
+  if (!html.includes('noindex'))
+    fails.push(`/embed/${PAYCHECK_EMBED_DIR}/ carries no noindex — an iframe widget must never be indexable.`);
+
+  // The widget script, at its content-hashed name, must be on disk. A miss here is
+  // a blank widget on a third-party page.
+  const scriptRef = html.match(PAYCHECK_EMBED_SCRIPT_RE);
+  if (!scriptRef) {
+    fails.push(`/embed/${PAYCHECK_EMBED_DIR}/ does not reference a hashed /assets/embed-paycheck.<hash>.js ` +
+      '— the widget page would load with no calculator on it.');
+  } else {
+    try {
+      await stat(join(DIST, scriptRef[1].replace(/^\//, '').split('/').join(sep)));
+    } catch {
+      fails.push(`/embed/${PAYCHECK_EMBED_DIR}/ references ${scriptRef[1]}, which is not in dist/assets/.`);
+    }
+  }
+
+  // The injected tax-data copy: present, parseable, and complete.
+  const m = html.match(PAYCHECK_EMBED_JSON_RE);
+  let injected = null;
+  if (!m) {
+    fails.push(`/embed/${PAYCHECK_EMBED_DIR}/ carries no window.__PAYCHECK_EMBED__ payload ` +
+      '(unsubstituted token, or the script line changed shape).');
+  } else {
+    try {
+      injected = JSON.parse(m[1]);
+    } catch (e) {
+      fails.push(`/embed/${PAYCHECK_EMBED_DIR}/: window.__PAYCHECK_EMBED__ does not parse as JSON (${e.message}).`);
+    }
+  }
+  if (injected) {
+    const n = Object.keys(injected.states || {}).length;
+    if (n !== PAYCHECK_JURISDICTIONS)
+      fails.push(`/embed/${PAYCHECK_EMBED_DIR}/ ships ${n} state(s), expected ${PAYCHECK_JURISDICTIONS} ` +
+        '(50 states plus the District of Columbia).');
+  }
+
+  // --- The gallery card. A widget nobody can find the snippet for is not shipped.
+  let gallery;
+  try {
+    gallery = await readFile(join(DIST, 'embed', 'index.html'), 'utf8');
+  } catch {
+    fails.push('/embed/ (the gallery) was not written.');
+    gallery = '';
+  }
+  if (gallery && !gallery.includes(`/embed/${PAYCHECK_EMBED_DIR}/`))
+    fails.push(`/embed/ does not link or embed /embed/${PAYCHECK_EMBED_DIR}/ — the widget has no snippet to copy.`);
+  if (gallery.includes('{{'))
+    fails.push('/embed/ contains an unsubstituted {{...}} placeholder.');
+
+  // --- Re-computation, from the injected copy AND from the source file.
+  let computePaycheck, taxData;
+  try {
+    ({ computePaycheck } = await import(pathToFileURL(join(ROOT, 'src', 'engine', 'paycheck-engine.js')).href));
+    taxData = JSON.parse(await readFile(join(ROOT, 'src', 'data', 'tax-data-2026.json'), 'utf8'));
+  } catch (e) {
+    fails.push(`cannot re-compute /embed/${PAYCHECK_EMBED_DIR}/: ${e.message}`);
+    return fails;
+  }
+
+  // The gallery's preselect must offer every jurisdiction the data holds, by slug —
+  // an option whose slug is not a real state deep-links a copier to a 404.
+  if (gallery) {
+    const opts = [...gallery.matchAll(PAYCHECK_OPTION_RE)].map((o) => o[1]);
+    const slugs = opts.filter(Boolean);
+    const unknown = slugs.filter((s) => !taxData.states[s]);
+    const missing = Object.keys(taxData.states).filter((s) => !slugs.includes(s));
+    if (!opts.includes(''))
+      fails.push('/embed/ has no empty "visitor picks their state" option in the paycheck preselect.');
+    if (slugs.length !== PAYCHECK_JURISDICTIONS || unknown.length || missing.length)
+      fails.push(`/embed/ paycheck preselect offers ${slugs.length} state(s), expected ${PAYCHECK_JURISDICTIONS}:` +
+        list([...unknown.map((s) => `"${s}" is not a state in tax-data-2026.json`),
+          ...missing.map((s) => `${s} is missing from the list`)]));
+  }
+
+  if (!injected) return fails;
+  const probe = (slug, data) => computePaycheck({
+    wage: { type: 'salary', amount: PAYCHECK_PROBE_SALARY },
+    filingStatus: 'single', payFrequency: 'biweekly', stateSlug: slug,
+  }, data).annual.net.toFixed(2);
+
+  const ohio = probe('ohio', injected);
+  if (ohio !== PAYCHECK_PROBE_OHIO_NET)
+    fails.push(`/embed/${PAYCHECK_EMBED_DIR}/ computes Ohio single biweekly $${PAYCHECK_PROBE_SALARY} as ` +
+      `$${ohio} a year take-home; the pinned figure is $${PAYCHECK_PROBE_OHIO_NET}. Either the widget's data ` +
+      'copy is wrong or a tax figure moved — if the latter, re-derive and update PAYCHECK_PROBE_OHIO_NET.');
+
+  const drift = PAYCHECK_PROBE_STATES
+    .map((slug) => [slug, probe(slug, injected), probe(slug, taxData)])
+    .filter(([, embedded, source]) => embedded !== source)
+    .map(([slug, embedded, source]) => `${slug}: widget $${embedded}, tax-data-2026.json $${source}`);
+  if (drift.length)
+    fails.push(`/embed/${PAYCHECK_EMBED_DIR}/ disagrees with the tax data the 51 state pages use, so the ` +
+      'widget on a third-party site would answer differently from ours:' + list(drift));
+
+  return fails;
+}
+
 async function walk(dir, out = []) {
   for (const e of await readdir(dir, { withFileTypes: true })) {
     const p = join(dir, e.name);
@@ -596,6 +742,10 @@ export async function verifyDist(distPath) {
   // The 2027 seasonal pages, checked against the data file rather than against
   // what the build thought it was doing.
   failures.push(...await verifySeasonal2027(DIST, join(dirname(fileURLToPath(import.meta.url)), '..')));
+
+  // The all-states paycheck widget, re-computed from its own injected data copy
+  // and from the source file, which must agree.
+  failures.push(...await verifyPaycheckEmbed(DIST, join(dirname(fileURLToPath(import.meta.url)), '..')));
 
   return { pages: pages.length, withLoader, failures };
 }
