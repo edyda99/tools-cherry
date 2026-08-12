@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>Embed a Free Tax Calculator or PDF Tool on Your Site — Tools Berry</title>
-<meta name="description" content="Add a free, always-updated 'no tax on overtime', 'no tax on tips', senior deduction calculator, or PDF merge/convert tool to your website with one line of HTML. Great for payroll, HR, bookkeeping, retirement, legal, and finance blogs. No signup, nothing to maintain.">
+<meta name="description" content="Add a free, always-updated take-home paycheck calculator for all 50 states and DC, a 'no tax on overtime' or 'no tax on tips' calculator, a senior deduction calculator, or a PDF merge/convert tool to your website with one line of HTML. Great for payroll, HR, bookkeeping, retirement, legal, and finance blogs. No signup, nothing to maintain.">
 <link rel="canonical" href="{{SITE_URL}}/embed/">
 <meta property="og:title" content="Embed a free tax calculator or PDF tool on your site">
-<meta property="og:description" content="One line of HTML adds a working overtime, tips, senior tax-deduction calculator, or PDF tool to your page. Free, no signup.">
+<meta property="og:description" content="One line of HTML adds a working take-home paycheck calculator for all 50 states and DC, or an overtime, tips, senior tax-deduction, or PDF tool, to your page. Free, no signup.">
 <meta property="og:type" content="website">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
@@ -19,8 +19,12 @@
   .embed-preview { margin-top:12px; }
   .embed-preview iframe { border:1px solid rgba(128,128,128,.25); border-radius:12px; width:100%; max-width:560px; }
   .copy-row { margin-top:8px; }
+  /* Only the paycheck card carries an input (its optional state preselect). It
+     reuses the site's .field styling, capped so a state name doesn't get a
+     full-width control. */
+  .embed-card .field { max-width:320px; margin:0 0 12px; }
 </style>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Embed a Free Tax Calculator or PDF Tool on Your Site","description":"Add a free no-tax-on-overtime, no-tax-on-tips calculator, or PDF merge/convert tool to your website with one line of HTML."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Embed a Free Take-Home Paycheck Calculator, Tax Calculator, or PDF Tool on Your Site","description":"Add a free all-states take-home paycheck calculator, a no-tax-on-overtime or no-tax-on-tips calculator, or a PDF merge/convert tool to your website with one line of HTML."}</script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -34,8 +38,37 @@
 <main id="main">
   <div class="wrap">
     <h1>Embed a free tax calculator or PDF tool on your site</h1>
-    <p class="lede">Add a working, always-up-to-date calculator or PDF tool to your own website, blog, or intranet in one line of HTML. It's free, there's no signup, and nothing to maintain — the tax figures stay current and the PDF tools run entirely in your visitor's browser. Ideal for payroll and HR sites, bookkeeping and accounting blogs, legal and productivity blogs, and employee resource pages.</p>
+    <p class="lede">Add a working, always-up-to-date calculator or PDF tool to your own website, blog, or intranet in one line of HTML, starting with the take-home paycheck calculator that covers all 50 states and DC. It's free, there's no signup, and nothing to maintain — the tax figures stay current and the PDF tools run entirely in your visitor's browser. Ideal for payroll and HR sites, bookkeeping and accounting blogs, legal and productivity blogs, and employee resource pages.</p>
     <p class="note">Copy the snippet, paste it where you want the tool to appear, and keep the small credit line — that link is all we ask in return.</p>
+
+    <div class="embed-card">
+      <h3>Take-Home Paycheck Calculator (All 50 States + DC)</h3>
+      <p>Shows what a salary really pays after federal income tax, Social Security, Medicare, and state income tax, per paycheck and per year, for all 50 states and DC.</p>
+      <div class="field">
+        <label class="lbl" for="embed-pay-state">Preselect a state (optional)</label>
+        <select id="embed-pay-state">
+          <option value="">Visitor picks their state</option>
+          {{PAYCHECK_STATE_OPTIONS}}
+        </select>
+      </div>
+      <label class="lbl" for="snip-pay">Embed code</label>
+      <textarea id="snip-pay" class="embed-snippet" readonly>&lt;iframe src="{{SITE_URL}}/embed/paycheck-calculator/" width="100%" height="960" style="border:1px solid #e2e2e2;border-radius:12px;max-width:560px" title="Take-Home Paycheck Calculator by Tools Berry" loading="lazy"&gt;&lt;/iframe&gt;
+&lt;p&gt;Free &lt;a href="{{SITE_URL}}/data/take-home-pay-by-state/"&gt;Take-Home Paycheck Calculator&lt;/a&gt; by Tools Berry&lt;/p&gt;</textarea>
+      <div class="copy-row"><button type="button" class="btn-primary" data-copy="snip-pay">Copy embed code</button></div>
+      <div class="embed-preview">
+        <p class="muted-small">Live preview:</p>
+        <!-- 960, from a sweep of all 51 states rather than one: this widget's height
+             is data-dependent, because a state with payroll programs adds a row per
+             program to the breakdown. Measured at the snippet's 560px max-width
+             (real Chrome, built dist, default inputs — $80,000 salary, biweekly,
+             single) the range is 722px (Vermont, Virginia, Wisconsin — no program
+             rows) to 918px (New Jersey, which adds UI, DI and FLI); California is
+             806px. 960 clears the tallest with headroom for a host page whose font
+             metrics differ from ours, so no state scrolls inside its own frame.
+             Re-measure if a state gains a program or the answer panel grows. -->
+        <iframe src="{{SITE_URL}}/embed/paycheck-calculator/" height="960" title="Take-Home Paycheck Calculator preview" loading="lazy"></iframe>
+      </div>
+    </div>
 
     <div class="embed-card">
       <h3>No Tax on Overtime Calculator</h3>

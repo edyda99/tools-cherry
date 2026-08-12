@@ -21,3 +21,22 @@ async function copy(btn) {
 }
 
 document.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', () => copy(b)));
+
+// Paycheck card only: the optional state preselect rewrites that one snippet in
+// place — ?state=<slug> on the iframe, and a deep link to that state's own page in
+// the credit line. Derived from the snippet the build wrote rather than from
+// constants here, so the iframe height and the site URL stay whatever the template
+// says. Guarded on both elements, so every other page and card is untouched.
+const paySel = document.getElementById('embed-pay-state');
+const paySnip = document.getElementById('snip-pay');
+if (paySel && paySnip) {
+  const DEFAULT_SNIP = paySnip.value;
+  const forState = (slug, name) => DEFAULT_SNIP
+    .replace('/embed/paycheck-calculator/', `/embed/paycheck-calculator/?state=${slug}`)
+    .replace('/data/take-home-pay-by-state/">Take-Home Paycheck Calculator<',
+      `/${slug}-paycheck-calculator/">${name} Paycheck Calculator<`);
+  paySel.addEventListener('change', () => {
+    const name = (paySel.selectedOptions[0]?.textContent || '').trim();
+    paySnip.value = paySel.value ? forState(paySel.value, name) : DEFAULT_SNIP;
+  });
+}

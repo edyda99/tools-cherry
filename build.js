@@ -6874,6 +6874,10 @@ async function main() {
   const embedGalleryTpl = await read(join(SRC, 'templates', 'embed-gallery.html'));
   const embedMergePdfTpl = await read(join(SRC, 'templates', 'embed', 'merge-pdf.html'));
   const embedWordToPdfTpl = await read(join(SRC, 'templates', 'embed', 'word-to-pdf.html'));
+  // The flagship widget: an all-51-states take-home paycheck calculator. It has no
+  // single tool template to pair with — it is the embeddable form of the 51 state
+  // paycheck pages, and runs the same engine over the same data (PAYCHECK_EMBED_JSON).
+  const embedPaycheckTpl = await read(join(SRC, 'templates', 'embed', 'paycheck-calculator.html'));
   const overtimeStudyTpl = await read(join(SRC, 'templates', 'data-overtime-tax-by-state.html'));
   const tipsStudyTpl = await read(join(SRC, 'templates', 'data-tips-tax-by-state.html'));
   const wamTpl = await read(join(SRC, 'templates', 'what-applies-to-me.html'));
@@ -7037,6 +7041,13 @@ async function main() {
     taxData: stripInternal({ taxYear: taxData.taxYear, federal: taxData.federal, states: taxData.states }),
     supp: { federal: suppFederalLean, states: leanSuppStates(suppData.states) }
   });
+  // All-states payload for the take-home paycheck widget at /embed/paycheck-calculator/.
+  // Deliberately the same slice the bonus payload carries above, so a third-party
+  // iframe computes from exactly what the 51 state pages compute from — if the widget
+  // ever disagreed with a state page, that is a bug. verify-dist re-derives four
+  // states from this injected copy AND from the source file to prove stripInternal
+  // (which drops _source/_note provenance) never touched a figure.
+  const PAYCHECK_EMBED_JSON = JSON.stringify(stripInternal({ taxYear: taxData.taxYear, federal: taxData.federal, states: taxData.states }));
   const biweeklyTpl = await read(join(SRC, 'templates', 'biweekly-mortgage-calculator.html'));
   const photoSpecs = await readJSON(join(SRC, 'data', 'photo-specs.json'));
   const cpiUs = await readJSON(join(SRC, 'data', 'cpi-us.json'));
@@ -7345,6 +7356,7 @@ async function main() {
   registerAsset('engine', 'bonus-tax.js');
   registerAsset('assets', 'bonus-tax-calculator.js');
   registerAsset('assets', 'embed-gallery.js');
+  registerAsset('assets', 'embed-paycheck.js'); // the /embed/paycheck-calculator/ widget (reuses paycheck-engine.js)
   registerAsset('assets', 'data-table.js');
   registerAsset('engine', 'employment-tax.js');
   registerAsset('assets', 'biweekly-mortgage-calculator.js');
@@ -10887,7 +10899,7 @@ async function main() {
   // Still gets MODULE_ERROR_LISTENER injected below (same page-level module-load-
   // failure banner every full page gets via fill()) — bypassing fill() shouldn't
   // mean losing that defense-in-depth too.
-  const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON, ROTHCATCHUP_JSON, BONUS_TAX_JSON: BONUS_TAX_ALL_JSON, FORM1099_JSON, FORM1099_STATES_JSON, TTOC_JSON, SSMAXOUT_PARAMS_JSON, STUDENT_LOAN_LIMITS_JSON, ABLE_LIMITS_JSON, ABLE_STATES_JSON, SECTION127_JSON, ADOPTION_DATA_JSON };
+  const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON, ROTHCATCHUP_JSON, BONUS_TAX_JSON: BONUS_TAX_ALL_JSON, FORM1099_JSON, FORM1099_STATES_JSON, TTOC_JSON, SSMAXOUT_PARAMS_JSON, STUDENT_LOAN_LIMITS_JSON, ABLE_LIMITS_JSON, ABLE_STATES_JSON, SECTION127_JSON, ADOPTION_DATA_JSON, PAYCHECK_EMBED_JSON, TAX_YEAR: year };
   const fillEmbed = (tpl) => {
     let out = tpl.replace(/{{(\w+)}}/g, (m, k) => (k in embedMap ? embedMap[k] : m));
     if (out.includes('</head>')) out = out.replace('</head>', `${MODULE_ERROR_LISTENER}</head>`);
@@ -10946,9 +10958,18 @@ async function main() {
   await writeFile(join(DIST, 'embed', 'merge-pdf', 'index.html'), fillEmbed(embedMergePdfTpl));
   await mkdir(join(DIST, 'embed', 'word-to-pdf'), { recursive: true });
   await writeFile(join(DIST, 'embed', 'word-to-pdf', 'index.html'), fillEmbed(embedWordToPdfTpl));
+  await mkdir(join(DIST, 'embed', 'paycheck-calculator'), { recursive: true });
+  await writeFile(join(DIST, 'embed', 'paycheck-calculator', 'index.html'), fillEmbed(embedPaycheckTpl));
+  // The gallery's optional per-state preselect for the paycheck widget, in the same
+  // alphabetical-by-name order the widget's own state select builds itself in.
+  const PAYCHECK_STATE_OPTIONS = Object.entries(taxData.states)
+    .map(([slug, s]) => [slug, s.name])
+    .sort((a, b) => a[1].localeCompare(b[1]))
+    .map(([slug, name]) => `<option value="${slug}">${esc(name)}</option>`)
+    .join('');
   // Indexable embed gallery (fillTool is fine here — real page, benefits from schema
   // + the More-tools cross-links). This one IS in the sitemap.
-  await writeFile(join(DIST, 'embed', 'index.html'), fillTool(embedGalleryTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/embed/'));
+  await writeFile(join(DIST, 'embed', 'index.html'), fillTool(embedGalleryTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, PAYCHECK_STATE_OPTIONS }, '/embed/'));
   urls.push(`${SITE.url}/embed/`);
 
   // biweekly mortgage payment calculator (pure-math, reuses the amortization engine)
