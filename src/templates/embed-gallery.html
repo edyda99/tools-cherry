@@ -52,13 +52,21 @@
         </select>
       </div>
       <label class="lbl" for="snip-pay">Embed code</label>
-      <textarea id="snip-pay" class="embed-snippet" readonly>&lt;iframe src="{{SITE_URL}}/embed/paycheck-calculator/" width="100%" height="780" style="border:1px solid #e2e2e2;border-radius:12px;max-width:560px" title="Take-Home Paycheck Calculator by Tools Berry" loading="lazy"&gt;&lt;/iframe&gt;
+      <textarea id="snip-pay" class="embed-snippet" readonly>&lt;iframe src="{{SITE_URL}}/embed/paycheck-calculator/" width="100%" height="960" style="border:1px solid #e2e2e2;border-radius:12px;max-width:560px" title="Take-Home Paycheck Calculator by Tools Berry" loading="lazy"&gt;&lt;/iframe&gt;
 &lt;p&gt;Free &lt;a href="{{SITE_URL}}/data/take-home-pay-by-state/"&gt;Take-Home Paycheck Calculator&lt;/a&gt; by Tools Berry&lt;/p&gt;</textarea>
       <div class="copy-row"><button type="button" class="btn-primary" data-copy="snip-pay">Copy embed code</button></div>
       <div class="embed-preview">
         <p class="muted-small">Live preview:</p>
-        <!-- height: provisional, to be replaced by a measured value before merge -->
-        <iframe src="{{SITE_URL}}/embed/paycheck-calculator/" height="780" title="Take-Home Paycheck Calculator preview" loading="lazy"></iframe>
+        <!-- 960, from a sweep of all 51 states rather than one: this widget's height
+             is data-dependent, because a state with payroll programs adds a row per
+             program to the breakdown. Measured at the snippet's 560px max-width
+             (real Chrome, built dist, default inputs — $80,000 salary, biweekly,
+             single) the range is 722px (Vermont, Virginia, Wisconsin — no program
+             rows) to 918px (New Jersey, which adds UI, DI and FLI); California is
+             806px. 960 clears the tallest with headroom for a host page whose font
+             metrics differ from ours, so no state scrolls inside its own frame.
+             Re-measure if a state gains a program or the answer panel grows. -->
+        <iframe src="{{SITE_URL}}/embed/paycheck-calculator/" height="960" title="Take-Home Paycheck Calculator preview" loading="lazy"></iframe>
       </div>
     </div>
 
