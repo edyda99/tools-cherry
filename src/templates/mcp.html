@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Free MCP server for US paycheck &amp; tax math — Tools Berry</title>
+<meta name="description" content="Connect Claude, Cursor or any MCP client to the 2026 US paycheck and tax engine behind Tools Berry. Free, no signup, no API key.">
+<link rel="canonical" href="{{SITE_URL}}/mcp/">
+<meta property="og:title" content="Free MCP server for US paycheck &amp; tax math">
+<meta property="og:description" content="Point your AI assistant at the real 2026 tax engine behind Tools Berry. Free, no signup, no API key.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Page-scoped. styles.css serves every page on the site, so nothing here
+     touches a bare shared class. */
+  .mcp-endpoint { border:1px solid var(--border-strong); border-radius:var(--radius); background:var(--surface); padding:16px 18px; margin:18px 0 22px; }
+  .mcp-endpoint .mcp-url { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:1.15rem; font-weight:700; word-break:break-all; display:block; margin-bottom:10px; }
+  .mcp-endpoint dl { display:grid; grid-template-columns:auto 1fr; gap:4px 14px; margin:0; font-size:.92rem; }
+  .mcp-endpoint dt { color:var(--muted); font-weight:600; }
+  .mcp-endpoint dd { margin:0; }
+  .mcp-endpoint .mcp-alias { margin:12px 0 0; font-size:.86rem; color:var(--muted); word-break:break-all; }
+  .mcp-code { background:rgba(128,128,128,.10); border:1px solid var(--border); border-radius:var(--radius-sm,8px); padding:12px 14px; overflow-x:auto; margin:8px 0 18px; -webkit-overflow-scrolling:touch; }
+  .mcp-code code { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.85rem; line-height:1.55; white-space:pre; color:var(--text); }
+  .mcp-inline { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.88em; background:rgba(128,128,128,.12); border-radius:4px; padding:1px 5px; word-break:break-word; }
+  .mcp-table-wrap { overflow-x:auto; margin:10px 0 6px; -webkit-overflow-scrolling:touch; }
+  .mcp-table-wrap table { min-width:640px; }
+  .mcp-table-wrap td:first-child { white-space:nowrap; }
+  .mcp-how { margin:0 0 6px; font-weight:600; }
+  .mcp-trust li { margin-bottom:7px; }
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Free MCP server for US paycheck & tax math","description":"A free, no-signup MCP (Model Context Protocol) server that gives AI assistants the 2026 US paycheck and payroll-tax engine behind Tools Berry."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Tools Berry MCP Server","applicationCategory":"DeveloperApplication","operatingSystem":"Any","url":"{{SITE_URL}}/mcp/","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Remote MCP server exposing four tools over Streamable HTTP: compute_take_home, compute_bonus_withholding, compare_states and get_state_rates, computed by the same 2026 US payroll-tax engine that generates the Tools Berry calculator pages."}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Free MCP Server for US Paycheck &amp; Tax Math</h1>
+    <p class="lede">Connect your AI assistant (Claude, Cursor, or anything else that speaks MCP) to the real calculator engine behind this site, so it computes your paycheck instead of guessing at it.</p>
+
+    <section class="prose">
+      <h2>What this is</h2>
+      <p>MCP, the Model Context Protocol, is an open standard that lets an AI assistant call outside
+      tools instead of answering from memory. This endpoint exposes the same 2026 US tax engine that
+      generates every calculator page on this site, wrapped as four tools an assistant can call.</p>
+      <p>So when you ask your assistant what you take home on $80,000 in Ohio, it runs the real
+      arithmetic and the figure it gives you matches the page on this site to the cent, instead of
+      being a plausible-looking number a language model produced from memory.</p>
+
+      <h2>What your AI can do with it</h2>
+      <p>Four tools. You do not have to name them: an assistant that has connected to the server
+      picks the right one from a plain question.</p>
+      <div class="mcp-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Tool</th><th>What it answers</th><th>Ask it like this</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="mcp-inline">compute_take_home</span></td>
+              <td>Full paycheck breakdown for a salary in any state: federal income tax, Social Security, Medicare, state income tax, state payroll programs, net pay and effective rate.</td>
+              <td>"What's my take-home on $80,000 in Ohio?"</td>
+            </tr>
+            <tr>
+              <td><span class="mcp-inline">compute_bonus_withholding</span></td>
+              <td>What is actually withheld from a bonus: the federal flat 22% supplemental rate (37% above $1,000,000 of supplemental wages), how the state treats supplemental wages, and FICA.</td>
+              <td>"How much of a $15,000 bonus do I keep in Georgia?"</td>
+            </tr>
+            <tr>
+              <td><span class="mcp-inline">compare_states</span></td>
+              <td>The same salary across several states, ranked best-first, with each state's gap to the winner.</td>
+              <td>"Compare $120,000 in Texas, California and New York."</td>
+            </tr>
+            <tr>
+              <td><span class="mcp-inline">get_state_rates</span></td>
+              <td>One state's 2026 schedule: flat rate or bracket ladder, standard deduction, payroll programs, bonus method, and the statutory source behind the figures.</td>
+              <td>"What are Ohio's 2026 income tax brackets?"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted-small">Coverage is all 50 states plus the District of Columbia, tax year 2026.</p>
+
+      <h2>The endpoint</h2>
+      <div class="mcp-endpoint">
+        <span class="mcp-url">https://mcp.tools-berry.com</span>
+        <dl>
+          <dt>Transport</dt><dd>Streamable HTTP (POST to that URL)</dd>
+          <dt>Protocol</dt><dd>JSON-RPC 2.0, a plain-JSON request format</dd>
+          <dt>Auth</dt><dd>None. No signup, no API key, no account.</dd>
+          <dt>Price</dt><dd>Free.</dd>
+        </dl>
+        <p class="mcp-alias">Also reachable at its Cloudflare alias,
+        <span class="mcp-inline">https://tools-berry-mcp.edydaherz.workers.dev</span>, if you ever
+        need to bypass the custom domain. Both serve the same worker.</p>
+      </div>
+
+      <h2>Connect</h2>
+
+      <p class="mcp-how">Claude Code (CLI)</p>
+      <pre class="mcp-code"><code>claude mcp add --transport http tools-berry https://mcp.tools-berry.com</code></pre>
+
+      <p class="mcp-how">Claude Desktop or claude.ai</p>
+      <p>Add it as a custom connector and paste the URL. There is nothing else to fill in, because
+      there is no key and no account:</p>
+      <pre class="mcp-code"><code>https://mcp.tools-berry.com</code></pre>
+
+      <p class="mcp-how">Cursor</p>
+      <p>Add the server to <span class="mcp-inline">~/.cursor/mcp.json</span> (or the per-project
+      <span class="mcp-inline">.cursor/mcp.json</span>):</p>
+      <pre class="mcp-code"><code>{
+  "mcpServers": {
+    "tools-berry": {
+      "url": "https://mcp.tools-berry.com"
+    }
+  }
+}</code></pre>
+
+      <p class="mcp-how">Anything else, or just to see it work</p>
+      <p>It is plain JSON-RPC over HTTPS, so <span class="mcp-inline">curl</span> is enough to try it:</p>
+      <pre class="mcp-code"><code>curl -sS https://mcp.tools-berry.com \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call",
+       "params":{"name":"compute_take_home",
+                 "arguments":{"state":"ohio","salary":80000}}}'</code></pre>
+      <p>A <span class="mcp-inline">GET</span> on the same URL returns a plain-JSON description of
+      the server and its tools, and <span class="mcp-inline">GET /health</span> returns
+      <span class="mcp-inline">{"ok":true}</span>.</p>
+
+      <h2>What you can rely on</h2>
+      <ul class="mcp-trust">
+        <li><strong>The same engine as the pages.</strong> The server imports this site's own paycheck
+        engine and the same 2026 data files, rather than a second copy of the math. This site's test
+        suite recomputes the server's answers against that engine and requires them to match to the
+        cent across all 51 jurisdictions, and the server you are calling runs that same tested code.</li>
+        <li><strong>Nothing you ask is stored.</strong> No account, no session, no database: your
+        questions and the figures that come back are not written down anywhere. The one thing the
+        server holds is a request counter keyed by IP address, covering the last minute and living
+        in memory only, which is what the rate limit below is counted from.</li>
+        <li><strong>A generous ceiling.</strong> Two limits apply, both there to stop a runaway loop
+        rather than to meter you: about 120 requests a minute per IP address, and at most 50
+        messages in a single JSON-RPC batch. The first is counted separately by each server
+        instance, so treat it as a rough ceiling rather than an exact quota.</li>
+        <li><strong>Estimates, not advice.</strong> Figures are withholding-style estimates for a
+        single filer by default, one job, no pre-tax deductions and no credits beyond the standard
+        deduction. Local and city income taxes are not included. This is not tax advice and it is
+        not a filed return.</li>
+        <li><strong>Every answer points back here.</strong> Each response ends with an attribution
+        line and a deep link to the matching page on this site, so a figure you are handed can
+        always be checked against the page that publishes it.</li>
+      </ul>
+
+      <h2>Source</h2>
+      <p>The server's code and the tax data behind it are open at
+      <a href="https://github.com/edyda99/tools-berry-mcp" rel="noopener" target="_blank">github.com/edyda99/tools-berry-mcp</a>.
+      If an answer from the server ever disagrees with a page on this site, that is a bug, and the
+      repository is where to report it.</p>
+    </section>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a> · <a href="/embed/">Embed our calculators</a> · <a href="/corrections/">Corrections log</a></span>
+  </div>
+</footer>
+</body>
+</html>
