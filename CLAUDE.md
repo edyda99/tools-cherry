@@ -25,7 +25,9 @@ memory dir (`MEMORY.md` index loads each session).
   exceptions).
 - **Workflow:** one branch per feature off `main` → merge to `main` → deploy. No more clone.
 - **Deploy is pre-authorized — no need to ask Edmond.** From `main`: `npm run build`, then
-  `npx wrangler pages deploy dist --project-name=tools-cherry` using the stored wrangler OAuth login.
+  `npx wrangler pages deploy dist --project-name=tools-cherry --branch=main` using the stored wrangler
+  OAuth login. **Keep `--branch=main`:** without it wrangler infers the Pages branch from the current
+  git branch and silently ships a Preview deployment when run from any non-`main` worktree.
   **NEVER set `CLOUDFLARE_API_TOKEN` for a deploy** — the Cloudflare token is **Analytics-only** and
   fails Pages deploy with auth 10000. It lives in `.env` as `CLOUDFLARE_ANALYTICS_API_TOKEN` (renamed
   so wrangler, which auto-loads `.env`, can't grab it — it falls through to OAuth). cf-metrics /
