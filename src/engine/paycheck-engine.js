@@ -271,9 +271,14 @@ export function ficaPaidDeduction(ficaPaid, cfg) {
  * taxable income equals the AGI the ladder is reading. The `taxable > 0` guard below is what
  * keeps that honest for any future state that does have a deduction.
  *
+ * EXPORTED so the salary-ladder generator can print the same charge in its own band table.
+ * The ladder asserts that its decomposition reproduces stateIncomeTax() to the cent, and a
+ * second, drifting copy of this arithmetic in build.js is exactly what that assertion exists
+ * to prevent.
+ *
  * @param {number} agi - the state's AGI proxy (grossAnnual - preTax)
  */
-function steppedRecapture(agi, filingStatus, ladder) {
+export function steppedRecapture(agi, filingStatus, ladder) {
   const row = ladder && (ladder[filingStatus] ?? ladder.single);
   if (!row || !(row.step > 0)) return 0;
   const excess = agi - row.over;
