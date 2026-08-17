@@ -1800,10 +1800,20 @@ function isEffectivelyFlat(t) {
 // "income". Idaho's $4,811 sits on top of a $16,100 single deduction; calling it
 // "the first $4,811 of income" told the visitor tax starts about $16k too early
 // and contradicted the page's own bracket table.
+// `base` is the statutory flat dollar amount charged once taxable income passes
+// zeroUpTo, and it is what makes "0% then one rate on the rest" false where it
+// exists: ORC 5747.02(A)(3) charges Ohio "$332.00 plus 2.75% of the amount in
+// excess of $26,050", so the rate-only sentence under-states an Ohio bill by
+// exactly $332 and contradicts the page's own worked example. Ohio is the only
+// state whose data carries tax.baseAmount, so every sentence keyed on `base`
+// changes on Ohio and nowhere else. The threshold check is not decoration: the
+// clause reads "above the first ${zeroUpTo}", so a baseAmount that attached at
+// some other income would make that sentence wrong rather than incomplete.
 function effectiveFlatFacts(t) {
   const b = (t.brackets && t.brackets.single) || [];
   const rate = b.map((br) => br.rate).find((r) => r > 0);
-  return { rate, zeroUpTo: b[0].upTo };
+  const base = (t.baseAmount && t.baseAmount.over === b[0].upTo) ? t.baseAmount.amount : 0;
+  return { rate, zeroUpTo: b[0].upTo, base };
 }
 
 // Does this state's sourced tax data carry a standard-deduction figure at all?
@@ -1849,6 +1859,17 @@ function stateTaxFacts(state, year, taxData) {
     const band = sd
       ? `after that, the first ${usd0(f.zeroUpTo)} of remaining taxable income is`
       : `the first ${usd0(f.zeroUpTo)} of ${state.name} taxable income is`;
+    // The worked example in `example` is the engine's own figure, base amount
+    // included, so the rule stated here has to be the one that reproduces it.
+    // "0%, then the rate on the rest" does not: on Ohio it yields $934 against
+    // the $1,266 printed one clause later. Idaho and Mississippi carry no base
+    // amount, so their sentence is left exactly as it was.
+    if (f.base) {
+      return `<p>${sdText}; ${band} taxed at <strong>0%</strong>, and once taxable income passes ` +
+        `${usd0(f.zeroUpTo)} the tax is a flat <strong>${usd0(f.base)}</strong> plus ` +
+        `<strong>${pctStr(f.rate)}</strong> of the amount above it. ` +
+        `${state.name} does not run a ladder of rising rates for ${year}.${example}</p>`;
+    }
     return `<p>${sdText}; ${band} taxed at ` +
       `<strong>0%</strong> and every dollar above it at the single flat rate of <strong>${pctStr(f.rate)}</strong> — ` +
       `${state.name} does not run a ladder of rising rates for ${year}.${example}</p>`;
@@ -2032,6 +2053,11 @@ function stateLede(state, year) {
     const gloss = hasStateDeduction(t)
       ? ` — your pay after the state deduction.`
       : `, and it has no state standard deduction.`;
+    // "flat X% which skips the first N" is only the whole rule where no base
+    // amount attaches at N. On Ohio it drops the statutory $332.
+    if (f.base) {
+      return `${open} after federal income tax, Social Security, Medicare, and ${state.name}'s state income tax of ${usd0(f.base)} plus ${pctStr(f.rate)} on taxable income above the first ${usd0(f.zeroUpTo)}${gloss}`;
+    }
     return `${open} after federal income tax, Social Security, Medicare, and ${state.name}'s flat ${pctStr(f.rate)} state income tax, which skips the first ${usd0(f.zeroUpTo)} of taxable income${gloss}`;
   }
   const b = (t.brackets && t.brackets.single) || [];
@@ -2052,6 +2078,9 @@ function stateBodyH2(state, year) {
   }
   if (isEffectivelyFlat(t)) {
     const f = effectiveFlatFacts(t);
+    if (f.base) {
+      return `How ${state.name}'s income tax, ${usd0(f.base)} plus ${pctStr(f.rate)} above ${usd0(f.zeroUpTo)} of taxable income, hits your ${year} paycheck`;
+    }
     return `How ${state.name}'s flat ${pctStr(f.rate)} income tax, which skips the first ${usd0(f.zeroUpTo)} of taxable income, hits your ${year} paycheck`;
   }
   const b = (t.brackets && t.brackets.single) || [];
@@ -2684,13 +2713,28 @@ function stateBody(state, year, taxData) {
     // One rate, with a 0% band under it — not a ladder. Saying "graduated" here
     // while the same page's FAQ and lede say "flat" read as a contradiction.
     const f = effectiveFlatFacts(t);
-    how = hasStateDeduction(t)
-      ? `${state.name} levies a <strong>flat ${pctStr(f.rate)} state income tax</strong> for ${year}, ` +
-        `applied after the state deduction for your filing status — and the first ${usd0(f.zeroUpTo)} of ` +
-        `taxable income above that deduction is taxed at 0%, so only what is left pays the ${pctStr(f.rate)}.`
-      : `${state.name} levies a <strong>flat ${pctStr(f.rate)} state income tax</strong> for ${year} ` +
-        `with no state standard deduction — the first ${usd0(f.zeroUpTo)} of ${state.name} taxable income ` +
-        `is taxed at 0%, so only what is left pays the ${pctStr(f.rate)}.`;
+    // A base amount is a step, not a rate, so "only what is left pays the rate"
+    // is false where one exists: an Ohio filer one dollar over the threshold
+    // owes $332.03, not 3 cents. Only the base-amount branch says so; Idaho and
+    // Mississippi keep the sentence they had.
+    if (f.base) {
+      const ded = hasStateDeduction(t)
+        ? `, applied after the state deduction for your filing status`
+        : `, with no state standard deduction`;
+      how = `${state.name} levies a state income tax of <strong>${usd0(f.base)} plus ${pctStr(f.rate)}</strong> ` +
+        `of ${state.name} taxable income above ${usd0(f.zeroUpTo)} for ${year}${ded}. ` +
+        `At or below ${usd0(f.zeroUpTo)} the state charges nothing; once taxable income passes ` +
+        `${usd0(f.zeroUpTo)} the ${usd0(f.base)} is charged in full, and the ${pctStr(f.rate)} applies only ` +
+        `to the amount above ${usd0(f.zeroUpTo)}.`;
+    } else {
+      how = hasStateDeduction(t)
+        ? `${state.name} levies a <strong>flat ${pctStr(f.rate)} state income tax</strong> for ${year}, ` +
+          `applied after the state deduction for your filing status — and the first ${usd0(f.zeroUpTo)} of ` +
+          `taxable income above that deduction is taxed at 0%, so only what is left pays the ${pctStr(f.rate)}.`
+        : `${state.name} levies a <strong>flat ${pctStr(f.rate)} state income tax</strong> for ${year} ` +
+          `with no state standard deduction — the first ${usd0(f.zeroUpTo)} of ${state.name} taxable income ` +
+          `is taxed at 0%, so only what is left pays the ${pctStr(f.rate)}.`;
+    }
   } else if (hasStateDeduction(t)) {
     how = pickFrame(state.slug, 'gradhow', [
       `${state.name} taxes income on a graduated state schedule for ${year}, applied after the state deduction for your filing status.`,
@@ -2810,10 +2854,21 @@ function bracketTableBlock(state, year) {
     const range = open ? `${usd0(prev)} and above` : `${usd0(prev)} – ${usd0(br.upTo)}`;
     return `<tr><td>${range}</td><td>${pctStr(br.rate)}</td></tr>`;
   }).join('');
+  // A marginal-rate table cannot show a flat dollar step, so where the data
+  // carries one the table alone under-states the bill and the reader would
+  // reconstruct the wrong number from it. Ohio is the only state with a
+  // baseAmount, so this note renders on Ohio and nowhere else.
+  const baseNote = t.baseAmount
+    ? `<p class="note">The rates above are not the whole schedule. ${state.name} also charges a flat ` +
+      `<strong>${usd0(t.baseAmount.amount)}</strong> once taxable income passes ` +
+      `${usd0(t.baseAmount.over)}, so the tax on ${usd0(30000)} of taxable income is ` +
+      `${usd0(t.baseAmount.amount)} plus ${pctStr(b[b.length - 1].rate)} of the ` +
+      `${usd0(30000 - t.baseAmount.over)} above the threshold, not the ${pctStr(b[b.length - 1].rate)} alone.</p>`
+    : '';
   return `<section class="prose"><h2>${state.name}'s ${numWord(b.length)} ${dispYear} brackets, from ${pctStr(b[0].rate)} to ${pctStr(b[b.length - 1].rate)} (single filers)</h2>` +
     `<p>${state.name}'s ${isEffectivelyFlat(t) ? 'single-filer' : 'graduated single-filer'} schedule for ${dispYear}` +
     (hasStateDeduction(t) ? ', applied after the state deduction' : ', with no state standard deduction to subtract first') + `:</p>` +
-    `<table class="data-table"><thead><tr><th>Taxable income</th><th>Marginal rate</th></tr></thead><tbody>${rows}</tbody></table></section>`;
+    `<table class="data-table"><thead><tr><th>Taxable income</th><th>Marginal rate</th></tr></thead><tbody>${rows}</tbody></table>${baseNote}</section>`;
 }
 
 function payrollDeductionsBlock(state, p) {
@@ -3120,15 +3175,29 @@ function stateFaqEntries(state, p, year) {
     // sits directly on Ohio taxable income — so on Ohio that gloss contradicted
     // the same page's own "Ohio does not provide a state standard deduction",
     // and the contradicting half was the one emitted as FAQPage JSON-LD.
-    a1 = hasStateDeduction(t)
-      ? `Yes — though it behaves like a flat ${pctStr(f.rate)} rather than a ladder of rising rates. ` +
-        `For ${year}, a single filer's first ${usd0(f.zeroUpTo)} of taxable income — that is pay left after ` +
-        `the state standard deduction — is taxed at 0%, and every dollar above it at ${pctStr(f.rate)}, ` +
-        `on top of federal tax and FICA.`
-      : `Yes — though it behaves like a flat ${pctStr(f.rate)} rather than a ladder of rising rates. ` +
-        `${state.name} does not provide a state standard deduction, so for ${year} a single filer's first ` +
-        `${usd0(f.zeroUpTo)} of ${state.name} taxable income is taxed at 0%, and every dollar above it at ` +
-        `${pctStr(f.rate)}, on top of federal tax and FICA.`;
+    // Where a base amount exists the "behaves like a flat rate" framing is the
+    // wrong one to hand Google: a flat rate has no step in it, and this answer
+    // is emitted as FAQPage JSON-LD, so the rule it states has to be the rule
+    // the calculator on the same page applies.
+    if (f.base) {
+      const ded = hasStateDeduction(t)
+        ? `${usd0(f.zeroUpTo)} of taxable income, that is pay left after the state standard deduction`
+        : `${usd0(f.zeroUpTo)} of ${state.name} taxable income (${state.name} provides no state standard deduction)`;
+      a1 = `Yes, and it is not a plain flat rate: it has a fixed dollar step in it. ` +
+        `For ${year} a single filer owes nothing on the first ${ded}, and above that the tax is ` +
+        `${usd0(f.base)} plus ${pctStr(f.rate)} of the amount over ${usd0(f.zeroUpTo)}, on top of federal ` +
+        `tax and FICA.`;
+    } else {
+      a1 = hasStateDeduction(t)
+        ? `Yes — though it behaves like a flat ${pctStr(f.rate)} rather than a ladder of rising rates. ` +
+          `For ${year}, a single filer's first ${usd0(f.zeroUpTo)} of taxable income — that is pay left after ` +
+          `the state standard deduction — is taxed at 0%, and every dollar above it at ${pctStr(f.rate)}, ` +
+          `on top of federal tax and FICA.`
+        : `Yes — though it behaves like a flat ${pctStr(f.rate)} rather than a ladder of rising rates. ` +
+          `${state.name} does not provide a state standard deduction, so for ${year} a single filer's first ` +
+          `${usd0(f.zeroUpTo)} of ${state.name} taxable income is taxed at 0%, and every dollar above it at ` +
+          `${pctStr(f.rate)}, on top of federal tax and FICA.`;
+    }
   } else {
     const b = (t.brackets && t.brackets.single) || [];
     a1 = b.length
