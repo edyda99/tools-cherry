@@ -2613,7 +2613,12 @@ const NOTAX_FACTS = {
   'new-hampshire': "New Hampshire does not tax earned wages; its former 5% tax on interest and dividends was fully phased out and repealed effective January 1, 2025, so investment income is now untaxed too.",
   'south-dakota': 'South Dakota has no individual income tax and no corporate income tax, funding services mainly through sales and property taxes.',
   tennessee: "Tennessee has no tax on wages; its 'Hall tax' on interest and dividend income was fully repealed in 2021, making the state completely income-tax-free.",
-  texas: 'Texas has no personal income tax, and a 2019 constitutional amendment bars the state from enacting one without a statewide voter referendum.',
+  // The statewide-referendum requirement was the 1993 Bullock Amendment, Art.
+  // VIII Sec. 24. The 2019 measure (Proposition 4, Art. VIII Sec. 24-a) replaced
+  // it with an outright prohibition, so describing 2019 as a referendum
+  // requirement conflates the two and understates what it would take to undo.
+  // The state's ladder hub already states it this way from _noTaxBasis.
+  texas: 'Texas has no personal income tax, and a 2019 constitutional amendment (Article VIII, Section 24-a) prohibits the state from levying one outright, so introducing one would require amending the Texas Constitution again.',
   washington: 'Washington has no tax on wage income, though since 2022 it applies a 7% excise tax on annual long-term capital gains above an inflation-adjusted threshold (around $270,000) — which does not touch ordinary paychecks.',
   wyoming: 'Wyoming has no individual or corporate income tax, relying on mineral severance taxes and federal mineral royalties to fund state government.'
 };
