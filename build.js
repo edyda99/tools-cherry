@@ -4063,6 +4063,53 @@ const CA_LADDER_SALARIES = [30000, 40000, 50000, 70000, 80000, 100000, 120000, 1
 // Tennessee is the fourth no-income-tax ladder and the first with no employee programs
 // at all; Maryland, Indiana, Missouri and Alabama are the local-tax states, and the
 // local block asserts nothing beyond the payroll file's own sourced note.
+//
+// WAVE 3 added twelve more. Most of them are shapes the generator already knew — Kentucky and
+// Utah and Iowa are flat, Oklahoma and Arkansas and New Mexico are ordinary bracket schedules,
+// Nevada is the fifth no-income-tax ladder and carries no employee programs — and those needed
+// no new code, only the data. Four did force a change, and each one is named where it is made:
+//   connecticut    the first state with NO `tax.standardDeduction` key at all, which is Ohio's
+//                  "subtracts nothing" case and reuses Ohio's wording rather than inventing a
+//                  second phrasing for it. What was new is `tax.steppedRecapture`: the 2%
+//                  tax-rate phase-out add-back of Conn. Gen. Stat. 12-700(a)(10), a flat $25
+//                  per $5,000 of income over $56,500 up to $250, which the ENGINE has charged
+//                  since 2026-08-02 and which the band decomposition did not know about. It
+//                  fails the band assertion on sight, which is exactly what that assertion is
+//                  for. The engine's own steppedRecapture() is now exported and called here, so
+//                  the table, the prose, the method row and the hub all print the charge the
+//                  engine actually made. Connecticut's own personal exemption and personal tax
+//                  credits are NOT modelled and its data says so in terms — see below.
+//   nebraska       the first schedule whose published bands are not all at different rates:
+//                  LB754 brought the top rate down to 4.55% to meet the band below it, so
+//                  Neb. Rev. Stat. 77-2715.03(2)(c)(v) prints two adjacent 4.55% bands. Every
+//                  sentence promising that a raise past the next edge meets a higher rate is
+//                  false on the rung that tops out in the third band, so "which band" now
+//                  reads the rate of the band ABOVE and says so when the edge is bookkeeping
+//                  rather than a rate step.
+//   kansas         forced the "well under the headline" claim to be measured rather than
+//                  asserted. Kansas steps 5.20% to 5.58% over a $3,605 deduction, so at the
+//                  top of this ladder its effective rate lands a seventh of a point under the
+//                  headline — which nobody would describe as "well under". The gap is now
+//                  computed and described by its size, the same discipline the federal
+//                  "widest band" claim already gets.
+//   utah, iowa     the first states whose own subtraction is EXACTLY the federal standard
+//                  deduction ($16,100). The bracket branch already measured that comparison
+//                  for Missouri; the flat branch made no comparison at all, so a flat state's
+//                  one distinguishing number was printed with nothing to scale it against.
+//                  Flat pages now state the relationship, measured — equal, smaller or larger.
+//   oregon         two employee programs, one wage-based and one uncapped, which the program
+//                  machinery already handled. What it did not handle is the label: "OR Paid
+//                  Leave" reads as a conjunction mid-sentence, so a postal code that spells an
+//                  English word is expanded to the state name.
+// Mississippi, Oklahoma and Arkansas open on a 0% band, which Ohio and Missouri already do.
+// None of the twelve carries `localIncomeTax.exists`, so none of them emits a local-tax block.
+//
+// SEPARATELY, wave 3 fixed a live omission it tripped over: the state's own published caveats
+// were computed for every ladder page and then dropped on the floor, so twenty-five live
+// ladders were printing dollar figures without the qualifications their own data attaches to
+// them. They are wired in now. It matters most here — Connecticut, Kansas, Utah, Oklahoma,
+// Arkansas, Nebraska and New Mexico each say in their own data that an exemption or credit the
+// engine does not model makes the figure run high — but it was wrong on the live pages too.
 const LADDER_STATES = [
   'california', 'texas', 'florida', 'new-york', 'pennsylvania', 'illinois',
   'ohio', 'georgia', 'north-carolina', 'michigan', 'new-jersey', 'virginia',
@@ -4070,6 +4117,9 @@ const LADDER_STATES = [
   // wave 2
   'arizona', 'massachusetts', 'tennessee', 'indiana', 'missouri', 'maryland',
   'wisconsin', 'colorado', 'minnesota', 'south-carolina', 'alabama', 'louisiana',
+  // wave 3
+  'kentucky', 'oregon', 'oklahoma', 'connecticut', 'utah', 'iowa',
+  'nevada', 'arkansas', 'mississippi', 'kansas', 'new-mexico', 'nebraska',
 ];
 const LADDER_STATE_SET = new Set(LADDER_STATES);
 const ladderHubSlug = (slug) => `${slug}-take-home-pay`;
