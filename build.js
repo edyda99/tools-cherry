@@ -19,6 +19,10 @@ import {
   // South Carolina phase their deduction down with income; Massachusetts also deducts the
   // FICA you paid, capped). See caRung().
   phaseOutStandardDeduction, ficaPaidDeduction,
+  // Connecticut's 2% tax-rate phase-out add-back (Conn. Gen. Stat. 12-700(a)(10)) is a flat
+  // dollar step charged ON TOP of the band arithmetic, so a band table that ignored it would
+  // not sum to the tax the engine charged. Imported, never reimplemented.
+  steppedRecapture,
 } from './src/engine/paycheck-engine.js';
 import { computeBonus } from './src/engine/bonus-tax.js';
 // The 2027 seasonal pages. `assertComplete` is the one that matters: it is the
@@ -4059,6 +4063,57 @@ const CA_LADDER_SALARIES = [30000, 40000, 50000, 70000, 80000, 100000, 120000, 1
 // Tennessee is the fourth no-income-tax ladder and the first with no employee programs
 // at all; Maryland, Indiana, Missouri and Alabama are the local-tax states, and the
 // local block asserts nothing beyond the payroll file's own sourced note.
+//
+// WAVE 3 added twelve more. Most of them are shapes the generator already knew — Kentucky and
+// Utah and Iowa are flat, Oklahoma and Arkansas and New Mexico are ordinary bracket schedules,
+// Nevada is the fifth no-income-tax ladder and carries no employee programs — and those needed
+// no new code, only the data. Four did force a change, and each one is named where it is made:
+//   connecticut    the first state with NO `tax.standardDeduction` key at all, which is Ohio's
+//                  "subtracts nothing" case and reuses Ohio's wording rather than inventing a
+//                  second phrasing for it. What was new is `tax.steppedRecapture`: the 2%
+//                  tax-rate phase-out add-back of Conn. Gen. Stat. 12-700(a)(10), a flat $25
+//                  per $5,000 of income over $56,500 up to $250, which the ENGINE has charged
+//                  since 2026-08-02 and which the band decomposition did not know about. It
+//                  fails the band assertion on sight, which is exactly what that assertion is
+//                  for. The engine's own steppedRecapture() is now exported and called here, so
+//                  the table, the prose, the method row and the hub all print the charge the
+//                  engine actually made. Connecticut's own personal exemption and personal tax
+//                  credits are NOT modelled and its data says so in terms — see below.
+//   nebraska       the first schedule whose published bands are not all at different rates:
+//                  LB754 brought the top rate down to 4.55% to meet the band below it, so
+//                  Neb. Rev. Stat. 77-2715.03(2)(c)(v) prints two adjacent 4.55% bands. Every
+//                  sentence promising that a raise past the next edge meets a higher rate is
+//                  false on the rung that tops out in the third band, so "which band" now
+//                  reads the rate of the band ABOVE and says so when the edge is bookkeeping
+//                  rather than a rate step.
+//   kansas         forced the "well under the headline" claim to be measured rather than
+//                  asserted. Kansas steps 5.20% to 5.58% over a $3,605 deduction, so at the
+//                  top of this ladder its effective rate lands a seventh of a point under the
+//                  headline — which nobody would describe as "well under". The gap is now
+//                  computed and described by its size, the same discipline the federal
+//                  "widest band" claim already gets.
+//   utah, iowa     the first states whose own subtraction is EXACTLY the federal standard
+//                  deduction ($16,100). The bracket branch already measured that comparison
+//                  for Missouri; the flat branch made no comparison at all, so a flat state's
+//                  one distinguishing number was printed with nothing to scale it against.
+//                  Flat pages now state the relationship, measured — equal, smaller or larger.
+//   oregon         two employee programs, one wage-based and one uncapped, which the program
+//                  machinery already handled. What it did not handle is the label: "OR Paid
+//                  Leave" reads as a conjunction mid-sentence, so a postal code that spells an
+//                  English word is expanded to the state name.
+// Mississippi, Oklahoma and Arkansas open on a 0% band, which Ohio and Missouri already do.
+// Three of the twelve DO carry `localIncomeTax.exists` — Kentucky's city and county occupational
+// licence fees, Oregon's Portland-area levies and Iowa's school-district surtax — and all three
+// render the local-tax block from the payroll file's own sourced note, exactly as Michigan, Ohio
+// and Pennsylvania already do. The other nine emit nothing on that line, which is also a fact
+// the data supplies rather than one asserted here.
+//
+// SEPARATELY, wave 3 fixed a live omission it tripped over: the state's own published caveats
+// were computed for every ladder page and then dropped on the floor, so twenty-five live
+// ladders were printing dollar figures without the qualifications their own data attaches to
+// them. They are wired in now. It matters most here — Connecticut, Kansas, Utah, Oklahoma,
+// Arkansas, Nebraska and New Mexico each say in their own data that an exemption or credit the
+// engine does not model makes the figure run high — but it was wrong on the live pages too.
 const LADDER_STATES = [
   'california', 'texas', 'florida', 'new-york', 'pennsylvania', 'illinois',
   'ohio', 'georgia', 'north-carolina', 'michigan', 'new-jersey', 'virginia',
@@ -4066,6 +4121,9 @@ const LADDER_STATES = [
   // wave 2
   'arizona', 'massachusetts', 'tennessee', 'indiana', 'missouri', 'maryland',
   'wisconsin', 'colorado', 'minnesota', 'south-carolina', 'alabama', 'louisiana',
+  // wave 3
+  'kentucky', 'oregon', 'oklahoma', 'connecticut', 'utah', 'iowa',
+  'nevada', 'arkansas', 'mississippi', 'kansas', 'new-mexico', 'nebraska',
 ];
 const LADDER_STATE_SET = new Set(LADDER_STATES);
 const ladderHubSlug = (slug) => `${slug}-take-home-pay`;
@@ -4094,12 +4152,23 @@ const ladderSalt = (slug, prefix, amount) =>
 // remainder is expanded to the state name ("California SDI", "New York PFL").
 // A remainder that is a word rather than an initialism is a proper name and is
 // left exactly as the data has it ("WA Cares").
+// The postal codes that are also ordinary English words. "OR Paid Leave at 0.60% and OR
+// Transit Tax at 0.10%" parses as a conjunction on first read, which no other state's label
+// does. So for these the abbreviation is expanded to the state name even though the
+// remainder is a proper name rather than an initialism. The list is the complete set of
+// fifty-one codes that spell a word (hi, in, me, oh, ok, or, pa); of those only Oregon
+// carries an employee program whose label is not already an initialism, so Oregon is the
+// only jurisdiction this branch changes today.
+const WORD_SHAPED_ABBR = new Set(['HI', 'IN', 'ME', 'OH', 'OK', 'OR', 'PA']);
 function programLabel(state, p) {
   const label = String(p.label || '');
   const abbr = String(state.abbr || '');
   if (abbr && label.startsWith(`${abbr} `)) {
     const rest = label.slice(abbr.length + 1);
     if (/^[A-Z/]+$/.test(rest)) return `${state.name} ${rest}`;
+    // Only the genuinely ambiguous codes, and only where the remainder is words rather
+    // than an initialism — "WA Cares" is a proper name nobody misreads and keeps its form.
+    if (WORD_SHAPED_ABBR.has(abbr) && /^[A-Z][a-z]/.test(rest)) return `${state.name} ${rest}`;
   }
   return label;
 }
@@ -4173,6 +4242,9 @@ function caRung(amount, taxData, slug) {
   // table.
   let st = null;
   let stBase = 0;
+  // Flat dollar charges the bracket arithmetic cannot produce, one entry per ladder in the
+  // data. Empty for every state that carries no `tax.steppedRecapture`.
+  let stRecapture = [];
   // WHAT THE STATE ACTUALLY SUBTRACTED, not what its table publishes. Three states on
   // this ladder subtract something other than the flat headline figure, and the pages
   // print the taxable income that results — so if these do not match the engine, the
@@ -4206,7 +4278,22 @@ function caRung(amount, taxData, slug) {
     // step, so the engine adds it separately and so must the decomposition —
     // otherwise the band table would under-report Ohio's tax by exactly $332.
     if (t.baseAmount && st.taxable > t.baseAmount.over) stBase = t.baseAmount.amount;
-    const stSum = st.bands.reduce((s, b) => s + b.tax, 0) + stBase;
+    // Stepped add-backs, same discipline as Ohio's base amount and for the same reason: the
+    // engine charges them on top of applyBrackets, so the decomposition has to as well.
+    // Connecticut is the only user on this ladder — its 2% phase-out add-back climbs $25 per
+    // $5,000 of AGI over $56,500 and stops at $250 — and the engine's own function is called
+    // here rather than re-derived, with the engine's own AGI proxy (gross, no pre-tax) and
+    // the engine's own `taxable > 0` guard.
+    if (st.taxable > 0 && Array.isArray(t.steppedRecapture)) {
+      stRecapture = t.steppedRecapture.map((ladder) => ({
+        ladder,
+        label: String(ladder.label || 'Stepped add-back'),
+        row: (ladder['single'] ?? ladder.single) || null,
+        tax: steppedRecapture(amount, 'single', ladder),
+      })).filter((x) => x.tax > 0);
+    }
+    const stRecaptureTotal = stRecapture.reduce((s, x) => s + x.tax, 0);
+    const stSum = st.bands.reduce((s, b) => s + b.tax, 0) + stBase + stRecaptureTotal;
     if (Math.abs(stSum - a.state) > 0.01) {
       throw new Error(
         `${stData.name} band decomposition does not reproduce the engine's state tax on $${amount}: ` +
@@ -4229,6 +4316,20 @@ function caRung(amount, taxData, slug) {
       );
     }
     st = { taxable, tax, rate: t.rate };
+  } else {
+    // NO STATE INCOME TAX — and the page says so in prose, drops the state row from the
+    // withholding table and tells the reader every dollar withheld is federal. All three of
+    // those are claims about the ENGINE'S output, not about the `hasIncomeTax` flag, so the
+    // two are checked against each other here. Nevada is the fifth no-income-tax ladder and
+    // the shape is now common enough that a data edit adding brackets to a state still
+    // flagged hasIncomeTax:false would otherwise ship a page contradicting its own total.
+    if (Math.abs(a.state) > 0.005) {
+      throw new Error(
+        `${stData.name} is rendered as a no-income-tax state but computePaycheck charged ` +
+        `${a.state} of state income tax on $${amount}. The page would say every dollar withheld ` +
+        `is federal while its own totals disagree — fix the data, do not ship it.`
+      );
+    }
   }
 
   // Employee-side programs, zipped with the data entries so the prose can read
@@ -4259,6 +4360,8 @@ function caRung(amount, taxData, slug) {
     stFicaDed,
     stDedPhases: !!t.standardDeductionPhaseout,
     stBase,
+    stRecapture,
+    stRecaptureTotal: stRecapture.reduce((s, x) => s + x.tax, 0),
     programs,
     progTotal,
     // Retained under its old name because California's SDI prose reads it.
@@ -4318,10 +4421,13 @@ function caBreakdownRows(r, fica) {
 // appear or the table would not sum to the tax the engine charged.
 function caBandRows(bd, extra) {
   const bandTax = bd.bands.reduce((s, b) => s + b.tax, 0);
-  const extraRow = extra
-    ? `\n<tr><td>${extra.label}</td><td class="num">—</td>` +
-      `<td class="num">—</td><td class="num">${usd0(extra.tax)}</td></tr>`
-    : '';
+  // `extra` was one optional row (Ohio's statutory base amount). Connecticut charges a
+  // SECOND kind of non-band amount on the same table — the 2% phase-out add-back — and the
+  // data models it as an array, so this takes a list. A single object is still accepted so
+  // the Ohio call site did not have to be rewritten into a shape it does not need.
+  const extras = (extra == null ? [] : (Array.isArray(extra) ? extra : [extra])).filter(Boolean);
+  const extraRow = extras.map((x) => `\n<tr><td>${x.label}</td><td class="num">—</td>` +
+    `<td class="num">—</td><td class="num">${usd0(x.tax)}</td></tr>`).join('');
   return bd.bands.filter((b) => b.amount > 0).map((b) => {
     const range = b.upper === Infinity
       ? `${usd0(b.lower)} and up`
@@ -4330,7 +4436,7 @@ function caBandRows(bd, extra) {
       `<td class="num">${usd0(b.amount)}</td><td class="num">${usd0(b.tax)}</td></tr>`;
   }).join('\n') + extraRow + `\n<tr class="tot"><td>Total</td><td class="num"></td>` +
     `<td class="num">${usd0(bd.taxable)}</td>` +
-    `<td class="num">${usd0(bandTax + (extra ? extra.tax : 0))}</td></tr>`;
+    `<td class="num">${usd0(bandTax + extras.reduce((a, x) => a + x.tax, 0))}</td></tr>`;
 }
 
 function caStatusRows(r, taxData) {
@@ -4627,6 +4733,35 @@ function caProseBlocks(r, rungs, ctx) {
     // edge is a different number and a different story on every rung.
     const nextEdge = stTop.upper === Infinity ? null : stTop.upper;
     const distance = nextEdge == null ? null : nextEdge - r.st.taxable;
+    // A BAND EDGE IS NOT ALWAYS A RATE CHANGE. Nebraska publishes four bands and its third
+    // and fourth carry the SAME 4.55% rate (Neb. Rev. Stat. 77-2715.03(2)(c)(v) brought the
+    // top rate down to meet the one below it), so on the rung that tops out in the third
+    // band every sentence promising that the rate "next moves" at the next edge, or that a
+    // large raise leaves it behind, is false. Read from the published schedule rather than
+    // from the decomposition, because the decomposition only carries bands the salary
+    // reaches. Nebraska is the only state on the roster with two adjacent equal rates.
+    const nextBand = st.tax.brackets.single[stBands.length] || null;
+    const nextRateHigher = nextBand != null && nextBand.rate > stTop.rate + 1e-12;
+    // SITTING EXACTLY ON A BAND EDGE. Connecticut has no standard deduction and round band
+    // edges at $10,000 / $50,000 / $100,000 / $200,000, so three rungs of this ladder land
+    // on an edge to the dollar and `distance` is $0. Every sentence that reads the distance
+    // as room — "the next band up begins $0 further on", "a raise of $0 or more will push
+    // part of your income into it", "a raise has to be substantial" — is false there: the
+    // next single dollar crosses. Gated as its own case rather than folded into the
+    // near-the-top branch, because "no room at all" is a different fact from "nearly none".
+    const atEdge = distance != null && distance <= 0.005;
+    // HOW MANY rungs of THIS ladder sit on an edge, measured rather than assumed. The first
+    // cut of the sentence below said "unlike every other rung on this ladder", which is false
+    // the moment a state has more than one such rung — and Connecticut has three, so each of
+    // the three pages contradicted the other two. Same predicate as `atEdge`, applied across
+    // the ladder, in the style of the ladder-wide measurement in the one-band branch below.
+    const rungAtEdge = (x) => {
+      if (x.kind !== 'bracket') return false;
+      const bs = x.st.bands.filter((b) => b.amount > 0);
+      const top = bs[bs.length - 1];
+      return top != null && top.upper !== Infinity && top.upper - x.st.taxable <= 0.005;
+    };
+    const atEdgeCount = rungs.filter(rungAtEdge).length;
     const pos = ORDINALS[stBands.length - 1] || `${stBands.length}th`;
     // WHERE inside the band the income sits, not just which band. This is the
     // gate that separates two rungs which happen to share a band: one has just
@@ -4655,17 +4790,33 @@ function caProseBlocks(r, rungs, ctx) {
             ? `, which no rung of this ladder reaches`
             : `, and higher rungs of this ladder do cross it`) +
           `.</p>`
-        : intoBand < 0.34
-        ? `<p>You have only just crossed into this band — about ${pct1(intoBand)} of the way through it — ` +
-          `so most of your ${NAME} taxable income is still being charged at the lower rates below, and ` +
-          `there is a long run before the next edge.</p>`
-        : (intoBand > 0.66
-          ? `<p>You are near the top of this band, roughly ${pct1(intoBand)} of the way through it, so the ` +
-            `next ${NAME} rate step is close. A raise of ${usd0(distance)} or more will push part of ` +
-            `your income into it — which matters for timing a bonus, not for whether the raise is worth ` +
-            `taking.</p>`
-          : `<p>You are around the middle of this band, about ${pct1(intoBand)} through it, so a modest ` +
-            `raise stays at the same ${NAME} rate and a large one does not.</p>`));
+        : (!nextRateHigher
+          // The edge above is a bookkeeping boundary, not a rate step. Saying where you sit
+          // inside the band is still true; saying a raise past the edge costs more is not.
+          ? `<p>You are ${pct1(intoBand)} of the way through this band, but that matters less here than ` +
+            `it would elsewhere: the band above it in ${NAME}'s published schedule carries the same ` +
+            `${pctStr(stTop.rate)} rate, so ` +
+            (atEdge
+              ? `the edge your income sits exactly on is not a rate step at all`
+              : `crossing the edge ${usd0(distance)} further on changes nothing about what a raise costs`) +
+            `. Your ${NAME} rate does not rise again at any income.</p>`
+          : atEdge
+          ? `<p>Your ${NAME} taxable income of ${usd0(r.st.taxable)} is exactly the top edge of this band, ` +
+            `so there is no room left inside it: the next single dollar you earn is charged at ` +
+            `${pctStr(nextBand.rate)}, not at ${pctStr(stTop.rate)}. That costs you nothing on the income ` +
+            `already here — each rate only ever touches the slice sitting inside its own band — but every ` +
+            `dollar of a raise meets the higher rate from the first one.</p>`
+          : intoBand < 0.34
+          ? `<p>You have only just crossed into this band — about ${pct1(intoBand)} of the way through it — ` +
+            `so most of your ${NAME} taxable income is still being charged at the lower rates below, and ` +
+            `there is a long run before the next edge.</p>`
+          : (intoBand > 0.66
+            ? `<p>You are near the top of this band, roughly ${pct1(intoBand)} of the way through it, so the ` +
+              `next ${NAME} rate step is close. A raise of ${usd0(distance)} or more will push part of ` +
+              `your income into it — which matters for timing a bonus, not for whether the raise is worth ` +
+              `taking.</p>`
+            : `<p>You are around the middle of this band, about ${pct1(intoBand)} through it, so a modest ` +
+              `raise stays at the same ${NAME} rate and a large one does not.</p>`)));
     // How the schedule behaves around this salary. California keeps the wording
     // its live pages already carry; every other state gets the same fact derived
     // from the ACTUAL width of the band the salary reaches, because "the bands
@@ -4685,10 +4836,68 @@ function caProseBlocks(r, rungs, ctx) {
           : `This is the middle of California's schedule, where the bands are still only a few thousand ` +
             `dollars wide and the rate climbs a step at each edge.`);
     } else if (bandWidth == null) {
+      // HOW FAR UNDER THE HEADLINE, MEASURED. This used to assert "well under", which is
+      // true where a wide low band or a large deduction shelters most of the salary and
+      // false where neither does: Kansas' schedule steps from 5.20% to 5.58% over a $3,605
+      // deduction, so at the top of this ladder its effective rate lands a seventh of a
+      // point below the headline, which nobody would call "well under". The gap is computed
+      // from the engine's own state tax and described by its size.
+      const effHere = r.amount > 0 ? r.a.state / r.amount : 0;
+      const gapPts = (stTop.rate - effHere) * 100;
+      // "1 percentage points". `+x.toFixed(1)` casts the string back to a Number, which
+      // strips the trailing zero, so a gap of exactly 1.0 printed as "1" beside a plural
+      // noun. The fixed decimal is kept as a string and the noun agrees with it.
+      const gapFixed = gapPts.toFixed(1);
+      const gapText = gapPts < 0.25
+        ? `only ${+gapPts.toFixed(2)} of a percentage point under the ${pctStr(stTop.rate)} headline, ` +
+          `because almost the whole salary is already inside this band`
+        : (gapPts < 1
+          ? `${+gapPts.toFixed(2)} of a percentage point under the ${pctStr(stTop.rate)} headline`
+          : `${gapFixed} percentage point${gapFixed === '1.0' ? '' : 's'} under the ` +
+            `${pctStr(stTop.rate)} headline`);
+      // WHAT THE INCOME UNDERNEATH WAS ACTUALLY CHARGED. "Everything below it has already been
+      // charged at the lower rates" is true of a schedule whose lower bands are all non-zero
+      // and all genuinely lower, and false of the two shapes this ladder now carries:
+      //   a 0% opening band  Ohio, Mississippi, Oklahoma and Arkansas charge that slice
+      //                      nothing at all, so it was not "charged at" any rate.
+      //   an equal rate below  Nebraska's third and fourth bands are both 4.55%, so the band
+      //                      immediately beneath is not a lower rate.
+      // The original wording is kept verbatim wherever it is true — which is every state that
+      // already shipped it except Ohio — and replaced by the measured decomposition where it
+      // is not. The figures are the same band amounts the table beside this paragraph prints.
+      const belowBands = stBands.slice(0, -1);
+      const sumOf = (f) => belowBands.filter(f).reduce((acc, b) => acc + b.amount, 0);
+      const zeroAmt = sumOf((b) => b.rate === 0);
+      const sameAmt = sumOf((b) => Math.abs(b.rate - stTop.rate) < 1e-12);
+      const lowerAmt = sumOf((b) => b.rate > 0 && b.rate < stTop.rate - 1e-12);
+      const belowParts = [
+        ...(zeroAmt > 0 ? [`${usd0(zeroAmt)} escaped ${NAME}'s tax entirely`] : []),
+        ...(lowerAmt > 0 ? [`${usd0(lowerAmt)} was charged at lower rates`] : []),
+        ...(sameAmt > 0 ? [`${usd0(sameAmt)} at this same ${pctStr(stTop.rate)} one band down`] : []),
+      ];
+      const belowClause = belowBands.length === 0
+        ? `Every dollar of ${NAME} taxable income on this salary sits inside it, which puts`
+        : (zeroAmt === 0 && sameAmt === 0
+          ? `Everything below it has already been charged at the lower rates, which puts`
+          : `Below it, ${caList(belowParts)}, which puts`);
       density = `This is the last band ${NAME} publishes and it has no upper edge, so the rate on further ` +
-        `income does not move again however much more you earn. Everything below it has already been ` +
-        `charged at the lower rates, which is why the effective rate on the whole salary is well under ` +
-        `the ${pctStr(stTop.rate)} headline.`;
+        `income does not move again however much more you earn. ${belowClause} the effective rate on the ` +
+        `whole salary — ${pct1(effHere)} — ${gapText}.`;
+    } else if (!nextRateHigher) {
+      density = `The band ${S} tops out in runs ${usd0(bandWidth)} from edge to edge, and the band above ` +
+        `it is charged at the same ${pctStr(stTop.rate)}, so there is no rate step left anywhere in ` +
+        `${NAME}'s schedule above this salary. A raise is charged at this rate whatever its size.`;
+    } else if (atEdge) {
+      // The paragraph after this one already says the income sits on the edge, that the next
+      // dollar meets the higher rate, and that nothing already earned is re-rated. This block
+      // knows one thing that one does not — how wide the band is, and how many rungs of the
+      // ladder end where a band does — so it says only that.
+      density = atEdgeCount > 1
+        ? `The band ${S} tops out in runs ${usd0(bandWidth)} from edge to edge, and it is not the only ` +
+          `${NAME} band this ladder walks straight out of: ${numWord(atEdgeCount)} of its ` +
+          `${numWord(rungs.length)} rungs stop exactly where a band does.`
+        : `The band ${S} tops out in runs ${usd0(bandWidth)} from edge to edge, and this is the one rung ` +
+          `of ${numWord(rungs.length)} on this ladder that stops exactly where a ${NAME} band does.`;
     } else if (bandWidth < 10000) {
       density = `The band ${S} tops out in is only ${usd0(bandWidth)} wide, so a raise of that size alone ` +
         `carries you out of it. Narrow bands at this end of the schedule look punishing and are not: only ` +
@@ -4710,6 +4919,23 @@ function caProseBlocks(r, rungs, ctx) {
         `once taxable income passes ${usd0(st.tax.baseAmount.over)}; it is in the table below and in every ` +
         `total on this page.`
       : '';
+    // A stepped add-back is neither a band nor a one-off base amount: it climbs a fixed
+    // number of dollars per fixed slice of income and then stops. Connecticut is the only
+    // state on this ladder that has one, and leaving it inside a rate would make the band
+    // table unreadable as arithmetic. Every figure here is the data's own ladder row plus
+    // the charge the engine actually made at this rung.
+    const recaptureLine = r.stRecapture.map((x) => {
+      const row = x.row || {};
+      const atCeiling = row.max != null && x.tax >= row.max - 0.005;
+      const rungsUsed = (row.step > 0) ? Math.ceil(Math.max(0, r.amount - row.over) / row.step) : 0;
+      return ` ${NAME} also charges what its own tables call the ${x.label.toLowerCase()}: a flat ` +
+        `${usd0(row.amountPerStep)} for each ${usd0(row.step)} of income above ${usd0(row.over)}, ` +
+        `${usd0(x.tax)} at ${S}` +
+        (atCeiling
+          ? `, which is the ${usd0(row.max)} ceiling — it cannot rise again however much more you earn.`
+          : ` after ${numWord(rungsUsed)} step${rungsUsed === 1 ? '' : 's'}, climbing to a ${usd0(row.max)} ` +
+            `ceiling further up. It is in the table below and in every total on this page.`);
+    }).join('');
     push('caband',
       `<h3>${frame('cah', [
         `How far up ${NAME}'s ladder ${S} reaches`,
@@ -4718,11 +4944,45 @@ function caProseBlocks(r, rungs, ctx) {
       ])}</h3>` +
       `<p>${NAME} taxes a single filer through ${numWord(caBandsTotal)} bands. ${S} reaches the ` +
       `${pos} of them, so the top slice of your ${NAME} taxable income ${takenOff} is charged at ` +
-      `${pctStr(stTop.rate)}.${baseLine} ` +
+      `${pctStr(stTop.rate)}.${baseLine}${recaptureLine} ` +
       (distance != null
-        ? `The next band up begins ${usd0(distance)} further on, so a raise of roughly that size is where ` +
-          `your ${NAME} rate next moves. `
-        : `That is the top of the published schedule. `) +
+        ? (atEdge
+          ? (nextRateHigher
+            ? `That figure is the band's upper edge to the dollar, so the next band up begins here: the ` +
+              `first dollar above ${S} is charged at ${pctStr(nextBand.rate)}. `
+            : `That figure is the band's upper edge to the dollar, so the next band up begins here — and ` +
+              `it is charged at the same ${pctStr(stTop.rate)}, so crossing it changes nothing. `)
+          : nextRateHigher
+          ? `The next band up begins ${usd0(distance)} further on, so a raise of roughly that size is where ` +
+            `your ${NAME} rate next moves. `
+          : `The next band up begins ${usd0(distance)} further on and is charged at the same ` +
+            `${pctStr(stTop.rate)}, so that edge is a line in the table rather than a rate step. `)
+        // TWO STATES CAN BOTH "TOP OUT IN THE LAST BAND" AND MEAN COMPLETELY DIFFERENT
+        // THINGS BY IT. Mississippi reaches its final band after one edge and puts almost
+        // all of the taxable figure inside it; Nebraska reaches its final band after three
+        // and leaves nearly half below. The old sentence said neither, so the pages that
+        // shared this branch shared it word for word. Both figures are read off the
+        // decomposition the table beside this paragraph prints.
+        : (() => {
+          const shareTop = r.st.taxable > 0 ? stTop.amount / r.st.taxable : 0;
+          const below = stBands.length - 1;
+          return frame('topband', [
+            `That is the top of the published schedule, and ${pct1(shareTop)} of the ${NAME} taxable ` +
+            `figure sits inside that last band` +
+            (below > 0 ? `, the rest having been charged across the ${numWord(below)} below it` : '') + `. `,
+            `${NAME}'s schedule ends there. ${pct1(shareTop)} of the taxable figure is charged in that ` +
+            `final band` +
+            (below > 0 ? ` and the remainder in the ${numWord(below)} beneath it` : `, which is the only one this salary reaches`) +
+            `. `,
+            `Nothing is published above it. Of the ${usd0(r.st.taxable)} ${NAME} taxes, ` +
+            `${usd0(stTop.amount)} — ${pct1(shareTop)} — falls in this last band` +
+            // numWord(1) is "one", and "the one lower ones" reached six live pages (Ohio and
+            // South Carolina). A count of one is not a count here, it is the band below.
+            (below > 0
+              ? ` and the rest in ${below === 1 ? 'the band below it' : `the ${numWord(below)} lower ones`}`
+              : '') + `. `,
+          ]);
+        })()) +
       `${density}</p>${position}`);
   } else if (r.kind === 'flat') {
     // No band ladder, so no "which band" question exists to answer. What DOES
@@ -5748,12 +6008,36 @@ function caPageCopy(r, rungs, ctx) {
         `is what the ${usd0(fedStd)} federal standard deduction takes off. ${S} works through ` +
         `${numWord(stBands.length)} of ${NAME}'s bands, topping out at ${pctStr(r.st.marginalRate)}.`;
   } else if (r.kind === 'flat') {
+    // MEASURED AGAINST THE FEDERAL DEDUCTION, the same comparison the bracket branch above
+    // makes. A flat state's whole state-side story is the size of its own subtraction, and
+    // the ladder was printing that figure without the one comparison that gives it a scale.
+    // Three genuinely different cases live in the data today: Colorado, Utah and Iowa
+    // subtract EXACTLY the federal $16,100 (Iowa's source says in terms that it conforms to
+    // the federal figure, Utah's that the calculator approximates its base as wages minus
+    // the federal standard deduction), Indiana's $1,000 exemption allowance is a fraction of
+    // it, and a state subtracting more would flip the sign. Which one a page prints is read
+    // off the numbers, never assumed — the equality branch exists because "much smaller"
+    // was the only thing the wave-1 wording could say.
+    const flatGap = r.stDed - fedStd;
+    const flatCompare = r.stDed <= 0
+      ? ''
+      : (Math.abs(flatGap) < 0.5
+        ? ` That is the federal standard deduction to the dollar, so the ${NAME} and federal ` +
+          `taxable figures on this page are the same ${usd0(r.st.taxable)} and the only thing ` +
+          `separating the two bills is the rate applied to them.`
+        : (flatGap < 0
+          ? ` The federal standard deduction is ${usd0(fedStd)}, so ${NAME} charges its rate on ` +
+            `${usd0(r.st.taxable - r.fed.taxable)} more of this salary than the federal brackets ever reach.`
+          : ` The federal standard deduction is only ${usd0(fedStd)}, so ${NAME} charges its rate on ` +
+            `${usd0(r.fed.taxable - r.st.taxable)} less of this salary than the federal brackets reach.`));
     CA_INTRO = r.stDed > 0
       ? `${NAME} has one rate, ${pctStr(r.st.rate)}, and no ladder to climb. It subtracts ${usd0(r.stDed)} ` +
         `first, leaving ${usd0(r.st.taxable)} of ${NAME} taxable income, and charges the same rate on ` +
-        `every dollar of it.`
+        `every dollar of it.${flatCompare}`
       : `${NAME} has one rate, ${pctStr(r.st.rate)}, and nothing is subtracted before it applies. The ` +
-        `whole ${S} is ${NAME} taxable income, and every dollar of it is charged at the same rate.`;
+        `whole ${S} is ${NAME} taxable income — ${usd0(r.amount - r.fed.taxable)} more than the federal ` +
+        `side taxes, which is exactly the ${usd0(fedStd)} standard deduction — and every dollar of it is ` +
+        `charged at the same rate.`;
   }
 
   // Filing status: quote the actual difference this salary sees.
@@ -5880,6 +6164,9 @@ function caPageCopy(r, rungs, ctx) {
         (r.stDed > 0 ? dedText : nothingText) +
         `, through ${numWord(stBands.length)} band${stBands.length === 1 ? '' : 's'}` +
         (r.stBase > 0 ? ` plus the statutory ${usd0(r.stBase)} base amount` : '') +
+        (r.stRecaptureTotal > 0
+          ? ` plus ${usd0(r.stRecaptureTotal)} of ${caList(r.stRecapture.map((x) => x.label.toLowerCase()))}`
+          : '') +
         ` → ${usd0(r.a.state)}.${progSentence}`;
     } else if (r.kind === 'flat') {
       stateMethod = `${pctStr(r.st.rate)} on ${usd0(r.st.taxable)}` +
@@ -5957,7 +6244,9 @@ function caPageCopy(r, rungs, ctx) {
       `the take-home figure above, and all of it is real at this income: ` +
       `${live.join('; ')}.</li>`);
   }
-  const LIMIT_ITEMS = generic.join('\n        ');
+  // The state's own published caveats, last, after the generic list and the rung-specific
+  // one. A state with none (Mississippi, Nevada) adds nothing rather than a placeholder.
+  const LIMIT_ITEMS = [...generic, ...stateDisclaimerItems(st, year)].join('\n        ');
 
   return { BREAKDOWN_INTRO, FED_INTRO, CA_INTRO, FILING_INTRO, FILING_NOTE, LADDER_INTRO,
     METHOD_INTRO, METHOD_ROWS, LIMIT_ITEMS };
@@ -6219,31 +6508,30 @@ function caLadderSources(taxData, state) {
   return named.map((s) => `<li><a href="${esc(s.url)}" rel="noopener" target="_blank">${esc(s.title)}</a></li>`).join('');
 }
 
-// The "what this does not include" list. The local-income-tax item is written
-// from the payroll data's own answer for this state rather than asserted.
-function caLimitItems(state, payrollState, year) {
-  const items = [];
-  const lt = payrollState && payrollState.localIncomeTax;
-  if (lt) {
-    items.push(lt.exists
-      ? `<li><strong>Local income tax.</strong> ${state.name} localities levy one where it applies, and it is not modelled here.</li>`
-      : `<li><strong>Local income tax.</strong> There is none to include: ${state.name} has no city or county income tax on wages, so nothing is missing on this line.</li>`);
-  }
-  items.push(`<li><strong>Pre-tax deductions.</strong> No 401(k), no HSA or FSA, no health premiums. All of those cut taxable income, so a real paycheck with benefits keeps more than this page shows.</li>`);
-  items.push(`<li><strong>Credits and itemizing.</strong> Standard deduction only, no dependents, no child tax credit, no itemized deductions.</li>`);
-  items.push(`<li><strong>Non-wage income and the employer's share.</strong> Investment income, self-employment income and the employer half of FICA are all out of scope.</li>`);
-  // The state's own caveats, straight out of the data file so a new one appears
-  // here the day it is added. One of them is dropped: the prior-year-tables
-  // caveat, because figureYearBanner() already puts that same sentence at the
-  // top of the page and printing it twice reads as padding.
-  //
-  // The first version of this filter dropped any entry containing BOTH years as
-  // substrings, which is too eager — a caveat about, say, a credit that changed
-  // in 2025 and applies in 2026 would have been silently deleted, and a deleted
-  // caveat is a worse failure than a repeated one. The test is now narrow: it
-  // only runs when the banner is actually being shown, and the entry must ALSO
-  // talk about publication, which is what the banner's sentence is about. An
-  // entry that merely mentions the years survives.
+// THE STATE'S OWN CAVEATS, which is the part of "what this does not include" that no
+// generic sentence can supply. Every one of them is a string the payroll data file already
+// carries and already ships on that state's paycheck page; nothing is written here.
+//
+// THIS WAS DEAD CODE AND THE PAGES WERE POORER FOR IT. The list existed, was computed once
+// per state, and was then dropped on the floor: {{LIMIT_ITEMS}} was filled from the generic
+// four alone, so twenty-five live ladders omitted their own state's published caveats. That
+// is a real omission rather than a cosmetic one — Connecticut's data says in terms that the
+// figure "runs HIGH for lower incomes" because neither its $15,000 personal exemption nor
+// its personal tax credits are modelled, and Kansas, Utah, Oklahoma, Arkansas, Nebraska and
+// New Mexico each carry the same shape of warning about an exemption or credit the engine
+// does not see. A page printing a dollar figure the state's own data qualifies has to carry
+// the qualification.
+//
+// One entry is dropped: the prior-year-tables caveat, because figureYearBanner() already
+// puts that same sentence at the top of the page and printing it twice reads as padding.
+//
+// The first version of this filter dropped any entry containing BOTH years as substrings,
+// which is too eager — a caveat about, say, a credit that changed in 2025 and applies in
+// 2026 would have been silently deleted, and a deleted caveat is a worse failure than a
+// repeated one. The test is now narrow: it only runs when the banner is actually being
+// shown, and the entry must ALSO talk about publication, which is what the banner's sentence
+// is about. An entry that merely mentions the years survives.
+function stateDisclaimerItems(state, year) {
   const bannerShown = Number(state.figureYear) && Number(state.figureYear) !== Number(year);
   const isBannerEcho = (d) => {
     if (!bannerShown) return false;
@@ -6252,10 +6540,9 @@ function caLimitItems(state, payrollState, year) {
       && t.includes(String(year))
       && /\bpublish(ed|es)?\b/i.test(t);
   };
-  (state.disclaimer || [])
+  return (state.disclaimer || [])
     .filter((d) => !isBannerEcho(d))
-    .forEach((n) => items.push(`<li>${esc(String(n))}</li>`));
-  return items.join('\n        ');
+    .map((n) => `<li>${esc(String(n))}</li>`);
 }
 
 // The state income-tax section of a rung page: heading, intro, table, note.
@@ -6266,9 +6553,17 @@ function ladderStateSection(r, copyIntro, S) {
   const NAME = r.state.name;
   if (r.kind === 'none') return '';
   if (r.kind === 'bracket') {
-    const extra = r.stBase > 0
-      ? { label: `Statutory base amount over ${usd0(r.state.tax.baseAmount.over)}`, tax: r.stBase }
-      : null;
+    const extra = [
+      ...(r.stBase > 0
+        ? [{ label: `Statutory base amount over ${usd0(r.state.tax.baseAmount.over)}`, tax: r.stBase }]
+        : []),
+      // Connecticut's add-back is keyed on AGI, not on taxable income, so its row names the
+      // income it is measured against rather than a taxable-income threshold.
+      ...r.stRecapture.map((x) => ({
+        label: `${x.label}${x.row && x.row.over != null ? ` (income over ${usd0(x.row.over)})` : ''}`,
+        tax: x.tax,
+      })),
+    ];
     const progNote = r.programs.length
       ? ` ${caList(r.programs.map((p) => p.label))} ${r.programs.length === 1 ? 'is' : 'are'} charged ` +
         `separately, on the full salary and not on taxable income, so ${r.programs.length === 1 ? 'it is' : 'they are'} not in this table.`
@@ -7573,7 +7868,6 @@ async function main() {
           ? `Computed from published ${year} federal and ${NAME} tables`
           : `Computed from published ${year} federal tables; ${NAME} on its ${state.figureYear} schedules`));
       const sourceRows = sourceRowsFor(state);
-      const limitItems = caLimitItems(state, payrollState, year);
       const ladderRelated = relatedLinksHtml([
         { name: `${NAME} Paycheck Calculator`, path: `/${ladderSlugKey}-paycheck-calculator/` },
         { name: `${NAME} Take-Home Pay by Salary`, path: `/${HUB}/` },
@@ -7815,11 +8109,21 @@ async function main() {
           // engine charges it. The rung pages disclose it; the hub said "two
           // bands" and left the reader unable to arrive at its own number.
           const baseAmt = kind === 'bracket' && state.tax.baseAmount ? state.tax.baseAmount : null;
+          // Same reason as Ohio's base amount: Connecticut's seven bands alone do not
+          // reproduce the dollar figures quoted in the next sentence, because its 2%
+          // phase-out add-back is charged on top of them. The hub has to name it or the
+          // reader cannot arrive at the hub's own numbers. Figures are the rung objects'.
+          const recap = kind === 'bracket' ? (high.stRecapture || []) : [];
           const structure = kind === 'flat'
             ? `a single ${pctStr(state.tax.rate)} rate`
             : `a graduated schedule of ${numWord(state.tax.brackets.single.length)} bands` +
               (baseAmt
                 ? `, plus a flat statutory ${usd0(baseAmt.amount)} once taxable income passes ${usd0(baseAmt.over)}`
+                : '') +
+              (recap.length
+                ? `, plus ${caList(recap.map((x) => `${x.label.toLowerCase()} of up to ` +
+                    `${usd0((x.row && x.row.max) || x.tax)} on incomes over ` +
+                    `${usd0((x.row && x.row.over) || 0)}`))}`
                 : '');
           const both = progs.length
             ? `${NAME} takes two kinds of deduction from a paycheck, not one: income tax on ${structure}, ` +
