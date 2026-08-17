@@ -4750,6 +4750,18 @@ function caProseBlocks(r, rungs, ctx) {
     // next single dollar crosses. Gated as its own case rather than folded into the
     // near-the-top branch, because "no room at all" is a different fact from "nearly none".
     const atEdge = distance != null && distance <= 0.005;
+    // HOW MANY rungs of THIS ladder sit on an edge, measured rather than assumed. The first
+    // cut of the sentence below said "unlike every other rung on this ladder", which is false
+    // the moment a state has more than one such rung — and Connecticut has three, so each of
+    // the three pages contradicted the other two. Same predicate as `atEdge`, applied across
+    // the ladder, in the style of the ladder-wide measurement in the one-band branch below.
+    const rungAtEdge = (x) => {
+      if (x.kind !== 'bracket') return false;
+      const bs = x.st.bands.filter((b) => b.amount > 0);
+      const top = bs[bs.length - 1];
+      return top != null && top.upper !== Infinity && top.upper - x.st.taxable <= 0.005;
+    };
+    const atEdgeCount = rungs.filter(rungAtEdge).length;
     const pos = ORDINALS[stBands.length - 1] || `${stBands.length}th`;
     // WHERE inside the band the income sits, not just which band. This is the
     // gate that separates two rungs which happen to share a band: one has just
@@ -4876,10 +4888,16 @@ function caProseBlocks(r, rungs, ctx) {
         `it is charged at the same ${pctStr(stTop.rate)}, so there is no rate step left anywhere in ` +
         `${NAME}'s schedule above this salary. A raise is charged at this rate whatever its size.`;
     } else if (atEdge) {
-      density = `The band ${S} tops out in runs ${usd0(bandWidth)} from edge to edge and this salary has ` +
-        `used the whole of it, so unlike every other rung on this ladder there is no raise small enough ` +
-        `to stay inside it. Nothing already earned is re-rated by crossing: only the slice of income ` +
-        `inside each band is charged at that band's rate.`;
+      // The paragraph after this one already says the income sits on the edge, that the next
+      // dollar meets the higher rate, and that nothing already earned is re-rated. This block
+      // knows one thing that one does not — how wide the band is, and how many rungs of the
+      // ladder end where a band does — so it says only that.
+      density = atEdgeCount > 1
+        ? `The band ${S} tops out in runs ${usd0(bandWidth)} from edge to edge, and it is not the only ` +
+          `${NAME} band this ladder walks straight out of: ${numWord(atEdgeCount)} of its ` +
+          `${numWord(rungs.length)} rungs stop exactly where a band does.`
+        : `The band ${S} tops out in runs ${usd0(bandWidth)} from edge to edge, and this is the one rung ` +
+          `of ${numWord(rungs.length)} on this ladder that stops exactly where a ${NAME} band does.`;
     } else if (bandWidth < 10000) {
       density = `The band ${S} tops out in is only ${usd0(bandWidth)} wide, so a raise of that size alone ` +
         `carries you out of it. Narrow bands at this end of the schedule look punishing and are not: only ` +
