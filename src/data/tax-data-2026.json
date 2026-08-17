@@ -1037,6 +1037,20 @@
         "type": "none"
       },
       "_source": "Texas has no state individual income tax (Texas Comptroller). https://comptroller.texas.gov/taxes/",
+      "_noTaxBasis": {
+        "heading": "Why Texas cannot introduce an income tax without amending its constitution",
+        "paragraphs": [
+          "Texas does not merely decline to tax wages; it is constitutionally barred from doing so. Article VIII, Section 24-a of the Texas Constitution provides that the legislature \"may not impose a tax on the net incomes of individuals, including an individual's share of partnership and unincorporated association income.\" Voters added that section on 5 November 2019 through Proposition 4, which also repealed the older Section 24 it replaced.",
+          "The difference matters to anyone planning more than a year ahead. Under the old Section 24, an income tax was an ordinary legislative act with a high bar: a majority in both chambers, then approval at a statewide referendum. Since Proposition 4 it is not a legislative question at all. Introducing one would require amending the constitution itself, which takes two-thirds of both the Texas House and the Texas Senate and then a statewide vote. This line on a Texas pay stub is about as fixed as a tax rule gets.",
+          "There is also no city or county income tax anywhere in Texas, so the federal figures on this page are the whole withholding picture for a salaried employee. The state funds itself largely through sales tax and local property tax, neither of which is deducted from a paycheck."
+        ],
+        "sources": [
+          {
+            "title": "Texas Constitution, Article VIII, Section 24-a",
+            "url": "https://statutes.capitol.texas.gov/Docs/CN/htm/CN.8/CN.8.24-a.htm"
+          }
+        ]
+      },
       "notes": "No state income tax. Net pay = gross − federal withholding − FICA."
     },
     "florida": {
@@ -1048,6 +1062,20 @@
         "type": "none"
       },
       "_source": "Florida levies no state individual income tax (Florida Dept. of Revenue). https://floridarevenue.com/",
+      "_noTaxBasis": {
+        "heading": "Florida's zero is the output of a formula, not a flat ban",
+        "paragraphs": [
+          "Florida's constitution does not simply forbid taxing individual income. Article VII, Section 5(a) provides that no tax \"upon the income of natural persons who are residents or citizens of the state shall be levied by the state, or under its authority, in excess of the aggregate of amounts which may be allowed to be credited upon or deducted from any similar tax levied by the United States or any state.\"",
+          "Read closely, that is a ceiling pegged to federal law rather than a prohibition. Florida may tax personal income up to whatever amount federal law would let a taxpayer credit or deduct against it. No such federal credit for a state income tax exists, so the ceiling computes to zero and Florida withholds nothing from wages. The practical result matches a ban, but the mechanism differs: Florida's zero is the output of a calculation whose other input is written in Washington rather than Tallahassee.",
+          "For a 2026 paycheck none of that changes the numbers. Every dollar withheld from a Florida salary on this ladder is federal, and no county or municipality in the state levies an income tax on top."
+        ],
+        "sources": [
+          {
+            "title": "Florida Constitution, Article VII, Section 5",
+            "url": "https://www.flsenate.gov/Laws/Constitution"
+          }
+        ]
+      },
       "notes": "No state income tax."
     },
     "washington": {
@@ -1093,6 +1121,20 @@
         "type": "none"
       },
       "_source": "Nevada levies no state individual income tax (Nevada Dept. of Taxation). https://tax.nv.gov/",
+      "_noTaxBasis": {
+        "heading": "Nevada has a payroll tax, and it never reaches your pay stub",
+        "paragraphs": [
+          "Nevada levies no individual income tax, but it is not a state without a payroll tax. The Modified Business Tax, imposed under NRS 363B.110, is charged on wages. The reason it never appears among the figures on this page is that the employer owes it, not the employee.",
+          "The Nevada Department of Taxation states the rule directly: every employer subject to the state's unemployment compensation law \"is also subject to the Modified Business Tax on total gross wages less employee health care benefits paid by the employer.\" The general business rate has been 1.17% since 1 July 2023, reduced from 1.378%, and the first $50,000 of wages in a quarter is exempt.",
+          "For a salaried employee the practical effect is that a Nevada employer's true cost of employing you runs above your gross salary by more than the federal employer-side FICA alone. None of it is deducted from you, and every dollar withheld on this ladder is federal."
+        ],
+        "sources": [
+          {
+            "title": "Nevada Department of Taxation: Modified Business Tax",
+            "url": "https://tax.nv.gov/tax-types/modified-business-tax"
+          }
+        ]
+      },
       "notes": "No state income tax."
     },
     "tennessee": {
@@ -1104,6 +1146,20 @@
         "type": "none"
       },
       "_source": "Tennessee has no wage income tax; the Hall tax on interest/dividends was fully repealed effective 2021 (TN Dept. of Revenue). https://www.tn.gov/revenue",
+      "_noTaxBasis": {
+        "heading": "Tennessee taxed investment income until 2021, and never taxed wages",
+        "paragraphs": [
+          "Tennessee shed an income tax more recently than most people assume, and the one it shed never touched a paycheck. The Hall income tax, enacted in 1929, was imposed only on individuals and other entities \"receiving interest from bonds and notes and dividends from stock.\" Salary and wages sat outside it from the beginning.",
+          "The Tennessee Department of Revenue records that the Hall tax \"was repealed for tax periods that begin on January 1, 2021, or later,\" and instructs taxpayers not to file a return for any year beginning on or after that date. So a Tennessee wage earner's withholding has looked like this ladder for decades, while a Tennessee investor's position changed materially only in 2021.",
+          "The distinction still trips up anyone reading older guidance. An article written before 2021 that describes Tennessee as having \"an income tax\" is talking about interest and dividends, not employment income. Neither version of the state ever produced a state line on a Tennessee pay stub."
+        ],
+        "sources": [
+          {
+            "title": "Tennessee Department of Revenue: Hall income tax",
+            "url": "https://www.tn.gov/revenue/taxes/hall-income-tax.html"
+          }
+        ]
+      },
       "notes": "No state income tax."
     },
     "south-dakota": {

@@ -6493,6 +6493,10 @@ function caLadderSources(taxData, state) {
     const hit = isCA ? CA_FTB_TITLES.find(([re]) => re.test(u)) : null;
     add(hit ? hit[1] : (isCA ? 'California Franchise Tax Board' : `${state.name}: source for the state figures on this page`), u);
   });
+  // The statutory basis for a no-income-tax state levying nothing. These are the
+  // only citation for the `_noTaxBasis` prose, so losing them would leave a sourced
+  // claim on the page with nothing behind it.
+  (state._noTaxBasis && state._noTaxBasis.sources || []).forEach((src) => add(src.title, src.url));
   (state.employeePrograms || []).forEach((p) => add(
     isCA ? 'California EDD: SDI rates and withholding' : `${programLabel(state, p)}: rate and withholding`,
     p._source));
@@ -7851,6 +7855,22 @@ async function main() {
       const HUB = ladderHubSlug(ladderSlugKey);
       const payrollState = payroll[ladderSlugKey];
       const kind = ladderKind(state);
+      // A no-income-tax state with no employee-side premium has nothing state-specific
+      // left to say once the arithmetic is federal, and its hub collapses onto every
+      // other such state's (TX/FL/TN/NV measured at 0.852 5-gram Jaccard before this
+      // guard existed, against a 0.476 median). Wave 4 brings four more — South Dakota,
+      // Wyoming, Alaska and New Hampshire — so this is a hard failure, not a warning:
+      // shipping them without a sourced `_noTaxBasis` would rebuild the cluster silently.
+      if (kind === 'none' && !(state.employeePrograms || []).length) {
+        const b = state._noTaxBasis;
+        if (!b || !Array.isArray(b.paragraphs) || b.paragraphs.length < 2 || !b.heading
+          || !Array.isArray(b.sources) || !b.sources.length) {
+          throw new Error(
+            `${ladderSlugKey}: a ladder state with no income tax and no employee premium must carry `
+            + `a _noTaxBasis { heading, paragraphs (2+), sources (1+) } in tax-data-${year}.json, or its `
+            + `hub becomes a near-duplicate of every other no-tax state's.`);
+        }
+      }
       const rungs = caLadderRungs(taxData, ladderSlugKey);
       const low = rungs[0];
       const high = rungs[rungs.length - 1];
@@ -8086,13 +8106,29 @@ async function main() {
             `${usd0(high.amount)} it costs ${usd0(highState)}. SDI is the part people forget, ` +
             `because it is not an income tax and does not appear in any bracket table.</p>`;
         } else if (kind === 'none' && !progs.length) {
+          // These hubs were a doorway cluster. A state with no income tax and no
+          // employee-side premium has no state arithmetic to describe, so the
+          // paragraph below — which is genuinely this state's numbers but the same
+          // SENTENCES everywhere — was the entire state-specific content. Texas,
+          // Florida, Tennessee and Nevada therefore rendered byte-identical bodies
+          // apart from the state name: 5-gram Jaccard 0.852 against a 0.476 median
+          // across all hub pairs, with the next-closest unrelated pair at 0.569.
+          // Washington escaped only because its PFML/WA Cares premiums sent it down
+          // the branch below. `_noTaxBasis` supplies the sourced, genuinely different
+          // reason each state levies nothing; the guard near LADDER_STATES makes it
+          // mandatory so a later wave cannot silently rebuild the cluster. The leading underscore
+          // keeps it out of the client payloads via stripInternal: it is page prose, not tax data,
+          // and inlining it cost 5.2KB on every calculator page that ships the data blob.
+          const basis = state._noTaxBasis;
           hubStateBlock = `<h3>Why the federal bill is the whole bill in ${NAME}</h3>` +
             `<p>${NAME} taxes no wage income and withholds no employee-side payroll premium, so every ` +
             `dollar deducted from ${anFor(NAME)} ${NAME} paycheck on this ladder is federal. That is why the take-home ` +
             `share here moves from ${pct1(low.a.net / low.amount)} at ${usd0(low.amount)} to ` +
             `${pct1(high.a.net / high.amount)} at ${usd0(high.amount)} purely on federal arithmetic: the ` +
             `bands, the ${ssBase} Social Security wage base and the Additional Medicare threshold are the ` +
-            `only three things that change across the whole ladder.</p>`;
+            `only three things that change across the whole ladder.</p>` +
+            `<h3>${esc(basis.heading)}</h3>` +
+            basis.paragraphs.map((p) => `<p>${esc(p)}</p>`).join('');
         } else if (kind === 'none') {
           hubStateBlock = `<h3>What ${NAME} takes, given it has no income tax</h3>` +
             `<p>${NAME} taxes no wage income, but the payslip is not free of state lines: ` +
