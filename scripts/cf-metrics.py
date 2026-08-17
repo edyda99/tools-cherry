@@ -103,6 +103,101 @@ def agg(tag, start, end):
     return {"pageviews": rows[0]["count"], "visits": rows[0]["sum"]["visits"]}
 
 
+# --- Human-only breakdown ----------------------------------------------------
+# Raw RUM visits count anything that executes the beacon JS: JS-rendering
+# crawlers, Edmond's own checks from SA, and localhost dev. The advisor's
+# headline number must be one that can only be real, so we classify:
+#   search   — refererHost is a search engine (the number that bends first
+#              when Google starts trusting the site)
+#   referral — any other external site (Quora, HN, uneed, ...)
+#   direct   — no referrer, non-SA, minus flagged bot-burst hours
+# Excluded entirely: SA direct (self), tools-berry.com internal navigation,
+# localhost/pages.dev dev traffic, and bot-burst hours. Burst signature
+# (established 2026-08-17): many direct referrer-less ~1-pageview visits in
+# one hour spread one-each across unrelated paths.
+
+SEARCH_HOST_PAT = ("google.", "bing.", "duckduckgo.", "yahoo.", "yandex.",
+                   "ecosia.", "brave.", "startpage.", "baidu.", "qwant.")
+INTERNAL_HOSTS = {"tools-berry.com", "www.tools-berry.com"}
+SELF_COUNTRIES = {"SA", "Saudi Arabia"}  # countryName returns ISO codes
+BOT_HOUR_MIN_VISITS = 8      # direct non-SA visits in one hour
+BOT_HOUR_MIN_PATHS = 5       # spread across at least this many distinct paths
+BOT_HOUR_MAX_PV_RATIO = 1.5  # ~1 pageview per visit (crawlers don't browse)
+
+
+def _host_class(host):
+    h = (host or "").lower()
+    if not h:
+        return "direct"
+    if h in INTERNAL_HOSTS:
+        return "internal"
+    if h in ("localhost", "127.0.0.1") or h.endswith(".pages.dev"):
+        return "dev"
+    if any(p in h for p in SEARCH_HOST_PAT):
+        return "search"
+    return "referral"
+
+
+def human(tag, start, end):
+    f = _filter(tag, start, end)
+    # direct-only filter: same window, refererHost pinned to empty
+    fd = f[:-1] + ', refererHost: ""}'
+    q = f"""query {{ viewer {{ accounts(filter: {{accountTag: "{ACCT}"}}) {{
+      hosts: rumPageloadEventsAdaptiveGroups(limit: 100, orderBy: [count_DESC], filter: {f}) {{
+        count sum {{ visits }} dimensions {{ refererHost }} }}
+      direct: rumPageloadEventsAdaptiveGroups(limit: 2000, filter: {fd}) {{
+        count sum {{ visits }} dimensions {{ datetimeHour countryName requestPath }} }}
+    }} }} }}"""
+    g = gql(q)
+
+    search = referral = internal = dev = 0
+    by_search = {}
+    for r in g["hosts"]:
+        host = r["dimensions"]["refererHost"]
+        v = r["sum"]["visits"]
+        cls = _host_class(host)
+        if cls == "search":
+            search += v
+            by_search[host] = by_search.get(host, 0) + v
+        elif cls == "referral":
+            referral += v
+        elif cls == "internal":
+            internal += v
+        elif cls == "dev":
+            dev += v
+
+    sa_direct = 0
+    hours = {}  # hour -> {"visits": n, "pv": n, "paths": set}
+    for r in g["direct"]:
+        d = r["dimensions"]
+        v, pv = r["sum"]["visits"], r["count"]
+        if d["countryName"] in SELF_COUNTRIES:
+            sa_direct += v
+            continue
+        h = hours.setdefault(d["datetimeHour"], {"visits": 0, "pv": 0, "paths": set()})
+        h["visits"] += v
+        h["pv"] += pv
+        h["paths"].add(d["requestPath"])
+
+    direct_total = sum(h["visits"] for h in hours.values())
+    bot_hours, bot_visits = [], 0
+    for hr, h in sorted(hours.items()):
+        if (h["visits"] >= BOT_HOUR_MIN_VISITS
+                and len(h["paths"]) >= BOT_HOUR_MIN_PATHS
+                and h["pv"] <= h["visits"] * BOT_HOUR_MAX_PV_RATIO):
+            bot_hours.append(hr)
+            bot_visits += h["visits"]
+    direct = max(direct_total - bot_visits, 0)
+
+    return {
+        "total": search + referral + direct,
+        "search": search, "referral": referral, "direct": direct,
+        "by_search_host": sorted(by_search.items(), key=lambda kv: -kv[1]),
+        "excluded": {"sa_direct": sa_direct, "bot_visits": bot_visits,
+                     "bot_hours": bot_hours, "internal": internal, "dev": dev},
+    }
+
+
 def top(tag, start, end):
     f = _filter(tag, start, end)
     q = f"""query {{ viewer {{ accounts(filter: {{accountTag: "{ACCT}"}}) {{
@@ -123,6 +218,8 @@ def main():
 
     d1 = agg(tag, now - timedelta(hours=24), now)
     d7 = agg(tag, now - timedelta(days=7), now)
+    h1 = human(tag, now - timedelta(hours=24), now)
+    h7 = human(tag, now - timedelta(days=7), now)
 
     g = top(tag, now - timedelta(days=7), now)
     top_pages = [(r["dimensions"]["metric"], r["count"]) for r in g["pages"]]
@@ -131,6 +228,7 @@ def main():
     out = {
         "site": host, "site_tag": tag, "as_of": iso(now),
         "last_24h": d1, "last_7d": d7,
+        "human_24h": h1, "human_7d": h7,
         "top_pages_7d": top_pages, "top_countries_7d": top_countries,
     }
 
@@ -142,6 +240,16 @@ def main():
     print(f"  Last 24h:  {d1['visits']:>6} visits   {d1['pageviews']:>6} pageviews")
     print(f"  Last 7d:   {d7['visits']:>6} visits   {d7['pageviews']:>6} pageviews"
           f"   (~{round(d7['visits']/7)}/day)")
+    print("  Human only (bots, SA self, internal excluded):")
+    for label, h in (("24h", h1), ("7d ", h7)):
+        ex = h["excluded"]
+        print(f"    {label}: {h['total']:>4} visits = {h['search']} search"
+              f" + {h['referral']} referral + {h['direct']} direct"
+              f"   (excluded: {ex['sa_direct']} SA, {ex['bot_visits']} bot"
+              f" in {len(ex['bot_hours'])}h, {ex['internal']} internal, {ex['dev']} dev)")
+    if h7["by_search_host"]:
+        hosts = ", ".join(f"{k} {v}" for k, v in h7["by_search_host"][:6])
+        print(f"    Search hosts 7d: {hosts}")
     print("  Top pages (7d, by pageviews):")
     for path, c in top_pages[:10]:
         print(f"    {c:>5}  {path}")
