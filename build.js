@@ -4102,7 +4102,11 @@ const CA_LADDER_SALARIES = [30000, 40000, 50000, 70000, 80000, 100000, 120000, 1
 //                  Leave" reads as a conjunction mid-sentence, so a postal code that spells an
 //                  English word is expanded to the state name.
 // Mississippi, Oklahoma and Arkansas open on a 0% band, which Ohio and Missouri already do.
-// None of the twelve carries `localIncomeTax.exists`, so none of them emits a local-tax block.
+// Three of the twelve DO carry `localIncomeTax.exists` — Kentucky's city and county occupational
+// licence fees, Oregon's Portland-area levies and Iowa's school-district surtax — and all three
+// render the local-tax block from the payroll file's own sourced note, exactly as Michigan, Ohio
+// and Pennsylvania already do. The other nine emit nothing on that line, which is also a fact
+// the data supplies rather than one asserted here.
 //
 // SEPARATELY, wave 3 fixed a live omission it tripped over: the state's own published caveats
 // were computed for every ladder page and then dropped on the floor, so twenty-five live
@@ -4738,6 +4742,14 @@ function caProseBlocks(r, rungs, ctx) {
     // reaches. Nebraska is the only state on the roster with two adjacent equal rates.
     const nextBand = st.tax.brackets.single[stBands.length] || null;
     const nextRateHigher = nextBand != null && nextBand.rate > stTop.rate + 1e-12;
+    // SITTING EXACTLY ON A BAND EDGE. Connecticut has no standard deduction and round band
+    // edges at $10,000 / $50,000 / $100,000 / $200,000, so three rungs of this ladder land
+    // on an edge to the dollar and `distance` is $0. Every sentence that reads the distance
+    // as room — "the next band up begins $0 further on", "a raise of $0 or more will push
+    // part of your income into it", "a raise has to be substantial" — is false there: the
+    // next single dollar crosses. Gated as its own case rather than folded into the
+    // near-the-top branch, because "no room at all" is a different fact from "nearly none".
+    const atEdge = distance != null && distance <= 0.005;
     const pos = ORDINALS[stBands.length - 1] || `${stBands.length}th`;
     // WHERE inside the band the income sits, not just which band. This is the
     // gate that separates two rungs which happen to share a band: one has just
@@ -4771,8 +4783,17 @@ function caProseBlocks(r, rungs, ctx) {
           // inside the band is still true; saying a raise past the edge costs more is not.
           ? `<p>You are ${pct1(intoBand)} of the way through this band, but that matters less here than ` +
             `it would elsewhere: the band above it in ${NAME}'s published schedule carries the same ` +
-            `${pctStr(stTop.rate)} rate, so crossing the edge ${usd0(distance)} further on changes ` +
-            `nothing about what a raise costs. Your ${NAME} rate does not rise again at any income.</p>`
+            `${pctStr(stTop.rate)} rate, so ` +
+            (atEdge
+              ? `the edge your income sits exactly on is not a rate step at all`
+              : `crossing the edge ${usd0(distance)} further on changes nothing about what a raise costs`) +
+            `. Your ${NAME} rate does not rise again at any income.</p>`
+          : atEdge
+          ? `<p>Your ${NAME} taxable income of ${usd0(r.st.taxable)} is exactly the top edge of this band, ` +
+            `so there is no room left inside it: the next single dollar you earn is charged at ` +
+            `${pctStr(nextBand.rate)}, not at ${pctStr(stTop.rate)}. That costs you nothing on the income ` +
+            `already here — each rate only ever touches the slice sitting inside its own band — but every ` +
+            `dollar of a raise meets the higher rate from the first one.</p>`
           : intoBand < 0.34
           ? `<p>You have only just crossed into this band — about ${pct1(intoBand)} of the way through it — ` +
             `so most of your ${NAME} taxable income is still being charged at the lower rates below, and ` +
@@ -4811,20 +4832,54 @@ function caProseBlocks(r, rungs, ctx) {
       // from the engine's own state tax and described by its size.
       const effHere = r.amount > 0 ? r.a.state / r.amount : 0;
       const gapPts = (stTop.rate - effHere) * 100;
+      // "1 percentage points". `+x.toFixed(1)` casts the string back to a Number, which
+      // strips the trailing zero, so a gap of exactly 1.0 printed as "1" beside a plural
+      // noun. The fixed decimal is kept as a string and the noun agrees with it.
+      const gapFixed = gapPts.toFixed(1);
       const gapText = gapPts < 0.25
         ? `only ${+gapPts.toFixed(2)} of a percentage point under the ${pctStr(stTop.rate)} headline, ` +
           `because almost the whole salary is already inside this band`
         : (gapPts < 1
           ? `${+gapPts.toFixed(2)} of a percentage point under the ${pctStr(stTop.rate)} headline`
-          : `${+gapPts.toFixed(1)} percentage points under the ${pctStr(stTop.rate)} headline`);
+          : `${gapFixed} percentage point${gapFixed === '1.0' ? '' : 's'} under the ` +
+            `${pctStr(stTop.rate)} headline`);
+      // WHAT THE INCOME UNDERNEATH WAS ACTUALLY CHARGED. "Everything below it has already been
+      // charged at the lower rates" is true of a schedule whose lower bands are all non-zero
+      // and all genuinely lower, and false of the two shapes this ladder now carries:
+      //   a 0% opening band  Ohio, Mississippi, Oklahoma and Arkansas charge that slice
+      //                      nothing at all, so it was not "charged at" any rate.
+      //   an equal rate below  Nebraska's third and fourth bands are both 4.55%, so the band
+      //                      immediately beneath is not a lower rate.
+      // The original wording is kept verbatim wherever it is true — which is every state that
+      // already shipped it except Ohio — and replaced by the measured decomposition where it
+      // is not. The figures are the same band amounts the table beside this paragraph prints.
+      const belowBands = stBands.slice(0, -1);
+      const sumOf = (f) => belowBands.filter(f).reduce((acc, b) => acc + b.amount, 0);
+      const zeroAmt = sumOf((b) => b.rate === 0);
+      const sameAmt = sumOf((b) => Math.abs(b.rate - stTop.rate) < 1e-12);
+      const lowerAmt = sumOf((b) => b.rate > 0 && b.rate < stTop.rate - 1e-12);
+      const belowParts = [
+        ...(zeroAmt > 0 ? [`${usd0(zeroAmt)} escaped ${NAME}'s tax entirely`] : []),
+        ...(lowerAmt > 0 ? [`${usd0(lowerAmt)} was charged at lower rates`] : []),
+        ...(sameAmt > 0 ? [`${usd0(sameAmt)} at this same ${pctStr(stTop.rate)} one band down`] : []),
+      ];
+      const belowClause = belowBands.length === 0
+        ? `Every dollar of ${NAME} taxable income on this salary sits inside it, which puts`
+        : (zeroAmt === 0 && sameAmt === 0
+          ? `Everything below it has already been charged at the lower rates, which puts`
+          : `Below it, ${caList(belowParts)}, which puts`);
       density = `This is the last band ${NAME} publishes and it has no upper edge, so the rate on further ` +
-        `income does not move again however much more you earn. Everything below it has already been ` +
-        `charged at the lower rates, which puts the effective rate on the whole salary — ` +
-        `${pct1(effHere)} — ${gapText}.`;
+        `income does not move again however much more you earn. ${belowClause} the effective rate on the ` +
+        `whole salary — ${pct1(effHere)} — ${gapText}.`;
     } else if (!nextRateHigher) {
       density = `The band ${S} tops out in runs ${usd0(bandWidth)} from edge to edge, and the band above ` +
         `it is charged at the same ${pctStr(stTop.rate)}, so there is no rate step left anywhere in ` +
         `${NAME}'s schedule above this salary. A raise is charged at this rate whatever its size.`;
+    } else if (atEdge) {
+      density = `The band ${S} tops out in runs ${usd0(bandWidth)} from edge to edge and this salary has ` +
+        `used the whole of it, so unlike every other rung on this ladder there is no raise small enough ` +
+        `to stay inside it. Nothing already earned is re-rated by crossing: only the slice of income ` +
+        `inside each band is charged at that band's rate.`;
     } else if (bandWidth < 10000) {
       density = `The band ${S} tops out in is only ${usd0(bandWidth)} wide, so a raise of that size alone ` +
         `carries you out of it. Narrow bands at this end of the schedule look punishing and are not: only ` +
@@ -4873,7 +4928,13 @@ function caProseBlocks(r, rungs, ctx) {
       `${pos} of them, so the top slice of your ${NAME} taxable income ${takenOff} is charged at ` +
       `${pctStr(stTop.rate)}.${baseLine}${recaptureLine} ` +
       (distance != null
-        ? (nextRateHigher
+        ? (atEdge
+          ? (nextRateHigher
+            ? `That figure is the band's upper edge to the dollar, so the next band up begins here: the ` +
+              `first dollar above ${S} is charged at ${pctStr(nextBand.rate)}. `
+            : `That figure is the band's upper edge to the dollar, so the next band up begins here — and ` +
+              `it is charged at the same ${pctStr(stTop.rate)}, so crossing it changes nothing. `)
+          : nextRateHigher
           ? `The next band up begins ${usd0(distance)} further on, so a raise of roughly that size is where ` +
             `your ${NAME} rate next moves. `
           : `The next band up begins ${usd0(distance)} further on and is charged at the same ` +
@@ -4897,7 +4958,11 @@ function caProseBlocks(r, rungs, ctx) {
             `. `,
             `Nothing is published above it. Of the ${usd0(r.st.taxable)} ${NAME} taxes, ` +
             `${usd0(stTop.amount)} — ${pct1(shareTop)} — falls in this last band` +
-            (below > 0 ? ` and the rest in the ${numWord(below)} lower ones` : '') + `. `,
+            // numWord(1) is "one", and "the one lower ones" reached six live pages (Ohio and
+            // South Carolina). A count of one is not a count here, it is the band below.
+            (below > 0
+              ? ` and the rest in ${below === 1 ? 'the band below it' : `the ${numWord(below)} lower ones`}`
+              : '') + `. `,
           ]);
         })()) +
       `${density}</p>${position}`);
