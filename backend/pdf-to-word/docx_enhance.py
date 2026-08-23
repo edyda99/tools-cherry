@@ -34,6 +34,17 @@ HEAD_MAX_LEVELS = 3
 HEAD_MAX_SHARE = 0.6
 HEAD_MAX_ABS = 40
 
+# Section headings on CVs, reports and letters are often set only a fraction
+# larger than the body (10.5pt over 9.5pt here) and carry their rank in BOLD
+# CAPITALS instead of size, so the ratio test above misses every one of them.
+# A caps heading is recognised structurally, never by wording: the paragraph
+# holds nothing but bold, capitalised, body-sized-or-larger text, it is short,
+# and it does not end like a sentence or a label.
+CAPS_MAX_CHARS = 90
+CAPS_MIN_LETTERS = 3
+CAPS_MIN_RATIO = 0.95
+CAPS_SENTENCE_END = (".", ":", ";", ",", "!", "?")
+
 _STYLE_XML = (
     '<w:style %s w:type="paragraph" w:styleId="Heading%d">'
     '<w:name w:val="heading %d"/><w:qFormat/>'
@@ -110,6 +121,42 @@ def _leading_heading_chunks(p, body):
     return head, rest, max(sizes)
 
 
+def _caps_heading_size(p, body):
+    """Font size of a standalone bold ALL-CAPS section heading, else None."""
+    chunks = [c for c in p if c.tag in (qn("w:r"), qn("w:hyperlink"))]
+    if not chunks:
+        return None
+    sizes, text = [], []
+    for c in chunks:
+        # hyperlinks, drawings, field chars, and any line break inside the
+        # paragraph mean this is not one standalone heading line
+        if c.tag != qn("w:r") or _has_nontext_content(c):
+            return None
+        if c.find(qn("w:br")) is not None or c.find(qn("w:cr")) is not None:
+            return None
+        t = _run_text(c)
+        text.append(t)
+        if not t.strip():
+            continue
+        if not _run_bold(c):
+            return None
+        sz = _run_size_pt(c)
+        if sz is None or sz < body * CAPS_MIN_RATIO:
+            return None
+        sizes.append(sz)
+    if not sizes:
+        return None
+    s = "".join(text).strip()
+    if not s or len(s) > CAPS_MAX_CHARS or len(s.split()) > HEAD_MAX_WORDS:
+        return None
+    if s.endswith(CAPS_SENTENCE_END):
+        return None
+    letters = [ch for ch in s if ch.isalpha()]
+    if len(letters) < CAPS_MIN_LETTERS or not all(ch.isupper() for ch in letters):
+        return None
+    return max(sizes)
+
+
 def _set_heading_style(p, level):
     ppr = p.find(qn("w:pPr"))
     if ppr is None:
@@ -142,6 +189,9 @@ def heading_styles(data, pdf_doc=None):
     for p in body_paras:
         head, rest, hsize = _leading_heading_chunks(p, body)
         if not head:
+            caps_size = _caps_heading_size(p, body)
+            if caps_size is not None:
+                found.append((p, caps_size))
             continue
         head_words = len(" ".join(_run_text(c) for c in head).split())
         if head_words == 0 or head_words > HEAD_MAX_WORDS:

@@ -512,6 +512,107 @@ res = Document(io.BytesIO(de.heading_styles(buf.getvalue())))
 styled = [p.text for p in res.paragraphs if (p.style.name or "").startswith("Heading")]
 check(len(styled) == 3, "HF16: small-doc headings bailed: %s" % styled)
 
+
+# --- bold ALL-CAPS section headings (D2) -------------------------------------
+
+BODY_FILLER = ("a body paragraph long enough that the character-weighted body "
+               "size vote lands on nine and a half points, the way a real "
+               "resume section reads under its own heading")
+
+
+def caps_doc(lines, body_pt=9.5):
+    """lines: (text, size_pt, bold). Returns the styled paragraphs by text."""
+    d = Document()
+    for text, size, bold in lines:
+        pp = d.add_paragraph()
+        run = pp.add_run(text)
+        run.bold = bold
+        run.font.size = Pt(size)
+    buf = io.BytesIO()
+    d.save(buf)
+    res = Document(io.BytesIO(de.heading_styles(buf.getvalue())))
+    return {p.text: (p.style.name or "") for p in res.paragraphs}, res
+
+
+# HF17: caps headings only 1.1x the body still get Heading 2, under a big title
+styles, _ = caps_doc([
+    ("Maroun Daher", 19.0, True),
+    ("SUMMARY", 10.5, True),
+    (BODY_FILLER, 9.5, False),
+    ("EDUCATION", 10.5, True),
+    (BODY_FILLER, 9.5, False),
+    ("TECHNICAL SKILLS", 10.5, True),
+    (BODY_FILLER, 9.5, False),
+])
+check(styles["Maroun Daher"] == "Heading 1", "HF17: title lost Heading 1: %s" % styles)
+for t in ("SUMMARY", "EDUCATION", "TECHNICAL SKILLS"):
+    check(styles[t] == "Heading 2", "HF17: %s not Heading 2: %s" % (t, styles[t]))
+check(styles[BODY_FILLER] == "Normal", "HF17: body styled as %s" % styles[BODY_FILLER])
+
+# HF18: caps text that reads as a sentence or a label is left alone
+styles, _ = caps_doc([
+    ("REPORT", 10.5, True),
+    ("WARNING: DO NOT OPEN THE VALVE.", 10.5, True),
+    ("PLEASE NOTE:", 10.5, True),
+    (BODY_FILLER, 9.5, False),
+    (BODY_FILLER + " second", 9.5, False),
+])
+check(styles["REPORT"].startswith("Heading"), "HF18: plain caps heading missed")
+check(styles["WARNING: DO NOT OPEN THE VALVE."] == "Normal",
+      "HF18: caps sentence styled as %s" % styles["WARNING: DO NOT OPEN THE VALVE."])
+check(styles["PLEASE NOTE:"] == "Normal", "HF18: caps label styled")
+
+# HF19: caps alone is not enough - the line must be bold and body-sized or bigger
+styles, _ = caps_doc([
+    ("SUMMARY", 10.5, False),          # caps, not bold
+    ("Technical Skills", 10.5, True),  # bold, not caps
+    ("FOOTNOTE", 8.0, True),           # bold caps, smaller than the body
+    (BODY_FILLER, 9.5, False),
+    (BODY_FILLER + " second", 9.5, False),
+])
+for t in ("SUMMARY", "Technical Skills", "FOOTNOTE"):
+    check(styles[t] == "Normal", "HF19: %s styled as %s" % (t, styles[t]))
+
+# HF20: a long caps run is prose set in capitals, not a heading
+shout = ("WE HEREBY CERTIFY THAT EVERY CLAUSE OF THIS AGREEMENT HAS BEEN READ "
+         "AND ACCEPTED BY BOTH PARTIES IN FULL")
+check(len(shout) > 90, "HF20: fixture is not longer than the 90-char cap")
+styles, _ = caps_doc([
+    ("AGREEMENT", 10.5, True),
+    (shout, 10.5, True),
+    (BODY_FILLER, 9.5, False),
+    (BODY_FILLER + " second", 9.5, False),
+])
+check(styles["AGREEMENT"].startswith("Heading"), "HF20: short caps heading missed")
+check(styles[shout] == "Normal", "HF20: caps prose styled as %s" % styles[shout])
+
+# HF21: a caps line that is not one clean text-only line is declined, and the
+# pass is idempotent on the shape it does accept
+d = Document()
+pp = d.add_paragraph()
+r1 = pp.add_run("CONTACT")
+r1.bold = True
+r1.font.size = Pt(10.5)
+r1._r.append(parse_xml('<w:br %s/>' % nsdecls("w")))
+r2 = pp.add_run(" DETAILS")
+r2.bold = True
+r2.font.size = Pt(10.5)
+for text in ("SUMMARY", BODY_FILLER, BODY_FILLER + " second"):
+    pp = d.add_paragraph()
+    run = pp.add_run(text)
+    run.bold = text == "SUMMARY"
+    run.font.size = Pt(10.5 if text == "SUMMARY" else 9.5)
+buf = io.BytesIO()
+d.save(buf)
+once = de.heading_styles(buf.getvalue())
+res = Document(io.BytesIO(once))
+styles = {p.text: (p.style.name or "") for p in res.paragraphs}
+broken = "CONTACT\n DETAILS"
+check(styles.get(broken) == "Normal",
+      "HF21: line-broken caps paragraph styled as %s" % styles.get(broken))
+check(styles.get("SUMMARY", "").startswith("Heading"), "HF21: clean caps heading missed")
+check(de.heading_styles(once) == once, "HF21: caps heading pass not idempotent")
+
 # === paragraph reflow pass ===================================================
 
 def run_reflow(doc, pdf):
