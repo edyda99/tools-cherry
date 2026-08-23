@@ -1,0 +1,66 @@
+{
+ "headings": [
+  {
+   "level": 1,
+   "text": "Nadia Haddad"
+  },
+  {
+   "level": 2,
+   "text": "SUMMARY"
+  },
+  {
+   "level": 2,
+   "text": "EDUCATION"
+  },
+  {
+   "level": 2,
+   "text": "TECHNICAL SKILLS"
+  },
+  {
+   "level": 2,
+   "text": "ADDITIONAL EXPERIENCE"
+  },
+  {
+   "level": 2,
+   "text": "LANGUAGES"
+  }
+ ],
+ "paragraphs": [
+  "Beirut, Lebanon | nadia.haddad@example.com | linkedin.com/in/nadiahaddad",
+  "Reliability engineer with seven years of production ownership, most of it spent making paging quieter and recoveries faster for teams that ship every day.",
+  "American University of Beirut Graduated June 2018",
+  "Bachelor of Engineering in computer and communications engineering, with a final year project on distributed tracing for message queues.",
+  "Python and Go for tooling, Terraform for infrastructure, Prometheus and OpenTelemetry for instrumentation, and enough SQL to answer the questions the dashboards refuse to.",
+  "Teaching assistant, Faculty of Engineering 2017 - 2018",
+  "Ran the weekly laboratory session for the operating systems course and rewrote the grading scripts the department still uses today.",
+  "Arabic as a native language, English at full professional level, and French at a working level for client correspondence."
+ ],
+ "list_items": [],
+ "tables": [],
+ "links": [
+  {
+   "text": "linkedin.com/in/nadiahaddad",
+   "href": "https://www.linkedin.com/in/nadiahaddad"
+  }
+ ],
+ "bold": [],
+ "italic": [],
+ "flow": [
+  "Nadia Haddad",
+  "Beirut, Lebanon | nadia.haddad@example.com | linkedin.com/in/nadiahaddad",
+  "SUMMARY",
+  "Reliability engineer with seven years of production ownership, most of it spent making paging quieter and recoveries faster for teams that ship every day.",
+  "EDUCATION",
+  "American University of Beirut Graduated June 2018",
+  "Bachelor of Engineering in computer and communications engineering, with a final year project on distributed tracing for message queues.",
+  "TECHNICAL SKILLS",
+  "Python and Go for tooling, Terraform for infrastructure, Prometheus and OpenTelemetry for instrumentation, and enough SQL to answer the questions the dashboards refuse to.",
+  "ADDITIONAL EXPERIENCE",
+  "Teaching assistant, Faculty of Engineering 2017 - 2018",
+  "Ran the weekly laboratory session for the operating systems course and rewrote the grading scripts the department still uses today.",
+  "LANGUAGES",
+  "Arabic as a native language, English at full professional level, and French at a working level for client correspondence."
+ ],
+ "header": null,
+ "footer": null
+}

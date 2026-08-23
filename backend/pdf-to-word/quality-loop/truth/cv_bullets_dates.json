@@ -1,0 +1,81 @@
+{
+ "headings": [
+  {
+   "level": 1,
+   "text": "Nadia Haddad"
+  },
+  {
+   "level": 2,
+   "text": "Experience"
+  },
+  {
+   "level": 2,
+   "text": "Education"
+  }
+ ],
+ "paragraphs": [
+  "Reliability engineer, Beirut",
+  "Senior Reliability Engineer, Northwind Systems March 2021 - Present",
+  "Reliability Engineer, Cedar Analytics June 2018 - February 2021",
+  "Lebanese American University, Beirut 2014 - 2018"
+ ],
+ "list_items": [
+  {
+   "text": "Ran the on-call rotation for eleven services across three regions",
+   "ordered": false,
+   "level": 0
+  },
+  {
+   "text": "Cut alert noise by two thirds by rewriting the paging thresholds",
+   "ordered": false,
+   "level": 0
+  },
+  {
+   "text": "Introduced the incident review template the platform group still uses",
+   "ordered": false,
+   "level": 0
+  },
+  {
+   "text": "Mentored four engineers through their first production postmortem",
+   "ordered": false,
+   "level": 0
+  },
+  {
+   "text": "Built the synthetic checks that caught the storage migration stall",
+   "ordered": false,
+   "level": 0
+  },
+  {
+   "text": "Owned the capacity forecast for the ingestion tier every quarter",
+   "ordered": false,
+   "level": 0
+  },
+  {
+   "text": "Automated the disaster recovery drill from start to finish",
+   "ordered": false,
+   "level": 0
+  }
+ ],
+ "tables": [],
+ "links": [],
+ "bold": [],
+ "italic": [],
+ "flow": [
+  "Nadia Haddad",
+  "Reliability engineer, Beirut",
+  "Experience",
+  "Senior Reliability Engineer, Northwind Systems March 2021 - Present",
+  "Ran the on-call rotation for eleven services across three regions",
+  "Cut alert noise by two thirds by rewriting the paging thresholds",
+  "Introduced the incident review template the platform group still uses",
+  "Mentored four engineers through their first production postmortem",
+  "Reliability Engineer, Cedar Analytics June 2018 - February 2021",
+  "Built the synthetic checks that caught the storage migration stall",
+  "Owned the capacity forecast for the ingestion tier every quarter",
+  "Automated the disaster recovery drill from start to finish",
+  "Education",
+  "Lebanese American University, Beirut 2014 - 2018"
+ ],
+ "header": null,
+ "footer": null
+}

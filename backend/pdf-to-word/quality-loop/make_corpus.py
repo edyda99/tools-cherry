@@ -3,7 +3,8 @@
 Each document is defined once as data; the HTML and the truth file are derived from the
 same structure, so they cannot drift apart. Deterministic: no dates, no randomness.
 
-Usage:  python3 make_corpus.py            (writes corpus/<name>.{html,pdf} + truth/<name>.json)
+Usage:  python3 make_corpus.py [name ...]  (writes corpus/<name>.{html,pdf} + truth/<name>.json;
+        with no name it regenerates every document)
 """
 import json
 import pathlib
@@ -34,6 +35,16 @@ td, th { padding: 4pt 8pt; font-size: 10.5pt; text-align: left; }
 .ragged td:nth-child(2), .ragged th:nth-child(2),
 .ragged td:nth-child(4), .ragged th:nth-child(4) { text-align: right; }
 a { color: #0645ad; text-decoration: underline; }
+/* CV classes: ruled ALL-CAPS section headings, right-aligned date columns that
+   are NOT a table, and list markers drawn as vector shapes (no bullet char). */
+h2.rule { font-size: 12pt; font-weight: bold; margin: 14pt 0 5pt;
+          border-bottom: 0.75pt solid #444; padding-bottom: 2pt; }
+p.daterow { margin: 0 0 3pt; overflow: hidden; }
+p.daterow .when { float: right; }
+ul.vbul { list-style: none; margin: 3pt 0 7pt; padding-left: 16pt; }
+ul.vbul li { position: relative; margin: 0 0 3pt; line-height: 1.4; }
+ul.vbul li::before { content: ""; position: absolute; left: -10pt; top: 4.5pt;
+                     width: 4pt; height: 4pt; border-radius: 2pt; background: #111; }
 """
 
 # --- run helpers: a "rich" paragraph is a list of runs ---------------------------
@@ -294,6 +305,59 @@ DOCS = {
                         ("t", ", which defines every element a .docx file may contain.")]},
         ],
     },
+    "cv_bullets_dates": {
+        # CV pattern 1 (season 3): vector-drawn list markers that must become real
+        # Word list items, and title/date lines whose right-aligned second column
+        # must stay ONE paragraph instead of turning into a two-cell table.
+        "blocks": [
+            {"h": 1, "text": "Nadia Haddad"},
+            {"p": "Reliability engineer, Beirut"},
+            {"h": 2, "text": "Experience"},
+            {"daterow": ["Senior Reliability Engineer, Northwind Systems",
+                         "March 2021 - Present"]},
+            {"vbul": ["Ran the on-call rotation for eleven services across three regions",
+                      "Cut alert noise by two thirds by rewriting the paging thresholds",
+                      "Introduced the incident review template the platform group still uses",
+                      "Mentored four engineers through their first production postmortem"]},
+            {"daterow": ["Reliability Engineer, Cedar Analytics",
+                         "June 2018 - February 2021"]},
+            {"vbul": ["Built the synthetic checks that caught the storage migration stall",
+                      "Owned the capacity forecast for the ingestion tier every quarter",
+                      "Automated the disaster recovery drill from start to finish"]},
+            {"h": 2, "text": "Education"},
+            {"daterow": ["Lebanese American University, Beirut", "2014 - 2018"]},
+        ],
+    },
+    "cv_sections": {
+        # CV pattern 2 (season 3): ALL-CAPS bold section headings only slightly
+        # larger than the body, each with a horizontal rule under it, and a
+        # heading / date line / degree line trio that must stay three paragraphs.
+        "blocks": [
+            {"h": 1, "text": "Nadia Haddad"},
+            {"p_rich": [("t", "Beirut, Lebanon | nadia.haddad@example.com | "),
+                        ("a", "linkedin.com/in/nadiahaddad",
+                         "https://www.linkedin.com/in/nadiahaddad")]},
+            {"rule_h": 2, "text": "SUMMARY"},
+            {"p": "Reliability engineer with seven years of production ownership, most "
+                  "of it spent making paging quieter and recoveries faster for teams "
+                  "that ship every day."},
+            {"rule_h": 2, "text": "EDUCATION"},
+            {"daterow": ["American University of Beirut", "Graduated June 2018"]},
+            {"p": "Bachelor of Engineering in computer and communications engineering, "
+                  "with a final year project on distributed tracing for message queues."},
+            {"rule_h": 2, "text": "TECHNICAL SKILLS"},
+            {"p": "Python and Go for tooling, Terraform for infrastructure, Prometheus "
+                  "and OpenTelemetry for instrumentation, and enough SQL to answer the "
+                  "questions the dashboards refuse to."},
+            {"rule_h": 2, "text": "ADDITIONAL EXPERIENCE"},
+            {"daterow": ["Teaching assistant, Faculty of Engineering", "2017 - 2018"]},
+            {"p": "Ran the weekly laboratory session for the operating systems course "
+                  "and rewrote the grading scripts the department still uses today."},
+            {"rule_h": 2, "text": "LANGUAGES"},
+            {"p": "Arabic as a native language, English at full professional level, and "
+                  "French at a working level for client correspondence."},
+        ],
+    },
     "inline_styles": {
         "blocks": [
             {"h": 1, "text": "Typography Fidelity Sample"},
@@ -312,6 +376,15 @@ DOCS = {
 
 
 def _block_html(b):
+    if "rule_h" in b:
+        lvl = b["rule_h"]
+        return f'<h{lvl} class="rule">{b["text"]}</h{lvl}>'
+    if "daterow" in b:
+        left, right = b["daterow"]
+        return f'<p class="daterow"><span class="when">{right}</span>{left}</p>'
+    if "vbul" in b:
+        return ('<ul class="vbul">'
+                + "".join(f"<li>{t}</li>" for t in b["vbul"]) + "</ul>")
     if "brk" in b:
         return '<div style="page-break-before: always"></div>'
     if "h" in b:
@@ -365,7 +438,19 @@ def _truth(doc):
          "links": [], "bold": [], "italic": [], "flow": [],
          "header": doc.get("header"), "footer": doc.get("footer")}
     for b in doc["blocks"]:
-        if "h" in b:
+        if "rule_h" in b:
+            t["headings"].append({"level": b["rule_h"], "text": b["text"]})
+            t["flow"].append(b["text"])
+        elif "daterow" in b:
+            # one line, two visually separated runs: ONE paragraph, never a table
+            text = b["daterow"][0] + " " + b["daterow"][1]
+            t["paragraphs"].append(text)
+            t["flow"].append(text)
+        elif "vbul" in b:
+            for it in b["vbul"]:
+                t["list_items"].append({"text": it, "ordered": False, "level": 0})
+                t["flow"].append(it)
+        elif "h" in b:
             t["headings"].append({"level": b["h"], "text": b["text"]})
             t["flow"].append(b["text"])
         elif "p" in b:
@@ -445,7 +530,10 @@ def _truth(doc):
 def main():
     CORPUS.mkdir(exist_ok=True)
     TRUTH.mkdir(exist_ok=True)
+    wanted = set(sys.argv[1:])
     for name, doc in DOCS.items():
+        if wanted and name not in wanted:
+            continue
         boxes = ""
         if doc.get("header"):
             boxes += '@top-center { content: "%s"; font-size: 9pt; color: #333; } ' % doc["header"]

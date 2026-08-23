@@ -1,0 +1,30 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 2cm;  }
+html { font-family: Helvetica, Arial, sans-serif; font-size: 11pt; color: #111; }
+h1 { font-size: 22pt; margin: 0 0 10pt; }
+h2 { font-size: 16pt; margin: 14pt 0 6pt; }
+h3 { font-size: 13pt; margin: 10pt 0 4pt; }
+p  { margin: 0 0 8pt; line-height: 1.45; }
+li { margin: 0 0 3pt; line-height: 1.4; }
+table { border-collapse: collapse; margin: 8pt 0; }
+td, th { padding: 4pt 8pt; font-size: 10.5pt; text-align: left; }
+.bordered td, .bordered th { border: 1pt solid #444; }
+.cols { column-count: 2; column-gap: 24px; }
+.justify p { text-align: justify; hyphens: auto; }
+.narrow { width: 190pt; }
+.narrow p { text-align: left; hyphens: auto; }
+.ragged td, .ragged th { padding: 3pt 16pt 3pt 0; }
+.ragged td:nth-child(2), .ragged th:nth-child(2),
+.ragged td:nth-child(4), .ragged th:nth-child(4) { text-align: right; }
+a { color: #0645ad; text-decoration: underline; }
+/* CV classes: ruled ALL-CAPS section headings, right-aligned date columns that
+   are NOT a table, and list markers drawn as vector shapes (no bullet char). */
+h2.rule { font-size: 12pt; font-weight: bold; margin: 14pt 0 5pt;
+          border-bottom: 0.75pt solid #444; padding-bottom: 2pt; }
+p.daterow { margin: 0 0 3pt; overflow: hidden; }
+p.daterow .when { float: right; }
+ul.vbul { list-style: none; margin: 3pt 0 7pt; padding-left: 16pt; }
+ul.vbul li { position: relative; margin: 0 0 3pt; line-height: 1.4; }
+ul.vbul li::before { content: ""; position: absolute; left: -10pt; top: 4.5pt;
+                     width: 4pt; height: 4pt; border-radius: 2pt; background: #111; }
+</style></head><body><h1>Nadia Haddad</h1><p>Reliability engineer, Beirut</p><h2>Experience</h2><p class="daterow"><span class="when">March 2021 - Present</span>Senior Reliability Engineer, Northwind Systems</p><ul class="vbul"><li>Ran the on-call rotation for eleven services across three regions</li><li>Cut alert noise by two thirds by rewriting the paging thresholds</li><li>Introduced the incident review template the platform group still uses</li><li>Mentored four engineers through their first production postmortem</li></ul><p class="daterow"><span class="when">June 2018 - February 2021</span>Reliability Engineer, Cedar Analytics</p><ul class="vbul"><li>Built the synthetic checks that caught the storage migration stall</li><li>Owned the capacity forecast for the ingestion tier every quarter</li><li>Automated the disaster recovery drill from start to finish</li></ul><h2>Education</h2><p class="daterow"><span class="when">2014 - 2018</span>Lebanese American University, Beirut</p></body></html>
