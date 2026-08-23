@@ -2355,6 +2355,13 @@ def font_names(data, pdf_doc=None):
         rf.set(qn("w:hAnsi"), fam)
         rf.set(qn("w:cs"), fam)
         changed = True
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 # --- section_rules ----------------------------------------------------------
 # pdf2docx keeps a page's hairline section rules only when a table happens to
 # absorb one as a cell border; a rule that sits under a plain heading line is
