@@ -2374,5 +2374,178 @@ d.save(buf)
 check(de.empty_para_prune(buf.getvalue()) == buf.getvalue(),
       "E6: rewrote a document with no stray empties")
 
+# ---- list_hanging_indent cases (L) ----------------------------------------
+# The CV defect: pdf2docx numbers the bullets but gives the list no hanging
+# indent, leaves each paragraph a different left indent (4 twips / 96 twips) and
+# drops a stray w:right on one item.  Geometry has to come from the PDF, and no
+# document that does not exhibit the defect may be touched.
+LI_MARK_X, LI_TEXT_X = 43.5, 54.75          # the CV's own bullet geometry
+LI_PG_W, LI_PG_H = 595.0, 842.0
+LI_MAR_L, LI_MAR_R = 856, 810               # twips, as pdf2docx wrote them
+
+
+def li_pdf(n_marks=4, mark_x=LI_MARK_X, text_x=LI_TEXT_X, glyph=None,
+           page_w=LI_PG_W):
+    """A page drawing n bullets: vector squares by default, typed glyphs when
+    `glyph` is given.  Text always starts at text_x."""
+    pdf = fitz.open()
+    pg = pdf.new_page(width=page_w, height=LI_PG_H)
+    for i in range(n_marks):
+        y = 200.0 + 30.0 * i
+        if glyph:
+            pg.insert_text((mark_x, y), glyph, fontsize=9.5)
+        else:
+            shape = pg.new_shape()
+            shape.draw_rect(fitz.Rect(mark_x, y - 3.0, mark_x + 3.0, y))
+            shape.finish(fill=(0, 0, 0), color=None)
+            shape.commit()
+        pg.insert_text((text_x, y), "Bullet item number %d here" % i, fontsize=9.5)
+    return pdf
+
+
+def li_frame(doc, page_w_tw=int(LI_PG_W * 20)):
+    sect = doc.element.body.find(qn("w:sectPr"))
+    for tag, attrs in (("w:pgSz", {"w:w": str(page_w_tw), "w:h": str(int(LI_PG_H * 20))}),
+                       ("w:pgMar", {"w:left": str(LI_MAR_L), "w:right": str(LI_MAR_R),
+                                    "w:top": "400", "w:bottom": "400",
+                                    "w:header": "720", "w:footer": "720",
+                                    "w:gutter": "0"})):
+        el = sect.find(qn(tag))
+        if el is None:
+            el = parse_xml("<%s %s/>" % (tag, nsdecls("w")))
+            sect.insert(0, el)
+        for k, v in attrs.items():
+            el.set(qn(k), v)
+
+
+def li_item(doc, text, nid, left, right=0, ilvl=0):
+    p = doc.add_paragraph(text)
+    de._set_numpr(p, ilvl, nid)
+    ppr = p._p.get_or_add_pPr()
+    ind = parse_xml('<w:ind %s w:left="%d" w:right="%d" w:firstLine="0"/>'
+                    % (nsdecls("w"), left, right))
+    ppr.append(ind)
+    return p
+
+
+def li_ind(p):
+    ppr = p._p.find(qn("w:pPr"))
+    ind = ppr.find(qn("w:ind")) if ppr is not None else None
+    if ind is None:
+        return None
+    return tuple(int(ind.get(qn(k)) or 0) for k in ("w:left", "w:hanging", "w:right"))
+
+
+def run_li(doc, pdf):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.list_hanging_indent(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+LI_UNTOUCHED = [(4, 0, 0), (96, 0, 720), (4, 0, 288), (4, 0, 0)]
+
+
+def li_case(kind="bul", lefts=(4, 96, 4, 4), rights=(0, 720, 288, 0)):
+    d = Document()
+    li_frame(d)
+    nid = de._add_num(de._numbering_root(d), kind)
+    for i, (lf, rt) in enumerate(zip(lefts, rights)):
+        li_item(d, "Bullet item number %d here" % i, nid, lf, rt)
+    return d, nid
+
+
+# L1: the geometry the PDF draws lands on every paragraph, identically, and the
+# stray right indent is gone
+d, nid = li_case()
+r, out = run_li(d, li_pdf())
+inds = [li_ind(p) for p in r.paragraphs]
+check(len(set(inds)) == 1, "L1: list paragraphs still disagree on indent: %r" % (inds,))
+left, hang, right = inds[0]
+check(abs(hang - 225) <= 10, "L1: hanging %r is not the drawn 11.25pt" % (hang,))
+check(abs(left - 239) <= 10, "L1: left %r is not the drawn text x" % (left,))
+check(right == 0, "L1: the stray right indent survived: %r" % (right,))
+
+# L1b: the numbering level carries the same hanging, so an item typed in Word
+# after conversion inherits it
+num_root = de._numbering_root(Document(io.BytesIO(out)))
+hung = []
+for a in num_root.findall(qn("w:abstractNum")):
+    lvl = de._li_lvl(a, 0)
+    ppr = lvl.find(qn("w:pPr")) if lvl is not None else None
+    ind = ppr.find(qn("w:ind")) if ppr is not None else None
+    if ind is not None and ind.get(qn("w:hanging")) == str(hang):
+        hung.append(a)
+check(len(hung) == 1, "L1b: the numbering level did not get the hanging indent")
+
+# L2: no PDF, no geometry, no edit - byte-identical
+d, nid = li_case()
+buf = io.BytesIO()
+d.save(buf)
+check(de.list_hanging_indent(buf.getvalue()) == buf.getvalue(),
+      "L2: rewrote the document without any PDF geometry")
+
+# L3: numbering that already states its own indent is left alone
+d, nid = li_case()
+abs_el = de._li_num_map(de._numbering_root(d))[str(nid)]
+de._li_lvl(abs_el, 0).append(parse_xml(
+    '<w:pPr %s><w:ind w:left="1440" w:hanging="360"/></w:pPr>' % nsdecls("w")))
+r, out = run_li(d, li_pdf())
+check([li_ind(p) for p in r.paragraphs] == LI_UNTOUCHED,
+      "L3: overwrote a list that already declares its own indent")
+
+# L4: ordered lists are not bullet geometry and are never touched
+d, nid = li_case(kind="ord")
+r, out = run_li(d, li_pdf())
+check([li_ind(p) for p in r.paragraphs] == LI_UNTOUCHED,
+      "L4: applied bullet geometry to a numbered list")
+
+# L5: prose is out of reach - a paragraph without numPr keeps its indent
+d, nid = li_case()
+prose = d.add_paragraph("A quoted block indented on purpose, not a list item.")
+prose._p.get_or_add_pPr().append(parse_xml(
+    '<w:ind %s w:left="720" w:right="720" w:firstLine="360"/>' % nsdecls("w")))
+r, out = run_li(d, li_pdf())
+check(li_ind(r.paragraphs[-1]) == (720, 0, 720),
+      "L5: rewrote a non-list paragraph: %r" % (li_ind(r.paragraphs[-1]),))
+check(r.paragraphs[-1]._p.find(qn("w:pPr")).find(qn("w:ind")).get(qn("w:firstLine")) == "360",
+      "L5: dropped a real first-line indent from prose")
+
+# L6: one mark is a decoration, not a list - too little evidence to act on
+d, nid = li_case()
+r, out = run_li(d, li_pdf(n_marks=1))
+check([li_ind(p) for p in r.paragraphs] == LI_UNTOUCHED,
+      "L6: derived a list geometry from a single mark")
+
+# L7: the right indent is lower-only - a right indent every sibling shares is a
+# real one and must survive, even when the drawn text runs wider
+d, nid = li_case(rights=(576, 576, 576, 576))
+r, out = run_li(d, li_pdf())
+rights = {li_ind(p)[2] for p in r.paragraphs}
+check(rights == {576}, "L7: raised or dropped a right indent the whole list shares: %r"
+      % (rights,))
+
+# L8: a docx page that does not match the PDF page carries a scale this pass
+# cannot invert - no-op rather than a guess
+d, nid = li_case()
+li_frame(d, page_w_tw=int(LI_PG_W * 20 * 1.5))
+r, out = run_li(d, li_pdf())
+check([li_ind(p) for p in r.paragraphs] == LI_UNTOUCHED,
+      "L8: derived an indent across a page-scale mismatch")
+
+# L9: a typed bullet glyph gives the same geometry as a drawn one
+d, nid = li_case()
+r, out = run_li(d, li_pdf(glyph="•"))
+inds = {li_ind(p) for p in r.paragraphs}
+check(len(inds) == 1, "L9: typed-glyph bullets left the list inconsistent: %r" % (inds,))
+check(list(inds)[0][1] > 0, "L9: typed-glyph bullets produced no hanging indent")
+
+# L10: a mark drawn to the RIGHT of its text is not a bullet, so no geometry
+d, nid = li_case()
+r, out = run_li(d, li_pdf(mark_x=300.0, text_x=54.75))
+check([li_ind(p) for p in r.paragraphs] == LI_UNTOUCHED,
+      "L10: took a mark that sits right of its own text as a bullet")
+
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)

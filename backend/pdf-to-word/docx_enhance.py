@@ -2137,6 +2137,339 @@ def _al_wrap(items, s, e, rid):
     return True
 
 
+# --- list hanging indent ----------------------------------------------------
+# pdf2docx numbers a bullet line by attaching w:numPr, but it never gives the
+# list a hanging indent: the abstractNum level carries no w:ind at all and the
+# paragraph keeps whatever left indent the layout guesser produced for its own
+# first line (4 twips here, 96 twips there).  Word then draws the marker on the
+# left margin and wraps continuation lines back underneath the marker instead of
+# under the text, and any stray w:right the guesser left behind wraps that one
+# item half an inch early.
+#
+# The source PDF states the correct geometry outright: the bullet mark is drawn
+# at one x, its text starts at another, and the wrapped lines line up with the
+# text.  That difference IS the hanging indent.  This pass measures it and
+# writes it once, on the numbering level and identically on every paragraph of
+# the list, so the whole list shares one geometry.
+#
+# Safety model:
+# - Only paragraphs that already carry w:numPr are touched, so prose - which has
+#   no numbering - is structurally out of reach.
+# - Only bullet-format numbering whose level 0 has no w:ind of its own is
+#   touched: a list that already states its own indent is left alone.
+# - Geometry comes from the PDF or the pass is a no-op.  It needs at least two
+#   agreeing marks, a hanging between 2pt and 72pt, and a docx whose page width
+#   matches the PDF page at 20 twips/pt (no scaling model to invert otherwise).
+# - The right indent is only ever LOWERED, never raised: the value written is
+#   the measured right boundary clamped to the smallest right indent the list
+#   already had, so the pass can remove a spurious early wrap but can never
+#   introduce one.
+LIST_IND_MARK_MAX_PT = 12.0        # a bullet mark is at most a dozen points
+LIST_IND_MARK_MIN_PT = 0.4
+LIST_IND_MARK_ASPECT = (0.4, 2.5)
+LIST_IND_MIN_MARKS = 2             # one mark is a decoration, not a list
+LIST_IND_MIN_HANG_PT = 2.0
+LIST_IND_MAX_HANG_PT = 72.0
+LIST_IND_MAX_LEFT_TW = 2880        # 2in: past that it is not a list indent
+LIST_IND_QUANT_PT = 0.25           # geometry vote bucket
+LIST_IND_SCALE_TOL = 0.01          # allowed pgSz-vs-page-width mismatch
+_TWIPS_PER_PT = 20.0
+_LI_MARK_CHARS = set(BULLET_CHARS)  # deliberately excludes "-", "*": prose uses them
+
+
+def _li_bucket(v):
+    return round(v / LIST_IND_QUANT_PT) * LIST_IND_QUANT_PT
+
+
+def _li_lines(page):
+    """Every text line on the page as {x0,x1,y0,y1,chars}, chars = (x0,x1,ch)."""
+    out = []
+    try:
+        raw = page.get_text("rawdict")
+    except Exception:  # noqa: BLE001 - an unreadable page yields no geometry
+        return out
+    for b in raw.get("blocks", ()):
+        if b.get("type"):
+            continue
+        for ln in b.get("lines", ()):
+            chars = []
+            for sp in ln.get("spans", ()):
+                for ch in sp.get("chars", ()):
+                    bb = ch.get("bbox")
+                    if bb:
+                        chars.append((bb[0], bb[2], ch.get("c", "")))
+            if not chars:
+                continue
+            x0, y0, x1, y1 = ln.get("bbox", (0, 0, 0, 0))
+            out.append({"x0": x0, "x1": x1, "y0": y0, "y1": y1, "chars": chars})
+    return out
+
+
+def _li_vector_marks(page):
+    """Small near-square filled drawings: vector bullets pdf2docx rasterises."""
+    marks = []
+    try:
+        drawings = page.get_drawings()
+    except Exception:  # noqa: BLE001
+        return marks
+    for dr in drawings:
+        r = dr.get("rect")
+        if r is None:
+            continue
+        w, h = float(r.width), float(r.height)
+        if not (LIST_IND_MARK_MIN_PT <= w <= LIST_IND_MARK_MAX_PT):
+            continue
+        if not (LIST_IND_MARK_MIN_PT <= h <= LIST_IND_MARK_MAX_PT):
+            continue
+        if not LIST_IND_MARK_ASPECT[0] <= w / h <= LIST_IND_MARK_ASPECT[1]:
+            continue
+        marks.append((float(r.x0), float(r.x1), float(r.y0), float(r.y1)))
+    return marks
+
+
+def _li_text_after(line, start=0):
+    """x0 of the first non-blank, non-marker character at or after `start`."""
+    for cx0, _cx1, ch in line["chars"][start:]:
+        if ch.strip() and ch not in _LI_MARK_CHARS:
+            return cx0
+    return None
+
+
+def _li_pairs(pdf_doc):
+    """(mark_x0, text_x0, text_x1) for every bullet the PDF draws."""
+    pairs = []
+    for page in pdf_doc:
+        lines = _li_lines(page)
+        marks = _li_vector_marks(page)                     # vector bullets
+        for ln in lines:                                   # typed bullet glyphs
+            if ln["chars"][0][2] not in _LI_MARK_CHARS:
+                continue
+            tx = _li_text_after(ln, 1)
+            if tx is not None:
+                pairs.append((ln["chars"][0][0], tx, ln["x1"]))
+            else:
+                # the marker was laid out as its own text object: it is a mark
+                # standing beside its text, exactly like a drawn one
+                marks.append((ln["chars"][0][0], ln["chars"][0][1],
+                              ln["y0"], ln["y1"]))
+        for mx0, mx1, my0, my1 in marks:
+            mid = (my0 + my1) / 2.0
+            best = None
+            for ln in lines:
+                if not (ln["y0"] - 2.0 <= mid <= ln["y1"] + 2.0):
+                    continue
+                if ln["x0"] < mx1:
+                    continue
+                if best is None or ln["x0"] < best["x0"]:
+                    best = ln
+            if best is not None:
+                tx = _li_text_after(best)
+                if tx is not None:
+                    pairs.append((mx0, tx, best["x1"]))
+    return pairs
+
+
+def _li_geometry(pdf_doc):
+    """The document's modal bullet geometry, in points, or None."""
+    pairs = _li_pairs(pdf_doc)
+    if len(pairs) < LIST_IND_MIN_MARKS:
+        return None
+    votes = Counter((_li_bucket(mx), _li_bucket(tx)) for mx, tx, _ in pairs)
+    (mark_x, text_x), n = votes.most_common(1)[0]
+    if n < LIST_IND_MIN_MARKS:
+        return None
+    hang = text_x - mark_x
+    if not LIST_IND_MIN_HANG_PT <= hang <= LIST_IND_MAX_HANG_PT:
+        return None
+    right_x = max(x1 for mx, tx, x1 in pairs
+                  if (_li_bucket(mx), _li_bucket(tx)) == (mark_x, text_x))
+    return mark_x, text_x, right_x
+
+
+def _li_page_frame(doc, pdf_doc):
+    """(left, right, width) of the first section in twips, if the docx page and
+    the PDF page agree at 20 twips/pt.  None when they do not: without a known
+    scale a PDF x cannot be turned into a docx indent."""
+    sect = doc.element.body.find(qn("w:sectPr"))
+    if sect is None:
+        return None
+    sz, mar = sect.find(qn("w:pgSz")), sect.find(qn("w:pgMar"))
+    if sz is None or mar is None:
+        return None
+    try:
+        width = int(sz.get(qn("w:w")))
+        left = int(mar.get(qn("w:left")))
+        right = int(mar.get(qn("w:right")))
+    except (TypeError, ValueError):
+        return None
+    if width <= 0 or left < 0 or right < 0:
+        return None
+    try:
+        pdf_w = float(pdf_doc[0].rect.width)
+    except Exception:  # noqa: BLE001
+        return None
+    if pdf_w <= 0:
+        return None
+    if abs(width / (pdf_w * _TWIPS_PER_PT) - 1.0) > LIST_IND_SCALE_TOL:
+        return None
+    return left, right, width
+
+
+def _li_num_map(numbering):
+    """numId -> abstractNum element."""
+    by_abs = {a.get(qn("w:abstractNumId")): a
+              for a in numbering.findall(qn("w:abstractNum"))}
+    out = {}
+    for n in numbering.findall(qn("w:num")):
+        ref = n.find(qn("w:abstractNumId"))
+        if ref is None:
+            continue
+        a = by_abs.get(ref.get(qn("w:val")))
+        if a is not None:
+            out[n.get(qn("w:numId"))] = a
+    return out
+
+
+def _li_lvl(abs_el, ilvl):
+    for lvl in abs_el.findall(qn("w:lvl")):
+        if lvl.get(qn("w:ilvl")) == str(ilvl):
+            return lvl
+    return None
+
+
+def _li_open_bullet(abs_el):
+    """True for bullet numbering whose level 0 states no indent of its own."""
+    lvl = _li_lvl(abs_el, 0)
+    if lvl is None:
+        return False
+    fmt = lvl.find(qn("w:numFmt"))
+    if fmt is None or fmt.get(qn("w:val")) != "bullet":
+        return False
+    ppr = lvl.find(qn("w:pPr"))
+    return ppr is None or ppr.find(qn("w:ind")) is None
+
+
+def _li_numpr(p):
+    ppr = p.find(qn("w:pPr"))
+    if ppr is None:
+        return None
+    npr = ppr.find(qn("w:numPr"))
+    if npr is None:
+        return None
+    nid = npr.find(qn("w:numId"))
+    if nid is None:
+        return None
+    ilvl = npr.find(qn("w:ilvl"))
+    try:
+        lvl = int(ilvl.get(qn("w:val"))) if ilvl is not None else 0
+    except (TypeError, ValueError):
+        lvl = 0
+    return nid.get(qn("w:val")), max(0, lvl)
+
+
+def _li_right_of(p):
+    ppr = p.find(qn("w:pPr"))
+    ind = ppr.find(qn("w:ind")) if ppr is not None else None
+    if ind is None:
+        return 0
+    try:
+        return int(ind.get(qn("w:right")) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _li_set_ind(ppr, left, hanging, right):
+    """Write the one indent this list uses, replacing whatever was there."""
+    ind = ppr.find(qn("w:ind"))
+    if ind is None:
+        ind = parse_xml("<w:ind %s/>" % nsdecls("w"))
+        # CT_PPr sequence: w:ind sits before w:jc / w:rPr / w:sectPr
+        anchor = None
+        for tag in ("w:jc", "w:textAlignment", "w:rPr", "w:sectPr"):
+            anchor = ppr.find(qn(tag))
+            if anchor is not None:
+                break
+        if anchor is not None:
+            anchor.addprevious(ind)
+        else:
+            ppr.append(ind)
+    for attr in ("w:firstLine", "w:firstLineChars", "w:hanging", "w:hangingChars",
+                 "w:leftChars", "w:rightChars", "w:start", "w:end"):
+        if ind.get(qn(attr)) is not None:
+            del ind.attrib[qn(attr)]
+    ind.set(qn("w:left"), str(left))
+    ind.set(qn("w:hanging"), str(hanging))
+    ind.set(qn("w:right"), str(right))
+
+
+def list_hanging_indent(data, pdf_doc=None):
+    """E1: give bullet lists the hanging indent the PDF draws, uniformly."""
+    if pdf_doc is None:
+        return data
+    doc = Document(io.BytesIO(data))
+    numbering = _numbering_root(doc)
+    if numbering is None:
+        return data
+    num_map = _li_num_map(numbering)
+    open_ids = {nid for nid, abs_el in num_map.items() if _li_open_bullet(abs_el)}
+    if not open_ids:
+        return data
+
+    paras = []
+    for p in doc.element.body.iter(qn("w:p")):
+        got = _li_numpr(p)
+        if got is not None and got[0] in open_ids:
+            paras.append((p, got[0], got[1]))
+    if len(paras) < LIST_IND_MIN_MARKS:
+        return data
+
+    frame = _li_page_frame(doc, pdf_doc)
+    if frame is None:
+        return data
+    pg_left, pg_right, pg_width = frame
+    geom = _li_geometry(pdf_doc)
+    if geom is None:
+        return data
+    mark_x, text_x, right_x = geom
+
+    left_tw = int(round(text_x * _TWIPS_PER_PT)) - pg_left
+    hang_tw = int(round((text_x - mark_x) * _TWIPS_PER_PT))
+    if hang_tw <= 0:
+        return data
+    left_tw = max(left_tw, hang_tw)          # never draw the marker off the margin
+    if not 0 < left_tw <= LIST_IND_MAX_LEFT_TW:
+        return data
+    measured_right = pg_width - pg_right - int(round(right_x * _TWIPS_PER_PT))
+    # lower-only: the pass may delete a spurious early wrap, never add one
+    right_tw = max(0, min(measured_right, min(_li_right_of(p) for p, _, _ in paras)))
+
+    touched = set()
+    for p, nid, ilvl in paras:
+        step = min(ilvl, LIST_MAX_LEVELS - 1)
+        _li_set_ind(p.find(qn("w:pPr")), left_tw * (step + 1), hang_tw, right_tw)
+        touched.add(nid)
+    for nid in touched:
+        abs_el = num_map[nid]
+        for ilvl in range(LIST_MAX_LEVELS):
+            lvl = _li_lvl(abs_el, ilvl)
+            if lvl is None:
+                continue
+            ppr = lvl.find(qn("w:pPr"))
+            if ppr is None:
+                ppr = parse_xml("<w:pPr %s/>" % nsdecls("w"))
+                rpr = lvl.find(qn("w:rPr"))
+                if rpr is not None:
+                    rpr.addprevious(ppr)
+                else:
+                    lvl.append(ppr)
+            _li_set_ind(ppr, left_tw * (ilvl + 1), hang_tw, 0)
+
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 def hyperlink_autolink(data, pdf_doc=None):
     """D9: promote URL- and e-mail-looking text that arrived as plain runs into
     real w:hyperlink elements with an external relationship in
@@ -2937,7 +3270,8 @@ def centred_indent_drop(data, pdf_doc=None):
 
 PASSES = (hyperlink_unnest, span_space_repair, header_footer_parts, date_column_untable,
           fused_line_split, centred_indent_drop, heading_styles, bullet_image_lists,
-          list_numbering, paragraph_reflow, hyperlink_autolink, font_names,
+          list_numbering, paragraph_reflow, list_hanging_indent,
+          hyperlink_autolink, font_names,
           section_rules, empty_para_prune)
 
 
