@@ -282,7 +282,8 @@ r, out = run_pass(d)
 check(not has_numpr(r.paragraphs[0]) and full_text(r) == "See 2. something",
       "P: mid-paragraph marker after hyperlink converted")
 
-# === header/footer pass ===============================================import fitz
+# === header/footer pass ======================================================
+import fitz
 
 
 def make_pdf(pages):
