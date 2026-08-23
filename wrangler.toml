@@ -19,7 +19,7 @@ id = "51c0baaa244545629501938f4eda51f7"
 # here — set them with `npx wrangler pages secret put <NAME>` or in the dashboard.
 [vars]
 GLOBAL_DAILY_CAP = "100"
-UID_DAILY_LIMIT = "2"
+UID_DAILY_LIMIT = "5"
 IP_DAILY_LIMIT = "6"
 # Invoke protocol: "inline" (raw PDF in the request) or "r2" (stage in PDF_BUCKET,
 # send only a key). R2 mode also needs the [[r2_buckets]] binding below to exist.

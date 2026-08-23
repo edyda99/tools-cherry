@@ -7,7 +7,7 @@
 //   3. enforces daily quotas in KV:
 //        - a GLOBAL cap that keeps total AWS usage inside the free tier,
 //          and when reached, toggles the server path OFF for the day;
-//        - 2 / user / day and a small per-IP cap (fairness + NAT headroom).
+//        - 5 / user / day and a small per-IP cap (fairness + NAT headroom).
 //   4. forwards the PDF to the hidden Lambda with a shared secret, returns the .docx.
 //
 // Enforcement is entirely server-side; the page is never trusted for the limits.
@@ -26,6 +26,13 @@
 //   RATE_KV (KV)  PDF_BUCKET (R2, r2 mode)  TURNSTILE_SECRET  ID_HMAC_SECRET  LAMBDA_URL
 //   LAMBDA_AWS_ACCESS_KEY_ID  LAMBDA_AWS_SECRET_ACCESS_KEY  [LAMBDA_AWS_REGION]
 //   GLOBAL_DAILY_CAP  UID_DAILY_LIMIT  IP_DAILY_LIMIT  LAMBDA_PROTO (inline|r2)
+//
+// Every response carries three headers the page reads to drive its own UI. They are
+// derived from counters this request already read, so they cost no extra KV reads:
+//   x-ptw-limit      the per-user daily allowance
+//   x-ptw-remaining  conversions this user has left today, after this request
+//   x-ptw-charged    "1" when this request consumed a daily slot, "0" when it was
+//                    refused before the converter was ever invoked
 import { signedFetch } from './_sigv4.js';
 
 const MAX_BYTES = 5 * 1024 * 1024;       // inline: raw PDF ships in the invoke (~6 MB URL ceiling); leave headroom.
@@ -41,7 +48,7 @@ const DOCX_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingm
 const LAMBDA_TIMEOUT_MS = 178000;
 const TIMEOUT_MSG =
   'That PDF was too heavy for the server converter — it ran out of time (image-heavy or ' +
-  'very complex pages are the usual cause). The in-browser converter above has no time limit.';
+  'very complex pages are the usual cause). The in-browser converter has no time limit.';
 
 // A 429 from AWS on that hop is the one failure that says nothing about the file: the
 // request was turned away before the converter ever saw it (it answers 400/405/413/415/500
@@ -52,7 +59,7 @@ const TIMEOUT_MSG =
 const THROTTLED_MSG =
   'The server converter is not accepting requests at the moment. It is either busy or has hit ' +
   'its daily budget, so nothing is wrong with your PDF. Try again in a few minutes, or use the ' +
-  'in-browser converter above, which is always free and unlimited.';
+  'in-browser converter, which is always free and unlimited.';
 
 const isTimeout = (e) => !!e && (e.name === 'TimeoutError' || e.name === 'AbortError');
 
@@ -71,7 +78,7 @@ export async function onRequestPost(context) {
   }
 
   const GLOBAL_CAP = int(env.GLOBAL_DAILY_CAP, 150);
-  const UID_LIMIT = int(env.UID_DAILY_LIMIT, 2);
+  const UID_LIMIT = int(env.UID_DAILY_LIMIT, 5);
   const IP_LIMIT = int(env.IP_DAILY_LIMIT, 6);
   const kv = env.RATE_KV;
   const ip = request.headers.get('CF-Connecting-IP') || '';
@@ -90,7 +97,14 @@ export async function onRequestPost(context) {
   const ipHash = (await signB64(key, 'ip:' + ip)).slice(0, 20);
   const cookie = `ptw_id=${encodeURIComponent(uid + '.' + (await signB64(key, uid)))}` +
     '; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=15552000';
-  const setCookie = { 'Set-Cookie': cookie };
+  // Headers every response carries. `quota` is filled in once the day's counters
+  // have been read below; until then only the cookie is known.
+  const quotaHeaders = (used, charged) => ({
+    'x-ptw-limit': String(UID_LIMIT),
+    'x-ptw-remaining': String(Math.max(0, UID_LIMIT - used)),
+    'x-ptw-charged': charged ? '1' : '0',
+  });
+  let setCookie = { 'Set-Cookie': cookie };
 
   // 3. Daily quota keys (reset at UTC midnight via KV TTL).
   const now = new Date();
@@ -99,14 +113,18 @@ export async function onRequestPost(context) {
   const gKey = `g:${day}`, uKey = `u:${uid}:${day}`, iKey = `i:${ipHash}:${day}`;
 
   const [g, u, ipc] = await Promise.all([count(kv, gKey), count(kv, uKey), count(kv, iKey)]);
+  setCookie = { ...setCookie, ...quotaHeaders(u, false) };
+  // Quota refusals happen before the converter is invoked, so nothing is charged.
+  // The page turns each of these into a browser conversion plus one banner, so the
+  // wording says what ran out and when it comes back, not what to press next.
   if (g >= GLOBAL_CAP) {
-    return json(429, 'Our free daily limit for high-quality server conversions has been reached. The in-browser converter is always free — or try the server again tomorrow.', setCookie);
+    return json(429, 'Our free daily limit for server conversions has been reached for everyone today. It resets at midnight UTC.', setCookie);
   }
   if (u >= UID_LIMIT) {
-    return json(429, `You've used your ${UID_LIMIT} free server conversions for today. The in-browser converter is always free and unlimited.`, setCookie);
+    return json(429, `You have used today's ${UID_LIMIT} server conversions. The limit resets at midnight UTC.`, setCookie);
   }
   if (ipc >= IP_LIMIT) {
-    return json(429, "This network has reached today's free server-conversion limit. The in-browser converter is always free and unlimited.", setCookie);
+    return json(429, "This network has used today's free server conversions. The limit resets at midnight UTC.", setCookie);
   }
 
   // R2 mode: PDF is staged in R2 and only a key is sent to Lambda, so the upload
@@ -119,8 +137,8 @@ export async function onRequestPost(context) {
   if (!buf || buf.byteLength === 0) return json(400, 'No PDF received.', setCookie);
   if (buf.byteLength > (r2 ? R2_MAX_BYTES : MAX_BYTES)) {
     return json(413, r2
-      ? 'That PDF is larger than the 25 MB server limit. The in-browser converter has no upload limit — try that instead.'
-      : 'That PDF is larger than the 5 MB server limit. The in-browser converter has no upload limit — try that instead.', setCookie);
+      ? 'That PDF is larger than the 25 MB server limit. The in-browser converter has no upload limit.'
+      : 'That PDF is larger than the 5 MB server limit. The in-browser converter has no upload limit.', setCookie);
   }
   const h = new Uint8Array(buf.slice(0, 5));
   if (!(h[0] === 0x25 && h[1] === 0x50 && h[2] === 0x44 && h[3] === 0x46 && h[4] === 0x2d)) {
@@ -131,8 +149,11 @@ export async function onRequestPost(context) {
   // user, this IP, and the global budget regardless of whether the conversion
   // itself succeeds. This stops an attacker from draining the global budget (and
   // real Lambda GB-seconds) with valid-header-but-unconvertible PDFs while never
-  // charging their own 2/day. Failures fail toward not-paying.
+  // charging their own 5/day. Failures fail toward not-paying.
   await Promise.all([bump(kv, gKey, ttl), bump(kv, uKey, ttl), bump(kv, iKey, ttl)]);
+  // From here on a slot is gone whatever happens, so every exit says so. The page
+  // uses this rather than the status code to decide whether to warn about it.
+  setCookie = { ...setCookie, ...quotaHeaders(u + 1, true) };
 
   // 5a. R2 mode — stage the PDF, invoke with just its key, stream the result back
   //     from R2. Every exit path deletes the input so a failed invoke leaves no
@@ -157,7 +178,7 @@ export async function onRequestPost(context) {
         context.waitUntil(env.PDF_BUCKET.delete(key));
         return json(429, THROTTLED_MSG, setCookie);
       }
-      let msg = 'The server converter could not handle that file. Try the in-browser converter.';
+      let msg = 'The server converter could not handle that file.';
       try { const j = await resp.json(); if (j && j.error) msg = j.error; } catch (_) {}
       context.waitUntil(env.PDF_BUCKET.delete(key));
       return json(resp.status === 413 ? 413 : 502, msg, setCookie);
@@ -209,7 +230,7 @@ export async function onRequestPost(context) {
     if (resp.status === 429) return json(429, THROTTLED_MSG, setCookie);
     // Surface the Lambda's own message (page-count limit, too-large-after-recompress,
     // not-a-PDF, etc.) rather than a generic guess; fall back if it isn't JSON.
-    let msg = 'The server converter could not handle that file. Try the in-browser converter.';
+    let msg = 'The server converter could not handle that file.';
     try { const j = await resp.json(); if (j && j.error) msg = j.error; } catch (_) {}
     return json(resp.status === 413 ? 413 : 502, msg, setCookie);
   }

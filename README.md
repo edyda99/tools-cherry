@@ -3,8 +3,8 @@
 A collection of free, 100% client-side web utilities: calculators, converters,
 image/file tools, and a cluster of 2025/2026 U.S. tax calculators built around
 the One Big Beautiful Bill Act (OBBBA). Every tool runs entirely in the browser;
-nothing you type or upload is sent to a server (the one exception is an optional,
-opt-in server path for PDF to Word, described below). The site is a static build
+nothing you type or upload is sent to a server (the one exception is PDF to
+Word's default server conversion, described below). The site is a static build
 generated from templates plus sourced data, hosted on Cloudflare Pages.
 
 Live: **https://tools-berry.com**
@@ -25,9 +25,11 @@ The build produces **231 pages**. In broad strokes:
 | Tax glossary & corrections log | `/tax-glossary/` explains terms; `/corrections/` is a public log of data fixes |
 | Embeddable widgets | 23 pages under `/embed/` — 19 iframe-friendly twins of the tax calculators, a hub index, and 3 data-reference twins under `/embed/data/` |
 
-The **PDF to Word** tool converts in-browser by default. It also offers an
-optional, opt-in higher-fidelity conversion that uploads the PDF over HTTPS to a
-server, converts it, and discards it immediately.
+The **PDF to Word** tool converts on the server by default: it uploads the PDF
+over HTTPS, converts it, and discards it immediately (5 per user per day, 25 MB,
+50 pages). That is the only path that can read scanned pages. A link under the
+button switches to the in-browser converter, which uploads nothing, and the page
+falls back to it automatically whenever the server cannot take the file.
 
 ## Repo layout
 
