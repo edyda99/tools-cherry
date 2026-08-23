@@ -2684,5 +2684,233 @@ d.save(buf)
 check(de.list_wrap_merge(buf.getvalue(), WM_ONE_BLOCK) == buf.getvalue(),
       "W13: rewrote a document holding no wrapped list item")
 
+# ---- tab_stop_normalize cases (TS) -----------------------------------------
+# The CV shape: three date lines are flush right on a RIGHT stop written by
+# date_column_untable, the fourth (never a table) carries pdf2docx's LEFT stop
+# at the x it measured, so it floats short of the margin, and the line below it
+# inherited that stop without ever using it.  TS_WIDTH is the text column,
+# read off the template rather than hard-coded, so a template change cannot
+# quietly move the cases out of the right zone.
+_TS_SEC = Document().sections[0]
+TS_WIDTH = int(round(
+    (_TS_SEC.page_width - _TS_SEC.left_margin - _TS_SEC.right_margin) / 635))
+TS_FAR = int(TS_WIDTH * 0.95)      # in the right zone, short of the margin
+TS_MID = int(TS_WIDTH * 0.40)      # a real mid-line column stop
+TS_LABEL = "ETSTC - Technical Education Institution, Lebanon"
+TS_DATE = "2020 - 2023"
+
+
+def ts_stops(p, stops):
+    if not stops:
+        return
+    inner = "".join('<w:tab w:val="%s" w:pos="%d"/>' % (v, pos) for v, pos in stops)
+    p._p.get_or_add_pPr().append(
+        parse_xml("<w:tabs %s>%s</w:tabs>" % (nsdecls("w"), inner)))
+
+
+def ts_tab(p):
+    p._p.append(parse_xml("<w:r %s><w:tab/></w:r>" % nsdecls("w")))
+
+
+def ts_doc(stops=(("left", TS_FAR),), head=TS_LABEL, tail=TS_DATE, tabs=1,
+           numpr=False, extra=None):
+    d = Document()
+    p = d.add_paragraph()
+    if head:
+        p.add_run(head)
+    for i in range(tabs):
+        ts_tab(p)
+        if i < tabs - 1:
+            p.add_run("middle")
+    if tail:
+        p.add_run(tail)
+    ts_stops(p, stops)
+    if numpr:
+        de._set_numpr(p, 0, de._add_num(de._numbering_root(d), "bul"))
+    if extra is not None:
+        extra(d, p)
+    return d
+
+
+def run_ts(d):
+    buf = io.BytesIO()
+    d.save(buf)
+    out = de.tab_stop_normalize(buf.getvalue())
+    return Document(io.BytesIO(out)), out, buf.getvalue()
+
+
+def ts_read(doc, i=0):
+    p = doc.paragraphs[i]._p
+    ppr = p.find(qn("w:pPr"))
+    tabs = ppr.find(qn("w:tabs")) if ppr is not None else None
+    if tabs is None:
+        return None
+    return [(t.get(qn("w:val")), int(t.get(qn("w:pos"))))
+            for t in tabs if t.tag == qn("w:tab")]
+
+
+# TS1: pdf2docx's left stop deep in the right zone becomes a right stop at the
+# text-column edge - the only shape that stays flush right in any font
+r, _, _ = run_ts(ts_doc())
+check(ts_read(r) == [("right", TS_WIDTH)],
+      "TS1: left date stop not right-aligned at the margin: %r" % (ts_read(r),))
+
+# TS2: a right stop short of the edge (date_column_untable measures the row,
+# not the margin) is pulled onto the margin so every date line agrees
+r, _, _ = run_ts(ts_doc(stops=(("right", TS_FAR),)))
+check(ts_read(r) == [("right", TS_WIDTH)],
+      "TS2: right stop left off the text margin: %r" % (ts_read(r),))
+
+# TS3: a stop in the middle of the line is a real column, not a right margin
+r, _, _ = run_ts(ts_doc(stops=(("left", TS_MID),)))
+check(ts_read(r) == [("left", TS_MID)],
+      "TS3: rewrote a mid-line column stop: %r" % (ts_read(r),))
+
+# TS4: two tab characters is a multi-column row, not label + date
+r, _, _ = run_ts(ts_doc(tabs=2))
+check(ts_read(r) == [("left", TS_FAR)],
+      "TS4: rewrote a two-tab row: %r" % (ts_read(r),))
+
+# TS5: a stop no tab character uses (fused_line_split copies the pPr onto the
+# half it cuts off) is dropped, w:tabs and all
+r, _, _ = run_ts(ts_doc(tabs=0, head="Technical Baccalaureate (BT3)", tail=""))
+check(ts_read(r) is None, "TS5: phantom tab stop survived: %r" % (ts_read(r),))
+
+# TS6: on a list item the same unused stop is the number-to-text gap that
+# list_hanging_indent owns - never touched
+r, _, _ = run_ts(ts_doc(stops=(("left", 240),), tabs=0, tail="", numpr=True))
+check(ts_read(r) == [("left", 240)],
+      "TS6: stripped a list item's hanging-indent stop: %r" % (ts_read(r),))
+
+# TS7: a long tail is a second column of prose, not a date
+r, _, _ = run_ts(ts_doc(tail="a tail far too long to be a date column entry, "
+                             "so it is prose in a second column"))
+check(ts_read(r) == [("left", TS_FAR)],
+      "TS7: rewrote a stop in front of a prose tail: %r" % (ts_read(r),))
+
+# TS8: nothing before the tab - an indent gesture, not a label/date pair
+r, _, _ = run_ts(ts_doc(head=""))
+check(ts_read(r) == [("left", TS_FAR)],
+      "TS8: rewrote a leading-tab indent: %r" % (ts_read(r),))
+
+# TS9: two stops is a real tab grid
+r, _, _ = run_ts(ts_doc(stops=(("left", TS_MID), ("left", TS_FAR))))
+check(ts_read(r) == [("left", TS_MID), ("left", TS_FAR)],
+      "TS9: rewrote one stop of a two-stop grid: %r" % (ts_read(r),))
+
+# TS10: a w:val="clear" stop cancels an inherited stop - leave it saying so
+r, _, _ = run_ts(ts_doc(stops=(("clear", TS_FAR),)))
+check(ts_read(r) == [("clear", TS_FAR)],
+      "TS10: rewrote a clear stop: %r" % (ts_read(r),))
+
+# TS11: trailing whitespace baked into the last run is stripped, and a run that
+# holds nothing else goes with it
+d = Document()
+p = d.add_paragraph()
+p.add_run("Baouchrieh, Lebanon  |  +961 81 527 424")
+p.add_run("   ")
+r, _, _ = run_ts(d)
+check(r.paragraphs[0].text == "Baouchrieh, Lebanon  |  +961 81 527 424",
+      "TS11: trailing whitespace survived: %r" % (r.paragraphs[0].text,))
+check(len(r.paragraphs[0].runs) == 1,
+      "TS11: the whitespace-only run survived: %d runs"
+      % (len(r.paragraphs[0].runs),))
+
+# TS11b: the same on the date line, where the stop is rewritten in the same pass
+r, _, _ = run_ts(ts_doc(head=TS_LABEL + " ", tail=TS_DATE + " "))
+check(r.paragraphs[0].text == TS_LABEL + " \t" + TS_DATE,
+      "TS11b: date line not rstripped / head damaged: %r"
+      % (r.paragraphs[0].text,))
+
+# TS12: whitespace in FRONT of a tab is date_column_untable's deliberate seam
+# space - the only thing keeping a w:t-only extractor from welding the label
+# onto the date. It must survive.
+r, _, _ = run_ts(ts_doc(head=TS_LABEL + " "))
+check(r.paragraphs[0].text.startswith(TS_LABEL + " \t"),
+      "TS12: ate the seam space in front of the tab: %r"
+      % (r.paragraphs[0].text,))
+
+# TS13: a paragraph that is only whitespace is empty_para_prune's call, and a
+# document with nothing to normalise comes back byte-identical
+d = Document()
+d.add_paragraph("   ")
+d.add_paragraph("An ordinary paragraph with no tabs and no dangling space.")
+_, out, src = run_ts(d)
+check(out == src, "TS13: rewrote a document holding neither tabs nor whitespace")
+
+# TS14: whitespace in front of a trailing break/picture is positioning, not
+# dangling text
+def _ts_br(d, p):
+    p.add_run(" ")
+    p._p.append(parse_xml("<w:r %s><w:br/></w:r>" % nsdecls("w")))
+
+
+d = ts_doc(stops=None, tabs=0, head="Line one", tail="", extra=_ts_br)
+_, out, src = run_ts(d)
+check(out == src, "TS14: stripped whitespace held in place by a trailing break")
+
+# TS15: a trailing space inside a hyperlink is stripped and the link survives
+d = Document()
+p = d.add_paragraph()
+p.add_run("mail: ")
+p._p.append(parse_xml(
+    '<w:hyperlink %s r:id="rId99"><w:r><w:t xml:space="preserve">a@b.com </w:t>'
+    "</w:r></w:hyperlink>" % nsdecls("w", "r")))
+r, out, _ = run_ts(d)
+check(full_text(r) == "mail: a@b.com",
+      "TS15: hyperlink text not rstripped: %r" % (full_text(r),))
+check(count_tag(out, "w:hyperlink") == 1, "TS15: lost the hyperlink")
+
+# TS16: no text is ever lost - the CV line keeps every token it arrived with
+r, _, _ = run_ts(ts_doc())
+check(r.paragraphs[0].text == TS_LABEL + "\t" + TS_DATE,
+      "TS16: text changed beyond whitespace: %r" % (r.paragraphs[0].text,))
+
+# TS17: pdf2docx writes pgMar left/right = 0 on some documents and positions
+# everything by absolute indent instead. There pgSz - pgMar is the PAPER edge,
+# not a text column, and a footer page number already sitting a few points in
+# would be shoved into the printer's unprintable border. No text margin, no
+# rewrite - whatever stop the paragraph arrived with is the best guess there is.
+def _ts_nomargin(d, p):
+    sec = d.sections[0]
+    sec.left_margin = 0
+    sec.right_margin = 0
+
+
+r, _, _ = run_ts(ts_doc(extra=_ts_nomargin))
+check(ts_read(r) == [("left", TS_FAR)],
+      "TS17: rewrote a stop against a zero-margin page edge: %r" % (ts_read(r),))
+
+# TS17b: the same for a stop that was ALREADY right - the applepay footer shape
+r, _, _ = run_ts(ts_doc(stops=(("right", TS_FAR),), extra=_ts_nomargin))
+check(ts_read(r) == [("right", TS_FAR)],
+      "TS17b: moved an already-right stop onto a zero-margin page edge: %r"
+      % (ts_read(r),))
+
+# TS18: dropping a stop nothing uses needs no margin to reason about, so that
+# rule still fires on a zero-margin document
+r, _, _ = run_ts(ts_doc(tabs=0, head="Technical Baccalaureate (BT3)", tail="",
+                        extra=_ts_nomargin))
+check(ts_read(r) is None,
+      "TS18: phantom stop survived on a zero-margin page: %r" % (ts_read(r),))
+
+# TS19: a sectPr rides on the LAST paragraph of its own section, so the section
+# governing a paragraph is the first one recorded at or after it. Reading the
+# NEXT sectPr instead would align this line to the wrong column.
+d = Document()
+p = d.add_paragraph()
+p.add_run(TS_LABEL)
+ts_tab(p)
+p.add_run(TS_DATE)
+ts_stops(p, (("left", 12312),))      # 0.95 of this section's own 12960
+p._p.get_or_add_pPr().append(parse_xml(
+    '<w:sectPr %s><w:pgSz w:w="15840" w:h="12240"/>'
+    '<w:pgMar w:left="1440" w:right="1440" w:top="1440" w:bottom="1440"/>'
+    "</w:sectPr>" % nsdecls("w")))
+d.add_paragraph("second section body")   # the trailing sectPr is 9360 wide
+r, _, _ = run_ts(d)
+check(ts_read(r) == [("right", 12960)],
+      "TS19: aligned to the wrong section's text column: %r" % (ts_read(r),))
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)

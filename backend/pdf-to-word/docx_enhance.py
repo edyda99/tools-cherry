@@ -3408,6 +3408,219 @@ def centred_indent_drop(data, pdf_doc=None):
     return buf.getvalue()
 
 
+# --- tab_stop_normalize (E3): one date column, no phantom stops -------------
+# Three defects the visual panel found on the CV, all about tab furniture:
+#
+#  (a) the date lines do not agree with each other. Most of them came out of
+#      date_column_untable, which writes a RIGHT stop at the label row's own
+#      width, so they land flush right. The ETSTC line never was a table -
+#      pdf2docx wrote it as a plain paragraph with a LEFT stop at the x where
+#      it measured the date starting (462.3pt). A left stop only puts the date
+#      where the ORIGINAL font's metrics put it; in any substituted font the
+#      tail is a different width and the date floats short of the margin while
+#      its neighbours sit on it. A right stop at the text-column edge is the
+#      shape that means "flush right" independently of font metrics, so every
+#      right-zone stop is rewritten to exactly that, wherever it came from -
+#      but only where the section states a real text margin to align to. On a
+#      pgMar-0 document (pdf2docx emits those) the "text column" is the paper
+#      edge, and moving a footer's already-right page number out there would
+#      push it into the printer's unprintable border, so those are left alone.
+#
+#  (b) fused_line_split copies a paragraph's pPr onto the half it cuts off, so
+#      the degree line below ETSTC inherits a tab stop it never uses. An unused
+#      direct stop is invisible until someone edits the line, then their tab
+#      jumps to a position nothing on the page explains. A stop on a list item
+#      is NOT unused - that is the gap between the number and the text, which
+#      list_hanging_indent owns - so numbered paragraphs are out of scope. The
+#      numbering test reads the paragraph's own pPr, which is what pdf2docx and
+#      list_numbering both write; a paragraph inheriting numPr from its STYLE
+#      would look unnumbered here.
+#
+#  (c) trailing whitespace baked into the last run (the contact line's dangling
+#      space, "2020 - 2023 "). It is invisible in Word, but it survives copy,
+#      it lands in every text extraction, and it defeats an exact-match search.
+#      Whitespace BEFORE a tab is deliberately left alone: date_column_untable
+#      writes exactly one such space so that an extractor reading only w:t does
+#      not weld "...Adma" onto "Mar 2025".
+#
+# The pass runs last so it normalises what every other pass emitted, and each
+# rule is structural: prose carries neither tab characters nor direct stops.
+
+TAB_RIGHT_ZONE = 0.75     # fraction of the text column past which a stop is a
+                          # right-margin stop rather than a real column stop
+TAB_TAIL_MAX_CHARS = DATE_CELL_MAX_CHARS
+_TAB_STOP_SKIP = ("clear", "bar")
+
+
+def _tab_stream(p):
+    """('tab', '') / ('text', s) for p's runs, in document order.
+
+    Reads w:r elements, so a run wrapped in a w:hyperlink is included and a
+    w:tab sitting in w:pPr/w:tabs (the STOP, same tag name) is not.
+    """
+    items = []
+    for r in p.iter(qn("w:r")):
+        for child in r:
+            if child.tag == qn("w:tab"):
+                items.append(("tab", ""))
+            elif child.tag == qn("w:t"):
+                items.append(("text", child.text or ""))
+    return items
+
+
+def _section_text_columns(body):
+    """(index in body, text width in twips) for sections that HAVE a text margin.
+
+    _section_widths reports pgSz - pgMar for every section, which is the text
+    column only when the margins are real. pdf2docx writes pgMar left/right = 0
+    on some documents (it positions everything by absolute indent instead), and
+    there the same subtraction returns the full paper width - the physical page
+    edge, not a margin anything is aligned to. A right stop placed there prints
+    inside the unprintable border, so those sections are simply not offered as
+    an alignment target and every rule that needs one is skipped.
+    """
+    out = []
+    for i, child in enumerate(body):
+        for sect in child.iter(qn("w:sectPr")) if child.tag == qn("w:p") else ():
+            out.append((i, sect))
+    tail = body.find(qn("w:sectPr"))
+    if tail is not None:
+        out.append((len(body), tail))
+    cols = []
+    for i, sect in out:
+        if _sect_margin(sect, "left") <= 0 or _sect_margin(sect, "right") <= 0:
+            continue
+        w = _sect_width(sect)
+        if w > 0:
+            cols.append((i, w))
+    return cols
+
+
+def _sect_margin(sect, side):
+    node = sect.find(qn("w:pgMar"))
+    try:
+        return int(round(float(node.get(qn("w:" + side)))))
+    except (AttributeError, TypeError, ValueError):
+        return 0
+
+
+def _direct_stops(p):
+    """(w:tabs element, [stop elements]) from p's OWN pPr, never from its style."""
+    ppr = p.find(qn("w:pPr"))
+    tabs = ppr.find(qn("w:tabs")) if ppr is not None else None
+    if tabs is None:
+        return None, []
+    return tabs, [c for c in tabs if c.tag == qn("w:tab")]
+
+
+def _stop_pos(stop):
+    try:
+        return int(round(float(stop.get(qn("w:pos")))))
+    except (TypeError, ValueError):
+        return None
+
+
+def _rstrip_paragraph(p):
+    """Drop whitespace hanging off the END of the paragraph's text.
+
+    Walks back from the last run, so a dangling space split across two runs
+    goes in one pass, and stops at the first run whose tail is real text. A run
+    left with nothing but an empty w:t and no other content is removed, and an
+    emptied w:hyperlink shell goes with it.
+    """
+    runs = list(p.iter(qn("w:r")))   # in document order, hyperlink children too
+    if not runs:
+        return False
+    # the last renderable thing must be text: a trailing tab, break, picture or
+    # field is content, and the whitespace in front of it is positioning
+    last = runs[-1]
+    kids = [c for c in last if c.tag in (qn("w:t"), qn("w:tab"), qn("w:br"),
+                                         qn("w:drawing"), qn("w:pict"),
+                                         qn("w:object"), qn("w:noBreakHyphen"))]
+    if not kids or kids[-1].tag != qn("w:t"):
+        return False
+    if not "".join(t.text or "" for t in p.iter(qn("w:t"))).strip():
+        return False    # a whitespace-only paragraph is empty_para_prune's call
+    changed = False
+    for r in reversed(runs):
+        kids = [c for c in r if c.tag in (qn("w:t"), qn("w:tab"), qn("w:br"),
+                                          qn("w:drawing"), qn("w:pict"),
+                                          qn("w:object"), qn("w:noBreakHyphen"))]
+        if not kids or kids[-1].tag != qn("w:t"):
+            break
+        t = kids[-1]
+        stripped = (t.text or "").rstrip()
+        if stripped != (t.text or ""):
+            t.text = stripped
+            changed = True
+        if stripped:
+            break
+        if len(kids) > 1:
+            break       # keep the empty w:t; the run still holds real content
+        parent = r.getparent()
+        parent.remove(r)
+        if (parent.tag == qn("w:hyperlink")
+                and parent.find(qn("w:r")) is None):
+            parent.getparent().remove(parent)
+        changed = True
+    return changed
+
+
+def tab_stop_normalize(data, pdf_doc=None):
+    """Right-align every date tab at the text margin; drop unused stops and
+    trailing run whitespace."""
+    doc = Document(io.BytesIO(data))
+    body = doc.element.body
+    sects = _section_text_columns(body)
+    changed = False
+
+    for idx, p in enumerate(body):
+        if p.tag != qn("w:p"):
+            continue
+        if _rstrip_paragraph(p):
+            changed = True
+        tabs, stops = _direct_stops(p)
+        if tabs is None or _has_numpr(p):
+            continue
+        stream = _tab_stream(p)
+        tab_chars = [i for i, (kind, _) in enumerate(stream) if kind == "tab"]
+
+        if not tab_chars:
+            # (b) a stop nothing uses: fused_line_split's inherited leftover
+            tabs.getparent().remove(tabs)
+            changed = True
+            continue
+
+        # (a) one label, one flush-right tail, one stop deep in the right zone
+        if len(tab_chars) != 1 or len(stops) != 1:
+            continue
+        if (stops[0].get(qn("w:val")) or "left") in _TAB_STOP_SKIP:
+            continue
+        pos = _stop_pos(stops[0])
+        # a sectPr rides on the LAST paragraph of its own section, so the
+        # section governing idx is the first one recorded at or after it
+        width = next((w for i, w in sects if i >= idx), 0)
+        if pos is None or width <= 0 or pos < TAB_RIGHT_ZONE * width:
+            continue
+        head = "".join(s for k, s in stream[:tab_chars[0]] if k == "text")
+        tail = "".join(s for k, s in stream[tab_chars[0] + 1:] if k == "text")
+        if not head.strip() or not tail.strip():
+            continue
+        if len(tail.strip()) > TAB_TAIL_MAX_CHARS:
+            continue
+        if stops[0].get(qn("w:val")) == "right" and pos == width:
+            continue
+        stops[0].set(qn("w:val"), "right")
+        stops[0].set(qn("w:pos"), str(width))
+        changed = True
+
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 # fused_line_split runs after date_column_untable so it sees the tabs that pass
 # writes (a tab at a seam vetoes a cut), and before heading_styles so a title
 # line freed from its subtitle can still be recognised as a heading.
@@ -3421,7 +3634,7 @@ PASSES = (hyperlink_unnest, span_space_repair, header_footer_parts, date_column_
           fused_line_split, centred_indent_drop, heading_styles, bullet_image_lists,
           list_numbering, paragraph_reflow, list_wrap_merge, list_hanging_indent,
           hyperlink_autolink, font_names,
-          section_rules, empty_para_prune)
+          section_rules, empty_para_prune, tab_stop_normalize)
 
 
 def enhance(docx_bytes, pdf_doc=None):
