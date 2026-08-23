@@ -22,7 +22,7 @@ stored by us</strong>. When you close or reload the page, those inputs are gone.
 <h2>PDF to Word uploads your file</h2>
 <p>Our <a href="/pdf-to-word/">PDF to Word</a> converter is the one tool that sends a file to a
 server. Pressing <strong>Convert to Word</strong> uploads your PDF over an encrypted connection,
-converts it, and <strong>deletes it straight away</strong> — we keep no copy and the contents are
+converts it, and <strong>deletes it straight away</strong>, we keep no copy and the contents are
 not read, logged, or shared. Choosing <strong>Convert in your browser instead</strong>, the link
 under that button, uploads nothing at all. To count the free daily conversions we store a random
 identifier in a cookie and a one-way hash of your IP address, both for the rest of the day only;
