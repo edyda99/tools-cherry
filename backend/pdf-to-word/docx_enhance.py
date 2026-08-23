@@ -3647,6 +3647,173 @@ def centred_indent_drop(data, pdf_doc=None):
     return buf.getvalue()
 
 
+# --- section_rule_dedupe (E5): one PDF hairline, one border -----------------
+# Two passes can each re-emit the SAME source hairline and neither can see the
+# other do it. date_column_untable dissolves a pdf2docx date table and carries
+# the table's top border onto the first freed paragraph as a top w:pBdr;
+# section_rules, running later, matches the heading text above it to that same
+# rule in the PDF and gives the heading a bottom w:pBdr. Its own "the rule
+# already survived" guard only knows about tables, and by then the table is
+# gone. Word then draws two hairlines a couple of points apart under three of
+# the CV's seven section headings.
+#
+# This pass is the referee, and it decides on the PDF's geometry rather than on
+# which pass ran first: for two ADJACENT paragraphs where the upper one carries
+# a bottom border and the lower one a top border, it locates both paragraphs'
+# source lines on one page and counts the hairlines that lie between them. If
+# the source drew exactly ONE rule in that gap, the two borders are that one
+# rule and the lower paragraph's top border is dropped - the rule belongs to
+# the heading it underlines. Two or more rules in the gap is a document that
+# really is doubly ruled and is left alone; zero rules means neither border is
+# PDF-backed and this pass has no evidence to act on, so it also leaves it.
+#
+# Safety model (each rule earned by a case this could otherwise corrupt):
+#   - strictly adjacent blocks: a table or any other paragraph in between and
+#     the two borders are not a pair.
+#   - the upper paragraph's text must match exactly ONE source line in the
+#     whole document; a repeated line ("Notes", a form label) cannot say which
+#     gap to measure.
+#   - the lower paragraph must be the very next source line under it on the
+#     same page (the date column shares that baseline, so the whole baseline
+#     group is offered), and must start with that line's text - date_column_
+#     untable appends the date, so a prefix match is the honest test.
+#   - a page carrying more hairlines than _RULE_MAX_PER_PAGE is a form grid or
+#     a ruled table, not section furniture: no dedupe anywhere on it.
+# Nothing is ever added, only a duplicate side removed, so a document without
+# the pair is untouched byte for byte.
+
+_SRD_BASELINE_EPS = 3.0   # pt of drift inside one baseline group
+_SRD_MIN_ANCHOR = 8       # chars a source line needs before a prefix match counts
+
+
+def _srd_page_rule_ys(page):
+    """y0 of every hairline on the page, or None when the page is a grid."""
+    width = page.rect.width
+    ys = []
+    for drawing in page.get_drawings():
+        r = drawing["rect"]
+        if r.height > _RULE_MAX_H_PT or r.width < _RULE_MIN_WIDTH_SHARE * width:
+            continue
+        if any(item[0] not in ("re", "l") for item in drawing.get("items", ())):
+            continue
+        ys.append(r.y0)
+    if len(ys) > _RULE_MAX_PER_PAGE:
+        return None
+    return sorted(ys)
+
+
+def _srd_pages(pdf_doc):
+    """Per page: sorted (bbox, normalised text) lines and hairline y0s."""
+    out = []
+    for page in pdf_doc:
+        lines = sorted(((bb, _rule_norm(t)) for bb, t in _rule_lines(page)),
+                       key=lambda e: (e[0][1], e[0][0]))
+        out.append((lines, _srd_page_rule_ys(page)))
+    return out
+
+
+def _srd_locate(pages, text):
+    """(page index, line index) when exactly one source line equals text."""
+    hit = None
+    for pi, (lines, _) in enumerate(pages):
+        for li, (_, norm) in enumerate(lines):
+            if norm == text:
+                if hit is not None:
+                    return None
+                hit = (pi, li)
+    return hit
+
+
+def _srd_next_group(lines, li):
+    """The gap under line li: (its own bottom y, the next baseline y, texts)."""
+    top = lines[li][0][3]
+    below = [e for e in lines[li + 1:] if e[0][1] >= lines[li][0][1] + 1.0]
+    if not below:
+        return None
+    y = below[0][0][1]
+    group = [norm for bb, norm in below if bb[1] <= y + _SRD_BASELINE_EPS]
+    return top, y, group
+
+
+def _srd_side(p, side):
+    """The paragraph's w:pBdr child for that side, when it actually draws."""
+    ppr = p.find(qn("w:pPr"))
+    if ppr is None:
+        return None
+    pbdr = ppr.find(qn("w:pBdr"))
+    if pbdr is None:
+        return None
+    el = pbdr.find(qn("w:" + side))
+    if el is None or (el.get(qn("w:val")) or "nil") in ("nil", "none"):
+        return None
+    return el
+
+
+def _srd_drop(el):
+    """Remove one border side, and the wrappers it leaves empty."""
+    pbdr = el.getparent()
+    pbdr.remove(el)
+    if len(pbdr):
+        return
+    ppr = pbdr.getparent()
+    ppr.remove(pbdr)
+    if not len(ppr) and not ppr.attrib:
+        ppr.getparent().remove(ppr)
+
+
+def _srd_text(p):
+    return _rule_norm("".join(t.text or "" for t in p.iter(qn("w:t"))))
+
+
+def section_rule_dedupe(data, pdf_doc=None):
+    """Drop a paragraph's top border when the heading above it already draws that rule."""
+    if pdf_doc is None:
+        return data
+    doc = Document(io.BytesIO(data))
+    body = doc.element.body
+    blocks = [el for el in body if el.tag in (qn("w:p"), qn("w:tbl"))]
+    pairs = []
+    for a, b in zip(blocks, blocks[1:]):
+        if a.tag != qn("w:p") or b.tag != qn("w:p"):
+            continue
+        if _srd_side(a, "bottom") is None:
+            continue
+        top = _srd_side(b, "top")
+        if top is not None:
+            pairs.append((a, b, top))
+    if not pairs:
+        return data
+    pages = _srd_pages(pdf_doc)
+    changed = False
+    for a, b, top in pairs:
+        text_a, text_b = _srd_text(a), _srd_text(b)
+        if not text_a or not text_b:
+            continue
+        at = _srd_locate(pages, text_a)
+        if at is None:
+            continue
+        pi, li = at
+        lines, rule_ys = pages[pi]
+        if rule_ys is None:            # grid page: no section furniture here
+            continue
+        nxt = _srd_next_group(lines, li)
+        if nxt is None:
+            continue
+        gap_top, gap_bottom, group = nxt
+        if not any(len(norm) >= _SRD_MIN_ANCHOR and text_b.startswith(norm)
+                   for norm in group):
+            continue
+        if sum(1 for y in rule_ys if gap_top <= y <= gap_bottom) != 1:
+            continue
+        _srd_drop(top)
+        changed = True
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 # --- tab_stop_normalize (E3): one date column, no phantom stops -------------
 # Three defects the visual panel found on the CV, all about tab furniture:
 #
@@ -3873,7 +4040,8 @@ PASSES = (hyperlink_unnest, span_space_repair, br_row_split, header_footer_parts
           date_column_untable, fused_line_split, centred_indent_drop, heading_styles,
           bullet_image_lists, list_numbering, paragraph_reflow, list_wrap_merge,
           list_hanging_indent, hyperlink_autolink, font_names,
-          section_rules, empty_para_prune, tab_stop_normalize)
+          section_rules, empty_para_prune, section_rule_dedupe,
+          tab_stop_normalize)
 
 
 def enhance(docx_bytes, pdf_doc=None):

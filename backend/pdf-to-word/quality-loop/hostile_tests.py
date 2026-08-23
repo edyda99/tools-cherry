@@ -3034,5 +3034,133 @@ d.save(buf)
 check(de.br_row_split(buf.getvalue(), None) == buf.getvalue(),
       "S9: pass mutated the document without PDF evidence")
 
+# ---- section_rule_dedupe cases (D) ----------------------------------------
+D_H = "TRAINING & PROFESSIONAL DEVELOPMENT"
+D_E = "React Native Academy, Eurisko"
+
+
+def d_bdr(p, side):
+    ppr = p._p.get_or_add_pPr()
+    pbdr = ppr.find(qn("w:pBdr"))
+    if pbdr is None:
+        pbdr = parse_xml("<w:pBdr %s/>" % nsdecls("w"))
+        de._ppr_insert(ppr, pbdr)
+    pbdr.append(parse_xml('<w:%s %s w:val="single" w:sz="6" w:color="auto"/>'
+                          % (side, nsdecls("w"))))
+
+
+def d_doc(head=D_H, entry=D_E, table=False):
+    d = Document()
+    d_bdr(d.add_paragraph(head), "bottom")
+    if table:
+        d.add_table(rows=1, cols=1).cell(0, 0).text = "spacer"
+    d_bdr(d.add_paragraph(entry), "top")
+    return d
+
+
+def run_dd(doc, pdf):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.section_rule_dedupe(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+def d_sides(doc):
+    out = []
+    for p in doc.paragraphs:
+        ppr = p._p.find(qn("w:pPr"))
+        pbdr = ppr.find(qn("w:pBdr")) if ppr is not None else None
+        if pbdr is not None:
+            out.append((p.text.strip(),
+                        tuple(c.tag.split("}")[1] for c in pbdr)))
+    return out
+
+
+# D1: one heading, one entry, exactly one hairline between them in the source
+# => the entry's top border is that same rule, drop it, keep the heading's
+pdf = rule_pdf([(100, D_H), (130, D_E)], [(104, 60, 540)])
+r, out = run_dd(d_doc(), pdf)
+check(d_sides(r) == [(D_H, ("bottom",))],
+      "D1: duplicate top border survived: %r" % d_sides(r))
+
+# D1b: the date column date_column_untable welds onto the entry line still
+# leaves the source line as a prefix, which is the honest match
+pdf = rule_pdf([(100, D_H), (130, D_E), (130, "Mar 2025")], [(104, 60, 540)])
+r, out = run_dd(d_doc(entry=D_E + " Mar 2025"), pdf)
+check(d_sides(r) == [(D_H, ("bottom",))],
+      "D1b: prefix match missed: %r" % d_sides(r))
+
+# D2: the source really does draw two rules in that gap -- both borders stay
+pdf = rule_pdf([(100, D_H), (130, D_E)], [(104, 60, 540), (112, 60, 540)])
+r, out = run_dd(d_doc(), pdf)
+check(d_sides(r) == [(D_H, ("bottom",)), (D_E, ("top",))],
+      "D2: dropped a border from a genuinely double-ruled gap: %r" % d_sides(r))
+
+# D3: no hairline at all between them -- neither border is PDF-backed, so
+# there is no evidence for which of the two is the duplicate
+pdf = rule_pdf([(100, D_H), (130, D_E)], [(500, 60, 540)])
+r, out = run_dd(d_doc(), pdf)
+check(d_sides(r) == [(D_H, ("bottom",)), (D_E, ("top",))],
+      "D3: acted without a rule in the gap: %r" % d_sides(r))
+
+# D4: a table sits between them -- they are not a pair
+pdf = rule_pdf([(100, D_H), (130, D_E)], [(104, 60, 540)])
+r, out = run_dd(d_doc(table=True), pdf)
+check(d_sides(r) == [(D_H, ("bottom",)), (D_E, ("top",))],
+      "D4: paired across an intervening table: %r" % d_sides(r))
+
+# D5: the heading text appears twice in the source -- which gap to measure is
+# ambiguous, so decline
+pdf = rule_pdf([(100, D_H), (130, D_E), (300, D_H), (330, "other")],
+               [(104, 60, 540)])
+r, out = run_dd(d_doc(), pdf)
+check(d_sides(r) == [(D_H, ("bottom",)), (D_E, ("top",))],
+      "D5: acted on an ambiguous anchor: %r" % d_sides(r))
+
+# D6: the paragraph under the heading is not the source line under it -- the
+# docx order and the page order disagree, so the gap proves nothing
+pdf = rule_pdf([(100, D_H), (130, "A completely different line")],
+               [(104, 60, 540)])
+r, out = run_dd(d_doc(), pdf)
+check(d_sides(r) == [(D_H, ("bottom",)), (D_E, ("top",))],
+      "D6: matched the wrong source line: %r" % d_sides(r))
+
+# D7: a page carrying a hairline grid is a form or a ruled table, never
+# section furniture
+pdf = rule_pdf([(100, D_H), (130, D_E)],
+               [(104, 60, 540)] + [(140 + 20 * i, 60, 540) for i in range(13)])
+r, out = run_dd(d_doc(), pdf)
+check(d_sides(r) == [(D_H, ("bottom",)), (D_E, ("top",))],
+      "D7: deduped on a grid page: %r" % d_sides(r))
+
+# D8: without a PDF the pass cannot know anything -- byte-identical no-op
+d = d_doc()
+buf = io.BytesIO()
+d.save(buf)
+check(de.section_rule_dedupe(buf.getvalue(), None) == buf.getvalue(),
+      "D8: pass mutated the document without PDF evidence")
+
+# D9: nothing to dedupe -- also byte-identical, and the text is never touched
+d = Document()
+d_bdr(d.add_paragraph(D_H), "bottom")
+d.add_paragraph(D_E)
+buf = io.BytesIO()
+d.save(buf)
+pdf = rule_pdf([(100, D_H), (130, D_E)], [(104, 60, 540)])
+check(de.section_rule_dedupe(buf.getvalue(), pdf) == buf.getvalue(),
+      "D9: rewrote a document with no duplicate pair")
+
+# D10: the dedupe removes only the one side; a top border sharing its pBdr
+# with a left border leaves the left one behind
+d = Document()
+d_bdr(d.add_paragraph(D_H), "bottom")
+p = d.add_paragraph(D_E)
+d_bdr(p, "top")
+d_bdr(p, "left")
+pdf = rule_pdf([(100, D_H), (130, D_E)], [(104, 60, 540)])
+r, out = run_dd(d, pdf)
+check(d_sides(r) == [(D_H, ("bottom",)), (D_E, ("left",))],
+      "D10: took an unrelated border side with it: %r" % d_sides(r))
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)
