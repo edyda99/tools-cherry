@@ -3408,5 +3408,83 @@ check(count_tag(out, "w:sectPr") == 2, "E6-12: lost the break below a table")
 check(len(r.tables) == 1 and r.tables[0].cell(0, 0).text == "cell",
       "E6-12: lost the table above the carrier")
 
+# ---------------------------------------------------------------- E7 char scale
+# ST_TextScale is an integer percent; pdf2docx emits float noise.
+
+def cs_run(doc):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.char_scale_normalize(buf.getvalue())
+    return Document(io.BytesIO(out)), out
+
+
+def cs_set(run, val):
+    rpr = run._r.get_or_add_rPr()
+    rpr.append(parse_xml('<w:w %s w:val="%s"/>' % (nsdecls("w"), val)))
+
+
+def cs_vals(doc):
+    return [el.get(qn("w:val")) for el in doc.element.body.iter(qn("w:w"))]
+
+
+# E7-1: a float scale is rounded to the nearest whole percent, text untouched.
+d = Document()
+cs_set(d.add_paragraph().add_run("Beirut, Lebanon"), "97.74999618530273")
+cs_set(d.add_paragraph().add_run("Senior Engineer"), "101.05263559441818")
+r, _ = cs_run(d)
+check(cs_vals(r) == ["98", "101"], "E7-1: bad rounding: %r" % (cs_vals(r),))
+check(full_text(r) == "Beirut, LebanonSenior Engineer", "E7-1: text changed")
+
+# E7-2: anything that rounds to 100 is dropped entirely (100% is the default),
+# and the emptied rPr keeps the run's other properties.
+d = Document()
+run = d.add_paragraph().add_run("bold body")
+run.bold = True
+cs_set(run, "99.99998474121094")
+cs_set(d.add_paragraph().add_run("plain"), "100.4")
+r, out = cs_run(d)
+check(cs_vals(r) == [], "E7-2: kept a 100 percent scale: %r" % (cs_vals(r),))
+check(r.paragraphs[0].runs[0].bold is True, "E7-2: lost bold with the scale")
+check(full_text(r) == "bold bodyplain", "E7-2: text changed")
+
+# E7-3: an already-integer scale that is not 100 is left byte-identical (the
+# pass must be a no-op, not a rewrite, on a clean document).
+d = Document()
+cs_set(d.add_paragraph().add_run("clean"), "98")
+_cs_buf = io.BytesIO()
+d.save(_cs_buf)
+check(de.char_scale_normalize(_cs_buf.getvalue()) == _cs_buf.getvalue(),
+      "E7-3: rewrote a document whose scales were already integers")
+
+# E7-4: a w:w that is not character scaling (same tag, different parent) is not
+# touched, and a non-numeric val is left for Word to reject rather than guessed.
+d = Document()
+_cs_r = d.add_paragraph().add_run("x")._r
+_cs_r.append(parse_xml('<w:w %s w:val="12.5"/>' % nsdecls("w")))  # direct child of w:r
+cs_set(d.add_paragraph().add_run("y"), "not-a-number")
+r, _ = cs_run(d)
+check("12.5" in cs_vals(r), "E7-4: rewrote a w:w outside w:rPr")
+check("not-a-number" in cs_vals(r), "E7-4: guessed at a non-numeric scale")
+
+# E7-5: the measurement form ("98.6%") normalises to the integer form, and a
+# value outside ST_TextScale's 1..600 range is clamped into it.
+d = Document()
+cs_set(d.add_paragraph().add_run("pct"), "98.6%")
+cs_set(d.add_paragraph().add_run("huge"), "980")
+cs_set(d.add_paragraph().add_run("zero"), "0.2")
+r, _ = cs_run(d)
+check(cs_vals(r) == ["99", "600", "1"], "E7-5: bad clamp/percent: %r" % (cs_vals(r),))
+
+# E7-6: scales inside a header part are normalised too, not just the body.
+d = Document()
+_cs_hdr = d.sections[0].header
+_cs_hdr.is_linked_to_previous = False
+cs_set(_cs_hdr.paragraphs[0].add_run("Maroun Daher"), "97.95000076293945")
+r, _ = cs_run(d)
+_cs_hp = r.sections[0].header.paragraphs[0]
+check([el.get(qn("w:val")) for el in _cs_hp._p.iter(qn("w:w"))] == ["98"],
+      "E7-6: left a float scale in the header part")
+
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)

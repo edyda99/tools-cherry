@@ -4187,6 +4187,79 @@ def tab_stop_normalize(data, pdf_doc=None):
     return buf.getvalue()
 
 
+# ST_TextScale is an integer percent (1..600 in the transitional schema).  pdf2docx
+# derives character scaling from the ratio of the PDF's drawn glyph width to the
+# substituted font's natural width, so it emits full float precision
+# (<w:w w:val="97.74999618530273"/>): strict validators reject it, and a value that
+# is not a whole percent cannot be reproduced by anyone retyping the text in Word.
+CHAR_SCALE_MIN = 1
+CHAR_SCALE_MAX = 600
+CHAR_SCALE_DEFAULT = 100
+
+
+def _xml_roots(doc):
+    """Every XML part's root element: body, headers/footers, styles, numbering."""
+    roots, seen = [], set()
+    for part in doc.part.package.iter_parts():
+        el = getattr(part, "element", None)
+        if el is None or id(el) in seen:
+            continue
+        seen.add(id(el))
+        roots.append(el)
+    return roots
+
+
+def _scale_percent(raw):
+    """int percent for an ST_TextScale value, or None when it is not a number.
+
+    Word 2010+ also writes the measurement form ("98%"); both parse to the same
+    percent, and both are re-emitted in the integer form the schema requires.
+    """
+    if raw is None:
+        return None
+    txt = raw.strip()
+    if txt.endswith("%"):
+        txt = txt[:-1].strip()
+    try:
+        pct = float(txt)
+    except ValueError:
+        return None
+    pct = int(round(pct))
+    return max(CHAR_SCALE_MIN, min(CHAR_SCALE_MAX, pct))
+
+
+def char_scale_normalize(data, pdf_doc=None):
+    """Round every w:w character scale to a whole percent; drop it at 100%."""
+    doc = Document(io.BytesIO(data))
+    changed = False
+
+    for root in _xml_roots(doc):
+        for el in list(root.iter(qn("w:w"))):
+            rpr = el.getparent()
+            # w:w is character scaling only inside a run-properties element;
+            # anything else wearing that tag is left alone.
+            if rpr is None or rpr.tag != qn("w:rPr"):
+                continue
+            raw = el.get(qn("w:val"))
+            pct = _scale_percent(raw)
+            if pct is None:
+                continue
+            if pct == CHAR_SCALE_DEFAULT:
+                # 100% is the default; the element only adds invalid noise.
+                rpr.remove(el)
+                changed = True
+                continue
+            if raw != str(pct):
+                el.set(qn("w:val"), str(pct))
+                changed = True
+
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 # fused_line_split runs after date_column_untable so it sees the tabs that pass
 # writes (a tab at a seam vetoes a cut), and before heading_styles so a title
 # line freed from its subtitle can still be recognised as a heading.
@@ -4201,7 +4274,7 @@ PASSES = (hyperlink_unnest, span_space_repair, br_row_split, header_footer_parts
           bullet_image_lists, list_numbering, paragraph_reflow, list_wrap_merge,
           list_hanging_indent, hyperlink_autolink, font_names,
           section_rules, empty_para_prune, section_rule_dedupe,
-          section_break_tidy, tab_stop_normalize)
+          section_break_tidy, tab_stop_normalize, char_scale_normalize)
 
 
 def enhance(docx_bytes, pdf_doc=None):
