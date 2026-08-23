@@ -1572,6 +1572,288 @@ added = numxml[numxml.rfind("<w:abstractNum "):].split("</w:abstractNum>")[0]
 check("<w:sz " not in added, "BI10: a size was invented for unsized items")
 check('<w:numFmt w:val="bullet"/>' in added, "BI10: the added counter is not a bullet")
 
+# === fused line split / centred indent passes ================================
+# A4 text column used by every case below, so "flush right" and "room to spare"
+# mean the same thing here as they do on a real page.
+FS_L, FS_R = 72.0, 523.0
+FS_WIDE = "a full measure line that runs the whole width of this text column ok"
+
+
+def fs_width(text, size):
+    return fitz.get_text_length(text, fontname="helv", fontsize=size)
+
+
+def fs_pdf(lines):
+    """lines: (y, text, size, align) with align in left / right / centre / x."""
+    pdf = fitz.open()
+    pg = pdf.new_page(width=595, height=842)
+    for y, t, size, align in lines:
+        w = fs_width(t, size)
+        if align == "left":
+            x = FS_L
+        elif align == "right":
+            x = FS_R - w
+        elif align == "centre":
+            x = (FS_L + FS_R) / 2 - w / 2
+        else:
+            x = float(align)
+        pg.insert_text((x, y), t, fontsize=size)
+    return pdf
+
+
+def fs_page(lines):
+    """The same, with a full-width line on it so the column edge is real."""
+    return fs_pdf(list(lines) + [(760, FS_WIDE, 11, "left")])
+
+
+def run_fs(doc, pdf):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.fused_line_split(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+def fs_para(doc, runs, jc=None):
+    """One paragraph, one w:r per (text, size) pair."""
+    p = doc.add_paragraph()
+    for text, size in runs:
+        r = p.add_run(text)
+        r.font.size = Pt(size)
+    if jc:
+        p._p.get_or_add_pPr().append(
+            parse_xml('<w:jc %s w:val="%s"/>' % (nsdecls("w"), jc)))
+    return p
+
+
+def fs_texts(doc):
+    return [p.text for p in doc.paragraphs if p.text.strip()]
+
+
+# FS0: the typography half of the deliberate-break test. One block at one size
+# is flowing text; a block change or a real size step is a candidate line.
+def fs_line(block, size, x0=FS_L, x1=200.0, text="a short line"):
+    return {"block": block, "size": size, "x0": x0, "x1": x1, "text": text,
+            "page_left": FS_L, "page_right": FS_R}
+
+
+A = fs_line((0, 1), 9.6)
+check(not de._fs_deliberate(A, fs_line((0, 1), 9.6)), "FS0: wrap read as a line")
+check(de._fs_deliberate(A, fs_line((0, 2), 9.6)), "FS0: block change missed")
+check(de._fs_deliberate(A, fs_line((0, 1), 8.8)), "FS0: size change missed")
+check(not de._fs_deliberate(A, fs_line((0, 1), 9.3)),
+      "FS0: sub-0.5pt jitter read as a size change")
+
+# FS0b: the geometry half. A block change is NOT enough on its own: when the
+# sizes on a page vary, fitz returns one block per visual line, so wrapped prose
+# arrives as a block change on every break. A line that ran out of room stays
+# joined to the one that continues it.
+full = fs_line((0, 1), 11, x0=FS_L, x1=FS_R, text="y" * 60)
+check(not de._fs_deliberate(full, fs_line((0, 2), 9, x0=FS_L, x1=200.0,
+                                          text="continuation of the sentence")),
+      "FS0b: forced wrap across blocks read as a deliberate line")
+check(de._fs_deliberate(fs_line((0, 1), 11, x0=FS_L, x1=200.0, text="short line"),
+                        fs_line((0, 2), 9, x0=FS_L, x1=300.0, text="next line")),
+      "FS0b: line with room to spare not read as deliberate")
+
+# FS1: two centred lines welded into one paragraph are split, and every
+# character survives the cut. Centred lines share an axis but not a left edge,
+# which is what tells them apart from a wrap even though the second one is a
+# long unbreakable URL that could not have fitted on the first.
+pdf = fs_page([(100, "Baouchrieh, Lebanon | +961 81 527 424 | m@example.com", 9, "centre"),
+               (112, "linkedin.com/in/someone-87140a42a", 9, "centre")])
+d = Document()
+fs_para(d, [("Baouchrieh, Lebanon | +961 81 527 424 | m@example.com ", 9),
+            ("linkedin.com/in/someone-87140a42a", 9)], jc="center")
+r, out = run_fs(d, pdf)
+check(fs_texts(r) == ["Baouchrieh, Lebanon | +961 81 527 424 | m@example.com ",
+                      "linkedin.com/in/someone-87140a42a"],
+      "FS1: contact lines not split: %s" % fs_texts(r))
+check(full_text(r).replace(" ", "") ==
+      "Baouchrieh,Lebanon|+96181527424|m@example.comlinkedin.com/in/someone-87140a42a",
+      "FS1: text lost or reordered by the split")
+
+# FS2: wrapped prose — one block, one size — is never split, however many runs
+# pdf2docx happened to break it into.
+pdf = fs_page([(100, "the quick brown fox jumps across the sleeping meadow and", 9, "left"),
+               (112, "over the lazy dog every single evening.", 9, "left")])
+d = Document()
+fs_para(d, [("the quick brown fox jumps across the sleeping meadow and ", 9),
+            ("over the lazy dog every single evening.", 9)])
+r, out = run_fs(d, pdf)
+check(len(fs_texts(r)) == 1, "FS2: wrapped prose split into %d paragraphs" % len(fs_texts(r)))
+
+# FS3: a size change at a line break, on a line that stopped with most of the
+# column still free, is a deliberate line: a CV entry title and the degree line
+# underneath it.
+pdf = fs_page([(100, "ETSTC Technical Education Institution, Lebanon", 10, "left"),
+               (112, "Technical Baccalaureate in Computer Programming", 8, "left")])
+d = Document()
+fs_para(d, [("ETSTC Technical Education Institution, Lebanon ", 10),
+            ("Technical Baccalaureate in Computer Programming", 8)])
+r, out = run_fs(d, pdf)
+check(len(fs_texts(r)) == 2, "FS3: size step at a line break not split: %s" % fs_texts(r))
+
+# FS3b: the same shape with an inline size change inside real prose, where the
+# line ran to the margin and the next word could not have fitted, stays one
+# paragraph. This is the corpus's inline_styles document in miniature.
+lead = "This sentence is set larger at fourteen points"
+while fs_width(lead + " and", 11) < FS_R - FS_L:
+    lead += " and"
+tail_ = "measure completely before returning to the body size."
+pdf = fs_page([(100, lead, 11, "left"), (114, tail_, 9, "left")])
+d = Document()
+fs_para(d, [(lead + " ", 11), (tail_, 9)])
+r, out = run_fs(d, pdf)
+check(len(fs_texts(r)) == 1, "FS3b: an inline size change split prose: %s" % fs_texts(r))
+
+# FS4: a tab at the seam is a label/date column on ONE visual line, not two
+# lines — cutting there would strand the date on a line of its own.
+pdf = fs_page([(100, "ETSTC Technical Education Institution", 10, "left"),
+               (100, "2020 - 2023", 8, "right")])
+d = Document()
+p = d.add_paragraph()
+p.add_run("ETSTC Technical Education Institution ").font.size = Pt(10)
+p.add_run().add_tab()
+p.add_run("2020 - 2023").font.size = Pt(8)
+r, out = run_fs(d, pdf)
+check(len(fs_texts(r)) == 1, "FS4: label/date columns split apart: %s" % fs_texts(r))
+
+# FS4b: the line AFTER a flush-right date is still its own line. The date ends
+# hard against the right margin, so the room-to-spare test alone would read
+# every break behind it as forced, and the CV's degree line would stay welded
+# to its own entry's date.
+pdf = fs_page([(100, "ETSTC Technical Education Institution", 10, "left"),
+               (100, "2020 - 2023", 8, "right"),
+               (112, "Technical Baccalaureate in Computer Programming", 9, "left")])
+d = Document()
+p = d.add_paragraph()
+p.add_run("ETSTC Technical Education Institution ").font.size = Pt(10)
+p.add_run().add_tab()
+p.add_run("2020 - 2023 ").font.size = Pt(8)
+p.add_run("Technical Baccalaureate in Computer Programming").font.size = Pt(9)
+r, out = run_fs(d, pdf)
+check(fs_texts(r) == ["ETSTC Technical Education Institution \t2020 - 2023 ",
+                      "Technical Baccalaureate in Computer Programming"],
+      "FS4b: date entry not split from its degree line: %s" % fs_texts(r))
+
+# FS5: an ambiguous match cuts nothing. The same two lines appear twice on the
+# page, so no window is unique and the pass cannot know which one it is looking
+# at — it leaves the paragraph alone rather than guessing.
+pdf = fs_page([(100, "Head of Platform", 10, "left"), (112, "since 2019", 8, "left"),
+               (300, "Head of Platform", 10, "left"), (312, "since 2019", 8, "left")])
+d = Document()
+fs_para(d, [("Head of Platform ", 10), ("since 2019", 8)])
+r, out = run_fs(d, pdf)
+check(len(fs_texts(r)) == 1, "FS5: ambiguous match split anyway: %s" % fs_texts(r))
+
+# FS6: when the line break falls INSIDE a run there is no clean boundary, so
+# nothing is cut — the pass never slices a run or invents run properties.
+pdf = fs_page([(100, "Head of Platform", 10, "left"), (112, "since 2019", 8, "left")])
+d = Document()
+fs_para(d, [("Head of Platform since 2019", 10), ("", 10)])
+r, out = run_fs(d, pdf)
+check(len(fs_texts(r)) == 1, "FS6: run sliced mid-run: %s" % fs_texts(r))
+
+# FS7: list items, hard-broken paragraphs and drawings are out of scope.
+pdf = fs_page([(100, "Alpha beta gamma", 10, "left"), (112, "delta epsilon", 8, "left")])
+d = Document()
+lp = fs_para(d, [("Alpha beta gamma ", 10), ("delta epsilon", 8)])
+numbering = de._numbering_root(d)
+nid = de._add_num(numbering, "bul")
+de._set_numpr(lp, 0, nid)
+r, out = run_fs(d, pdf)
+check(len(fs_texts(r)) == 1, "FS7: a list item was split")
+
+d = Document()
+p = d.add_paragraph()
+p.add_run("Alpha beta gamma ").font.size = Pt(10)
+p.runs[0]._r.append(parse_xml("<w:br %s/>" % nsdecls("w")))
+p.add_run("delta epsilon").font.size = Pt(8)
+r, out = run_fs(d, pdf)
+check(len(fs_texts(r)) == 1, "FS7: a hard-broken paragraph was split")
+
+# FS8: no PDF, no evidence, no change; and the pass is idempotent — a second
+# run finds the lines already separate and returns the bytes untouched.
+d = Document()
+fs_para(d, [("Alpha beta gamma ", 10), ("delta epsilon", 8)])
+buf = io.BytesIO()
+d.save(buf)
+check(de.fused_line_split(buf.getvalue(), None) == buf.getvalue(),
+      "FS8: pass acted without a source PDF")
+once = de.fused_line_split(buf.getvalue(), pdf)
+check(len(fs_texts(Document(io.BytesIO(once)))) == 2, "FS8: nothing to be idempotent about")
+check(de.fused_line_split(once, pdf) == once, "FS8: pass is not idempotent")
+
+# FS9: paragraph properties ride along with each piece, so a split never drops
+# the alignment, spacing or tab stops the source line was carrying.
+pdf = fs_page([(100, "Baouchrieh, Lebanon", 9, "centre"),
+               (112, "linkedin.com/in/x", 9, "centre")])
+d = Document()
+fs_para(d, [("Baouchrieh, Lebanon ", 9), ("linkedin.com/in/x", 9)], jc="center")
+r, out = run_fs(d, pdf)
+check([de._p_jc(p._p) for p in r.paragraphs if p.text.strip()] == ["center", "center"],
+      "FS9: alignment lost on the split-off line")
+
+
+def ci_para(doc, text, jc=None, **ind):
+    p = doc.add_paragraph(text)
+    ppr = p._p.get_or_add_pPr()
+    attrs = " ".join('w:%s="%d"' % (k, v) for k, v in ind.items())
+    ppr.append(parse_xml("<w:ind %s %s/>" % (nsdecls("w"), attrs)))
+    if jc:
+        ppr.append(parse_xml('<w:jc %s w:val="%s"/>' % (nsdecls("w"), jc)))
+    return p
+
+
+def ci_ind(p):
+    el = p._p.find(qn("w:pPr") + "/" + qn("w:ind"))
+    if el is None:
+        return None
+    return {k.split("}")[1]: v for k, v in el.attrib.items()}
+
+
+# CI1: a centred line carrying pdf2docx's measured x-offset as a symmetric
+# left+right indent loses it — that indent cannot move centred text, it can only
+# squeeze the box until Word re-wraps a line that fitted.
+d = Document()
+ci_para(d, "Baouchrieh, Lebanon | m@example.com", jc="center", left=2160, right=2160)
+buf = io.BytesIO()
+d.save(buf)
+r = Document(io.BytesIO(de.centred_indent_drop(buf.getvalue())))
+check(ci_ind(r.paragraphs[0]) is None, "CI1: phantom centred indent kept: %s"
+      % ci_ind(r.paragraphs[0]))
+
+# CI2: an asymmetric indent is doing real work (it does move centred text), so
+# it stays.
+d = Document()
+ci_para(d, "Pulled to the right", jc="center", left=2160, right=0)
+buf = io.BytesIO()
+d.save(buf)
+r = Document(io.BytesIO(de.centred_indent_drop(buf.getvalue())))
+check(ci_ind(r.paragraphs[0]) == {"left": "2160", "right": "0"},
+      "CI2: asymmetric centred indent dropped")
+
+# CI3: a small symmetric indent does not squeeze anything worth repairing, and
+# CI4: a left-aligned paragraph's indent is an indent, never a centring artefact.
+d = Document()
+ci_para(d, "Slightly inset", jc="center", left=360, right=360)
+ci_para(d, "Left aligned block quote", left=2160, right=2160)
+buf = io.BytesIO()
+d.save(buf)
+check(de.centred_indent_drop(buf.getvalue()) == buf.getvalue(),
+      "CI3/CI4: small or non-centred indents were dropped")
+
+# CI5: only the two sides are removed. A first-line indent on the same w:ind is
+# a different property and survives.
+d = Document()
+ci_para(d, "Centred with a first line", jc="center",
+        left=2160, right=2160, firstLine=240)
+buf = io.BytesIO()
+d.save(buf)
+r = Document(io.BytesIO(de.centred_indent_drop(buf.getvalue())))
+check(ci_ind(r.paragraphs[0]) == {"firstLine": "240"},
+      "CI5: firstLine lost with the phantom sides: %s" % ci_ind(r.paragraphs[0]))
+
 
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)

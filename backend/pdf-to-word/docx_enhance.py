@@ -1399,10 +1399,10 @@ def _p_padding(p):
 
     pdf2docx pads a cell out to the row height with trailing empty paragraphs.
     Inside a table those are invisible spacing; flowed into the body by this
-    pass they would become blank lines that are not in the source, and — worse —
-    the LAST paragraph of the label cell is where the flush-right date has to
-    land, so a trailing pad would detach the date from its own label onto a line
-    of its own. Conservative on purpose: anything renderable (a break, a tab, a
+    pass they would become blank lines that are not in the source. They also
+    decide where the flush-right date lands: it goes on the label cell's first
+    CONTENT paragraph (see _first_content), so a pad at either end would detach
+    the date from its own label onto a line of its own. Conservative on purpose: anything renderable (a break, a tab, a
     picture, an embedded object) makes the paragraph content, not padding.
 
     The list also covers markup that renders nothing but is still load-bearing —
@@ -1433,6 +1433,19 @@ def _content_paras(tc):
     while kept and _p_padding(kept[-1]):
         kept.pop()
     return kept or paras
+
+
+def _first_content(paras):
+    """Index of the first paragraph that is not vertical padding (else 0).
+
+    _content_paras strips only TRAILING pads, because a blank line between two
+    lines of cell text is content. A LEADING pad is not content either, and the
+    date must not land on one, so it is skipped here rather than deleted.
+    """
+    for i, p in enumerate(paras):
+        if not _p_padding(p):
+            return i
+    return 0
 
 
 def _p_jc(p):
@@ -1587,7 +1600,15 @@ def date_column_untable(data, pdf_doc=None):
             out.extend(paras)
             if kind == "flow":
                 continue
-            target, src = paras[-1], right.findall(qn("w:p"))[0]
+            # The date goes on the label cell's FIRST content line, not its last.
+            # _untable_plan only plans a "tab" row when the right cell holds ONE
+            # paragraph, i.e. pdf2docx wrote no vertical padding around it, so the
+            # date sits at the top of the row and is on the same baseline as the
+            # label's first line. Attaching it to the last paragraph reads the
+            # same on a one-line label and is wrong on every longer one: on a CV
+            # entry whose cell holds a title line and a subtitle line it welded
+            # "2020 - 2023" onto the subtitle, fusing three source lines into two.
+            target, src = paras[_first_content(paras)], right.findall(qn("w:p"))[0]
             ppr = target.get_or_add_pPr()
             jc = ppr.find(qn("w:jc"))
             if jc is not None:
@@ -2010,8 +2031,316 @@ def hyperlink_unnest(data, pdf_doc=None):
 # bullet_image_lists runs AFTER heading_styles and BEFORE list_numbering: it
 # only promotes runs that are still plain paragraphs, not headings, and it
 # must land its w:numPr before list_numbering assigns numbering IDs.
+# --- fused source lines / phantom centred indents ----------------------------
+# pdf2docx emits one w:p per text BLOCK it decided the page has, so source lines
+# it groups together arrive welded into a single paragraph: a CV entry's title,
+# its flush-right date and the degree line underneath end up as one paragraph
+# carrying three different font sizes, and the two centred contact lines of a
+# header end up as one. The centred ones also carry the x-offset pdf2docx
+# measured for them as a real w:ind, 108pt of left AND right indent on the CV's
+# contact line, which is not an indent at all but the page's own centring
+# restated as a margin, and it makes Word re-wrap a line that fits.
+#
+# fused_line_split cuts on PDF evidence only, never on wording:
+#   * the paragraph's text must match ONE contiguous window of >=2 source lines,
+#     and that window must be UNIQUE in the whole PDF: an ambiguous match cuts
+#     nothing, so a repeated boilerplate line can never drag a cut onto a
+#     paragraph it does not belong to;
+#   * the cut has to fall exactly on a boundary between two child elements of
+#     the paragraph, so runs are never sliced and no run property is guessed;
+#   * a tab at the seam vetoes the cut: a tab is how both pdf2docx and
+#     date_column_untable encode "these two source lines are one visual line,
+#     label left and date right", and cutting there would put the date on a
+#     line of its own;
+#   * and the break must be DELIBERATE rather than a wrap, meaning the two lines
+#     come from different PDF blocks, or the dominant font size changes across
+#     the break. Wrapped prose is one size inside one block, so it matches
+#     neither test and is left alone.
+FS_MIN_WINDOW = 2
+FS_SIZE_EPS = 0.5          # pt, smaller than any real typographic step
+FS_SPLIT_MAX = 200         # runaway guard: a document this shape is not a page
+FS_CENTRE_EPS = 3.0        # pt of drift allowed between two centred lines
+FS_X0_EPS = 2.0            # pt below which two lines share a left edge
+FS_OFFSET_PT = 36.0        # pt right of the column edge that is not a body line
+_FS_SPLITTABLE = (qn("w:r"), qn("w:hyperlink"), qn("w:bookmarkStart"),
+                  qn("w:bookmarkEnd"), qn("w:proofErr"), qn("w:smartTag"))
+_FS_OPAQUE = ("w:drawing", "w:pict", "w:object", "w:txbxContent")
+_FS_WS_RE = re.compile(r"\s+")
+
+
+def _fs_norm(s):
+    """Whitespace-normalised text, so a docx run stream and a PDF line compare."""
+    return _FS_WS_RE.sub(" ", s.replace("\xa0", " ").replace("\u202f", " ")
+                         .replace("\u2007", " ")).strip()
+
+
+def _fs_lines(pdf_doc):
+    """Every source line in page order: text, owning block, dominant font size.
+
+    The dominant span (the longest one) gives the size, not the largest span: a
+    trailing footnote marker or a superscript must not make a line read as a
+    size change.
+    """
+    out = []
+    for pi, page in enumerate(pdf_doc):
+        page_lines = []
+        for bi, block in enumerate(page.get_text("dict")["blocks"]):
+            if block.get("type") != 0:
+                continue
+            for ln in block.get("lines", []):
+                spans = [sp for sp in ln["spans"] if sp["text"].strip()]
+                text = _fs_norm("".join(sp["text"] for sp in spans))
+                if not text:
+                    continue
+                dom = max(spans, key=lambda sp: len(sp["text"]))
+                page_lines.append({"text": text, "block": (pi, bi),
+                                   "x0": ln["bbox"][0], "x1": ln["bbox"][2],
+                                   "size": round(float(dom.get("size") or 0.0), 2)})
+        # the column's right edge, taken from the page's own widest line: a
+        # single-line block's own x1 IS where its text ended, so it can never
+        # show that the line ran out of room
+        right = max((l["x1"] for l in page_lines), default=0.0)
+        left = min((l["x0"] for l in page_lines), default=0.0)
+        for line in page_lines:
+            line["page_right"] = right
+            line["page_left"] = left
+        out.extend(page_lines)
+    return out
+
+
+def _fs_children(p):
+    """[(element, text)] for the paragraph's content children, or None to bail.
+
+    Bails on anything this pass must not move or reason about: a picture or a
+    text box (its anchor position is not the run stream), a hard break (already
+    a line boundary, wrap_break_heal owns those), a list paragraph, or any child
+    tag outside the known-safe set.
+    """
+    if p.find(qn("w:pPr") + "/" + qn("w:numPr")) is not None:
+        return None
+    if p.find(".//" + qn("w:br")) is not None:
+        return None
+    for tag in _FS_OPAQUE:
+        if p.find(".//" + qn(tag)) is not None:
+            return None
+    items = []
+    for child in p:
+        if child.tag == qn("w:pPr"):
+            continue
+        if child.tag not in _FS_SPLITTABLE:
+            return None
+        items.append((child, _el_text(child)))
+    return items
+
+
+def _fs_tabbed(el):
+    return el.find(".//" + qn("w:tab")) is not None
+
+
+def _fs_window(text, lines):
+    """The one contiguous >=FS_MIN_WINDOW-line window whose join is `text`."""
+    hit = None
+    for i, first in enumerate(lines):
+        if not text.startswith(first["text"]):
+            continue
+        acc = first["text"]
+        for j in range(i + 1, len(lines)):
+            acc = acc + " " + lines[j]["text"]
+            if len(acc) > len(text) or not text.startswith(acc):
+                break
+            if acc == text and j - i + 1 >= FS_MIN_WINDOW:
+                if hit is not None:
+                    return None          # ambiguous: cut nothing
+                hit = (i, j)
+                break
+    return hit
+
+
+def _fs_forced(a, b):
+    """The break was FORCED: b's first word could not have fit on the rest of a.
+
+    Same estimate wrap_break_heal uses in the other direction (a's own average
+    character width), against the column's right edge rather than the block's:
+    when a page's font sizes vary, fitz hands back one BLOCK per visual line,
+    and such a block's right edge is just where its own text stopped.
+    """
+    word = (b["text"].split() or [""])[0]
+    if not word or not a["text"]:
+        return False
+    avg = (a["x1"] - a["x0"]) / max(1, len(a["text"]))
+    return (a["page_right"] - a["x1"]) < (len(word) + 1) * avg
+
+
+def _fs_centred_pair(a, b):
+    """Two lines centred on the same axis: each is a line the author placed.
+
+    A wrapped continuation returns to its block's left edge, so a line that
+    starts somewhere else yet shares the previous line's centre was set that
+    way (a title, a contact line), not run onto by the margin.
+    """
+    return (abs((a["x0"] + a["x1"]) / 2 - (b["x0"] + b["x1"]) / 2) <= FS_CENTRE_EPS
+            and abs(a["x0"] - b["x0"]) > FS_X0_EPS)
+
+
+def _fs_offset_line(a):
+    """`a` starts far right of the column, so nothing wrapped onto it.
+
+    A flush-right date is the case that matters: it ends hard against the right
+    margin, which makes the room-to-spare test above read every break after it
+    as forced, when in truth no body line could ever have continued there.
+    """
+    return (a["x0"] - a["page_left"]) > FS_OFFSET_PT
+
+
+def _fs_deliberate(a, b):
+    """True when the break between two source lines is a real line, not a wrap.
+
+    TYPOGRAPHY first: one block at one size is flowing text and is never cut.
+    Then GEOMETRY, because neither half of the first test is sufficient alone —
+    an inline size change (a 14pt lead sentence inside 11pt body) lands on a
+    line break sooner or later, and fitz blocks split on exactly that. So the
+    second line must also look like a line of its own: centred with the first
+    on a shared axis, or starting with room to spare on the line above.
+    """
+    if a["block"] == b["block"] and abs(a["size"] - b["size"]) < FS_SIZE_EPS:
+        return False
+    return (_fs_centred_pair(a, b) or _fs_offset_line(a)
+            or not _fs_forced(a, b))
+
+
+def _fs_cuts(items, lines, i, j):
+    """Child indices to cut at, for the matched source-line window lines[i:j+1]."""
+    offsets, acc = {}, ""
+    for k, (_, text) in enumerate(items):
+        acc += text
+        offsets.setdefault(len(_fs_norm(acc)), k + 1)
+    cuts, pos = [], 0
+    for m in range(i, j):
+        pos += len(lines[m]["text"])
+        k = offsets.get(pos)
+        pos += 1                          # the space the join put between them
+        if not _fs_deliberate(lines[m], lines[m + 1]):
+            continue
+        if k is None or k <= 0 or k >= len(items):
+            continue                      # the line break falls inside a run
+        if _fs_tabbed(items[k - 1][0]) or _fs_tabbed(items[k][0]):
+            continue                      # a label/date column, not two lines
+        if not _fs_norm("".join(t for _, t in items[:k])):
+            continue
+        if not _fs_norm("".join(t for _, t in items[k:])):
+            continue
+        cuts.append(k)
+    return cuts
+
+
+def _fs_split(p, items, cuts):
+    """Move each group of children after a cut into a paragraph of its own."""
+    groups = [[items[x][0] for x in range(a, b)]
+              for a, b in zip(cuts, cuts[1:] + [len(items)])]
+    for group in reversed(groups):
+        new = copy.deepcopy(p)
+        for child in list(new):
+            if child.tag != qn("w:pPr"):
+                new.remove(child)
+        for child in group:
+            child.getparent().remove(child)
+            new.append(child)
+        p.addnext(new)
+
+
+def fused_line_split(data, pdf_doc=None):
+    """Split paragraphs pdf2docx welded out of separate source lines."""
+    if pdf_doc is None:
+        return data
+    lines = _fs_lines(pdf_doc)
+    if len(lines) < FS_MIN_WINDOW:
+        return data
+    doc = Document(io.BytesIO(data))
+    splits = 0
+    for p in doc.element.body.findall(qn("w:p")):
+        items = _fs_children(p)
+        if not items or len(items) < 2:
+            continue
+        text = _fs_norm("".join(t for _, t in items))
+        if not text:
+            continue
+        window = _fs_window(text, lines)
+        if window is None:
+            continue
+        cuts = _fs_cuts(items, lines, *window)
+        if not cuts:
+            continue
+        splits += len(cuts)
+        if splits > FS_SPLIT_MAX:
+            return data
+        _fs_split(p, items, cuts)
+    if not splits:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+# On a centred paragraph a left and a right indent of the same size cannot move
+# the text: the centre of the box is the centre of the page either way. So it is
+# never authored, it is pdf2docx restating where the line happened to start and
+# end. Keeping it only shrinks the box until Word re-wraps a line that fitted.
+# Asymmetric or small indents are left alone, those can be real.
+CENTRED_IND_MIN_TW = 720   # twips (0.5"), below this the box is not squeezed
+CENTRED_IND_SKEW = 0.2     # left/right may differ by this share of the larger
+_IND_SIDES = ("left", "start", "right", "end")
+
+
+def _ind_tw(ind, *names):
+    for name in names:
+        raw = ind.get(qn("w:" + name))
+        if raw is None:
+            continue
+        try:
+            return int(round(float(raw)))
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
+def centred_indent_drop(data, pdf_doc=None):
+    """Drop the measured x-offset pdf2docx leaves as an indent on centred lines."""
+    doc = Document(io.BytesIO(data))
+    changed = False
+    for p in doc.element.body.iter(qn("w:p")):
+        if _p_jc(p) != "center":
+            continue
+        ind = p.find(qn("w:pPr") + "/" + qn("w:ind"))
+        if ind is None:
+            continue
+        left = _ind_tw(ind, "left", "start")
+        right = _ind_tw(ind, "right", "end")
+        if left is None or right is None:
+            continue
+        if min(left, right) < CENTRED_IND_MIN_TW:
+            continue
+        if abs(left - right) > CENTRED_IND_SKEW * max(left, right):
+            continue
+        for side in _IND_SIDES:
+            if ind.get(qn("w:" + side)) is not None:
+                del ind.attrib[qn("w:" + side)]
+        if not ind.attrib:
+            ind.getparent().remove(ind)
+        changed = True
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+# fused_line_split runs after date_column_untable so it sees the tabs that pass
+# writes (a tab at a seam vetoes a cut), and before heading_styles so a title
+# line freed from its subtitle can still be recognised as a heading.
+
 PASSES = (hyperlink_unnest, span_space_repair, header_footer_parts, date_column_untable,
-          heading_styles, bullet_image_lists, list_numbering, paragraph_reflow)
+          fused_line_split, centred_indent_drop, heading_styles, bullet_image_lists,
+          list_numbering, paragraph_reflow)
 
 
 def enhance(docx_bytes, pdf_doc=None):
