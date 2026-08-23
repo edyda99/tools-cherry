@@ -64,8 +64,12 @@ install pdf2docx==0.5.8 PyMuPDF==1.25.5 Pillow numpy python-docx`.
    Default renderer is QuickLook (`--renderer ql`): zero permissions, true
    layout, but KNOWN BLIND SPOTS — renders page 1 only, does not paint
    hyperlink-wrapped runs (links look deleted; trust the links metric),
-   does not paint footer parts, and draws a small box glyph at section/page
-   breaks. For full-fidelity or multipage checks escalate to
+   does not paint footer parts, does not paint paragraph borders (`w:pBdr`,
+   which is how `date_column_untable` re-emits an absorbed section rule — the
+   rule looks lost in QL and is present in LibreOffice; confirmed 2026-08-23 by
+   rebuilding the docx with a valid `w:sz`/`w:color` and still getting no rule
+   in QL, so it is the renderer, not the markup), and draws a small box glyph
+   at section/page breaks. For full-fidelity or multipage checks escalate to
    `--renderer word` via `render_word.sh` through the Terminal relay
    (`vpn-exec.sh`; Apple-events grant is Terminal→Word; NEVER reference
    `active document` — the script is by-name and aborts on name conflicts), or
@@ -77,11 +81,21 @@ install pdf2docx==0.5.8 PyMuPDF==1.25.5 Pillow numpy python-docx`.
    when the backlog is done or two consecutive items are blocked → final report,
    sample docx files to Edmond, deploy decision his.
 
-## Prod wiring (when the loop ends, before any deploy)
+## Prod wiring — ALREADY WIRED (corrected 2026-08-23)
 
-`lambda_function._convert()` does NOT call `docx_enhance.enhance()` yet — only the
-local harness does. Shipping = add the call after `postprocess_docx`, confirm the
-Dockerfile copies `docx_enhance.py`, and get Edmond's explicit deploy approval.
+This section used to say the Lambda does NOT call `enhance()` and that shipping
+means adding the call. That is stale, and acting on it would apply every pass
+**twice**. As of today:
+
+- `lambda_function.py:313` calls `docx_enhance.enhance(out, pdf_doc)`, inside a
+  `try/except` so a failing pass can never cost the conversion.
+- `Dockerfile:49` already copies `docx_enhance.py` into `${LAMBDA_TASK_ROOT}`.
+- `quality-loop/convert_corpus.py:67` calls the same seam, which is what makes it
+  a faithful mirror of the prod path.
+
+So the enhancement seam is live in prod and a loop iteration changes prod
+behaviour the moment the image is rebuilt. Deploying still needs Edmond's
+explicit approval (CLAUDE.md hard rule) — that part stands.
 
 ## Metric notes
 

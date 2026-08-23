@@ -1014,5 +1014,291 @@ r, out = run_reflow(d, pdf)
 body = " ".join(p.text for p in r.paragraphs if p.text)
 check("equipment" in body, "R23b: genuine hyphenation no longer heals: %r" % body[:90])
 
+# ---- date_column_untable cases (T) ------------------------------------------
+# pdf2docx turns a CV line whose date is flush right into a 2-column table, and
+# absorbs the section rule above it as the table's top border. The pass may
+# dissolve only that shape: anything with real gridlines, a third column, or a
+# left-aligned second column is a table and must survive untouched.
+BORDER = ('<w:tcBorders %s><w:top w:val="single" w:sz="8"/>'
+          '<w:start w:val="single" w:sz="8"/><w:bottom w:val="single" w:sz="8"/>'
+          '<w:end w:val="single" w:sz="8"/></w:tcBorders>')
+RULE = '<w:tcBorders %s><w:top w:val="single" w:sz="6"/></w:tcBorders>'
+
+
+def build_table(rows, boxed=False, rule=False, width=4000):
+    """rows: [[(text, jc), ...], ...]. boxed = real gridlines on every cell."""
+    d = Document()
+    t = d.add_table(rows=0, cols=max(len(r) for r in rows))
+    for ri, cells in enumerate(rows):
+        tr = t.add_row()._tr
+        for tc in tr.findall(qn("w:tc"))[len(cells):]:
+            tr.remove(tc)
+        for tc, (text, jc) in zip(tr.findall(qn("w:tc")), cells):
+            tcpr = tc.get_or_add_tcPr()
+            for el in tcpr.findall(qn("w:tcW")):
+                tcpr.remove(el)
+            tcpr.append(parse_xml('<w:tcW %s w:w="%d" w:type="dxa"/>'
+                                  % (nsdecls("w"), width)))
+            if boxed:
+                tcpr.append(parse_xml(BORDER % nsdecls("w")))
+            elif rule and ri == 0:
+                tcpr.append(parse_xml(RULE % nsdecls("w")))
+            p = tc.findall(qn("w:p"))[0]
+            ppr = p.get_or_add_pPr()
+            ppr.append(parse_xml('<w:jc %s w:val="%s"/>' % (nsdecls("w"), jc)))
+            p.append(parse_xml('<w:r %s><w:t xml:space="preserve">%s</w:t></w:r>'
+                               % (nsdecls("w"), text)))
+    return d
+
+
+def run_untable(d):
+    buf = io.BytesIO()
+    d.save(buf)
+    out = de.date_column_untable(buf.getvalue())
+    return Document(io.BytesIO(out)), out
+
+
+DATE_ROWS = [[("Eurisko, Adma", "left"), ("Mar 2025 - Present", "right")]]
+
+# T1: the date shape dissolves into one tabbed paragraph with a right tab stop
+r, out = run_untable(build_table(DATE_ROWS, rule=True))
+check(not r.tables, "T1: date table survived")
+body = [p for p in r.paragraphs if p.text.strip()]
+check(len(body) == 1, "T1: expected one paragraph, got %d" % len(body))
+if body:
+    check(body[0].text == "Eurisko, Adma \tMar 2025 - Present",
+          "T1: text not flowed: %r" % body[0].text)
+    tab = body[0]._p.find(qn("w:pPr") + "/" + qn("w:tabs") + "/" + qn("w:tab"))
+    check(tab is not None and tab.get(qn("w:val")) == "right",
+          "T1: no right tab stop")
+    check(body[0]._p.find(qn("w:pPr") + "/" + qn("w:jc")) is None,
+          "T1: flush-right alignment left on the flowed paragraph")
+    check(body[0]._p.find(qn("w:pPr") + "/" + qn("w:pBdr") + "/" + qn("w:top"))
+          is not None, "T1: absorbed section rule dropped")
+
+# T2: a naive w:t-only reader must still see two words, not "AdmaMar"
+check("Adma" in full_text(r) and "AdmaMar" not in full_text(r),
+      "T2: label welded to date for w:t-only extraction: %r" % full_text(r))
+
+# T3: real gridlines => a real table, never dissolved
+r, _ = run_untable(build_table(DATE_ROWS, boxed=True))
+check(len(r.tables) == 1, "T3: bordered date-shaped table dissolved")
+
+# T4: three columns => a real table even with a right-aligned last column
+r, _ = run_untable(build_table(
+    [[("Instrument", "left"), ("SN-88231", "left"), ("12 March", "right")],
+     [("Micro-balance", "left"), ("SN-7", "left"), ("9 February", "right")]]))
+check(len(r.tables) == 1, "T4: 3-column table dissolved")
+
+# T5: a left-aligned second column is a text column, not a flush-right date
+r, _ = run_untable(build_table(
+    [[("Eurisko, Adma", "left"), ("Mar 2025 - Present", "left")]]))
+check(len(r.tables) == 1, "T5: side-by-side text columns dissolved")
+
+# T6: a long right cell is prose in a second column, not a date
+LONG = "an entire sentence of commentary that is far too long to be a date column"
+r, _ = run_untable(build_table([[("Eurisko, Adma", "left"), (LONG, "right")]]))
+check(len(r.tables) == 1, "T6: long right-hand cell dissolved")
+
+# T7: no qualifying table => byte-identical no-op
+d = Document()
+d.add_paragraph("just prose, no tables at all")
+buf = io.BytesIO()
+d.save(buf)
+check(de.date_column_untable(buf.getvalue()) == buf.getvalue(), "T7: no-op rewrote the file")
+r, _ = run_untable(build_table(
+    [[("Region", "left"), ("Revenue", "left")],
+     [("North", "left"), ("1,240", "left")]]))
+check(len(r.tables) == 1, "T7b: borderless 2-col table with no date row dissolved")
+
+# T8: every token survives, in order, across a multi-row dissolve
+d = build_table([[("Eurisko, Adma", "left"), ("Mar 2025 - Present", "right")],
+                 [("Built the thing", "left")],
+                 [("Lebanese University", "left"), ("2016 - 2021", "right")]], rule=True)
+r, _ = run_untable(d)
+check(not r.tables, "T8: multi-row date table survived")
+flowed = " ".join(p.text for p in r.paragraphs if p.text.strip())
+for word in ("Eurisko,", "Mar", "Built", "the", "thing", "Lebanese", "2016"):
+    check(word in flowed.split() or word in flowed, "T8: %r lost" % word)
+check(0 <= flowed.find("Built") < flowed.find("Lebanese"), "T8: rows reordered")
+
+# T9: a textless leading cell is the line's bullet glyph — its drawing must
+# survive, moved to the head of the text it belongs to, never deleted
+d = build_table([[("Eurisko, Adma", "left"), ("Mar 2025 - Present", "right")],
+                 [("", "center"), ("Intensive training in React", "left")]], rule=True)
+glyph = d.tables[0].rows[1].cells[0].paragraphs[0]
+glyph._p.append(parse_xml(
+    '<w:r %s><w:drawing><wp:inline xmlns:wp="http://schemas.openxmlformats.org/'
+    'drawingml/2006/wordprocessingDrawing"><a:graphic xmlns:a="http://schemas.'
+    'openxmlformats.org/drawingml/2006/main"><a:graphicData><pic:pic xmlns:pic='
+    '"http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:blipFill>'
+    '<a:blip xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"/>'
+    '</pic:blipFill></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>'
+    "</w:r>" % nsdecls("w")))
+r, out = run_untable(d)
+check(not r.tables, "T9: glyph-row table survived")
+check(count_tag(out, "w:drawing") == 1, "T9: bullet glyph destroyed")
+check("Intensive training in React" in full_text(r), "T9: glyph-row text lost")
+
+# T10: a table gridded by a STYLE draws lines this pass cannot inspect (it only
+# reads explicit tcBorders/tblBorders), so a styled table is never dissolved
+d = build_table(DATE_ROWS, rule=True)
+d.tables[0]._tbl.find(qn("w:tblPr")).insert(
+    0, parse_xml('<w:tblStyle %s w:val="TableGrid"/>' % nsdecls("w")))
+r, _ = run_untable(d)
+check(len(r.tables) == 1, "T10: style-gridded table dissolved")
+
+# T11: a flush-right tail repeated down many rows is a COLUMN (a ledger, a
+# contents list), not a one-off tabbed line. Three dissolve, four do not.
+def date_row(n):
+    return [("Consulting engagement %d" % n, "left"), ("Mar 202%d" % n, "right")]
+
+
+r, _ = run_untable(build_table([date_row(n) for n in range(3)], rule=True))
+check(not r.tables, "T11: 3 date rows should still dissolve")
+r, _ = run_untable(build_table([date_row(n) for n in range(4)], rule=True))
+check(len(r.tables) == 1, "T11: 4-row date column dissolved (max %d)" % de.DATE_ROW_MAX)
+
+# T12: figures on the left are an amount grid, not "Employer — City"
+r, _ = run_untable(build_table([[("40,912.55", "left"), ("1,204.00", "right")]],
+                               rule=True))
+check(len(r.tables) == 1, "T12: numeric-left amount row dissolved")
+
+# T13: pdf2docx writes a raw float into w:sz (xsd:unsignedLong) and a CSS
+# "#RRGGBB" into w:color (a bare hex triplet). Inside its own tcBorders that is
+# its bug; re-emitted as this pass's OWN w:pBdr it becomes this pass's bug.
+d = build_table(DATE_ROWS, rule=True)
+top = d.tables[0]._tbl.find(".//" + qn("w:tcBorders") + "/" + qn("w:top"))
+top.set(qn("w:sz"), "5.599999999999909")
+top.set(qn("w:color"), "#1A1A1A")
+r, _ = run_untable(d)
+bdr = r.paragraphs[0]._p.find(qn("w:pPr") + "/" + qn("w:pBdr") + "/" + qn("w:top"))
+check(bdr is not None, "T13: section rule dropped")
+if bdr is not None:
+    check(bdr.get(qn("w:sz")) == "6",
+          "T13: w:sz not an integer: %r" % bdr.get(qn("w:sz")))
+    check(bdr.get(qn("w:color")) == "1A1A1A",
+          "T13: w:color kept its '#': %r" % bdr.get(qn("w:color")))
+
+# T14-T17: pdf2docx pads a cell out to the row height with trailing empty
+# paragraphs. The date has to land on the LABEL, so the last paragraph of the
+# label cell cannot be one of those pads.
+PAD = "<w:p %s><w:pPr/><w:r %s><w:rPr/></w:r></w:p>"
+
+
+def pad_cell(d, row, col, n=1):
+    tc = d.tables[0].rows[row].cells[col]._tc
+    for _ in range(n):
+        tc.append(parse_xml(PAD % (nsdecls("w"), nsdecls("w"))))
+    return d
+
+
+# T14: a padded label cell still yields ONE paragraph -- label, tab, date -- and
+# the pad does not survive into the body as a stray blank line
+r, out = run_untable(pad_cell(build_table(DATE_ROWS, rule=True), 0, 0, n=2))
+check(not r.tables, "T14: padded date table survived")
+body = r.paragraphs
+check(len(body) == 1, "T14: expected 1 paragraph, got %d: %r"
+      % (len(body), [p.text for p in body]))
+if body:
+    check(body[0].text == "Eurisko, Adma \tMar 2025 - Present",
+          "T14: date detached from its label: %r" % body[0].text)
+
+# T14b: the tab character must have the label's text BEFORE it. This is the
+# invariant a trailing pad broke: the date moved INTO the pad, so the paragraph
+# still held text and a naive "is it empty" check passed while the label sat
+# stranded on the line above.
+if body:
+    seen, before = False, []
+    for child in body[0]._p:
+        if child.tag == qn("w:pPr") or seen:      # w:pPr holds the tab STOP
+            continue
+        for node in child.iter():
+            if node.tag == qn("w:tab"):
+                seen = True
+                break
+            if node.tag == qn("w:t"):
+                before.append(node.text or "")
+    check(seen, "T14b: no tab character emitted")
+    check("".join(before).strip() == "Eurisko, Adma",
+          "T14b: label text does not precede the tab: %r" % "".join(before))
+
+# T15: only TRAILING pads are dropped. A blank paragraph BETWEEN two lines of
+# cell text is a gap the source asked for and must survive.
+d = build_table(DATE_ROWS, rule=True)
+tc = d.tables[0].rows[0].cells[0]._tc
+tc.append(parse_xml(PAD % (nsdecls("w"), nsdecls("w"))))
+tc.append(parse_xml('<w:p %s><w:r %s><w:t>second line</w:t></w:r></w:p>'
+                    % (nsdecls("w"), nsdecls("w"))))
+r, _ = run_untable(d)
+texts = [p.text for p in r.paragraphs]
+check(len(texts) == 3 and texts[1] == "" and "second line" in texts[2],
+      "T15: interior blank line not preserved: %r" % texts)
+
+# T16: a paragraph is padding only when it renders NOTHING. One holding a line
+# break is content, so it is kept and the date lands after it.
+d = build_table(DATE_ROWS, rule=True)
+d.tables[0].rows[0].cells[0]._tc.append(parse_xml(
+    '<w:p %s><w:r %s><w:br/></w:r></w:p>' % (nsdecls("w"), nsdecls("w"))))
+r, out = run_untable(d)
+check(count_tag(out, "w:br") == 1, "T16: the line break was destroyed")
+check(len(r.paragraphs) == 2,
+      "T16: a break-carrying paragraph was treated as padding: %r"
+      % [p.text for p in r.paragraphs])
+
+# T17: an auto-width table (no usable w:tcW) still gets a RIGHT tab stop -- at
+# the section text margin -- instead of falling to Word's default half-inch grid
+d = build_table(DATE_ROWS, rule=True, width=0)
+r, _ = run_untable(d)
+check(not r.tables, "T17: auto-width date table survived")
+tab = r.paragraphs[0]._p.find(qn("w:pPr") + "/" + qn("w:tabs") + "/" + qn("w:tab"))
+check(tab is not None and tab.get(qn("w:val")) == "right",
+      "T17: no right tab stop on an auto-width table")
+if tab is not None:
+    check(int(tab.get(qn("w:pos"))) > 5000,
+          "T17: tab stop is not at the text margin: %r" % tab.get(qn("w:pos")))
+
+# ---- reflow first-line-indent oracle (R24-R25) ------------------------------
+# A block's leftmost line is not its paragraph margin. When the block also holds
+# a line further left than the body — the flush-left label of a CV entry whose
+# date sits flush right, the same shape T1 untables — every wrapped body line
+# below it measured as "first-line indented" and the paragraph was cut at every
+# single line break. The indent test now also needs a step right of the PREVIOUS
+# line, which can only ever merge lines the old rule split.
+LABEL = "React and React Native Academy, Eurisko Adma"
+DATE = "Mar 2025 to Present"
+LEAD = ("Intensive training in React and React Native for web and mobile applications "
+        "covering component architecture and")
+TAIL = "navigation and routing and REST API integration and state management for teams."
+# one MuPDF block, four lines at three different left edges: label x0=45,
+# flush-right date x0=460, body x0=57. Block minimum is the label's 45, so the
+# body lines used to read as first-line indents and never rejoined.
+pdf = make_pdf([[(100, LABEL, 45), (100, DATE, 460), (112, LEAD, 57), (124, TAIL, 57)]])
+d = Document()
+for t in (LABEL, DATE, LEAD, TAIL):
+    d.add_paragraph(t)
+r, _ = run_reflow(d, pdf)
+texts = [p.text for p in r.paragraphs if p.text.strip()]
+check(texts == [LABEL, DATE, LEAD + " " + TAIL],
+      "R24: body lines under a further-left label not rejoined: %s" % texts)
+
+# R25: the indent predicate itself. End-to-end coverage cannot reach a genuine
+# mid-block first-line indent — MuPDF starts a NEW block at a vertical step
+# right, so the only step-rights that survive inside one block are same-baseline
+# flush-right tails (R24's shape). So assert the predicate directly, including
+# the property that makes the change safe: it is a strict narrowing, true only
+# where the old block-edge-only rule was true.
+# a body line whose predecessor sits further RIGHT (the flush-right date) is a
+# wrap, not an indent -- the whole point of the change
+check(not de._first_line_indent(57.0, 460.0, 45.0, 9.0),
+      "R25: body line under a flush-right tail still reads as an indent")
+# an ordinary block, every line flush left with the block: unchanged both ways
+check(de._first_line_indent(90.0, 57.0, 57.0, 9.0),
+      "R25: a real first-line indent no longer breaks the paragraph")
+check(not de._first_line_indent(57.0, 57.0, 57.0, 9.0), "R25: flush line reads as indent")
+check(not de._first_line_indent(59.0, 57.0, 57.0, 9.0),
+      "R25: sub-half-em jitter reads as an indent")
+
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)

@@ -625,6 +625,27 @@ def _tok(s):
     return re.findall(r"[^\W_]+", (s or "").lower())
 
 
+def _first_line_indent(cur_x0, prev_x0, block_x0, size):
+    """Does this line start a first-line-indented paragraph inside its block?
+
+    An indent is a step to the RIGHT of the line ABOVE, not merely of the
+    block's left edge. Measuring against the block edge alone lies whenever the
+    block also holds a line further left than the body — the flush-left label of
+    a CV entry whose date sits flush right, which is the very shape pdf2docx
+    turns into a table (date_column_untable). Every wrapped body line below such
+    a label then measured as an indent, and its paragraph was cut at every
+    single line break, leaving a ragged left edge in Word.
+
+    The block-edge term is kept as a conjunct. When block_x0 really is the
+    block minimum it is implied by the second term, which is what makes this a
+    strict NARROWING of the old block-edge-only rule: it can merge lines that
+    rule split and can never split lines it merged. Keeping it written out also
+    holds that property for a caller that passes a non-minimal left edge.
+    """
+    return (cur_x0 > block_x0 + 0.5 * size
+            and cur_x0 > prev_x0 + 0.5 * size)
+
+
 def _pdf_logical_paras(pdf_doc):
     """Reading-order logical paragraphs + words fused across hyphenated line
     breaks. Lines inside a MuPDF block are segmented, not blindly joined: a
@@ -692,7 +713,8 @@ def _pdf_logical_paras(pdf_doc):
                 # text column, not a stack of short standalone lines
                 pw = prev_l[1][2] - prev_l[1][0]
                 prev_full = pw >= 0.70 * bw and pw >= 90.0
-                indented = cur_l[1][0] > bx0 + 0.5 * cur_l[2]
+                indented = _first_line_indent(cur_l[1][0], prev_l[1][0], bx0,
+                                              cur_l[2])
                 if continues(prev_l[0], prev_full, cur_l[0], indented):
                     cur_lines.append(cur_l)
                 else:
@@ -1008,6 +1030,377 @@ def span_space_repair(data, pdf_doc=None):
                 a.text = ta + " "
                 a.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
                 changed = True
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+# --- date-column untabling ----------------------------------------------------
+# A CV line like "Employer — City" with the dates flush right is one flowed line
+# of text with a right tab, but pdf2docx sees two horizontally separated blocks
+# and emits a 2-column table for it. The section rule above the line becomes the
+# table's top border, which is what makes pdf2docx open a table region at all.
+# The result is three defects at once: a table that is not in the source, a stub
+# cell that duplicates nothing but eats the reading order, and the continuation
+# of a wrapped cell paragraph landing OUTSIDE the table as an orphan paragraph.
+#
+# Safety model - the pass only fires on a table that cannot be a real grid:
+# - No gridlines anywhere. The ONLY border allowed in the whole table is a top
+#   border on the first row (that is the section rule pdf2docx absorbed); any
+#   start/end/bottom border, or a top border on a later row, means the source
+#   had ruling and the table stays. A ruled table is also the only kind
+#   pdfplumber-class detectors count, so this rule keeps every countable table.
+# - At most two cells per row. Every real table in the corpus (bordered,
+#   borderless, ragged, merged) has three or more columns; a two-column strip is
+#   the date-column shape.
+# - Every multi-cell row must be exactly [left content | right-aligned short
+#   cell]. A right-aligned trailing cell is the flush-right tab; a left-aligned
+#   one would be a genuine second text column, and the table is left alone.
+# - At least one row must have that shape, so a plain single-column layout table
+#   (a different defect) is not touched here, and AT MOST DATE_ROW_MAX of them:
+#   a flush-right tail repeated down many rows is a column (a ledger, a table of
+#   contents), not a one-off tabbed line. Every dissolve on the real-world corpus
+#   has exactly one such row.
+# - The label side of such a row must contain a real word. A row whose left side
+#   is only figures is an amount grid, never "Employer — City".
+# - No w:tblStyle. This pass can only see borders written as explicit
+#   tcBorders/tblBorders elements, which is all pdf2docx ever emits; a table
+#   gridded by a style name would have its gridlines drawn by the style and
+#   would look borderless here.
+# Text is never rewritten: runs are MOVED, so token recall is bit-exact.
+#
+# What comes OUT is a single paragraph per flowed line. pdf2docx pads a cell to
+# the row height with trailing empty paragraphs, so the label cell's last
+# paragraph is often blank; the date has to land on the label, not on that pad,
+# or the pass re-creates the very split it exists to remove (and leaves the pad
+# behind as a body blank line that is not in the source). _content_paras drops
+# TRAILING pads only — an empty paragraph between two lines of cell text is a
+# gap the source asked for and survives.
+DATE_CELL_MAX_CHARS = 60
+DATE_ROW_MAX = 3          # more flush-right tails than this and it is a column
+_WORDY = re.compile(r"[^\W\d_]{3,}")   # a run of >=3 letters, any script
+_PPR_ORDER = ("pStyle", "keepNext", "keepLines", "pageBreakBefore", "framePr",
+              "widowControl", "numPr", "suppressLineNumbers", "pBdr", "shd", "tabs",
+              "suppressAutoHyphens", "kinsoku", "wordWrap", "overflowPunct",
+              "topLinePunct", "autoSpaceDE", "autoSpaceDN", "bidi", "adjustRightInd",
+              "snapToGrid", "spacing", "ind", "contextualSpacing", "mirrorIndents",
+              "suppressOverlap", "jc", "textDirection", "textAlignment", "textboxTightWrap",
+              "outlineLvl", "divId", "cnfStyle", "rPr", "sectPr", "pPrChange")
+_PPR_IDX = {qn("w:%s" % t): i for i, t in enumerate(_PPR_ORDER)}
+
+
+def _ppr_insert(ppr, el):
+    """Add el to a w:pPr and leave the whole pPr in CT_PPr schema order.
+
+    Simply inserting at the right offset is not enough here: pdf2docx already
+    emits its own properties out of sequence (autoSpaceDN before autoSpaceDE,
+    widowControl after both), so an insert placed relative to that scrambled
+    order stays invalid and schema-strict readers drop the property. Sorting is
+    stable, and any tag not in the sequence keeps its relative place at the end.
+    """
+    ppr.append(el)
+    order = sorted(ppr, key=lambda c: _PPR_IDX.get(c.tag, len(_PPR_IDX)))
+    for child in order:
+        ppr.append(child)
+
+
+def _real_borders(el):
+    """Border sides actually drawn by a w:tcBorders / w:tblBorders child of el."""
+    pr = el.find(qn("w:tcPr"))
+    if pr is None:
+        pr = el.find(qn("w:tblPr"))
+    if pr is None:
+        return set()
+    sides = set()
+    for holder in (pr.find(qn("w:tcBorders")), pr.find(qn("w:tblBorders"))):
+        if holder is None:
+            continue
+        for b in holder:
+            if (b.get(qn("w:val")) or "none") not in ("none", "nil"):
+                sides.add(b.tag.split("}")[1])
+    return sides
+
+
+def _el_text(el):
+    return "".join(t.text or "" for t in el.iter(qn("w:t")))
+
+
+def _norm_border(src):
+    """A copy of a w:*Borders side with attribute values Word will actually take.
+
+    pdf2docx writes the raw float it derived from the page ("5.599999999999909")
+    into w:sz, which is an xsd:unsignedLong, and a CSS-style "#1A1A1A" into
+    w:color, which is a bare hex triplet. Inside a w:tcBorders that is somebody
+    else's bug, but this pass re-emits the side as a w:pBdr of its own, so it
+    owns making it valid. Values that make no sense at all are dropped rather
+    than guessed - a border with no size still draws at Word's default.
+    """
+    el = copy.deepcopy(src)
+    sz = el.get(qn("w:sz"))
+    if sz is not None:
+        try:
+            el.set(qn("w:sz"), str(max(0, min(255, int(round(float(sz)))))))
+        except (TypeError, ValueError):
+            del el.attrib[qn("w:sz")]
+    color = el.get(qn("w:color"))
+    if color is not None:
+        color = color.strip().lstrip("#")
+        if re.fullmatch(r"[0-9A-Fa-f]{6}", color) or color.lower() == "auto":
+            el.set(qn("w:color"), color)
+        else:
+            del el.attrib[qn("w:color")]
+    space = el.get(qn("w:space"))
+    if space is not None:
+        try:
+            el.set(qn("w:space"), str(max(0, min(31, int(round(float(space)))))))
+        except (TypeError, ValueError):
+            del el.attrib[qn("w:space")]
+    return el
+
+
+def _tc_blank(tc):
+    """A cell with nothing to lose: no text, no drawing, no embedded object."""
+    if _el_text(tc).strip():
+        return False
+    for tag in ("w:drawing", "w:pict", "w:object", "w:tbl"):
+        if tc.find(".//" + qn(tag)) is not None:
+            return False
+    return True
+
+
+def _p_padding(p):
+    """A paragraph that renders nothing at all: pure cell padding.
+
+    pdf2docx pads a cell out to the row height with trailing empty paragraphs.
+    Inside a table those are invisible spacing; flowed into the body by this
+    pass they would become blank lines that are not in the source, and — worse —
+    the LAST paragraph of the label cell is where the flush-right date has to
+    land, so a trailing pad would detach the date from its own label onto a line
+    of its own. Conservative on purpose: anything renderable (a break, a tab, a
+    picture, an embedded object) makes the paragraph content, not padding.
+
+    The list also covers markup that renders nothing but is still load-bearing —
+    a section definition, a bookmark anchor, a hyperlink shell. None of those can
+    legally appear in a table cell, so this is insurance rather than a live case,
+    but dropping one would be silent and unrecoverable, and keeping a paragraph
+    costs only a blank line.
+    """
+    if _el_text(p).strip():
+        return False
+    for tag in ("w:drawing", "w:pict", "w:object", "w:br", "w:tab", "w:tbl",
+                "w:sectPr", "w:bookmarkStart", "w:hyperlink"):
+        if p.find(".//" + qn(tag)) is not None:
+            return False
+    return True
+
+
+def _content_paras(tc):
+    """A cell's paragraphs with its trailing padding removed.
+
+    Only TRAILING pads are dropped. A blank paragraph BETWEEN two lines of cell
+    text is a deliberate gap in the content and is kept, so this can never close
+    up text the source separated. Never returns an empty list for a cell that
+    holds anything: the guard keeps the original list if stripping would empty it.
+    """
+    paras = tc.findall(qn("w:p"))
+    kept = list(paras)
+    while kept and _p_padding(kept[-1]):
+        kept.pop()
+    return kept or paras
+
+
+def _p_jc(p):
+    jc = p.find(qn("w:pPr") + "/" + qn("w:jc"))
+    return jc.get(qn("w:val")) if jc is not None else None
+
+
+def _tw(el, tag, attr="w"):
+    """Twips read off a w:tcW / w:tblInd inside the element's tcPr or tblPr."""
+    node = el.find(qn("w:tcPr") + "/" + qn("w:" + tag))
+    if node is None:
+        node = el.find(qn("w:tblPr") + "/" + qn("w:" + tag))
+    try:
+        return int(round(float(node.get(qn("w:" + attr)))))
+    except (AttributeError, TypeError, ValueError):
+        return 0
+
+
+def _section_widths(body):
+    """(index in body, usable text width in twips) for every sectPr, in order."""
+    out = []
+    for i, child in enumerate(body):
+        for sect in child.iter(qn("w:sectPr")) if child.tag == qn("w:p") else ():
+            out.append((i, _sect_width(sect)))
+    tail = body.find(qn("w:sectPr"))
+    if tail is not None:
+        out.append((len(body), _sect_width(tail)))
+    return [(i, w) for i, w in out if w > 0]
+
+
+def _sect_width(sect):
+    def num(tag, attr):
+        node = sect.find(qn("w:" + tag))
+        try:
+            return int(round(float(node.get(qn("w:" + attr)))))
+        except (AttributeError, TypeError, ValueError):
+            return 0
+    return num("pgSz", "w") - num("pgMar", "left") - num("pgMar", "right")
+
+
+def _untable_plan(tbl):
+    """[(kind, left_cell, right_cell), ...] per row, or None if tbl is a real table.
+
+    kind is "drop" (nothing in the row), "flow" (one cell, emit as paragraphs),
+    "tab" (label + flush-right date -> one tabbed paragraph) or "marker" (a
+    glyph-only cell in front of a text cell -> one paragraph, glyph first).
+    """
+    if _real_borders(tbl):
+        return None
+    if tbl.find(qn("w:tblPr") + "/" + qn("w:tblStyle")) is not None:
+        return None
+    rows = tbl.findall(qn("w:tr"))
+    if not rows:
+        return None
+    plan, dates = [], 0
+    for ri, tr in enumerate(rows):
+        cells = tr.findall(qn("w:tc"))
+        if len(cells) > 2:
+            return None
+        for tc in cells:
+            allowed = {"top"} if ri == 0 else set()
+            if _real_borders(tc) - allowed:
+                return None
+            if tc.find(".//" + qn("w:tbl")) is not None:
+                return None
+            if not tc.findall(qn("w:p")):
+                return None
+        live = [tc for tc in cells if not _tc_blank(tc)]
+        if not live:
+            plan.append(("drop", None, None))
+            continue
+        if len(live) == 1:
+            plan.append(("flow", live[0], None))
+            continue
+        left, right = live
+        lps, rps = left.findall(qn("w:p")), right.findall(qn("w:p"))
+        if right is not cells[-1] or len(rps) != 1:
+            return None
+        if _p_jc(rps[0]) == "right":
+            # label ... flush-right date
+            if (_p_jc(lps[-1]) == "right"
+                    or len(_el_text(right).strip()) > DATE_CELL_MAX_CHARS
+                    or not _WORDY.search(_el_text(left))):
+                return None
+            plan.append(("tab", left, right))
+            dates += 1
+            if dates > DATE_ROW_MAX:
+                return None
+        elif not _el_text(left).strip() and len(lps) == 1:
+            # textless leading cell: the line's bullet glyph, not a column
+            plan.append(("marker", left, right))
+        else:
+            return None
+    return plan if dates else None
+
+
+def _row_width(tr):
+    return sum(_tw(tc, "tcW") for tc in tr.findall(qn("w:tc")))
+
+
+def date_column_untable(data, pdf_doc=None):
+    """Flow pdf2docx's flush-right date "tables" back into tabbed paragraphs."""
+    doc = Document(io.BytesIO(data))
+    body = doc.element.body
+    sects = _section_widths(body)
+    changed = False
+
+    # section widths are resolved against the ORIGINAL body order, before the
+    # rewrite starts shifting indices around
+    candidates = [(c, next((w for i, w in sects if i > idx), 0) or 0)
+                  for idx, c in enumerate(body) if c.tag == qn("w:tbl")]
+
+    for tbl, limit in candidates:
+        plan = _untable_plan(tbl)
+        if plan is None:
+            continue
+        rows = tbl.findall(qn("w:tr"))
+        stop = max((_row_width(tr) for tr in rows), default=0) + _tw(tbl, "tblInd")
+        if stop <= 0:
+            # no usable w:tcW anywhere (auto-width table). Fall back to the text
+            # margin: without a stop the w:tab below would fall to Word's default
+            # half-inch grid and the date would sit mid-line instead of flush right
+            stop = limit
+        if limit:
+            stop = min(stop, limit)
+        rule = None
+        first_pr = rows[0].find(qn("w:tc") + "/" + qn("w:tcPr") + "/" + qn("w:tcBorders"))
+        if first_pr is not None:
+            top = first_pr.find(qn("w:top"))
+            if top is not None and (top.get(qn("w:val")) or "none") not in ("none", "nil"):
+                rule = top
+
+        out = []
+        for kind, left, right in plan:
+            if kind == "drop":
+                continue
+            if kind == "marker":
+                # the glyph cell is furniture in front of the text: move its
+                # content to the head of the text paragraph, drop the cell
+                target = right.findall(qn("w:p"))[0]
+                at = 1 if target.find(qn("w:pPr")) is not None else 0
+                for child in reversed([c for c in left.findall(qn("w:p"))[0]
+                                       if c.tag != qn("w:pPr")]):
+                    child.getparent().remove(child)
+                    target.insert(at, child)
+                out.append(target)
+                continue
+            # trailing padding is dropped, so the date lands on the label rather
+            # than on a blank line below it, and the cell's row-height spacing
+            # does not survive into the body as stray empty paragraphs
+            paras = _content_paras(left)
+            out.extend(paras)
+            if kind == "flow":
+                continue
+            target, src = paras[-1], right.findall(qn("w:p"))[0]
+            ppr = target.get_or_add_pPr()
+            jc = ppr.find(qn("w:jc"))
+            if jc is not None:
+                ppr.remove(jc)
+            if stop > 0:
+                tabs = parse_xml('<w:tabs %s><w:tab w:val="right" w:pos="%d"/></w:tabs>'
+                                 % (nsdecls("w"), stop))
+                old = ppr.find(qn("w:tabs"))
+                if old is not None:
+                    ppr.remove(old)
+                _ppr_insert(ppr, tabs)
+            # the gap the two cells used to provide has to survive as a real
+            # character: a bare w:tab is invisible to every extractor that reads
+            # only w:t, which would silently weld "...Adma" onto "Mar 2025"
+            seam = _el_text(target)[-1:] + _el_text(src)[:1]
+            gap = "" if (seam.strip() != seam or not seam) else \
+                '<w:t xml:space="preserve"> </w:t>'
+            target.append(parse_xml("<w:r %s>%s<w:tab/></w:r>" % (nsdecls("w"), gap)))
+            for child in list(src):
+                if child.tag != qn("w:pPr"):
+                    src.remove(child)
+                    target.append(child)
+
+        if not out:
+            continue
+        if rule is not None:
+            ppr = out[0].get_or_add_pPr()
+            if ppr.find(qn("w:pBdr")) is None:
+                pbdr = parse_xml("<w:pBdr %s/>" % nsdecls("w"))
+                pbdr.append(_norm_border(rule))
+                _ppr_insert(ppr, pbdr)
+        for p in out:
+            p.getparent().remove(p)
+            tbl.addprevious(p)
+        body.remove(tbl)
+        changed = True
+
     if not changed:
         return data
     buf = io.BytesIO()
@@ -1387,8 +1780,11 @@ def hyperlink_unnest(data, pdf_doc=None):
 # ends: even combined geometric+content evidence leaks on real shapes (lyric
 # sheets, contract clauses, block-vote dilution, estimator lies — see
 # out/adv_iter10). Its reopening blueprint (guard-cost table) is in backlog.md.
-PASSES = (hyperlink_unnest, span_space_repair, header_footer_parts, heading_styles,
-          list_numbering, paragraph_reflow)
+# date_column_untable runs AFTER header_footer_parts on purpose: that pass keys
+# off which text is still inside a table cell, so dissolving a layout table in
+# front of it would change which lines it lifts into the page furniture.
+PASSES = (hyperlink_unnest, span_space_repair, header_footer_parts, date_column_untable,
+          heading_styles, list_numbering, paragraph_reflow)
 
 
 def enhance(docx_bytes, pdf_doc=None):
