@@ -1693,7 +1693,8 @@ def _wb_blocks(pdf_doc):
             for ln in b.get("lines", []):
                 t = "".join(s["text"] for s in ln["spans"])
                 if t.strip():
-                    lines.append({"text": t, "x0": ln["bbox"][0], "x1": ln["bbox"][2]})
+                    lines.append({"text": t, "x0": ln["bbox"][0], "x1": ln["bbox"][2],
+                                  "y0": ln["bbox"][1], "y1": ln["bbox"][3]})
                     fonts.update(s.get("font", "") for s in ln["spans"])
             if lines:
                 blocks.append({"lines": lines, "fonts": fonts,
@@ -1888,6 +1889,244 @@ def wrap_break_heal(data, pdf_doc=None):
                            and not seg_texts[i + 1][:1].isspace())
             _wb_remove_br(br, replace_with_space=needs_space)
             changed = True
+
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+# --------------------------------------------------------------------------
+# br_row_split: one paragraph per visual row for label rows
+#
+# pdf2docx welds consecutive lines of the same PDF block into ONE paragraph
+# joined by <w:br/>. When those lines are independent "Label: value" rows of a
+# definition block (a CV skills list, a spec sheet, a key/value panel) the weld
+# is wrong twice over: the rows lose the sibling row spacing, and editing one
+# row reflows the other. This pass splits at those w:br only, and only on
+# structural proof:
+#
+#   * the paragraph's br-separated segments map, token for token, onto the
+#     consecutive lines of exactly ONE PDF block, one segment per line, and
+#     consume that block entirely (unique-match binding, borrowed from
+#     wrap_break_heal);
+#   * every line ends well short of the block's right edge, so the next line's
+#     first word WOULD have fit -- the break was authored, not a wrap;
+#   * the rows sit at normal leading (no big gap, no overlap);
+#   * EVERY segment is a short "Label: " row, and
+#   * an adjacent body paragraph outside this one is already a standalone row
+#     of the same shape and style -- the sibling whose spacing is inherited.
+#
+# All five must hold, so flowing prose, poetry, addresses and signature blocks
+# (no label rows, no sibling) are untouched, and a genuine soft break inside one
+# logical paragraph never qualifies.
+_RS_LABEL_RE = re.compile(r"^[ \t]{0,3}([^\s:][^:]{0,39}):(\s|$)")
+_RS_MAX_LABEL_WORDS = 5
+_RS_MAX_PITCH_RATIO = 2.0   # row pitch / line height; above this it is a gap
+_RS_SLACK_WORDS = 1.0       # the next word must fit with this much margin
+
+
+def _rs_label_ok(text):
+    """A short 'Label: value' row head -- deliberate, never a prose wrap."""
+    m = _RS_LABEL_RE.match(text)
+    if not m:
+        return False
+    label = m.group(1).strip()
+    if not label or len(label.split()) > _RS_MAX_LABEL_WORDS:
+        return False
+    first = label[0]
+    if not (first.isalnum() or first in "#&/"):
+        return False
+    if first.islower() and not any(c.isupper() for c in label):
+        return False  # a lowercase opener is a sentence fragment, not a label
+    if "." in label:
+        return False
+    return bool(text[m.end():].strip())
+
+
+def _rs_para_text(p):
+    return "".join(_char_of(el) for el in _wb_items(p))
+
+
+def _rs_row_sibling(body, p):
+    """Nearest adjacent body paragraph that is already a standalone label row of
+    the same style. Following first: its w:before is the gap BETWEEN two rows of
+    this group, which is the spacing the split rows must inherit."""
+    kids = [k for k in body if k.tag == qn("w:p")]
+    try:
+        i = kids.index(p)
+    except ValueError:
+        return None
+    style = _rs_style_id(p)
+    for j in (i + 1, i - 1):
+        if j < 0 or j >= len(kids):
+            continue
+        q = kids[j]
+        items = _wb_items(q)
+        if any(el.tag in (qn("w:br"), qn("w:cr")) for el in items):
+            continue
+        if _rs_style_id(q) != style:
+            continue
+        if _rs_label_ok("".join(_char_of(el) for el in items)):
+            return q
+    return None
+
+
+def _rs_style_id(p):
+    pPr = p.find(qn("w:pPr"))
+    if pPr is None:
+        return None
+    st = pPr.find(qn("w:pStyle"))
+    return None if st is None else st.get(qn("w:val"))
+
+
+def _rs_before(sibling):
+    pPr = sibling.find(qn("w:pPr"))
+    if pPr is None:
+        return None
+    sp = pPr.find(qn("w:spacing"))
+    if sp is None:
+        return None
+    return sp.get(qn("w:before"))
+
+
+def _rs_rows_ok(block, ends):
+    """One segment per line, normal leading, and every break authored."""
+    lines = block["lines"]
+    if len(lines) < 2 or ends != list(range(len(lines))):
+        return False
+    for i in range(len(lines) - 1):
+        prev, nxt = lines[i], lines[i + 1]
+        h = max(prev["y1"] - prev["y0"], nxt["y1"] - nxt["y0"])
+        pitch = nxt["y0"] - prev["y0"]
+        if h <= 0 or pitch <= 0 or pitch > _RS_MAX_PITCH_RATIO * h:
+            return False
+        # the first word of the next line had room on this one: authored break
+        word = nxt["text"].split()[0] if nxt["text"].split() else ""
+        if not word or not prev["text"]:
+            return False
+        avg = (prev["x1"] - prev["x0"]) / max(1, len(prev["text"]))
+        if (block["x1"] - prev["x1"]) < (len(word) + _RS_SLACK_WORDS) * avg:
+            return False  # forced wrap, not a row boundary
+    return True
+
+
+def _rs_split_run(run):
+    """Split one run at its top-level w:br into a list of runs (br dropped).
+    Returns None if the run holds anything the split must not reorder."""
+    rPr = run.find(qn("w:rPr"))
+    groups, cur = [], []
+    for c in run:
+        if c.tag == qn("w:rPr"):
+            continue
+        if c.tag == qn("w:br"):
+            groups.append(cur)
+            cur = []
+        else:
+            cur.append(c)
+    groups.append(cur)
+    out = []
+    for g in groups:
+        new = parse_xml("<w:r %s/>" % nsdecls("w"))
+        if rPr is not None:
+            new.append(copy.deepcopy(rPr))
+        for c in g:
+            new.append(copy.deepcopy(c))
+        out.append(new if g else None)
+    return out
+
+
+def _rs_chunks(p):
+    """p's content split at top-level w:br inside top-level runs. None when a
+    br sits anywhere else (inside a hyperlink, a smartTag, a nested field)."""
+    chunks = [[]]
+    for c in list(p):
+        if c.tag == qn("w:pPr"):
+            continue
+        if c.tag == qn("w:r") and any(k.tag == qn("w:br") for k in c):
+            parts = _rs_split_run(c)
+            if parts is None:
+                return None
+            for j, part in enumerate(parts):
+                if j:
+                    chunks.append([])
+                if part is not None:
+                    chunks[-1].append(part)
+        else:
+            if any(d.tag == qn("w:br") for d in c.iter()):
+                return None  # a br we cannot split cleanly
+            chunks[-1].append(copy.deepcopy(c))
+    return chunks
+
+
+def br_row_split(data, pdf_doc=None):
+    if pdf_doc is None:
+        return data
+    blocks = _wb_blocks(pdf_doc)
+    if not blocks:
+        return data
+    doc = Document(io.BytesIO(data))
+    body = doc.element.body
+    changed = False
+
+    for p in list(body.findall(qn("w:p"))):
+        items = _wb_items(p)
+        if not any(el.tag == qn("w:br") for el in items):
+            continue
+        segments, brs = _wb_segments(items)
+        if not brs:
+            continue
+        seg_texts = [_wb_text(s) for s in segments]
+        if len(seg_texts) < 2 or not all(t.strip() for t in seg_texts):
+            continue
+        if not all(_rs_label_ok(t) for t in seg_texts):
+            continue
+        matches = []
+        for block in blocks:
+            ends = _wb_align(segments, block)
+            if ends is not None:
+                matches.append((block, ends))
+                if len(matches) > 1:
+                    break
+        if len(matches) != 1:
+            continue  # ambiguous or absent geometric evidence
+        block, ends = matches[0]
+        if not _rs_rows_ok(block, ends):
+            continue
+        sibling = _rs_row_sibling(body, p)
+        if sibling is None:
+            continue
+        chunks = _rs_chunks(p)
+        if chunks is None or len(chunks) != len(segments):
+            continue
+        if not all(chunks[i] for i in range(len(chunks))):
+            continue
+
+        pPr = p.find(qn("w:pPr"))
+        before = _rs_before(sibling)
+        for c in list(p):
+            if c.tag != qn("w:pPr"):
+                p.remove(c)
+        for c in chunks[0]:
+            p.append(c)
+        anchor = p
+        for chunk in chunks[1:]:
+            np = parse_xml("<w:p %s/>" % nsdecls("w"))
+            if pPr is not None:
+                new_pPr = copy.deepcopy(pPr)
+                if before is not None:
+                    sp = new_pPr.find(qn("w:spacing"))
+                    if sp is None:
+                        sp = parse_xml("<w:spacing %s/>" % nsdecls("w"))
+                        new_pPr.append(sp)
+                    sp.set(qn("w:before"), before)
+                np.append(new_pPr)
+            for c in chunk:
+                np.append(c)
+            anchor.addnext(np)
+            anchor = np
+        changed = True
 
     if not changed:
         return data
@@ -3630,10 +3869,10 @@ def tab_stop_normalize(data, pdf_doc=None):
 # only ever touches runs with text, so the empties it leaves alone are exactly
 # what the prune is for).
 
-PASSES = (hyperlink_unnest, span_space_repair, header_footer_parts, date_column_untable,
-          fused_line_split, centred_indent_drop, heading_styles, bullet_image_lists,
-          list_numbering, paragraph_reflow, list_wrap_merge, list_hanging_indent,
-          hyperlink_autolink, font_names,
+PASSES = (hyperlink_unnest, span_space_repair, br_row_split, header_footer_parts,
+          date_column_untable, fused_line_split, centred_indent_drop, heading_styles,
+          bullet_image_lists, list_numbering, paragraph_reflow, list_wrap_merge,
+          list_hanging_indent, hyperlink_autolink, font_names,
           section_rules, empty_para_prune, tab_stop_normalize)
 
 

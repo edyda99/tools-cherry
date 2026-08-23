@@ -2912,5 +2912,127 @@ r, _, _ = run_ts(d)
 check(ts_read(r) == [("right", 12960)],
       "TS19: aligned to the wrong section's text column: %r" % (ts_read(r),))
 
+# ---- br_row_split cases (S) -------------------------------------------------
+# A pdf2docx weld of two independent "Label: value" rows must become two
+# paragraphs; every other w:br in the corpus must survive untouched.
+
+def run_split(doc, pdf):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.br_row_split(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+def s_pdf(rows):
+    """rows: [(y, text)] on one A4 page at 9pt, x=72."""
+    return make_pdf([[(y, t) for y, t in rows]])
+
+
+def s_doc(paras, welded, bold=True):
+    """paras: list of (text, is_welded_pair). A welded entry is a tuple of the
+    two segments joined by a w:br, exactly as pdf2docx emits it."""
+    d = Document()
+    for entry in paras:
+        para = d.add_paragraph()
+        para.paragraph_format.space_before = Pt(6)
+        if isinstance(entry, tuple):
+            r = para.add_run(entry[0])
+            r.bold = bold
+            para.add_run().add_break()
+            r2 = para.add_run(entry[1])
+            r2.bold = bold
+        else:
+            r = para.add_run(entry)
+            r.bold = bold
+    return d
+
+
+S_L = "Languages: Python, SQL"
+S_W = "Web and Mobile: React Native"
+S_A = "AI and Vision: TensorFlow, PyTorch"
+S_D = "Databases and Tools: SQLite, Git"
+
+# S1: the CV shape -- welded label rows split, siblings' spacing inherited
+pdf = s_pdf([(100, S_L), (140, S_W), (152, S_A), (192, S_D)])
+d = s_doc([S_L, (S_W, S_A), S_D], True)
+r, out = run_split(d, pdf)
+texts = [x.text for x in r.paragraphs]
+check(texts == [S_L, S_W, S_A, S_D], "S1: rows not split into siblings: %r" % texts)
+check(count_tag(out, "w:br") == 0, "S1: w:br left behind")
+check(all(x.runs and x.runs[0].bold for x in r.paragraphs),
+      "S1: run formatting lost on split")
+sp = [x.paragraph_format.space_before for x in r.paragraphs]
+check(len(set(v.twips for v in sp)) == 1,
+      "S1: split row did not inherit sibling spacing: %r" % sp)
+
+# S2: wrapped prose with a soft break -- one logical paragraph, never split
+P1 = "The committee met on Tuesday to review the quarterly figures and"
+P2 = "agreed that the revised forecast should be circulated before Friday."
+pdf = s_pdf([(100, P1), (112, P2), (152, S_D)])
+d = s_doc([(P1, P2), S_D], True)
+r, out = run_split(d, pdf)
+check(len(r.paragraphs) == 2, "S2: prose soft break was split")
+check(count_tag(out, "w:br") == 1, "S2: prose w:br removed")
+
+# S3: forced wrap of a long label row -- the next word had no room, keep it
+LONG1 = ("Responsibilities: designed and shipped the reporting service, the "
+         "ingest workers and the")
+LONG2 = "Operations: nightly reconciliation of the ledger against the warehouse"
+pdf = s_pdf([(100, LONG1), (112, LONG2), (152, S_D)])
+d = s_doc([(LONG1, LONG2), S_D], True)
+r, out = run_split(d, pdf)
+check(count_tag(out, "w:br") == 1, "S3: forced wrap was split")
+
+# S4: no adjacent standalone row of the same shape -- no sibling, no split
+pdf = s_pdf([(100, S_W), (112, S_A)])
+d = s_doc([(S_W, S_A)], True)
+r, out = run_split(d, pdf)
+check(count_tag(out, "w:br") == 1, "S4: split without sibling evidence")
+
+# S5: the two rows sit far apart -- a gap, not normal leading
+pdf = s_pdf([(100, S_L), (140, S_W), (185, S_A), (225, S_D)])
+d = s_doc([S_L, (S_W, S_A), S_D], True)
+r, out = run_split(d, pdf)
+check(count_tag(out, "w:br") == 1, "S5: split across a paragraph gap")
+
+# S6: a page break is never a row boundary
+pdf = s_pdf([(100, S_L), (140, S_W), (152, S_A), (192, S_D)])
+d = Document()
+d.add_paragraph(S_L)
+para = d.add_paragraph()
+para.add_run(S_W)
+para.add_run()._r.append(parse_xml('<w:br %s w:type="page"/>' % nsdecls("w")))
+para.add_run(S_A)
+d.add_paragraph(S_D)
+r, out = run_split(d, pdf)
+check(count_tag(out, "w:br") == 1, "S6: page break consumed")
+
+# S7: a br inside a w:hyperlink is out of reach and must stay
+pdf = s_pdf([(100, S_L), (140, S_W), (152, S_A), (192, S_D)])
+d = Document()
+d.add_paragraph(S_L)
+para = d.add_paragraph()
+para._p.append(parse_xml(
+    '<w:hyperlink %s><w:r><w:t xml:space="preserve">%s</w:t><w:br/>'
+    '<w:t xml:space="preserve">%s</w:t></w:r></w:hyperlink>'
+    % (nsdecls("w"), S_W, S_A)))
+d.add_paragraph(S_D)
+r, out = run_split(d, pdf)
+check(count_tag(out, "w:br") == 1, "S7: br inside a hyperlink was split")
+
+# S8: the same two rows appear twice on the page -- ambiguous, decline
+pdf = s_pdf([(100, S_L), (140, S_W), (152, S_A), (192, S_D),
+             (300, S_W), (312, S_A)])
+d = s_doc([S_L, (S_W, S_A), S_D], True)
+r, out = run_split(d, pdf)
+check(count_tag(out, "w:br") == 1, "S8: split on ambiguous block evidence")
+
+# S9: no PDF at all -- the pass is a no-op
+d = s_doc([S_L, (S_W, S_A), S_D], True)
+buf = io.BytesIO()
+d.save(buf)
+check(de.br_row_split(buf.getvalue(), None) == buf.getvalue(),
+      "S9: pass mutated the document without PDF evidence")
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)
