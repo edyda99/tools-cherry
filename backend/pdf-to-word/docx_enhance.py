@@ -18,6 +18,7 @@ import re
 from collections import Counter
 
 from docx import Document
+from docx.text.paragraph import Paragraph
 from docx.oxml import parse_xml
 from docx.oxml.ns import nsdecls, qn
 
@@ -307,7 +308,7 @@ def _numbering_root(doc):
         return None
 
 
-def _add_num(numbering, kind, bullet_chars=None):
+def _add_num(numbering, kind, bullet_chars=None, lvl_rpr=""):
     abs_ids = [int(a.get(qn("w:abstractNumId")) or 0)
                for a in numbering.findall(qn("w:abstractNum"))]
     num_ids = [int(n.get(qn("w:numId")) or 0) for n in numbering.findall(qn("w:num"))]
@@ -320,7 +321,7 @@ def _add_num(numbering, kind, bullet_chars=None):
         else:
             fmt, txt = _ORD_LVLS[ilvl]
         lvls.append(f'<w:lvl w:ilvl="{ilvl}"><w:start w:val="1"/><w:numFmt w:val="{fmt}"/>'
-                    f'<w:lvlText w:val="{txt}"/><w:lvlJc w:val="left"/></w:lvl>')
+                    f'<w:lvlText w:val="{txt}"/><w:lvlJc w:val="left"/>{lvl_rpr}</w:lvl>')
     abs_el = parse_xml(f'<w:abstractNum {nsdecls("w")} w:abstractNumId="{aid}">'
                        f'<w:multiLevelType w:val="hybridMultilevel"/>{"".join(lvls)}</w:abstractNum>')
     num_el = parse_xml(f'<w:num {nsdecls("w")} w:numId="{nid}">'
@@ -357,6 +358,179 @@ def _block_levels(indents):
         levels[ind] = min(lvl, LIST_MAX_LEVELS - 1)
         prev = ind
     return levels
+
+
+# --- bullet glyphs rasterised as images -------------------------------------
+# A vector bullet (a filled dot drawn with a path, not typed as a character)
+# has no text for pdf2docx to carry over, so it arrives as a tiny inline PNG at
+# the head of the line: a picture where Word expects numbering. This pass finds
+# those marks by structure only and re-emits them as real w:numPr list items.
+#
+# A mark must be a run whose ONLY content is one picture, whose media part is
+# a few hundred bytes and whose drawn box is a near-square of at most a dozen
+# points. Real artwork fails every one of those; a lone tiny icon still fails
+# the "at least two marks in the document" rule below, so a single decorative
+# glyph is never promoted to a one-item list.
+BULLET_IMG_MAX_BYTES = 400
+BULLET_IMG_MAX_EMU = 152400        # 12pt
+BULLET_IMG_MIN_EMU = 6350          # 0.5pt
+BULLET_IMG_MIN_ASPECT = 0.4
+BULLET_IMG_MAX_ASPECT = 2.5
+BULLET_IMG_MIN_ITEMS = 2
+BULLET_IMG_MIN_TEXT = 2
+
+_PARA_SKIP = (qn("w:pPr"), qn("w:proofErr"), qn("w:bookmarkStart"),
+              qn("w:bookmarkEnd"), qn("w:commentRangeStart"),
+              qn("w:commentRangeEnd"))
+
+
+def _para_all_text(p):
+    return "".join(t.text or "" for t in p.iter(qn("w:t")))
+
+
+def _has_numpr(p):
+    ppr = p.find(qn("w:pPr"))
+    return ppr is not None and ppr.find(qn("w:numPr")) is not None
+
+
+def _blip_size_bytes(doc, blip):
+    rid = blip.get(qn("r:embed"))
+    if not rid:
+        return None
+    try:
+        part = doc.part.related_parts[rid]
+    except KeyError:
+        return None
+    try:
+        return len(part.blob)
+    except Exception:  # noqa: BLE001 - an unreadable part is simply not a mark
+        return None
+
+
+def _is_bullet_mark_run(doc, r):
+    """True only for a run that carries one tiny near-square picture, nothing else."""
+    kids = [c for c in r if c.tag != qn("w:rPr")]
+    if len(kids) != 1 or kids[0].tag != qn("w:drawing"):
+        return False
+    drawing = kids[0]
+    blips = list(drawing.iter(qn("a:blip")))
+    if len(blips) != 1:
+        return False
+    extents = list(drawing.iter(qn("wp:extent")))
+    if len(extents) != 1:
+        return False
+    try:
+        cx = int(extents[0].get("cx"))
+        cy = int(extents[0].get("cy"))
+    except (TypeError, ValueError):
+        return False
+    if not (BULLET_IMG_MIN_EMU <= cx <= BULLET_IMG_MAX_EMU):
+        return False
+    if not (BULLET_IMG_MIN_EMU <= cy <= BULLET_IMG_MAX_EMU):
+        return False
+    if not BULLET_IMG_MIN_ASPECT <= cx / cy <= BULLET_IMG_MAX_ASPECT:
+        return False
+    size = _blip_size_bytes(doc, blips[0])
+    return size is not None and size <= BULLET_IMG_MAX_BYTES
+
+
+def _leading_mark_run(doc, p):
+    for c in p:
+        if c.tag in _PARA_SKIP:
+            continue
+        if c.tag != qn("w:r"):
+            return None
+        return c if _is_bullet_mark_run(doc, c) else None
+    return None
+
+
+def _celled_mark_target(p):
+    """For a mark alone in its own narrow cell, the text cell it belongs to.
+
+    Only a cell holding that single paragraph and nothing else qualifies, and
+    only the next cell of the same row can receive the numbering.
+    """
+    tc = p.getparent()
+    if tc is None or tc.tag != qn("w:tc"):
+        return None
+    if len(tc.findall(qn("w:tbl"))) or len(tc.findall(qn("w:p"))) != 1:
+        return None
+    row = tc.getparent()
+    if row is None or row.tag != qn("w:tr"):
+        return None
+    cells = row.findall(qn("w:tc"))
+    try:
+        nxt = cells[cells.index(tc) + 1]
+    except (ValueError, IndexError):
+        return None
+    for cand in nxt.findall(qn("w:p")):
+        if _has_numpr(cand):
+            return None
+        if len(_para_all_text(cand).strip()) >= BULLET_IMG_MIN_TEXT:
+            return cand
+        return None
+    return None
+
+
+def _marker_rpr(found):
+    """Draw the bullet at the size of the text it marks.
+
+    Left unsized, Word renders the glyph at the document default, which on a
+    9.5pt CV is visibly larger than the line and inflates every list line's
+    height until the page overflows.
+    """
+    sizes = Counter()
+    for _run, target, _owner in found:
+        for r in target.findall(qn("w:r")):
+            if not any((t.text or "").strip() for t in r.findall(qn("w:t"))):
+                continue
+            rpr = r.find(qn("w:rPr"))
+            sz = rpr.find(qn("w:sz")) if rpr is not None else None
+            val = sz.get(qn("w:val")) if sz is not None else None
+            try:
+                half = int(round(float(val)))
+            except (TypeError, ValueError):
+                continue
+            if 8 <= half <= 200:
+                sizes[half] += 1
+    if not sizes:
+        return ""
+    return '<w:rPr><w:sz w:val="%d"/></w:rPr>' % sizes.most_common(1)[0][0]
+
+
+def bullet_image_lists(data, pdf_doc=None):
+    """Vector bullet marks rasterised into inline PNGs -> real list paragraphs."""
+    doc = Document(io.BytesIO(data))
+    body = doc.element.body
+    found = []  # (mark_run, paragraph_to_number, paragraph_owning_the_run)
+    for p in body.iter(qn("w:p")):
+        if _has_numpr(p):
+            continue
+        run = _leading_mark_run(doc, p)
+        if run is None:
+            continue
+        if len(_para_all_text(p).strip()) >= BULLET_IMG_MIN_TEXT:
+            found.append((run, p, p))            # mark heads its own text line
+            continue
+        if _para_all_text(p).strip():
+            continue                             # a stray character, not a bullet
+        target = _celled_mark_target(p)
+        if target is not None:
+            found.append((run, target, p))       # mark parked in its own cell
+    if len(found) < BULLET_IMG_MIN_ITEMS:
+        return data
+
+    numbering = _numbering_root(doc)
+    if numbering is None:
+        return data
+    nid = _add_num(numbering, "bul", lvl_rpr=_marker_rpr(found))
+    for run, target, owner in found:
+        owner.remove(run)
+        _set_numpr(Paragraph(target, doc), 0, nid)
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
 
 
 def list_numbering(data, pdf_doc=None):
@@ -1783,8 +1957,11 @@ def hyperlink_unnest(data, pdf_doc=None):
 # date_column_untable runs AFTER header_footer_parts on purpose: that pass keys
 # off which text is still inside a table cell, so dissolving a layout table in
 # front of it would change which lines it lifts into the page furniture.
+# bullet_image_lists runs AFTER heading_styles and BEFORE list_numbering: it
+# only promotes runs that are still plain paragraphs, not headings, and it
+# must land its w:numPr before list_numbering assigns numbering IDs.
 PASSES = (hyperlink_unnest, span_space_repair, header_footer_parts, date_column_untable,
-          heading_styles, list_numbering, paragraph_reflow)
+          heading_styles, bullet_image_lists, list_numbering, paragraph_reflow)
 
 
 def enhance(docx_bytes, pdf_doc=None):

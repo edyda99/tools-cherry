@@ -1298,6 +1298,178 @@ check(de._first_line_indent(90.0, 57.0, 57.0, 9.0),
 check(not de._first_line_indent(57.0, 57.0, 57.0, 9.0), "R25: flush line reads as indent")
 check(not de._first_line_indent(59.0, 57.0, 57.0, 9.0),
       "R25: sub-half-em jitter reads as an indent")
+# --- BI: bullet glyphs rasterised as tiny inline images (D1) -----------------
+# The pass may only promote a picture that is structurally a marker: a run
+# holding nothing but a tiny near-square image at the head of a text line, and
+# never fewer than two of them in one document.
+import base64  # noqa: E402
+
+TINY_PNG = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8"
+    "BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==")
+assert len(TINY_PNG) <= de.BULLET_IMG_MAX_BYTES
+
+
+def _noisy_png(n=48):
+    """A PNG that is genuinely bigger than the marker byte ceiling."""
+    pix = fitz.Pixmap(fitz.csRGB, fitz.IRect(0, 0, n, n), False)
+    v = 7
+    for y in range(n):
+        for x in range(n):
+            v = (v * 1103515245 + 12345) & 0xFFFFFF
+            pix.set_pixel(x, y, (v & 255, (v >> 8) & 255, (v >> 16) & 255))
+    return pix.tobytes("png")
+
+
+NOISY_PNG = _noisy_png()
+assert len(NOISY_PNG) > de.BULLET_IMG_MAX_BYTES
+
+
+def mark_para(doc, text, png=TINY_PNG, pt=4, before=None):
+    p = doc.add_paragraph()
+    if before:
+        p.add_run(before)
+    p.add_run().add_picture(io.BytesIO(png), width=Pt(pt), height=Pt(pt))
+    if text:
+        p.add_run(text)
+    return p
+
+
+def run_bullet_img(doc):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.bullet_image_lists(buf.getvalue())
+    return Document(io.BytesIO(out)), out
+
+
+def blip_count(docx_bytes):
+    return count_tag(docx_bytes, "a:blip")
+
+
+# BI1: three marked lines become three list items and the images go away.
+d = Document()
+for t in ("first item", "second item", "third item"):
+    mark_para(d, t)
+d.add_paragraph("closing prose that carries no marker at all")
+r, out = run_bullet_img(d)
+check(all(has_numpr(x) for x in r.paragraphs[:3]), "BI1: marks not converted")
+check([x.text for x in r.paragraphs[:3]] == ["first item", "second item", "third item"],
+      "BI1: text changed: %r" % [x.text for x in r.paragraphs[:3]])
+check(blip_count(out) == 0, "BI1: %d image(s) left behind" % blip_count(out))
+check(not has_numpr(r.paragraphs[3]), "BI1: unmarked prose numbered")
+check(len({numid_of(x) for x in r.paragraphs[:3]}) == 1, "BI1: split across counters")
+check(de.bullet_image_lists(out) == out, "BI1: not idempotent")
+
+# BI2: ONE tiny image in the whole document is decoration, not a list.
+d = Document()
+mark_para(d, "the only marked line in this document")
+d.add_paragraph("ordinary prose")
+r, out = run_bullet_img(d)
+check(not has_numpr(r.paragraphs[0]), "BI2: single mark converted")
+check(blip_count(out) == 1, "BI2: lone image destroyed")
+
+# BI3: real artwork is never a marker — neither when it is drawn large nor
+# when it is small on the page but heavy in bytes.
+d = Document()
+for t in ("caption one", "caption two", "caption three"):
+    mark_para(d, t, pt=200)
+r, out = run_bullet_img(d)
+check(not any(has_numpr(x) for x in r.paragraphs), "BI3: large images converted")
+check(blip_count(out) == 3, "BI3: large images destroyed")
+
+d = Document()
+for t in ("chip one", "chip two", "chip three"):
+    mark_para(d, t, png=NOISY_PNG)
+r, out = run_bullet_img(d)
+check(not any(has_numpr(x) for x in r.paragraphs), "BI3b: byte-heavy images converted")
+check(blip_count(out) == 3, "BI3b: byte-heavy images destroyed")
+
+# BI4: a mark that does not lead the line is an inline glyph, not a marker.
+d = Document()
+for t in ("trailing text", "more trailing text", "still more"):
+    mark_para(d, t, before="lead-in ")
+r, out = run_bullet_img(d)
+check(not any(has_numpr(x) for x in r.paragraphs), "BI4: mid-line images converted")
+check(blip_count(out) == 3, "BI4: mid-line images destroyed")
+
+# BI5: a marker with no text of its own, and no text cell beside it, declines.
+d = Document()
+for _ in range(3):
+    mark_para(d, "")
+r, out = run_bullet_img(d)
+check(not any(has_numpr(x) for x in r.paragraphs), "BI5: text-less marks converted")
+check(blip_count(out) == 3, "BI5: text-less marks destroyed")
+
+# BI6: the marker parked alone in its own cell numbers the text cell next to it.
+d = Document()
+tbl = d.add_table(rows=2, cols=2)
+for i, t in enumerate(("cell item one", "cell item two")):
+    tbl.cell(i, 0).paragraphs[0].add_run().add_picture(
+        io.BytesIO(TINY_PNG), width=Pt(4), height=Pt(4))
+    tbl.cell(i, 1).text = t
+r, out = run_bullet_img(d)
+cells = [r.tables[0].cell(i, 1).paragraphs[0] for i in range(2)]
+check(all(has_numpr(x) for x in cells), "BI6: cell marks not converted")
+check([x.text for x in cells] == ["cell item one", "cell item two"],
+      "BI6: cell text changed")
+check(blip_count(out) == 0, "BI6: cell images left behind")
+check(all(not has_numpr(r.tables[0].cell(i, 0).paragraphs[0]) for i in range(2)),
+      "BI6: the emptied marker cell was numbered")
+
+# BI7: same shape but the marker is in the LAST cell of the row: nothing to
+# number, so nothing moves.
+d = Document()
+tbl = d.add_table(rows=2, cols=2)
+for i, t in enumerate(("text first", "text again")):
+    tbl.cell(i, 0).text = t
+    tbl.cell(i, 1).paragraphs[0].add_run().add_picture(
+        io.BytesIO(TINY_PNG), width=Pt(4), height=Pt(4))
+r, out = run_bullet_img(d)
+check(blip_count(out) == 2, "BI7: trailing cell images destroyed")
+check(not any(has_numpr(r.tables[0].cell(i, 0).paragraphs[0]) for i in range(2)),
+      "BI7: trailing cell marks converted")
+
+# BI8: a paragraph that is ALREADY a list item keeps its own numbering.
+d = Document()
+ps = [mark_para(d, t) for t in ("kept one", "kept two")]
+buf = io.BytesIO()
+d.save(buf)
+pre = Document(io.BytesIO(buf.getvalue()))
+numbering = de._numbering_root(pre)
+nid = de._add_num(numbering, "bul")
+for x in pre.paragraphs:
+    de._set_numpr(x, 0, nid)
+buf2 = io.BytesIO()
+pre.save(buf2)
+out = de.bullet_image_lists(buf2.getvalue())
+r = Document(io.BytesIO(out))
+check(all(numid_of(x) == nid for x in r.paragraphs), "BI8: existing numbering changed")
+check(blip_count(out) == 2, "BI8: images stripped from existing list items")
+
+
+# BI9: the emitted bullet is drawn at the size of the text it marks, so a list
+# on a 9.5pt CV does not gain a line of height per item and overflow the page.
+d = Document()
+for t in ("sized one", "sized two"):
+    par = mark_para(d, "")
+    r_ = par.add_run(t)
+    r_.font.size = Pt(9.5)
+r, out = run_bullet_img(d)
+import zipfile as _zf  # noqa: E402
+numxml = _zf.ZipFile(io.BytesIO(out)).read("word/numbering.xml").decode()
+check('<w:sz w:val="19"/>' in numxml, "BI9: bullet level not sized to the item text")
+check(all(has_numpr(x) for x in r.paragraphs), "BI9: sized marks not converted")
+
+# BI10: with no size on the item runs the level stays unsized rather than
+# guessing one, and ordinary character-bullet lists are untouched by the change.
+d = Document()
+for t in ("plain one", "plain two"):
+    mark_para(d, t)
+r, out = run_bullet_img(d)
+numxml = _zf.ZipFile(io.BytesIO(out)).read("word/numbering.xml").decode()
+added = numxml[numxml.rfind("<w:abstractNum "):].split("</w:abstractNum>")[0]
+check("<w:sz " not in added, "BI10: a size was invented for unsized items")
+check('<w:numFmt w:val="bullet"/>' in added, "BI10: the added counter is not a bullet")
 
 
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
