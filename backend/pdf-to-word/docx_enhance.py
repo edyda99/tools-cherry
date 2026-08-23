@@ -3972,6 +3972,166 @@ def _rstrip_paragraph(p):
     return changed
 
 
+# ---------------------------------------------------------------- section breaks
+# pdf2docx starts a new w:sectPr per PDF page, and it parks that sectPr on an
+# extra paragraph of its own. That paragraph is empty but it is still a
+# paragraph, so Word prints a blank line the source never had - here between the
+# LANGUAGES heading and its one line of content. OOXML lets the break ride on
+# the LAST paragraph of the section instead, so the break can be attached to the
+# paragraph already above it and the carrier deleted with no change to which
+# content falls in which section.
+#
+# The same per-page reconstruction also guesses margins page by page, and when
+# it finds no evidence on a continuation page it falls back to Word's 1in
+# default: page 1 here is right=810 bottom=478 twips, page 2 right=1440
+# bottom=1440, so the text column narrows by half an inch halfway down a CV
+# whose two PDF pages are exactly the same size. Where the PDF pages really do
+# share one geometry, a continuation section takes the first section's margin on
+# any side where the first section's is the SMALLER of the two. Only-smaller is
+# what keeps this safe on arbitrary documents: the text area of a continuation
+# section can grow but never shrink, so no page can be made to overflow and
+# nothing already laid out is pushed off the bottom.
+SB_SIDES = ("top", "right", "bottom", "left")
+
+
+def _sb_sections(body):
+    """[(carrier paragraph or None for the body-level one, sectPr)], in order."""
+    out = []
+    for child in body:
+        if child.tag != qn("w:p"):
+            continue
+        ppr = child.find(qn("w:pPr"))
+        if ppr is None:
+            continue
+        sect = ppr.find(qn("w:sectPr"))
+        if sect is not None:
+            out.append((child, sect))
+    tail = body.find(qn("w:sectPr"))
+    if tail is not None:
+        out.append((None, tail))
+    return out
+
+
+def _sb_int(node, attr):
+    try:
+        return int(round(float(node.get(qn("w:" + attr)))))
+    except (AttributeError, TypeError, ValueError):
+        return None
+
+
+def _sb_pgsz(sect):
+    node = sect.find(qn("w:pgSz"))
+    if node is None:
+        return None
+    w, h = _sb_int(node, "w"), _sb_int(node, "h")
+    if not w or not h:
+        return None
+    return (w, h, node.get(qn("w:orient")) or "")
+
+
+def _sb_margins(sect):
+    """{side: twips} or None when the sectPr has no usable w:pgMar."""
+    node = sect.find(qn("w:pgMar"))
+    if node is None:
+        return None
+    vals = {}
+    for side in SB_SIDES:
+        v = _sb_int(node, side)
+        if v is None or v < 0:
+            return None
+        vals[side] = v
+    return vals
+
+
+def _sb_uniform_pages(pdf_doc):
+    """True when every PDF page is the same size, to the point."""
+    try:
+        sizes = {(round(pg.rect.width), round(pg.rect.height)) for pg in pdf_doc}
+    except Exception:  # noqa: BLE001 - no geometry evidence is just "do nothing"
+        return False
+    return len(sizes) == 1
+
+
+def _sb_prev_paragraph(body, p):
+    """The w:p immediately before p, or None if that slot is not a paragraph.
+
+    A sectPr may only live on w:p/w:pPr or on w:body, so a table (or the start
+    of the body) directly above the carrier leaves nowhere legal to move it.
+    """
+    prev = p.getprevious()
+    if prev is None or prev.tag != qn("w:p"):
+        return None
+    return prev
+
+
+def _sb_flatten(p):
+    """Make an empty section-carrier paragraph take no vertical space."""
+    ppr = p.find(qn("w:pPr"))
+    if ppr is None:
+        return False
+    for sp in ppr.findall(qn("w:spacing")):
+        ppr.remove(sp)
+    _ppr_insert(ppr, parse_xml(
+        '<w:spacing %s w:before="0" w:after="0" w:line="1" w:lineRule="exact"/>'
+        % nsdecls("w")))
+    rpr = ppr.find(qn("w:rPr"))
+    if rpr is None:
+        rpr = parse_xml("<w:rPr %s/>" % nsdecls("w"))
+        _ppr_insert(ppr, rpr)
+    for tag in ("w:sz", "w:szCs"):
+        for el in rpr.findall(qn(tag)):
+            rpr.remove(el)
+    rpr.insert(0, parse_xml('<w:szCs %s w:val="2"/>' % nsdecls("w")))
+    rpr.insert(0, parse_xml('<w:sz %s w:val="2"/>' % nsdecls("w")))
+    return True
+
+
+def section_break_tidy(data, pdf_doc=None):
+    """Hide pdf2docx's blank section-break paragraphs and stop the page margins
+    changing between two PDF pages that are the same size."""
+    doc = Document(io.BytesIO(data))
+    body = doc.element.body
+    changed = False
+
+    # (a) an empty carrier paragraph: re-attach its break to the paragraph above.
+    for p, sect in _sb_sections(body):
+        if p is None or _para_blankness(p) != "sect":
+            continue
+        prev = _sb_prev_paragraph(body, p)
+        prev_ppr = prev.find(qn("w:pPr")) if prev is not None else None
+        if prev is not None and (prev_ppr is None
+                                 or prev_ppr.find(qn("w:sectPr")) is None):
+            if prev_ppr is None:
+                prev_ppr = parse_xml("<w:pPr %s/>" % nsdecls("w"))
+                prev.insert(0, prev_ppr)
+            sect.getparent().remove(sect)
+            _ppr_insert(prev_ppr, sect)
+            body.remove(p)
+            changed = True
+        elif not p.findall(qn("w:r")):
+            changed = _sb_flatten(p) or changed
+
+    # (b) one page geometry in the PDF -> one set of margins in the docx.
+    sects = [s for _, s in _sb_sections(body)]
+    if len(sects) > 1 and pdf_doc is not None and _sb_uniform_pages(pdf_doc):
+        first_size, first_mar = _sb_pgsz(sects[0]), _sb_margins(sects[0])
+        if first_size and first_mar and all(v > 0 for v in first_mar.values()):
+            for sect in sects[1:]:
+                mar = _sb_margins(sect)
+                if mar is None or _sb_pgsz(sect) != first_size:
+                    continue
+                node = sect.find(qn("w:pgMar"))
+                for side in SB_SIDES:
+                    if first_mar[side] < mar[side]:
+                        node.set(qn("w:" + side), str(first_mar[side]))
+                        changed = True
+
+    if not changed:
+        return data
+    out = io.BytesIO()
+    doc.save(out)
+    return out.getvalue()
+
 def tab_stop_normalize(data, pdf_doc=None):
     """Right-align every date tab at the text margin; drop unused stops and
     trailing run whitespace."""
@@ -4041,7 +4201,7 @@ PASSES = (hyperlink_unnest, span_space_repair, br_row_split, header_footer_parts
           bullet_image_lists, list_numbering, paragraph_reflow, list_wrap_merge,
           list_hanging_indent, hyperlink_autolink, font_names,
           section_rules, empty_para_prune, section_rule_dedupe,
-          tab_stop_normalize)
+          section_break_tidy, tab_stop_normalize)
 
 
 def enhance(docx_bytes, pdf_doc=None):

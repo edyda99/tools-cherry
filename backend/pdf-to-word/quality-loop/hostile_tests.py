@@ -3162,5 +3162,251 @@ r, out = run_dd(d, pdf)
 check(d_sides(r) == [(D_H, ("bottom",)), (D_E, ("left",))],
       "D10: took an unrelated border side with it: %r" % d_sides(r))
 
+
+# --- E6: section breaks (section_break_tidy) ---------------------------------
+# pdf2docx parks each page's sectPr on an empty paragraph of its own and guesses
+# that page's margins independently. The empty paragraph prints as a blank line
+# the source never had; the independent guess narrows the text column halfway
+# down a document whose PDF pages are all the same size.
+
+SB_MAR = '<w:pgMar %s w:top="%d" w:right="%d" w:bottom="%d" w:left="%d" ' \
+         'w:header="720" w:footer="720" w:gutter="0"/>'
+SB_SZ = '<w:pgSz %s w:w="11899" w:h="16838"/>'
+
+
+def sb_sect(top=416, right=810, bottom=478, left=856, w=11899, h=16838):
+    return ('<w:sectPr %s><w:pgSz %s w:w="%d" w:h="%d"/>'
+            '<w:pgMar %s w:top="%d" w:right="%d" w:bottom="%d" w:left="%d" '
+            'w:header="720" w:footer="720" w:gutter="0"/><w:cols %s/></w:sectPr>'
+            % (nsdecls("w"), nsdecls("w"), w, h, nsdecls("w"),
+               top, right, bottom, left, nsdecls("w")))
+
+
+def sb_carrier(doc, **kw):
+    """The empty sectPr-only paragraph pdf2docx emits between two pages."""
+    p = doc.add_paragraph()
+    ppr = p._p.get_or_add_pPr()
+    ppr.append(parse_xml(sb_sect(**kw)))
+    return p
+
+
+def sb_body_sect(doc, **kw):
+    body = doc.element.body
+    old = body.find(qn("w:sectPr"))
+    if old is not None:
+        body.remove(old)
+    body.append(parse_xml(sb_sect(**kw)))
+
+
+def sb_pdf(sizes):
+    pdf = fitz.open()
+    for w, h in sizes:
+        pdf.new_page(width=w, height=h)
+    return pdf
+
+
+def run_sb(doc, pdf=None):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.section_break_tidy(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+def sb_sects(doc):
+    """[(carrier text or None, {side: twips})] in document order."""
+    out = []
+    body = doc.element.body
+    for child in body:
+        if child.tag != qn("w:p"):
+            continue
+        ppr = child.find(qn("w:pPr"))
+        s = None if ppr is None else ppr.find(qn("w:sectPr"))
+        if s is not None:
+            out.append((("".join(t.text or "" for t in child.iter(qn("w:t")))),
+                        sb_mar(s)))
+    tail = body.find(qn("w:sectPr"))
+    if tail is not None:
+        out.append((None, sb_mar(tail)))
+    return out
+
+
+def sb_mar(sect):
+    node = sect.find(qn("w:pgMar"))
+    return {s: int(node.get(qn("w:" + s))) for s in de.SB_SIDES}
+
+
+def sb_texts(doc):
+    return [p.text for p in doc.paragraphs]
+
+
+SB_UNIFORM = sb_pdf([(419.5, 595.3), (419.5, 595.3)])
+
+# E6-1: the CV shape. The blank carrier disappears, its break moves onto the
+# heading above it, and the continuation page adopts page 1's tighter margins.
+d = Document()
+d.add_paragraph("LANGUAGES")
+sb_carrier(d)
+d.add_paragraph("Arabic (native)")
+sb_body_sect(d, top=404, right=1440, bottom=1440, left=856)
+r, out = run_sb(d, SB_UNIFORM)
+check(sb_texts(r) == ["LANGUAGES", "Arabic (native)"],
+      "E6-1: content order/blank line wrong: %r" % (sb_texts(r),))
+check([t for t, _ in sb_sects(r)] == ["LANGUAGES", None],
+      "E6-1: break not re-attached to the paragraph above: %r"
+      % ([t for t, _ in sb_sects(r)],))
+check(sb_sects(r)[1][1] == {"top": 404, "right": 810, "bottom": 478,
+                            "left": 856},
+      "E6-1: continuation margins not carried: %r" % (sb_sects(r)[1][1],))
+check(count_tag(out, "w:sectPr") == 2, "E6-1: lost or duplicated a section")
+
+# E6-2: a carrier that holds real text is the last line of its section, not
+# furniture. It must survive with its break exactly where it is.
+d = Document()
+d.add_paragraph("LANGUAGES")
+p = sb_carrier(d)
+p.add_run("still a real line of text")
+d.add_paragraph("Arabic (native)")
+sb_body_sect(d)
+r, _ = run_sb(d, SB_UNIFORM)
+check(sb_texts(r) == ["LANGUAGES", "still a real line of text",
+                      "Arabic (native)"],
+      "E6-2: deleted a paragraph with text: %r" % (sb_texts(r),))
+check([t for t, _ in sb_sects(r)] == ["still a real line of text", None],
+      "E6-2: moved a break off a paragraph that owns content")
+
+# E6-3: the paragraph above already carries its own sectPr, so there is nowhere
+# legal to move this one. Two sectPr in one pPr is invalid OOXML.
+d = Document()
+sb_carrier(d, right=810)
+sb_carrier(d, right=810)
+d.add_paragraph("body")
+sb_body_sect(d)
+r, out = run_sb(d, SB_UNIFORM)
+check(count_tag(out, "w:sectPr") == 3, "E6-3: merged two breaks into one pPr")
+xml_ppr = [len(p._p.find(qn("w:pPr")).findall(qn("w:sectPr")))
+           for p in r.paragraphs if p._p.find(qn("w:pPr")) is not None]
+check(max(xml_ppr) <= 1, "E6-3: a pPr ended up with two sectPr: %r" % (xml_ppr,))
+
+# E6-4: a carrier with no paragraph above it (first block in the body) cannot
+# move its break either. It is flattened to zero height instead, and the break
+# still governs the same content.
+d = Document()
+body = d.element.body
+first = body.find(qn("w:p"))
+if first is not None:
+    body.remove(first)
+sb_carrier(d)
+d.add_paragraph("body")
+sb_body_sect(d)
+r, out = run_sb(d, SB_UNIFORM)
+check(count_tag(out, "w:sectPr") == 2, "E6-4: lost the leading break")
+lead = r.paragraphs[0]
+sp = lead._p.find(qn("w:pPr")).find(qn("w:spacing"))
+check(sp is not None and sp.get(qn("w:line")) == "1"
+      and sp.get(qn("w:lineRule")) == "exact",
+      "E6-4: leading carrier not flattened")
+check(sb_texts(r) == ["", "body"], "E6-4: text changed: %r" % (sb_texts(r),))
+
+# E6-5: pages of DIFFERENT sizes are a real geometry change (a landscape insert,
+# a mixed-size scan). Margins are then evidence about that page alone.
+d = Document()
+d.add_paragraph("LANGUAGES")
+sb_carrier(d)
+d.add_paragraph("Arabic (native)")
+sb_body_sect(d, top=404, right=1440, bottom=1440, left=856)
+r, _ = run_sb(d, sb_pdf([(419.5, 595.3), (595.3, 841.9)]))
+check(sb_sects(r)[1][1] == {"top": 404, "right": 1440, "bottom": 1440,
+                            "left": 856},
+      "E6-5: harmonised margins across differently sized pages: %r"
+      % (sb_sects(r)[1][1],))
+
+# E6-6: no PDF at all -> no geometry evidence -> margins are left alone (the
+# blank-carrier repair is structural and still runs).
+d = Document()
+d.add_paragraph("LANGUAGES")
+sb_carrier(d)
+d.add_paragraph("Arabic (native)")
+sb_body_sect(d, top=404, right=1440, bottom=1440, left=856)
+r, _ = run_sb(d, None)
+check(sb_sects(r)[1][1]["right"] == 1440,
+      "E6-6: changed margins with no PDF evidence")
+check(sb_texts(r) == ["LANGUAGES", "Arabic (native)"],
+      "E6-6: structural repair skipped along with the margin rule")
+
+# E6-7: only-smaller. A continuation section whose margins are TIGHTER than the
+# first section's keeps them: widening a margin shrinks the text area and can
+# push laid-out content off the bottom of the page.
+d = Document()
+d.add_paragraph("LANGUAGES")
+sb_carrier(d, top=1440, right=1440, bottom=1440, left=1440)
+d.add_paragraph("Arabic (native)")
+sb_body_sect(d, top=200, right=300, bottom=400, left=500)
+r, _ = run_sb(d, SB_UNIFORM)
+check(sb_sects(r)[1][1] == {"top": 200, "right": 300, "bottom": 400,
+                            "left": 500},
+      "E6-7: widened a continuation margin: %r" % (sb_sects(r)[1][1],))
+
+# E6-8: pdf2docx's zero-margin mode (everything positioned by absolute indent).
+# A zero is not a margin measurement, so it is never propagated as one.
+d = Document()
+d.add_paragraph("LANGUAGES")
+sb_carrier(d, top=0, right=0, bottom=0, left=0)
+d.add_paragraph("Arabic (native)")
+sb_body_sect(d, top=404, right=1440, bottom=1440, left=856)
+r, _ = run_sb(d, SB_UNIFORM)
+check(sb_sects(r)[1][1] == {"top": 404, "right": 1440, "bottom": 1440,
+                            "left": 856},
+      "E6-8: propagated a zero margin: %r" % (sb_sects(r)[1][1],))
+
+# E6-9: a differently sized continuation page inside an otherwise uniform PDF
+# is identified by its own pgSz, not by the PDF alone.
+d = Document()
+d.add_paragraph("LANGUAGES")
+sb_carrier(d)
+d.add_paragraph("Arabic (native)")
+sb_body_sect(d, top=404, right=1440, bottom=1440, left=856, w=16838, h=11899)
+r, _ = run_sb(d, SB_UNIFORM)
+check(sb_sects(r)[1][1]["right"] == 1440,
+      "E6-9: carried margins onto a different paper size")
+
+# E6-10: nothing to do -> byte-identical output, no re-save churn
+d = Document()
+d.add_paragraph("LANGUAGES")
+d.add_paragraph("Arabic (native)")
+sb_body_sect(d)
+buf = io.BytesIO()
+d.save(buf)
+check(de.section_break_tidy(buf.getvalue(), SB_UNIFORM) == buf.getvalue(),
+      "E6-10: rewrote a document with one section and no blank carrier")
+
+# E6-11: the paragraph the break moves onto keeps every property it had, and
+# the pPr stays in schema order (pStyle first, sectPr last).
+d = Document()
+h = d.add_paragraph("LANGUAGES")
+h.style = d.styles["Heading 2"]
+h.paragraph_format.space_before = Pt(10)
+sb_carrier(d)
+d.add_paragraph("Arabic (native)")
+sb_body_sect(d)
+r, _ = run_sb(d, SB_UNIFORM)
+hp = r.paragraphs[0]
+check(hp.style.name == "Heading 2" and hp.paragraph_format.space_before == Pt(10),
+      "E6-11: lost the host paragraph's properties")
+kids = [c.tag for c in hp._p.find(qn("w:pPr"))]
+check(kids[0] == qn("w:pStyle") and kids[-1] == qn("w:sectPr"),
+      "E6-11: pPr out of schema order: %r" % (kids,))
+
+# E6-12: a carrier directly below a TABLE has no paragraph above it, so its
+# break is flattened rather than moved (a sectPr cannot live on a w:tbl).
+d = Document()
+d.add_table(rows=1, cols=1).cell(0, 0).text = "cell"
+sb_carrier(d)
+d.add_paragraph("body")
+sb_body_sect(d)
+r, out = run_sb(d, SB_UNIFORM)
+check(count_tag(out, "w:sectPr") == 2, "E6-12: lost the break below a table")
+check(len(r.tables) == 1 and r.tables[0].cell(0, 0).text == "cell",
+      "E6-12: lost the table above the carrier")
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)
