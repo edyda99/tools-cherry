@@ -1862,7 +1862,7 @@
         "Local income taxes are not included. Ohio municipalities and school districts levy separate local income taxes (commonly 1%-3%) that are NOT included in this estimate.",
         "Ohio's $1,900-per-exemption personal/dependent deduction, joint-filing credit, and other credits are not modeled."
       ],
-      "notes": "Flat since 2026 (HB 96): 0% up to $26,050, then 2.75% on everything above. Local municipal income taxes not included."
+      "notes": "One rate since 2026 (HB 96), per ORC 5747.02(A)(3): nothing up to $26,050, then $332.00 plus 2.75% of the amount in excess of $26,050. The $332 is a flat statutory step, not a rate, so 2.75% alone under-states the tax by $332 at every income above the threshold. Local municipal income taxes not included."
     },
     "maryland": {
       "name": "Maryland",
