@@ -19,6 +19,15 @@ is collected when you use our free online tools, and how it is used.</p>
 wage, filing status, and other figures you enter are <strong>not sent to our servers and are not
 stored by us</strong>. When you close or reload the page, those inputs are gone.</p>
 
+<h2>PDF to Word uploads your file</h2>
+<p>Our <a href="/pdf-to-word/">PDF to Word</a> converter is the one tool that sends a file to a
+server. Pressing <strong>Convert to Word</strong> uploads your PDF over an encrypted connection,
+converts it, and <strong>deletes it straight away</strong> — we keep no copy and the contents are
+not read, logged, or shared. Choosing <strong>Convert in your browser instead</strong>, the link
+under that button, uploads nothing at all. To count the free daily conversions we store a random
+identifier in a cookie and a one-way hash of your IP address, both for the rest of the day only;
+neither identifies you.</p>
+
 <h2>Information collected automatically</h2>
 <p>Like most websites, our hosting provider and analytics may automatically receive standard log
 information (such as your IP address, browser type, referring page, and pages visited). This is
@@ -104,8 +113,11 @@ study</a> and its <a href="/data/tips-tax-by-state/">tips companion</a>. <strong
 calculators and converters:</strong> dates, units, cooking, fitness, grades. <strong>Text, developer
 and image utilities:</strong> diff checker, QR codes, JSON formatting, image conversion and more.</p>
 
-<p>Everything is client-side: your numbers, text and images are processed on your device and never
-uploaded to a server. Several calculators are also available as free
+<p>Almost everything is client-side: your numbers, text and images are processed on your device and
+never uploaded to a server. The one exception is
+<a href="/pdf-to-word/">PDF to Word</a>, which converts on our server by default so it can read
+scanned pages, and deletes your file straight away; a link under its button converts in your
+browser instead, uploading nothing. Several calculators are also available as free
 <a href="/embed/">embeddable widgets</a>.</p>
 
 <h2>Where our numbers come from</h2>

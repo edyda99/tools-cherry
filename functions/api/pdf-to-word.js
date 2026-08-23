@@ -117,14 +117,19 @@ export async function onRequestPost(context) {
   // Quota refusals happen before the converter is invoked, so nothing is charged.
   // The page turns each of these into a browser conversion plus one banner, so the
   // wording says what ran out and when it comes back, not what to press next.
+  // The global and per-IP caps report 0 remaining even when this visitor's own
+  // allowance is untouched: no further server conversion is possible today, and the
+  // page prints this number back at them ("N server conversions left today").
   if (g >= GLOBAL_CAP) {
-    return json(429, 'Our free daily limit for server conversions has been reached for everyone today. It resets at midnight UTC.', setCookie);
+    return json(429, 'Our free daily limit for server conversions has been reached for everyone today. It resets at midnight UTC.',
+      { ...setCookie, ...quotaHeaders(UID_LIMIT, false) });
   }
   if (u >= UID_LIMIT) {
     return json(429, `You have used today's ${UID_LIMIT} server conversions. The limit resets at midnight UTC.`, setCookie);
   }
   if (ipc >= IP_LIMIT) {
-    return json(429, "This network has used today's free server conversions. The limit resets at midnight UTC.", setCookie);
+    return json(429, "This network has used today's free server conversions. The limit resets at midnight UTC.",
+      { ...setCookie, ...quotaHeaders(UID_LIMIT, false) });
   }
 
   // R2 mode: PDF is staged in R2 and only a key is sent to Lambda, so the upload

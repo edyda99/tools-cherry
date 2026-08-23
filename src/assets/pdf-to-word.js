@@ -100,10 +100,13 @@ function resetDownload() {
   download.style.display = 'none';
 }
 
-function offerDownload(blob, basic) {
+// `sourceName` is the file the conversion actually started from, captured at the
+// start of the run: `selected` can have moved on to another file by the time a
+// long conversion finishes, and naming A's result after B is a quiet lie.
+function offerDownload(blob, basic, sourceName) {
   resetDownload();
   lastUrl = URL.createObjectURL(blob);
-  const outName = selected.name.replace(/\.pdf$/i, '') + '.docx';
+  const outName = (sourceName || selected.name).replace(/\.pdf$/i, '') + '.docx';
   download.href = lastUrl;
   download.download = outName;
   download.hidden = false;
@@ -114,6 +117,16 @@ function offerDownload(blob, basic) {
 // --- file selection ----------------------------------------------------------
 
 function pickFile(file) {
+  // Choosing a file while the human check is still open means "use this one instead".
+  // The pending submit has to be cancelled here or its callback would fire against the
+  // file that just arrived and upload a document nobody pressed Convert for.
+  if (pendingServerSubmit) {
+    pendingServerSubmit = false;
+    clearTsSolveTimer();
+    tsToken = null;
+    busy = false;
+    clearBtn.disabled = false;
+  }
   resetDownload();
   setBanner('');
   setAlt(false);
@@ -477,6 +490,7 @@ function warmTurnstile() {
 // one-line explanation when the server could not take the file.
 async function convertInBrowser(reason, retryLabel) {
   if (!selected || busy) return;
+  const source = selected; // the run owns this file even if the box moves on
   busy = true;
   convertBtn.disabled = true;
   clearBtn.disabled = true;
@@ -487,7 +501,7 @@ async function convertInBrowser(reason, retryLabel) {
     if (!window.pdfjsLib || !window.docx) {
       throw new Error('Converter libraries failed to load. Please refresh and try again.');
     }
-    const buf = await selected.arrayBuffer();
+    const buf = await source.arrayBuffer();
     const { blob, empty, sparse } = await pdfToDocxBlob(buf, (p, n) => setStatus(`Converting… page ${p} of ${n}`));
 
     if (empty) {
@@ -502,7 +516,7 @@ async function convertInBrowser(reason, retryLabel) {
       return;
     }
 
-    offerDownload(blob, true);
+    offerDownload(blob, true, source.name);
     if (sparse) {
       // an honest warning beats a confidently empty document
       setStatus(
@@ -566,6 +580,7 @@ async function doServerConvert() {
     busy = false;
     return;
   }
+  const source = selected; // the run owns this file even if the box moves on
   resetDownload();
   // A heavy PDF can hold the converter for minutes, so count the wait out loud: a
   // status line frozen on the same three words for two minutes reads as a hang.
@@ -579,7 +594,7 @@ async function doServerConvert() {
     const res = await fetch('/api/pdf-to-word', {
       method: 'POST',
       headers: { 'content-type': 'application/pdf', 'cf-turnstile-token': tsToken },
-      body: selected,
+      body: source,
       // The gate gives up on the converter at 178s; stop waiting a little after that
       // rather than spinning forever if the response itself never arrives.
       signal: AbortSignal.timeout(SERVER_TIMEOUT_MS),
@@ -613,7 +628,7 @@ async function doServerConvert() {
       await fallbackToBrowser('The server sent back an empty file.' + SLOT_SPENT, true);
       return;
     }
-    offerDownload(blob, false);
+    offerDownload(blob, false, source.name);
     setStatus(('Done. Your Word file is ready.' + quotaSentence()).trim(), 'success');
     setFileInfo('');
     setPrimary('Convert to Word', true);
