@@ -292,3 +292,40 @@ Dropped: hyperlink preservation — pdf2docx already keeps links live (links 1.0
   F1-F7 added (name mapping table incl. BookAntiqua, no-PDF no-op, never
   overwrite a named or themed run, table runs, idempotence, no-guess on
   unmatched text in a two-family document, unusable-font-name no-op).
+
+- **season 3, D11+D10 (2026-08-23, section_rules + empty_para_prune):** the
+  real-world CV lost all 7 of its hairline section rules (pdf2docx keeps such a
+  rule only when a table absorbs it as a cell border - 3 of 7 here) and carried
+  3 stray empty paragraphs (top-margin padding, and one on each side of the
+  page-break paragraph). section_rules re-emits a hairline drawing that sits
+  under exactly one short text line as that paragraph's w:pBdr bottom border,
+  skipping any rule the following table already draws; empty_para_prune keeps
+  at most one empty paragraph between blocks, none leading or trailing, and
+  treats the w:sectPr paragraph as the blank a run is allowed (never deletes
+  it). CV: 4 borders emitted (SUMMARY, TECHNICAL SKILLS, PROJECTS, LANGUAGES -
+  the other 3 are the absorbed ones), empty_para_count 3 -> 1, empty_para score
+  0.6591 -> 0.8810, composite 0.4652 -> 0.4739. Gate exit 0: synthetic all
+  0.0000, no real-world doc drops (cv_daher_edmond +0.0094, jcb_spec +0.0058,
+  cv_carlos_kanaan +0.0054), hostile suite ALL PASS with 15 new S/E cases.
+  Note: QuickLook does not paint w:pBdr, so the rules are invisible in the
+  default visual gate by renderer blind spot, not by markup.
+  Adversarial round 2 (same day) found the anchor match was the weak point: a
+  prefix match let the running page header 'Transformers' on jcb_spec_p1_6
+  claim two body sentences that merely start with that word, drawing a rule
+  through the middle of prose - worse than the lost rule it replaced, and
+  invisible to every metric. Two guards, both structural: the anchor must now
+  match a paragraph EXACTLY (whitespace-normalised), and an anchor that carries
+  a rule on 3+ different pages is classified as a running page header and
+  dropped before the match walk - its rule belongs in the Word header, and it
+  has no single body paragraph to underline. Effect across the real-world set:
+  jcb_spec 4 -> 1 border (both mid-sentence misfires and the running header
+  gone, 'Kingdom of Saudi Arabia' kept), eurisko_mail 2 -> 1 (the print-footer
+  URL line gone, the 'Thanks' quoted-mail separator kept), target_cv 4 and
+  cv_carlos_kanaan 2 unchanged, the other four real docs 0 throughout. Every
+  score is byte-identical to the pre-guard run (borders are unscored), so the
+  gate could not have caught this - hostile cases S8/S9/S9b are what hold it:
+  a short anchor that prefixes a body sentence, a 3-page running header that
+  must not fire while a real one-page rule on the same document still does,
+  and a 2-page repeat that is NOT yet a running header. rule_pdf now commits
+  one path per hairline (batching them into a single shape hid them behind one
+  tall bounding rect, which was silently defusing the ruled-grid case S3).

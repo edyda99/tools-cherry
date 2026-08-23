@@ -282,8 +282,7 @@ r, out = run_pass(d)
 check(not has_numpr(r.paragraphs[0]) and full_text(r) == "See 2. something",
       "P: mid-paragraph marker after hyperlink converted")
 
-# === header/footer pass ======================================================
-import fitz
+# === header/footer pass ===============================================import fitz
 
 
 def make_pdf(pages):
@@ -613,8 +612,7 @@ check(styles.get(broken) == "Normal",
 check(styles.get("SUMMARY", "").startswith("Heading"), "HF21: clean caps heading missed")
 check(de.heading_styles(once) == once, "HF21: caps heading pass not idempotent")
 
-# === paragraph reflow pass ===================================================
-
+# === paragraph reflow pass ============================================
 def run_reflow(doc, pdf):
     buf = io.BytesIO()
     doc.save(buf)
@@ -854,8 +852,7 @@ d.add_paragraph("next quarter brought entirely new rules")
 r, out = run_reflow(d, pdf)
 check(len([p for p in r.paragraphs if p.text.strip()]) == 2, "R20: merged across indent")
 
-# === span-boundary space repair ==============================================
-
+# === span-boundary space repair =======================================
 def run_space(doc, pdf):
     buf = io.BytesIO()
     doc.save(buf)
@@ -1572,8 +1569,7 @@ added = numxml[numxml.rfind("<w:abstractNum "):].split("</w:abstractNum>")[0]
 check("<w:sz " not in added, "BI10: a size was invented for unsized items")
 check('<w:numFmt w:val="bullet"/>' in added, "BI10: the added counter is not a bullet")
 
-# === fused line split / centred indent passes ================================
-# A4 text column used by every case below, so "flush right" and "room to spare"
+# === fused line split / centred indent passes =========================# A4 text column used by every case below, so "flush right" and "room to spare"
 # mean the same thing here as they do on a real page.
 FS_L, FS_R = 72.0, 523.0
 FS_WIDE = "a full measure line that runs the whole width of this text column ok"
@@ -2131,6 +2127,251 @@ check([p.text for p in before.paragraphs] == [p.text for p in after.paragraphs],
 check([p.style.name for p in before.paragraphs] == [p.style.name for p in after.paragraphs],
       "F7: styles changed")
 check(len(before.paragraphs[0].runs) == len(after.paragraphs[0].runs), "F7: run count changed")
+# ---- section_rules / empty_para_prune cases (S, E) -------------------------
+def rule_pdf_pages(pages):
+    """pages: [(lines, rules)]; lines [(y, text)], rules [(y, x0, x1)], A4."""
+    pdf = fitz.open()
+    for lines, rules in pages:
+        pg = pdf.new_page(width=595, height=842)
+        for y, t in lines:
+            pg.insert_text((72, y), t, fontsize=10)
+        # one path per rule: a real PDF strokes each hairline separately, and
+        # batching them into one shape would hide them behind a single tall
+        # bounding rect
+        for y, x0, x1 in rules:
+            shape = pg.new_shape()
+            shape.draw_rect(fitz.Rect(x0, y, x1, y + 0.8))
+            shape.finish(fill=(0, 0, 0), color=None)
+            shape.commit()
+    return pdf
+
+
+def rule_pdf(lines, rules):
+    """One-page shorthand for rule_pdf_pages."""
+    return rule_pdf_pages([(lines, rules)])
+
+
+def run_rules(doc, pdf):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.section_rules(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+def bdr_texts(doc):
+    out = []
+    for p in doc.paragraphs:
+        ppr = p._p.find(qn("w:pPr"))
+        if ppr is not None and ppr.find(qn("w:pBdr")) is not None:
+            out.append(p.text.strip())
+    return out
+
+
+def run_prune(doc):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.empty_para_prune(buf.getvalue())
+    return Document(io.BytesIO(out)), out
+
+
+# S1: a hairline under a short heading becomes that heading's bottom border
+pdf = rule_pdf([(100, "SUMMARY"), (130, "One line of body text.")],
+               [(104, 60, 540)])
+d = Document()
+d.add_paragraph("SUMMARY")
+d.add_paragraph("One line of body text.")
+r, out = run_rules(d, pdf)
+check(bdr_texts(r) == ["SUMMARY"], "S1: rule not re-emitted as a border: %r" % bdr_texts(r))
+check(len(r.paragraphs) == 2, "S1: paragraph count changed")
+
+# S2: the same rule already absorbed as the following table's top border =>
+# adding a paragraph border would draw the line twice
+pdf = rule_pdf([(100, "EDUCATION"), (130, "AUST")], [(104, 60, 540)])
+d = Document()
+d.add_paragraph("EDUCATION")
+t = d.add_table(rows=1, cols=2)
+t.cell(0, 0).text = "AUST"
+t.cell(0, 0)._tc.get_or_add_tcPr().append(parse_xml(
+    '<w:tcBorders %s><w:top w:val="single" w:sz="6" w:color="1A1A1A"/></w:tcBorders>'
+    % nsdecls("w")))
+r, out = run_rules(d, pdf)
+check(bdr_texts(r) == [], "S2: duplicated an absorbed rule: %r" % bdr_texts(r))
+
+# S2b: a borderless layout table below the heading does NOT block the rule
+pdf = rule_pdf([(100, "EDUCATION"), (130, "AUST")], [(104, 60, 540)])
+d = Document()
+d.add_paragraph("EDUCATION")
+t = d.add_table(rows=1, cols=2)
+t.cell(0, 0).text = "AUST"
+r, out = run_rules(d, pdf)
+check(bdr_texts(r) == ["EDUCATION"], "S2b: borderless table blocked the rule")
+
+# S3: a ruled grid (many hairlines on one page) is a table, not section furniture
+lines = [(90 + 20 * i, "Row %d value" % i) for i in range(14)]
+rules = [(94 + 20 * i, 60, 540) for i in range(14)]
+pdf = rule_pdf(lines, rules)
+d = Document()
+for _, t in lines:
+    d.add_paragraph(t)
+r, out = run_rules(d, pdf)
+check(bdr_texts(r) == [], "S3: fired on a ruled grid: %r" % bdr_texts(r)[:3])
+
+# S4: a rule under a long prose line is an underline/strike artefact, not a
+# section divider
+prose = ("The committee reviewed every submission received before the closing "
+         "date and published its findings in full.")
+pdf = rule_pdf([(100, prose)], [(104, 60, 540)])
+d = Document()
+d.add_paragraph(prose)
+r, out = run_rules(d, pdf)
+check(bdr_texts(r) == [], "S4: fired on a prose line")
+
+# S5: no PDF, no evidence, no change
+d = Document()
+d.add_paragraph("SUMMARY")
+buf = io.BytesIO()
+d.save(buf)
+check(de.section_rules(buf.getvalue(), None) == buf.getvalue(),
+      "S5: changed the document without a PDF")
+
+# S6: pBdr lands in the CT_PPrBase sequence (before spacing/ind/jc) and an
+# existing border is never doubled
+pdf = rule_pdf([(100, "PROJECTS")], [(104, 60, 540)])
+d = Document()
+p = d.add_paragraph("PROJECTS")
+p.paragraph_format.space_after = Pt(6)
+p.paragraph_format.left_indent = Pt(12)
+r, out = run_rules(d, pdf)
+ppr = r.paragraphs[0]._p.find(qn("w:pPr"))
+tags = [c.tag for c in ppr]
+check(qn("w:pBdr") in tags, "S6: no border emitted")
+check(tags.index(qn("w:pBdr")) < tags.index(qn("w:spacing")),
+      "S6: pBdr out of schema order: %r" % [t.split('}')[1] for t in tags])
+again = de.section_rules(out, pdf)
+check(count_tag(again, "w:pBdr") == 1, "S6: border duplicated on a second run")
+
+# S7: the anchor is consumed in reading order - a later paragraph repeating the
+# heading text does not steal a second rule
+pdf = rule_pdf([(100, "SKILLS"), (140, "SKILLS")], [(104, 60, 540)])
+d = Document()
+d.add_paragraph("SKILLS")
+d.add_paragraph("SKILLS")
+r, out = run_rules(d, pdf)
+check(count_tag(out, "w:pBdr") == 1, "S7: one rule produced %d borders"
+      % count_tag(out, "w:pBdr"))
+
+# S8: an anchor is matched exactly, never as a prefix. A short page-header
+# anchor whose words also open a body sentence must not draw a rule through
+# the middle of that sentence.
+pdf = rule_pdf([(100, "Transformers"), (130, "other text")], [(104, 60, 540)])
+d = Document()
+d.add_paragraph("Design notes")
+d.add_paragraph("Transformers including outline and support point dimensions "
+                "of enclosures and accessories, as scheduled.")
+r, out = run_rules(d, pdf)
+check(bdr_texts(r) == [], "S8: prefix match ruled a body sentence: %r" % bdr_texts(r))
+
+# S9: a line that anchors a rule on 3+ pages is a running page header, not
+# section furniture - it is dropped even when a paragraph matches it exactly,
+# while a real one-page section rule on the same document still fires.
+pdf = rule_pdf_pages([
+    ([(60, "Transformers"), (100, "SCOPE"), (140, "Body of the scope clause.")],
+     [(64, 60, 540), (104, 60, 540)]),
+    ([(60, "Transformers"), (100, "More body text on page two.")], [(64, 60, 540)]),
+    ([(60, "Transformers"), (100, "More body text on page three.")], [(64, 60, 540)]),
+])
+d = Document()
+d.add_paragraph("Transformers")
+d.add_paragraph("SCOPE")
+d.add_paragraph("Body of the scope clause.")
+r, out = run_rules(d, pdf)
+check(bdr_texts(r) == ["SCOPE"], "S9: running header ruled or section rule lost: %r"
+      % bdr_texts(r))
+
+# S9b: two pages is not yet a running header - a rule repeated on a short
+# document still fires on both of its anchors
+pdf = rule_pdf_pages([
+    ([(60, "NOTES"), (100, "First.")], [(64, 60, 540)]),
+    ([(60, "NOTES"), (100, "Second.")], [(64, 60, 540)]),
+])
+d = Document()
+d.add_paragraph("NOTES")
+d.add_paragraph("First.")
+d.add_paragraph("NOTES")
+d.add_paragraph("Second.")
+r, out = run_rules(d, pdf)
+check(bdr_texts(r) == ["NOTES", "NOTES"], "S9b: two pages treated as a running "
+      "header: %r" % bdr_texts(r))
+
+# E1: leading and trailing empties go, a run between blocks collapses to one
+d = Document()
+d.add_paragraph("")
+d.add_paragraph("First block.")
+for _ in range(3):
+    d.add_paragraph("")
+d.add_paragraph("Second block.")
+d.add_paragraph("")
+d.add_paragraph("")
+r, out = run_prune(d)
+kinds = ["T" if p.text.strip() else "_" for p in r.paragraphs]
+check(kinds == ["T", "_", "T"], "E1: prune shape %r" % kinds)
+
+# E2: an empty-looking paragraph that carries a drawing, a break or a border is
+# load-bearing and survives
+d = Document()
+d.add_paragraph("Text.")
+img = d.add_paragraph()
+img._p.append(parse_xml(
+    '<w:r %s><w:br/></w:r>' % nsdecls("w")))
+bordered = d.add_paragraph()
+bordered._p.get_or_add_pPr().append(parse_xml(
+    '<w:pBdr %s><w:bottom w:val="single" w:sz="6" w:color="auto"/></w:pBdr>'
+    % nsdecls("w")))
+d.add_paragraph("More text.")
+r, out = run_prune(d)
+check(count_tag(out, "w:br") == 1, "E2: dropped a paragraph carrying a break")
+check(count_tag(out, "w:pBdr") == 1, "E2: dropped a bordered rule paragraph")
+
+# E3: the section-break paragraph is never deleted, and the padding around it is
+d = Document()
+d.add_paragraph("Page one.")
+d.add_paragraph("")
+brk = d.add_paragraph()
+brk._p.get_or_add_pPr().append(parse_xml(
+    '<w:sectPr %s><w:pgSz w:w="11906" w:h="16838"/></w:sectPr>' % nsdecls("w")))
+d.add_paragraph("")
+d.add_paragraph("Page two.")
+r, out = run_prune(d)
+sect_paras = [p for p in r.paragraphs
+              if p._p.find(qn("w:pPr")) is not None
+              and p._p.find(qn("w:pPr")).find(qn("w:sectPr")) is not None]
+check(len(sect_paras) == 1, "E3: the section break was deleted")
+kinds = ["T" if p.text.strip() else "_" for p in r.paragraphs]
+check(kinds == ["T", "_", "T"], "E3: padding around the break survived: %r" % kinds)
+
+# E4: an NBSP-only paragraph is content, not blankness
+d = Document()
+d.add_paragraph("A.")
+d.add_paragraph(" ")
+d.add_paragraph("B.")
+r, out = run_prune(d)
+check(len(r.paragraphs) == 3, "E4: dropped an NBSP paragraph")
+
+# E5: a cell must keep its paragraphs - an empty cell that loses its only
+# paragraph is invalid OOXML
+d = Document()
+t = d.add_table(rows=1, cols=2)
+t.cell(0, 0).text = "x"
+r, out = run_prune(d)
+check(len(r.tables[0].cell(0, 1).paragraphs) == 1, "E5: emptied a table cell")
+
+# E6: a document with nothing to prune comes back byte-identical
+d = Document()
+d.add_paragraph("Only text.")
+buf = io.BytesIO()
+d.save(buf)
+check(de.empty_para_prune(buf.getvalue()) == buf.getvalue(),
+      "E6: rewrote a document with no stray empties")
 
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)

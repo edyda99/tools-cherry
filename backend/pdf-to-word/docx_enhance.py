@@ -2355,8 +2355,245 @@ def font_names(data, pdf_doc=None):
         rf.set(qn("w:hAnsi"), fam)
         rf.set(qn("w:cs"), fam)
         changed = True
+# --- section_rules ----------------------------------------------------------
+# pdf2docx keeps a page's hairline section rules only when a table happens to
+# absorb one as a cell border; a rule that sits under a plain heading line is
+# dropped, so a converted CV loses every divider under SUMMARY, PROJECTS,
+# TECHNICAL SKILLS. This pass re-emits such a rule as what Word would have
+# authored in the first place: a bottom border on the paragraph above it.
+# Evidence is geometric and per-rule: a filled or stroked drawing that is a
+# hairline (<= 2.5pt tall), spans a large share of the page, and sits within a
+# few points under exactly one text line. A rule is skipped when the block
+# after the anchor is a table whose first row already carries a top border
+# (that is the same rule, already absorbed - drawing it twice is worse than
+# the status quo), when the anchor line is long enough to be prose, or when
+# the page is full of hairlines (a form grid or a ruled table, not section
+# furniture).
+_RULE_MAX_H_PT = 2.5
+_RULE_MIN_WIDTH_SHARE = 0.35
+_RULE_MAX_GAP_PT = 12.0
+_RULE_MAX_ANCHOR_WORDS = 12
+_RULE_MAX_PER_PAGE = 12
+_RULE_MIN_HEADER_PAGES = 3
+_RULE_BDR_XML = ('<w:pBdr %s><w:bottom w:val="single" w:sz="6" w:space="1" '
+                 'w:color="auto"/></w:pBdr>')
+# CT_PPrBase child sequence; pBdr has to be inserted at its own slot.
+_PPR_ORDER = ("pStyle", "keepNext", "keepLines", "pageBreakBefore", "framePr",
+              "widowControl", "numPr", "suppressLineNumbers", "pBdr", "shd",
+              "tabs", "suppressAutoHyphens", "kinsoku", "wordWrap",
+              "overflowPunct", "topLinePunct", "autoSpaceDE", "autoSpaceDN",
+              "bidi", "adjustRightInd", "snapToGrid", "spacing", "ind",
+              "contextualSpacing", "mirrorIndents", "suppressOverlap", "jc",
+              "textDirection", "textAlignment", "textboxTightWrap",
+              "outlineLvl", "divId", "cnfStyle", "rPr", "sectPr", "pPrChange")
+_PPR_INDEX = {qn("w:" + n): i for i, n in enumerate(_PPR_ORDER)}
+
+
+def _rule_norm(s):
+    return re.sub(r"\s+", " ", (s or "")).strip().lower()
+
+
+def _rule_lines(page):
+    out = []
+    for block in page.get_text("dict").get("blocks", []):
+        for line in block.get("lines", []):
+            text = "".join(sp.get("text", "") for sp in line.get("spans", []))
+            if text.strip():
+                out.append((line["bbox"], text))
+    return out
+
+
+def _page_rules(page):
+    """Anchor texts of the hairline rules on one page, in reading order."""
+    width = page.rect.width
+    rects = []
+    for drawing in page.get_drawings():
+        r = drawing["rect"]
+        if r.height > _RULE_MAX_H_PT or r.width < _RULE_MIN_WIDTH_SHARE * width:
+            continue
+        if any(item[0] not in ("re", "l") for item in drawing.get("items", ())):
+            continue
+        rects.append(r)
+    if not rects or len(rects) > _RULE_MAX_PER_PAGE:
+        return []
+    lines = _rule_lines(page)
+    out = []
+    for r in sorted(rects, key=lambda x: x.y0):
+        above = [(bb, t) for bb, t in lines
+                 if bb[3] <= r.y0 + 1.5 and r.y0 - bb[3] <= _RULE_MAX_GAP_PT
+                 and bb[0] < r.x1 and bb[2] > r.x0]
+        if not above:
+            continue
+        bb, text = max(above, key=lambda e: e[0][3])
+        # two lines ending at the same height means the rule underlines a
+        # column pair, not one heading: the anchor is ambiguous, leave it
+        if sum(1 for b, _ in above if abs(b[3] - bb[3]) < 1.0) != 1:
+            continue
+        if len(text.split()) > _RULE_MAX_ANCHOR_WORDS:
+            continue
+        out.append(_rule_norm(text))
+    return out
+
+
+def _pdf_rule_anchors(pdf_doc):
+    """Rule anchor texts across the document, in reading order.
+
+    A line that anchors a rule on _RULE_MIN_HEADER_PAGES or more DIFFERENT
+    pages is a running page header with a hairline under it, not section
+    furniture: it has no single paragraph in the docx to underline, and its
+    text tends to reappear as ordinary prose. Every occurrence of such an
+    anchor is dropped before the match walk.
+    """
+    per_page = [_page_rules(page) for page in pdf_doc]
+    pages_seen = {}
+    for texts in per_page:
+        for t in set(texts):
+            pages_seen[t] = pages_seen.get(t, 0) + 1
+    running = {t for t, n in pages_seen.items() if n >= _RULE_MIN_HEADER_PAGES}
+    return [t for texts in per_page for t in texts if t not in running]
+
+
+def _tbl_has_top_border(tbl):
+    for name in ("tblBorders", "tcBorders"):
+        for el in tbl.iter(qn("w:" + name)):
+            top = el.find(qn("w:top"))
+            if top is not None and (top.get(qn("w:val")) or "nil") not in ("nil", "none"):
+                return True
+    return False
+
+
+def _add_bottom_border(p):
+    ppr = p.find(qn("w:pPr"))
+    if ppr is None:
+        ppr = parse_xml("<w:pPr %s/>" % nsdecls("w"))
+        p.insert(0, ppr)
+    if ppr.find(qn("w:pBdr")) is not None:
+        return False
+    bdr = parse_xml(_RULE_BDR_XML % nsdecls("w"))
+    limit = _PPR_INDEX[qn("w:pBdr")]
+    for child in ppr:
+        if _PPR_INDEX.get(child.tag, len(_PPR_ORDER)) > limit:
+            child.addprevious(bdr)
+            return True
+    ppr.append(bdr)
+    return True
+
+
+def section_rules(data, pdf_doc=None):
+    """Re-emit a hairline PDF rule under a heading as that heading's bottom border."""
+    if pdf_doc is None:
+        return data
+    anchors = _pdf_rule_anchors(pdf_doc)
+    if not anchors:
+        return data
+    doc = Document(io.BytesIO(data))
+    body = doc.element.body
+    blocks = list(body)
+    paras = [(i, el, _rule_norm("".join(t.text or "" for t in el.iter(qn("w:t")))))
+             for i, el in enumerate(blocks) if el.tag == qn("w:p")]
+    changed = False
+    cursor = 0
+    for anchor in anchors:
+        if not anchor:
+            continue
+        hit = None
+        for k in range(cursor, len(paras)):
+            # exact match only: a prefix match lets a short anchor swallow a
+            # body sentence that merely starts with the same words, and draws
+            # a rule through the middle of prose
+            if paras[k][2] == anchor:
+                hit = k
+                break
+        if hit is None:
+            continue
+        cursor = hit + 1
+        i, el, _ = paras[hit]
+        nxt = blocks[i + 1] if i + 1 < len(blocks) else None
+        if nxt is not None and nxt.tag == qn("w:tbl") and _tbl_has_top_border(nxt):
+            continue  # the same rule already survived as that table's top border
+        changed |= _add_bottom_border(el)
     if not changed:
         return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+# --- empty_para_prune -------------------------------------------------------
+# pdf2docx pads the body with empty paragraphs: one before the first block to
+# reproduce the top margin, one on either side of a section break, one where a
+# dropped drawing used to sit. A Word reader sees stray blank lines. This pass
+# keeps at most ONE empty paragraph between two blocks of content and drops
+# the leading and trailing ones outright. Only a paragraph carrying nothing at
+# all qualifies: a drawing, a break, a border, a field or a bookmark span all
+# make it load-bearing. A paragraph whose only payload is a w:sectPr is never
+# deleted (that is the page/section break itself) but it does count as the one
+# blank a run is allowed, so the padding around it goes.
+_EMPTY_PPR_OK = None
+
+
+def _para_blankness(p):
+    """'content', 'empty' (droppable) or 'sect' (blank but load-bearing)."""
+    global _EMPTY_PPR_OK
+    if _EMPTY_PPR_OK is None:
+        _EMPTY_PPR_OK = {qn("w:rPr"), qn("w:spacing"), qn("w:jc"), qn("w:ind"),
+                         qn("w:autoSpaceDE"), qn("w:autoSpaceDN"),
+                         qn("w:widowControl"), qn("w:textAlignment"),
+                         qn("w:contextualSpacing"), qn("w:snapToGrid"),
+                         qn("w:bidi"), qn("w:adjustRightInd"),
+                         qn("w:kinsoku"), qn("w:overflowPunct"),
+                         qn("w:wordWrap"), qn("w:suppressAutoHyphens")}
+    sect = False
+    for c in p:
+        if c.tag == qn("w:pPr"):
+            for g in c:
+                if g.tag == qn("w:sectPr"):
+                    sect = True
+                elif g.tag not in _EMPTY_PPR_OK:
+                    return "content"
+            continue
+        if c.tag in (qn("w:bookmarkStart"), qn("w:bookmarkEnd")):
+            continue
+        if c.tag != qn("w:r"):
+            return "content"
+        for rc in c:
+            if rc.tag == qn("w:rPr"):
+                continue
+            # ascii-whitespace strip only: an NBSP is content, not blankness
+            if rc.tag != qn("w:t") or (rc.text or "").strip(" \t\r\n"):
+                return "content"
+    return "sect" if sect else "empty"
+
+
+def empty_para_prune(data, pdf_doc=None):
+    """Drop stray empty paragraphs: none leading or trailing, at most one between."""
+    doc = Document(io.BytesIO(data))
+    body = doc.element.body
+    blocks = [el for el in body if el.tag in (qn("w:p"), qn("w:tbl"))]
+    kinds = ["content" if el.tag == qn("w:tbl") else _para_blankness(el)
+             for el in blocks]
+    doomed, i = [], 0
+    while i < len(blocks):
+        if kinds[i] == "content":
+            i += 1
+            continue
+        j = i
+        while j < len(blocks) and kinds[j] != "content":
+            j += 1
+        run = list(zip(blocks[i:j], kinds[i:j]))
+        edge = i == 0 or j == len(blocks)
+        if any(k == "sect" for _, k in run):
+            keep = None          # the section break already is the blank line
+        elif edge:
+            keep = None          # leading/trailing padding is never wanted
+        else:
+            keep = run[0][0]
+        doomed.extend(el for el, k in run if k == "empty" and el is not keep)
+        i = j
+    if not doomed:
+        return data
+    for el in doomed:
+        body.remove(el)
     buf = io.BytesIO()
     doc.save(buf)
     return buf.getvalue()
@@ -2685,10 +2922,16 @@ def centred_indent_drop(data, pdf_doc=None):
 # fused_line_split runs after date_column_untable so it sees the tabs that pass
 # writes (a tab at a seam vetoes a cut), and before heading_styles so a title
 # line freed from its subtitle can still be recognised as a heading.
+# section_rules and empty_para_prune run last of all: the border needs the
+# final paragraph text (reflow may still be merging it) and the prune has to
+# see the empties every earlier pass left behind, font_names included (it
+# only ever touches runs with text, so the empties it leaves alone are exactly
+# what the prune is for).
 
 PASSES = (hyperlink_unnest, span_space_repair, header_footer_parts, date_column_untable,
           fused_line_split, centred_indent_drop, heading_styles, bullet_image_lists,
-          list_numbering, paragraph_reflow, hyperlink_autolink, font_names)
+          list_numbering, paragraph_reflow, hyperlink_autolink, font_names,
+          section_rules, empty_para_prune)
 
 
 def enhance(docx_bytes, pdf_doc=None):
