@@ -1853,6 +1853,135 @@ d.save(buf)
 r = Document(io.BytesIO(de.centred_indent_drop(buf.getvalue())))
 check(ci_ind(r.paragraphs[0]) == {"firstLine": "240"},
       "CI5: firstLine lost with the phantom sides: %s" % ci_ind(r.paragraphs[0]))
+# ---- hyperlink_autolink cases (M) ------------------------------------------
+
+HYPERLINK_RT = ("http://schemas.openxmlformats.org/officeDocument/2006/"
+                "relationships/hyperlink")
+
+
+def run_autolink(doc):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.hyperlink_autolink(buf.getvalue())
+    return Document(io.BytesIO(out)), out
+
+
+def _al_links(out_bytes):
+    root = _ET.fromstring(zipfile.ZipFile(io.BytesIO(out_bytes)).read("word/document.xml"))
+    return root, root.findall(f".//{W_MAIN}hyperlink")
+
+
+def _al_targets(out_bytes):
+    rels = _ET.fromstring(
+        zipfile.ZipFile(io.BytesIO(out_bytes)).read("word/_rels/document.xml.rels"))
+    return sorted(r.get("Target") for r in rels if r.get("Type") == HYPERLINK_RT)
+
+
+def _al_no_nesting(root, tag):
+    for r in root.iter(f"{W_MAIN}r"):
+        check(not list(r.iter(f"{W_MAIN}hyperlink")),
+              "%s: w:hyperlink nested inside a w:r" % tag)
+
+
+# M1: a CV contact line -- plain e-mail plus a scheme-less linkedin address --
+# becomes two sibling hyperlinks with two external rels, the character stream is
+# untouched, and a second application is a no-op.
+d = Document()
+d.add_paragraph("Beirut, Lebanon  |  Maroundaher03@gmail.com "
+                "linkedin.com/in/maroun-daher-87140a42a")
+rM1, outM1 = run_autolink(d)
+rootM1, linksM1 = _al_links(outM1)
+check(len(linksM1) == 2, "M1: expected 2 hyperlinks, got %d" % len(linksM1))
+_al_no_nesting(rootM1, "M1")
+paraM1 = list(rootM1.iter(f"{W_MAIN}p"))[0]
+check(all(any(c is lk for c in paraM1) for lk in linksM1),
+      "M1: hyperlink is not a direct child of the paragraph")
+check(full_text(rM1) == ("Beirut, Lebanon  |  Maroundaher03@gmail.com "
+                         "linkedin.com/in/maroun-daher-87140a42a"),
+      "M1: stream changed: %r" % full_text(rM1))
+check(_al_targets(outM1) == ["https://linkedin.com/in/maroun-daher-87140a42a",
+                             "mailto:Maroundaher03@gmail.com"],
+      "M1: targets %s" % _al_targets(outM1))
+check(de.hyperlink_autolink(outM1) == outM1, "M1: not idempotent")
+
+# M2: ordinary prose must never be linked. Abbreviations, file paths, version
+# numbers and decimals all carry dots but none is a URL shape.
+d = Document()
+for t in ("Acme Inc. shipped in Q3, i.e. before the freeze, per the S.E.C. filing.",
+          "Open src/main.py and lib/util.js, then bump to 2.10.3 (see notes).",
+          "The ratio was 1.5 vs. 2.75 across e.g. Berlin, Paris and Rome.",
+          "Contact the desk at extension 4021 or ask in the Monday sync."):
+    d.add_paragraph(t)
+before_text = full_text(d)
+rM2, outM2 = run_autolink(d)
+rootM2, linksM2 = _al_links(outM2)
+check(len(linksM2) == 0, "M2: prose linked: %s" % [
+    "".join(t.text or "" for t in lk.iter(f"{W_MAIN}t")) for lk in linksM2])
+check(full_text(rM2) == before_text, "M2: stream changed")
+
+# M3: sentence punctuation after a URL stays outside the hyperlink.
+d = Document()
+d.add_paragraph("Full details live at https://example.com/reports/2026-q1, "
+                "and the mirror is www.example.org/mirror.")
+rM3, outM3 = run_autolink(d)
+rootM3, linksM3 = _al_links(outM3)
+check(len(linksM3) == 2, "M3: expected 2 hyperlinks, got %d" % len(linksM3))
+textsM3 = ["".join(t.text or "" for t in lk.iter(f"{W_MAIN}t")) for lk in linksM3]
+check(textsM3 == ["https://example.com/reports/2026-q1", "www.example.org/mirror"],
+      "M3: link text %s" % textsM3)
+check(_al_targets(outM3) == ["https://example.com/reports/2026-q1",
+                             "https://www.example.org/mirror"],
+      "M3: targets %s" % _al_targets(outM3))
+check(full_text(rM3).endswith("www.example.org/mirror."), "M3: trailing dot eaten")
+
+# M4: an address pdf2docx split across three adjacent runs is wrapped once,
+# with no character lost at the seams.
+d = Document()
+p_m4 = d.add_paragraph()
+for frag in ("Write to ", "maroun", "daher03@gm", "ail.com today"):
+    p_m4.add_run(frag)
+rM4, outM4 = run_autolink(d)
+rootM4, linksM4 = _al_links(outM4)
+check(len(linksM4) == 1, "M4: expected 1 hyperlink, got %d" % len(linksM4))
+_al_no_nesting(rootM4, "M4")
+t4 = "".join(t.text or "" for t in linksM4[0].iter(f"{W_MAIN}t"))
+check(t4 == "maroundaher03@gmail.com", "M4: link text %r" % t4)
+check(full_text(rM4) == "Write to maroundaher03@gmail.com today",
+      "M4: stream changed: %r" % full_text(rM4))
+
+# M5: text already inside a w:hyperlink is left alone -- no second wrapper, no
+# extra relationship, and the pass reports no change at all.
+d = Document()
+p_m5 = d.add_paragraph()
+p_m5._p.append(parse_xml(
+    f'<w:hyperlink {nsdecls("w", "r")} r:id="rId42"><w:r><w:rPr>'
+    f'<w:rStyle w:val="Hyperlink"/></w:rPr>'
+    f'<w:t>https://example.com/already</w:t></w:r></w:hyperlink>'))
+buf_m5 = io.BytesIO()
+d.save(buf_m5)
+inM5 = buf_m5.getvalue()
+outM5 = de.hyperlink_autolink(inM5)
+check(outM5 == inM5, "M5: already-linked text was rewritten")
+rootM5, linksM5 = _al_links(outM5)
+check(len(linksM5) == 1, "M5: expected 1 hyperlink, got %d" % len(linksM5))
+_al_no_nesting(rootM5, "M5")
+
+# M6: the whole enhance() pipeline (autolink runs last) still emits schema-valid
+# placement and leaves ordinary prose untouched.
+d = Document()
+d.add_paragraph("Maroun Daher")
+d.add_paragraph("Beirut  |  maroundaher03@gmail.com  |  "
+                "linkedin.com/in/maroun-daher-87140a42a")
+d.add_paragraph("Acme Inc. shipped in Q3, i.e. before the freeze.")
+buf_m6 = io.BytesIO()
+d.save(buf_m6)
+outM6 = de.enhance(buf_m6.getvalue())
+rootM6, linksM6 = _al_links(outM6)
+check(len(linksM6) == 2, "M6: expected 2 hyperlinks through enhance(), got %d"
+      % len(linksM6))
+_al_no_nesting(rootM6, "M6")
+check("Acme Inc." in "".join(t.text or "" for t in rootM6.iter(f"{W_MAIN}t")),
+      "M6: prose lost")
 
 
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")

@@ -19,6 +19,7 @@ from collections import Counter
 
 from docx import Document
 from docx.text.paragraph import Paragraph
+from docx.opc.constants import RELATIONSHIP_TYPE as RT
 from docx.oxml import parse_xml
 from docx.oxml.ns import nsdecls, qn
 
@@ -2016,6 +2017,176 @@ def hyperlink_unnest(data, pdf_doc=None):
     return buf.getvalue()
 
 
+# ---------------------------------------------------------------- autolink (D9)
+# A URL that reached the page as plain text (no PDF link annotation) survives
+# pdf2docx as plain text too: readers see the address but cannot click it, and
+# Word never renders it as a link. Only shapes that cannot be ordinary prose are
+# promoted: an explicit scheme, a www. host, an e-mail address, or a registered
+# host + "/" + path on a known TLD. A bare "Inc." or "e.g." can never match.
+_XML_SPACE = "{http://www.w3.org/XML/1998/namespace}space"
+_AL_TLD = ("com|net|org|io|dev|edu|gov|co|uk|me|ai|app|info|biz|fr|de|",
+           "es|it|nl|se|ch|au|ca|jp|in|eu|us|tv|cc|xyz|online|site|tech")
+_AL_TLD = "".join(_AL_TLD)
+_AL_STOP = r"[^\s<>\"'\u00a0()\[\]{}]"
+_AUTOLINK_RE = re.compile(
+    r"https?://" + _AL_STOP + r"{4,}"
+    r"|www\.[A-Za-z0-9][A-Za-z0-9-]*(?:\.[A-Za-z0-9-]+)+(?:/" + _AL_STOP + r"*)?"
+    r"|[A-Za-z0-9][A-Za-z0-9._%+-]*@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,24}"
+    r"|(?:[A-Za-z0-9][A-Za-z0-9-]*\.)+(?:" + _AL_TLD + r")/" + _AL_STOP + r"*",
+    re.I)
+# Sentence punctuation that a URL may not end on; stripped before wrapping so the
+# full stop after a link stays outside the hyperlink.
+_AL_TRAIL = ".,;:!?\u2019'\")]}>"
+# Per-paragraph and per-document ceilings: a pathological page cannot turn the
+# pass into a quadratic rewrite of the whole body.
+_AL_MAX_PER_PARA = 40
+_AL_MAX_TOTAL = 400
+
+
+def _al_target(text):
+    low = text.lower()
+    if low.startswith(("http://", "https://")):
+        return text
+    if "@" in text and "/" not in text:
+        return "mailto:" + text
+    return "https://" + text
+
+
+def _al_segments(p):
+    """Maximal runs of consecutive direct-child w:r carrying exactly one w:t and
+    nothing else. Any other child (an existing w:hyperlink, a drawing run, a
+    break) ends the segment, so already-linked text is never re-scanned and a
+    match can never straddle non-text content."""
+    segs, cur = [], []
+    for el in p:
+        if el.tag == qn("w:pPr"):
+            continue
+        ok = False
+        if el.tag == qn("w:r"):
+            kids = [k for k in el if k.tag != qn("w:rPr")]
+            if len(kids) == 1 and kids[0].tag == qn("w:t"):
+                cur.append((el, kids[0]))
+                ok = True
+        if not ok and cur:
+            segs.append(cur)
+            cur = []
+    if cur:
+        segs.append(cur)
+    return segs
+
+
+def _al_locate(items, pos, end=False):
+    acc = 0
+    for i, (_r, t) in enumerate(items):
+        n = len(t.text or "")
+        if (pos < acc + n) or (end and pos <= acc + n and n > 0):
+            return i, pos - acc
+        acc += n
+    return len(items) - 1, len(items[-1][1].text or "")
+
+
+def _al_split(run, t, off):
+    """Split run in place at character offset off; the tail becomes a new run
+    inserted right after it, carrying a copy of the same rPr."""
+    txt = t.text or ""
+    new = copy.deepcopy(run)
+    nt = new.find(qn("w:t"))
+    t.text = txt[:off]
+    nt.text = txt[off:]
+    t.set(_XML_SPACE, "preserve")
+    nt.set(_XML_SPACE, "preserve")
+    run.addnext(new)
+    return new, nt
+
+
+def _al_style(run):
+    rpr = run.find(qn("w:rPr"))
+    if rpr is None:
+        rpr = parse_xml("<w:rPr %s/>" % nsdecls("w"))
+        run.insert(0, rpr)
+    old = rpr.find(qn("w:rStyle"))
+    if old is not None:
+        rpr.remove(old)
+    _rpr_insert(rpr, parse_xml('<w:rStyle %s w:val="Hyperlink"/>' % nsdecls("w")))
+
+
+def _al_wrap(items, s, e, rid):
+    """Wrap the [s, e) character range of a segment in a w:hyperlink placed as a
+    SIBLING of the runs it covers (never inside a w:r - that nesting is invalid
+    OOXML and schema-strict readers drop the subtree)."""
+    i, off = _al_locate(items, s)
+    if off > 0:
+        nr, nt = _al_split(items[i][0], items[i][1], off)
+        items.insert(i + 1, (nr, nt))
+        i += 1
+    j, off2 = _al_locate(items, e, end=True)
+    if j < i:
+        return False
+    if off2 < len(items[j][1].text or ""):
+        nr, nt = _al_split(items[j][0], items[j][1], off2)
+        items.insert(j + 1, (nr, nt))
+    covered = [r for r, _t in items[i:j + 1]]
+    if not covered:
+        return False
+    link = parse_xml('<w:hyperlink %s r:id="%s"/>' % (nsdecls("w", "r"), rid))
+    covered[0].addprevious(link)
+    for r in covered:
+        r.getparent().remove(r)
+        link.append(r)
+        _al_style(r)
+    return True
+
+
+def hyperlink_autolink(data, pdf_doc=None):
+    """D9: promote URL- and e-mail-looking text that arrived as plain runs into
+    real w:hyperlink elements with an external relationship in
+    document.xml.rels. PDF link annotations already reach pdf2docx as links;
+    what this recovers is the address a PDF printed without an annotation
+    behind it, which is the common case for a CV contact line.
+
+    Runs last in the pipeline so no earlier pass has to reason about the new
+    elements, and so the text it matches is the final reflowed text. Character
+    content is never added, removed or reordered - runs are only split at match
+    boundaries and re-parented under a sibling w:hyperlink."""
+    doc = Document(io.BytesIO(data))
+    added = 0
+
+    for p in doc.element.body.iter(qn("w:p")):
+        for _ in range(_AL_MAX_PER_PARA):
+            if added >= _AL_MAX_TOTAL:
+                break
+            hit = None
+            for seg in _al_segments(p):
+                text = "".join(t.text or "" for _r, t in seg)
+                for m in _AUTOLINK_RE.finditer(text):
+                    raw = m.group(0).rstrip(_AL_TRAIL)
+                    if len(raw) < 5 or not _AUTOLINK_RE.fullmatch(raw):
+                        continue
+                    hit = (seg, m.start(), m.start() + len(raw), raw)
+                    break
+                if hit:
+                    break
+            if hit is None:
+                break
+            seg, s, e, raw = hit
+            rid = doc.part.relate_to(_al_target(raw), RT.HYPERLINK, is_external=True)
+            if not _al_wrap(list(seg), s, e, rid):
+                break
+            added += 1
+
+    if not added:
+        return data
+
+    styles_el = doc.styles.element
+    if not any(st.get(qn("w:styleId")) == "Hyperlink"
+               for st in styles_el.findall(qn("w:style"))):
+        styles_el.append(parse_xml(_HYPERLINK_STYLE_XML % nsdecls("w")))
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 # Order is load-bearing and enhance() is single-shot: hyperlink_unnest runs
 # first so every later pass sees schema-valid hyperlink positions, and
 # span_space_repair must see the document BEFORE reflow's dehyphenation (a
@@ -2340,7 +2511,7 @@ def centred_indent_drop(data, pdf_doc=None):
 
 PASSES = (hyperlink_unnest, span_space_repair, header_footer_parts, date_column_untable,
           fused_line_split, centred_indent_drop, heading_styles, bullet_image_lists,
-          list_numbering, paragraph_reflow)
+          list_numbering, paragraph_reflow, hyperlink_autolink)
 
 
 def enhance(docx_bytes, pdf_doc=None):
