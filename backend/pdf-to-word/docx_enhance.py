@@ -2402,6 +2402,155 @@ def _li_set_ind(ppr, left, hanging, right):
     ind.set(qn("w:right"), str(right))
 
 
+# --- list_wrap_merge (E2) ---------------------------------------------------
+# pdf2docx cuts a bullet whose text wraps into TWO docx paragraphs: the list
+# paragraph, and a plain paragraph carrying the continuation ("and routing,
+# REST API integration, ...") with no numPr and a hand-set left indent that
+# only LOOKS like the bullet's text column. Nothing reflows when the reader
+# edits it, which is the editability hard-fail the visual panel called.
+#
+# The merge is authorised by STRUCTURE, not by prose heuristics. The orphan is
+# swallowed only when the PDF itself testifies that the two docx paragraphs are
+# consecutive LINES OF ONE BLOCK:
+#   * the previous sibling is a real list paragraph (has numPr);
+#   * the orphan is plain body text: no numPr, no pStyle (never a heading), no
+#     sectPr/framePr, no drawing/pict/object (never a rasterised bullet glyph);
+#   * the list paragraph's text does not end a sentence (a terminal, or a
+#     hyphen whose seam is ambiguous, declines) and the orphan starts with a
+#     lower-case letter — an upper-case start after a period is exactly the
+#     "new sentence, own paragraph" shape and must survive;
+#   * some PDF text block holds a line L whose tokens are the TAIL of the list
+#     paragraph, and lines L+1.. whose tokens are EXACTLY the orphan's tokens.
+#     Because L+1 is interior to its block, an orphan that starts a new PDF
+#     block can never match, which is the "new block" veto stated structurally;
+#   * line L+1 does not itself start with a bullet glyph (a real second item
+#     pdf2docx merely failed to number is left alone for list_numbering).
+# Ambiguity anywhere is a no-op.
+
+_LWM_BULLET_GLYPHS = "•◦▪▫‣∙·●○◘§*-–—+"
+_LWM_MIN_ANCHOR_TOKENS = 3   # a 1-2 word tail matches far too many lines
+_LWM_MIN_ORPHAN_TOKENS = 2
+_LWM_BLOCKERS = (qn("w:drawing"), qn("w:pict"), qn("w:object"),
+                 "{http://schemas.openxmlformats.org/markup-compatibility/2006}"
+                 "AlternateContent")
+
+
+def _lwm_pdf_blocks(pdf_doc):
+    """Per-block line texts, blocks of a single line dropped (they can hold no
+    interior continuation)."""
+    blocks = []
+    for page in pdf_doc:
+        for b in page.get_text("dict").get("blocks", []):
+            if b.get("type") != 0:
+                continue
+            lines = []
+            for ln in b.get("lines", []):
+                t = "".join(s.get("text", "") for s in ln.get("spans", [])).strip()
+                if t:
+                    lines.append(t)
+            if len(lines) >= 2:
+                blocks.append(lines)
+    return blocks
+
+
+def _lwm_continues(blocks, anchor_toks, orphan_toks):
+    """True when one PDF block holds a line ending the anchor immediately
+    followed by the line(s) that spell the orphan exactly."""
+    for lines in blocks:
+        toks = [_tok(l) for l in lines]
+        for i in range(len(lines) - 1):
+            head = toks[i]
+            if len(head) < _LWM_MIN_ANCHOR_TOKENS or len(head) > len(anchor_toks):
+                continue
+            if anchor_toks[-len(head):] != head:
+                continue
+            if lines[i + 1][:1] in _LWM_BULLET_GLYPHS:
+                continue  # a bullet of its own, not a wrapped continuation
+            acc, j = [], i + 1
+            while j < len(lines) and len(acc) < len(orphan_toks):
+                acc.extend(toks[j])
+                j += 1
+            if acc == orphan_toks:
+                return True
+    return False
+
+
+def _lwm_plain_orphan(p):
+    for tag in _LWM_BLOCKERS:
+        if p.find(".//" + tag) is not None:
+            return False
+    ppr = p.find(qn("w:pPr"))
+    if ppr is None:
+        return True
+    for tag in ("w:numPr", "w:pStyle", "w:sectPr", "w:framePr"):
+        if ppr.find(qn(tag)) is not None:
+            return False
+    return True
+
+
+def _lwm_is_list(p):
+    ppr = p.find(qn("w:pPr"))
+    return ppr is not None and ppr.find(qn("w:numPr")) is not None
+
+
+def _lwm_absorb(anchor, orphan):
+    seam = _el_text(anchor)[-1:] + _el_text(orphan)[:1]
+    if seam and seam.strip() == seam:
+        anchor.append(parse_xml('<w:r %s><w:t xml:space="preserve"> </w:t></w:r>'
+                                % nsdecls("w")))
+    for child in list(orphan):
+        if child.tag == qn("w:pPr"):
+            continue
+        orphan.remove(child)
+        anchor.append(child)
+    orphan.getparent().remove(orphan)
+
+
+def list_wrap_merge(data, pdf_doc=None):
+    """E2: fold a bullet's wrapped continuation back into the list paragraph."""
+    if pdf_doc is None:
+        return data
+    blocks = _lwm_pdf_blocks(pdf_doc)
+    if not blocks:
+        return data
+
+    doc = Document(io.BytesIO(data))
+    changed = False
+    for orphan in list(doc.element.body.iter(qn("w:p"))):
+        parent = orphan.getparent()
+        if parent is None:
+            continue
+        anchor = orphan.getprevious()
+        while anchor is not None and anchor.tag != qn("w:p"):
+            anchor = anchor.getprevious()
+        if anchor is None or anchor.getnext() is not orphan:
+            continue  # not DIRECTLY adjacent: something sits between them
+        if not _lwm_is_list(anchor) or _lwm_is_list(orphan):
+            continue
+        if not _lwm_plain_orphan(orphan):
+            continue
+        atext, otext = _el_text(anchor).rstrip(), _el_text(orphan).strip()
+        if not atext or not otext:
+            continue
+        if atext[-1] in _TERMINALS or atext[-1] in HYPHENS:
+            continue  # a finished sentence, or an unresolvable hyphen seam
+        if not otext[:1].islower():
+            continue
+        atoks, otoks = _tok(atext), _tok(otext)
+        if len(otoks) < _LWM_MIN_ORPHAN_TOKENS or len(atoks) < _LWM_MIN_ANCHOR_TOKENS:
+            continue
+        if not _lwm_continues(blocks, atoks, otoks):
+            continue
+        _lwm_absorb(anchor, orphan)
+        changed = True
+
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 def list_hanging_indent(data, pdf_doc=None):
     """E1: give bullet lists the hanging indent the PDF draws, uniformly."""
     if pdf_doc is None:
@@ -3270,7 +3419,7 @@ def centred_indent_drop(data, pdf_doc=None):
 
 PASSES = (hyperlink_unnest, span_space_repair, header_footer_parts, date_column_untable,
           fused_line_split, centred_indent_drop, heading_styles, bullet_image_lists,
-          list_numbering, paragraph_reflow, list_hanging_indent,
+          list_numbering, paragraph_reflow, list_wrap_merge, list_hanging_indent,
           hyperlink_autolink, font_names,
           section_rules, empty_para_prune)
 

@@ -2547,5 +2547,142 @@ check([li_ind(p) for p in r.paragraphs] == LI_UNTOUCHED,
       "L10: took a mark that sits right of its own text as a bullet")
 
 
+# ---- list_wrap_merge cases (W) ---------------------------------------------
+# The CV defect: pdf2docx cuts a wrapped bullet into a numbered paragraph plus a
+# plain, hand-indented orphan carrying the rest of the sentence, so the item
+# never reflows when edited.  The merge is authorised only when the PDF shows
+# the two as consecutive lines INSIDE one block; every other shape is a no-op.
+WM_X, WM_SIZE = 54.75, 9.5
+WM_A = "Intensive training in React and React Native for web applications"
+WM_B = "and routing REST API integration and performance optimisation."
+
+
+def wm_pdf(blocks, gap=60.0, x=WM_X):
+    """One page; each inner list becomes one MuPDF text block (the big vertical
+    gap between them is what forces the split — asserted by W2)."""
+    pdf = fitz.open()
+    pg = pdf.new_page(width=595.0, height=842.0)
+    y = 100.0
+    for lines in blocks:
+        for ln in lines:
+            pg.insert_text((x, y), ln, fontsize=WM_SIZE)
+            y += 11.0
+        y += gap
+    return pdf
+
+
+def wm_doc(anchor=WM_A, orphan=WM_B, numbered=True, style=None, spacer=False,
+           png=None, orphan_numbered=False):
+    d = Document()
+    nid = de._add_num(de._numbering_root(d), "bul")
+    a = d.add_paragraph(anchor)
+    if numbered:
+        de._set_numpr(a, 0, nid)
+    if spacer:
+        d.add_paragraph("")
+    o = d.add_paragraph(orphan, style=style) if style else d.add_paragraph(orphan)
+    if orphan_numbered:
+        de._set_numpr(o, 0, nid)
+    if png:
+        o.add_run().add_picture(io.BytesIO(png), width=Pt(4))
+    o._p.get_or_add_pPr().append(parse_xml(
+        '<w:ind %s w:left="240" w:firstLine="0"/>' % nsdecls("w")))
+    return d
+
+
+def run_wm(doc, pdf):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.list_wrap_merge(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out))
+
+
+WM_ONE_BLOCK = wm_pdf([[WM_A, WM_B]])
+WM_TWO_BLOCKS = wm_pdf([[WM_A], [WM_B]])
+
+# W1: the CV shape - the orphan is folded into the list paragraph, seam spaced,
+# nothing else left behind
+r = run_wm(wm_doc(), WM_ONE_BLOCK)
+check(len(r.paragraphs) == 1, "W1: orphan paragraph survived: %d paragraphs"
+      % (len(r.paragraphs),))
+check(r.paragraphs[0].text == WM_A + " " + WM_B,
+      "W1: merged text is wrong: %r" % (r.paragraphs[0].text,))
+check(has_numpr(r.paragraphs[0]), "W1: the merged paragraph lost its numbering")
+
+# W2: the orphan starts its own PDF block - a real new paragraph, never merged
+r = run_wm(wm_doc(), WM_TWO_BLOCKS)
+check(len(r.paragraphs) == 2, "W2: merged across a PDF block boundary")
+
+# W3: an upper-case start after a finished sentence is a new paragraph, even
+# when the PDF wrapped it inside one block
+a3 = "Closed 8 transactions in 5 months generating revenue in total."
+b3 = "Secured a 3-month exclusive mandate on a development project."
+r = run_wm(wm_doc(a3, b3), wm_pdf([[a3, b3]]))
+check(len(r.paragraphs) == 2, "W3: swallowed a new capitalised sentence")
+
+# W3b: lower-case is not enough on its own - a terminated anchor still declines
+a3b = WM_A + "."
+r = run_wm(wm_doc(a3b, WM_B), wm_pdf([[a3b, WM_B]]))
+check(len(r.paragraphs) == 2, "W3b: merged past a sentence-ending period")
+
+# W4: the previous paragraph is prose, not a list item - out of scope
+r = run_wm(wm_doc(numbered=False), WM_ONE_BLOCK)
+check(len(r.paragraphs) == 2, "W4: merged into a paragraph that is not a list item")
+
+# W5: the orphan is a heading - never merged, whatever the PDF says
+r = run_wm(wm_doc(orphan="and routing rest api integration", style="Heading 2"),
+           wm_pdf([[WM_A, "and routing rest api integration"]]))
+check(len(r.paragraphs) == 2, "W5: swallowed a styled heading")
+
+# W6: the orphan carries a drawing (a rasterised glyph pdf2docx left inline) -
+# a list item of its own, not a continuation
+r = run_wm(wm_doc(png=TINY_PNG), WM_ONE_BLOCK)
+check(len(r.paragraphs) == 2, "W6: swallowed a paragraph holding a drawing")
+
+# W6b: an orphan that is already a list item is another bullet, not a wrap
+r = run_wm(wm_doc(orphan_numbered=True), WM_ONE_BLOCK)
+check(len(r.paragraphs) == 2, "W6b: merged two numbered list items together")
+
+# W7: the following PDF line opens with a bullet glyph - a second item that
+# merely lost its number, which list_numbering owns
+r = run_wm(wm_doc(), wm_pdf([[WM_A, "• " + WM_B]]))
+check(len(r.paragraphs) == 2, "W7: merged a line that draws its own bullet glyph")
+
+# W8: no PDF - no evidence, no merge
+d = wm_doc()
+buf = io.BytesIO()
+d.save(buf)
+check(de.list_wrap_merge(buf.getvalue(), None) == buf.getvalue(),
+      "W8: acted without the source PDF")
+
+# W9: a paragraph sits between the item and the orphan - not a continuation
+r = run_wm(wm_doc(spacer=True), WM_ONE_BLOCK)
+check(len(r.paragraphs) == 3, "W9: merged across an intervening paragraph")
+
+# W10: the docx text is not what the PDF block spells - the two are not the
+# same content and must not be joined on shape alone
+r = run_wm(wm_doc(orphan="and something the source page never printed here"),
+           WM_ONE_BLOCK)
+check(len(r.paragraphs) == 2, "W10: merged text absent from the PDF block")
+
+# W11: a hyphen seam can flip meaning (re-sign / resign) - always declines
+a11, b11 = WM_A + " re-", "sign the mandate before the end of the quarter."
+r = run_wm(wm_doc(a11, b11), wm_pdf([[a11, b11]]))
+check(len(r.paragraphs) == 2, "W11: fused a hyphenated line seam")
+
+# W12: a two-word tail is too weak an anchor to identify a line
+a12, b12 = "the full", "cycle from first contact to contract signing."
+r = run_wm(wm_doc(a12, b12), wm_pdf([[a12, b12]]))
+check(len(r.paragraphs) == 2, "W12: matched on a two-token anchor")
+
+# W13: a document with no such shape at all is byte-identical
+d = Document()
+d.add_paragraph("An ordinary paragraph.")
+d.add_paragraph("Another ordinary paragraph.")
+buf = io.BytesIO()
+d.save(buf)
+check(de.list_wrap_merge(buf.getvalue(), WM_ONE_BLOCK) == buf.getvalue(),
+      "W13: rewrote a document holding no wrapped list item")
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)
