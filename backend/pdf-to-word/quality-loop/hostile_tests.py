@@ -1984,5 +1984,153 @@ check("Acme Inc." in "".join(t.text or "" for t in rootM6.iter(f"{W_MAIN}t")),
       "M6: prose lost")
 
 
+# ---- font_names cases (F) ---------------------------------------------------
+
+
+def _font_pdf(lines):
+    """lines: [(text, fitz fontname)] -> one-page pdf carrying those fonts."""
+    pdf = fitz.open()
+    pg = pdf.new_page(width=595, height=842)
+    y = 80
+    for text, fname in lines:
+        pg.insert_text((72, y), text, fontsize=11, fontname=fname)
+        y += 18
+    return pdf
+
+
+def _rfonts(out_bytes):
+    root = _ET.fromstring(zipfile.ZipFile(io.BytesIO(out_bytes)).read("word/document.xml"))
+    named = {}
+    for r in root.iter(f"{W_MAIN}r"):
+        txt = "".join(t.text or "" for t in r.findall(f"{W_MAIN}t"))
+        if not txt.strip():
+            continue
+        rpr = r.find(f"{W_MAIN}rPr")
+        rf = rpr.find(f"{W_MAIN}rFonts") if rpr is not None else None
+        named[txt] = None if rf is None else (rf.get(f"{W_MAIN}ascii") or None)
+    return named
+
+
+# F1: PostScript name -> Word family, including the shapes that must map to
+# nothing at all (system-internal, unnamed, digits-only).
+for raw, want in [
+    ("ABCDEF+Calibri-Bold", "Calibri"),
+    ("HelveticaNeue-Bold", "Helvetica Neue"),
+    ("HelveticaNeue", "Helvetica Neue"),
+    ("ArialMT", "Arial"),
+    ("Arial-BoldMT", "Arial"),
+    ("TimesNewRomanPSMT", "Times New Roman"),
+    ("Times-Roman", "Times New Roman"),
+    ("JacobsChronos,Bold", "Jacobs Chronos"),
+    ("JacobsChronosLight", "Jacobs Chronos"),
+    ("BookAntiqua", "Book Antiqua"),
+    ("Book-Antiqua", "Book Antiqua"),
+    ("LMRoman10-Regular", "Latin Modern Roman"),
+    ("SFHello-Semibold", "SF Hello"),
+    (".SFNS-Regular_wdth_opsz1", None),
+    ("Unnamed-T3", None),
+    ("", None),
+    (None, None),
+    ("X", None),
+    ("A" * 40, None),
+]:
+    got = de._font_family(raw)
+    check(got == want, "F1: %r -> %r, want %r" % (raw, got, want))
+
+# F2: no PDF => byte-identical no-op (the pass has no evidence to act on).
+d = Document()
+d.add_paragraph("Nothing to name here.")
+buf = io.BytesIO()
+d.save(buf)
+raw = buf.getvalue()
+check(de.font_names(raw, None) == raw, "F2: pass edited the docx without a PDF")
+
+# F3: a run that already names a font is never touched, whether the name is a
+# literal family or a theme reference; only the empty pdf2docx shape is filled.
+pdf = _font_pdf([("Alpha beta gamma", "helv")])
+d = Document()
+p = d.add_paragraph()
+p._p.append(parse_xml(
+    f'<w:r {nsdecls("w")}><w:rPr><w:rFonts w:ascii="Georgia" w:hAnsi="Georgia"/></w:rPr>'
+    f'<w:t>Alpha</w:t></w:r>'))
+p._p.append(parse_xml(
+    f'<w:r {nsdecls("w")}><w:rPr><w:rFonts w:asciiTheme="minorHAnsi"/></w:rPr>'
+    f'<w:t xml:space="preserve"> beta</w:t></w:r>'))
+p._p.append(parse_xml(
+    f'<w:r {nsdecls("w")}><w:rPr><w:rFonts w:ascii="" w:hAnsi="" w:eastAsia=""/></w:rPr>'
+    f'<w:t xml:space="preserve"> gamma</w:t></w:r>'))
+buf = io.BytesIO()
+d.save(buf)
+out = de.font_names(buf.getvalue(), pdf)
+got = _rfonts(out)
+check(got["Alpha"] == "Georgia", "F3: overwrote a named font: %r" % got)
+check(got[" beta"] is None, "F3: overwrote a theme font: %r" % got)
+check(got[" gamma"] == "Helvetica", "F3: empty rFonts not filled: %r" % got)
+
+# F4: one-family PDF names every text run (including one in a table and one
+# with no rPr at all), leaves the blank run alone, and is idempotent.
+pdf = _font_pdf([("Alpha beta gamma", "helv"), ("Delta epsilon", "helv")])
+d = Document()
+d.add_paragraph("Alpha beta gamma")
+d.add_paragraph("   ")
+d.add_paragraph()
+t = d.add_table(rows=1, cols=1)
+t.cell(0, 0).paragraphs[0].add_run("Delta epsilon")
+buf = io.BytesIO()
+d.save(buf)
+out = de.font_names(buf.getvalue(), pdf)
+got = _rfonts(out)
+check(got.get("Alpha beta gamma") == "Helvetica", "F4: body run unnamed: %r" % got)
+check(got.get("Delta epsilon") == "Helvetica", "F4: table run unnamed: %r" % got)
+check("   " not in got, "F4: a blank run was named")
+check(de.font_names(out, pdf) == out, "F4: not idempotent")
+
+# F5: two families => each run takes the family of the span its text came from,
+# and a run whose text the PDF does not carry stays unnamed rather than guess.
+pdf = _font_pdf([("Alpha beta gamma", "helv"), ("Delta epsilon zeta", "tiro")])
+d = Document()
+d.add_paragraph("Alpha beta gamma")
+d.add_paragraph("Delta epsilon zeta")
+d.add_paragraph("Quixotic zzyzx jabberwock")
+buf = io.BytesIO()
+d.save(buf)
+got = _rfonts(de.font_names(buf.getvalue(), pdf))
+check(got.get("Alpha beta gamma") == "Helvetica", "F5: wrong family: %r" % got)
+check(got.get("Delta epsilon zeta") == "Times New Roman", "F5: wrong family: %r" % got)
+check(got.get("Quixotic zzyzx jabberwock") is None,
+      "F5: guessed a family for text the PDF has no evidence for: %r" % got)
+
+# F6: a PDF whose only font carries no family name leaves the docx byte-identical.
+# (fitz rewrites an embedded font's name to its base name, so the unusable
+# names this guards - system-internal, Unnamed-Tn - are staged directly.)
+class _FontlessPage:
+    def get_text(self, kind):
+        return {"blocks": [{"lines": [{"spans": [
+            {"text": "Alpha beta", "font": ".SFNS-Regular_wdth_opsz1"},
+            {"text": "gamma delta", "font": "Unnamed-T3"}]}]}]}
+
+
+pdf = [_FontlessPage()]
+d = Document()
+d.add_paragraph("Alpha beta")
+buf = io.BytesIO()
+d.save(buf)
+raw = buf.getvalue()
+check(de.font_names(raw, pdf) == raw, "F6: edited with no usable family in the PDF")
+
+# F7: the pass only ever adds rFonts — text, styles and run count are untouched.
+pdf = _font_pdf([("Alpha beta gamma", "helv")])
+d = Document()
+d.add_paragraph("Alpha beta gamma", style="Heading 1")
+buf = io.BytesIO()
+d.save(buf)
+before = Document(io.BytesIO(buf.getvalue()))
+after = Document(io.BytesIO(de.font_names(buf.getvalue(), pdf)))
+check([p.text for p in before.paragraphs] == [p.text for p in after.paragraphs],
+      "F7: text changed")
+check([p.style.name for p in before.paragraphs] == [p.style.name for p in after.paragraphs],
+      "F7: styles changed")
+check(len(before.paragraphs[0].runs) == len(after.paragraphs[0].runs), "F7: run count changed")
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)

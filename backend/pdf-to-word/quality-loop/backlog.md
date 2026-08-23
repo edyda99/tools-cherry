@@ -274,3 +274,21 @@ Dropped: hyperlink preservation — pdf2docx already keeps links live (links 1.0
   stays borderless. No failing target exists -> #5 and #6 CLOSED NO-TARGET.
   Scoreboard re-baselined to the 14-doc corpus: 0.9735. BACKLOG EXHAUSTED
   (#1-4,7,9,10 done; #5/#6 no-target; #8 blocked) -> SEASON 2 COMPLETE.
+
+- **season 3 / D7 (2026-08-23, font names):** pdf2docx writes
+  `<w:rFonts w:ascii="" w:hAnsi=""/>` on every run when the span's PostScript
+  name is not an installed family, so Word rendered the whole document in the
+  theme font. New pass `font_names` (last in PASSES, so it names the run set
+  reflow and list_numbering leave behind) maps the PDF span font to a Word
+  family (subset tag, `,Bold` face suffix and trailing weight/style words
+  stripped; base-14 and Latin-Modern aliases; system-internal `.SFNS…` and
+  `Unnamed-Tn` names refused) and fills ONLY empty rFonts, choosing the family
+  by exact span-text match, then a per-token vote, then the document's single
+  family — a multi-family document leaves an unmatched run unnamed rather than
+  guess. Real-world corpus: target_cv runs_with_font 0 -> 1.0, composite
+  0.4652 -> 0.5044; applepay +0.0392, jcb_spec +0.0392, eurisko_mail +0.0377
+  (two families, ~96% of runs matched); the four docs that already carried
+  fonts are untouched (delta 0.0). Synthetic corpus unchanged. Hostile cases
+  F1-F7 added (name mapping table incl. BookAntiqua, no-PDF no-op, never
+  overwrite a named or themed run, table runs, idempotence, no-guess on
+  unmatched text in a two-family document, unusable-font-name no-op).

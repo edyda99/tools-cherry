@@ -2187,11 +2187,188 @@ def hyperlink_autolink(data, pdf_doc=None):
     return buf.getvalue()
 
 
+# --- font_names: carry the PDF's font families onto the runs (D7) -----------
+# pdf2docx writes <w:rFonts w:ascii="" w:hAnsi="" w:eastAsia=""/> on every run:
+# it resolves the span's font through its own installed-font table and, when the
+# PostScript name is not an installed family, stores the empty string. Word then
+# falls back to the theme font, so the converted document loses the source
+# typeface everywhere. This pass reads the font of each PDF span, maps the
+# PostScript name to a Word family name (subset tag and weight/style suffix
+# stripped - the weight already lives in w:b/w:i), and writes it onto the runs
+# whose rFonts is still empty. It never overwrites a font a run already names,
+# and it only assigns a family it can tie to the run's own text: exact span-text
+# match first, then a per-token vote over the spans, and the document's single
+# family as the last resort (a document with two or more families leaves an
+# unmatched run alone rather than guess).
+
+_FONT_SUBSET_RE = re.compile(r"^[A-Z]{6}\+")
+_FONT_SPLIT_RE = re.compile(r"[-_\s]+")
+_FONT_CAMEL_RE = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
+_FONT_TOKEN_RE = re.compile(r"[^\W\d_]+", re.UNICODE)
+# style/weight words that name a face inside a family, never the family itself
+_FONT_STYLE_WORDS = {
+    "regular", "normal", "book", "roman", "plain", "upright",
+    "bold", "semibold", "demibold", "demi", "medium", "light", "extralight",
+    "ultralight", "thin", "black", "heavy", "extrabold", "ultrabold", "hairline",
+    "italic", "oblique", "bolditalic", "boldoblique", "semibolditalic",
+    "italicmt", "boldmt", "bolditalicmt", "psmt", "mt", "ps", "std", "pro",
+    "condensed", "cd", "narrow", "extended", "expanded", "cond",
+}
+# PostScript families with a settled Word equivalent
+_FONT_ALIASES = {
+    "arial": "Arial", "arialmt": "Arial", "arialunicodems": "Arial Unicode MS",
+    "arialnarrow": "Arial Narrow",
+    "times": "Times New Roman", "timesnewroman": "Times New Roman",
+    "timesnewromanps": "Times New Roman", "timesnewromanpsmt": "Times New Roman",
+    "courier": "Courier New", "couriernew": "Courier New",
+    "couriernewps": "Courier New", "helvetica": "Helvetica",
+    "helveticaneue": "Helvetica Neue", "symbol": "Symbol", "symbolmt": "Symbol",
+    "zapfdingbats": "Wingdings", "calibri": "Calibri", "cambria": "Cambria",
+}
+_FONT_ALIAS_RES = (
+    (re.compile(r"^lmroman\d*$"), "Latin Modern Roman"),
+    (re.compile(r"^lmsans\d*$"), "Latin Modern Sans"),
+    (re.compile(r"^lmmono\d*$"), "Latin Modern Mono"),
+    (re.compile(r"^cmr\d*$"), "Latin Modern Roman"),
+)
+_FONT_MAX_LEN = 31          # Word's own limit on a font name
+_FONT_VOTE_SHARE = 0.6      # a token vote must be this decisive to be used
+
+
+def _font_family(ps_name):
+    """Word family name for a PDF font, or None when the name carries none."""
+    if not ps_name:
+        return None
+    name = _FONT_SUBSET_RE.sub("", str(ps_name).strip())
+    name = name.split(",")[0].strip()
+    if not name or name.startswith("."):
+        return None          # system-internal (.SFNS-Regular_wdth_opsz1)
+    parts = [p for p in _FONT_SPLIT_RE.split(name) if p]
+    if not parts:
+        return None
+    base = parts[0]
+    for extra in parts[1:]:
+        if extra.lower() in _FONT_STYLE_WORDS:
+            continue
+        base += extra       # "Foo-Sans" -> FooSans, a real family distinction
+    key = base.lower()
+    if key in _FONT_ALIASES:
+        return _FONT_ALIASES[key]
+    for rx, fam in _FONT_ALIAS_RES:
+        if rx.match(key):
+            return fam
+    words = [w for w in _FONT_CAMEL_RE.split(base) if w]
+    # only TRAILING style words are a face, and the first word is always the
+    # family ("BookAntiqua" keeps its Book, "JacobsChronosLight" drops Light)
+    while len(words) > 1 and words[-1].lower() in _FONT_STYLE_WORDS:
+        words.pop()
+    fam = " ".join(words).strip()
+    if len(fam) < 2 or len(fam) > _FONT_MAX_LEN:
+        return None
+    if not any(c.isalpha() for c in fam):
+        return None
+    if fam.lower().startswith("unnamed"):
+        return None
+    return fam
+
+
+def _font_evidence(pdf_doc):
+    """(text -> family, token -> Counter(family), lone family) from the PDF."""
+    by_text, by_token, weight = {}, {}, Counter()
+    for page in pdf_doc:
+        try:
+            blocks = page.get_text("dict")["blocks"]
+        except Exception:  # noqa: BLE001 - a broken page must not kill the pass
+            continue
+        for block in blocks:
+            for line in block.get("lines", []):
+                for span in line.get("spans", []):
+                    text = (span.get("text") or "").strip()
+                    fam = _font_family(span.get("font"))
+                    if not text or not fam:
+                        continue
+                    weight[fam] += len(text)
+                    by_text.setdefault(text, set()).add(fam)
+                    for tok in _FONT_TOKEN_RE.findall(text.lower()):
+                        by_token.setdefault(tok, Counter())[fam] += 1
+    exact = {t: next(iter(f)) for t, f in by_text.items() if len(f) == 1}
+    lone = next(iter(weight)) if len(weight) == 1 else None
+    return exact, by_token, lone
+
+
+def _font_for_text(text, exact, by_token, lone):
+    key = text.strip()
+    if key in exact:
+        return exact[key]
+    votes = Counter()
+    for tok in _FONT_TOKEN_RE.findall(key.lower()):
+        votes.update(by_token.get(tok, ()))
+    if votes:
+        fam, n = votes.most_common(1)[0]
+        if n >= _FONT_VOTE_SHARE * sum(votes.values()):
+            return fam
+    return lone
+
+
+def _font_run_text(run):
+    return "".join(t.text or "" for t in run.findall(qn("w:t")))
+
+
+def _font_needs_name(rpr):
+    """True when the run names no font at all (missing or all-empty rFonts)."""
+    if rpr is None:
+        return True
+    rf = rpr.find(qn("w:rFonts"))
+    if rf is None:
+        return True
+    return not any((rf.get(qn("w:" + a)) or "").strip()
+                   for a in ("ascii", "hAnsi", "asciiTheme", "hAnsiTheme", "cs"))
+
+
+def font_names(data, pdf_doc=None):
+    """Name each run's font family, taken from the PDF span it came from."""
+    if pdf_doc is None:
+        return data
+    exact, by_token, lone = _font_evidence(pdf_doc)
+    if not exact and not by_token:
+        return data
+    doc = Document(io.BytesIO(data))
+    changed = False
+    for run in doc.element.body.iter(qn("w:r")):
+        text = _font_run_text(run)
+        if not text.strip():
+            continue
+        rpr = run.find(qn("w:rPr"))
+        if not _font_needs_name(rpr):
+            continue
+        fam = _font_for_text(text, exact, by_token, lone)
+        if not fam:
+            continue
+        if rpr is None:
+            rpr = parse_xml("<w:rPr %s/>" % nsdecls("w"))
+            run.insert(0, rpr)
+        rf = rpr.find(qn("w:rFonts"))
+        if rf is None:
+            rf = parse_xml("<w:rFonts %s/>" % nsdecls("w"))
+            _rpr_insert(rpr, rf)
+        rf.set(qn("w:ascii"), fam)
+        rf.set(qn("w:hAnsi"), fam)
+        rf.set(qn("w:cs"), fam)
+        changed = True
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 # Order is load-bearing and enhance() is single-shot: hyperlink_unnest runs
 # first so every later pass sees schema-valid hyperlink positions, and
 # span_space_repair must see the document BEFORE reflow's dehyphenation (a
 # healed word looks like a lost-space seam to a second run). The pipeline
-# calls enhance() exactly once per conversion; never chain it.
+# calls enhance() exactly once per conversion; never chain it. font_names runs
+# LAST so it names the final run set: reflow and list_numbering merge and split
+# runs, and naming before them would leave the survivors unnamed.
 # wrap_break_heal (v2) is NOT enabled — backlog #8 is BLOCKED after two dead
 # ends: even combined geometric+content evidence leaks on real shapes (lyric
 # sheets, contract clauses, block-vote dilution, estimator lies — see
@@ -2511,7 +2688,7 @@ def centred_indent_drop(data, pdf_doc=None):
 
 PASSES = (hyperlink_unnest, span_space_repair, header_footer_parts, date_column_untable,
           fused_line_split, centred_indent_drop, heading_styles, bullet_image_lists,
-          list_numbering, paragraph_reflow, hyperlink_autolink)
+          list_numbering, paragraph_reflow, hyperlink_autolink, font_names)
 
 
 def enhance(docx_bytes, pdf_doc=None):
