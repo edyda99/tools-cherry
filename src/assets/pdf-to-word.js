@@ -31,6 +31,8 @@ const convertBtn = $('convert');
 const clearBtn = $('clear');
 const download = $('download');
 const alt = $('alt');
+const progress = $('ptwProgress');
+const progressBar = $('ptwProgressBar');
 
 const ALT_DEFAULT_HTML =
   'Prefer that the file never leaves your device? ' +
@@ -70,6 +72,27 @@ function setFileInfo(msg) {
   fileInfo.hidden = !msg;
 }
 
+// The wait needs something that moves. Pass a 0-1 share while we know how far along
+// we are (the upload), the string 'indeterminate' for the stretch where the server
+// tells us nothing until it is finished, or null to put the bar away.
+function setProgress(state) {
+  if (!progress || !progressBar) return;
+  if (state === null || state === undefined) {
+    progress.hidden = true;
+    progress.classList.remove('ptw-indeterminate');
+    progressBar.style.width = '0';
+    return;
+  }
+  progress.hidden = false;
+  if (state === 'indeterminate') {
+    progress.classList.add('ptw-indeterminate');
+    progressBar.style.width = '';
+    return;
+  }
+  progress.classList.remove('ptw-indeterminate');
+  progressBar.style.width = Math.round(Math.max(0, Math.min(1, state)) * 100) + '%';
+}
+
 function setPrimary(label, disabled) {
   convertBtn.textContent = label;
   convertBtn.disabled = !!disabled;
@@ -103,15 +126,39 @@ function resetDownload() {
 // `sourceName` is the file the conversion actually started from, captured at the
 // start of the run: `selected` can have moved on to another file by the time a
 // long conversion finishes, and naming A's result after B is a quiet lie.
+// A long name is cut in the middle rather than at the end, so the beginning of the
+// document's name and its extension both survive. The file itself keeps its full name;
+// this is only what the button says.
+const DL_NAME_MAX = 32;
+
+function shortenBase(base) {
+  if (base.length <= DL_NAME_MAX) return base;
+  const head = Math.ceil((DL_NAME_MAX - 1) / 2);
+  const tail = DL_NAME_MAX - 1 - head;
+  return base.slice(0, head) + '…' + base.slice(base.length - tail);
+}
+
 function offerDownload(blob, basic, sourceName) {
   resetDownload();
   lastUrl = URL.createObjectURL(blob);
-  const outName = (sourceName || selected.name).replace(/\.pdf$/i, '') + '.docx';
+  const base = (sourceName || selected.name).replace(/\.pdf$/i, '');
+  const outName = base + '.docx';
   download.href = lastUrl;
   download.download = outName;
+  download.title = outName; // the full name, for anyone who wants to check it
   download.hidden = false;
   download.style.display = '';
-  download.textContent = basic ? `Download ${outName} (basic)` : `Download ${outName}`;
+  // Three spans, not one string: the name is the only piece allowed to give way when
+  // the button runs out of room, so "Download" and ".docx" always stay on screen.
+  download.textContent = '';
+  const label = document.createElement('span');
+  label.textContent = 'Download ';
+  const name = document.createElement('span');
+  name.className = 'ptw-dl-name';
+  name.textContent = shortenBase(base);
+  const ext = document.createElement('span');
+  ext.textContent = basic ? '.docx (basic)' : '.docx';
+  download.append(label, name, ext);
 }
 
 // --- file selection ----------------------------------------------------------
@@ -130,6 +177,7 @@ function pickFile(file) {
   resetDownload();
   setBanner('');
   setAlt(false);
+  setProgress(null);
   if (!file) return;
   const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
   if (!isPdf) {
@@ -187,6 +235,7 @@ clearBtn.addEventListener('click', () => {
   resetDownload();
   setBanner('');
   setAlt(false);
+  setProgress(null);
   setFileInfo(FILE_INFO_IDLE);
   setPrimary('Convert to Word', true);
   // Clearing mid-verification must not leave the button disabled forever.
@@ -495,14 +544,20 @@ async function convertInBrowser(reason, retryLabel) {
   convertBtn.disabled = true;
   clearBtn.disabled = true;
   resetDownload();
-  setStatus('Reading your PDF…');
+  setStatus('Reading your PDF…', 'busy');
+  setProgress('indeterminate');
 
   try {
     if (!window.pdfjsLib || !window.docx) {
       throw new Error('Converter libraries failed to load. Please refresh and try again.');
     }
     const buf = await source.arrayBuffer();
-    const { blob, empty, sparse } = await pdfToDocxBlob(buf, (p, n) => setStatus(`Converting… page ${p} of ${n}`));
+    // Page count is a real measure of how far along we are, so the bar fills here
+    // rather than sliding, and it matches the words in the status line.
+    const { blob, empty, sparse } = await pdfToDocxBlob(buf, (p, n) => {
+      setProgress((p - 1) / n);
+      setStatus(`Converting… page ${p} of ${n}`, 'busy');
+    });
 
     if (empty) {
       // The banner above already says why the server did not run, so an auto-fallback
@@ -540,6 +595,7 @@ async function convertInBrowser(reason, retryLabel) {
     }
     setStatus(msg || 'Something went wrong converting that file. Please try again.', 'error');
   } finally {
+    setProgress(null);
     busy = false;
     clearBtn.disabled = false;
   }
@@ -571,6 +627,38 @@ async function onLocalLink() {
 
 // --- the server engine, the default -----------------------------------------
 
+// The upload is sent with XMLHttpRequest rather than fetch() for one reason: fetch
+// cannot report how much of the body has gone out. On a slow uplink a 20 MB PDF spends
+// most of its wait uploading, and with no way to measure that, the page could only show
+// one unchanging sentence for the whole time, which reads as a hang.
+// `onUpload` is called with the share sent so far, 0 to 1.
+function postToServer(file, token, onUpload) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/pdf-to-word', true);
+    xhr.responseType = 'blob';
+    // The gate gives up on the converter at 178s; stop waiting a little after that
+    // rather than spinning forever if the response itself never arrives.
+    xhr.timeout = SERVER_TIMEOUT_MS;
+    xhr.setRequestHeader('content-type', 'application/pdf');
+    xhr.setRequestHeader('cf-turnstile-token', token);
+    if (xhr.upload && onUpload) {
+      xhr.upload.onprogress = (e) => { if (e.lengthComputable && e.total) onUpload(e.loaded / e.total); };
+      xhr.upload.onload = () => onUpload(1);
+    }
+    xhr.onload = () => resolve({
+      ok: xhr.status >= 200 && xhr.status < 300,
+      status: xhr.status,
+      blob: xhr.response,
+      header: (name) => xhr.getResponseHeader(name),
+    });
+    xhr.onerror = () => reject(new Error('The server conversion could not be reached.'));
+    xhr.ontimeout = () => reject(Object.assign(new Error('timed out'), { name: 'TimeoutError' }));
+    xhr.onabort = () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+    xhr.send(file);
+  });
+}
+
 async function doServerConvert() {
   clearTsSolveTimer();
   pendingServerSubmit = false;
@@ -582,34 +670,56 @@ async function doServerConvert() {
   }
   const source = selected; // the run owns this file even if the box moves on
   resetDownload();
-  // A heavy PDF can hold the converter for minutes, so count the wait out loud: a
-  // status line frozen on the same three words for two minutes reads as a hang.
-  setStatus('Uploading and converting on our server… usually 10 to 40 seconds.', 'busy');
+  // Two phases, and they need saying differently. While the file is going out we know
+  // exactly how far along it is, so the bar fills and the line counts percent. Once it
+  // has landed, the server works without telling us anything until it is done, so the
+  // bar slides and the line counts the seconds: a status frozen on the same three words
+  // for half a minute is what made this look broken.
+  setStatus('Uploading your PDF…', 'busy');
+  setProgress(0);
   const startedAt = Date.now();
+  let convertingSince = null;
+
+  const enterConverting = () => {
+    if (convertingSince !== null) return;
+    convertingSince = Date.now();
+    setProgress('indeterminate');
+    setStatus('Converting on our server… 0s (most files take 10 to 40 seconds)', 'busy');
+  };
+
   serverTicker = setInterval(() => {
-    const s = Math.round((Date.now() - startedAt) / 1000);
-    if (s >= 10) setStatus(`Converting on our server… ${s}s (big or image-heavy PDFs take longer)`, 'busy');
+    // Safety net: a browser that never fires upload progress events would otherwise
+    // sit on "Uploading" for the whole conversion.
+    if (convertingSince === null) {
+      if (Date.now() - startedAt > 3000) enterConverting();
+      return;
+    }
+    const s = Math.round((Date.now() - convertingSince) / 1000);
+    setStatus(`Converting on our server… ${s}s (most files take 10 to 40 seconds)`, 'busy');
   }, 1000);
+
   try {
-    const res = await fetch('/api/pdf-to-word', {
-      method: 'POST',
-      headers: { 'content-type': 'application/pdf', 'cf-turnstile-token': tsToken },
-      body: source,
-      // The gate gives up on the converter at 178s; stop waiting a little after that
-      // rather than spinning forever if the response itself never arrives.
-      signal: AbortSignal.timeout(SERVER_TIMEOUT_MS),
+    const res = await postToServer(source, tsToken, (share) => {
+      if (convertingSince !== null) return;
+      if (share >= 1) { enterConverting(); return; }
+      setProgress(share);
+      setStatus(`Uploading your PDF… ${Math.round(share * 100)}%`, 'busy');
     });
     readQuotaHeaders(res);
     if (serverTicker !== null) { clearInterval(serverTicker); serverTicker = null; }
+    setProgress(null);
 
     if (!res.ok) {
       // The gate answers with {error}. Anything else means it died before it could,
       // so say what that actually means instead of a shrug.
       let msg = 'The server conversion could not finish this PDF.';
-      try { const j = await res.json(); if (j && j.error) msg = j.error; } catch (_) {}
+      try {
+        const j = JSON.parse(res.blob ? await res.blob.text() : '');
+        if (j && j.error) msg = j.error;
+      } catch (_) {}
       // x-ptw-charged, not the status code, is the truth about whether a slot went:
       // a quota refusal costs nothing, an AWS throttle after the upload costs one.
-      if (res.headers.get('x-ptw-charged') === '1') msg += SLOT_SPENT;
+      if (res.header('x-ptw-charged') === '1') msg += SLOT_SPENT;
       if (res.status === 415) {
         // The browser engine would make nothing of it either.
         setStatus(msg, 'error');
@@ -623,8 +733,8 @@ async function doServerConvert() {
       return;
     }
 
-    const blob = await res.blob();
-    if (!blob.size) {
+    const blob = res.blob;
+    if (!blob || !blob.size) {
       await fallbackToBrowser('The server sent back an empty file.' + SLOT_SPENT, true);
       return;
     }
@@ -642,6 +752,7 @@ async function doServerConvert() {
     );
   } finally {
     if (serverTicker !== null) { clearInterval(serverTicker); serverTicker = null; }
+    setProgress(null);
     busy = false;
     clearBtn.disabled = false;
     if (window.turnstile && tsWidgetId !== null) {
@@ -654,7 +765,7 @@ async function doServerConvert() {
 // The gate reports the allowance on every answer, computed from counters it had to
 // read anyway, so the page can say what is left without asking a second time.
 function readQuotaHeaders(res) {
-  const left = res.headers.get('x-ptw-remaining');
+  const left = res.header('x-ptw-remaining');
   if (left !== null && /^\d+$/.test(left)) quotaLeft = parseInt(left, 10);
 }
 
@@ -678,6 +789,7 @@ async function startServerConvert() {
   }
 
   setStatus('Checking this PDF…', 'busy');
+  setProgress('indeterminate');
   try {
     const { images, pages } = await preflightPdf(selected, MAX_SERVER_IMAGES);
     if (pages > SERVER_MAX_PAGES) {
@@ -714,7 +826,8 @@ async function startServerConvert() {
   if (tsToken) { doServerConvert(); return; }
 
   pendingServerSubmit = true;
-  setStatus('Verifying you’re human…');
+  setStatus('Verifying you’re human…', 'busy');
+  setProgress('indeterminate');
   // Backstop for the silent case: widget rendered, no token, no error callback.
   clearTsSolveTimer();
   tsSolveTimer = setTimeout(() => {

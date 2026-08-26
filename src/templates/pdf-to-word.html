@@ -11,6 +11,35 @@
 <meta property="og:description" content="Turn a PDF into an editable Word document, scans included. Free, no signup. A browser-only mode is one click away if you would rather upload nothing.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
+<style>
+/* Page-scoped. styles.css is shared by every tool page, so everything below is
+   keyed to this page's own ids and a ptw- prefix.
+
+   The download control is an <a>, and .btn-primary was written for a <button>.
+   An inline <a> ignores width:100%, so as soon as a long filename made the label
+   wrap, the browser painted the green background as two offset line fragments with
+   the filename running outside both. Making it a real flex box gives it one shape
+   at any width; the filename is the only part allowed to shrink, so "Download" and
+   ".docx" stay readable however long the name is. */
+#download.btn-primary {
+  display: flex; align-items: center; justify-content: center;
+  text-decoration: none; white-space: nowrap; overflow: hidden;
+}
+#download[hidden] { display: none; }
+#download > span { flex: 0 0 auto; }
+#download .ptw-dl-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* Progress bar for the wait. A conversion runs 10 to 40 seconds, and a line of small
+   text on its own reads as a frozen page. The bar fills while the file uploads, then
+   slides while the server works, because the server does not report how far along it is. */
+.ptw-progress { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin: 0 0 12px; }
+.ptw-progress-bar { height: 100%; width: 0; border-radius: 999px; background: var(--accent); transition: width .2s linear; }
+.ptw-progress.ptw-indeterminate .ptw-progress-bar { width: 40%; transition: none; animation: ptw-slide 1.1s ease-in-out infinite; }
+@keyframes ptw-slide { from { transform: translateX(-105%); } to { transform: translateX(255%); } }
+@media (prefers-reduced-motion: reduce) {
+  .ptw-progress.ptw-indeterminate .ptw-progress-bar { animation: none; width: 100%; opacity: .45; }
+}
+</style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"PDF to Word Converter","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Convert a PDF into an editable Word (.docx) document, scanned pages included. No signup. The file is uploaded over an encrypted connection, converted, then deleted straight away, or you can convert in your browser so it never leaves your device."}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is this PDF to Word converter free?","acceptedAnswer":{"@type":"Answer","text":"Yes. It is completely free with no signup and no watermark. Choose a PDF and download an editable Word .docx file."}},{"@type":"Question","name":"Are my files uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"By default, yes. Convert to Word uploads your PDF over an encrypted connection, converts it, and deletes it straight away. Nothing is kept. If you would rather it never left your device, the link under the button converts it in your browser instead, which uploads nothing."}},{"@type":"Question","name":"Will my formatting be kept?","acceptedAnswer":{"@type":"Answer","text":"The default server conversion keeps the layout closest to the original. The browser mode rebuilds the text, paragraphs and headings only, so complex layouts and tables may need a little cleanup in Word."}},{"@type":"Question","name":"Does it work on scanned PDFs?","acceptedAnswer":{"@type":"Answer","text":"Yes. The default conversion reads the text out of the picture and usually does produce an editable Word document. The browser mode cannot: a scan is a picture of a page, so it finds nothing to pull out and the result comes out empty."}},{"@type":"Question","name":"Is there a file size limit?","acceptedAnswer":{"@type":"Answer","text":"The default conversion takes PDFs up to 25 MB and up to 50 pages, five times a day. Anything bigger is converted in your browser automatically, which handles up to 50 MB with no daily limit because the work happens on your own device."}},{"@type":"Question","name":"How is this different from other PDF to Word converters?","acceptedAnswer":{"@type":"Answer","text":"Most free converters upload your file and stop there. This one converts your file and deletes it straight away, and it also has a one-click browser mode that uploads nothing at all, which upload-only tools like iLovePDF, Smallpdf and Sejda do not offer. Browser-only tools like PDF Edit have the opposite gap: no server mode, so no way to read a scan."}},{"@type":"Question","name":"Can I convert a PDF to Word with no internet connection?","acceptedAnswer":{"@type":"Answer","text":"Yes, with the browser mode. Choose Convert in your browser instead, and once the page has loaded you can turn off Wi-Fi or switch to airplane mode and it still works, because your PDF is read and rebuilt entirely on your device. The default conversion needs an internet connection."}},{"@type":"Question","name":"Do I need to install anything or create an account?","acceptedAnswer":{"@type":"Answer","text":"No. There is no install, no account, and no email address, for either the default conversion or the browser one."}}]}</script>
 </head>
@@ -40,6 +69,7 @@
 
       <div class="results">
         <p class="muted-small" id="status" aria-live="polite">Choose a PDF to begin.</p>
+        <div class="ptw-progress" id="ptwProgress" hidden aria-hidden="true"><div class="ptw-progress-bar" id="ptwProgressBar"></div></div>
         <p class="note" id="banner" hidden aria-live="polite" style="margin:0 0 12px"></p>
         <div class="field inline" style="margin-bottom:0">
           <button type="button" id="convert" class="btn-primary" disabled>Convert to Word</button>
