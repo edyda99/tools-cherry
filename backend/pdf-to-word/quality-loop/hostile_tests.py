@@ -4307,5 +4307,138 @@ _r, _ = run_tss(_d, tss_pdf())
 check(len(_r.paragraphs) == 1, "F1-13: split a paragraph carrying no tab")
 
 
+# ---- F2: date_column_untable indent repair ----------------------------------
+# A right tab stop is measured from the left text margin; the paragraph's text
+# area ends at (section width - right indent). pdf2docx hands every cell
+# paragraph the cell's own right indent, so once the cells are flowed back into
+# the body the stop this pass writes at the text margin can sit outside the
+# text area and the date wraps onto its own line instead of going flush right.
+# The cell's indents are furniture and are repaired; a reachable stop, a real
+# indent, and an undissolved table are all left exactly as they were.
+
+F2_SECT = 9360  # python-docx default: 12240 page - 2 x 1440 margin
+
+
+def f2_doc(cell_right=0, cell_left=None, width=6000, extra=(), body_left=None,
+           second_line=None):
+    """A date-shaped table whose cells carry pdf2docx's own indents, sitting in
+    a body whose own paragraphs establish a dominant left edge."""
+    d = build_table([[("Eurisko, Adma", "left"), ("Mar 2025 - Present", "right")]],
+                    width=width)
+    tbl = d.tables[0]._tbl
+    if second_line is not None:
+        tc = tbl.findall(qn("w:tr"))[0].findall(qn("w:tc"))[0]
+        tc.append(parse_xml(
+            '<w:p %s><w:r><w:t xml:space="preserve">%s</w:t></w:r></w:p>'
+            % (nsdecls("w"), second_line)))
+    for tc in tbl.iter(qn("w:tc")):
+        for cp in tc.findall(qn("w:p")):
+            bits = []
+            if cell_left is not None:
+                bits.append('w:left="%d"' % cell_left)
+            if cell_right:
+                bits.append('w:right="%d"' % cell_right)
+            if bits:
+                cp.get_or_add_pPr().append(
+                    parse_xml("<w:ind %s %s/>" % (nsdecls("w"), " ".join(bits))))
+    for text in extra:
+        para = d.add_paragraph(text)
+        if body_left is not None:
+            para._p.get_or_add_pPr().append(
+                parse_xml('<w:ind %s w:left="%d"/>' % (nsdecls("w"), body_left)))
+    return d
+
+
+def f2_para(r, needle):
+    for para in r.paragraphs:
+        if needle in para.text:
+            return para
+    return None
+
+
+def f2_ind(para, attr):
+    ppr = para._p.find(qn("w:pPr"))
+    ind = ppr.find(qn("w:ind")) if ppr is not None else None
+    raw = ind.get(qn("w:" + attr)) if ind is not None else None
+    return None if raw is None else int(raw)
+
+
+# F2-1: the stop lands at the text margin, so ANY right indent strands it.
+_r, _ = run_untable(f2_doc(cell_right=2000))
+_p = f2_para(_r, "Eurisko")
+check(_p is not None and f2_ind(_p, "right") == 0,
+      "F2-1: stranding right indent survived: %r"
+      % (None if _p is None else f2_ind(_p, "right")))
+_tab = _p._p.find(qn("w:pPr") + "/" + qn("w:tabs") + "/" + qn("w:tab"))
+check(_tab is not None and int(_tab.get(qn("w:pos"))) <= F2_SECT,
+      "F2-1: tab stop is outside the section text width")
+
+# F2-2: a stop the paragraph can still reach keeps the indent it came with.
+# 2 x 2000 twip cells put the stop at 4000, well inside 9360 - 1000.
+_r, _ = run_untable(f2_doc(cell_right=1000, width=2000))
+_p = f2_para(_r, "Eurisko")
+check(_p is not None and f2_ind(_p, "right") == 1000,
+      "F2-2: dropped a right indent that was not stranding anything")
+
+# F2-3: the second line of the SAME cell loses the indent too - it is the same
+# cell's furniture, and leaving it narrows the entry the date belongs to.
+_r, _ = run_untable(f2_doc(cell_right=2000, second_line="BA in Computer Science"))
+_p = f2_para(_r, "BA in Computer")
+check(_p is not None and f2_ind(_p, "right") == 0,
+      "F2-3: continuation line kept the cell right indent")
+
+# F2-4: a hair-width left difference is one edge measured twice - snap it.
+_r, _ = run_untable(f2_doc(cell_left=22, extra=("CAREER OBJECTIVE", "EDUCATION"),
+                           body_left=10))
+_p = f2_para(_r, "Eurisko")
+check(_p is not None and f2_ind(_p, "left") == 10,
+      "F2-4: left edge not snapped onto the body: %r"
+      % (None if _p is None else f2_ind(_p, "left")))
+
+# F2-5: a real indent is content, never noise - 720 twips stays 720.
+_r, _ = run_untable(f2_doc(cell_left=720, extra=("CAREER OBJECTIVE", "EDUCATION"),
+                           body_left=10))
+_p = f2_para(_r, "Eurisko")
+check(_p is not None and f2_ind(_p, "left") == 720,
+      "F2-5: flattened a deliberate 720-twip indent")
+
+# F2-6: no body paragraph carries a left indent, so there is no edge to snap
+# onto and the cell's own left indent is kept rather than guessed at.
+_r, _ = run_untable(f2_doc(cell_left=22))
+_p = f2_para(_r, "Eurisko")
+check(_p is not None and f2_ind(_p, "left") == 22,
+      "F2-6: snapped a left edge with no dominant body edge to snap to")
+
+# F2-7: two body left edges tie, so the document is ambiguous and untouched.
+_d = f2_doc(cell_left=22, extra=("CAREER OBJECTIVE",), body_left=10)
+_extra = _d.add_paragraph("EDUCATION")
+_extra._p.get_or_add_pPr().append(
+    parse_xml('<w:ind %s w:left="40"/>' % nsdecls("w")))
+_r, _ = run_untable(_d)
+_p = f2_para(_r, "Eurisko")
+check(_p is not None and f2_ind(_p, "left") == 22,
+      "F2-7: snapped a left edge on a tied document")
+
+# F2-8: a table the pass refuses to dissolve keeps every indent it had.
+_d = build_table(DATE_ROWS, boxed=True)
+for _tc in _d.tables[0]._tbl.iter(qn("w:tc")):
+    for _cp in _tc.findall(qn("w:p")):
+        _cp.get_or_add_pPr().append(
+            parse_xml('<w:ind %s w:left="22" w:right="2000"/>' % nsdecls("w")))
+_r, _ = run_untable(_d)
+check(len(_r.tables) == 1, "F2-8: bordered table dissolved")
+_cp = _r.tables[0]._tbl.findall(qn("w:tr"))[0].findall(qn("w:tc"))[0].findall(qn("w:p"))[0]
+_ind = _cp.find(qn("w:pPr")).find(qn("w:ind"))
+check(_ind.get(qn("w:right")) == "2000" and _ind.get(qn("w:left")) == "22",
+      "F2-8: rewrote the indents of a table it did not dissolve")
+
+# F2-9: the date still reads as its own token after the repair.
+_r, _ = run_untable(f2_doc(cell_right=2000, cell_left=22,
+                           extra=("CAREER OBJECTIVE", "EDUCATION"), body_left=10))
+check("Adma" in full_text(_r) and "AdmaMar" not in full_text(_r),
+      "F2-9: repair welded the label to the date: %r" % full_text(_r))
+
+
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)

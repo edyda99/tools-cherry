@@ -407,3 +407,43 @@ Effect over the real-world corpus: 2 paragraphs split, both on target_cv2, both
 the reported defect; the other 8 documents untouched, no synthetic document
 moved. target_cv2 composite 0.8642 -> 1.0000 (token_recall 0.991 -> 1.000, all
 ten subscores 1.0). Hostile cases F1-1..F1-13.
+
+## Round 5, F2 - unreachable right tab on the merged education rows
+
+A right tab stop is measured from the section's left text margin, but the
+paragraph's text area ends at (section width - right indent). pdf2docx gives
+every cell paragraph the cell's own right indent, and `date_column_untable`
+flowed those paragraphs into the body carrying it. On target_cv2 the section is
+10594 twips wide, so the pass writes its right stop at 10594 - exactly the text
+margin - while the ETSTC and Val Pere paragraphs still carried `w:ind
+w:right="1728"` / `"2880"`. The stop sat 1728 (2880) twips outside the text
+area, unreachable: "2020 - 2023" wrapped onto its own line and "2007 - 2019"
+landed mid-line, while the AUST and Eurisko entries, whose cells happened to be
+full width, stayed flush right. The date column was ragged across entries. The
+same cells also measured their left edge at 22 twips against 10 twips on every
+sibling, a 0.6pt ragged left edge.
+
+Fixed inside `date_column_untable` (`_untable_indent_repair`), per cell group,
+before the paragraphs leave the table:
+
+- if the group carries this pass's own right stop and any of its paragraphs has
+  a right indent R with stop > (section width - R), the right indent is dropped
+  from every paragraph of that group. The cell is gone, so its right indent is
+  furniture; a stop the paragraph can still reach is left alone.
+- the left indent is snapped onto the modal left indent of the body's OWN
+  (non-cell) paragraphs, and only when the two are within 30 twips (1.5pt) of
+  each other - one edge measured twice. A real indent (bullets at 368/720) is
+  never touched, and a body with no dominant left edge, or with two tied edges,
+  is left exactly as it was.
+
+Evidence on target_cv2: paragraphs 9-12 go left 22 -> 10 and right 1728/2880 ->
+0; paragraphs 7, 9, 11, 29 and 32 now all carry the same left edge (10) and the
+same reachable right stop (10594 = the text margin). Text, paragraph count and
+every rw subscore are unchanged - the scorer cannot see indents, this is a
+layout repair. QuickLook confirms the left edge; it does not honour right tab
+positions at all (the untouched AUST entry renders mid-line there too), so the
+stop is verified structurally against the section width.
+
+Gate: exit 0, no synthetic or real-world document dropped. Hostile cases
+F2-1..F2-9 (F2-1/F2-3/F2-4 fail without the repair; F2-2, F2-5..F2-8 are the
+negative controls).

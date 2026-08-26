@@ -1832,11 +1832,97 @@ def _tab_attach(target, children, stop):
         target.append(child)
 
 
+# --- date_column_untable indent repair (F2) ---------------------------------
+# A right tab stop is measured from the section's left text margin, but the
+# paragraph's TEXT AREA ends at (section width - right indent). pdf2docx gives
+# every cell paragraph the cell's own right indent, so after the cells are
+# flowed back into the body the stop this pass writes at the text margin can
+# sit OUTSIDE the text area: the tab is unreachable, Word gives up on it, and
+# the date wraps onto its own line (or lands mid-line) while the entries that
+# happened to come from a full-width cell stay flush right. The column goes
+# ragged. The cell's right indent is furniture — the cell is gone — so it is
+# dropped for the whole cell group whose date it strands.
+# The left edge is the same story in miniature: pdf2docx measures each cell's
+# left edge independently, so identical entries land on 10 twips and 22 twips
+# (0.6pt apart). Only differences below _IND_SNAP_TWIPS are treated as one
+# edge measured twice; anything larger is a real indent and is left alone.
+
+_IND_SNAP_TWIPS = 30  # 1.5pt
+
+
+def _ind_val(p, *attrs):
+    ppr = p.find(qn("w:pPr"))
+    ind = ppr.find(qn("w:ind")) if ppr is not None else None
+    if ind is None:
+        return None
+    for attr in attrs:
+        raw = ind.get(qn("w:" + attr))
+        if raw is not None:
+            try:
+                return int(round(float(raw)))
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
+def _ind_set(p, value, *attrs):
+    ppr = p.find(qn("w:pPr"))
+    ind = ppr.find(qn("w:ind")) if ppr is not None else None
+    if ind is None:
+        return
+    for attr in attrs:
+        if ind.get(qn("w:" + attr)) is not None:
+            ind.set(qn("w:" + attr), str(value))
+
+
+def _dominant_left(body):
+    """Modal left indent of the body's OWN paragraphs (never a cell's).
+
+    None when the body has no indented paragraph of its own or when two values
+    tie, so an ambiguous document is left exactly as it was.
+    """
+    counts = {}
+    for p in body.iterchildren(qn("w:p")):
+        if not _el_text(p).strip():
+            continue
+        left = _ind_val(p, "left", "start")
+        if left is None:
+            continue
+        counts[left] = counts.get(left, 0) + 1
+    if not counts:
+        return None
+    top = max(counts.values())
+    winners = [k for k, v in counts.items() if v == top]
+    return winners[0] if len(winners) == 1 else None
+
+
+def _untable_indent_repair(groups, stop, limit, dom_left):
+    """Drop a cell right indent that strands this pass's own right tab, and
+    snap a hair-width left indent onto the body's own left edge."""
+    for paras, tabbed in groups:
+        if tabbed and stop > 0 and limit > 0:
+            for p in paras:
+                right = _ind_val(p, "right", "end")
+                if right and stop > limit - right:
+                    for q in paras:
+                        _ind_set(q, 0, "right", "end")
+                    break
+        if dom_left is None:
+            continue
+        for p in paras:
+            left = _ind_val(p, "left", "start")
+            if left is None or left == dom_left:
+                continue
+            if abs(left - dom_left) <= _IND_SNAP_TWIPS:
+                _ind_set(p, dom_left, "left", "start")
+
+
 def date_column_untable(data, pdf_doc=None):
     """Flow pdf2docx's flush-right date "tables" back into tabbed paragraphs."""
     doc = Document(io.BytesIO(data))
     body = doc.element.body
     sects = _section_widths(body)
+    dom_left = _dominant_left(body)
     changed = False
 
     # section widths are resolved against the ORIGINAL body order, before the
@@ -1865,6 +1951,7 @@ def date_column_untable(data, pdf_doc=None):
                 rule = top
 
         out = []
+        groups = []
         for kind, left, right in plan:
             if kind == "drop":
                 continue
@@ -1878,6 +1965,7 @@ def date_column_untable(data, pdf_doc=None):
                     child.getparent().remove(child)
                     target.insert(at, child)
                 out.append(target)
+                groups.append(([target], False))
                 continue
             # trailing padding is dropped, so the date lands on the label rather
             # than on a blank line below it, and the cell's row-height spacing
@@ -1885,7 +1973,9 @@ def date_column_untable(data, pdf_doc=None):
             paras = _content_paras(left)
             out.extend(paras)
             if kind == "flow":
+                groups.append((paras, False))
                 continue
+            groups.append((paras, True))
             # The date goes on the label cell's FIRST content line, not its last.
             # _untable_plan only plans a "tab" row when the right cell holds ONE
             # paragraph, i.e. pdf2docx wrote no vertical padding around it, so the
@@ -1908,6 +1998,7 @@ def date_column_untable(data, pdf_doc=None):
 
         if not out:
             continue
+        _untable_indent_repair(groups, stop, limit, dom_left)
         if rule is not None:
             ppr = out[0].get_or_add_pPr()
             if ppr.find(qn("w:pBdr")) is None:
