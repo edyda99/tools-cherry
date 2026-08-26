@@ -1570,6 +1570,16 @@ footer.site a:hover { color: var(--text); }
 .limit-near { color: #b8860b; font-weight: 600; }
 .limit-over { color: var(--danger); font-weight: 600; }
 
+/* ---- Inflation calculator: the "$100 by year" table ------------------ */
+/* Class-scoped on purpose: styles.css serves every page on the site, so the
+   three money/percent columns are aligned through .infl-year-table and never
+   through a bare `td`. Everything else the table needs (borders, padding,
+   header weight, the horizontal scroll wrapper) is already inherited from
+   `.prose table` and `.table-scroll` above, so nothing is redeclared here. */
+.infl-year-table td.num, .infl-year-table th:nth-child(n+2) { text-align: right; }
+.infl-year-table td.num { font-variant-numeric: tabular-nums; }
+.infl-year-table td:first-child { font-weight: 600; }
+
 /* ---- Percentage calculator ------------------------------------------ */
 .field .inline > span.muted-small { flex: 0 0 auto; align-self: center; white-space: nowrap; margin: 0; min-height: 0; }
 .result-line { margin: 12px 0 0; font-size: 1.15rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }

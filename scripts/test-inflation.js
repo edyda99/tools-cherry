@@ -9,6 +9,7 @@ import {
   totalPercentChange,
   annualizedRate
 } from '../src/engine/inflation.js';
+import { inflationBlocks } from '../src/content/inflation-blocks.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -81,6 +82,100 @@ t('cpi-us.json: every value is a positive finite number', () => {
 t('real data: $100 in 2000 is more than $150 by 2024', () => {
   const v = inflationValue(100, cpi.data['2000'], cpi.data['2024']);
   assert.ok(v > 150 && v < 250, `unexpected 2000->2024 value: ${v}`);
+});
+
+// --- the page's printed figures ----------------------------------------------
+// The inflation page used to carry two hand-typed numbers in its prose ("$100 in
+// 2000 is about $183 in 2024, prices up about 83%"). Against the shipped CPI
+// table the true answers were $182.17 and 82.2%, and nothing in the build could
+// tell, because a sentence is not an assertion. Every figure on that page now
+// comes from inflationBlocks(); these tests re-derive them from the engine so a
+// wrong one fails the build, and the last test stops a literal from creeping
+// back into the template.
+const blocks = inflationBlocks(cpi);
+const inflationTpl = await readFile(
+  join(__dirname, '..', 'src', 'templates', 'inflation-calculator.html'),
+  'utf8'
+);
+const asMoney = (n) =>
+  n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
+
+t('blocks: the opening years are real years inside the data', () => {
+  assert.ok(cpi.data[String(blocks.defaultFrom)] > 0, `no CPI for ${blocks.defaultFrom}`);
+  assert.ok(cpi.data[String(blocks.defaultTo)] > 0, `no CPI for ${blocks.defaultTo}`);
+  assert.equal(blocks.defaultTo, cpi.throughYear);
+  assert.ok(blocks.defaultFrom < blocks.defaultTo);
+});
+
+t('blocks: the pre-rendered opening result re-derives from the engine', () => {
+  const expected = inflationValue(
+    blocks.exampleAmount,
+    cpi.data[String(blocks.defaultFrom)],
+    cpi.data[String(blocks.defaultTo)]
+  );
+  approx(blocks.defaultValue, expected);
+  assert.equal(blocks.CPI_DEFAULT_BIG, asMoney(expected));
+  // The sub-line is the sentence the browser writes over the pre-rendered one on
+  // load. If the two ever differ the first paint visibly twitches, so pin the
+  // exact string shape src/assets/inflation-calculator.js builds.
+  assert.equal(
+    blocks.CPI_DEFAULT_SUB,
+    `${asMoney(blocks.exampleAmount)} in ${blocks.defaultFrom} has the same buying power as ` +
+      `${asMoney(expected)} in ${blocks.defaultTo}`
+  );
+  // Same for the three detail rows, which the asset also rewrites. Its pct()
+  // formats with maximumFractionDigits:1 and no minimum, and signs positives.
+  const asPct = (n) => n.toLocaleString('en-US', { maximumFractionDigits: 1 }) + '%';
+  const change = totalPercentChange(
+    cpi.data[String(blocks.defaultFrom)], cpi.data[String(blocks.defaultTo)]
+  );
+  const rate = annualizedRate(
+    cpi.data[String(blocks.defaultFrom)], cpi.data[String(blocks.defaultTo)],
+    blocks.defaultTo - blocks.defaultFrom
+  );
+  assert.equal(blocks.CPI_DEFAULT_CHANGE, (change > 0 ? '+' : '') + asPct(change));
+  assert.equal(blocks.CPI_DEFAULT_RATE, (rate > 0 ? '+' : '') + asPct(rate));
+  assert.equal(blocks.CPI_DEFAULT_CHANGE_LABEL,
+    `Total price change ${blocks.defaultFrom}→${blocks.defaultTo}`);
+});
+
+t('blocks: the worked example re-derives from the engine', () => {
+  const from = cpi.data[String(blocks.anchorYear)];
+  const to = cpi.data[String(blocks.latestYear)];
+  approx(blocks.anchorValue, inflationValue(blocks.exampleAmount, from, to));
+  approx(blocks.anchorChange, totalPercentChange(from, to));
+  // The reverse direction the prose quotes ("$100 today is worth ... back then").
+  approx(blocks.anchorBackValue, inflationValue(blocks.exampleAmount, to, from));
+});
+
+t('blocks: every by-year table row re-derives from the engine', () => {
+  assert.ok(blocks.rows.length >= 8, `only ${blocks.rows.length} rows in the by-year table`);
+  const latest = cpi.data[String(blocks.latestYear)];
+  for (const r of blocks.rows) {
+    const from = cpi.data[String(r.year)];
+    assert.ok(from > 0, `by-year table row ${r.year} has no CPI value`);
+    assert.ok(r.year < blocks.latestYear, `row ${r.year} is not before ${blocks.latestYear}`);
+    approx(r.value, inflationValue(blocks.exampleAmount, from, latest));
+    approx(r.change, totalPercentChange(from, latest));
+    approx(r.rate, annualizedRate(from, latest, blocks.latestYear - r.year));
+    assert.ok(blocks.CPI_YEAR_ROWS.includes(asMoney(r.value)), `${r.year} row is not in the HTML`);
+  }
+});
+
+t('blocks: a CPI table whose throughYear disagrees with its data is rejected', () => {
+  assert.throws(() => inflationBlocks({ throughYear: 1999, data: cpi.data }), /throughYear/);
+});
+
+t('template: prints no hand-typed dollar figure, only the example amount', () => {
+  const literals = inflationTpl.match(/\$[\d][\d,]*(?:\.\d+)?/g) || [];
+  const allowed = '$' + blocks.exampleAmount;
+  const stray = [...new Set(literals)].filter((s) => s !== allowed);
+  assert.deepEqual(
+    stray,
+    [],
+    `hand-typed dollar figures in the inflation template: ${stray.join(', ')}. ` +
+      `Every figure on this page must come from inflationBlocks() so a CPI refresh moves it.`
+  );
 });
 
 console.log(`\n${pass} passing`);

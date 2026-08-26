@@ -44,10 +44,17 @@ function fillYears() {
   $('fromYear').innerHTML = opts;
   $('toYear').innerHTML = opts;
 
-  // Sensible defaults: a generation ago -> latest year.
-  const defaultFrom = Math.max(min, max - 25);
-  $('fromYear').value = String(defaultFrom);
-  $('toYear').value = String(max);
+  // Sensible defaults: a generation ago -> latest year. build.js pre-renders the
+  // answer for exactly these two years into the HTML and stamps them onto the
+  // selects as data-default, so the page already shows a real result before this
+  // script runs. Read them back rather than recomputing, or the pre-rendered
+  // number and the live one become two implementations free to drift apart.
+  const preset = (el, fallback) => {
+    const v = Number(el.dataset.default);
+    return Number.isFinite(v) && CPI_DATA[String(v)] != null ? v : fallback;
+  };
+  $('fromYear').value = String(preset($('fromYear'), Math.max(min, max - 25)));
+  $('toYear').value = String(preset($('toYear'), max));
   return { min, max };
 }
 
@@ -92,13 +99,16 @@ function calc() {
   line1.querySelector('.v').textContent =
     (change > 0 ? '+' : '') + pct(change);
 
+  // Only line1's label is dynamic (it carries the two years). Lines 2 and 3 have
+  // fixed labels that the template already renders, and line 3's carries a
+  // <small> hint — rewriting it with textContent deleted that hint on load,
+  // which nobody saw while the row started out `hidden` but is a visible flicker
+  // now that build.js pre-renders the opening result.
   line2.hidden = false;
-  line2.querySelector('.lbl').textContent = 'Average inflation per year';
   line2.querySelector('.v').textContent =
     yFrom === yTo ? '—' : (rate > 0 ? '+' : '') + pct(rate);
 
   line3.hidden = false;
-  line3.querySelector('.lbl').textContent = 'Cumulative multiplier';
   line3.querySelector('.v').textContent =
     (cpiTo / cpiFrom).toLocaleString('en-US', { maximumFractionDigits: 2 }) + '×';
 }

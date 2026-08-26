@@ -35,6 +35,7 @@ import {
 import { verifyDist, reportFailures } from './scripts/verify-dist.js';
 import { DFT_PAGES, DFT_GROUPS } from './src/content/days-from-today.js';
 import { dftPageParts, dftHubGroups, dftPath } from './src/content/days-from-today-blocks.js';
+import { inflationBlocks } from './src/content/inflation-blocks.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SRC = join(__dirname, 'src');
@@ -8979,12 +8980,23 @@ async function main() {
 
   // US inflation calculator (CPI-U). Embeds the BLS CPI-U annual-average table
   // into the page (window.__CPI_US__) so results are fully client-side.
+  // Every figure the page prints in prose — the pre-rendered opening result, the
+  // worked examples, the by-year table — comes from inflationBlocks(), which
+  // runs the same engine the browser does over the same file. Nothing on this
+  // page is a typed-in number, because the two that used to be were both wrong.
+  // Only the CPI_-prefixed keys are placeholders; the rest of the return value is
+  // raw numbers for the unit tests to re-derive against.
+  const cpiBlocks = inflationBlocks(cpiUs);
+  const cpiPlaceholders = Object.fromEntries(
+    Object.entries(cpiBlocks).filter(([k]) => k.startsWith('CPI_'))
+  );
   await mkdir(join(DIST, 'inflation-calculator'), { recursive: true });
   await writeFile(
     join(DIST, 'inflation-calculator', 'index.html'),
     fillTool(inflationTpl, {
       SITE_NAME: SITE.name,
       SITE_URL: SITE.url,
+      ...cpiPlaceholders,
       CPI_US_JSON: JSON.stringify({ source: cpiUs.source, throughYear: cpiUs.throughYear, data: cpiUs.data })
     }, '/inflation-calculator/')
   );
