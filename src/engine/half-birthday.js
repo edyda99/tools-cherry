@@ -23,6 +23,9 @@
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+// Half of a 365-day year, rounded to a whole day (the .5 rounds up by convention).
+const HALF_YEAR_DAYS = Math.round(182.5);
+
 // Days in a given month, accounting for leap years. month is 1-12 (human).
 // Day 0 of the next month === the last day of this month.
 export function daysInMonth(year, month) {
@@ -107,9 +110,14 @@ export function midpointHalfBirthday(birth, year) {
     ? Number(year)
     : (wraps ? b.y + 1 : b.y);
   const baseYear = wraps ? landingYear - 1 : landingYear;
-  // Anchor on that preceding birthday, then add half a year of days.
-  const anchor = toDate({ y: baseYear, m: b.m, d: Math.min(b.d, daysInMonth(baseYear, b.m)) });
-  const mid = new Date(anchor.getTime() + Math.round(182.5) * MS_PER_DAY);
+  // Anchor on that preceding birthday, then add half a year of days. The days
+  // are added to the DAY FIELD, not to the epoch milliseconds: a local day is
+  // not always 86_400_000 ms long, and a daylight-saving fall-back anywhere in
+  // the span would push the result back to 23:00 on the PREVIOUS day (e.g. a
+  // 15 Sep 2026 anchor in Asia/Beirut landed on 16 Mar instead of 17 Mar).
+  // Date normalises an out-of-range day, so this stays exact in every zone.
+  const anchorDay = Math.min(b.d, daysInMonth(baseYear, b.m));
+  const mid = new Date(baseYear, b.m - 1, anchorDay + HALF_YEAR_DAYS, 0, 0, 0, 0);
   return { y: mid.getFullYear(), m: mid.getMonth() + 1, d: mid.getDate() };
 }
 
