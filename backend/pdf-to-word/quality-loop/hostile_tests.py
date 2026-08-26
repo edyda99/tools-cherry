@@ -3486,5 +3486,154 @@ check([el.get(qn("w:val")) for el in _cs_hp._p.iter(qn("w:w"))] == ["98"],
       "E7-6: left a float scale in the header part")
 
 
+# === E8: phantom two-column bands (phantom_column_flatten) ===================
+# pdf2docx reads a CV's flush-right dates as a real second page column and
+# emits <w:cols w:num="2">; inside the narrowed first column it also welds the
+# source lines it folded. These cases pin both halves of the repair and, more
+# importantly, the refusals: a genuine two-column page, an ambiguous run, and a
+# band the pass may not take apart must all come out untouched.
+PCB_W, PCB_H = 612, 792          # letter, so pgSz w=12240 matches at 20 tw/pt
+PCB_SECT = ('<w:sectPr %s>%s<w:pgSz w:w="12240" w:h="15840"/>'
+            '<w:pgMar w:top="208" w:right="814" w:bottom="510" w:left="832"'
+            ' w:header="720" w:footer="720" w:gutter="0"/>%s'
+            '<w:docGrid w:linePitch="360"/></w:sectPr>')
+PCB_COLS2 = ('<w:cols w:num="2" w:equalWidth="0">'
+             '<w:col w:w="6505" w:space="0"/><w:col w:w="4087" w:space="0"/></w:cols>')
+
+
+def pcb_pdf(lines):
+    """lines: [(x, y, text)] on one letter page."""
+    pdf = fitz.open()
+    pg = pdf.new_page(width=PCB_W, height=PCB_H)
+    for x, y, t in lines:
+        pg.insert_text((x, y), t, fontsize=9)
+    return pdf
+
+
+def pcb_sect(kind, cols):
+    typ = '<w:type w:val="%s"/>' % kind if kind else ""
+    return PCB_SECT % (nsdecls("w"), typ, cols or "<w:cols/>")
+
+
+def pcb_para(doc, runs, kind=None, cols=None):
+    p = doc.add_paragraph()
+    for text in runs:
+        p.add_run(text)
+    if kind is not None or cols is not None:
+        p._p.get_or_add_pPr().append(parse_xml(pcb_sect(kind, cols)))
+    return p
+
+
+def pcb_run(doc, pdf):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.phantom_column_flatten(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+def pcb_texts(doc):
+    return [p.text for p in doc.paragraphs]
+
+
+# the CV shape: one text column, two body lines straddling pdf2docx's gutter,
+# and an entry whose date is set flush right on the school's own line.
+PCB_BODY = [(42, 60, "A determined graduate with a passion for the field and "
+                     "an appetite for work that lasts a long time indeed"),
+            (42, 76, "committed to projects that foster growth and expertise "
+                     "through practical experience over many long years"),
+            (42, 92, "EDUCATION")]
+PCB_ENTRY = [(42, 110, "Acme University of Somewhere, Anywhere"),
+             (430, 110, "Graduated August 2026"),
+             (42, 124, "BA in Computer Science")]
+
+
+def pcb_cv_doc():
+    d = Document()
+    pcb_para(d, ["EDUCATION"], kind=None, cols="<w:cols/>")   # nextPage break
+    pcb_para(d, ["Acme University of Somewhere, Anywhere ",
+                 "BA in Computer Science"], kind="continuous", cols=PCB_COLS2)
+    pcb_para(d, ["Graduated August 2026"], kind="nextColumn", cols=PCB_COLS2)
+    pcb_para(d, ["Afterwards, prose that is not in the band at all."])
+    return d
+
+
+# E8-1: the band is rebuilt into the PDF's own lines, date back on line one.
+r, out = pcb_run(pcb_cv_doc(), pcb_pdf(PCB_BODY + PCB_ENTRY))
+check(pcb_texts(r) == ["EDUCATION",
+                       "Acme University of Somewhere, Anywhere \tGraduated August 2026",
+                       "BA in Computer Science",
+                       "Afterwards, prose that is not in the band at all."],
+      "E8-1: band not rebuilt into source lines: %r" % (pcb_texts(r),))
+
+# E8-2: no multi-column section survives, and the date row gets a right stop.
+check(count_tag(out, 'w:cols w:num="2"') == 0, "E8-2: a w:cols num=2 survived")
+_e8_stops = [int(s.get(qn("w:pos"))) for s in r.paragraphs[1]._p.iter(qn("w:tab"))
+             if s.get(qn("w:val")) == "right"]
+check(len(_e8_stops) == 1 and de.PCB_MIN_TAB_TW <= _e8_stops[0] <= 12240 - 832 - 814,
+      "E8-2: no usable right stop on the date row: %r" % (_e8_stops,))
+check(len(r.paragraphs[1]._p.findall(qn("w:r") + "/" + qn("w:tab"))) == 1,
+      "E8-2: the date row is not joined by exactly one tab")
+
+# E8-3: the nextPage break in front of the band becomes continuous - the PDF
+# puts the heading and the entry on one page, so a page break there is wrong.
+_e8_types = [t.get(qn("w:val")) for t in r.paragraphs[0]._p.iter(qn("w:type"))]
+check(_e8_types == ["continuous"], "E8-3: leading break not demoted: %r" % (_e8_types,))
+
+# E8-4: not one character is gained or lost by the rebuild.
+check(sorted(full_text(r)) == sorted(full_text(pcb_cv_doc())),
+      "E8-4: text changed by the rebuild")
+
+# E8-5: a GENUINE two-column page is left alone - no line crosses the gutter.
+_e8_two = pcb_pdf([(42, 60, "left column line one"), (42, 74, "left column line two"),
+                   (42, 88, "EDUCATION"),
+                   (42, 110, "Acme University of Somewhere, Anywhere"),
+                   (430, 110, "Graduated August 2026"),
+                   (42, 124, "BA in Computer Science")])
+r2, out2 = pcb_run(pcb_cv_doc(), _e8_two)
+check(pcb_texts(r2) == pcb_texts(pcb_cv_doc()), "E8-5: flattened a real two-column page")
+check(count_tag(out2, 'w:cols w:num="2"') == 2, "E8-5: real column spec destroyed")
+
+# E8-6: an ambiguous run - its text is on two source lines - cuts nothing.
+_e8_amb = pcb_pdf(PCB_BODY + PCB_ENTRY + [(42, 300, "BA in Computer Science")])
+r3, _ = pcb_run(pcb_cv_doc(), _e8_amb)
+check(pcb_texts(r3) == pcb_texts(pcb_cv_doc()), "E8-6: rebuilt on an ambiguous run")
+
+# E8-7: a band the pass may not take apart (a list paragraph) is left alone.
+_e8_list = pcb_cv_doc()
+_e8_list.paragraphs[1]._p.get_or_add_pPr().insert(0, parse_xml(
+    '<w:numPr %s><w:ilvl w:val="0"/><w:numId w:val="3"/></w:numPr>' % nsdecls("w")))
+r4, _ = pcb_run(_e8_list, pcb_pdf(PCB_BODY + PCB_ENTRY))
+check([p.text for p in r4.paragraphs] == pcb_texts(pcb_cv_doc()),
+      "E8-7: took apart a band containing a list paragraph")
+
+# E8-8: no PDF, no evidence, no change.
+_e8_none = pcb_cv_doc()
+_e8_buf = io.BytesIO()
+_e8_none.save(_e8_buf)
+check(de.phantom_column_flatten(_e8_buf.getvalue(), None) == _e8_buf.getvalue(),
+      "E8-8: changed the document without a PDF")
+
+# E8-9: a lone multi-column section (no second column) is not a band.
+_e8_solo = Document()
+pcb_para(_e8_solo, ["EDUCATION"], kind=None, cols="<w:cols/>")
+pcb_para(_e8_solo, ["Acme University of Somewhere, Anywhere ",
+                    "BA in Computer Science"], kind="continuous", cols=PCB_COLS2)
+pcb_para(_e8_solo, ["Graduated August 2026"])
+r5, out5 = pcb_run(_e8_solo, pcb_pdf(PCB_BODY + PCB_ENTRY))
+check(count_tag(out5, 'w:cols w:num="2"') == 1 and
+      [p.text for p in r5.paragraphs][1] ==
+      "Acme University of Somewhere, Anywhere BA in Computer Science",
+      "E8-9: treated a single multi-column section as a band")
+
+# E8-10: prose whose page size does not match the docx page is out of scale
+# and must not be reflowed on a guess.
+_e8_a4 = fitz.open()
+_e8_pg = _e8_a4.new_page(width=595, height=842)
+for x, y, t in PCB_BODY + PCB_ENTRY:
+    _e8_pg.insert_text((x, y), t, fontsize=9)
+r6, _ = pcb_run(pcb_cv_doc(), _e8_a4)
+check(pcb_texts(r6) == pcb_texts(pcb_cv_doc()), "E8-10: reflowed across a page-size mismatch")
+
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)

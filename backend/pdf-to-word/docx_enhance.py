@@ -4260,6 +4260,347 @@ def char_scale_normalize(data, pdf_doc=None):
     return buf.getvalue()
 
 
+# --- phantom two-column page regions -----------------------------------------
+# pdf2docx decides a page's column count by looking for a vertical strip of
+# white space that runs down the text. A CV whose entries put the school on the
+# left and the date flush right hands it exactly that strip, so it reads the
+# page as a real two-column region and emits it as one: a `continuous` section
+# break carrying <w:cols w:num="2"> for the left text, then a `nextColumn`
+# section for the dates. Two things break at once inside that band. The left
+# column is narrower than the page, so the source lines pdf2docx folded into one
+# block ("... Achrafieh, Lebanon" and "BA in Computer Science") stay welded with
+# no separator at all, which is why fused_line_split cannot cut them: there is
+# no child boundary to cut on. And the date is exiled into column two, several
+# paragraphs of vertical white space away from the line it belongs to.
+#
+# phantom_column_flatten dissolves such a band and rebuilds it from the PDF's
+# own lines. It refutes the column reading with geometry, never with wording:
+# on a genuine two-column page NO line may cross the gutter, so a page whose
+# body lines straddle pdf2docx's own column boundary has one text column and
+# the band is an artefact. The rebuild is evidence-only:
+#   * every run of the band must match exactly ONE source line, at exactly one
+#     offset in it, or nothing is touched: an ambiguous run means the band
+#     cannot be re-ordered safely;
+#   * output paragraphs are the PDF's lines, in the PDF's own (y, x) order, so
+#     the date returns to the line it was set on and the welded lines separate;
+#   * two segments share one output paragraph only when they overlap vertically
+#     AND the second starts to the right of the first, i.e. they were one visual
+#     line; they are joined by a tab and a RIGHT stop written at the x the PDF
+#     ends the second segment on, so the date stays flush right;
+#   * runs, run properties and paragraph properties are moved, never rewritten.
+# The band's section breaks disappear with the paragraphs that carried them, so
+# no w:cols above one survives; a nextPage break directly in front of a band
+# whose text is on the same PDF page is demoted to `continuous`, because a page
+# break there is provably wrong.
+PCB_TWIPS_PER_PT = 20.0
+PCB_SCALE_TOL = 0.01       # pgSz vs PDF page width
+PCB_MIN_CROSS = 2          # body lines straddling the gutter that refute columns
+PCB_MAX_BAND_PARAS = 24    # a band longer than this is a document, not an entry
+PCB_ROW_OVERLAP = 0.5      # share of line height two segments must share
+PCB_MIN_TAB_TW = 240       # a right stop closer in than this is not a column
+
+
+def _pcb_cols(sect):
+    """(column count, first column width in twips) declared by a sectPr."""
+    node = sect.find(qn("w:cols")) if sect is not None else None
+    if node is None:
+        return 1, None
+    try:
+        num = int(node.get(qn("w:num")) or 1)
+    except (TypeError, ValueError):
+        num = 1
+    first = None
+    for col in node.findall(qn("w:col")):
+        try:
+            first = int(col.get(qn("w:w")))
+        except (TypeError, ValueError):
+            first = None
+        break
+    return max(1, num), first
+
+
+def _pcb_type(sect):
+    node = sect.find(qn("w:type")) if sect is not None else None
+    val = node.get(qn("w:val")) if node is not None else None
+    return val or "nextPage"
+
+
+def _pcb_sections(body):
+    """[(carrier w:p or None, sectPr or None, [blocks])] in document order."""
+    out, acc = [], []
+    for child in body:
+        if child.tag == qn("w:sectPr"):
+            continue
+        acc.append(child)
+        if child.tag != qn("w:p"):
+            continue
+        ppr = child.find(qn("w:pPr"))
+        sect = ppr.find(qn("w:sectPr")) if ppr is not None else None
+        if sect is not None:
+            out.append((child, sect, acc))
+            acc = []
+    out.append((None, body.find(qn("w:sectPr")), acc))
+    return out
+
+
+def _pcb_bands(sections):
+    """Maximal runs of >=2 consecutive sections sharing one multi-column spec."""
+    bands, i = [], 0
+    while i < len(sections):
+        num, width = _pcb_cols(sections[i][1])
+        if num < 2 or not width:
+            i += 1
+            continue
+        j = i + 1
+        while j < len(sections) and _pcb_cols(sections[j][1]) == (num, width):
+            j += 1
+        if j - i >= 2:
+            bands.append((i, j, width))
+        i = j
+    return bands
+
+
+def _pcb_page_lines(page):
+    out = []
+    for block in page.get_text("dict")["blocks"]:
+        if block.get("type"):
+            continue
+        for ln in block.get("lines", ()):
+            text = _fs_norm("".join(sp["text"] for sp in ln["spans"]))
+            if not text:
+                continue
+            x0, y0, x1, y1 = ln["bbox"]
+            out.append({"text": text, "x0": x0, "y0": y0, "x1": x1, "y1": y1})
+    return out
+
+
+def _pcb_pages(pdf_doc):
+    try:
+        return [(_pcb_page_lines(page), float(page.rect.width)) for page in pdf_doc]
+    except Exception:  # noqa: BLE001 - unreadable geometry is just "do nothing"
+        return []
+
+
+def _pcb_boundary(sect, col1_tw, page_width_pt):
+    """Gutter x in PDF points, or None when the docx and PDF pages disagree."""
+    node = sect.find(qn("w:pgSz"))
+    try:
+        page_tw = int(node.get(qn("w:w")))
+    except (AttributeError, TypeError, ValueError):
+        return None
+    if page_tw <= 0 or page_width_pt <= 0:
+        return None
+    if abs(page_tw / (page_width_pt * PCB_TWIPS_PER_PT) - 1.0) > PCB_SCALE_TOL:
+        return None
+    left = _sect_margin(sect, "left")
+    if left <= 0:
+        return None
+    return (left + col1_tw) / PCB_TWIPS_PER_PT
+
+
+def _pcb_crossings(lines, boundary):
+    """Body lines that straddle the gutter: each one refutes the column split."""
+    return sum(1 for l in lines
+               if l["x0"] < boundary - 1.0 and l["x1"] > boundary + 1.0)
+
+
+def _pcb_locate(key, lines):
+    """The one line containing `key` exactly once, as (index, offset), or None."""
+    hit = None
+    for i, line in enumerate(lines):
+        n = line["text"].count(key)
+        if not n:
+            continue
+        if n > 1 or hit is not None:
+            return None
+        hit = (i, line["text"].index(key))
+    return hit
+
+
+def _pcb_segments(paras, lines):
+    """{line index: [elements in reading order]} for the whole band, or None."""
+    placed, pending, seen = {}, [], {}
+    for p in paras:
+        items = _fs_children(p)
+        if items is None:
+            return None
+        last = None
+        for el, text in items:
+            key = _fs_norm(text)
+            if not key:
+                pending.append((el, last))
+                continue
+            hit = _pcb_locate(key, lines)
+            if hit is None:
+                return None
+            idx, off = hit
+            placed.setdefault(idx, []).append((off, len(seen), el))
+            seen[el] = idx
+            last = el
+    for el, anchor in pending:
+        idx = seen.get(anchor)
+        if idx is None:
+            return None
+        placed[idx].append((10 ** 9, len(seen), el))
+        seen[el] = idx
+    if not placed:
+        return None
+    return {idx: [el for _, _, el in sorted(seg, key=lambda t: t[:2])]
+            for idx, seg in placed.items()}
+
+
+def _pcb_rows(placed, lines):
+    """Group the used source lines into visual rows: [[line index, ...], ...]."""
+    used = sorted(placed, key=lambda i: (round(lines[i]["y0"], 1), lines[i]["x0"]))
+    rows = []
+    for idx in used:
+        line = lines[idx]
+        if rows:
+            prev = lines[rows[-1][-1]]
+            share = min(prev["y1"], line["y1"]) - max(prev["y0"], line["y0"])
+            height = min(prev["y1"] - prev["y0"], line["y1"] - line["y0"])
+            if (height > 0 and share >= PCB_ROW_OVERLAP * height
+                    and line["x0"] >= prev["x1"]):
+                rows[-1].append(idx)
+                continue
+        rows.append([idx])
+    return rows
+
+
+def _pcb_set_right_stop(ppr, pos_tw):
+    """One right stop where the PDF ends the line, and no right indent to clip it."""
+    for tabs in ppr.findall(qn("w:tabs")):
+        ppr.remove(tabs)
+    _ppr_insert(ppr, parse_xml(
+        '<w:tabs %s><w:tab w:val="right" w:pos="%d"/></w:tabs>'
+        % (nsdecls("w"), pos_tw)))
+    ind = ppr.find(qn("w:ind"))
+    if ind is not None:
+        for attr in ("right", "end", "rightChars", "endChars"):
+            if ind.get(qn("w:" + attr)) is not None:
+                del ind.attrib[qn("w:" + attr)]
+
+
+def _pcb_build(row, placed, lines, owner, left_tw, text_tw):
+    """One output paragraph for one visual row of the band."""
+    new = copy.deepcopy(owner[placed[row[0]][0]])
+    for child in list(new):
+        if child.tag != qn("w:pPr"):
+            new.remove(child)
+    ppr = new.find(qn("w:pPr"))
+    if ppr is not None:
+        for sect in ppr.findall(qn("w:sectPr")):
+            ppr.remove(sect)
+    for n, idx in enumerate(row):
+        if n:
+            # pdf2docx's own label/date convention is a space and then the tab;
+            # the space is what keeps the two segments separate words for any
+            # reader that ignores tabs, so it is written unless one is there
+            tail = _el_text(new)
+            new.append(parse_xml(
+                "<w:r %s>%s<w:tab/></w:r>"
+                % (nsdecls("w"),
+                   "" if not tail or tail[-1].isspace()
+                   else '<w:t xml:space="preserve"> </w:t>')))
+        for el in placed[idx]:
+            parent = el.getparent()
+            if parent is not None:
+                parent.remove(el)
+            new.append(el)
+    if len(row) > 1 and ppr is not None:
+        pos = int(round(lines[row[-1]]["x1"] * PCB_TWIPS_PER_PT)) - left_tw
+        if PCB_MIN_TAB_TW <= pos <= text_tw:
+            _pcb_set_right_stop(ppr, pos)
+    return new
+
+
+def _pcb_demote_break(first, lines):
+    """A nextPage break in front of a band on the SAME PDF page is wrong: make
+    it continuous, so the band no longer starts a page of its own."""
+    prev = first.getprevious()
+    if prev is None or prev.tag != qn("w:p"):
+        return
+    sect = prev.find(qn("w:pPr") + "/" + qn("w:sectPr"))
+    if sect is None or _pcb_type(sect) in ("continuous", "nextColumn"):
+        return
+    # the carrier is often pdf2docx's own empty paragraph, so the text that has
+    # to be shown to sit on the band's page is the nearest one above it
+    key, back = "", prev
+    while back is not None and back.tag == qn("w:p") and not key:
+        key = _fs_norm(_el_text(back))
+        back = back.getprevious()
+    if not key or _pcb_locate(key, lines) is None:
+        return
+    for node in sect.findall(qn("w:type")):
+        sect.remove(node)
+    sect.insert(0, parse_xml('<w:type %s w:val="continuous"/>' % nsdecls("w")))
+
+
+def phantom_column_flatten(data, pdf_doc=None):
+    """Dissolve a pdf2docx column band on a single-text-column page and rebuild
+    its paragraphs from the PDF's own source lines."""
+    if pdf_doc is None:
+        return data
+    pages = _pcb_pages(pdf_doc)
+    if not pages:
+        return data
+    doc = Document(io.BytesIO(data))
+    body = doc.element.body
+    sections = _pcb_sections(body)
+    changed = False
+    for start, stop, col1_tw in _pcb_bands(sections):
+        band = sections[start:stop]
+        paras = [c for _, _, blocks in band for c in blocks]
+        if not paras or len(paras) > PCB_MAX_BAND_PARAS:
+            continue
+        if any(p.tag != qn("w:p") for p in paras):
+            continue
+        sect = band[0][1]
+        text_tw = _sect_width(sect)
+        left_tw = _sect_margin(sect, "left")
+        if text_tw <= 0:
+            continue
+        found = None
+        for lines, width in pages:
+            boundary = _pcb_boundary(sect, col1_tw, width)
+            if boundary is None or _pcb_crossings(lines, boundary) < PCB_MIN_CROSS:
+                continue
+            placed = _pcb_segments(paras, lines)
+            if placed is not None:
+                found = (lines, placed)
+                break
+        if found is None:
+            continue
+        lines, placed = found
+        owner = {}
+        for p in paras:
+            for el in p:
+                if el.tag != qn("w:pPr"):
+                    owner[el] = p
+        built = [_pcb_build(row, placed, lines, owner, left_tw, text_tw)
+                 for row in _pcb_rows(placed, lines)]
+        anchor = paras[0]
+        for new in built:
+            anchor.addprevious(new)
+        _pcb_demote_break(built[0], lines)
+        for p in paras:
+            body.remove(p)
+        for carrier, sect_el, _blocks in band:
+            if carrier is not None or sect_el is None:
+                continue
+            for node in sect_el.findall(qn("w:cols")):
+                sect_el.replace(node, parse_xml("<w:cols %s/>" % nsdecls("w")))
+            for node in sect_el.findall(qn("w:type")):
+                if (node.get(qn("w:val")) or "") == "nextColumn":
+                    sect_el.remove(node)
+        changed = True
+    if not changed:
+        return data
+    out = io.BytesIO()
+    doc.save(out)
+    return out.getvalue()
+
+
 # fused_line_split runs after date_column_untable so it sees the tabs that pass
 # writes (a tab at a seam vetoes a cut), and before heading_styles so a title
 # line freed from its subtitle can still be recognised as a heading.
@@ -4269,7 +4610,7 @@ def char_scale_normalize(data, pdf_doc=None):
 # only ever touches runs with text, so the empties it leaves alone are exactly
 # what the prune is for).
 
-PASSES = (hyperlink_unnest, span_space_repair, br_row_split, header_footer_parts,
+PASSES = (hyperlink_unnest, phantom_column_flatten, span_space_repair, br_row_split, header_footer_parts,
           date_column_untable, fused_line_split, centred_indent_drop, heading_styles,
           bullet_image_lists, list_numbering, paragraph_reflow, list_wrap_merge,
           list_hanging_indent, hyperlink_autolink, font_names,
