@@ -1262,6 +1262,120 @@ def span_space_repair(data, pdf_doc=None):
     return buf.getvalue()
 
 
+# --- whole-line space realign -------------------------------------------------
+# span_space_repair works seam by seam and needs the two halves of the seam to be
+# whole PDF words. When pdf2docx shatters a line into per-glyph runs
+# ("TE"|"CHNICAL"|"S"|"K"|"I"|"L"|"LS") the seam halves are fragments, the bigram
+# probe cannot match, and a lost space survives ("TECHNICALSKILLS"). This pass
+# works on the paragraph's whole text stream instead: it fires only when the
+# paragraph, with all whitespace removed, is character-for-character identical to
+# exactly one PDF line that carries MORE whitespace, and then re-inserts that
+# line's spaces at the aligned offsets. Insertion-only, exact-match-only.
+
+# A PDF line whose own tokens are mostly single characters is letter-spaced
+# display text ("H e l l o"), which pdf2docx correctly joins; re-splitting it
+# would be the corruption, so such a line is never used as evidence.
+_LS_OK_SOLO = frozenset("aAiIoO&+-/:0123456789")
+_WS_RE = re.compile(r"\s+")
+
+
+def _lsr_usable_line(line):
+    for tok in line.split():
+        if len(tok) > 1:
+            continue
+        if tok in _LS_OK_SOLO or not tok.isalnum():
+            continue
+        return False
+    return True
+
+
+def _lsr_pdf_lines(pdf_doc):
+    """despaced text -> the single PDF line producing it (None when ambiguous)."""
+    index = {}
+    for page in pdf_doc:
+        for raw in page.get_text("text").split("\n"):
+            line = raw.strip()
+            if not line or not _WS_RE.search(line):
+                continue  # a line with no space cannot donate one
+            key = _WS_RE.sub("", line)
+            if len(key) < 4:
+                continue
+            if key in index and index[key] != line:
+                index[key] = None  # two different spacings, no safe choice
+            else:
+                index.setdefault(key, line)
+    return index
+
+
+_WS_RE = re.compile(r"\s+")
+
+
+def _lsr_insert_offsets(para_text, line_text):
+    """Offsets in para_text where line_text has whitespace and para_text does not."""
+    offsets, i = [], 0
+    n = len(para_text)
+    for ch in line_text:
+        if ch.isspace():
+            # a real gap in the PDF line: insert unless the docx already has one
+            if 0 < i < n and not para_text[i - 1].isspace() and not para_text[i].isspace():
+                offsets.append(i)
+            continue
+        while i < n and para_text[i].isspace():
+            i += 1
+        if i >= n or para_text[i] != ch:
+            return None  # alignment broke; refuse
+        i += 1
+    while i < n and para_text[i].isspace():
+        i += 1
+    return offsets if i == n else None
+
+
+def line_space_realign(data, pdf_doc=None):
+    """Restore spaces lost inside a run-shattered line, by whole-line alignment."""
+    if pdf_doc is None:
+        return data
+    index = _lsr_pdf_lines(pdf_doc)
+    if not index:
+        return data
+    doc = Document(io.BytesIO(data))
+    changed = False
+    for para in doc.paragraphs:
+        stream = [el for el in _seam_stream(para._p) if el.tag == qn("w:t")]
+        if not stream:
+            continue
+        if len(_seam_stream(para._p)) != len(stream):
+            continue  # tabs/breaks in the paragraph: offsets are not comparable
+        text = "".join(el.text or "" for el in stream)
+        key = _WS_RE.sub("", text)
+        if len(key) < 4:
+            continue
+        line = index.get(key)
+        if not line or line == text or not _lsr_usable_line(line):
+            continue
+        offsets = _lsr_insert_offsets(text, line)
+        if not offsets:
+            continue
+        # apply right-to-left so earlier offsets stay valid
+        bounds, acc = [], 0
+        for el in stream:
+            start = acc
+            acc += len(el.text or "")
+            bounds.append((start, acc, el))
+        for off in reversed(offsets):
+            for start, end, el in bounds:
+                if start < off <= end:
+                    t = el.text or ""
+                    el.text = t[: off - start] + " " + t[off - start:]
+                    el.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+                    break
+        changed = True
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 # --- date-column untabling ----------------------------------------------------
 # A CV line like "Employer — City" with the dates flush right is one flowed line
 # of text with a right tab, but pdf2docx sees two horizontally separated blocks
@@ -4915,7 +5029,7 @@ def phantom_column_flatten(data, pdf_doc=None):
 # only ever touches runs with text, so the empties it leaves alone are exactly
 # what the prune is for).
 
-PASSES = (hyperlink_unnest, phantom_column_flatten, span_space_repair, br_row_split, header_footer_parts,
+PASSES = (hyperlink_unnest, phantom_column_flatten, span_space_repair, line_space_realign, br_row_split, header_footer_parts,
           date_column_untable, fused_line_split, centred_indent_drop, heading_styles,
           bullet_image_lists, list_numbering, paragraph_reflow, list_wrap_merge,
           list_hanging_indent, hyperlink_autolink, font_names,

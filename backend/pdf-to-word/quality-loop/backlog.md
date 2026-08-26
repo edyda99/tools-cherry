@@ -329,3 +329,40 @@ Dropped: hyperlink preservation — pdf2docx already keeps links live (links 1.0
   and a 2-page repeat that is NOT yet a running header. rule_pdf now commits
   one path per hairline (batching them into a single shape hid them behind one
   tall bounding rect, which was silently defusing the ruled-grid case S3).
+
+### E4 - all-caps headings lose their inter-word space (line_space_realign)
+
+"TECHNICAL SKILLS" and "ACADEMIC PROJECTS" came out of the new CV as
+"TECHNICALSKILLS" / "ACADEMICPROJECTS". The loss is already in RAW pdf2docx
+output. Every all-caps heading on that document is run-shattered per glyph
+("C"|"AR"|"EER", "TE"|"CHNICAL"|"S"|"K"|"I"|"L"|"LS"); only these two lose text,
+because only here does a run boundary land on the inter-word space.
+
+span_space_repair exists for this class but cannot reach it: it tests one seam
+at a time and needs both halves to be whole PDF words. At the "CHNICAL"|"S"
+seam it probes the bigram ("chnical", "s"), which no PDF contains, so its own
+whole-token guard vetoes the repair. Loosening that guard would let it splice
+spaces into ordinary prose, so it stays as it is.
+
+New pass `line_space_realign`, immediately after span_space_repair (it must run
+before paragraph_reflow merges paragraphs, which would destroy the one-line
+correspondence). It ignores run boundaries entirely: it rebuilds the
+paragraph's whole text stream, strips all whitespace, and looks the result up
+in an index of the PDF's own text lines keyed the same way. It edits only when
+that key resolves to exactly ONE PDF line, that line carries more whitespace
+than the paragraph does, and a character-by-character walk of the line against
+the paragraph consumes both to the end. Then it re-inserts the line's spaces at
+the aligned offsets, marking the carrying w:t xml:space="preserve".
+
+Insertion-only and exact-match-only, so it cannot fire on prose: a wrapped
+sentence is several PDF lines, never one, and its key never resolves (E4-7).
+Declines: two PDF lines sharing a key with different spacings (E4-4), a
+paragraph holding a tab or break, where docx and PDF offsets are not comparable
+(E4-5), and any evidence line whose own tokens are single characters, which is
+letter-spaced display text that pdf2docx correctly joined and must not be
+re-split (E4-3).
+
+Effect over the whole real-world corpus: exactly 2 paragraphs changed, both on
+target_cv2, both the reported defect; the other 8 documents are untouched.
+target_cv2 token_recall 0.991 -> 1.000, composite 0.8642 -> 0.8717. No
+synthetic or real document drops. Hostile cases E4-1..E4-10.

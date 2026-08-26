@@ -3872,6 +3872,93 @@ wt_para(d, "papa ", "quebec")
 r, _ = run_wt(d, wt_wrapped(head="papa", tail="quebec"))
 check("\t" in wt_texts(r)[0], "WT-11: unfolded on a two-word n-gram")
 
+# ---- line_space_realign cases (E4) -----------------------------------------
+# The pass may only ADD a space, and only when the paragraph's whole text stream
+# is character-identical to exactly one PDF line that carries more whitespace.
+def lsr_run(doc, pdf):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.line_space_realign(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+def lsr_doc(*frags):
+    d = Document()
+    par = d.add_paragraph()
+    for f in frags:
+        par.add_run(f)
+    return d
+
+
+# E4-1: the reported defect — per-glyph shattering hides the inter-word space
+# from span_space_repair's bigram probe; whole-line alignment restores it.
+_d = lsr_doc("TE", "CHNICAL", "S", "K", "I", "L", "LS")
+_r, _ = lsr_run(_d, rule_pdf([(100, "TECHNICAL SKILLS")], []))
+check(_r.paragraphs[0].text == "TECHNICAL SKILLS", "E4-1: not repaired: %r"
+      % (_r.paragraphs[0].text,))
+check(len(_r.paragraphs[0].runs) == 7, "E4-1: run count changed")
+
+# E4-2: same shattering, but the PDF has no such line -> no evidence, no edit.
+_d = lsr_doc("AC", "ADEMIC", "P", "R", "OJECTS")
+_r, _ = lsr_run(_d, rule_pdf([(100, "SOMETHING ELSE ENTIRELY")], []))
+check(_r.paragraphs[0].text == "ACADEMICPROJECTS", "E4-2: invented a space")
+
+# E4-3: letter-spaced display text. pdf2docx correctly joined "H E L L O" into
+# "HELLO"; re-splitting it would be the corruption, so the line is unusable.
+_d = lsr_doc("HELLO")
+_r, _ = lsr_run(_d, rule_pdf([(100, "H E L L O")], []))
+check(_r.paragraphs[0].text == "HELLO", "E4-3: re-split letter-spaced text: %r"
+      % (_r.paragraphs[0].text,))
+
+# E4-4: two PDF lines share the despaced key with different spacings. There is
+# no safe choice, so the pass declines rather than guessing.
+_d = lsr_doc("ABC", "DEF")
+_r, _ = lsr_run(_d, rule_pdf([(100, "AB CDEF"), (130, "ABC DEF")], []))
+check(_r.paragraphs[0].text == "ABCDEF", "E4-4: resolved an ambiguous key")
+
+# E4-5: a tab (or break) in the paragraph means docx offsets and PDF-line
+# offsets are not comparable -> decline.
+_d = lsr_doc("FOO", "BAR")
+_d.paragraphs[0].runs[0]._r.append(parse_xml("<w:tab %s/>" % nsdecls("w")))
+_r, _ = lsr_run(_d, rule_pdf([(100, "FOO BAR")], []))
+check(_r.paragraphs[0].text == "FOO\tBAR", "E4-5: edited a tabbed paragraph: %r"
+      % (_r.paragraphs[0].text,))
+
+# E4-6: the paragraph already carries the line's spaces -> exact match, no-op,
+# and no duplicated space.
+_d = lsr_doc("TECHNICAL ", "SKILLS")
+_r, out = lsr_run(_d, rule_pdf([(100, "TECHNICAL SKILLS")], []))
+check(_r.paragraphs[0].text == "TECHNICAL SKILLS", "E4-6: doubled a space: %r"
+      % (_r.paragraphs[0].text,))
+
+# E4-7: prose. A lost space inside a wrapped sentence is NOT a whole PDF line,
+# so this pass leaves it to span_space_repair instead of splicing blind.
+_d = lsr_doc("Aligned with the", "deploymentchecklist agreed last week")
+_r, _ = lsr_run(_d, rule_pdf([(100, "Aligned with the deployment checklist"),
+                              (114, "agreed last week")], []))
+check(_r.paragraphs[0].text == "Aligned with thedeploymentchecklist agreed last week",
+      "E4-7: touched a multi-line prose paragraph: %r" % (_r.paragraphs[0].text,))
+
+# E4-8: a missing space whose position falls exactly on a run boundary lands on
+# the left run, and the space is marked preserve so Word keeps it.
+_d = lsr_doc("CAREER", "OBJECTIVE")
+_r, out = lsr_run(_d, rule_pdf([(100, "CAREER OBJECTIVE")], []))
+check(_r.paragraphs[0].text == "CAREER OBJECTIVE", "E4-8: boundary seam missed")
+check(_r.paragraphs[0].runs[0].text == "CAREER ", "E4-8: space on the wrong run")
+_e48 = _r.paragraphs[0].runs[0]._r.find(qn("w:t"))
+check(_e48.get("{http://www.w3.org/XML/1998/namespace}space") == "preserve",
+      "E4-8: trailing space not marked preserve")
+
+# E4-9: no PDF at all (browser/no-evidence path) is a clean no-op.
+_r, _ = lsr_run(lsr_doc("TE", "CHNICALSKILLS"), None)
+check(_r.paragraphs[0].text == "TECHNICALSKILLS", "E4-9: edited without a PDF")
+
+# E4-10: the pass is insertion-only — it never deletes a character even when the
+# PDF line is shorter than what the docx holds.
+_d = lsr_doc("TECHNICALSKILLSEXTRA")
+_r, _ = lsr_run(_d, rule_pdf([(100, "TECHNICAL SKILLS")], []))
+check(_r.paragraphs[0].text == "TECHNICALSKILLSEXTRA", "E4-10: mangled a longer run")
+
 
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)
