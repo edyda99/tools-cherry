@@ -3376,8 +3376,9 @@ _RULE_MAX_GAP_PT = 12.0
 _RULE_MAX_ANCHOR_WORDS = 12
 _RULE_MAX_PER_PAGE = 12
 _RULE_MIN_HEADER_PAGES = 3
-_RULE_BDR_XML = ('<w:pBdr %s><w:bottom w:val="single" w:sz="6" w:space="1" '
-                 'w:color="auto"/></w:pBdr>')
+_RULE_MIN_ANCHOR_KEY = 3   # alphanumerics an anchor needs to identify a line
+_RULE_BDR_XML = ('<w:pBdr %s><w:bottom w:val="single" w:sz="%d" w:space="1" '
+                 'w:color="%s"/></w:pBdr>')
 # CT_PPrBase child sequence; pBdr has to be inserted at its own slot.
 _PPR_ORDER = ("pStyle", "keepNext", "keepLines", "pageBreakBefore", "framePr",
               "widowControl", "numPr", "suppressLineNumbers", "pBdr", "shd",
@@ -3394,6 +3395,71 @@ def _rule_norm(s):
     return re.sub(r"\s+", " ", (s or "")).strip().lower()
 
 
+def _rule_key(s):
+    """Whitespace- and punctuation-free identity of a line.
+
+    The anchor match has to survive the converter's own spacing damage: a
+    heading pdf2docx emits as "TECHNICALSKILLS" is the PDF's "TECHNICAL
+    SKILLS", and span_space_repair may put the space back on some runs and
+    not others. Comparing alphanumerics only makes the match independent of
+    that, and it is still a whole-line equality, so it cannot slide onto a
+    different heading.
+    """
+    return re.sub(r"[^0-9a-z]+", "", (s or "").lower())
+
+
+def _rule_rects(page):
+    """Deduplicated hairline rules on one page: (rect, colour, stroke width).
+
+    A generator routinely strokes the same rule twice (a fill pass and a
+    stroke pass, or one stroke per content stream), and PyMuPDF reports each
+    one. Counting the raw strokes made a plain CV with seven section rules
+    look like a fourteen-line form grid, which tripped the _RULE_MAX_PER_PAGE
+    guard and turned this pass (and the E5 dedupe, which shares the guard)
+    off on exactly the documents it exists for. Two strokes with the same
+    geometry to a tenth of a point are one rule.
+    """
+    width = page.rect.width
+    seen = {}
+    for drawing in page.get_drawings():
+        r = drawing["rect"]
+        if r.height > _RULE_MAX_H_PT or r.width < _RULE_MIN_WIDTH_SHARE * width:
+            continue
+        if any(item[0] not in ("re", "l") for item in drawing.get("items", ())):
+            continue
+        key = (round(r.x0, 1), round(r.y0, 1), round(r.x1, 1), round(r.y1, 1))
+        if key in seen:
+            continue
+        seen[key] = (r, drawing.get("color") or drawing.get("fill"),
+                     drawing.get("width"))
+    return [seen[k] for k in sorted(seen, key=lambda k: (k[1], k[0]))]
+
+
+def _rule_style(color, width):
+    """(w:sz eighths-of-a-point, w:color) for a PDF stroke.
+
+    Taken from the stroke itself so every re-emitted rule on a page matches
+    the one pdf2docx happened to absorb as a table border (which carries the
+    source colour already) - seven rules at one weight and one colour, not a
+    mix of black paragraph borders and grey table borders.
+    """
+    sz = 6
+    if width:
+        try:
+            sz = max(2, min(12, int(round(float(width) * 8))))
+        except (TypeError, ValueError):
+            sz = 6
+    hexc = "auto"
+    if color is not None:
+        try:
+            chan = [max(0, min(255, int(round(float(c) * 255)))) for c in color[:3]]
+        except (TypeError, ValueError):
+            chan = []
+        if len(chan) == 3:
+            hexc = "%02X%02X%02X" % tuple(chan)
+    return sz, hexc
+
+
 def _rule_lines(page):
     out = []
     for block in page.get_text("dict").get("blocks", []):
@@ -3405,21 +3471,13 @@ def _rule_lines(page):
 
 
 def _page_rules(page):
-    """Anchor texts of the hairline rules on one page, in reading order."""
-    width = page.rect.width
-    rects = []
-    for drawing in page.get_drawings():
-        r = drawing["rect"]
-        if r.height > _RULE_MAX_H_PT or r.width < _RULE_MIN_WIDTH_SHARE * width:
-            continue
-        if any(item[0] not in ("re", "l") for item in drawing.get("items", ())):
-            continue
-        rects.append(r)
-    if not rects or len(rects) > _RULE_MAX_PER_PAGE:
+    """Anchors of the hairline rules on one page: (text, sz, colour)."""
+    rules = _rule_rects(page)
+    if not rules or len(rules) > _RULE_MAX_PER_PAGE:
         return []
     lines = _rule_lines(page)
     out = []
-    for r in sorted(rects, key=lambda x: x.y0):
+    for r, color, stroke in rules:
         above = [(bb, t) for bb, t in lines
                  if bb[3] <= r.y0 + 1.5 and r.y0 - bb[3] <= _RULE_MAX_GAP_PT
                  and bb[0] < r.x1 and bb[2] > r.x0]
@@ -3432,7 +3490,8 @@ def _page_rules(page):
             continue
         if len(text.split()) > _RULE_MAX_ANCHOR_WORDS:
             continue
-        out.append(_rule_norm(text))
+        sz, hexc = _rule_style(color, stroke)
+        out.append((_rule_norm(text), sz, hexc))
     return out
 
 
@@ -3447,11 +3506,11 @@ def _pdf_rule_anchors(pdf_doc):
     """
     per_page = [_page_rules(page) for page in pdf_doc]
     pages_seen = {}
-    for texts in per_page:
-        for t in set(texts):
+    for rules in per_page:
+        for t in {r[0] for r in rules}:
             pages_seen[t] = pages_seen.get(t, 0) + 1
     running = {t for t, n in pages_seen.items() if n >= _RULE_MIN_HEADER_PAGES}
-    return [t for texts in per_page for t in texts if t not in running]
+    return [r for rules in per_page for r in rules if r[0] not in running]
 
 
 def _tbl_has_top_border(tbl):
@@ -3463,14 +3522,14 @@ def _tbl_has_top_border(tbl):
     return False
 
 
-def _add_bottom_border(p):
+def _add_bottom_border(p, sz=6, color="auto"):
     ppr = p.find(qn("w:pPr"))
     if ppr is None:
         ppr = parse_xml("<w:pPr %s/>" % nsdecls("w"))
         p.insert(0, ppr)
     if ppr.find(qn("w:pBdr")) is not None:
         return False
-    bdr = parse_xml(_RULE_BDR_XML % nsdecls("w"))
+    bdr = parse_xml(_RULE_BDR_XML % (nsdecls("w"), sz, color))
     limit = _PPR_INDEX[qn("w:pBdr")]
     for child in ppr:
         if _PPR_INDEX.get(child.tag, len(_PPR_ORDER)) > limit:
@@ -3490,19 +3549,20 @@ def section_rules(data, pdf_doc=None):
     doc = Document(io.BytesIO(data))
     body = doc.element.body
     blocks = list(body)
-    paras = [(i, el, _rule_norm("".join(t.text or "" for t in el.iter(qn("w:t")))))
+    paras = [(i, el, _rule_key("".join(t.text or "" for t in el.iter(qn("w:t")))))
              for i, el in enumerate(blocks) if el.tag == qn("w:p")]
     changed = False
     cursor = 0
-    for anchor in anchors:
-        if not anchor:
+    for anchor, sz, color in anchors:
+        key = _rule_key(anchor)
+        if len(key) < _RULE_MIN_ANCHOR_KEY:
             continue
         hit = None
         for k in range(cursor, len(paras)):
-            # exact match only: a prefix match lets a short anchor swallow a
-            # body sentence that merely starts with the same words, and draws
-            # a rule through the middle of prose
-            if paras[k][2] == anchor:
+            # whole-line equality only: a prefix match lets a short anchor
+            # swallow a body sentence that merely starts with the same words,
+            # and draws a rule through the middle of prose
+            if paras[k][2] == key:
                 hit = k
                 break
         if hit is None:
@@ -3512,7 +3572,7 @@ def section_rules(data, pdf_doc=None):
         nxt = blocks[i + 1] if i + 1 < len(blocks) else None
         if nxt is not None and nxt.tag == qn("w:tbl") and _tbl_has_top_border(nxt):
             continue  # the same rule already survived as that table's top border
-        changed |= _add_bottom_border(el)
+        changed |= _add_bottom_border(el, sz, color)
     if not changed:
         return data
     buf = io.BytesIO()
@@ -3961,18 +4021,10 @@ _SRD_MIN_ANCHOR = 8       # chars a source line needs before a prefix match coun
 
 def _srd_page_rule_ys(page):
     """y0 of every hairline on the page, or None when the page is a grid."""
-    width = page.rect.width
-    ys = []
-    for drawing in page.get_drawings():
-        r = drawing["rect"]
-        if r.height > _RULE_MAX_H_PT or r.width < _RULE_MIN_WIDTH_SHARE * width:
-            continue
-        if any(item[0] not in ("re", "l") for item in drawing.get("items", ())):
-            continue
-        ys.append(r.y0)
-    if len(ys) > _RULE_MAX_PER_PAGE:
+    rules = _rule_rects(page)
+    if len(rules) > _RULE_MAX_PER_PAGE:
         return None
-    return sorted(ys)
+    return sorted(r.y0 for r, _, _ in rules)
 
 
 def _srd_pages(pdf_doc):

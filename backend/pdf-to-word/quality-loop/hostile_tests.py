@@ -2489,6 +2489,132 @@ r, out = run_rules(d, pdf)
 check(bdr_texts(r) == ["NOTES", "NOTES"], "S9b: two pages treated as a running "
       "header: %r" % bdr_texts(r))
 
+# --- E6: duplicated strokes, damaged anchors, and the rule's own weight -----
+def rule_pdf_strokes(lines, strokes):
+    """A page whose rules are STROKED lines, optionally more than once.
+
+    strokes: [(y, x0, x1, colour, width, times)].  A real generator commonly
+    lays the same hairline down twice (once per content-stream pass); PyMuPDF
+    reports both, and the raw count used to look like a form grid.
+    """
+    pdf = fitz.open()
+    pg = pdf.new_page(width=595, height=842)
+    for y, t in lines:
+        pg.insert_text((72, y), t, fontsize=10)
+    for y, x0, x1, color, width, times in strokes:
+        for _ in range(times):
+            shape = pg.new_shape()
+            shape.draw_line(fitz.Point(x0, y), fitz.Point(x1, y))
+            shape.finish(color=color, width=width)
+            shape.commit()
+    return pdf
+
+
+S_HEADS = ["CAREER OBJECTIVE", "EDUCATION", "TECHNICAL SKILLS",
+           "ACADEMIC PROJECTS", "TRAINING & ACADEMIES",
+           "ADDITIONAL EXPERIENCE", "SOFT SKILLS & LANGUAGES"]
+S_GREY = (0.4, 0.4, 0.4)
+
+# S10: the CV defect. Seven section rules, each stroked twice, is seven rules
+# and not a fourteen-line grid: every heading gets its border.
+lines, strokes = [], []
+for i, h in enumerate(S_HEADS):
+    lines.append((100 + 60 * i, h))
+    lines.append((130 + 60 * i, "Body line %d." % i))
+    strokes.append((104 + 60 * i, 60, 540, S_GREY, 0.75, 2))
+pdf = rule_pdf_strokes(lines, strokes)
+d = Document()
+for _, t in lines:
+    d.add_paragraph(t)
+r, out = run_rules(d, pdf)
+check(bdr_texts(r) == S_HEADS,
+      "S10: doubled strokes lost the section rules: %r" % bdr_texts(r))
+
+# S10b: and the double stroke produces ONE border per heading, not two
+check(count_tag(out, "w:pBdr") == len(S_HEADS),
+      "S10b: %d borders for %d rules" % (count_tag(out, "w:pBdr"), len(S_HEADS)))
+
+# S11: the grid guard still holds after the dedupe - 13 DISTINCT hairlines is
+# a ruled table however many times each one is stroked
+lines, strokes = [], []
+for i in range(13):
+    lines.append((90 + 20 * i, "Row %d value" % i))
+    strokes.append((94 + 20 * i, 60, 540, S_GREY, 0.75, 2))
+pdf = rule_pdf_strokes(lines, strokes)
+d = Document()
+for _, t in lines:
+    d.add_paragraph(t)
+r, out = run_rules(d, pdf)
+check(bdr_texts(r) == [], "S11: fired on a doubly-stroked grid: %r" % bdr_texts(r)[:3])
+
+# S12: the anchor match survives the converter's own spacing damage - pdf2docx
+# emits "TECHNICAL SKILLS" as "TECHNICALSKILLS" and it is still that heading
+pdf = rule_pdf_strokes([(100, "TECHNICAL SKILLS"), (130, "C++, Java")],
+                       [(104, 60, 540, S_GREY, 0.75, 1)])
+d = Document()
+d.add_paragraph("TECHNICALSKILLS")
+d.add_paragraph("C++, Java")
+r, out = run_rules(d, pdf)
+check(bdr_texts(r) == ["TECHNICALSKILLS"],
+      "S12: welded heading lost its rule: %r" % bdr_texts(r))
+
+# S12b: it is still WHOLE-line equality, not a prefix - a body sentence that
+# merely opens with the anchor's words gets no rule through its middle
+pdf = rule_pdf_strokes([(100, "SKILLS"), (130, "other")],
+                       [(104, 60, 540, S_GREY, 0.75, 1)])
+d = Document()
+d.add_paragraph("Skills matrix and the competency levels behind it.")
+d.add_paragraph("other")
+r, out = run_rules(d, pdf)
+check(bdr_texts(r) == [], "S12b: squashed key matched a body sentence: %r"
+      % bdr_texts(r))
+
+# S12c: an anchor with almost no alphanumeric content ("1.", a bullet glyph)
+# cannot identify a paragraph, so it is declined
+pdf = rule_pdf_strokes([(100, "1."), (130, "1.")],
+                       [(104, 60, 540, S_GREY, 0.75, 1)])
+d = Document()
+d.add_paragraph("1.")
+d.add_paragraph("1.")
+r, out = run_rules(d, pdf)
+check(bdr_texts(r) == [], "S12c: a two-character anchor drew a rule: %r"
+      % bdr_texts(r))
+
+
+def s_bdr_style(doc):
+    out = []
+    for p in doc.paragraphs:
+        ppr = p._p.find(qn("w:pPr"))
+        pbdr = ppr.find(qn("w:pBdr")) if ppr is not None else None
+        if pbdr is None:
+            continue
+        b = pbdr.find(qn("w:bottom"))
+        out.append((b.get(qn("w:sz")), b.get(qn("w:color"))))
+    return out
+
+
+# S13: weight and colour come from the stroke itself, so a re-emitted rule
+# matches the one pdf2docx absorbed as a table border on the same page
+pdf = rule_pdf_strokes([(100, "SUMMARY"), (130, "body")],
+                       [(104, 60, 540, S_GREY, 0.75, 2)])
+d = Document()
+d.add_paragraph("SUMMARY")
+d.add_paragraph("body")
+r, out = run_rules(d, pdf)
+check(s_bdr_style(r) == [("6", "666666")],
+      "S13: border style not taken from the stroke: %r" % s_bdr_style(r))
+
+# S13b: a hairline thinner than a quarter point clamps to the thinnest border
+# Word will draw rather than emitting w:sz="0" (which draws nothing)
+pdf = rule_pdf_strokes([(100, "SUMMARY"), (130, "body")],
+                       [(104, 60, 540, (0, 0, 0), 0.1, 1)])
+d = Document()
+d.add_paragraph("SUMMARY")
+d.add_paragraph("body")
+r, out = run_rules(d, pdf)
+check(s_bdr_style(r) == [("2", "000000")],
+      "S13c: thin stroke not clamped: %r" % s_bdr_style(r))
+
 # E1: leading and trailing empties go, a run between blocks collapses to one
 d = Document()
 d.add_paragraph("")
@@ -3317,6 +3443,14 @@ pdf = rule_pdf([(100, D_H), (130, D_E)],
 r, out = run_dd(d_doc(), pdf)
 check(d_sides(r) == [(D_H, ("bottom",)), (D_E, ("top",))],
       "D7: deduped on a grid page: %r" % d_sides(r))
+
+# D7b: the grid guard counts DISTINCT hairlines, so a page whose single rule
+# is stroked twice is still section furniture and the dedupe still referees
+pdf = rule_pdf_strokes([(100, D_H), (130, D_E)],
+                       [(104, 60, 540, (0.4, 0.4, 0.4), 0.75, 2)])
+r, out = run_dd(d_doc(), pdf)
+check(d_sides(r) == [(D_H, ("bottom",))],
+      "D7b: a doubly-stroked rule disabled the dedupe: %r" % d_sides(r))
 
 # D8: without a PDF the pass cannot know anything -- byte-identical no-op
 d = d_doc()
