@@ -3734,5 +3734,144 @@ r6, _ = pcb_run(pcb_cv_doc(), _e8_a4)
 check(pcb_texts(r6) == pcb_texts(pcb_cv_doc()), "E8-10: reflowed across a page-size mismatch")
 
 
+# --- wrap_tab_unfold ---------------------------------------------------------
+# pdf2docx encodes a wrapped continuation line as a TAB when the continuation
+# sits right of the paragraph indent, so a bare tab run paints a blank hole in
+# the middle of a sentence. The pass unfolds it to one space, but ONLY where
+# the PDF says the two sides are consecutive lines of one forced wrap; every
+# case below is a way that evidence can be absent, ambiguous, or contradicted.
+
+WT_L = 72.0
+WT_HEAD = ("alpha bravo charlie delta echo foxtrot golf hotel india juliet "
+           "kilo lima mike november oscar papa")
+WT_TAIL = "quebec romeo sierra tango."
+
+
+def wt_pdf(lines):
+    """lines: (x, y, text) drawn at 10pt on one page."""
+    pdf = fitz.open()
+    pg = pdf.new_page(width=595, height=842)
+    for x, y, t in lines:
+        pg.insert_text((x, y), t, fontsize=10)
+    return pdf
+
+
+def wt_wrapped(head=WT_HEAD, tail=WT_TAIL, cont_x=WT_L + 18, dy=12.0, extra=()):
+    """The live shape: a full-measure line, its continuation offset right on
+    the next row. The head line is the widest thing on the page, so the row it
+    wrapped on had no room left at all."""
+    return wt_pdf([(WT_L, 100.0, head), (cont_x, 100.0 + dy, tail)] + list(extra))
+
+
+def wt_para(doc, head, tail, bare=True):
+    """head <tab> tail; the tab alone in its run unless bare is False (which
+    is how date_column_untable writes its own tabs: ' \t' inside a text run)."""
+    p = doc.add_paragraph()
+    p.add_run(head)
+    r = p.add_run("" if bare else " ")
+    r._r.append(parse_xml("<w:tab %s/>" % nsdecls("w")))
+    p.add_run(tail)
+    return p
+
+
+def run_wt(doc, pdf):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.wrap_tab_unfold(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+def wt_texts(doc):
+    return ["".join(de._char_of(el) for el in de._wb_items(p._p))
+            for p in doc.paragraphs]
+
+
+# WT-1: the live defect. The tab goes, the sentence keeps exactly one space,
+# and no word is lost on either side of the seam.
+d = Document()
+wt_para(d, WT_HEAD + " ", WT_TAIL)
+r, _ = run_wt(d, wt_wrapped())
+check(wt_texts(r) == [WT_HEAD + " " + WT_TAIL],
+      "WT-1: mid-sentence tab not unfolded to one space: %r" % (wt_texts(r),))
+
+# WT-2: a REAL tab. Label and value sit on the SAME PDF line (a flush-right
+# date), so there is no second line to be the continuation of anything.
+d = Document()
+wt_para(d, WT_HEAD + " ", WT_TAIL)
+r, _ = run_wt(d, wt_pdf([(WT_L, 100.0, WT_HEAD + "    " + WT_TAIL)]))
+check("\t" in wt_texts(r)[0], "WT-2: ate a real tab between same-line text")
+
+# WT-3: no PDF, no evidence, no edit -- and byte-identical, not a re-save.
+d = Document()
+wt_para(d, WT_HEAD + " ", WT_TAIL)
+_wt_buf = io.BytesIO()
+d.save(_wt_buf)
+check(de.wrap_tab_unfold(_wt_buf.getvalue()) == _wt_buf.getvalue(),
+      "WT-3: touched the document with no pdf_doc to judge it by")
+
+# WT-4: date_column_untable's own output (' \t' in one text run) is not a bare
+# tab run and stays, even though the geometry would otherwise qualify.
+d = Document()
+wt_para(d, WT_HEAD, WT_TAIL, bare=False)
+r, _ = run_wt(d, wt_wrapped())
+check("\t" in wt_texts(r)[0], "WT-4: unfolded a tab that shares its run with text")
+
+# WT-5: ambiguous evidence. The same word pair wraps twice on the page, so no
+# single line pair can be bound to this paragraph and the tab is kept.
+d = Document()
+wt_para(d, WT_HEAD + " ", WT_TAIL)
+r, _ = run_wt(d, wt_wrapped(extra=[(WT_L, 300.0, WT_HEAD),
+                                   (WT_L + 18, 312.0, WT_TAIL)]))
+check("\t" in wt_texts(r)[0], "WT-5: bound a tab to one of two identical wraps")
+
+# WT-6: a hyphen at the seam keeps its tab. Unfolding "re-\tsign" would print
+# "re- sign", and fusing it would print "resign" -- a different word.
+d = Document()
+wt_para(d, WT_HEAD + "- ", WT_TAIL)
+r, _ = run_wt(d, wt_wrapped(head=WT_HEAD + "-"))
+check("\t" in wt_texts(r)[0], "WT-6: unfolded across a hyphen")
+
+# WT-7: the continuation is NOT offset right of its own first line, so nothing
+# about it explains a tab and the geometry is not the defect's.
+d = Document()
+wt_para(d, WT_HEAD + " ", WT_TAIL)
+r, _ = run_wt(d, wt_wrapped(cont_x=WT_L))
+check("\t" in wt_texts(r)[0], "WT-7: unfolded a tab with no leading offset")
+
+# WT-8: the wrap was CHOSEN, not forced -- the first line stops well short of
+# the measure and the next line's first word would have fitted easily. That is
+# an author's line, and its tab may be their own.
+d = Document()
+wt_para(d, "mike november oscar papa ", "a decision engine follows.")
+r, _ = run_wt(d, wt_pdf([(WT_L, 100.0, "mike november oscar papa"),
+                         (WT_L + 18, 112.0, "a decision engine follows."),
+                         (WT_L, 700.0, WT_HEAD + " " + WT_HEAD)]))
+check("\t" in wt_texts(r)[0], "WT-8: unfolded a short, unforced line")
+
+# WT-9: whitespace already borders the seam on BOTH sides. The tab must leave
+# one space behind, not two.
+d = Document()
+wt_para(d, WT_HEAD + " ", " " + WT_TAIL)
+r, _ = run_wt(d, wt_wrapped())
+check(wt_texts(r) == [WT_HEAD + " " + WT_TAIL],
+      "WT-9: left a double space at the seam: %r" % (wt_texts(r),))
+
+# WT-10: another line lies between the two, so they are not consecutive rows of
+# one wrapped paragraph however well their words match.
+d = Document()
+wt_para(d, WT_HEAD + " ", WT_TAIL)
+r, _ = run_wt(d, wt_pdf([(WT_L, 100.0, WT_HEAD),
+                         (WT_L, 112.0, "an unrelated line in between"),
+                         (WT_L + 18, 124.0, WT_TAIL)]))
+check("\t" in wt_texts(r)[0], "WT-10: joined two lines with a line between them")
+
+# WT-11: too little context to bind anything -- one word each side is a
+# coincidence, not evidence.
+d = Document()
+wt_para(d, "papa ", "quebec")
+r, _ = run_wt(d, wt_wrapped(head="papa", tail="quebec"))
+check("\t" in wt_texts(r)[0], "WT-11: unfolded on a two-word n-gram")
+
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)

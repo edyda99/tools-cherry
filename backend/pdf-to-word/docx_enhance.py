@@ -3914,6 +3914,211 @@ def section_rule_dedupe(data, pdf_doc=None):
     return buf.getvalue()
 
 
+# --- wrap_tab_unfold: a soft wrap encoded as a tab is not a tab -------------
+# Raw pdf2docx output for this CV carries ten paragraphs shaped
+# <w:t>...monitoring, </w:t><w:r><w:tab/></w:r><w:t>and automated risk...</w:t>.
+# There is no tab in the source. pdf2docx folded the wrapped continuation line
+# into the paragraph that started it and, because the continuation line's x0
+# sits a little right of the paragraph indent (a bullet's text column is
+# outdented from its marker), encoded that leading offset as a TAB CHARACTER
+# instead of a soft wrap. The paragraph then declares only the bullet's own
+# stop, so the tab falls through to Word's default half-inch grid and paints a
+# blank hole in the middle of a sentence ("such as        guns and knives").
+#
+# No other pass reaches it: paragraph_reflow and list_wrap_merge merge SEPARATE
+# paragraphs, wrap_break_heal only heals w:br, and tab_stop_normalize bails on
+# these (they are list items, and it only rewrites a single-tab date line).
+#
+# The discriminator is structural, not stylistic: in a REAL tabbed layout the
+# text on both sides of the tab sits on the SAME line of the PDF (a label and
+# its flush-right date). Here the text after the tab begins a NEW line, one row
+# below, of a paragraph the page had to wrap. So a bare tab run is unfolded to a
+# single space only when every one of these holds:
+#
+#   * the run holds a w:tab and nothing else (date_column_untable writes its
+#     tabs as " \t" inside a text run, so its own output is out of scope), and
+#     it has text on both sides;
+#   * the words either side of it match the END of one PDF line and the START
+#     of another EXACTLY ONCE in the document (unique-match binding, as in
+#     wrap_break_heal) - ambiguous or absent evidence keeps the tab;
+#   * that second line sits directly below the first (nothing between them,
+#     normal leading) and starts further right - the offset that became the tab;
+#   * the first line is a full measure AND the second line's first word could
+#     not have fitted in the room left on it, so the wrap was forced by the
+#     page, not chosen by the author;
+#   * no hyphen at the seam (re-\tsign must not become "re- sign"; those keep
+#     the tab rather than risk a meaning flip).
+#
+# The tab becomes one space, or nothing when a space already borders the seam,
+# so the sentence reads with exactly one space wherever the hole used to be.
+
+_WT_CTX_WORDS = 4          # words of context taken either side of the tab
+_WT_MIN_CTX_WORDS = 5      # ...and at least this many in total, so the
+                           # evidence n-gram is specific enough to bind
+_WT_PITCH_RATIO = 2.0      # (row pitch / line height) above this is a gap
+_WT_WORD_SLACK = 1.0       # extra character in the "would it have fitted" sum
+_WT_HYPHENS = "-‐‑­"
+_WT_SEG_RE = re.compile(r"[\n\t]")
+
+
+def _wt_pages(pdf_doc):
+    """Per page: every non-empty text line with its bbox, plus that page's own
+    left-most and right-most text edges (the measure a full line is judged
+    against)."""
+    pages = []
+    for page in pdf_doc:
+        lines = []
+        for b in page.get_text("dict")["blocks"]:
+            if b.get("type") != 0:
+                continue
+            for ln in b.get("lines", []):
+                text = "".join(s["text"] for s in ln["spans"])
+                if not text.strip():
+                    continue
+                x0, y0, x1, y1 = ln["bbox"]
+                lines.append({"text": text, "words": text.split(),
+                              "x0": x0, "y0": y0, "x1": x1, "y1": y1,
+                              "mid": (y0 + y1) / 2.0})
+        if lines:
+            pages.append({"lines": lines,
+                          "left": min(l["x0"] for l in lines),
+                          "right": max(l["x1"] for l in lines)})
+    return pages
+
+
+def _wt_bare_tab(el):
+    """The w:tab is the whole run: no text, no drawing, nothing but rPr."""
+    run = el.getparent()
+    if run is None or run.tag != qn("w:r"):
+        return False
+    kids = [c for c in run if c.tag != qn("w:rPr")]
+    return len(kids) == 1 and kids[0] is el
+
+
+def _wt_context(items, i):
+    """(head, tail, words before, words after) for the tab at items[i]; the
+    word context is taken from its own visual segment only, so another tab or
+    a w:br ends it."""
+    head = "".join(_char_of(el) for el in items[:i])
+    tail = "".join(_char_of(el) for el in items[i + 1:])
+    hw = _WT_SEG_RE.split(head)[-1].split()[-_WT_CTX_WORDS:]
+    tw = _WT_SEG_RE.split(tail)[0].split()[:_WT_CTX_WORDS]
+    return head, tail, hw, tw
+
+
+def _wt_between(lines, a, b):
+    """Some other line's vertical centre lies strictly between a's and b's."""
+    lo, hi = a["mid"], b["mid"]
+    for c in lines:
+        if c is a or c is b:
+            continue
+        if lo + 0.01 < c["mid"] < hi - 0.01:
+            return True
+    return False
+
+
+def _wt_forced(a, b, page):
+    """b's first word could not have fitted in the room left on a, measured
+    with a's own average character width."""
+    if not b["words"] or not a["text"]:
+        return False
+    avg = (a["x1"] - a["x0"]) / max(1, len(a["text"]))
+    remaining = page["right"] - a["x1"]
+    return remaining < (len(b["words"][0]) + _WT_WORD_SLACK) * avg
+
+
+def _wt_pair_ok(a, b, page):
+    """b is the wrapped continuation of a: directly below it, offset right,
+    behind a full measure that had no room for b's first word."""
+    if b["mid"] <= a["mid"] or b["x0"] <= a["x0"]:
+        return False
+    height = max(a["y1"] - a["y0"], 1e-6)
+    if (b["mid"] - a["mid"]) > _WT_PITCH_RATIO * height:
+        return False
+    if _wt_between(page["lines"], a, b):
+        return False
+    width = a["x1"] - a["x0"]
+    if width < _WRAP_FULL_MIN_PT:
+        return False
+    if width < _WRAP_FULL_SHARE * (page["right"] - page["left"]):
+        return False
+    return _wt_forced(a, b, page)
+
+
+def _wt_evidence(pages, hw, tw):
+    """True when exactly one line pair in the document ends with hw, starts
+    with tw, and reads as a forced wrap."""
+    hits = 0
+    for page in pages:
+        ends = [l for l in page["lines"] if l["words"][-len(hw):] == hw]
+        starts = [l for l in page["lines"] if l["words"][:len(tw)] == tw]
+        for a in ends:
+            for b in starts:
+                if a is b:
+                    continue
+                if _wt_pair_ok(a, b, page):
+                    hits += 1
+                    if hits > 1:
+                        return False
+    return hits == 1
+
+
+def _wt_collapse_trailing(items, i, tail_leads_space):
+    """Leave exactly one space (or none) where the tab's neighbour ended."""
+    if i == 0:
+        return
+    prev = items[i - 1]
+    if prev.tag != qn("w:t"):
+        return
+    txt = prev.text or ""
+    if not txt or not txt[-1:].isspace():
+        return
+    new = txt.rstrip() if tail_leads_space else txt.rstrip() + " "
+    if new == txt:
+        return
+    prev.text = new
+    if new[-1:].isspace():
+        prev.set(_XML_SPACE, "preserve")
+
+
+def wrap_tab_unfold(data, pdf_doc=None):
+    """Replace a bare tab run that only encodes a forced line wrap with the
+    single space the sentence actually reads with."""
+    if pdf_doc is None:
+        return data
+    pages = _wt_pages(pdf_doc)
+    if not pages:
+        return data
+    doc = Document(io.BytesIO(data))
+    changed = False
+
+    for p in doc.element.body.iter(qn("w:p")):
+        items = _wb_items(p)
+        for i, el in enumerate(items):
+            if el.tag != qn("w:tab") or not _wt_bare_tab(el):
+                continue
+            head, tail, hw, tw = _wt_context(items, i)
+            if not hw or not tw or len(hw) + len(tw) < _WT_MIN_CTX_WORDS:
+                continue
+            if hw[-1][-1:] in _WT_HYPHENS:
+                continue  # never fuse across a hyphen
+            if not _wt_evidence(pages, hw, tw):
+                continue
+            tail_leads_space = tail[:1].isspace()
+            needs_space = not head[-1:].isspace() and not tail_leads_space
+            # _wb_remove_br drops the element and the run it emptied; a w:tab
+            # and a w:br are the same shape of run child to it.
+            _wb_remove_br(el, replace_with_space=needs_space)
+            _wt_collapse_trailing(items, i, tail_leads_space)
+            changed = True
+
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 # --- tab_stop_normalize (E3): one date column, no phantom stops -------------
 # Three defects the visual panel found on the CV, all about tab furniture:
 #
@@ -4715,7 +4920,8 @@ PASSES = (hyperlink_unnest, phantom_column_flatten, span_space_repair, br_row_sp
           bullet_image_lists, list_numbering, paragraph_reflow, list_wrap_merge,
           list_hanging_indent, hyperlink_autolink, font_names,
           section_rules, empty_para_prune, section_rule_dedupe,
-          section_break_tidy, tab_stop_normalize, char_scale_normalize)
+          section_break_tidy, wrap_tab_unfold, tab_stop_normalize,
+          char_scale_normalize)
 
 
 def enhance(docx_bytes, pdf_doc=None):
