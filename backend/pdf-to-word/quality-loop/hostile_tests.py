@@ -4603,5 +4603,245 @@ check("Adma" in full_text(_r) and "AdmaMar" not in full_text(_r),
 
 
 
+
+# ---------------------------------------------------------------------------
+# F4: stray_mark_cleanup.  Three leftovers pdf2docx measures off the page
+# instead of reading off the document: an inert continuous section break, a
+# trailing line break on a heading, and a right indent no line ever wrapped
+# against.  The guards below are the ones that keep each rule structural.
+# ---------------------------------------------------------------------------
+import copy as _f4_copy
+
+
+def f4_run(doc, pdf=None):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.stray_mark_cleanup(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+def f4_sect_count(doc):
+    return len(list(doc.element.body.iter(qn("w:sectPr"))))
+
+
+def f4_doc_with_sect(kind="continuous", tweak=None):
+    """Two paragraphs; the first carries a copy of the document's own sectPr."""
+    d = Document()
+    d.add_paragraph("first")
+    d.add_paragraph("second")
+    sect = _f4_copy.deepcopy(d.element.body.find(qn("w:sectPr")))
+    for t in sect.findall(qn("w:type")):
+        sect.remove(t)
+    if kind:
+        sect.insert(0, parse_xml('<w:type %s w:val="%s"/>' % (nsdecls("w"), kind)))
+    if tweak:
+        tweak(sect)
+    d.paragraphs[0]._p.get_or_add_pPr().append(sect)
+    return d
+
+
+def f4_heading(text, style="Heading 1", trailing_br=1, mid_br=False):
+    d = Document()
+    para = d.add_paragraph(style=style)
+    para.add_run(text)
+    if mid_br:
+        run = para.add_run()
+        run._r.append(parse_xml("<w:br %s/>" % nsdecls("w")))
+        para.add_run("second line")
+    for _ in range(trailing_br):
+        run = para.add_run()
+        run._r.append(parse_xml("<w:br %s/>" % nsdecls("w")))
+    return d, para
+
+
+def f4_pdf(lines, width=595, height=842):
+    """lines: (x, y, text) drawn at 11pt on one page."""
+    pdf = fitz.open()
+    page = pdf.new_page(width=width, height=height)
+    for x, y, t in lines:
+        page.insert_text((x, y), t, fontsize=11)
+    return pdf
+
+
+def f4_right_doc(text, right=1440):
+    d = Document()
+    para = d.add_paragraph(text)
+    para._p.get_or_add_pPr().append(
+        parse_xml('<w:ind %s w:left="10" w:right="%d"/>' % (nsdecls("w"), right)))
+    return d
+
+
+def f4_right(doc, needle):
+    for para in doc.paragraphs:
+        if needle in para.text:
+            ppr = para._p.find(qn("w:pPr"))
+            ind = None if ppr is None else ppr.find(qn("w:ind"))
+            return None if ind is None else ind.get(qn("w:right"))
+    return "MISSING"
+
+
+# F4-1: a continuous break with the document's own page setup changes nothing.
+_r, _ = f4_run(f4_doc_with_sect())
+check(f4_sect_count(_r) == 1, "F4-1: inert continuous break not removed (%d sectPr)"
+      % f4_sect_count(_r))
+check([p.text for p in _r.paragraphs] == ["first", "second"],
+      "F4-1: removing the break lost a paragraph")
+
+# F4-2: different margins mean the break is doing work - keep it.
+_r, _ = f4_run(f4_doc_with_sect(
+    tweak=lambda s: s.find(qn("w:pgMar")).set(qn("w:left"), "2880")))
+check(f4_sect_count(_r) == 2, "F4-2: dropped a break that changes the margins")
+
+# F4-3: a page break is visible output even when the geometry matches.
+_r, _ = f4_run(f4_doc_with_sect(kind="nextPage"))
+check(f4_sect_count(_r) == 2, "F4-3: dropped a nextPage section break")
+
+# F4-3b: a continuous break that changes the column count stays.
+_r, _ = f4_run(f4_doc_with_sect(
+    tweak=lambda s: s.append(parse_xml('<w:cols %s w:num="2"/>' % nsdecls("w")))))
+check(f4_sect_count(_r) == 2, "F4-3b: dropped a break that starts two columns")
+
+# F4-3c: the document's own body sectPr is never a candidate.
+_r, _ = f4_run(Document())
+check(f4_sect_count(_r) == 1, "F4-3c: removed the body sectPr")
+
+# F4-4: the heading's trailing break and trailing space both go.
+_d, _ = f4_heading("Maroun Daher ")
+_r, _ = f4_run(_d)
+check(_r.paragraphs[0].text == "Maroun Daher",
+      "F4-4: heading tail not stripped: %r" % _r.paragraphs[0].text)
+check(count_tag(f4_run(_d)[1], "w:br") == 0, "F4-4: trailing w:br survived")
+
+# F4-5: a break INSIDE the heading is content - only the tail is noise.
+_d, _ = f4_heading("Title", trailing_br=1, mid_br=True)
+_r, out = f4_run(_d)
+check(count_tag(out, "w:br") == 1, "F4-5: removed a mid-heading line break")
+check("second line" in _r.paragraphs[0].text, "F4-5: lost text after the break")
+
+# F4-6: body prose keeps its trailing break; only headings are cleaned.
+_d = Document()
+_p6 = _d.add_paragraph()
+_p6.add_run("plain body text ")
+_p6.add_run()._r.append(parse_xml("<w:br %s/>" % nsdecls("w")))
+_r, out = f4_run(_d)
+check(count_tag(out, "w:br") == 1, "F4-6: stripped a break from a Normal paragraph")
+check(_r.paragraphs[0].text.startswith("plain body text "),
+      "F4-6: rstripped a Normal paragraph: %r" % _r.paragraphs[0].text)
+
+# F4-7: a heading made only of a break is left alone rather than emptied.
+_d = Document()
+_p7 = _d.add_paragraph(style="Heading 2")
+_p7.add_run()._r.append(parse_xml("<w:br %s/>" % nsdecls("w")))
+_r, out = f4_run(_d)
+check(count_tag(out, "w:br") == 1, "F4-7: emptied a break-only heading")
+
+# F4-8: one PDF line, nothing to its right -> the right indent is invented.
+_pdf8 = f4_pdf([(42, 100, "Databases: SQL, SQLite")])
+_r, _ = f4_run(f4_right_doc("Databases: SQL, SQLite"), _pdf8)
+check(f4_right(_r, "Databases") == "0",
+      "F4-8: phantom right indent kept: %r" % f4_right(_r, "Databases"))
+
+# F4-9: something printed alongside is a real column - the indent stays.
+_pdf9 = f4_pdf([(42, 100, "Databases: SQL, SQLite"), (400, 100, "right column")])
+_r, _ = f4_run(f4_right_doc("Databases: SQL, SQLite"), _pdf9)
+check(f4_right(_r, "Databases") == "1440",
+      "F4-9: cleared the indent of a genuine narrow column")
+
+# F4-10: no matching source line means no evidence either way.
+_r, _ = f4_run(f4_right_doc("Databases: SQL, SQLite"),
+               f4_pdf([(42, 100, "something else entirely")]))
+check(f4_right(_r, "Databases") == "1440",
+      "F4-10: cleared an indent with no matching PDF line")
+
+# F4-11: two identical source lines are ambiguous - measure nothing.
+_r, _ = f4_run(f4_right_doc("Databases: SQL, SQLite"),
+               f4_pdf([(42, 100, "Databases: SQL, SQLite"),
+                       (42, 200, "Databases: SQL, SQLite")]))
+check(f4_right(_r, "Databases") == "1440",
+      "F4-11: cleared an indent on an ambiguous match")
+
+# F4-12: without the PDF the pass has no geometry, so it must not guess.
+_r, _ = f4_run(f4_right_doc("Databases: SQL, SQLite"), None)
+check(f4_right(_r, "Databases") == "1440",
+      "F4-12: cleared a right indent with no PDF to check against")
+
+# F4-13: a left indent and the paragraph text are never touched.
+_r, _ = f4_run(f4_right_doc("Databases: SQL, SQLite"), _pdf8)
+_ind13 = _r.paragraphs[0]._p.find(qn("w:pPr")).find(qn("w:ind"))
+check(_ind13.get(qn("w:left")) == "10", "F4-13: rewrote the left indent")
+check(_r.paragraphs[0].text == "Databases: SQL, SQLite",
+      "F4-13: rewrote the paragraph text")
+
+# F4-14: a document with none of the three marks comes back byte-identical.
+_d14 = Document()
+_d14.add_paragraph("nothing to clean here")
+_buf14 = io.BytesIO()
+_d14.save(_buf14)
+_before14 = _buf14.getvalue()
+check(de.stray_mark_cleanup(_before14, _pdf8) is _before14,
+      "F4-14: rewrote a document it had nothing to change")
+
+
+def f4_aligned_doc(text, jc, right=1440, style=None):
+    """A right indent on a paragraph whose alignment PLACES the text."""
+    d = Document()
+    para = d.add_paragraph(text, style=style) if style else d.add_paragraph(text)
+    ppr = para._p.get_or_add_pPr()
+    ppr.append(parse_xml('<w:ind %s w:right="%d"/>' % (nsdecls("w"), right)))
+    if jc:
+        ppr.append(parse_xml('<w:jc %s w:val="%s"/>' % (nsdecls("w"), jc)))
+    return d
+
+
+# F4-15: on a RIGHT-aligned paragraph the indent is the position of the text,
+# not a wrap boundary - clearing it slides the line to the right margin.
+_r, _ = f4_run(f4_aligned_doc("Databases: SQL, SQLite", "right"), _pdf8)
+check(f4_right(_r, "Databases") == "1440",
+      "F4-15: cleared the right indent of a right-aligned paragraph: %r"
+      % f4_right(_r, "Databases"))
+
+# F4-15b: w:jc="end" is the same alignment under a different name.
+_r, _ = f4_run(f4_aligned_doc("Databases: SQL, SQLite", "end"), _pdf8)
+check(f4_right(_r, "Databases") == "1440",
+      "F4-15b: cleared the right indent of an end-aligned paragraph")
+
+# F4-16: centred text is positioned by both indents at once.
+_r, _ = f4_run(f4_aligned_doc("Databases: SQL, SQLite", "center"), _pdf8)
+check(f4_right(_r, "Databases") == "1440",
+      "F4-16: cleared the right indent of a centred paragraph")
+
+# F4-16b: the alignment can be inherited from the paragraph style, and an
+# inherited w:jc positions the text exactly as a direct one does.
+_d16 = f4_aligned_doc("Databases: SQL, SQLite", None, style="Heading 3")
+for _st in _d16.styles.element.findall(qn("w:style")):
+    if _st.get(qn("w:styleId")) == "Heading3":
+        _st.find(qn("w:pPr")).append(
+            parse_xml('<w:jc %s w:val="right"/>' % nsdecls("w")))
+_r, _ = f4_run(_d16, _pdf8)
+check(f4_right(_r, "Databases") == "1440",
+      "F4-16b: cleared the indent of a paragraph right-aligned by its style")
+
+# F4-16c: left and justified paragraphs are still cleared - the guard is
+# narrow, not a blanket opt-out.
+for _jc in ("left", "start", "both", None):
+    _r, _ = f4_run(f4_aligned_doc("Databases: SQL, SQLite", _jc), _pdf8)
+    check(f4_right(_r, "Databases") == "0",
+          "F4-16c: stopped clearing a phantom indent on jc=%r" % _jc)
+
+
+# F4-17: a heading that ends in a hyperlink keeps that link's own trailing
+# space - the tail strip is about the heading's runs, not a link's label.
+_d17 = Document()
+_p17 = _d17.add_paragraph(style="Heading 1")
+_p17.add_run("Contact ")
+_link17 = parse_xml(
+    '<w:hyperlink %s><w:r><w:t xml:space="preserve">home </w:t></w:r>'
+    '</w:hyperlink>' % nsdecls("w", "r"))
+_p17._p.append(_link17)
+_r17, _ = f4_run(_d17)
+_t17 = [t.text for t in _r17.paragraphs[0]._p.iter(qn("w:t"))]
+check(_t17 == ["Contact ", "home "],
+      "F4-17: rewrote text inside a heading's hyperlink: %r" % _t17)
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)

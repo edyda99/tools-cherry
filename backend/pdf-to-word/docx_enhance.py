@@ -5614,6 +5614,259 @@ def phantom_column_flatten(data, pdf_doc=None):
 # only ever touches runs with text, so the empties it leaves alone are exactly
 # what the prune is for).
 
+# ------------------------------------------------------------------ stray marks
+# pdf2docx leaves three structural marks on a page the PDF itself does not have.
+#
+# (a) A continuous w:sectPr parked in a body paragraph's w:pPr whose page size,
+#     margins, columns and grid are identical to the section that follows it.
+#     It changes no layout at all, and shows up in Word as a "Section Break
+#     (Continuous)" marker (a box glyph in other renderers). A section break
+#     that carries no property change is removable by definition, so the test is
+#     a serialised comparison of the two sections' properties, not a heuristic.
+#
+# (b) A trailing w:br (and the trailing space in front of it) on a heading run.
+#     pdf2docx emits it where the source page simply ends the title line, so the
+#     docx gets an empty line the PDF does not have. Only ever applied to a
+#     Heading-styled paragraph, and only to breaks at the very end of it, so a
+#     deliberate mid-heading line break and every prose paragraph are untouched.
+#
+# (c) A w:ind w:right measured off the text block's bounding box rather than off
+#     a real right-hand constraint. When a docx paragraph matches exactly ONE
+#     line in the PDF, that line never wrapped, so the source says nothing about
+#     where its right boundary is; the invented indent narrows the paragraph for
+#     whoever edits it next and can wrap the very line it was measured from.
+#     Requires a unique whole-line match and clear space to the right of it, so a
+#     genuine narrow column (something else printed alongside) keeps its indent.
+#     Widening a paragraph can only unwrap text, never push it off the page --
+#     but only while the text hangs off the LEFT margin. On a right-aligned or
+#     centred paragraph the right indent is not a wrap boundary at all, it is
+#     what positions the text; clearing it slides the line to the right margin.
+#     So the effective alignment (direct w:jc, else the w:jc inherited down the
+#     paragraph style's w:basedOn chain) has to say left/start/justify before
+#     the indent can be treated as measurement noise.
+
+_SM_HEADING_RE = re.compile(r"^Heading[1-9]$")
+_SM_POSITIONAL_JC = frozenset(("right", "end", "center", "centre"))
+SM_RIGHT_GAP_PT = 2.0        # ink this close to the right edge still counts as adjacent
+SM_BAND_PAD_PT = 1.0         # vertical slack when testing "on the same line"
+
+
+def _sm_sig(sect):
+    """Section properties minus w:type, canonically ordered, for comparison."""
+    out = []
+    for child in sect:
+        if child.tag == qn("w:type"):
+            continue
+        out.append((child.tag, tuple(sorted(child.attrib.items())),
+                    tuple((g.tag, tuple(sorted(g.attrib.items()))) for g in child)))
+    return tuple(sorted(out))
+
+
+def _sm_type(sect):
+    node = sect.find(qn("w:type"))
+    return (node.get(qn("w:val")) or "") if node is not None else ""
+
+
+def _sm_drop_inert_sections(body):
+    """(a) remove every continuous break that changes nothing about the page."""
+    sects = [s for _, s in _sb_sections(body)]
+    changed = False
+    for i, sect in enumerate(sects[:-1]):
+        if _sm_type(sect) != "continuous":
+            continue
+        if _sm_sig(sect) != _sm_sig(sects[i + 1]):
+            continue
+        parent = sect.getparent()
+        if parent is None or parent.tag != qn("w:pPr"):
+            continue          # the body-level sectPr is the document's own
+        parent.remove(sect)
+        changed = True
+    return changed
+
+
+def _sm_runs_with_text(p):
+    return [r for r in p.findall(qn("w:r"))
+            if any((t.text or "") for t in r.findall(qn("w:t")))]
+
+
+def _sm_strip_heading_tail(p):
+    """(b) drop trailing breaks and trailing spaces from a heading paragraph."""
+    ppr = p.find(qn("w:pPr"))
+    if ppr is None:
+        return False
+    style = ppr.find(qn("w:pStyle"))
+    if style is None or not _SM_HEADING_RE.match(style.get(qn("w:val")) or ""):
+        return False
+    changed = False
+    while True:
+        runs = p.findall(qn("w:r"))
+        if not runs:
+            break
+        last = runs[-1]
+        kids = [k for k in last if k.tag != qn("w:rPr")]
+        if kids and all(k.tag == qn("w:br") for k in kids):
+            if not _sm_runs_with_text(p):
+                break                     # never empty the heading out
+            p.remove(last)
+            changed = True
+            continue
+        while kids and kids[-1].tag == qn("w:br"):
+            last.remove(kids[-1])
+            kids.pop()
+            changed = True
+        break
+    # Only strip when the heading really ends in one of its own runs.  If the
+    # last thing in it is a w:hyperlink, both the link's trailing space and the
+    # space in front of it are deliberate, so leave the paragraph alone.
+    content = [k for k in p if k.tag in (qn("w:r"), qn("w:hyperlink"))]
+    if content and content[-1].tag == qn("w:hyperlink"):
+        return changed
+    texts = [t for r in p.findall(qn("w:r"))
+             for t in r.findall(qn("w:t")) if (t.text or "")]
+    if texts:
+        last_t = texts[-1]
+        stripped = (last_t.text or "").rstrip()
+        if stripped and stripped != last_t.text:
+            last_t.text = stripped
+            changed = True
+    return changed
+
+
+def _sm_page_ink(page):
+    """(text lines, every drawn box) on one page, in PDF points."""
+    lines, boxes = [], []
+    for block in page.get_text("dict")["blocks"]:
+        if block.get("type"):
+            boxes.append(tuple(float(v) for v in block["bbox"]))
+            continue
+        for ln in block.get("lines", ()):
+            body = _fs_norm("".join(sp["text"] for sp in ln["spans"]))
+            if not body:
+                continue
+            bbox = tuple(float(v) for v in ln["bbox"])
+            lines.append({"text": body, "bbox": bbox})
+            boxes.append(bbox)
+    return lines, boxes
+
+
+def _sm_pages(pdf_doc):
+    try:
+        return [_sm_page_ink(page) for page in pdf_doc]
+    except Exception:  # noqa: BLE001 - unreadable geometry is just "do nothing"
+        return []
+
+
+def _sm_unwrapped(pages, text):
+    """True when `text` is exactly one PDF line with nothing printed right of it."""
+    hit = None
+    for lines, boxes in pages:
+        for line in lines:
+            if line["text"] != text:
+                continue
+            if hit is not None:
+                return False              # ambiguous: two lines say the same thing
+            hit = (line["bbox"], boxes)
+    if hit is None:
+        return False
+    (x0, y0, x1, y1), boxes = hit
+    for bx0, by0, bx1, by1 in boxes:
+        if bx0 < x1 + SM_RIGHT_GAP_PT:
+            continue
+        if by1 > y0 + SM_BAND_PAD_PT and by0 < y1 - SM_BAND_PAD_PT:
+            return False                  # a real column: something sits alongside
+    return True
+
+
+def _sm_style_jc(doc):
+    """styleId -> the w:jc it ends up with, resolved through w:basedOn."""
+    try:
+        root = doc.styles.element
+    except Exception:  # noqa: BLE001 - no styles part is just "inherit nothing"
+        return {}
+    own, based = {}, {}
+    for style in root.findall(qn("w:style")):
+        sid = style.get(qn("w:styleId"))
+        if not sid:
+            continue
+        ppr = style.find(qn("w:pPr"))
+        jc = None if ppr is None else ppr.find(qn("w:jc"))
+        val = None if jc is None else jc.get(qn("w:val"))
+        if val:
+            own[sid] = val
+        parent = style.find(qn("w:basedOn"))
+        if parent is not None and parent.get(qn("w:val")):
+            based[sid] = parent.get(qn("w:val"))
+    out = {}
+    for sid in set(own) | set(based):
+        seen, cur, val = set(), sid, ""
+        while cur and cur not in seen:
+            seen.add(cur)
+            if cur in own:
+                val = own[cur]
+                break
+            cur = based.get(cur)
+        out[sid] = val
+    return out
+
+
+def _sm_effective_jc(ppr, style_jc):
+    """The alignment the paragraph actually renders with ("" when unset)."""
+    jc = ppr.find(qn("w:jc"))
+    if jc is not None and jc.get(qn("w:val")):
+        return jc.get(qn("w:val"))
+    style = ppr.find(qn("w:pStyle"))
+    if style is None:
+        return ""
+    return style_jc.get(style.get(qn("w:val")) or "", "")
+
+
+def _sm_drop_phantom_right(body, pages, style_jc):
+    """(c) clear right indents no line in the PDF ever wrapped against."""
+    changed = False
+    for p in body:
+        if p.tag != qn("w:p"):
+            continue
+        ppr = p.find(qn("w:pPr"))
+        if ppr is None:
+            continue
+        if _sm_effective_jc(ppr, style_jc) in _SM_POSITIONAL_JC:
+            continue      # the indent places the text; it is not a wrap boundary
+        ind = ppr.find(qn("w:ind"))
+        if ind is None:
+            continue
+        try:
+            right = int(round(float(ind.get(qn("w:right")))))
+        except (TypeError, ValueError):
+            continue
+        if right <= 0:
+            continue
+        text = _fs_norm("".join(t.text or "" for t in p.iter(qn("w:t"))))
+        if not text or not _sm_unwrapped(pages, text):
+            continue
+        ind.set(qn("w:right"), "0")
+        changed = True
+    return changed
+
+
+def stray_mark_cleanup(data, pdf_doc=None):
+    """Remove the section break, heading line break and right indent pdf2docx
+    invents from the PDF's geometry rather than from the page's own structure."""
+    doc = Document(io.BytesIO(data))
+    body = doc.element.body
+    changed = _sm_drop_inert_sections(body)
+    for p in body.iter(qn("w:p")):
+        changed = _sm_strip_heading_tail(p) or changed
+    if pdf_doc is not None:
+        pages = _sm_pages(pdf_doc)
+        if pages:
+            changed = _sm_drop_phantom_right(body, pages, _sm_style_jc(doc)) or changed
+    if not changed:
+        return data
+    out = io.BytesIO()
+    doc.save(out)
+    return out.getvalue()
+
+
 PASSES = (hyperlink_unnest, phantom_column_flatten, span_space_repair, line_space_realign, br_row_split, label_row_split,
           header_footer_parts,
           date_column_untable, fused_line_split, tabbed_subline_split,
@@ -5622,7 +5875,7 @@ PASSES = (hyperlink_unnest, phantom_column_flatten, span_space_repair, line_spac
           list_hanging_indent, hyperlink_autolink, font_names,
           section_rules, empty_para_prune, section_rule_dedupe,
           section_break_tidy, wrap_tab_unfold, tab_stop_normalize,
-          char_scale_normalize)
+          char_scale_normalize, stray_mark_cleanup)
 
 
 def enhance(docx_bytes, pdf_doc=None):
