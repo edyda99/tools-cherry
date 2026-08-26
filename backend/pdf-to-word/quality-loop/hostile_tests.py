@@ -1357,6 +1357,105 @@ if tab is not None:
     check(int(tab.get(qn("w:pos"))) > 5000,
           "T17: tab stop is not at the text margin: %r" % tab.get(qn("w:pos")))
 
+# T18-T24: one cell can hold SEVERAL dates stacked behind soft line breaks, one
+# per label line in the cell beside it -- pdf2docx merges a whole run of CV
+# entries into a single 1x2 row that way. Each date belongs to its own label;
+# moving the cell wholesale stacks them all on the first label and leaves every
+# later entry dateless. Pair them 1:1, or refuse the table.
+STACK_LABELS = ["ETSTC, Lebanon", "Val Pere Jacques, Bkennaya"]
+STACK_DATES = ["2020 - 2023", "2007 - 2019"]
+
+
+def stack_table(labels, dates, rule=True, bold=False, nest=False):
+    """A 1x2 row: N label paragraphs on the left, M br-separated dates right."""
+    d = build_table([[(labels[0], "left"), (dates[0], "right")]], rule=rule)
+    tc = d.tables[0].rows[0].cells[0]._tc
+    for text in labels[1:]:
+        tc.append(parse_xml(
+            '<w:p %s><w:pPr><w:jc w:val="left"/></w:pPr>'
+            '<w:r %s><w:t xml:space="preserve">%s</w:t></w:r></w:p>'
+            % (nsdecls("w"), nsdecls("w"), text)))
+    p = d.tables[0].rows[0].cells[1]._tc.findall(qn("w:p"))[0]
+    for text in dates[1:]:
+        if nest:
+            # the break lives inside a hyperlink, not a direct w:r child
+            p.append(parse_xml(
+                '<w:hyperlink %s><w:r><w:br/><w:t>%s</w:t></w:r></w:hyperlink>'
+                % (nsdecls("w"), text)))
+        elif bold:
+            # one run carrying text on BOTH sides of the break
+            p.append(parse_xml(
+                '<w:r %s><w:rPr><w:b/></w:rPr><w:br/>'
+                '<w:t>%s</w:t></w:r>' % (nsdecls("w"), text)))
+        else:
+            p.append(parse_xml('<w:r %s><w:br/></w:r>' % nsdecls("w")))
+            p.append(parse_xml('<w:r %s><w:t>%s</w:t></w:r>'
+                               % (nsdecls("w"), text)))
+    return d
+
+
+# T18: two stacked dates, two labels -> one date per label, each behind its own
+# right tab stop, and no line break left anywhere
+r, out = run_untable(stack_table(STACK_LABELS, STACK_DATES))
+check(not r.tables, "T18: stacked date table survived")
+texts = [p.text for p in r.paragraphs]
+check(texts == ["ETSTC, Lebanon \t2020 - 2023",
+                "Val Pere Jacques, Bkennaya \t2007 - 2019"],
+      "T18: dates not paired with their own labels: %r" % texts)
+check(count_tag(out, "w:br") == 0,
+      "T18: a stacked date kept its line break")
+for i, p in enumerate(r.paragraphs):
+    tab = p._p.find(qn("w:pPr") + "/" + qn("w:tabs") + "/" + qn("w:tab"))
+    check(tab is not None and tab.get(qn("w:val")) == "right",
+          "T18: paragraph %d has no right tab stop" % i)
+    check(p._p.find(qn("w:pPr") + "/" + qn("w:jc")) is None,
+          "T18: flush-right alignment left on paragraph %d" % i)
+
+# T19: a naive w:t-only reader must still see a gap between label and date
+check("Lebanon2020" not in full_text(r) and "Bkennaya2007" not in full_text(r),
+      "T19: label welded to its date: %r" % full_text(r))
+
+# T20: three dates against two labels cannot be paired -- refuse to untable
+# rather than stack the leftovers on somebody else's line
+buf = io.BytesIO()
+stack_table(STACK_LABELS, STACK_DATES + ["1999 - 2007"]).save(buf)
+check(de.date_column_untable(buf.getvalue()) == buf.getvalue(),
+      "T20: unpairable 3-dates-2-labels row was untabled anyway")
+
+# T21: two dates against ONE label -- the original defect's shape. Refuse.
+buf = io.BytesIO()
+stack_table(STACK_LABELS[:1], STACK_DATES).save(buf)
+check(de.date_column_untable(buf.getvalue()) == buf.getvalue(),
+      "T21: two dates were stacked onto a single label")
+
+# T22: a run carrying text on both sides of the break splits into two runs that
+# each keep the original rPr -- the second date must not lose its bold
+r, out = run_untable(stack_table(STACK_LABELS, STACK_DATES, bold=True))
+texts = [p.text for p in r.paragraphs]
+check(texts == ["ETSTC, Lebanon \t2020 - 2023",
+                "Val Pere Jacques, Bkennaya \t2007 - 2019"],
+      "T22: split run lost or reordered text: %r" % texts)
+check(count_tag(out, "w:br") == 0, "T22: the split run kept its break")
+bolds = [t.text for run in r.paragraphs[1]._p.iter(qn("w:r"))
+         if run.find(qn("w:rPr") + "/" + qn("w:b")) is not None
+         for t in run.iter(qn("w:t"))]
+check("2007 - 2019" in bolds,
+      "T22: the second date lost its run properties: %r" % bolds)
+
+# T23: a label line with no words (a rule glyph, a stray bullet) is not a label
+# this pass can pair a date with -- leave the table alone
+buf = io.BytesIO()
+stack_table(["ETSTC, Lebanon", "---"], STACK_DATES).save(buf)
+check(de.date_column_untable(buf.getvalue()) == buf.getvalue(),
+      "T23: a wordless label line was paired with a date")
+
+# T24: a break nested somewhere this pass cannot slice (inside a hyperlink) is
+# not a shape to guess at -- refuse
+buf = io.BytesIO()
+stack_table(STACK_LABELS, STACK_DATES, nest=True).save(buf)
+check(de.date_column_untable(buf.getvalue()) == buf.getvalue(),
+      "T24: a nested line break was sliced anyway")
+
 # ---- reflow first-line-indent oracle (R24-R25) ------------------------------
 # A block's leftmost line is not its paragraph margin. When the block also holds
 # a line further left than the body — the flush-left label of a CV entry whose

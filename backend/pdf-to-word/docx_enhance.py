@@ -1531,6 +1531,23 @@ def _untable_plan(tbl):
                     or len(_el_text(right).strip()) > DATE_CELL_MAX_CHARS
                     or not _WORDY.search(_el_text(left))):
                 return None
+            # One cell can hold SEVERAL dates stacked behind soft breaks, one
+            # per label line in the cell beside it (pdf2docx merges a whole run
+            # of CV entries into a single 1x2 row that way). Each date then
+            # belongs to its own label; moving the cell wholesale stacks them
+            # all on the first label and leaves the rest of the entries dateless.
+            # Pair them only when the count matches exactly on both sides, and
+            # every label is a real line of words; anything else is a shape this
+            # pass cannot read, so it leaves the table alone rather than stack.
+            nseg = _br_stack_count(rps[0])
+            if nseg is None:
+                return None
+            if nseg:
+                labels = [p for p in _content_paras(left) if not _p_padding(p)]
+                if len(labels) != nseg + 1:
+                    return None
+                if not all(_WORDY.search(_el_text(p)) for p in labels):
+                    return None
             plan.append(("tab", left, right))
             dates += 1
             if dates > DATE_ROW_MAX:
@@ -1545,6 +1562,101 @@ def _untable_plan(tbl):
 
 def _row_width(tr):
     return sum(_tw(tc, "tcW") for tc in tr.findall(qn("w:tc")))
+
+
+def _soft_br(el):
+    return (el.tag == qn("w:br")
+            and (el.get(qn("w:type")) or "textWrapping") == "textWrapping")
+
+
+def _br_stack_count(p):
+    """Number of top-level soft breaks in a paragraph, or None if it is not flat.
+
+    "Flat" means every break sits directly inside a direct w:r child of the
+    paragraph, which is where pdf2docx puts them. A break nested any deeper (in
+    a hyperlink, a text box, a smartTag) is not something this pass knows how to
+    slice, so it reports None and the caller refuses the table rather than
+    guessing at the structure.
+    """
+    flat = sum(1 for r in p.findall(qn("w:r")) for br in r.findall(qn("w:br"))
+               if _soft_br(br))
+    total = sum(1 for br in p.iter(qn("w:br")) if _soft_br(br))
+    return flat if flat == total else None
+
+
+def _br_segments(p):
+    """The paragraph's renderable children grouped into soft-break segments.
+
+    Returns [[el, ...], ...] with the break runs removed. A run that holds text
+    on both sides of a break is rebuilt as one run per side, each keeping a copy
+    of the original rPr; a run with no break is passed through untouched, so a
+    break-free paragraph returns exactly its own child list and this is a no-op
+    for every row that was already handled correctly.
+    """
+    segs, cur = [], []
+    for child in list(p):
+        if child.tag == qn("w:pPr"):
+            continue
+        if child.tag != qn("w:r") or not any(_soft_br(s) for s in child):
+            cur.append(child)
+            continue
+        rpr = child.find(qn("w:rPr"))
+        piece = []
+        for sub in list(child):
+            if sub.tag == qn("w:rPr"):
+                continue
+            if _soft_br(sub):
+                if piece:
+                    cur.append(_rebuild_run(rpr, piece))
+                segs.append(cur)
+                cur, piece = [], []
+                continue
+            piece.append(sub)
+        if piece:
+            cur.append(_rebuild_run(rpr, piece))
+    segs.append(cur)
+    return segs
+
+
+def _rebuild_run(rpr, children):
+    run = parse_xml("<w:r %s/>" % nsdecls("w"))
+    if rpr is not None:
+        run.append(copy.deepcopy(rpr))
+    for child in children:
+        run.append(copy.deepcopy(child))
+    return run
+
+
+def _seg_text(children):
+    return "".join(t.text or ""
+                   for child in children for t in child.iter(qn("w:t")))
+
+
+def _tab_attach(target, children, stop):
+    """Move one flush-right segment onto a label paragraph behind a right tab."""
+    ppr = target.get_or_add_pPr()
+    jc = ppr.find(qn("w:jc"))
+    if jc is not None:
+        ppr.remove(jc)
+    if stop > 0:
+        tabs = parse_xml('<w:tabs %s><w:tab w:val="right" w:pos="%d"/></w:tabs>'
+                         % (nsdecls("w"), stop))
+        old = ppr.find(qn("w:tabs"))
+        if old is not None:
+            ppr.remove(old)
+        _ppr_insert(ppr, tabs)
+    # the gap the two cells used to provide has to survive as a real
+    # character: a bare w:tab is invisible to every extractor that reads
+    # only w:t, which would silently weld "...Adma" onto "Mar 2025"
+    seam = _el_text(target)[-1:] + _seg_text(children)[:1]
+    gap = "" if (seam.strip() != seam or not seam) else \
+        '<w:t xml:space="preserve"> </w:t>'
+    target.append(parse_xml("<w:r %s>%s<w:tab/></w:r>" % (nsdecls("w"), gap)))
+    for child in children:
+        parent = child.getparent()
+        if parent is not None:
+            parent.remove(child)
+        target.append(child)
 
 
 def date_column_untable(data, pdf_doc=None):
@@ -1609,29 +1721,17 @@ def date_column_untable(data, pdf_doc=None):
             # same on a one-line label and is wrong on every longer one: on a CV
             # entry whose cell holds a title line and a subtitle line it welded
             # "2020 - 2023" onto the subtitle, fusing three source lines into two.
-            target, src = paras[_first_content(paras)], right.findall(qn("w:p"))[0]
-            ppr = target.get_or_add_pPr()
-            jc = ppr.find(qn("w:jc"))
-            if jc is not None:
-                ppr.remove(jc)
-            if stop > 0:
-                tabs = parse_xml('<w:tabs %s><w:tab w:val="right" w:pos="%d"/></w:tabs>'
-                                 % (nsdecls("w"), stop))
-                old = ppr.find(qn("w:tabs"))
-                if old is not None:
-                    ppr.remove(old)
-                _ppr_insert(ppr, tabs)
-            # the gap the two cells used to provide has to survive as a real
-            # character: a bare w:tab is invisible to every extractor that reads
-            # only w:t, which would silently weld "...Adma" onto "Mar 2025"
-            seam = _el_text(target)[-1:] + _el_text(src)[:1]
-            gap = "" if (seam.strip() != seam or not seam) else \
-                '<w:t xml:space="preserve"> </w:t>'
-            target.append(parse_xml("<w:r %s>%s<w:tab/></w:r>" % (nsdecls("w"), gap)))
-            for child in list(src):
-                if child.tag != qn("w:pPr"):
-                    src.remove(child)
-                    target.append(child)
+            src = right.findall(qn("w:p"))[0]
+            segs = _br_segments(src)
+            if len(segs) == 1:
+                _tab_attach(paras[_first_content(paras)], segs[0], stop)
+                continue
+            # stacked dates: _untable_plan has already proved there is exactly
+            # one label line per segment, so they pair off in order
+            labels = [p for p in paras if not _p_padding(p)]
+            for target, children in zip(labels, segs):
+                if children:
+                    _tab_attach(target, children, stop)
 
         if not out:
             continue
