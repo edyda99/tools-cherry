@@ -17,12 +17,14 @@ memory dir (`MEMORY.md` index loads each session).
 
 ## Hard rules
 
-- **Never deploy the pdf-to-word backend** without explicit approval from Edmond. The in-browser
-  converter is the default and is unrelated to the backend.
+- **Never deploy the pdf-to-word backend** without explicit approval from Edmond. The SERVER
+  conversion is the DEFAULT engine on the page (Edmond confirmed server-first 2026-08-26); the
+  in-browser converter is the one-click alternative and the automatic fallback. Prod Lambda keeps
+  running its current image until an explicitly approved deploy ships newer backend code.
 - Client-side only: no new backend / external server fetch / scaled-thin content for tools
-  (pdf-to-word's optional server path, the /api/feedback rating widget, and the /api/report
-  "Report a wrong result" link (both D1, both approved by Edmond, 2026-07-17/18) are the only
-  exceptions).
+  (pdf-to-word's server path (default since Aug 2026), the /api/feedback rating widget, and the
+  /api/report "Report a wrong result" link (both D1, both approved by Edmond, 2026-07-17/18) are
+  the only exceptions).
 - **Workflow:** one branch per feature off `main` → merge to `main` → deploy. No more clone.
 - **Deploy is pre-authorized — no need to ask Edmond.** From `main`: `npm run build`, then
   `npx wrangler pages deploy dist --project-name=tools-cherry --branch=main` using the stored wrangler
