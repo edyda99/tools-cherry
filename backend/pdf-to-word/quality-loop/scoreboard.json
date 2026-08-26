@@ -1,5 +1,33 @@
 {
  "docs": {
+  "cv_bullets_dates": {
+   "text_recall": 1.0,
+   "text_precision": 1.0,
+   "order": 1.0,
+   "headings": 1.0,
+   "lists": 0.0,
+   "tables": null,
+   "header_footer": null,
+   "links": null,
+   "styles": null,
+   "reflow": null,
+   "wrap": 0.0,
+   "composite": 0.7586
+  },
+  "cv_sections": {
+   "text_recall": 1.0,
+   "text_precision": 1.0,
+   "order": 1.0,
+   "headings": 0.1667,
+   "lists": null,
+   "tables": null,
+   "header_footer": null,
+   "links": 1.0,
+   "styles": null,
+   "reflow": 1.0,
+   "wrap": 1.0,
+   "composite": 0.8958
+  },
   "header_footer": {
    "text_recall": 1.0,
    "text_precision": 1.0,
@@ -197,6 +225,6 @@
    "composite": 0.6779
   }
  },
- "mean_composite": 0.9735,
+ "mean_composite": 0.9552,
  "weights_version": 4
 }
