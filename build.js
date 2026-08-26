@@ -4101,18 +4101,37 @@ function bonusHubLinks(roster, builtSlugs) {
 // so a handful of branches below are pinned to the wording California already
 // serves (marked "legacy CA wording"). Those branches say nothing that is not
 // true of California; they exist so that generalising the machinery does not
-// silently rewrite nine live pages.
+// silently rewrite the live pages.
 // ===========================================================================
 
 // The rungs. NOT an even $10,000 sweep, and that is the point: an even sweep put
 // six pages between $80,000 and $130,000 where not one federal band, state band
 // or phase-out threshold changes, so those pages had nothing to say that their
-// neighbours did not. These nine levels are chosen so that every one of them
+// neighbours did not. These levels are chosen so that every one of them
 // crosses something real — a federal or state band edge, an OBBBA phase-out
 // start, the mortgage-insurance cliff, the SECURE 2.0 Roth catch-up threshold,
 // the Social Security wage base — and the prose gates below key on exactly those
-// crossings. A rung earns its page by crossing something; these nine each do.
-const CA_LADDER_SALARIES = [30000, 40000, 50000, 70000, 80000, 100000, 120000, 150000, 200000];
+// crossings. A rung earns its page by crossing something; each of these does.
+//
+// $75,000 was added because it lands EXACTLY on the OBBBA senior deduction's
+// MAGI phase-out start (IRC §151(d)(5)(C), $75,000 for single/HoH/QSS), the one
+// threshold on this ladder that a rung can sit precisely on rather than step
+// over, and at the line the deduction is still whole — 6% of nothing is nothing
+// — so it is the last salary that keeps all $6,000 and the first where the next
+// dollar starts taking it away.
+//
+// $60,000 was BUILT, MEASURED AND REJECTED, and the measurement is recorded here
+// so it is not re-proposed on the strength of demand alone. It clears no federal
+// band edge (taxable $43,900 sits in the same 12% band as $50,000's $33,900), no
+// OBBBA phase-out, no wage base, no surtax and no SECURE 2.0 threshold; across
+// the 37 ladder states it moves the state band in exactly ONE (Connecticut, over
+// the $56,500 start of the Conn. Gen. Stat. 12-700(a)(10) add-back), and even
+// there it shares that band with $70,000. Built for real, the $60,000 page came
+// out with a section-key set IDENTICAL to the $50,000 page in 37 states out of
+// 37 — not one gated paragraph fires there that does not already fire a rung
+// below. That is the same page with different numbers in it, which is the exact
+// failure this list exists to prevent, so it is not on the ladder.
+const CA_LADDER_SALARIES = [30000, 40000, 50000, 70000, 75000, 80000, 100000, 120000, 150000, 200000];
 
 // The jurisdictions that get a ladder. Wave 1: California (already live) plus the
 // twelve largest states by payroll interest. Adding a slug here adds a hub, nine
@@ -4326,8 +4345,8 @@ function caRung(amount, taxData, slug) {
   // page prints a subtraction the reader cannot reproduce.
   //   Wisconsin / South Carolina: the deduction phases down with income, so it is a
   //     different number on every rung ($13,960 at the bottom of Wisconsin's ladder, far
-  //     less at the top). Printing the published maximum would be wrong on eight rungs
-  //     out of nine.
+  //     less at the top). Printing the published maximum would be wrong on every rung
+  //     but the lowest.
   //   Massachusetts: on top of the $4,400 deduction, M.G.L. c.62 s.3(B)(a)(3) deducts the
   //     FICA the filer paid, capped at $2,000 per taxpayer. The engine passes the FICA it
   //     just computed; we pass the same figure back so the two can never disagree.
@@ -4663,7 +4682,7 @@ function caProseBlocks(r, rungs, ctx) {
   // shared-shingle overlap on the first cut, against ~68% on this site's own live
   // state-paycheck cluster. The fix is the one the paycheck pages already use:
   // pickFrame, salted on the slug, over wordings that all say the identical
-  // thing. arr[0] is always the wording California's nine live pages carry and
+  // thing. arr[0] is always the wording California's live pages carry and
   // California is pinned to it, so generalising cannot rewrite them.
   const bodyFrame = (salt, arr) => (r.slug === 'california' ? arr[0] : frame(salt, arr));
   const B = [];
@@ -5369,6 +5388,21 @@ function caProseBlocks(r, rungs, ctx) {
         `${S} clears that ceiling, so the deduction is worth nothing here, and this page never assumed ` +
         `otherwise.</p>`,
       ]));
+      // EXACTLY ON THE LINE, and it gets its own paragraph for the same reason the
+      // car-loan block below refuses `>=`: the phase-out takes 6% of MAGI ABOVE
+      // $75,000, so at $75,000 the reduction is 6% x $0 = $0 and the whole
+      // $6,000 survives. Without this branch the rung that sits on the threshold
+      // fell through all three tests and said nothing at all about the one
+      // threshold it is on the ladder to mark. `> start` and `< start` both miss it.
+    } else if (r.amount === start) {
+      push('senior',
+        `<h3>${S} sits exactly on the senior deduction's phase-out line</h3>` +
+        `<p>OBBBA gives filers aged 65 and over an extra ${usd0(amount)} per person, and it starts ` +
+        `shrinking at ${pct1(sen.phaseoutRate)} of every dollar of modified AGI ABOVE ${usd0(start)}. ` +
+        `${S} is that figure to the dollar, so the reduction here is ${pct1(sen.phaseoutRate)} of nothing ` +
+        `and the whole ${usd0(amount)} survives — this is simultaneously the last salary that keeps all ` +
+        `of it and the point from which the next dollar begins taking it away. It runs out entirely at ` +
+        `${usd0(full)}. The figures on this page model a filer under 65 and never count on it.</p>`);
     } else if (r.amount > start) {
       const reduced = Math.max(0, amount - (r.amount - start) * sen.phaseoutRate);
       push('senior',
@@ -5654,7 +5688,7 @@ function caProseBlocks(r, rungs, ctx) {
   //   the state wage floor    state-payroll-2026.json  .minWage2026
   //   OBBBA conformity        obbba-deductions-2026.json .states
   //   supplemental method     state-supplemental-2026.json .states
-  // They are skipped for California, whose nine pages are already live and whose
+  // They are skipped for California, whose pages are already live and whose
   // build output is pinned byte-for-byte; adding them there is a separate change.
 
   // --- Local wage taxes. Only where the payroll data says the state has them,
@@ -7955,7 +7989,7 @@ async function main() {
       const progLabels = progs.map((p) => p.label);
       // Coverage claim in the byline, from the state's own figureYear. California
       // is on its 2025 schedules while the FTB has not published 2026 ones, and a
-      // byline that said "2026 figures" would be a plain untruth on nine pages.
+      // byline that said "2026 figures" would be a plain untruth on every one of them.
       // A state with no income tax has no state tables to be on, so it says so.
       const ladderBasis = esc(kind === 'none'
         ? `Computed from published ${year} federal tables; ${NAME} levies no income tax on wages`
