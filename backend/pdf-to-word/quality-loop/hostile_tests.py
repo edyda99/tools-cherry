@@ -3345,6 +3345,169 @@ d.save(buf)
 check(de.br_row_split(buf.getvalue(), None) == buf.getvalue(),
       "S9: pass mutated the document without PDF evidence")
 
+# ---- label_row_split cases (L) ---------------------------------------------
+# The general form of the S cases: rows welded into ONE paragraph with only
+# SOME of the boundaries carrying a w:br (and sometimes none at all), split at
+# the source lines instead of at the breaks.
+
+def run_lrs(doc, pdf):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.label_row_split(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+L_ROWS = ["Languages: Python, SQL",
+          "Web and Mobile: React Native",
+          "AI and Vision: TensorFlow"]
+
+
+def l_pdf(rows=L_ROWS, y0=100, dy=12.0, x=72, extra=()):
+    lines = [(y0 + i * dy, t, x) for i, t in enumerate(rows)]
+    return make_pdf([list(lines) + list(extra)])
+
+
+def l_doc(rows=L_ROWS, breaks=(), before=6, tail=None, fuse=None):
+    """One paragraph holding every row: a bold label run and a value run each.
+    `breaks` are the row boundaries (1-based) that carry a w:br; the rest carry
+    nothing at all. `fuse` welds that boundary's label into the run before it,
+    so the cut would fall inside a run."""
+    d = Document()
+    para = d.add_paragraph()
+    para.paragraph_format.space_before = Pt(before)
+    for i, row in enumerate(rows):
+        head, sep, value = row.partition(": ")
+        lead = "" if i == 0 else " "
+        if i and i in breaks:
+            para.add_run().add_break()
+            lead = ""
+        if not sep:
+            para.add_run(lead + row)
+            continue
+        if i and fuse == i:
+            para.runs[-1].text = para.runs[-1].text + lead + head + ": "
+        else:
+            r = para.add_run(lead + head + ": ")
+            r.bold = True
+        para.add_run(value)
+    if tail is not None:
+        t = d.add_paragraph()
+        t.paragraph_format.space_before = Pt(tail)
+        t.add_run(L_ROWS[0]).bold = True
+    return d
+
+
+def l_texts(doc):
+    return [p.text.strip() for p in doc.paragraphs]
+
+
+L_JOINED = " ".join(L_ROWS)
+
+# L1: no break element anywhere -- three source lines, three paragraphs
+r, out = run_lrs(l_doc(), l_pdf())
+check(l_texts(r) == L_ROWS, "L1: rows not split at source lines: %r" % l_texts(r))
+check(" ".join(full_text(r).split()) == L_JOINED,
+      "L1: text changed by the split: %r" % full_text(r))
+check(all(p.runs and p.runs[0].bold for p in r.paragraphs),
+      "L1: label run formatting lost")
+
+# L2: a br on the first boundary and nothing on the second -- both are cut
+r, out = run_lrs(l_doc(breaks=(1,)), l_pdf())
+check(l_texts(r) == L_ROWS, "L2: mixed break/no-break rows: %r" % l_texts(r))
+check(count_tag(out, "w:br") == 0, "L2: w:br left behind")
+
+# L3: wrapped prose, no label heads -- never split
+PROSE = ["The committee met on Tuesday to review the quarterly figures",
+         "and agreed the revised forecast should be circulated on Friday",
+         "before the board sits again at the end of the month."]
+r, out = run_lrs(l_doc(PROSE), l_pdf(PROSE))
+check(len(r.paragraphs) == 1, "L3: prose block was split")
+
+# L4: the rows sit far apart -- a gap between paragraphs, not row leading
+r, out = run_lrs(l_doc(), l_pdf(dy=45.0))
+check(len(r.paragraphs) == 1, "L4: split across a paragraph gap")
+
+# L5: the second label is welded inside the first row's value run -- the cut
+# would fall inside a run, so nothing is cut at all (never a partial split)
+r, out = run_lrs(l_doc(fuse=1), l_pdf())
+check(len(r.paragraphs) == 1, "L5: cut inside a run")
+
+# L6: the same rows appear twice on the page -- ambiguous, decline
+r, out = run_lrs(l_doc(), l_pdf(extra=[(400, L_ROWS[0], 72), (412, L_ROWS[1], 72),
+                                       (424, L_ROWS[2], 72)]))
+check(len(r.paragraphs) == 1, "L6: split on ambiguous block evidence")
+
+# L7: no PDF at all -- the pass is a no-op
+buf = io.BytesIO()
+l_doc().save(buf)
+check(de.label_row_split(buf.getvalue(), None) == buf.getvalue(),
+      "L7: pass mutated the document without PDF evidence")
+
+# L8: a tab means a label/date column, which is not this pass's shape
+d = l_doc()
+d.paragraphs[0].runs[1]._r.append(parse_xml("<w:tab %s/>" % nsdecls("w")))
+r, out = run_lrs(d, l_pdf())
+check(len(r.paragraphs) == 1, "L8: split a tabbed paragraph")
+
+# L9: the rows do not share a left edge -- a stepped panel, not a row block
+pdf = make_pdf([[(100, L_ROWS[0], 72), (112, L_ROWS[1], 90),
+                 (124, L_ROWS[2], 72)]])
+r, out = run_lrs(l_doc(), pdf)
+check(len(r.paragraphs) == 1, "L9: split rows off a shared left edge")
+
+# L10: a page break is never a row boundary
+d = Document()
+d.add_paragraph().add_run(L_ROWS[0] + " ").bold = True
+para = d.paragraphs[0]
+para.add_run()._r.append(parse_xml('<w:br %s w:type="page"/>' % nsdecls("w")))
+para.add_run(L_ROWS[1] + " ").bold = True
+para.add_run(L_ROWS[2])
+r, out = run_lrs(d, l_pdf())
+check(count_tag(out, "w:br") == 1, "L10: page break consumed")
+
+# L11: with no sibling row to copy, continuation rows take w:before=0, which is
+# the leading they had inside the paragraph they came out of
+r, out = run_lrs(l_doc(before=6), l_pdf())
+sp = [p.paragraph_format.space_before for p in r.paragraphs]
+check(sp[0].pt == 6 and all(v.pt == 0 for v in sp[1:]),
+      "L11: continuation rows did not take zero leading: %r" % sp)
+
+# L12: an adjacent standalone row of the same shape IS the spacing to inherit
+r, out = run_lrs(l_doc(before=6, tail=3), l_pdf(extra=[(200, L_ROWS[0], 72)]))
+sp = [p.paragraph_format.space_before for p in r.paragraphs]
+check(l_texts(r)[:3] == L_ROWS and all(v.pt == 3 for v in sp[1:3]),
+      "L12: sibling spacing not inherited: %r %r" % (l_texts(r), sp))
+
+# L14-L17: fitz groups a stepped or gapped run of lines into separate blocks,
+# so the end-to-end cases above cannot reach the row geometry itself. These
+# drive _lrs_rows_ok directly, on line records of the shape _wb_blocks emits.
+def l_lines(specs):
+    return [{"text": t, "x0": x, "x1": x + 200.0, "y0": y, "y1": y + 11.0}
+            for t, x, y in specs]
+
+
+check(de._lrs_rows_ok(l_lines([(L_ROWS[0], 72.0, 100.0),
+                               (L_ROWS[1], 72.0, 112.0),
+                               (L_ROWS[2], 72.0, 124.0)])),
+      "L14: a flush, normally-led row block was rejected")
+check(not de._lrs_rows_ok(l_lines([(L_ROWS[0], 72.0, 100.0),
+                                   (L_ROWS[1], 96.0, 112.0)])),
+      "L15: rows off a shared left edge accepted")
+check(not de._lrs_rows_ok(l_lines([(L_ROWS[0], 72.0, 100.0),
+                                   (L_ROWS[1], 72.0, 145.0)])),
+      "L16: a paragraph gap accepted as row leading")
+check(not de._lrs_rows_ok(l_lines([(L_ROWS[0], 72.0, 100.0),
+                                   ("and the forecast was circulated", 72.0, 112.0)])),
+      "L17: a line that is not a label row accepted")
+
+# L13: a list paragraph is a list, whatever its text looks like
+d = l_doc()
+d.paragraphs[0]._p.get_or_add_pPr().append(parse_xml(
+    '<w:numPr %s><w:ilvl w:val="0"/><w:numId w:val="3"/></w:numPr>' % nsdecls("w")))
+r, out = run_lrs(d, l_pdf())
+check(len(r.paragraphs) == 1, "L13: split a numbered list paragraph")
+
+
 # ---- section_rule_dedupe cases (D) ----------------------------------------
 D_H = "TRAINING & PROFESSIONAL DEVELOPMENT"
 D_E = "React Native Academy, Eurisko"

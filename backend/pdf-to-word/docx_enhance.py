@@ -2499,6 +2499,241 @@ def br_row_split(data, pdf_doc=None):
     return buf.getvalue()
 
 
+# --------------------------------------------------------------------------
+# label_row_split: the general case of br_row_split, done at SOURCE-LINE
+# granularity instead of at w:br granularity.
+#
+# br_row_split can only cut where pdf2docx happened to leave a <w:br/>, and it
+# needs one segment per source line. Real definition blocks defeat both: a CV's
+# TECHNICAL SKILLS panel comes back as ONE paragraph in which some row
+# boundaries carry a br and others carry nothing at all (the rows are merely
+# adjacent in the run stream and looked separate only because the page wrapped
+# there), so six rows arrive as five br-joined segments, one of which holds two
+# rows fused. SOFT SKILLS & LANGUAGES arrives as two rows fused with no break
+# element anywhere. Either way the rows cannot be edited or reordered on their
+# own and collapse into each other on the first edit.
+#
+# This pass reconstructs the rows from the page instead of from the markup: it
+# binds the whole paragraph to one contiguous run of lines inside exactly ONE
+# PDF block, and emits one paragraph per line. It fires only on structural
+# proof, all of which must hold:
+#
+#   * the paragraph's text, whitespace-normalised, equals the join of >=2
+#     consecutive lines of one block, and that window is UNIQUE in the document
+#     (the unique-match binding wrap_break_heal uses);
+#   * EVERY line in the window is a short "Label: value" row head
+#     (_rs_label_ok, shared with br_row_split) -- this is what separates a
+#     definition block from wrapped prose, and it is why the "the next word
+#     would have fit" wrap test is not used here: a row whose value happens to
+#     fill the column to the right edge is still a row when the line under it
+#     opens a new label;
+#   * the rows share a left edge and sit at normal leading, so a two-column
+#     panel or a gapped list is not mistaken for one block of rows;
+#   * every cut lands exactly on a child boundary of the run stream -- no run
+#     is ever divided, so no formatting is re-derived -- and every w:br the
+#     paragraph does carry lands on one of those same cuts, so no authored
+#     break is silently swallowed;
+#   * the paragraph carries no tab (a label/date column is a row of its own
+#     kind and belongs to tabbed_subline_split), no list numbering, and no
+#     element outside the known-splittable set.
+#
+# Continuation rows inherit the sibling spacing when an adjacent standalone row
+# of the same style exists to copy it from, and otherwise take w:before="0",
+# which is what they had inside the paragraph they are being cut out of.
+_LRS_X0_EPS = 2.0            # pt, two rows share a left edge
+_LRS_MAX_PITCH_RATIO = 2.0   # row pitch / line height; above this it is a gap
+_LRS_MAX_SPLITS = 60         # runaway guard
+
+
+def _lrs_flatten(p):
+    """[[element, text, br_after]] for p's content, or None to bail.
+
+    Runs holding a top-level wrap w:br are divided at it into separate runs
+    with the break recorded as a boundary flag, so the caller sees one flat
+    child stream whatever pdf2docx did with the breaks.
+    """
+    if p.find(qn("w:pPr") + "/" + qn("w:numPr")) is not None:
+        return None
+    if p.find(".//" + qn("w:tab")) is not None:
+        return None
+    if p.find(".//" + qn("w:cr")) is not None:
+        return None
+    for tag in _FS_OPAQUE:
+        if p.find(".//" + qn(tag)) is not None:
+            return None
+    out = []
+    for c in list(p):
+        if c.tag == qn("w:pPr"):
+            continue
+        if c.tag not in _FS_SPLITTABLE:
+            return None
+        brs = [k for k in c if k.tag == qn("w:br")] if c.tag == qn("w:r") else []
+        if brs:
+            if any(b.get(qn("w:type")) not in (None, "textWrapping") for b in brs):
+                return None
+            if any(d.tag == qn("w:br") for d in c.iter()) and len(
+                    [d for d in c.iter(qn("w:br"))]) != len(brs):
+                return None          # a br nested below the run's top level
+            parts = _rs_split_run(c)
+            if parts is None:
+                return None
+            for j, part in enumerate(parts):
+                if j:
+                    if not out or out[-1][2]:
+                        return None  # a break with no row before it
+                    out[-1][2] = True
+                if part is not None:
+                    out.append([part, _el_text(part), False])
+            continue
+        if any(d.tag == qn("w:br") for d in c.iter()):
+            return None
+        out.append([copy.deepcopy(c), _el_text(c), False])
+    if out and out[-1][2]:
+        return None                  # trailing break: an empty row
+    return out
+
+
+def _lrs_text(items):
+    parts = []
+    for _, text, br_after in items:
+        parts.append(text)
+        if br_after:
+            parts.append(" ")
+    return _fs_norm("".join(parts))
+
+
+def _lrs_window(text, blocks):
+    """The one (block, i, j) whose lines i..j join to exactly `text`."""
+    hit = None
+    for block in blocks:
+        norms = [_fs_norm(l["text"]) for l in block["lines"]]
+        for i in range(len(norms)):
+            if not norms[i] or not text.startswith(norms[i]):
+                continue
+            acc = norms[i]
+            for j in range(i + 1, len(norms)):
+                acc = acc + " " + norms[j]
+                if len(acc) > len(text) or not text.startswith(acc):
+                    break
+                if acc == text:
+                    if hit is not None:
+                        return None      # ambiguous: cut nothing
+                    hit = (block, i, j)
+                    break
+    return hit
+
+
+def _lrs_rows_ok(lines):
+    """Every line is a label row, on a shared left edge, at normal leading."""
+    if len(lines) < 2:
+        return False
+    if not all(_rs_label_ok(l["text"]) for l in lines):
+        return False
+    x0 = lines[0]["x0"]
+    if any(abs(l["x0"] - x0) > _LRS_X0_EPS for l in lines):
+        return False
+    for prev, nxt in zip(lines, lines[1:]):
+        h = max(prev["y1"] - prev["y0"], nxt["y1"] - nxt["y0"])
+        pitch = nxt["y0"] - prev["y0"]
+        if h <= 0 or pitch <= 0 or pitch > _LRS_MAX_PITCH_RATIO * h:
+            return False
+    return True
+
+
+def _lrs_cuts(items, norms):
+    """Child indices to cut at, one per row boundary, or None to bail.
+
+    Bails unless EVERY boundary lands on a child boundary and every w:br the
+    paragraph carries is one of those boundaries -- a partial split would fuse
+    the rows the cut could not reach.
+    """
+    offsets, acc = {}, ""
+    for k, (_, text, br_after) in enumerate(items):
+        acc += text
+        if br_after:
+            acc += " "
+        offsets.setdefault(len(_fs_norm(acc)), k + 1)
+    cuts, pos = [], 0
+    for m in range(len(norms) - 1):
+        pos += len(norms[m])
+        k = offsets.get(pos)
+        pos += 1                       # the space the join put between them
+        if k is None or k <= 0 or k >= len(items):
+            return None                # the boundary falls inside a run
+        cuts.append(k)
+    if sorted(set(cuts)) != cuts:
+        return None
+    breaks = {k + 1 for k, it in enumerate(items) if it[2]}
+    if not breaks <= set(cuts):
+        return None                    # an authored break we would swallow
+    return cuts
+
+
+def label_row_split(data, pdf_doc=None):
+    if pdf_doc is None:
+        return data
+    blocks = _wb_blocks(pdf_doc)
+    if not blocks:
+        return data
+    doc = Document(io.BytesIO(data))
+    body = doc.element.body
+    splits = 0
+
+    for p in list(body.findall(qn("w:p"))):
+        items = _lrs_flatten(p)
+        if not items or len(items) < 2:
+            continue
+        text = _lrs_text(items)
+        if not text:
+            continue
+        window = _lrs_window(text, blocks)
+        if window is None:
+            continue
+        block, i, j = window
+        lines = block["lines"][i:j + 1]
+        if not _lrs_rows_ok(lines):
+            continue
+        cuts = _lrs_cuts(items, [_fs_norm(l["text"]) for l in lines])
+        if not cuts:
+            continue
+        splits += len(cuts)
+        if splits > _LRS_MAX_SPLITS:
+            return data
+
+        pPr = p.find(qn("w:pPr"))
+        sibling = _rs_row_sibling(body, p)
+        before = _rs_before(sibling) if sibling is not None else "0"
+        groups = [[items[x][0] for x in range(a, b)]
+                  for a, b in zip([0] + cuts, cuts + [len(items)])]
+        for c in list(p):
+            if c.tag != qn("w:pPr"):
+                p.remove(c)
+        for c in groups[0]:
+            p.append(c)
+        anchor = p
+        for group in groups[1:]:
+            np = parse_xml("<w:p %s/>" % nsdecls("w"))
+            if pPr is not None:
+                new_pPr = copy.deepcopy(pPr)
+                if before is not None:
+                    sp = new_pPr.find(qn("w:spacing"))
+                    if sp is None:
+                        sp = parse_xml("<w:spacing %s/>" % nsdecls("w"))
+                        _ppr_insert(new_pPr, sp)
+                    sp.set(qn("w:before"), before)
+                np.append(new_pPr)
+            for c in group:
+                np.append(c)
+            anchor.addnext(np)
+            anchor = np
+
+    if not splits:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 _HYPERLINK_STYLE_XML = (
     '<w:style %s w:type="character" w:styleId="Hyperlink">'
     '<w:name w:val="Hyperlink"/><w:basedOn w:val="DefaultParagraphFont"/>'
@@ -5379,7 +5614,8 @@ def phantom_column_flatten(data, pdf_doc=None):
 # only ever touches runs with text, so the empties it leaves alone are exactly
 # what the prune is for).
 
-PASSES = (hyperlink_unnest, phantom_column_flatten, span_space_repair, line_space_realign, br_row_split, header_footer_parts,
+PASSES = (hyperlink_unnest, phantom_column_flatten, span_space_repair, line_space_realign, br_row_split, label_row_split,
+          header_footer_parts,
           date_column_untable, fused_line_split, tabbed_subline_split,
           centred_indent_drop, heading_styles,
           bullet_image_lists, list_numbering, paragraph_reflow, list_wrap_merge,
