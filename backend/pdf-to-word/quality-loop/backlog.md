@@ -366,3 +366,44 @@ Effect over the whole real-world corpus: exactly 2 paragraphs changed, both on
 target_cv2, both the reported defect; the other 8 documents are untouched.
 target_cv2 token_recall 0.991 -> 1.000, composite 0.8642 -> 0.8717. No
 synthetic or real document drops. Hostile cases E4-1..E4-10.
+
+
+## Round 5, F1 - the education sub-line welded to the institution line
+
+`ETSTC - Technical Education Institution, Lebanon` and `Val Pere Jacques -
+Bkennaya, Lebanon` each came out as ONE paragraph holding the bold institution,
+the lighter sub-line ("Technical Baccalaureate (BT3) in Computer Programming",
+"Primary and Secondary Education") and then the entry's date, while the AUST
+entry directly above was correctly two paragraphs. The judges called it the
+defect a recruiter reads as broken.
+
+Why the existing pass could not reach it: AUST is split by
+`phantom_column_flatten`, which rebuilds body rows from the page. ETSTC and Val
+Pere leave pdf2docx inside a table and only become paragraphs at
+`date_column_untable`, welded. `fused_line_split`, the pass that owns exactly
+this repair, declines them twice over - it matches a paragraph against a window
+of CONSECUTIVE PDF lines joined by spaces, and the entry's flush-right date sits
+between the institution and the sub-line in reading order, so no join ever
+equals the paragraph text; and it refuses any paragraph carrying a tab, because
+a label/date column is normally the thing that must not be cut.
+
+New pass `tabbed_subline_split`, immediately after `fused_line_split`, owning
+that one shape and only when the page proves it: exactly one tab with text on
+both sides; the run stream flips exactly ONCE from bold to non-bold before that
+tab; the bold text is one whole PDF line and the non-bold text another, each
+occurring exactly once on its page; the two lines share a left edge within 2pt;
+the sub-line sits below by at least 2pt and at most 2.5 line heights; the tail
+after the tab is a third line on the institution's OWN baseline and to its
+right (the date column, which stays with the institution); and nothing else is
+printed between the two baselines. The sub-line paragraph inherits the entry's
+pPr minus its tab stops.
+
+Wrapped prose fails every one of those: it has no date column on the first
+line's baseline, and its continuation is not a separate same-x0 line paired with
+one. Tail length is capped at 40 chars so a sentence after a tab is never read
+as a date.
+
+Effect over the real-world corpus: 2 paragraphs split, both on target_cv2, both
+the reported defect; the other 8 documents untouched, no synthetic document
+moved. target_cv2 composite 0.8642 -> 1.0000 (token_recall 0.991 -> 1.000, all
+ten subscores 1.0). Hostile cases F1-1..F1-13.

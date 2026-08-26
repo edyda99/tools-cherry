@@ -4180,5 +4180,132 @@ _r, _ = lsr_run(_d, rule_pdf([(100, "TECHNICAL SKILLS")], []))
 check(_r.paragraphs[0].text == "TECHNICALSKILLSEXTRA", "E4-10: mangled a longer run")
 
 
+
+# ---- tabbed_subline_split cases (F1) ----------------------------------------
+# A bold institution line welded to the lighter sub-line beneath it, with the
+# entry's flush-right date at the end of the pair, must become two paragraphs:
+# institution + tab + date, then the sub-line on its own. Every case where the
+# page does not prove that shape must be a no-op.
+
+TSS_H = "Val Pere Jacques - Bkennaya, Lebanon"
+TSS_S = "Primary and Secondary Education"
+TSS_D = "2007 - 2019"
+
+
+def tss_pdf(head=TSS_H, sub=TSS_S, date=TSS_D, dy=12.0, sub_x=72,
+            date_x=400, date_dy=0.0, extra=()):
+    rows = [(100.0, head), (100.0 + date_dy, date, date_x), (100.0 + dy, sub, sub_x)]
+    rows.extend(extra)
+    return make_pdf([rows])
+
+
+def tss_doc(head=TSS_H, sub=TSS_S, date=TSS_D, head_bold=True, sub_bold=False,
+            tabs=1, numbered=False, extra_run=None):
+    d = Document()
+    p = d.add_paragraph()
+    r = p.add_run(head + " ")
+    r.bold = head_bold
+    r2 = p.add_run(sub)
+    r2.bold = sub_bold
+    if extra_run is not None:
+        r3 = p.add_run(extra_run[0])
+        r3.bold = extra_run[1]
+    for _ in range(tabs):
+        p.add_run().add_tab()
+    p.add_run(date)
+    if numbered:
+        ppr = p._p.get_or_add_pPr()
+        ppr.append(parse_xml(
+            '<w:numPr %s><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr>'
+            % nsdecls("w")))
+    return d
+
+
+def run_tss(doc, pdf):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.tabbed_subline_split(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+def tss_texts(doc):
+    return [p.text for p in doc.paragraphs]
+
+
+# F1-1: the canonical shape splits, and the date stays on the institution line.
+_r, _ = run_tss(tss_doc(), tss_pdf())
+check(tss_texts(_r) == [TSS_H + " \t" + TSS_D, TSS_S],
+      "F1-1: not split as institution+date / sub-line: %r" % (tss_texts(_r),))
+check(_r.paragraphs[0].runs[0].bold is True and _r.paragraphs[1].runs[0].bold is False,
+      "F1-1: run weights not preserved across the split")
+
+# F1-2: no PDF (browser path, no evidence) is a clean no-op.
+_r, _ = run_tss(tss_doc(), None)
+check(len(_r.paragraphs) == 1, "F1-2: split without any PDF evidence")
+
+# F1-3: no bold flip - both halves the same weight - is wrapped prose, untouched.
+_r, _ = run_tss(tss_doc(sub_bold=True), tss_pdf())
+check(len(_r.paragraphs) == 1, "F1-3: split a paragraph with no weight change")
+
+# F1-4: the tail is NOT on the institution's own baseline, so it is not that
+# entry's date column and the pair is not the education shape.
+_r, _ = run_tss(tss_doc(), tss_pdf(date_dy=24.0))
+check(len(_r.paragraphs) == 1, "F1-4: split with the tail on another row")
+
+# F1-5: the sub-line does not share the institution's left edge -> a wrapped
+# continuation or an indented note, never a sub-line.
+_r, _ = run_tss(tss_doc(), tss_pdf(sub_x=110))
+check(len(_r.paragraphs) == 1, "F1-5: split lines that do not share a left edge")
+
+# F1-6: something else is printed between the two baselines, so they are not
+# adjacent lines of one entry.
+_r, _ = run_tss(tss_doc(), tss_pdf(dy=24.0, extra=((112.0, "intervening line"),)))
+check(len(_r.paragraphs) == 1, "F1-6: split across an intervening line")
+
+# F1-7: two tabs - a multi-column row, not an institution + date.
+_r, _ = run_tss(tss_doc(tabs=2), tss_pdf())
+check(len(_r.paragraphs) == 1, "F1-7: split a two-tab column row")
+
+# F1-8: a sentence after the tab is not a date column.
+_long = "a full sentence of prose that is certainly not a date column"
+_r, _ = run_tss(tss_doc(date=_long), tss_pdf(date=_long))
+check(len(_r.paragraphs) == 1, "F1-8: split with a sentence in the tail")
+
+# F1-9: the sub-line text occurs twice on the page - ambiguous, so nothing.
+_r, _ = run_tss(tss_doc(), tss_pdf(extra=((300.0, TSS_S),)))
+check(len(_r.paragraphs) == 1, "F1-9: split on an ambiguous page match")
+
+# F1-10: bold -> regular -> bold is two flips, not the one this pass owns.
+_r, _ = run_tss(tss_doc(extra_run=(" Honours", True)), tss_pdf())
+check(len(_r.paragraphs) == 1, "F1-10: split a paragraph with two weight flips")
+
+# F1-11: a list paragraph is never cut (_fs_children refuses it).
+_r, _ = run_tss(tss_doc(numbered=True), tss_pdf())
+check(len(_r.paragraphs) == 1, "F1-11: split a numbered list paragraph")
+
+# F1-12: the sub-line paragraph keeps the entry's pPr but drops the tab stops,
+# which belong to the date column it no longer carries.
+_d = tss_doc()
+_d.paragraphs[0].paragraph_format.left_indent = Pt(9)
+_d.paragraphs[0]._p.get_or_add_pPr().append(parse_xml(
+    '<w:tabs %s><w:tab w:val="right" w:pos="9360"/></w:tabs>' % nsdecls("w")))
+_r, _ = run_tss(_d, tss_pdf())
+check(len(_r.paragraphs) == 2, "F1-12: canonical shape with tab stops did not split")
+check(_r.paragraphs[1].paragraph_format.left_indent == Pt(9),
+      "F1-12: sub-line lost the entry indent")
+check(_r.paragraphs[1]._p.find(qn("w:pPr")).find(qn("w:tabs")) is None,
+      "F1-12: sub-line kept the date column's tab stops")
+check(_r.paragraphs[0]._p.find(qn("w:pPr")).find(qn("w:tabs")) is not None,
+      "F1-12: institution line lost its tab stops")
+
+# F1-13: no tab at all - fused_line_split owns that shape, not this pass.
+_d = Document()
+_p = _d.add_paragraph()
+_p.add_run(TSS_H + " ").bold = True
+_p.add_run(TSS_S)
+_r, _ = run_tss(_d, tss_pdf())
+check(len(_r.paragraphs) == 1, "F1-13: split a paragraph carrying no tab")
+
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)

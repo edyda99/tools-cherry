@@ -3927,6 +3927,154 @@ def fused_line_split(data, pdf_doc=None):
     return buf.getvalue()
 
 
+# A CV education/experience entry is two authored lines plus a right-hand date
+# column: a BOLD institution line carrying a flush-right date, and a lighter
+# sub-line under it (the degree, "Primary and Secondary Education"). pdf2docx
+# sometimes welds the two lines into one paragraph, so the degree runs on after
+# the institution and the date lands at the end of the pair. fused_line_split
+# cannot repair those: its window match joins consecutive PDF lines, and the
+# flush-right date sits BETWEEN the two lines in reading order, so the join
+# never equals the paragraph text; it also declines any paragraph carrying a
+# tab, because a label/date column is normally exactly what must not be cut.
+#
+# This pass owns that one shape, and only when the page proves it:
+#   * the paragraph holds exactly one tab, with text on both sides of it;
+#   * before the tab the run stream flips ONCE from bold to non-bold;
+#   * the bold text is one whole PDF line, the non-bold text is another whole
+#     PDF line, each occurring exactly once on its page;
+#   * the two lines share a left edge and the sub-line sits one line below;
+#   * the tail after the tab is a third line on the institution's OWN baseline,
+#     to its right - that is the date column, and it stays with the institution;
+#   * nothing else is printed between those two baselines.
+# Wrapped prose fails every geometric test (no date column, no shared-x0 pair
+# with a third line on the first baseline), so it is never touched.
+TSS_X0_EPS = 2.0           # pt, two lines share a left edge
+TSS_MIN_DROP = 2.0         # pt, the sub-line is strictly below, not the same row
+TSS_ROW_EPS = 3.0          # pt of baseline drift allowed inside one row
+TSS_MAX_LEAD = 2.5         # sub-line must be within this many line heights
+TSS_TAIL_MAX = 40          # chars: a right-hand column, never a sentence
+TSS_SPLIT_MAX = 50         # runaway guard
+
+
+def _tss_lines(pdf_doc):
+    """[page][line] with the geometry this pass reasons about."""
+    pages = []
+    for page in pdf_doc:
+        rows = []
+        for block in page.get_text("dict")["blocks"]:
+            if block.get("type") != 0:
+                continue
+            for ln in block.get("lines", []):
+                text = _fs_norm("".join(sp["text"] for sp in ln["spans"]))
+                if not text:
+                    continue
+                x0, y0, x1, y1 = ln["bbox"]
+                rows.append({"text": text, "x0": x0, "y0": y0, "x1": x1, "y1": y1})
+        pages.append(rows)
+    return pages
+
+
+def _tss_only(rows, text):
+    """The one line on the page reading exactly `text`, else None."""
+    hits = [r for r in rows if r["text"] == text]
+    return hits[0] if len(hits) == 1 else None
+
+
+def _tss_boundary(items, stop):
+    """The single bold -> non-bold flip inside items[:stop], else None."""
+    marks = [(i, _run_bold(el)) for i, (el, text) in enumerate(items[:stop])
+             if text.strip()]
+    if len(marks) < 2 or not marks[0][1]:
+        return None
+    flips = [n for n in range(1, len(marks)) if marks[n][1] != marks[n - 1][1]]
+    if len(flips) != 1 or marks[-1][1]:
+        return None
+    return marks[flips[0]][0]
+
+
+def _tss_tabs(items):
+    """The index of the paragraph's only tab-bearing child, else None."""
+    at = [i for i, (el, _) in enumerate(items) if _fs_tabbed(el)]
+    return at[0] if len(at) == 1 else None
+
+
+def _tss_geometry(rows, head, sub, tail):
+    """True when the page shows head/sub as two stacked lines + a date column."""
+    a, b, t = (_tss_only(rows, head), _tss_only(rows, sub), _tss_only(rows, tail))
+    if a is None or b is None or t is None:
+        return False
+    if abs(a["x0"] - b["x0"]) > TSS_X0_EPS:
+        return False
+    drop = b["y0"] - a["y0"]
+    height = max(a["y1"] - a["y0"], 1.0)
+    if drop < TSS_MIN_DROP or drop > TSS_MAX_LEAD * height:
+        return False
+    if abs(t["y0"] - a["y0"]) > TSS_ROW_EPS or t["x0"] <= a["x1"]:
+        return False
+    for other in rows:
+        if other is a or other is b or other is t:
+            continue
+        if a["y0"] + TSS_MIN_DROP < other["y0"] < b["y0"] - TSS_MIN_DROP:
+            return False
+    return True
+
+
+def _tss_split(p, items, k, stop):
+    """Move items[k:stop] into a Normal paragraph of its own, right after p."""
+    new = copy.deepcopy(p)
+    for child in list(new):
+        if child.tag != qn("w:pPr"):
+            new.remove(child)
+    ppr = new.find(qn("w:pPr"))
+    if ppr is not None:
+        for tabs in ppr.findall(qn("w:tabs")):
+            ppr.remove(tabs)
+    for el, _ in items[k:stop]:
+        el.getparent().remove(el)
+        new.append(el)
+    p.addnext(new)
+
+
+def tabbed_subline_split(data, pdf_doc=None):
+    """Unweld a bold institution line from the lighter sub-line beneath it."""
+    if pdf_doc is None:
+        return data
+    pages = _tss_lines(pdf_doc)
+    if not any(pages):
+        return data
+    doc = Document(io.BytesIO(data))
+    pending, splits = [], 0
+    for p in doc.element.body.findall(qn("w:p")):
+        items = _fs_children(p)
+        if not items or len(items) < 3:
+            continue
+        stop = _tss_tabs(items)
+        if stop is None or stop < 2:
+            continue
+        tail = _fs_norm("".join(t for _, t in items[stop:]))
+        if not tail or len(tail) > TSS_TAIL_MAX:
+            continue
+        k = _tss_boundary(items, stop)
+        if k is None:
+            continue
+        head = _fs_norm("".join(t for _, t in items[:k]))
+        sub = _fs_norm("".join(t for _, t in items[k:stop]))
+        if not head or not sub:
+            continue
+        if not any(_tss_geometry(rows, head, sub, tail) for rows in pages):
+            continue
+        splits += 1
+        if splits > TSS_SPLIT_MAX:
+            return data
+        pending.append((p, items, k, stop))
+    if not pending:
+        return data
+    for p, items, k, stop in pending:
+        _tss_split(p, items, k, stop)
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
 # On a centred paragraph a left and a right indent of the same size cannot move
 # the text: the centre of the box is the centre of the page either way. So it is
 # never authored, it is pdf2docx restating where the line happened to start and
@@ -5141,7 +5289,8 @@ def phantom_column_flatten(data, pdf_doc=None):
 # what the prune is for).
 
 PASSES = (hyperlink_unnest, phantom_column_flatten, span_space_repair, line_space_realign, br_row_split, header_footer_parts,
-          date_column_untable, fused_line_split, centred_indent_drop, heading_styles,
+          date_column_untable, fused_line_split, tabbed_subline_split,
+          centred_indent_drop, heading_styles,
           bullet_image_lists, list_numbering, paragraph_reflow, list_wrap_merge,
           list_hanging_indent, hyperlink_autolink, font_names,
           section_rules, empty_para_prune, section_rule_dedupe,
