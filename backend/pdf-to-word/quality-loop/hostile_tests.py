@@ -1455,6 +1455,92 @@ buf = io.BytesIO()
 stack_table(STACK_LABELS, STACK_DATES, nest=True).save(buf)
 check(de.date_column_untable(buf.getvalue()) == buf.getvalue(),
       "T24: a nested line break was sliced anyway")
+# T25-T31: the SECOND spelling of a flush-right date cell. pdf2docx does not
+# always write w:jc="right": on some layouts it reproduces the position it
+# measured as a large w:ind on an otherwise left-aligned line, so the date sits
+# at the right of its cell with no w:jc to say so. That spelling made the whole
+# plan return None and left a live 2-column table in the body (a CV's ADDITIONAL
+# EXPERIENCE line, with the section rule frozen into a tcBorders top). The
+# indent has to clear BOTH a share of the cell width and an absolute floor, so a
+# cell margin or an ordinary paragraph indent in a genuine second text column
+# cannot pass for a date.
+def indent_cell(d, row, col, tw, jc="left"):
+    """Rewrite a cell's single paragraph as jc + a w:ind left of tw twips."""
+    p = d.tables[0].rows[row].cells[col]._tc.findall(qn("w:p"))[0]
+    ppr = p.get_or_add_pPr()
+    for el in ppr.findall(qn("w:jc")) + ppr.findall(qn("w:ind")):
+        ppr.remove(el)
+    ppr.append(parse_xml('<w:jc %s w:val="%s"/>' % (nsdecls("w"), jc)))
+    ppr.append(parse_xml('<w:ind %s w:left="%d"/>' % (nsdecls("w"), tw)))
+    return d
+
+
+def indent_rows(tw, width=4000, jc="left", rule=True):
+    d = build_table([[("Royal Reality Real Estate, Mount Lebanon", "left"),
+                      ("Jun 2025 - Nov 2025", "left")]], rule=rule, width=width)
+    return indent_cell(d, 0, 1, tw, jc=jc)
+
+
+# T25: an indent-pushed date dissolves exactly like the w:jc="right" spelling
+r, out = run_untable(indent_rows(722, width=3866))
+check(not r.tables, "T25: indent-pushed date table survived")
+body = [p for p in r.paragraphs if p.text.strip()]
+check(len(body) == 1, "T25: expected one paragraph, got %d" % len(body))
+if body:
+    check(body[0].text ==
+          "Royal Reality Real Estate, Mount Lebanon \tJun 2025 - Nov 2025",
+          "T25: text not flowed: %r" % body[0].text)
+    tab = body[0]._p.find(qn("w:pPr") + "/" + qn("w:tabs") + "/" + qn("w:tab"))
+    check(tab is not None and tab.get(qn("w:val")) == "right",
+          "T25: no right tab stop on the indent-pushed spelling")
+    check(body[0]._p.find(qn("w:pPr") + "/" + qn("w:pBdr") + "/" + qn("w:top"))
+          is not None, "T25: absorbed section rule dropped")
+
+# T26: a cell margin's worth of indent is not a date. 300tw is under the
+# absolute floor even though it clears the share of a narrow cell.
+r, _ = run_untable(indent_rows(300, width=1600))
+check(len(r.tables) == 1, "T26: a cell-margin indent was read as a date column")
+
+# T27: half an inch of indent inside a WIDE column is an ordinary paragraph
+# indent -- it clears the absolute floor but not the share.
+r, _ = run_untable(indent_rows(720, width=6000))
+check(len(r.tables) == 1, "T27: a paragraph indent in a wide cell dissolved")
+
+# T28: T5's unindented left-aligned second column must still survive -- the new
+# spelling widens what counts as flush right, it does not replace the old test.
+r, _ = run_untable(indent_rows(0, width=4000))
+check(len(r.tables) == 1, "T28: an unindented second text column dissolved")
+
+# T29: centred is a third thing. A centred short cell is not pushed right, and
+# an indent under a centred line is a centring offset, not a date gap.
+r, _ = run_untable(indent_rows(2000, width=4000, jc="center"))
+check(len(r.tables) == 1, "T29: a centred short cell was read as a date")
+
+# T30: every other guard still applies to this spelling. A long indent-pushed
+# cell is prose in a second column, not a date.
+d = build_table([[("Royal Reality Real Estate", "left"), (LONG, "left")]],
+                rule=True, width=4000)
+r, _ = run_untable(indent_cell(d, 0, 1, 900))
+check(len(r.tables) == 1, "T30: a long indent-pushed cell dissolved")
+
+# T31: an indent-pushed LEFT cell is a second column read from the wrong side,
+# never a label. Both sides are judged by the same rule.
+d = indent_rows(722, width=3866)
+indent_cell(d, 0, 0, 900)
+r, _ = run_untable(d)
+check(len(r.tables) == 1, "T31: a table with both cells pushed right dissolved")
+
+# T32: a MULTI-LINE right cell is a second column, whatever its first line's
+# indent. w:jc="right" states that a whole cell is right-aligned; a w:ind states
+# only where the first line starts. The letterhead in the real-world corpus is
+# the case: a phone/fax/web block, under DATE_CELL_MAX_CHARS in total, that this
+# pass would otherwise inline behind the postal address beside it.
+d = indent_rows(722, width=3866)
+tc = d.tables[0].rows[0].cells[1]._tc
+tc.findall(qn("w:p"))[0].append(parse_xml(
+    '<w:r %s><w:br/><w:t>F +966.11.463.8750</w:t></w:r>' % nsdecls("w")))
+r, _ = run_untable(d)
+check(len(r.tables) == 1, "T32: a multi-line indent-pushed cell dissolved")
 
 # ---- reflow first-line-indent oracle (R24-R25) ------------------------------
 # A block's leftmost line is not its paragraph margin. When the block also holds

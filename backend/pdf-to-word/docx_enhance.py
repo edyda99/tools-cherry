@@ -1568,6 +1568,65 @@ def _p_jc(p):
     return jc.get(qn("w:val")) if jc is not None else None
 
 
+# A flush-right date cell does not always arrive as w:jc="right". pdf2docx sizes
+# the cell to the text block it found and then reproduces the horizontal position
+# it measured, so on some layouts it writes the SAME visual shape as an ordinary
+# left-aligned paragraph carrying a large w:ind — the indent IS the gap that
+# pushes the date to the cell's right edge. The CV that opened this defect wrote
+# `<w:jc w:val="left"/><w:ind w:left="722"/>` in a 3866-twip cell, so
+# _untable_plan counted zero dates and refused the whole table; the ADDITIONAL
+# EXPERIENCE line then survived as a 2-column table with the section rule frozen
+# into a tcBorders top.
+#
+# _pushed_right is the one place that decides "this cell's single line sits at
+# the right of its cell", and it accepts either spelling:
+#   - w:jc right (what pdf2docx writes most of the time), or
+#   - a left/start-aligned line whose effective left indent is a large share of
+#     the cell's own width. The share is what makes it structural rather than a
+#     guess: a genuine left-aligned second text column is indented by a cell
+#     margin or a paragraph indent, both of which are small against the column
+#     they sit in, while a date pushed to the right edge has to give up most of
+#     the cell to whitespace. Both a share floor and an absolute floor must be
+#     cleared, so a narrow cell cannot qualify on a quarter-inch of margin.
+# Every other guard in _untable_plan (single paragraph, <= DATE_CELL_MAX_CHARS,
+# trailing cell, wordy label, <= DATE_ROW_MAX rows, no real borders, no tblStyle)
+# applies to this spelling exactly as it does to w:jc="right".
+# The indent spelling also has to be ONE line. A w:jc="right" cell says outright
+# that its content is right-aligned however many lines it holds; a big w:ind says
+# only where the FIRST line starts, and a multi-line cell that happens to start
+# there is a second column, not a date. A letterhead in the real-world corpus is
+# exactly that: a right-hand block of phone/fax/web lines, short enough to clear
+# DATE_CELL_MAX_CHARS, that this pass would otherwise inline behind the postal
+# address. So the indent branch additionally requires a paragraph with no w:br.
+IND_RIGHT_SHARE = 0.15    # of the cell width, at minimum
+IND_RIGHT_MIN_TW = 360    # and never less than a quarter inch
+
+
+def _p_ind_left(p):
+    """Effective left offset of the paragraph's first line, in twips."""
+    ind = p.find(qn("w:pPr") + "/" + qn("w:ind"))
+    if ind is None:
+        return 0
+    left = _ind_tw(ind, "left", "start") or 0
+    first = _ind_tw(ind, "firstLine") or 0
+    hanging = _ind_tw(ind, "hanging") or 0
+    return left + first - hanging
+
+
+def _pushed_right(p, cell_w):
+    """True when p's line sits at the right of a cell cell_w twips wide."""
+    jc = _p_jc(p)
+    if jc == "right":
+        return True
+    if jc not in (None, "left", "start", "both"):
+        return False
+    if cell_w <= 0:
+        return False
+    if p.find(".//" + qn("w:br")) is not None:
+        return False
+    return _p_ind_left(p) >= max(IND_RIGHT_MIN_TW, IND_RIGHT_SHARE * cell_w)
+
+
 def _tw(el, tag, attr="w"):
     """Twips read off a w:tcW / w:tblInd inside the element's tcPr or tblPr."""
     node = el.find(qn("w:tcPr") + "/" + qn("w:" + tag))
@@ -1639,9 +1698,9 @@ def _untable_plan(tbl):
         lps, rps = left.findall(qn("w:p")), right.findall(qn("w:p"))
         if right is not cells[-1] or len(rps) != 1:
             return None
-        if _p_jc(rps[0]) == "right":
-            # label ... flush-right date
-            if (_p_jc(lps[-1]) == "right"
+        if _pushed_right(rps[0], _tw(right, "tcW")):
+            # label ... flush-right date (w:jc right, or pushed there by w:ind)
+            if (_pushed_right(lps[-1], _tw(left, "tcW"))
                     or len(_el_text(right).strip()) > DATE_CELL_MAX_CHARS
                     or not _WORDY.search(_el_text(left))):
                 return None
