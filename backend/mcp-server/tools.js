@@ -14,20 +14,13 @@ export const SITE = 'https://tools-berry.com';
 // Mirrors build.js LADDER_STATES: the states that have a
 // /<slug>-take-home-pay/ hub, and CA_LADDER_SALARIES: the rungs each hub
 // builds a /<slug>-take-home-pay-<amount>/ page for. Keep in sync with build.js.
-//
-// ⚠ LADDER_STATES BELOW IS STALE AND WAS ALREADY STALE BEFORE THIS EDIT: build.js
-// shipped a wave 3 of twelve more ladders (kentucky, oregon, oklahoma, connecticut,
-// utah, iowa, nevada, arkansas, mississippi, kansas, new-mexico, nebraska) and this
-// mirror never grew, so deepLink() sends those twelve to the data study instead of
-// the rung page that is live for them. Not fixed here because it changes MCP output
-// for twelve states and wants its own verification pass; LADDER_SALARIES below IS
-// updated, because the $75,000 rung added in the same commit is live everywhere.
 export const LADDER_STATES = new Set([
   'california', 'texas', 'florida', 'new-york', 'pennsylvania', 'illinois',
   'ohio', 'georgia', 'north-carolina', 'michigan', 'new-jersey', 'virginia',
   'washington', 'arizona', 'massachusetts', 'tennessee', 'indiana', 'missouri',
   'maryland', 'wisconsin', 'colorado', 'minnesota', 'south-carolina', 'alabama',
-  'louisiana'
+  'louisiana', 'kentucky', 'oregon', 'oklahoma', 'connecticut', 'utah', 'iowa',
+  'nevada', 'arkansas', 'mississippi', 'kansas', 'new-mexico', 'nebraska'
 ]);
 export const LADDER_SALARIES = [30000, 40000, 50000, 70000, 75000, 80000, 100000, 120000, 150000, 200000];
 
