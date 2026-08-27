@@ -1896,6 +1896,158 @@ def _dominant_left(body):
     return winners[0] if len(winners) == 1 else None
 
 
+# --- G1: the date column's own right edge, measured in the PDF --------------
+# Both tab-writing passes used to align a flush-right date at the SECTION's
+# right text margin, on the assumption that flush-right means flush with the
+# page. Two things are wrong with that.
+#
+#   * It is often the wrong column. On a CV whose dates stop 78pt short of the
+#     margin, every date was pushed out to the paper edge and no longer lined
+#     up with anything in the source.
+#   * It is frequently UNREACHABLE. pdf2docx leaves a hair-width left indent
+#     (10 twips) on the paragraphs it flows out of a cell, so a stop written at
+#     the full text width sits past the end of that paragraph's own line box.
+#     Real Word drops such a tab outright and the column goes ragged; QuickLook
+#     renders custom stops loosely and hid this for a whole season.
+#
+# Measuring the edge in the source PDF fixes the first, and _clamp_stop_to_line
+# below fixes the second for every stop this file writes, measured or not.
+#
+# A line only counts when its text occurs at ONE right edge in the whole PDF
+# and every line of the column shares that edge. Anything ambiguous returns
+# None and the caller keeps its width-derived stop, so this can never move a
+# tab it did not actually measure.
+
+_TAB_EDGE_TOL_PT = 2.0     # right-aligned lines share an edge this closely
+_TAB_MIN_STOP = 720        # half an inch: no measured stop lands left of this
+_WS_RUN_RE = re.compile(r"[\s\u00a0\u2007\u202f]+")
+
+
+def _norm_line(text):
+    return _WS_RUN_RE.sub(" ", text or "").strip()
+
+
+def _pdf_right_edges(pdf_doc):
+    """{line text: [(right edge pt, page width pt), ...]} for the whole PDF."""
+    index = {}
+    if pdf_doc is None:
+        return index
+    try:
+        pages = list(pdf_doc)
+    except Exception:  # noqa: BLE001 - a measurement is never worth a failure
+        return index
+    for page in pages:
+        try:
+            width = float(page.rect.width)
+            blocks = page.get_text("dict").get("blocks", [])
+        except Exception:  # noqa: BLE001
+            continue
+        if width <= 0:
+            continue
+        for b in blocks:
+            if b.get("type") != 0:
+                continue
+            for ln in b.get("lines", []):
+                text = _norm_line("".join(s.get("text", "")
+                                          for s in ln.get("spans", [])))
+                if not text:
+                    continue
+                index.setdefault(text, []).append((float(ln["bbox"][2]), width))
+    return index
+
+
+def _measured_stop(index, texts, page_w, left_margin, limit):
+    """The right edge shared by every one of `texts`, in twips from the left
+    text margin, or None when the column does not measure unambiguously.
+
+    Edges are compared as a FRACTION of the page width, so the index survives
+    any rescaling between the PDF page and the docx pgSz.
+    """
+    if not index or not texts or page_w <= 0 or limit <= 0:
+        return None
+    tol = _TAB_EDGE_TOL_PT * 20.0 / page_w
+    edges = []
+    for text in texts:
+        hits = index.get(text)
+        if not hits:
+            return None
+        fracs = [x / w for x, w in hits]
+        if max(fracs) - min(fracs) > tol:
+            return None      # the same text sits at two different edges
+        edges.append(max(fracs))
+    if max(edges) - min(edges) > tol:
+        return None          # the column is not one column
+    stop = int(round(max(edges) * page_w)) - left_margin
+    if stop < _TAB_MIN_STOP or stop > limit:
+        return None
+    return stop
+
+
+def _section_geoms(body):
+    """(index in body, (usable width, page width, left margin)) per section."""
+    out = []
+    for i, child in enumerate(body):
+        for sect in child.iter(qn("w:sectPr")) if child.tag == qn("w:p") else ():
+            out.append((i, sect))
+    tail = body.find(qn("w:sectPr"))
+    if tail is not None:
+        out.append((len(body), tail))
+    geoms = []
+    for i, sect in out:
+        node = sect.find(qn("w:pgSz"))
+        try:
+            page_w = int(round(float(node.get(qn("w:w")))))
+        except (AttributeError, TypeError, ValueError):
+            page_w = 0
+        geoms.append((i, (_sect_width(sect), page_w,
+                          _sect_margin(sect, "left"))))
+    return geoms
+
+
+def _geom_at(geoms, idx, inclusive=False):
+    """Geometry of the section governing body child `idx`.
+
+    A sectPr rides on the LAST paragraph of its own section, so a PARAGRAPH is
+    governed by the first sectPr recorded at or after it (inclusive), while a
+    table, which can never carry one, is governed by the first one after it.
+    """
+    return next((g for i, g in geoms if (i >= idx if inclusive else i > idx)),
+                (0, 0, 0))
+
+
+def _plan_date_texts(plan):
+    """Every flush-right line this plan is about to put behind a tab."""
+    texts = []
+    for kind, _left, right in plan:
+        if kind != "tab":
+            continue
+        cells = right.findall(qn("w:p"))
+        if not cells:
+            continue
+        for seg in _br_segments(cells[0]):
+            text = _norm_line(_seg_text(seg))
+            if text:
+                texts.append(text)
+    return texts
+
+
+def _clamp_stop_to_line(p, limit):
+    """Pull a stop sitting past the end of THIS paragraph's line box back
+    inside it, so real Word can still reach the tab."""
+    tabs, stops = _direct_stops(p)
+    if tabs is None or limit <= 0:
+        return
+    room = (limit
+            - max(_ind_val(p, "left", "start") or 0, 0)
+            - max(_ind_val(p, "right", "end") or 0, 0))
+    if room <= 0:
+        return
+    for stop in stops:
+        pos = _stop_pos(stop)
+        if pos is not None and pos > room:
+            stop.set(qn("w:pos"), str(room))
+
+
 def _untable_indent_repair(groups, stop, limit, dom_left):
     """Drop a cell right indent that strands this pass's own right tab, and
     snap a hair-width left indent onto the body's own left edge."""
@@ -1907,6 +2059,9 @@ def _untable_indent_repair(groups, stop, limit, dom_left):
                     for q in paras:
                         _ind_set(q, 0, "right", "end")
                     break
+        if tabbed:
+            for p in paras:
+                _clamp_stop_to_line(p, limit)
         if dom_left is None:
             continue
         for p in paras:
@@ -1922,15 +2077,18 @@ def date_column_untable(data, pdf_doc=None):
     doc = Document(io.BytesIO(data))
     body = doc.element.body
     sects = _section_widths(body)
+    geoms = _section_geoms(body)
+    edges = _pdf_right_edges(pdf_doc)
     dom_left = _dominant_left(body)
     changed = False
 
     # section widths are resolved against the ORIGINAL body order, before the
     # rewrite starts shifting indices around
-    candidates = [(c, next((w for i, w in sects if i > idx), 0) or 0)
+    candidates = [(c, next((w for i, w in sects if i > idx), 0) or 0,
+                   _geom_at(geoms, idx))
                   for idx, c in enumerate(body) if c.tag == qn("w:tbl")]
 
-    for tbl, limit in candidates:
+    for tbl, limit, geom in candidates:
         plan = _untable_plan(tbl)
         if plan is None:
             continue
@@ -1943,6 +2101,13 @@ def date_column_untable(data, pdf_doc=None):
             stop = limit
         if limit:
             stop = min(stop, limit)
+        # the cell widths are pdf2docx's guess at the column; the PDF knows
+        # where the dates actually end. Prefer the measurement when the whole
+        # column resolves to one edge.
+        measured = _measured_stop(edges, _plan_date_texts(plan),
+                                  geom[1], geom[2], limit)
+        if measured:
+            stop = measured
         rule = None
         first_pr = rows[0].find(qn("w:tc") + "/" + qn("w:tcPr") + "/" + qn("w:tcBorders"))
         if first_pr is not None:
@@ -5142,6 +5307,8 @@ def tab_stop_normalize(data, pdf_doc=None):
     doc = Document(io.BytesIO(data))
     body = doc.element.body
     sects = _section_text_columns(body)
+    geoms = _section_geoms(body)
+    edges = _pdf_right_edges(pdf_doc)
     changed = False
 
     for idx, p in enumerate(body):
@@ -5178,10 +5345,25 @@ def tab_stop_normalize(data, pdf_doc=None):
             continue
         if len(tail.strip()) > TAB_TAIL_MAX_CHARS:
             continue
-        if stops[0].get(qn("w:val")) == "right" and pos == width:
+        # Where the tail REALLY ends in the source, when the PDF can say so.
+        # Falling back to the text margin assumes every flush-right tail is
+        # flush with the paper, which is false whenever the author right-aligned
+        # to a column of their own; and the margin has to be reduced by this
+        # paragraph's own indents or the stop lands outside its line box and
+        # real Word drops the tab (see _clamp_stop_to_line).
+        geom = _geom_at(geoms, idx, inclusive=True)
+        target = _measured_stop(edges, [_norm_line(tail)],
+                                geom[1], geom[2], width)
+        if target is None:
+            target = (width
+                      - max(_ind_val(p, "left", "start") or 0, 0)
+                      - max(_ind_val(p, "right", "end") or 0, 0))
+        if target <= 0:
+            continue
+        if stops[0].get(qn("w:val")) == "right" and pos == target:
             continue
         stops[0].set(qn("w:val"), "right")
-        stops[0].set(qn("w:pos"), str(width))
+        stops[0].set(qn("w:pos"), str(target))
         changed = True
 
     if not changed:
