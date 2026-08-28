@@ -6069,6 +6069,99 @@ def stray_mark_cleanup(data, pdf_doc=None):
     return out.getvalue()
 
 
+# --------------------------------------------------------------- illegible shading
+# pdf2docx builds a cell's background by sampling the page under the text.  On a
+# heading band it sometimes samples the glyphs instead of the band, and writes the
+# TEXT colour out as w:shd/@w:fill -- black text on a black bar, four of five
+# section headings invisible.  The text colour is the half that survived; the fill
+# is the misread half, so drop the fill and keep the text.
+CS_MIN_CONTRAST = 2.0          # WCAG ratio under which the text cannot be read at all
+_CS_FLAT_SHD = ("clear", "solid")
+
+
+def _cs_rgb(value):
+    """'RRGGBB' -> (r, g, b) in 0..1, or None when it is not a real colour."""
+    if not value:
+        return None
+    v = value.strip().lstrip("#")
+    if len(v) != 6:
+        return None                      # 'auto' and anything malformed
+    try:
+        return tuple(int(v[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+    except ValueError:
+        return None
+
+
+def _cs_luminance(rgb):
+    def chan(c):
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = (chan(c) for c in rgb)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def _cs_contrast(a, b):
+    la, lb = _cs_luminance(a), _cs_luminance(b)
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+
+def _cs_fill(pr):
+    """(w:shd element, fill rgb) for a flat solid fill, else (None, None)."""
+    if pr is None:
+        return None, None
+    shd = pr.find(qn("w:shd"))
+    if shd is None:
+        return None, None
+    if (shd.get(qn("w:val")) or "clear") not in _CS_FLAT_SHD:
+        return None, None                # a hatch pattern is not one flat colour
+    rgb = _cs_rgb(shd.get(qn("w:fill")))
+    return (shd, rgb) if rgb else (None, None)
+
+
+def _cs_runs(el):
+    """The text-bearing runs this shading actually sits behind."""
+    paras = el.findall(qn("w:p")) if el.tag == qn("w:tc") else (el,)
+    out = []
+    for para in paras:
+        for r in para.iter(qn("w:r")):
+            if any((t.text or "") for t in r.findall(qn("w:t"))):
+                out.append(r)
+    return out
+
+
+def _cs_illegible(el, fill):
+    """True only when EVERY run under the fill has an explicit, unreadable colour."""
+    runs = _cs_runs(el)
+    if not runs:
+        return False                     # an empty shaded cell is a drawn band
+    for r in runs:
+        rpr = r.find(qn("w:rPr"))
+        col = None if rpr is None else rpr.find(qn("w:color"))
+        rgb = None if col is None else _cs_rgb(col.get(qn("w:val")))
+        if rgb is None:
+            return False                 # inherited colour: never guess
+        if _cs_contrast(rgb, fill) >= CS_MIN_CONTRAST:
+            return False                 # legible: the fill is deliberate
+    return True
+
+
+def illegible_shading_drop(data, pdf_doc=None):
+    """Drop a cell/paragraph shading fill that its own text cannot be read against."""
+    doc = Document(io.BytesIO(data))
+    changed = False
+    for el in doc.element.body.iter(qn("w:tc"), qn("w:p")):
+        pr = el.find(qn("w:tcPr")) if el.tag == qn("w:tc") else el.find(qn("w:pPr"))
+        shd, fill = _cs_fill(pr)
+        if shd is None or not _cs_illegible(el, fill):
+            continue
+        pr.remove(shd)
+        changed = True
+    if not changed:
+        return data
+    out = io.BytesIO()
+    doc.save(out)
+    return out.getvalue()
+
+
 PASSES = (hyperlink_unnest, phantom_column_flatten, span_space_repair, line_space_realign, br_row_split, label_row_split,
           header_footer_parts,
           date_column_untable, fused_line_split, tabbed_subline_split,
@@ -6077,7 +6170,8 @@ PASSES = (hyperlink_unnest, phantom_column_flatten, span_space_repair, line_spac
           list_hanging_indent, hyperlink_autolink, font_names,
           section_rules, empty_para_prune, section_rule_dedupe,
           section_break_tidy, wrap_tab_unfold, tab_stop_normalize,
-          char_scale_normalize, stray_mark_cleanup)
+          char_scale_normalize, stray_mark_cleanup,
+          illegible_shading_drop)
 
 
 def enhance(docx_bytes, pdf_doc=None):

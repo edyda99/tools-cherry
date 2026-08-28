@@ -4843,5 +4843,152 @@ _t17 = [t.text for t in _r17.paragraphs[0]._p.iter(qn("w:t"))]
 check(_t17 == ["Contact ", "home "],
       "F4-17: rewrote text inside a heading's hyperlink: %r" % _t17)
 
+# ---------------------------------------------------------------------------
+# G2: illegible_shading_drop.  pdf2docx can sample the glyph colour instead of
+# the band colour and emit it as w:shd/@w:fill, giving black text on a black
+# bar.  The pass drops such a fill and NEVER touches a legible one.
+
+def g2_doc(fill, colour, text="FORMATION", shd_val="clear", second=None,
+           on_para=False):
+    """One table cell (or one paragraph) shaded `fill` with `colour` text."""
+    d = Document()
+    if on_para:
+        para = d.add_paragraph()
+        holder = para._p
+        pr = holder.get_or_add_pPr()
+    else:
+        tbl = d.add_table(rows=1, cols=1)
+        cell = tbl.cell(0, 0)
+        para = cell.paragraphs[0]
+        holder = cell._tc
+        pr = holder.get_or_add_tcPr()
+    if fill is not None:
+        pr.append(parse_xml('<w:shd %s w:val="%s" w:fill="%s"/>'
+                            % (nsdecls("w"), shd_val, fill)))
+    for body, col in [(text, colour)] + ([second] if second else []):
+        run = para.add_run(body)
+        if col is not None:
+            run._r.get_or_add_rPr().append(
+                parse_xml('<w:color %s w:val="%s"/>' % (nsdecls("w"), col)))
+    return d, holder
+
+
+def g2_run(d):
+    buf = io.BytesIO()
+    d.save(buf)
+    out = de.illegible_shading_drop(buf.getvalue())
+    return Document(io.BytesIO(out))
+
+
+def g2_fills(doc):
+    """Every surviving non-auto shading fill in the body, in document order."""
+    out = []
+    for el in doc.element.body.iter(qn("w:tc"), qn("w:p")):
+        pr = (el.find(qn("w:tcPr")) if el.tag == qn("w:tc")
+              else el.find(qn("w:pPr")))
+        if pr is None:
+            continue
+        shd = pr.find(qn("w:shd"))
+        if shd is not None and shd.get(qn("w:fill")):
+            out.append(shd.get(qn("w:fill")))
+    return out
+
+
+def g2_text(doc):
+    return "".join(t.text or "" for t in doc.element.body.iter(qn("w:t")))
+
+
+# G2-1: the defect itself - black fill under black text loses the fill.
+_d, _ = g2_doc("000000", "000000")
+_r = g2_run(_d)
+check(g2_fills(_r) == [], "G2-1: kept a black fill under black text: %r"
+      % g2_fills(_r))
+check(g2_text(_r) == "FORMATION", "G2-1: lost the heading text: %r" % g2_text(_r))
+
+# G2-1b: the run colour itself is never rewritten - only the fill goes.
+_col = [c.get(qn("w:val")) for c in _r.element.body.iter(qn("w:color"))]
+check(_col == ["000000"], "G2-1b: rewrote the run colour: %r" % _col)
+
+# G2-2: the near-black variant pdf2docx also emits (151A21 on 000000).
+_d, _ = g2_doc("151A21", "000000")
+check(g2_fills(g2_run(_d)) == [], "G2-2: kept a near-black fill under black text")
+
+# G2-3: white on black is the point of a heading band - never touched.
+_d, _ = g2_doc("000000", "FFFFFF")
+check(g2_fills(g2_run(_d)) == ["000000"],
+      "G2-3: dropped a legible white-on-black band")
+
+# G2-4: dark text on a light band is the source layout - never touched.
+_d, _ = g2_doc("D9D9D9", "1A1A1A")
+check(g2_fills(g2_run(_d)) == ["D9D9D9"],
+      "G2-4: dropped a legible dark-on-light band")
+
+# G2-5: a mid-grey band that is merely low-contrast, not unreadable, stays.
+# 404040 under 000000 is ratio 2.02 - just above the threshold.
+_d, _ = g2_doc("404040", "000000")
+check(g2_fills(g2_run(_d)) == ["404040"],
+      "G2-5: dropped a fill above the contrast threshold")
+
+# G2-6: an inherited (unset) run colour is a guess, so the fill survives.
+_d, _ = g2_doc("000000", None)
+check(g2_fills(g2_run(_d)) == ["000000"],
+      "G2-6: dropped a fill under a run with no explicit colour")
+
+# G2-6b: w:color="auto" is not a colour either.
+_d, _ = g2_doc("000000", "auto")
+check(g2_fills(g2_run(_d)) == ["000000"], "G2-6b: treated w:color=auto as black")
+
+# G2-7: mixed legibility - one readable run means the band is deliberate.
+_d, _ = g2_doc("000000", "000000", second=("VISIBLE", "FFFFFF"))
+check(g2_fills(g2_run(_d)) == ["000000"],
+      "G2-7: dropped a band that one of its runs is readable against")
+
+# G2-8: an empty shaded cell is a drawn rule, not misread text.
+_d, _ = g2_doc("000000", "000000", text="")
+check(g2_fills(g2_run(_d)) == ["000000"], "G2-8: dropped an empty cell's fill")
+
+# G2-9: a patterned shd is not one flat colour, so it is not a sampling error.
+_d, _ = g2_doc("000000", "000000", shd_val="pct25")
+check(g2_fills(g2_run(_d)) == ["000000"], "G2-9: dropped a patterned shading")
+
+# G2-10: w:fill="auto" carries no colour to compare against.
+_d, _ = g2_doc("auto", "000000")
+check(g2_fills(g2_run(_d)) == ["auto"],
+      "G2-10: invented a comparison for fill=auto")
+
+# G2-11: the same repair applies to paragraph-level shading.
+_d, _ = g2_doc("000000", "000000", on_para=True)
+_r = g2_run(_d)
+check(g2_fills(_r) == [], "G2-11: kept a black paragraph fill under black text")
+check(g2_text(_r) == "FORMATION", "G2-11: lost the shaded paragraph's text")
+
+# G2-12: a document with no shading at all comes back byte-identical.
+_d = Document()
+_d.add_paragraph("Ordinary prose that no pass should rewrite.")
+_buf = io.BytesIO()
+_d.save(_buf)
+_bytes = _buf.getvalue()
+check(de.illegible_shading_drop(_bytes) is _bytes,
+      "G2-12: rewrote a document that has no shading")
+
+# G2-13: a cell judges only its own paragraphs - a legible NESTED table inside
+# it must not license an unreadable outer band, and vice versa.
+_d = Document()
+_outer = _d.add_table(rows=1, cols=1).cell(0, 0)
+_outer._tc.get_or_add_tcPr().append(
+    parse_xml('<w:shd %s w:val="clear" w:fill="000000"/>' % nsdecls("w")))
+_orun = _outer.paragraphs[0].add_run("OUTER")
+_orun._r.get_or_add_rPr().append(
+    parse_xml('<w:color %s w:val="000000"/>' % nsdecls("w")))
+_inner = _outer.add_table(rows=1, cols=1).cell(0, 0)
+_irun = _inner.paragraphs[0].add_run("INNER")
+_irun._r.get_or_add_rPr().append(
+    parse_xml('<w:color %s w:val="FFFFFF"/>' % nsdecls("w")))
+_r = g2_run(_d)
+check(g2_fills(_r) == [], "G2-13: a nested cell's run blocked the outer repair")
+check("OUTER" in g2_text(_r) and "INNER" in g2_text(_r),
+      "G2-13: lost text while repairing a nested table")
+
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)
