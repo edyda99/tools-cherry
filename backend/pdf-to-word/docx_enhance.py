@@ -4258,17 +4258,39 @@ def _fs_lines(pdf_doc):
     return out
 
 
+def _fs_trailing_breaks_only(p):
+    """True when no w:br in the paragraph has any text after it.
+
+    A hard break INSIDE the run stream is already a line boundary and belongs to
+    wrap_break_heal, so a paragraph carrying one is not this pass's to cut. A
+    break hanging off the END is different: there is no text after it, so it
+    cannot be a seam between two source lines and it cannot move when the
+    paragraph is cut (it stays on the last piece, exactly where it is now).
+    Excluding those too is what kept a job header welded on the CV -- pdf2docx
+    parks a stray trailing w:br + w:tab on the block, and the vetoed paragraph
+    then held a company, its flush-right date and the role line underneath.
+    """
+    seen_break = False
+    for el in p.iter():
+        if el.tag == qn("w:br"):
+            seen_break = True
+        elif el.tag == qn("w:t") and (el.text or "").strip():
+            if seen_break:
+                return False
+    return True
+
+
 def _fs_children(p):
     """[(element, text)] for the paragraph's content children, or None to bail.
 
     Bails on anything this pass must not move or reason about: a picture or a
-    text box (its anchor position is not the run stream), a hard break (already
-    a line boundary, wrap_break_heal owns those), a list paragraph, or any child
-    tag outside the known-safe set.
+    text box (its anchor position is not the run stream), a mid-stream hard
+    break (already a line boundary, wrap_break_heal owns those), a list
+    paragraph, or any child tag outside the known-safe set.
     """
     if p.find(qn("w:pPr") + "/" + qn("w:numPr")) is not None:
         return None
-    if p.find(".//" + qn("w:br")) is not None:
+    if not _fs_trailing_breaks_only(p):
         return None
     for tag in _FS_OPAQUE:
         if p.find(".//" + qn(tag)) is not None:
@@ -4496,6 +4518,21 @@ def _tss_boundary(items, stop):
     return marks[flips[0]][0]
 
 
+def _tss_pad(items):
+    """Index just past the last child that carries text.
+
+    pdf2docx likes to park furniture with no text of its own -- a stray w:br, a
+    trailing w:tab -- on the end of a block. It is not part of any source line,
+    so it must not be counted when the tab that marks the date column is being
+    located, and it rides along with whatever piece ends up last.
+    """
+    pad = 0
+    for i, (_el, text) in enumerate(items):
+        if (text or "").strip():
+            pad = i + 1
+    return pad
+
+
 def _tss_tabs(items):
     """The index of the paragraph's only tab-bearing child, else None."""
     at = [i for i, (el, _) in enumerate(items) if _fs_tabbed(el)]
@@ -4521,6 +4558,48 @@ def _tss_geometry(rows, head, sub, tail):
         if a["y0"] + TSS_MIN_DROP < other["y0"] < b["y0"] - TSS_MIN_DROP:
             return False
     return True
+
+
+def _tss_plan(items, pages, pad, stop):
+    """(cut, end) for the sub-line inside a welded entry, or None.
+
+    pdf2docx serialises the same three source lines -- institution, its
+    flush-right date, the sub-line beneath -- in either of two orders, because
+    which one it emits depends on how it grouped the page's blocks, not on the
+    page:
+
+        head | TAB | sub | date      the sub-line before the date column
+        head | TAB | date | sub      the date column before the sub-line
+
+    Both are one visual row plus one line under it, and in both the repair is
+    the same: the sub-line leaves, the head keeps its tab and its date. So the
+    arrangement is searched over child boundaries and accepted only on the
+    geometry test, which is what actually proves the shape -- head and sub are
+    each a whole line of their own, one directly under the other at the same
+    left edge, with the date alone on the head's baseline to its right and
+    nothing printed in between. Prose that merely happens to carry a tab
+    matches none of that.
+    """
+    if stop >= 2:
+        k = _tss_boundary(items, stop)
+        tail = _fs_norm("".join(t for _, t in items[stop:pad]))
+        if k is not None and tail and len(tail) <= TSS_TAIL_MAX:
+            head = _fs_norm("".join(t for _, t in items[:k]))
+            sub = _fs_norm("".join(t for _, t in items[k:stop]))
+            if head and sub and any(_tss_geometry(rows, head, sub, tail)
+                                    for rows in pages):
+                return (k, stop)
+    head = _fs_norm("".join(t for _, t in items[:stop]))
+    if not head:
+        return None
+    for cut in range(stop + 1, pad):
+        tail = _fs_norm("".join(t for _, t in items[stop:cut]))
+        sub = _fs_norm("".join(t for _, t in items[cut:pad]))
+        if not tail or not sub or len(tail) > TSS_TAIL_MAX:
+            continue
+        if any(_tss_geometry(rows, head, sub, tail) for rows in pages):
+            return (cut, len(items))
+    return None
 
 
 def _tss_split(p, items, k, stop):
@@ -4552,25 +4631,17 @@ def tabbed_subline_split(data, pdf_doc=None):
         items = _fs_children(p)
         if not items or len(items) < 3:
             continue
-        stop = _tss_tabs(items)
-        if stop is None or stop < 2:
+        pad = _tss_pad(items)
+        stop = _tss_tabs(items[:pad])
+        if stop is None:
             continue
-        tail = _fs_norm("".join(t for _, t in items[stop:]))
-        if not tail or len(tail) > TSS_TAIL_MAX:
-            continue
-        k = _tss_boundary(items, stop)
-        if k is None:
-            continue
-        head = _fs_norm("".join(t for _, t in items[:k]))
-        sub = _fs_norm("".join(t for _, t in items[k:stop]))
-        if not head or not sub:
-            continue
-        if not any(_tss_geometry(rows, head, sub, tail) for rows in pages):
+        plan = _tss_plan(items, pages, pad, stop)
+        if plan is None:
             continue
         splits += 1
         if splits > TSS_SPLIT_MAX:
             return data
-        pending.append((p, items, k, stop))
+        pending.append((p, items) + plan)
     if not pending:
         return data
     for p, items, k, stop in pending:
@@ -5168,11 +5239,24 @@ def _rstrip_paragraph(p):
 # default: page 1 here is right=810 bottom=478 twips, page 2 right=1440
 # bottom=1440, so the text column narrows by half an inch halfway down a CV
 # whose two PDF pages are exactly the same size. Where the PDF pages really do
-# share one geometry, a continuation section takes the first section's margin on
-# any side where the first section's is the SMALLER of the two. Only-smaller is
-# what keeps this safe on arbitrary documents: the text area of a continuation
-# section can grow but never shrink, so no page can be made to overflow and
-# nothing already laid out is pushed off the bottom.
+# share one geometry, every section of that page size takes, on each side, the
+# SMALLEST margin any of them measured. Only-smaller is what keeps this safe on
+# arbitrary documents: a section's text area can grow but never shrink, so no
+# page can be made to overflow and nothing already laid out is pushed off the
+# bottom.
+#
+# Taking the floor across ALL the sections rather than propagating the first
+# one's value forward is what makes the second half of this work on a document
+# with more than two sections. pdf2docx measures each page's margins from that
+# page's own ink, so two sections over the same paper differ by a few twips in
+# whichever direction the ink happened to fall (408 vs 400 at the top of a
+# two-page CV). Propagating forwards only repairs the sections that measured
+# LARGER than the first, and leaves a section that measured smaller as a
+# permanent mismatch -- which then reads as a real property change and stops
+# stray_mark_cleanup from removing the section break sitting on it. With the
+# floor applied, page geometry that the PDF says is uniform is uniform in the
+# docx too, and every break between two such sections that carries no other
+# change becomes provably inert.
 SB_SIDES = ("top", "right", "bottom", "left")
 
 
@@ -5296,16 +5380,21 @@ def section_break_tidy(data, pdf_doc=None):
     # (b) one page geometry in the PDF -> one set of margins in the docx.
     sects = [s for _, s in _sb_sections(body)]
     if len(sects) > 1 and pdf_doc is not None and _sb_uniform_pages(pdf_doc):
-        first_size, first_mar = _sb_pgsz(sects[0]), _sb_margins(sects[0])
-        if first_size and first_mar and all(v > 0 for v in first_mar.values()):
-            for sect in sects[1:]:
-                mar = _sb_margins(sect)
-                if mar is None or _sb_pgsz(sect) != first_size:
-                    continue
+        first_size = _sb_pgsz(sects[0])
+        group = []
+        for sect in sects:
+            mar = _sb_margins(sect)
+            if (first_size and _sb_pgsz(sect) == first_size
+                    and mar and all(v > 0 for v in mar.values())):
+                group.append((sect, mar))
+        if len(group) > 1:
+            floor = {side: min(mar[side] for _s, mar in group)
+                     for side in SB_SIDES}
+            for sect, mar in group:
                 node = sect.find(qn("w:pgMar"))
                 for side in SB_SIDES:
-                    if first_mar[side] < mar[side]:
-                        node.set(qn("w:" + side), str(first_mar[side]))
+                    if floor[side] < mar[side]:
+                        node.set(qn("w:" + side), str(floor[side]))
                         changed = True
 
     if not changed:
@@ -6485,8 +6574,12 @@ def inline_bullet_split(data, pdf_doc=None):
     return buf.getvalue()
 PASSES = (hyperlink_unnest, phantom_column_flatten, span_space_repair, line_space_realign, br_row_split, label_row_split,
           header_footer_parts,
-          date_column_untable, fused_line_split, tabbed_subline_split,
-          inline_bullet_split,
+          date_column_untable,
+          # inline_bullet_split first: it is the pass that gets a job header out
+          # of the same w:p as the first bullet of its list, and until it has,
+          # that header still carries a mid-stream w:br, which is what makes the
+          # two splitters below decline the paragraph.
+          inline_bullet_split, fused_line_split, tabbed_subline_split,
           centred_indent_drop, heading_styles,
           bullet_image_lists, list_numbering, paragraph_reflow, list_wrap_merge,
           list_hanging_indent, hyperlink_autolink, font_names, font_metric_twin,

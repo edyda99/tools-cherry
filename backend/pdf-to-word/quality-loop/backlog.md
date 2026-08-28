@@ -447,3 +447,71 @@ stop is verified structurally against the section width.
 Gate: exit 0, no synthetic or real-world document dropped. Hostile cases
 F2-1..F2-9 (F2-1/F2-3/F2-4 fail without the repair; F2-2, F2-5..F2-8 are the
 negative controls).
+
+
+## G5 - stray section breaks on a multi-page document, and the entry welded around its own date
+
+Two halves of one defect, both visible on the two-page French CV (rw corpus
+`cv_carlos_fr`), neither of which any rw metric can see: the scorer counts
+tokens, headings, lists and links, not section breaks or paragraph boundaries.
+Evidence is structural and visual.
+
+**(a) The margin floor.** pdf2docx measures each page's margins from that page's
+own ink, so two sections over one paper size disagree by a few twips in EITHER
+direction: on this CV, top=408 on the first section and top=400 on the last.
+`section_break_tidy` used to propagate the FIRST section's margin forward and
+only where it was the smaller of the two, so a later section that measured
+smaller than the first stayed as it was. That leftover 8-twip difference is a
+real property difference, so `stray_mark_cleanup._sm_drop_inert_sections` read
+the continuous break sitting between those two sections as a genuine one and
+kept it. The pass now takes the per-side FLOOR across every section that shares
+the first section's `pgSz`. The safety argument is unchanged and now applies to
+every section rather than only to the continuation ones: a margin can only
+shrink, so a text area can only grow, so nothing already laid out can be pushed
+off a page.
+
+Result on `cv_carlos_fr`: 4 sectPr -> 3. The one that goes is the inert
+continuous break; the two that remain are the genuine 1-column -> 2-column ->
+1-column band around the education entries, which is a real property change and
+must stay. Text will now reflow across the break that was removed.
+
+**(b) The reversed date/sub-line order.** `tabbed_subline_split` owned the shape
+`head | TAB | sub | date`. pdf2docx emits the same three source lines as
+`head | TAB | date | sub` just as often - which of the two depends on how it
+grouped the page's blocks, not on the page - and it parks text-less furniture (a
+trailing `w:br`, a trailing `w:tab`) on the end of the block. Both facts vetoed
+the repair: `_fs_children` refused any paragraph containing a `w:br`, and
+`_tss_tabs` refused a paragraph with two tab-bearing children even when the
+second carried no text.
+
+- `_fs_trailing_breaks_only` narrows the `w:br` veto to breaks with text AFTER
+  them. A break hanging off the end cannot be a seam between two source lines
+  and cannot move when the paragraph is cut, so it is not a reason to decline.
+  Mid-stream breaks are still refused - those belong to `wrap_break_heal`.
+- `_tss_pad` ignores trailing text-less children when locating the date column's
+  tab, and they ride along with whichever piece ends up last.
+- `_tss_plan` searches both arrangements over child boundaries and accepts one
+  only on the existing `_tss_geometry` test, which is what actually proves the
+  shape: head and sub each a whole unique line of their own, one directly under
+  the other at the same left edge, the date alone on the head's baseline to its
+  right, nothing printed in between. Prose that happens to carry a tab matches
+  none of that.
+
+`inline_bullet_split` moved ahead of the two splitters in `PASSES`. It is the
+pass that gets a job header out of the same `w:p` as the first bullet of its
+list; until it has run, that header still carries a mid-stream `w:br`, which is
+exactly what makes the splitters decline it.
+
+Evidence on `cv_carlos_fr`, paragraph 28. Before: one paragraph, two font sizes,
+`Pierre Dammous & Partners Energy - PDPE \tAout 2022 - Dec. 2023 Ingenieur
+Projet Electrique / Consultant Technique`. After: `... - PDPE \tAout 2022 -
+Dec. 2023` and `Ingenieur Projet Electrique / Consultant Technique` on its own
+line - the same shape the pass already produced for the Freelance Eng, ME Green
+and Stage INDEVCO entries. QuickLook page 1 confirms it and shows nothing else
+moved.
+
+Gate: exit 0. Synthetic mean 0.9582, rw mean 0.8477, no document down. Hostile
+cases G5-1..G5-14; G5-1, G5-2, G5-6, G5-8 and G5-9 fail without the change, the
+other nine are negative controls (mixed page sizes, a different paper size, no
+PDF, a genuine column-count change, a mid-stream break, no shared left edge, an
+intervening line, idempotence, word-stream conservation).

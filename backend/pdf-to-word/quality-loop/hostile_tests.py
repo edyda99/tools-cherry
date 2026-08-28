@@ -5293,5 +5293,169 @@ def _g4_tokens(text):
 check(_g4_tokens("".join(_g4txt)) == _g4_tokens(G4A + " " + G4B + " " + G4C),
       "G4-10: the cut changed the word stream")
 
+
+def g5_bytes(doc):
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+# ---- multi-page section breaks + reversed date/sub-line order (G5) ----------
+# (a) pdf2docx measures each page's margins from that page's own ink, so two
+# sections over one paper size disagree by a few twips in EITHER direction.
+# section_break_tidy now takes the per-side FLOOR across every section of that
+# page size, so a section that measured smaller than the first one is repaired
+# too -- and a break between two sections that then differ in nothing becomes
+# provably inert, which is what lets stray_mark_cleanup remove it.
+
+G5_UNIFORM = sb_pdf([(595.0, 842.0), (595.0, 842.0)])
+G5_MIXED = sb_pdf([(595.0, 842.0), (419.5, 595.3)])
+
+
+def g5_doc(*sects):
+    """A body whose paragraphs each carry one of `sects` (last -> body level)."""
+    d = Document()
+    for i, kwargs in enumerate(sects):
+        p = d.add_paragraph("line %d" % i)
+        if i == len(sects) - 1:
+            sb_body_sect(d, **kwargs)
+        else:
+            p._p.get_or_add_pPr().append(parse_xml(sb_sect(**kwargs)))
+    return d
+
+
+# G5-1: the later section measured the SMALLER top margin. The floor pulls the
+# FIRST section down to it; forward-only propagation could not.
+_r, _ = run_sb(g5_doc(dict(top=408), dict(top=400)), G5_UNIFORM)
+check([m["top"] for _t, m in sb_sects(_r)] == [400, 400],
+      "G5-1: top margin floor not applied backwards: %r"
+      % ([m["top"] for _t, m in sb_sects(_r)],))
+
+# G5-2: the floor is per SIDE and only ever shrinks a margin, so no section's
+# text area can be made smaller than it already was.
+_r, _ = run_sb(g5_doc(dict(top=408, left=900, right=814),
+                      dict(top=400, left=832, right=880)), G5_UNIFORM)
+check([(m["top"], m["left"], m["right"]) for _t, m in sb_sects(_r)]
+      == [(400, 832, 814), (400, 832, 814)],
+      "G5-2: floor not taken per side: %r"
+      % ([(m["top"], m["left"], m["right"]) for _t, m in sb_sects(_r)],))
+
+# G5-3: pages of different sizes are not one geometry, so nothing is unified.
+_r, _ = run_sb(g5_doc(dict(top=408), dict(top=400)), G5_MIXED)
+check([m["top"] for _t, m in sb_sects(_r)] == [408, 400],
+      "G5-3: unified margins across differently sized pages")
+
+# G5-4: a section over a different PAPER size is outside the group even when
+# the PDF's own pages are uniform.
+_r, _ = run_sb(g5_doc(dict(top=408), dict(top=400, w=12240, h=15840)),
+               G5_UNIFORM)
+check([m["top"] for _t, m in sb_sects(_r)] == [408, 400],
+      "G5-4: pulled a different paper size into the floor")
+
+# G5-5: no PDF at all (browser path, no page evidence) is a clean no-op.
+_r, _ = run_sb(g5_doc(dict(top=408), dict(top=400)), None)
+check([m["top"] for _t, m in sb_sects(_r)] == [408, 400],
+      "G5-5: unified margins with no PDF evidence")
+
+# G5-6: end to end -- once the margins agree, the continuous break between two
+# otherwise identical sections is removed, and the document keeps its own
+# body-level sectPr.
+_d = g5_doc(dict(top=408), dict(top=400))
+_d.paragraphs[0]._p.find(qn("w:pPr")).find(qn("w:sectPr")).append(
+    parse_xml('<w:type %s w:val="continuous"/>' % nsdecls("w")))
+_g5b = de.stray_mark_cleanup(
+    de.section_break_tidy(g5_bytes(_d), G5_UNIFORM), G5_UNIFORM)
+check(count_tag(_g5b, "w:sectPr") == 1,
+      "G5-6: inert continuous break survived the margin floor: %d"
+      % count_tag(_g5b, "w:sectPr"))
+check([p.text for p in Document(io.BytesIO(_g5b)).paragraphs]
+      == ["line 0", "line 1"], "G5-6: lost a paragraph")
+
+# G5-7: a real column-count change is a real property change, so the same
+# end-to-end run keeps that break even though the margins now match.
+_d = g5_doc(dict(top=408), dict(top=400))
+_s0 = _d.paragraphs[0]._p.find(qn("w:pPr")).find(qn("w:sectPr"))
+_s0.append(parse_xml('<w:type %s w:val="continuous"/>' % nsdecls("w")))
+_s0.remove(_s0.find(qn("w:cols")))
+_s0.append(parse_xml('<w:cols %s w:num="2"/>' % nsdecls("w")))
+_g5c = de.stray_mark_cleanup(
+    de.section_break_tidy(g5_bytes(_d), G5_UNIFORM), G5_UNIFORM)
+check(count_tag(_g5c, "w:sectPr") == 2,
+      "G5-7: dropped a genuine column-count change")
+
+
+# (b) The same three source lines -- institution, its flush-right date, the
+# sub-line beneath -- also arrive in the order head | TAB | date | sub, and
+# with pdf2docx's text-less furniture (a trailing w:br, a trailing w:tab)
+# parked on the end of the block.
+
+G5_H = "Pierre Dammous & Partners Energy"
+G5_S = "Electrical Project Engineer / Technical Consultant"
+G5_D = "Aug 2022 - Dec 2023"
+
+
+def g5_tss_pdf(sub_x=72, dy=12.0, extra=()):
+    rows = [(100.0, G5_H), (100.0, G5_D, 400), (100.0 + dy, G5_S, sub_x)]
+    rows.extend(extra)
+    return make_pdf([rows])
+
+
+def g5_tss_doc(furniture=True, mid_break=False):
+    """head | TAB | date | sub, the reversed order, plus trailing furniture."""
+    d = Document()
+    p = d.add_paragraph()
+    p.add_run(G5_H + " ").bold = True
+    p.add_run().add_tab()
+    p.add_run(G5_D + " ").bold = False
+    if mid_break:
+        p.add_run().add_break()
+    p.add_run(G5_S).bold = True
+    if furniture:
+        p.add_run().add_break()
+        p.add_run().add_tab()
+    return d
+
+
+# G5-8: the reversed order splits, the date stays with the institution, and the
+# trailing furniture rides along with the piece that ends up last.
+_r, _out = run_tss(g5_tss_doc(), g5_tss_pdf())
+check([p.text for p in _r.paragraphs] == [G5_H + " \t" + G5_D + " ", G5_S + "\n\t"],
+      "G5-8: reversed order not split: %r" % ([p.text for p in _r.paragraphs],))
+check(count_tag(_out, "w:br") == 1 and count_tag(_out, "w:tab") == 2,
+      "G5-8: furniture lost or duplicated by the split")
+
+# G5-9: with no trailing furniture at all the same shape still splits.
+_r, _ = run_tss(g5_tss_doc(furniture=False), g5_tss_pdf())
+check([p.text for p in _r.paragraphs] == [G5_H + " \t" + G5_D + " ", G5_S],
+      "G5-9: reversed order without furniture not split")
+
+# G5-10: a break in the MIDDLE of the run stream is already a line boundary and
+# belongs to wrap_break_heal, so the paragraph is refused.
+_r, _ = run_tss(g5_tss_doc(mid_break=True), g5_tss_pdf())
+check(len(_r.paragraphs) == 1, "G5-10: cut a paragraph with a mid-stream break")
+
+# G5-11: the sub-line does not share the institution's left edge -> a wrapped
+# continuation, not a sub-line. No cut in the reversed order either.
+_r, _ = run_tss(g5_tss_doc(), g5_tss_pdf(sub_x=140))
+check(len(_r.paragraphs) == 1, "G5-11: reversed cut without a shared left edge")
+
+# G5-12: something else printed between the two baselines breaks the pair.
+_r, _ = run_tss(g5_tss_doc(), g5_tss_pdf(dy=24.0,
+                                         extra=((112.0, "intervening line"),)))
+check(len(_r.paragraphs) == 1, "G5-12: reversed cut across an intervening line")
+
+# G5-13: no PDF evidence, and idempotence.
+_r, _ = run_tss(g5_tss_doc(), None)
+check(len(_r.paragraphs) == 1, "G5-13: reversed cut without any PDF evidence")
+_g5once = de.tabbed_subline_split(g5_bytes(g5_tss_doc()), g5_tss_pdf())
+check(de.tabbed_subline_split(_g5once, g5_tss_pdf()) == _g5once,
+      "G5-13: reversed cut is not idempotent")
+
+# G5-14: no word is lost or invented by the cut.
+_r, _ = run_tss(g5_tss_doc(), g5_tss_pdf())
+check(sorted("".join(p.text for p in _r.paragraphs).split())
+      == sorted((G5_H + " " + G5_D + " " + G5_S).split()),
+      "G5-14: the reversed cut changed the word stream")
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)
