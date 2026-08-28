@@ -15,7 +15,10 @@ import copy
 import io
 import json
 import re
+import zipfile
 from collections import Counter
+
+from lxml import etree
 
 from docx import Document
 from docx.text.paragraph import Paragraph
@@ -6162,12 +6165,117 @@ def illegible_shading_drop(data, pdf_doc=None):
     return out.getvalue()
 
 
+# --- font_metric_twin -------------------------------------------------------
+# A document authored in LibreOffice names its faces Carlito, Caladea or
+# Liberation Sans/Serif/Mono, and the PDF carries those names through. They are
+# the free clones of Microsoft's Calibri, Cambria, Arial, Times New Roman and
+# Courier New: same glyph widths, same line metrics, different name. font_names
+# copies the PDF's family onto the run, so the converted .docx asks Word for a
+# font a Windows recruiter does not have; Word substitutes an arbitrary
+# installed face (usually a serif) and the whole page reflows.
+#
+# The fix is a rename, not a guess: each pair below is metric-compatible by
+# design, so naming the Microsoft twin changes nothing about how the document
+# lays out on a machine that HAS the clone, and fixes it everywhere else. The
+# rename covers every font-naming attribute in the package - run and style
+# rFonts, the theme's typeface attributes, and the fontTable declarations - so
+# no part of the document is left pointing at the clone. Theme references
+# (asciiTheme and friends) name no family and are untouched.
+_FMT_TWINS = {
+    "carlito": "Calibri",
+    "caladea": "Cambria",
+    "liberationsans": "Arial",
+    "liberationserif": "Times New Roman",
+    "liberationmono": "Courier New",
+}
+_FMT_RFONT_ATTRS = ("ascii", "hAnsi", "cs", "eastAsia")
+_FMT_PARTS_RE = re.compile(
+    r"^word/(document|styles|stylesWithEffects|numbering|footnotes|endnotes|"
+    r"settings|fontTable|header\d*|footer\d*|theme/theme\d*)\.xml$")
+_FMT_A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
+_FMT_MARKERS = (b"carlito", b"caladea", b"liberation")
+
+
+def _fmt_key(name):
+    """Whitespace- and punctuation-free identity of a font family name."""
+    return re.sub(r"[^0-9a-z]+", "", (name or "").lower())
+
+
+def _fmt_twin(name):
+    """The Microsoft twin of a metric-compatible free face, else None."""
+    twin = _FMT_TWINS.get(_fmt_key(name))
+    return twin if twin and twin != (name or "").strip() else None
+
+
+def _fmt_rewrite_tree(root):
+    """Rename clone faces in one parsed part. True when anything changed."""
+    changed = False
+    for el in root.iter(qn("w:rFonts")):
+        for attr in _FMT_RFONT_ATTRS:
+            twin = _fmt_twin(el.get(qn("w:" + attr)))
+            if twin:
+                el.set(qn("w:" + attr), twin)
+                changed = True
+    for el in root.iter("{%s}latin" % _FMT_A_NS, "{%s}ea" % _FMT_A_NS,
+                        "{%s}cs" % _FMT_A_NS, "{%s}font" % _FMT_A_NS):
+        twin = _fmt_twin(el.get("typeface"))
+        if twin:
+            el.set("typeface", twin)
+            changed = True
+    # fontTable: rename the declaration, then drop it if the twin is declared
+    # twice (Word reads the first and a duplicate name is invalid).
+    seen = set()
+    for el in list(root.iter(qn("w:font"))):
+        name = el.get(qn("w:name"))
+        twin = _fmt_twin(name)
+        if twin:
+            el.set(qn("w:name"), twin)
+            name, changed = twin, True
+        key = _fmt_key(name)
+        if not key:
+            continue
+        if key in seen:
+            el.getparent().remove(el)
+            changed = True
+        else:
+            seen.add(key)
+    return changed
+
+
+def font_metric_twin(data, pdf_doc=None):
+    """Point every clone font name at its metric-compatible Microsoft twin."""
+    src = zipfile.ZipFile(io.BytesIO(data))
+    parts = {}
+    for info in src.infolist():
+        if not _FMT_PARTS_RE.match(info.filename):
+            continue
+        blob = src.read(info.filename)
+        low = blob.lower()
+        if not any(marker in low for marker in _FMT_MARKERS):
+            continue
+        try:
+            root = etree.fromstring(blob)
+        except Exception:  # noqa: BLE001 - an unparsable part is left alone
+            continue
+        if _fmt_rewrite_tree(root):
+            parts[info.filename] = etree.tostring(
+                root, xml_declaration=True, encoding="UTF-8", standalone=True)
+    if not parts:
+        return data
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as dst:
+        for info in src.infolist():
+            dst.writestr(info, parts.get(info.filename)
+                         or src.read(info.filename))
+    return out.getvalue()
+
+
 PASSES = (hyperlink_unnest, phantom_column_flatten, span_space_repair, line_space_realign, br_row_split, label_row_split,
           header_footer_parts,
           date_column_untable, fused_line_split, tabbed_subline_split,
           centred_indent_drop, heading_styles,
           bullet_image_lists, list_numbering, paragraph_reflow, list_wrap_merge,
-          list_hanging_indent, hyperlink_autolink, font_names,
+          list_hanging_indent, hyperlink_autolink, font_names, font_metric_twin,
           section_rules, empty_para_prune, section_rule_dedupe,
           section_break_tidy, wrap_tab_unfold, tab_stop_normalize,
           char_scale_normalize, stray_mark_cleanup,

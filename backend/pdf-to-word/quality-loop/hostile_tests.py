@@ -4990,5 +4990,159 @@ check("OUTER" in g2_text(_r) and "INNER" in g2_text(_r),
       "G2-13: lost text while repairing a nested table")
 
 
+
+# --- G3 font_metric_twin ---------------------------------------------------
+# A LibreOffice-authored PDF names Carlito / Caladea / Liberation Sans-Serif-
+# Mono. Those are metric clones of Calibri / Cambria / Arial / Times New Roman
+# / Courier New, and Word on a recruiter's machine has the twin, not the clone.
+# The pass renames the clone everywhere a font can be named; every other face,
+# and every piece of body text, has to survive untouched.
+import re
+import zipfile as _g3zip
+
+
+def g3_docx(runs, style_font=None):
+    """A .docx whose runs name the given fonts (font, text) pairs."""
+    d = Document()
+    for fam, text in runs:
+        r = d.add_paragraph().add_run(text)
+        rpr = r._r.get_or_add_rPr()
+        rpr.append(parse_xml('<w:rFonts %s w:ascii="%s" w:hAnsi="%s" w:cs="%s"/>'
+                             % (nsdecls("w"), fam, fam, fam)))
+    if style_font:
+        st = d.styles["Normal"].element.get_or_add_rPr()
+        st.append(parse_xml('<w:rFonts %s w:ascii="%s" w:hAnsi="%s"/>'
+                            % (nsdecls("w"), style_font, style_font)))
+    buf = io.BytesIO()
+    d.save(buf)
+    return buf.getvalue()
+
+
+def g3_repack(data, part, xml):
+    """Same package with one part replaced (fontTable / theme surgery)."""
+    src = _g3zip.ZipFile(io.BytesIO(data))
+    out = io.BytesIO()
+    with _g3zip.ZipFile(out, "w", _g3zip.ZIP_DEFLATED) as dst:
+        for info in src.infolist():
+            dst.writestr(info, xml if info.filename == part
+                         else src.read(info.filename))
+    return out.getvalue()
+
+
+def g3_part(data, part):
+    return _g3zip.ZipFile(io.BytesIO(data)).read(part).decode("utf-8")
+
+
+def g3_fonts(data):
+    """Every ascii font named by a run in the converted document."""
+    doc = Document(io.BytesIO(data))
+    out = []
+    for rf in doc.element.body.iter(qn("w:rFonts")):
+        out.append(rf.get(qn("w:ascii")))
+    return out
+
+
+# G3-1: the five metric-compatible clones become their Microsoft twins.
+_g3in = [("Carlito", "one"), ("Caladea", "two"), ("Liberation Sans", "three"),
+         ("Liberation Serif", "four"), ("Liberation Mono", "five")]
+_g3out = de.font_metric_twin(g3_docx(_g3in))
+check(g3_fonts(_g3out) == ["Calibri", "Cambria", "Arial", "Times New Roman",
+                           "Courier New"],
+      "G3-1: did not map the clone faces to their Microsoft twins")
+check([p.text for p in Document(io.BytesIO(_g3out)).paragraphs]
+      == ["one", "two", "three", "four", "five"],
+      "G3-1: lost or reordered text while renaming fonts")
+
+# G3-2: the name match ignores spacing and punctuation, as PostScript names do.
+_g3out = de.font_metric_twin(g3_docx(
+    [("LiberationSans", "a"), ("Liberation-Serif", "b"), ("CARLITO", "c")]))
+check(g3_fonts(_g3out) == ["Arial", "Times New Roman", "Calibri"],
+      "G3-2: missed a clone spelled without spaces or in caps")
+
+# G3-3: a face that is NOT a metric clone is never renamed - including one whose
+# name merely starts with a clone's ("Liberation Sans Narrow" is its own face).
+_g3keep = [("Lato", "a"), ("DejaVu Sans", "b"), ("Liberation Sans Narrow", "c"),
+           ("Calibri", "d")]
+_g3out = de.font_metric_twin(g3_docx(_g3keep))
+check(g3_fonts(_g3out) == ["Lato", "DejaVu Sans", "Liberation Sans Narrow",
+                           "Calibri"],
+      "G3-3: renamed a face that is not a metric clone")
+
+# G3-4: a document naming no clone comes back as the very same bytes.
+_g3same = g3_docx([("Lato", "prose")])
+check(de.font_metric_twin(_g3same) is _g3same,
+      "G3-4: rewrote a package that names no clone font")
+
+# G3-5: a style-level rFonts is renamed too - a run inheriting Carlito from
+# Normal reflows exactly like one naming it directly.
+_g3out = de.font_metric_twin(g3_docx([("Lato", "x")], style_font="Carlito"))
+check('w:ascii="Calibri"' in g3_part(_g3out, "word/styles.xml"),
+      "G3-5: left a clone font named by a style")
+check(g3_fonts(_g3out) == ["Lato"], "G3-5: renamed an unrelated run font")
+
+# G3-6: the fontTable declaration is renamed, and a declaration that collides
+# with an already-present twin is dropped rather than duplicated.
+_g3ft = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+         '<w:fonts %s><w:font w:name="Calibri"/><w:font w:name="Carlito"/>'
+         '<w:font w:name="Lato"/></w:fonts>' % nsdecls("w"))
+_g3out = de.font_metric_twin(
+    g3_repack(g3_docx([("Carlito", "x")]), "word/fontTable.xml", _g3ft))
+_g3names = re.findall(r'w:name="([^"]*)"', g3_part(_g3out, "word/fontTable.xml"))
+check(_g3names == ["Calibri", "Lato"],
+      "G3-6: fontTable ended up wrong: %r" % (_g3names,))
+
+# G3-7: body text is data, not a font name - a person called Carlito keeps his
+# name even though the part matches the pass's cheap marker scan.
+_g3d = Document()
+_g3r = _g3d.add_paragraph().add_run("Carlito Liberation wrote about Caladea.")
+_g3r._r.get_or_add_rPr().append(
+    parse_xml('<w:rFonts %s w:ascii="Carlito" w:hAnsi="Carlito"/>' % nsdecls("w")))
+_g3buf = io.BytesIO()
+_g3d.save(_g3buf)
+_g3out = de.font_metric_twin(_g3buf.getvalue())
+check(Document(io.BytesIO(_g3out)).paragraphs[0].text
+      == "Carlito Liberation wrote about Caladea.",
+      "G3-7: rewrote body text that happens to spell a font name")
+check(g3_fonts(_g3out) == ["Calibri"], "G3-7: failed to rename that run's font")
+
+# G3-8: the theme's minor/major typefaces are font names as well.
+_g3theme = g3_part(g3_docx([("Lato", "x")]), "word/theme/theme1.xml")
+_g3theme = _g3theme.replace('typeface="Cambria"', 'typeface="Caladea"', 1)
+_g3out = de.font_metric_twin(
+    g3_repack(g3_docx([("Lato", "x")]), "word/theme/theme1.xml",
+              _g3theme.encode("utf-8")))
+check("Caladea" not in g3_part(_g3out, "word/theme/theme1.xml"),
+      "G3-8: left a clone face in the theme's typeface list")
+
+# G3-9: a THEME reference names no family; rewriting it would break the link.
+_g3d = Document()
+_g3r = _g3d.add_paragraph().add_run("themed")
+_g3r._r.get_or_add_rPr().append(parse_xml(
+    '<w:rFonts %s w:asciiTheme="minorHAnsi" w:cs="Carlito"/>' % nsdecls("w")))
+_g3buf = io.BytesIO()
+_g3d.save(_g3buf)
+_g3out = de.font_metric_twin(_g3buf.getvalue())
+_g3rf = Document(io.BytesIO(_g3out)).element.body.iter(qn("w:rFonts"))
+_g3rf = next(_g3rf)
+check(_g3rf.get(qn("w:asciiTheme")) == "minorHAnsi",
+      "G3-9: touched a theme reference")
+check(_g3rf.get(qn("w:cs")) == "Calibri", "G3-9: skipped the w:cs clone name")
+
+# G3-10: the repacked package keeps every part it started with.
+_g3src = g3_docx([("Carlito", "x")])
+_g3out = de.font_metric_twin(_g3src)
+check(_g3zip.ZipFile(io.BytesIO(_g3out)).namelist()
+      == _g3zip.ZipFile(io.BytesIO(_g3src)).namelist(),
+      "G3-10: lost or reordered a package part while repacking")
+
+# G3-11: a corrupt part is left alone instead of taking the conversion down.
+_g3out = de.font_metric_twin(
+    g3_repack(g3_docx([("Carlito", "x")]), "word/numbering.xml",
+              b"<w:fonts not xml at all Carlito"))
+check('w:ascii="Calibri"' in g3_part(_g3out, "word/document.xml"),
+      "G3-11: an unparsable part stopped the rest of the rename")
+check(g3_part(_g3out, "word/numbering.xml").startswith("<w:fonts not xml"),
+      "G3-11: did not leave the unparsable part exactly as it found it")
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)
