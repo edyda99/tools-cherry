@@ -1848,6 +1848,7 @@ def _tab_attach(target, children, stop):
 # edge measured twice; anything larger is a real indent and is left alone.
 
 _IND_SNAP_TWIPS = 30  # 1.5pt
+_IND_HAIR_TWIPS = 20  # 1pt: below this an indent is cell residue, not an indent
 
 
 def _ind_val(p, *attrs):
@@ -2061,6 +2062,15 @@ def _untable_indent_repair(groups, stop, limit, dom_left):
                     break
         if tabbed:
             for p in paras:
+                # A hair-width left indent is the cell's own left edge, not an
+                # author's indent: it survives the untabling as a sub-point
+                # offset that shifts every stop on the line right by the same
+                # amount, so the date column no longer meets the edge measured
+                # for it, and a stop written at the full text width lands
+                # outside the line box entirely. Drop it before clamping.
+                left = _ind_val(p, "left", "start")
+                if left is not None and 0 < left <= _IND_HAIR_TWIPS:
+                    _ind_set(p, 0, "left", "start")
                 _clamp_stop_to_line(p, limit)
         if dom_left is None:
             continue
@@ -5345,6 +5355,16 @@ def tab_stop_normalize(data, pdf_doc=None):
             continue
         if len(tail.strip()) > TAB_TAIL_MAX_CHARS:
             continue
+        # A hair-width left indent is pdf2docx's measurement of a cell edge,
+        # not an author's indent. It costs the line box that much width, so a
+        # stop written at the text margin ends up outside it and real Word
+        # drops the tab (QuickLook places custom stops loosely and hid this).
+        # Dropping it is also what makes the measured stop land exactly on the
+        # column the dates were measured at.
+        left = _ind_val(p, "left", "start")
+        if left is not None and 0 < left <= _IND_HAIR_TWIPS:
+            _ind_set(p, 0, "left", "start")
+            changed = True
         # Where the tail REALLY ends in the source, when the PDF can say so.
         # Falling back to the text margin assumes every flush-right tail is
         # flush with the paper, which is false whenever the author right-aligned
