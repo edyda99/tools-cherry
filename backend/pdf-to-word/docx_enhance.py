@@ -6572,6 +6572,148 @@ def inline_bullet_split(data, pdf_doc=None):
     buf = io.BytesIO()
     doc.save(buf)
     return buf.getvalue()
+# pdf2docx measures the height of every printed line and freezes it as
+# <w:spacing w:line="226" w:lineRule="exact"/>.  "exact" means Word clips any
+# glyph taller than that box, so the moment a reader changes the font, the size,
+# or adds a superscript, the text loses its ascenders and descenders instead of
+# reflowing.  "atLeast" keeps the measured rhythm as a floor and lets the line
+# grow, which is what a person retyping the document in Word would have written.
+#
+# The same measurement produces the space-before drift: every paragraph carries
+# the rounded gap that happened to be printed above it, so structural siblings
+# (the entries of one section, the bullets of one list, the section headings of
+# one document) end up with seven different values that no editor can maintain.
+# Siblings are grouped structurally, never by wording, and each group is pulled
+# to its own median, so a document whose spacing is already regular is untouched.
+RHYTHM_MIN_GROUP = 3        # a median needs three siblings before it means anything
+RHYTHM_MAX_DEV_TWIPS = 200  # 10pt: past this the gap is deliberate, not drift
+_HEADING_STYLE_RE = re.compile(r"^Heading[1-9]\d*$")
+
+
+def _rn_style(p):
+    ppr = p.find(qn("w:pPr"))
+    st = ppr.find(qn("w:pStyle")) if ppr is not None else None
+    return (st.get(qn("w:val")) or "") if st is not None else ""
+
+
+def _rn_spacing(p):
+    ppr = p.find(qn("w:pPr"))
+    return ppr.find(qn("w:spacing")) if ppr is not None else None
+
+
+def _rn_before(p):
+    """This paragraph's direct space-before in twips, or None when it has none.
+
+    Auto and line-counted spacing are somebody's deliberate rule rather than a
+    measurement, so a paragraph carrying either is left out of the grouping.
+    """
+    sp = _rn_spacing(p)
+    if sp is None:
+        return None
+    if sp.get(qn("w:beforeLines")) is not None:
+        return None
+    if (sp.get(qn("w:beforeAutospacing")) or "0") not in ("0", "false", "off"):
+        return None
+    raw = sp.get(qn("w:before"))
+    if raw is None:
+        return None
+    try:
+        return int(round(float(raw)))
+    except (TypeError, ValueError):
+        return None
+
+
+def _rn_num_key(p):
+    ppr = p.find(qn("w:pPr"))
+    numpr = ppr.find(qn("w:numPr")) if ppr is not None else None
+    if numpr is None:
+        return ("", "")
+    def val(tag):
+        el = numpr.find(qn(tag))
+        return "" if el is None else (el.get(qn("w:val")) or "")
+    return (val("w:numId"), val("w:ilvl"))
+
+
+def _rn_median(vals):
+    vals = sorted(vals)
+    n = len(vals)
+    return vals[n // 2] if n % 2 else (vals[n // 2 - 1] + vals[n // 2]) // 2
+
+
+def spacing_rhythm_normalize(data, pdf_doc=None):
+    """Editability polish: growable line boxes, one rhythm per sibling group,
+    and no hair-width indent residue on body paragraphs."""
+    doc = Document(io.BytesIO(data))
+    changed = False
+
+    # (a) frozen line boxes -> a floor the text can grow past.  w:spacing in an
+    # rPr is character spacing and carries no lineRule, so it is never touched.
+    for root in _xml_roots(doc):
+        for sp in root.iter(qn("w:spacing")):
+            if sp.get(qn("w:lineRule")) == "exact":
+                sp.set(qn("w:lineRule"), "atLeast")
+                changed = True
+
+    body = doc.element.body
+    paras = list(body.iterchildren(qn("w:p")))
+
+    # (c) a sub-point left indent is pdf2docx's memory of a cell edge (10 twips
+    # = 6350 EMU), not an indent anybody typed.  A hanging indent means the
+    # paragraph really is offset, so those are left alone.
+    for p in paras:
+        left = _ind_val(p, "left", "start")
+        if left is None or not 0 < left <= _IND_HAIR_TWIPS:
+            continue
+        if _ind_val(p, "hanging"):
+            continue
+        _ind_set(p, 0, "left", "start")
+        changed = True
+
+    # (b) one space-before per sibling group.  Headings are siblings of every
+    # other heading of their level; body paragraphs only of the ones in their
+    # own block (the run between two headings) that share style, list level and
+    # indent.  The FIRST paragraph of a block is excluded: the extra gap under a
+    # heading is structure, not drift.
+    groups = {}
+    block = 0
+    seen_in_block = 0
+    for p in paras:
+        style = _rn_style(p)
+        if _HEADING_STYLE_RE.match(style):
+            block += 1
+            seen_in_block = 0
+            key = ("H", style)
+        else:
+            if not _para_all_text(p).strip():
+                continue          # a spacer paragraph owns its own gap
+            seen_in_block += 1
+            if seen_in_block == 1:
+                continue
+            key = ("B", block, style, _rn_num_key(p),
+                   _ind_val(p, "left", "start") or 0,
+                   _ind_val(p, "hanging") or 0)
+        before = _rn_before(p)
+        if before is None:
+            continue
+        groups.setdefault(key, []).append((p, before))
+
+    for members in groups.values():
+        if len(members) < RHYTHM_MIN_GROUP:
+            continue
+        med = _rn_median([v for _, v in members])
+        for p, v in members:
+            if v == med or abs(v - med) > RHYTHM_MAX_DEV_TWIPS:
+                continue
+            _rn_spacing(p).set(qn("w:before"), str(med))
+            changed = True
+
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 PASSES = (hyperlink_unnest, phantom_column_flatten, span_space_repair, line_space_realign, br_row_split, label_row_split,
           header_footer_parts,
           date_column_untable,
@@ -6586,7 +6728,9 @@ PASSES = (hyperlink_unnest, phantom_column_flatten, span_space_repair, line_spac
           section_rules, empty_para_prune, section_rule_dedupe,
           section_break_tidy, wrap_tab_unfold, tab_stop_normalize,
           char_scale_normalize, stray_mark_cleanup,
-          illegible_shading_drop)
+          illegible_shading_drop,
+          # last: it reads the spacing and indents every other pass leaves behind
+          spacing_rhythm_normalize)
 
 
 def enhance(docx_bytes, pdf_doc=None):

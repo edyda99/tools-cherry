@@ -5457,5 +5457,178 @@ check(sorted("".join(p.text for p in _r.paragraphs).split())
       == sorted((G5_H + " " + G5_D + " " + G5_S).split()),
       "G5-14: the reversed cut changed the word stream")
 
+# ---------------------------------------------------------------- G6 spacing_rhythm_normalize
+# (a) exact line boxes clip glyphs on any font change, (b) measured space-before
+# drifts apart inside one sibling group, (c) hair-width left indents are cell
+# residue.  Every case here is structural: nothing may key off wording.
+
+def g6_p(text="body", style=None, before=None, line=226, rule="exact",
+         left=None, hanging=None, numid=None, ilvl=0):
+    bits = []
+    if style:
+        bits.append('<w:pStyle w:val="%s"/>' % style)
+    if numid is not None:
+        bits.append('<w:numPr><w:ilvl w:val="%d"/><w:numId w:val="%d"/></w:numPr>'
+                    % (ilvl, numid))
+    sp = []
+    if before is not None:
+        sp.append('w:before="%d"' % before)
+    if line is not None:
+        sp.append('w:line="%d" w:lineRule="%s"' % (line, rule))
+    if sp:
+        bits.append("<w:spacing %s/>" % " ".join(sp))
+    ind = []
+    if left is not None:
+        ind.append('w:left="%d"' % left)
+    if hanging is not None:
+        ind.append('w:hanging="%d"' % hanging)
+    if ind:
+        bits.append("<w:ind %s/>" % " ".join(ind))
+    ppr = "<w:pPr>%s</w:pPr>" % "".join(bits) if bits else ""
+    return ('<w:p %s>%s<w:r><w:t xml:space="preserve">%s</w:t></w:r></w:p>'
+            % (nsdecls("w"), ppr, text))
+
+
+def g6_doc(paras):
+    doc = Document()
+    body = doc.element.body
+    for p in list(body.iterchildren(qn("w:p"))):
+        body.remove(p)
+    for xml in paras:
+        body.insert(len(body) - 1 if body.find(qn("w:sectPr")) is not None
+                    else len(body), parse_xml(xml))
+    return doc
+
+
+def g6_run(paras):
+    buf = io.BytesIO()
+    g6_doc(paras).save(buf)
+    out = de.spacing_rhythm_normalize(buf.getvalue())
+    return Document(io.BytesIO(out)), out
+
+
+def g6_before(p):
+    sp = p._p.find(qn("w:pPr")).find(qn("w:spacing"))
+    raw = sp.get(qn("w:before")) if sp is not None else None
+    return None if raw is None else int(raw)
+
+
+def g6_rules(doc):
+    return [sp.get(qn("w:lineRule"))
+            for sp in doc.element.body.iter(qn("w:spacing"))]
+
+
+def g6_left(p):
+    ppr = p._p.find(qn("w:pPr"))
+    ind = ppr.find(qn("w:ind")) if ppr is not None else None
+    raw = ind.get(qn("w:left")) if ind is not None else None
+    return None if raw is None else int(raw)
+
+
+# G6-1: every exact line box becomes atLeast, and the measured height survives.
+_r, _out = g6_run([g6_p("one"), g6_p("two", rule="exact", line=300)])
+check(g6_rules(_r) == ["atLeast", "atLeast"], "G6-1: exact line rule kept")
+check([sp.get(qn("w:line")) for sp in _r.element.body.iter(qn("w:spacing"))]
+      == ["226", "300"], "G6-1: line height changed with the rule")
+
+# G6-2: a rule the author chose (auto) and character spacing in an rPr are not
+# lineRule at all, so neither is rewritten.
+_doc = g6_doc([g6_p("auto", rule="auto")])
+_doc.element.body.find(qn("w:p")).find(qn("w:r")).insert(
+    0, parse_xml('<w:rPr %s><w:spacing w:val="20"/></w:rPr>' % nsdecls("w")))
+_buf = io.BytesIO(); _doc.save(_buf)
+_r = Document(io.BytesIO(de.spacing_rhythm_normalize(_buf.getvalue())))
+check([sp.get(qn("w:lineRule")) for sp in _r.element.body.iter(qn("w:spacing"))
+       if sp.getparent().tag == qn("w:pPr")] == ["auto"],
+      "G6-2: a non-exact line rule was rewritten")
+check(_r.element.body.find(".//" + qn("w:rPr")).find(qn("w:spacing")).get(qn("w:val"))
+      == "20", "G6-2: character spacing was mistaken for line spacing")
+
+# G6-3: five siblings under one heading, one of them drifted -> all at the median.
+# The FIRST paragraph of the block keeps its post-heading gap.
+_r, _ = g6_run([g6_p("H", style="Heading2", before=60)]
+               + [g6_p("first", before=90)]
+               + [g6_p("e%d" % i, before=b) for i, b in enumerate((18, 18, 94, 18))])
+check([g6_before(p) for p in _r.paragraphs] == [60, 90, 18, 18, 18, 18],
+      "G6-3: sibling rhythm not normalised: %r"
+      % ([g6_before(p) for p in _r.paragraphs],))
+
+# G6-4: two siblings are not evidence of a rhythm; nothing moves.
+_r, _ = g6_run([g6_p("H", style="Heading2", before=60), g6_p("first", before=90),
+                g6_p("a", before=18), g6_p("b", before=94)])
+check([g6_before(p) for p in _r.paragraphs] == [60, 90, 18, 94],
+      "G6-4: normalised a group of two")
+
+# G6-5: a deliberate gap (more than RHYTHM_MAX_DEV_TWIPS from the median) is
+# left exactly where the author put it.
+_r, _ = g6_run([g6_p("H", style="Heading2", before=60), g6_p("first", before=90)]
+               + [g6_p("a", before=18), g6_p("b", before=18),
+                  g6_p("c", before=18), g6_p("gap", before=1200)])
+check([g6_before(p) for p in _r.paragraphs] == [60, 90, 18, 18, 18, 1200],
+      "G6-5: flattened a deliberate gap")
+
+# G6-6: headings of one level are siblings across the whole document even though
+# their blocks differ; body paragraphs of DIFFERENT blocks are not.
+_r, _ = g6_run([g6_p("H1", style="Heading2", before=24),
+                g6_p("first", before=50), g6_p("a", before=18), g6_p("b", before=18),
+                g6_p("H2", style="Heading2", before=78),
+                g6_p("first", before=50), g6_p("c", before=90), g6_p("d", before=90),
+                g6_p("H3", style="Heading2", before=62)])
+check([g6_before(p) for p in _r.paragraphs]
+      == [62, 50, 18, 18, 62, 50, 90, 90, 62],
+      "G6-6: cross-block grouping or heading grouping wrong: %r"
+      % ([g6_before(p) for p in _r.paragraphs],))
+
+# G6-7: different list levels / different lists are different sibling groups.
+_r, _ = g6_run([g6_p("H", style="Heading2", before=60), g6_p("lead", before=50),
+                g6_p("l1", before=20, left=368, hanging=215, numid=7),
+                g6_p("l2", before=20, left=368, hanging=215, numid=7),
+                g6_p("l3", before=90, left=368, hanging=215, numid=7),
+                g6_p("o1", before=40, left=368, hanging=215, numid=8),
+                g6_p("o2", before=41, left=368, hanging=215, numid=8)])
+check([g6_before(p) for p in _r.paragraphs] == [60, 50, 20, 20, 20, 40, 41],
+      "G6-7: lists merged into one rhythm group: %r"
+      % ([g6_before(p) for p in _r.paragraphs],))
+
+# G6-8: hair-width left indent is cleared to a true zero; a real indent and a
+# hanging indent of any width are kept.
+_r, _ = g6_run([g6_p("residue", left=10), g6_p("real", left=720),
+                g6_p("hair-hang", left=6, hanging=6)])
+check([g6_left(p) for p in _r.paragraphs] == [0, 720, 6],
+      "G6-8: indent residue handling wrong: %r"
+      % ([g6_left(p) for p in _r.paragraphs],))
+
+# G6-9: the pass never edits the word stream, is idempotent, and is byte-exact
+# no-op on a document that already has the shape it wants.
+_src = [g6_p("H", style="Heading2", before=60, rule="exact"),
+        g6_p("first", before=90), g6_p("a", before=18, left=10),
+        g6_p("b", before=18), g6_p("c", before=94)]
+_r, _out = g6_run(_src)
+check(full_text(_r) == "Hfirstabc", "G6-9: the word stream changed")
+check(de.spacing_rhythm_normalize(_out) == _out, "G6-9: not idempotent")
+_clean = [g6_p("H", style="Heading2", before=60, rule="atLeast"),
+          g6_p("first", before=90, rule="atLeast"),
+          g6_p("a", before=18, rule="atLeast"), g6_p("b", before=18, rule="atLeast"),
+          g6_p("c", before=18, rule="atLeast")]
+_buf = io.BytesIO(); g6_doc(_clean).save(_buf)
+check(de.spacing_rhythm_normalize(_buf.getvalue()) == _buf.getvalue(),
+      "G6-9: rewrote a document that needed nothing")
+
+# G6-10: paragraphs with no direct spacing, or with auto/line-counted spacing,
+# are not dragged into a median.
+_r, _ = g6_run([g6_p("H", style="Heading2", before=60), g6_p("first", before=90),
+                g6_p("a", before=18), g6_p("b", before=18), g6_p("c", before=18),
+                g6_p("none", before=None)])
+check(g6_before(_r.paragraphs[-1]) is None, "G6-10: invented a space-before")
+_doc = g6_doc([g6_p("H", style="Heading2", before=60), g6_p("first", before=90),
+               g6_p("a", before=18), g6_p("b", before=18), g6_p("c", before=18),
+               g6_p("auto", before=94)])
+_last = list(_doc.element.body.iterchildren(qn("w:p")))[-1]
+_last.find(qn("w:pPr")).find(qn("w:spacing")).set(qn("w:beforeAutospacing"), "1")
+_buf = io.BytesIO(); _doc.save(_buf)
+_r = Document(io.BytesIO(de.spacing_rhythm_normalize(_buf.getvalue())))
+check(g6_before(_r.paragraphs[-1]) == 94, "G6-10: normalised auto spacing")
+
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)
