@@ -5144,5 +5144,154 @@ check('w:ascii="Calibri"' in g3_part(_g3out, "word/document.xml"),
 check(g3_part(_g3out, "word/numbering.xml").startswith("<w:fonts not xml"),
       "G3-11: did not leave the unparsable part exactly as it found it")
 
+
+# ---- inline_bullet_split cases (G4) -----------------------------------------
+# A PDF that draws its bullets as their own text blocks lets pdf2docx weld two
+# list items into one paragraph with the glyph stranded inline. The pass may
+# only act on evidence the PDF actually carries: a bare-bullet run, and a line
+# opening that the PDF marks with a glyph of its own.
+class _IbsPage:
+    """A page whose every line is its own block, with real geometry."""
+
+    def __init__(self, lines):
+        self._lines = lines            # [(y0, x0, x1, text)]
+
+    def get_text(self, kind, **_kw):
+        if kind == "words":
+            out = []
+            for y0, x0, x1, text in self._lines:
+                for word in text.split():
+                    out.append((x0, y0, x1, y0 + 10.0, word, 0, 0, 0))
+            return out
+        return {"blocks": [{"type": 0, "lines": [{
+            "bbox": (x0, y0, x1, y0 + 10.0),
+            "spans": [{"text": text, "bbox": (x0, y0, x1, y0 + 10.0)}]}]}
+            for y0, x0, x1, text in self._lines]}
+
+
+def ibs_runs(*chunks):
+    """A one-paragraph docx; a chunk of None emits a w:br run."""
+    d = Document()
+    p = d.add_paragraph()
+    for chunk in chunks:
+        if chunk is None:
+            p._p.append(parse_xml(f'<w:r {nsdecls("w")}><w:br/></w:r>'))
+        else:
+            r = p.add_run(chunk)
+            r._r.find(qn("w:t")).set(
+                "{http://www.w3.org/XML/1998/namespace}space", "preserve")
+    buf = io.BytesIO()
+    d.save(buf)
+    return buf.getvalue()
+
+
+def ibs_run(raw, pdf):
+    doc = Document(io.BytesIO(de.inline_bullet_split(raw, pdf)))
+    return doc, ["".join(t.text or "" for t in p._p.iter(qn("w:t")))
+                 for p in doc.paragraphs]
+
+
+G4A = "First bullet item about the wiring survey"
+G4B = "continuation of that first item on line two"
+G4C = "Second bullet item about the cable trays"
+_g4_pdf = [_IbsPage([(100.0, 54.5, 60.3, "• "),
+                     (100.0, 60.3, 400.0, G4A),
+                     (112.0, 60.3, 400.0, G4B),
+                     (124.0, 54.5, 60.3, "• "),
+                     (124.0, 60.3, 400.0, G4C)])]
+
+# G4-1: the welded pair is cut at the stranded glyph, both halves keep a leading
+# bullet, and no glyph is left inline.
+_g4raw = ibs_runs("• ", G4A + " ", G4B, "• ", G4C)
+_g4doc, _g4txt = ibs_run(_g4raw, _g4_pdf)
+check(len(_g4txt) == 2, "G4-1: expected 2 paragraphs, got %d %r" % (len(_g4txt), _g4txt))
+check(_g4txt[0] == "• " + G4A + " " + G4B, "G4-1: first half %r" % _g4txt[0])
+check(_g4txt[1] == "• " + G4C, "G4-1: second half %r" % _g4txt[1])
+check("•" not in _g4txt[0][1:] and "•" not in _g4txt[1][1:],
+      "G4-1: a glyph is still inline")
+
+# G4-2: list_numbering then numbers both halves into the SAME sibling list.
+_g4num = Document(io.BytesIO(de.list_numbering(de.inline_bullet_split(_g4raw, _g4_pdf))))
+check(all(has_numpr(p) for p in _g4num.paragraphs),
+      "G4-2: a half did not become a list item")
+check(numid_of(_g4num.paragraphs[0]) == numid_of(_g4num.paragraphs[1]),
+      "G4-2: halves landed in different lists")
+check(_g4num.paragraphs[1].text == G4C, "G4-2: second item text %r"
+      % _g4num.paragraphs[1].text)
+
+# G4-3: a glyph sorted to the WRONG END of its own item is hoisted to the front,
+# not used as a cut, and the space it vacated survives a dropped w:br.
+G4D = "Prioritise the work fronts and coordinate"
+G4E = "the labour allocation across the whole site."
+_g4_pdf2 = [_IbsPage([(100.0, 54.5, 60.3, "• "),
+                      (100.0, 60.3, 400.0, G4D),
+                      (112.0, 60.3, 400.0, G4E)])]
+_g4doc2, _g4txt2 = ibs_run(ibs_runs(G4D, "• ", None, G4E), _g4_pdf2)
+check(len(_g4txt2) == 1, "G4-3: hoist became a split: %r" % _g4txt2)
+check(_g4txt2[0] == "• " + G4D + " " + G4E, "G4-3: hoisted text %r" % _g4txt2[0])
+
+# G4-4: an inline glyph the PDF does not mark as a line opening is left alone —
+# prose that merely contains a bullet character is never cut.
+G4F = "Bullets • are sometimes used inline in running prose."
+_g4_pdf3 = [_IbsPage([(100.0, 60.3, 400.0, G4F)])]
+_g4raw3 = ibs_runs("Bullets ", "• ", "are sometimes used inline in running prose.")
+check(de.inline_bullet_split(_g4raw3, _g4_pdf3) == _g4raw3,
+      "G4-4: edited a document whose PDF marks no bulleted line")
+
+# G4-5: a glyph whose following text opens an UNbulleted line, in a paragraph
+# whose own opening is not bulleted either, is left exactly where it is.
+G4G = "Plain heading line with no marker"
+G4H = "and its unbulleted continuation line"
+_g4_pdf4 = [_IbsPage([(100.0, 54.5, 60.3, "• "),
+                      (100.0, 60.3, 400.0, G4A),
+                      (140.0, 60.3, 400.0, G4G),
+                      (152.0, 60.3, 400.0, G4H)])]
+_g4raw4 = ibs_runs(G4G + " ", "• ", G4H)
+_g4doc4, _g4txt4 = ibs_run(_g4raw4, _g4_pdf4)
+check(_g4txt4 == [G4G + " • " + G4H], "G4-5: moved an unattributable glyph: %r"
+      % _g4txt4)
+
+# G4-6: the fold seam gets exactly one space when the left half ends a PDF line
+# and the right half opens one.
+G4I = "The quarterly report covers all regional"
+G4J = "operations across the northern territory."
+_g4_pdf5 = [_IbsPage([(100.0, 60.3, 400.0, G4I), (112.0, 60.3, 400.0, G4J)])]
+_g4doc5, _g4txt5 = ibs_run(ibs_runs(G4I, G4J), _g4_pdf5)
+check(_g4txt5 == [G4I + " " + G4J], "G4-6: seam not repaired: %r" % _g4txt5)
+_g4doc5b, _g4txt5b = ibs_run(ibs_runs(G4I + " ", G4J), _g4_pdf5)
+check(_g4txt5b == [G4I + " " + G4J], "G4-6b: doubled an existing space: %r" % _g4txt5b)
+
+# G4-7: a seam the PDF spells solid is never opened — "inter"+"national" stays
+# "international" because the PDF carries that word whole.
+K1 = "The company handles inter"
+K2 = "national shipping every day"
+K3 = "international shipping manifests are filed"
+_g4_pdf6 = [_IbsPage([(100.0, 60.3, 400.0, K1), (112.0, 60.3, 400.0, K2),
+                      (124.0, 60.3, 400.0, K3)])]
+_g4raw6 = ibs_runs(K1, K2)
+check(de.inline_bullet_split(_g4raw6, _g4_pdf6) == _g4raw6,
+      "G4-7: opened a seam inside a word the PDF holds solid")
+
+# G4-8: a mid-line formatting split is not a fold seam and gets no space.
+G4K = "The quarterly report covers "
+G4L = "all regional operations across the territory."
+_g4_pdf7 = [_IbsPage([(100.0, 60.3, 400.0, G4K + G4L)])]
+_g4raw7 = ibs_runs(G4K, G4L)
+check(de.inline_bullet_split(_g4raw7, _g4_pdf7) == _g4raw7,
+      "G4-8: touched a mid-line run split")
+
+# G4-9: no PDF at all is a hard no-op, and the pass is idempotent.
+check(de.inline_bullet_split(_g4raw) == _g4raw, "G4-9: edited without a PDF")
+_g4once = de.inline_bullet_split(_g4raw, _g4_pdf)
+check(de.inline_bullet_split(_g4once, _g4_pdf) == _g4once, "G4-9: not idempotent")
+
+# G4-10: no token is lost or invented by the cut.
+def _g4_tokens(text):
+    return sorted(text.replace("•", " ").split())
+
+
+check(_g4_tokens("".join(_g4txt)) == _g4_tokens(G4A + " " + G4B + " " + G4C),
+      "G4-10: the cut changed the word stream")
+
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")
 sys.exit(1 if FAILS else 0)

@@ -6270,9 +6270,223 @@ def font_metric_twin(data, pdf_doc=None):
     return out.getvalue()
 
 
+
+
+# ------------------------------------------------------------- inline bullet welds
+# A PDF that draws its bullet glyphs as their OWN text blocks (a "• " span at
+# x=54.5 sitting beside the item's first line at x=60.3) gives pdf2docx two
+# independent block streams to interleave.  When it folds them back together the
+# glyph sometimes lands INSIDE the previous paragraph instead of opening a new
+# one, so two list items arrive welded into a single w:p with a literal bullet
+# left in the middle of the sentence.  The second item then no longer has the
+# leading-bullet shape list_numbering keys on, so it never becomes a list item:
+# it keeps a bare paragraph at whatever indent pdf2docx guessed while its
+# siblings carry w:numPr.  The same interleave also loses the space at the seam
+# where two source lines were folded ("contremaîtres et" + "équipes d'ouvriers"
+# -> "etéquipes"), which span_space_repair cannot see because its bigram
+# evidence is built per PDF line and those two words never share a line.
+#
+# Every decision here is grounded in the PDF's own geometry, never in prose:
+#
+#   * a BARE-BULLET run (its entire text is one bullet glyph) that is not the
+#     paragraph's first content run is a stray marker;
+#   * if the text FOLLOWING it opens a PDF line that carries a bullet marker of
+#     its own, the glyph really does open a new item -> cut the paragraph there,
+#     leaving the leading glyph in place so list_numbering numbers the new half
+#     into the same sibling list;
+#   * otherwise the glyph belongs to this paragraph's own first line and was
+#     merely sorted to the wrong end -> move it to the front, where
+#     list_numbering can see it;
+#   * a marker matching neither test is left exactly where it is.
+#
+# The seam repair fires only when the left half ENDS a PDF line and the right
+# half OPENS one, and never when the two halves spell a word the PDF holds
+# solid.  Both halves must be at least IBS_SEAM_CHARS long, so a mid-line
+# bold/italic run split cannot satisfy the test by accident.
+
+_IBS_GLYPHS = "•▪●◦‣∙"
+_IBS_BARE = re.compile("^[" + _IBS_GLYPHS + "]\\s*$")
+_IBS_LEAD = re.compile("^[" + _IBS_GLYPHS + "\\s]+")
+IBS_START_CHARS = 24      # prefix compared against a PDF line's opening
+IBS_SEAM_CHARS = 12       # tail/head compared at a run seam
+IBS_MARKER_DX = 30.0      # pt: how far right of the glyph its own line may start
+IBS_MARKER_DY = 3.0       # pt: baseline tolerance between glyph and its line
+
+
+def _ibs_norm(text):
+    return re.sub(r"\s+", " ", text or "").strip()
+
+
+def _ibs_evidence(pdf_doc):
+    """(line openings, openings of bulleted lines, line endings) from the PDF."""
+    starts, bullet_starts, ends = set(), set(), set()
+    for page in pdf_doc:
+        markers, bodies = [], []
+        for block in page.get_text("dict").get("blocks", ()):
+            if block.get("type") != 0:
+                continue
+            for line in block.get("lines", ()):
+                norm = _ibs_norm("".join(s.get("text", "")
+                                         for s in line.get("spans", ())))
+                if not norm:
+                    continue
+                x0, y0, x1, _y1 = line["bbox"]
+                if len(norm) == 1 and norm in _IBS_GLYPHS:
+                    markers.append((y0, x1))
+                    continue
+                bodies.append((y0, x0, norm))
+                starts.add(norm[:IBS_START_CHARS])
+                ends.add(norm[-IBS_SEAM_CHARS:])
+        for my0, mx1 in markers:
+            for by0, bx0, norm in bodies:
+                if (abs(by0 - my0) <= IBS_MARKER_DY
+                        and 0 <= bx0 - mx1 <= IBS_MARKER_DX):
+                    bullet_starts.add(norm[:IBS_START_CHARS])
+    return starts, bullet_starts, ends
+
+
+def _ibs_children(p):
+    return [c for c in p if c.tag != qn("w:pPr")]
+
+
+def _ibs_text(el):
+    return "".join(t.text or "" for t in el.iter(qn("w:t")))
+
+
+def _ibs_is_bare_marker(el, text):
+    if el.tag != qn("w:r") or not _IBS_BARE.match(text or ""):
+        return False
+    # a run that also carries a break, a tab or a picture is layout, not a marker
+    return not any(c.tag in (qn("w:br"), qn("w:tab"), qn("w:drawing"))
+                   for c in el)
+
+
+def _ibs_plan(children, texts, bullet_starts):
+    """[(index, "split"|"move")] for every stray marker run in the paragraph."""
+    markers, seen_text = [], False
+    for i, (child, text) in enumerate(zip(children, texts)):
+        if _ibs_is_bare_marker(child, text):
+            if seen_text:
+                markers.append(i)
+            continue
+        if _ibs_norm(text):
+            seen_text = True
+    if not markers:
+        return []
+    head = _IBS_LEAD.sub("", _ibs_norm("".join(texts[:markers[0]])))
+    head_is_item = head[:IBS_START_CHARS] in bullet_starts
+    front_taken = _ibs_is_bare_marker(children[0], texts[0])
+    plan = []
+    for i in markers:
+        after = _IBS_LEAD.sub("", _ibs_norm("".join(texts[i + 1:])))
+        if after[:IBS_START_CHARS] in bullet_starts:
+            plan.append((i, "split"))
+        elif head_is_item and not front_taken:
+            plan.append((i, "move"))
+            front_taken = True
+    return plan
+
+
+def _ibs_keep_gap(p, marker):
+    """Hoisting a marker out of mid-paragraph must not weld its neighbours.
+
+    The glyph run carries its own trailing space, and a later pass is free to
+    drop the w:br that happens to sit where it was, so the space is put back on
+    the last w:t before the marker rather than left to the surrounding markup.
+    """
+    stream = _seam_stream(p)
+    try:
+        cut = min(k for k, el in enumerate(stream) if el in set(marker.iter()))
+    except ValueError:
+        return
+    for el in reversed(stream[:cut]):
+        if el.tag != qn("w:t"):
+            continue
+        text = el.text or ""
+        if text and not text[-1].isspace():
+            el.text = text + " "
+            el.set(_XML_SPACE, "preserve")
+        return
+
+
+def _ibs_apply(p, children, plan):
+    """Cut at each split marker, hoist each stray one, last marker first."""
+    for i, action in reversed(plan):
+        if action == "split":
+            new = copy.deepcopy(p)
+            for child in list(new):
+                if child.tag != qn("w:pPr"):
+                    new.remove(child)
+            for child in children[i:]:
+                child.getparent().remove(child)
+                new.append(child)
+            p.addnext(new)
+        else:
+            marker = children[i]
+            _ibs_keep_gap(p, marker)
+            marker.getparent().remove(marker)
+            p.insert(1 if p.find(qn("w:pPr")) is not None else 0, marker)
+
+
+def _ibs_seam_spaces(p, starts, ends, words):
+    """Re-insert the single space lost where two source lines were folded."""
+    changed = False
+    stream = _seam_stream(p)
+    for a, b in zip(stream, stream[1:]):
+        if a.tag != qn("w:t") or b.tag != qn("w:t"):
+            continue
+        ta, tb = a.text or "", b.text or ""
+        if len(ta) < IBS_SEAM_CHARS or len(tb) < IBS_SEAM_CHARS:
+            continue
+        if not (ta[-1].isalnum() and tb[0].isalnum()):
+            continue
+        na, nb = _ibs_norm(ta), _ibs_norm(tb)
+        if na[-IBS_SEAM_CHARS:] not in ends:
+            continue
+        if nb[:IBS_START_CHARS] not in starts:
+            continue
+        tail = re.search(r"\S+$", ta).group()
+        head = re.search(r"^\S+", tb).group()
+        if _EDGE_PUNCT.sub("", tail + head).lower() in words:
+            continue      # the PDF spells it solid; the seam is inside one word
+        a.text = ta + " "
+        a.set(_XML_SPACE, "preserve")
+        changed = True
+    return changed
+
+
+def inline_bullet_split(data, pdf_doc=None):
+    """Unweld list items pdf2docx fused around a stray inline bullet glyph."""
+    if pdf_doc is None:
+        return data
+    starts, bullet_starts, ends = _ibs_evidence(pdf_doc)
+    if not starts:
+        return data
+    words, _bigrams = _pdf_word_evidence(pdf_doc)
+    doc = Document(io.BytesIO(data))
+    changed = False
+    if bullet_starts:
+        for p in list(doc.element.body.iter(qn("w:p"))):
+            children = _ibs_children(p)
+            if not children:
+                continue
+            texts = [_ibs_text(c) for c in children]
+            plan = _ibs_plan(children, texts, bullet_starts)
+            if plan:
+                _ibs_apply(p, children, plan)
+                changed = True
+    for p in list(doc.element.body.iter(qn("w:p"))):
+        if _ibs_seam_spaces(p, starts, ends, words):
+            changed = True
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
 PASSES = (hyperlink_unnest, phantom_column_flatten, span_space_repair, line_space_realign, br_row_split, label_row_split,
           header_footer_parts,
           date_column_untable, fused_line_split, tabbed_subline_split,
+          inline_bullet_split,
           centred_indent_drop, heading_styles,
           bullet_image_lists, list_numbering, paragraph_reflow, list_wrap_merge,
           list_hanging_indent, hyperlink_autolink, font_names, font_metric_twin,
