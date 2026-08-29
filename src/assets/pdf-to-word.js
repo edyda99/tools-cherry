@@ -60,10 +60,24 @@ function setStatus(msg, kind) {
 
 // One banner, ever. It explains why the browser engine ran instead of the server;
 // a second explanation stacked under the first is how the old page lost people.
-function setBanner(msg) {
+// `strong` marks the case that must never be skimmed past: the visitor asked for the
+// server, did not get it, and is holding a basic file they did not choose. Styled from
+// here rather than styles.css, which is shared by every page on the site.
+function setBanner(msg, strong) {
   if (!banner) return;
   banner.textContent = msg || '';
   banner.hidden = !msg;
+  if (msg && strong) {
+    banner.style.borderLeft = '4px solid var(--accent)';
+    banner.style.padding = '10px 12px';
+    banner.style.background = 'rgba(127,127,127,0.08)';
+    banner.style.fontWeight = '600';
+  } else {
+    banner.style.borderLeft = '';
+    banner.style.padding = '';
+    banner.style.background = '';
+    banner.style.fontWeight = '';
+  }
 }
 
 function setFileInfo(msg) {
@@ -142,7 +156,10 @@ function offerDownload(blob, basic, sourceName) {
   resetDownload();
   lastUrl = URL.createObjectURL(blob);
   const base = (sourceName || selected.name).replace(/\.pdf$/i, '');
-  const outName = base + '.docx';
+  // The basic file is named "-basic" so it stays distinguishable after it has been
+  // downloaded: a banner on the page cannot travel with the file into a folder, and
+  // people were sending the browser-engine output out believing it was the server's.
+  const outName = basic ? base + '-basic.docx' : base + '.docx';
   download.href = lastUrl;
   download.download = outName;
   download.title = outName; // the full name, for anyone who wants to check it
@@ -171,6 +188,7 @@ function pickFile(file) {
     pendingServerSubmit = false;
     clearTsSolveTimer();
     tsToken = null;
+    tsNeedsInteraction = false;
     busy = false;
     clearBtn.disabled = false;
   }
@@ -493,12 +511,34 @@ let tsWarmed = false;
 // Set when the warm-up already proved the check cannot load. Cleared as soon as it
 // is used, so pressing Convert again is a genuine retry rather than a cached refusal.
 let tsBlockedMsg = null;
+// True while Turnstile is in interactive mode: the widget has rendered and is waiting
+// for a real tick. This is NOT a failure, and treating it as one is what silently
+// handed Safari visitors the basic engine while they believed they were on the server.
+let tsNeedsInteraction = false;
+
+const TS_INTERACT_MSG =
+  'Tick the "Verify you are human" box above, then press Convert.';
 
 function clearTsSolveTimer() {
   if (tsSolveTimer !== null) {
     clearTimeout(tsSolveTimer);
     tsSolveTimer = null;
   }
+}
+
+// The widget wants a tick. Stop the clock, hand the page back to the visitor and say
+// exactly what to do. Server mode stays selected: the pending submit is deliberately
+// left standing so that ticking the box converts on the server without a second press,
+// and pressing Convert again lands back here rather than falling through to the
+// basic engine.
+function promptForInteraction() {
+  clearTsSolveTimer();
+  setProgress(null);
+  setBanner(TS_INTERACT_MSG);
+  setStatus('Waiting for the human check.');
+  busy = false;
+  clearBtn.disabled = false;
+  setPrimary('Convert to Word', false);
 }
 
 function loadTurnstile() {
@@ -547,10 +587,20 @@ async function ensureTurnstile() {
       sitekey: c.getAttribute('data-sitekey'),
       callback: (token) => {
         clearTsSolveTimer();
+        tsNeedsInteraction = false;
         tsToken = token;
         tsBlockedMsg = null;
+        setBanner('');
         if (pendingServerSubmit) doServerConvert();
       },
+      // Turnstile fires this when it has decided the visitor must tick the box. It is
+      // the one signal that separates "waiting for a human" from "cannot verify", and
+      // without it the solve timeout below cannot tell them apart.
+      'before-interactive-callback': () => {
+        tsNeedsInteraction = true;
+        if (pendingServerSubmit) promptForInteraction();
+      },
+      'after-interactive-callback': () => { tsNeedsInteraction = false; },
       'error-callback': () => { tsFailure(); },
       'timeout-callback': () => { tsFailure(); },
       'unsupported-callback': () => { tsFailure(TS_UNSUPPORTED_MSG); },
@@ -561,6 +611,7 @@ async function ensureTurnstile() {
     // reset() invalidates any token we are still holding, so drop it and let the
     // fresh solve callback drive the submit.
     tsToken = null;
+    tsNeedsInteraction = false;
     try { window.turnstile.reset(tsWidgetId); } catch (_) {}
   }
 }
@@ -646,11 +697,15 @@ async function fallbackToBrowser(reason, retryable) {
   // convertInBrowser refuses to start while another conversion is in flight, and the
   // server attempt that just failed is still holding that flag.
   busy = false;
-  setBanner(reason + BASIC_NOTE);
+  tsNeedsInteraction = false;
+  // Emphasised, because this is the visitor being told they did not get what they
+  // asked for. The downloaded file carries "-basic" in its name for the same reason.
+  setBanner(reason + BASIC_NOTE, true);
   setFileInfo('');
   setAlt(false);
-  await convertInBrowser(reason, null);
-  setPrimary('Convert to Word', !retryable);
+  await convertInBrowser(reason, retryable ? 'Retry with server' : null);
+  // When another server attempt could work, the button says so in as many words.
+  setPrimary(retryable ? 'Retry with server' : 'Convert to Word', !retryable);
 }
 
 // Chosen deliberately: no banner, and the primary button becomes the way back.
@@ -864,13 +919,26 @@ async function startServerConvert() {
 
   if (tsToken) { doServerConvert(); return; }
 
+  // Already waiting on a tick from an earlier press. Say so again rather than resetting
+  // the widget, which would wipe a tick the visitor is part-way through, and rather
+  // than falling through to the basic engine.
+  if (tsNeedsInteraction && tsWidgetId !== null) {
+    pendingServerSubmit = true;
+    promptForInteraction();
+    return;
+  }
+
   pendingServerSubmit = true;
   setStatus('Verifying you’re human…', 'busy');
   setProgress('indeterminate');
   // Backstop for the silent case: widget rendered, no token, no error callback.
   clearTsSolveTimer();
   tsSolveTimer = setTimeout(() => {
-    if (pendingServerSubmit && !tsToken) tsFailure();
+    if (!pendingServerSubmit || tsToken) return;
+    // A widget still waiting on a tick has not failed, and there is no time limit on a
+    // human. Ask again instead of silently downgrading the conversion.
+    if (tsNeedsInteraction) { promptForInteraction(); return; }
+    tsFailure();
   }, TS_SOLVE_TIMEOUT_MS);
   try {
     await ensureTurnstile();
