@@ -279,6 +279,10 @@ function buildLines(items) {
   for (const ln of lines) {
     ln.parts.sort((a, b) => a.x - b.x);
     ln.text = joinLine(ln.parts);
+    // Left edge of the line. buildParagraphs reads it to spot an indent step, which
+    // is often the only signal that one block ended and another began on a CV whose
+    // font size never changes.
+    ln.x = ln.parts[0].x;
   }
   return lines.filter((ln) => ln.text.trim().length > 0);
 }
@@ -305,19 +309,54 @@ function median(nums) {
   return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
 }
 
-// Merge lines into paragraphs using vertical gaps; treat clearly larger text as
-// a heading and keep it on its own paragraph.
+// A line that opens with a bullet glyph starts a new list item, always. pdf.js hands
+// these back as ordinary characters, so the glyph is the only thing marking the break.
+const BULLET_RE = /^\s*[•·▪▫◦‣∙※◆◇■□]|^\s*[-–—*]\s+/;
+
+// Lines like "PROFESSIONAL EXPERIENCE": no lowercase, short, and carrying at least one
+// real letter (so "2020 - 2023" and "•" do not qualify). On a CV whose section titles
+// are set in the body size, capitalisation is the only thing that marks them.
+function isAllCapsHeading(text) {
+  const t = text.trim();
+  if (!t || t.length > 60) return false;
+  if (!/[A-Za-z]/.test(t)) return false;
+  if (/[a-z]/.test(t)) return false;
+  return true;
+}
+
+// Merge lines into paragraphs. The original rule only broke on a 1.4x font jump or a
+// 1.8x vertical gap, which is fine for a report but collapses a whole CV into a single
+// paragraph: CVs are typically one font at one size, and their blocks are separated by
+// gaps far smaller than 1.8x, by bullet glyphs, by capitalised section titles and by
+// indent steps. Each of those is now a break in its own right.
 function buildParagraphs(lines, bodySize) {
   const paras = [];
   let cur = null;
   for (let i = 0; i < lines.length; i++) {
     const ln = lines[i];
-    const isHeading = ln.fontSize >= bodySize * 1.4 && ln.text.length <= 120;
     const prev = lines[i - 1];
-    const bigGap = prev && prev.y - ln.y > bodySize * 1.8;
+    const isBullet = BULLET_RE.test(ln.text);
+    const isHeading =
+      (ln.fontSize >= bodySize * 1.4 && ln.text.length <= 120) ||
+      (!isBullet && isAllCapsHeading(ln.text));
 
-    if (!cur || isHeading || bigGap || cur.isHeading) {
-      cur = { text: ln.text, fontSize: ln.fontSize, isHeading };
+    const gap = prev ? prev.y - ln.y : 0;
+    const bigGap = prev && gap > bodySize * 1.8;
+    // A line sitting a little lower than plain wrapping would put it. Wrapped lines of
+    // one paragraph sit about one line height apart; a new block sits further down.
+    const moderateGap = prev && gap > bodySize * 1.35;
+
+    // An indent step against the paragraph we are currently filling. A wrapped
+    // continuation of a bullet is indented to clear the glyph, so indenting FURTHER
+    // inside a list item is expected and must not split the item in half.
+    let indentStep = false;
+    if (cur && typeof ln.x === 'number' && typeof cur.x === 'number') {
+      const dx = ln.x - cur.x;
+      indentStep = cur.isBullet ? dx < -bodySize * 0.75 : Math.abs(dx) > bodySize * 1.2;
+    }
+
+    if (!cur || isHeading || isBullet || bigGap || moderateGap || indentStep || cur.isHeading) {
+      cur = { text: ln.text, fontSize: ln.fontSize, isHeading, isBullet, x: ln.x };
       paras.push(cur);
     } else {
       cur.text += ' ' + ln.text;
