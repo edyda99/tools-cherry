@@ -15,7 +15,10 @@ import copy
 import io
 import json
 import re
+import zipfile
 from collections import Counter
+
+from lxml import etree
 
 from docx import Document
 from docx.text.paragraph import Paragraph
@@ -1262,6 +1265,120 @@ def span_space_repair(data, pdf_doc=None):
     return buf.getvalue()
 
 
+# --- whole-line space realign -------------------------------------------------
+# span_space_repair works seam by seam and needs the two halves of the seam to be
+# whole PDF words. When pdf2docx shatters a line into per-glyph runs
+# ("TE"|"CHNICAL"|"S"|"K"|"I"|"L"|"LS") the seam halves are fragments, the bigram
+# probe cannot match, and a lost space survives ("TECHNICALSKILLS"). This pass
+# works on the paragraph's whole text stream instead: it fires only when the
+# paragraph, with all whitespace removed, is character-for-character identical to
+# exactly one PDF line that carries MORE whitespace, and then re-inserts that
+# line's spaces at the aligned offsets. Insertion-only, exact-match-only.
+
+# A PDF line whose own tokens are mostly single characters is letter-spaced
+# display text ("H e l l o"), which pdf2docx correctly joins; re-splitting it
+# would be the corruption, so such a line is never used as evidence.
+_LS_OK_SOLO = frozenset("aAiIoO&+-/:0123456789")
+_WS_RE = re.compile(r"\s+")
+
+
+def _lsr_usable_line(line):
+    for tok in line.split():
+        if len(tok) > 1:
+            continue
+        if tok in _LS_OK_SOLO or not tok.isalnum():
+            continue
+        return False
+    return True
+
+
+def _lsr_pdf_lines(pdf_doc):
+    """despaced text -> the single PDF line producing it (None when ambiguous)."""
+    index = {}
+    for page in pdf_doc:
+        for raw in page.get_text("text").split("\n"):
+            line = raw.strip()
+            if not line or not _WS_RE.search(line):
+                continue  # a line with no space cannot donate one
+            key = _WS_RE.sub("", line)
+            if len(key) < 4:
+                continue
+            if key in index and index[key] != line:
+                index[key] = None  # two different spacings, no safe choice
+            else:
+                index.setdefault(key, line)
+    return index
+
+
+_WS_RE = re.compile(r"\s+")
+
+
+def _lsr_insert_offsets(para_text, line_text):
+    """Offsets in para_text where line_text has whitespace and para_text does not."""
+    offsets, i = [], 0
+    n = len(para_text)
+    for ch in line_text:
+        if ch.isspace():
+            # a real gap in the PDF line: insert unless the docx already has one
+            if 0 < i < n and not para_text[i - 1].isspace() and not para_text[i].isspace():
+                offsets.append(i)
+            continue
+        while i < n and para_text[i].isspace():
+            i += 1
+        if i >= n or para_text[i] != ch:
+            return None  # alignment broke; refuse
+        i += 1
+    while i < n and para_text[i].isspace():
+        i += 1
+    return offsets if i == n else None
+
+
+def line_space_realign(data, pdf_doc=None):
+    """Restore spaces lost inside a run-shattered line, by whole-line alignment."""
+    if pdf_doc is None:
+        return data
+    index = _lsr_pdf_lines(pdf_doc)
+    if not index:
+        return data
+    doc = Document(io.BytesIO(data))
+    changed = False
+    for para in doc.paragraphs:
+        stream = [el for el in _seam_stream(para._p) if el.tag == qn("w:t")]
+        if not stream:
+            continue
+        if len(_seam_stream(para._p)) != len(stream):
+            continue  # tabs/breaks in the paragraph: offsets are not comparable
+        text = "".join(el.text or "" for el in stream)
+        key = _WS_RE.sub("", text)
+        if len(key) < 4:
+            continue
+        line = index.get(key)
+        if not line or line == text or not _lsr_usable_line(line):
+            continue
+        offsets = _lsr_insert_offsets(text, line)
+        if not offsets:
+            continue
+        # apply right-to-left so earlier offsets stay valid
+        bounds, acc = [], 0
+        for el in stream:
+            start = acc
+            acc += len(el.text or "")
+            bounds.append((start, acc, el))
+        for off in reversed(offsets):
+            for start, end, el in bounds:
+                if start < off <= end:
+                    t = el.text or ""
+                    el.text = t[: off - start] + " " + t[off - start:]
+                    el.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+                    break
+        changed = True
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 # --- date-column untabling ----------------------------------------------------
 # A CV line like "Employer — City" with the dates flush right is one flowed line
 # of text with a right tab, but pdf2docx sees two horizontally separated blocks
@@ -1454,6 +1571,65 @@ def _p_jc(p):
     return jc.get(qn("w:val")) if jc is not None else None
 
 
+# A flush-right date cell does not always arrive as w:jc="right". pdf2docx sizes
+# the cell to the text block it found and then reproduces the horizontal position
+# it measured, so on some layouts it writes the SAME visual shape as an ordinary
+# left-aligned paragraph carrying a large w:ind — the indent IS the gap that
+# pushes the date to the cell's right edge. The CV that opened this defect wrote
+# `<w:jc w:val="left"/><w:ind w:left="722"/>` in a 3866-twip cell, so
+# _untable_plan counted zero dates and refused the whole table; the ADDITIONAL
+# EXPERIENCE line then survived as a 2-column table with the section rule frozen
+# into a tcBorders top.
+#
+# _pushed_right is the one place that decides "this cell's single line sits at
+# the right of its cell", and it accepts either spelling:
+#   - w:jc right (what pdf2docx writes most of the time), or
+#   - a left/start-aligned line whose effective left indent is a large share of
+#     the cell's own width. The share is what makes it structural rather than a
+#     guess: a genuine left-aligned second text column is indented by a cell
+#     margin or a paragraph indent, both of which are small against the column
+#     they sit in, while a date pushed to the right edge has to give up most of
+#     the cell to whitespace. Both a share floor and an absolute floor must be
+#     cleared, so a narrow cell cannot qualify on a quarter-inch of margin.
+# Every other guard in _untable_plan (single paragraph, <= DATE_CELL_MAX_CHARS,
+# trailing cell, wordy label, <= DATE_ROW_MAX rows, no real borders, no tblStyle)
+# applies to this spelling exactly as it does to w:jc="right".
+# The indent spelling also has to be ONE line. A w:jc="right" cell says outright
+# that its content is right-aligned however many lines it holds; a big w:ind says
+# only where the FIRST line starts, and a multi-line cell that happens to start
+# there is a second column, not a date. A letterhead in the real-world corpus is
+# exactly that: a right-hand block of phone/fax/web lines, short enough to clear
+# DATE_CELL_MAX_CHARS, that this pass would otherwise inline behind the postal
+# address. So the indent branch additionally requires a paragraph with no w:br.
+IND_RIGHT_SHARE = 0.15    # of the cell width, at minimum
+IND_RIGHT_MIN_TW = 360    # and never less than a quarter inch
+
+
+def _p_ind_left(p):
+    """Effective left offset of the paragraph's first line, in twips."""
+    ind = p.find(qn("w:pPr") + "/" + qn("w:ind"))
+    if ind is None:
+        return 0
+    left = _ind_tw(ind, "left", "start") or 0
+    first = _ind_tw(ind, "firstLine") or 0
+    hanging = _ind_tw(ind, "hanging") or 0
+    return left + first - hanging
+
+
+def _pushed_right(p, cell_w):
+    """True when p's line sits at the right of a cell cell_w twips wide."""
+    jc = _p_jc(p)
+    if jc == "right":
+        return True
+    if jc not in (None, "left", "start", "both"):
+        return False
+    if cell_w <= 0:
+        return False
+    if p.find(".//" + qn("w:br")) is not None:
+        return False
+    return _p_ind_left(p) >= max(IND_RIGHT_MIN_TW, IND_RIGHT_SHARE * cell_w)
+
+
 def _tw(el, tag, attr="w"):
     """Twips read off a w:tcW / w:tblInd inside the element's tcPr or tblPr."""
     node = el.find(qn("w:tcPr") + "/" + qn("w:" + tag))
@@ -1525,12 +1701,29 @@ def _untable_plan(tbl):
         lps, rps = left.findall(qn("w:p")), right.findall(qn("w:p"))
         if right is not cells[-1] or len(rps) != 1:
             return None
-        if _p_jc(rps[0]) == "right":
-            # label ... flush-right date
-            if (_p_jc(lps[-1]) == "right"
+        if _pushed_right(rps[0], _tw(right, "tcW")):
+            # label ... flush-right date (w:jc right, or pushed there by w:ind)
+            if (_pushed_right(lps[-1], _tw(left, "tcW"))
                     or len(_el_text(right).strip()) > DATE_CELL_MAX_CHARS
                     or not _WORDY.search(_el_text(left))):
                 return None
+            # One cell can hold SEVERAL dates stacked behind soft breaks, one
+            # per label line in the cell beside it (pdf2docx merges a whole run
+            # of CV entries into a single 1x2 row that way). Each date then
+            # belongs to its own label; moving the cell wholesale stacks them
+            # all on the first label and leaves the rest of the entries dateless.
+            # Pair them only when the count matches exactly on both sides, and
+            # every label is a real line of words; anything else is a shape this
+            # pass cannot read, so it leaves the table alone rather than stack.
+            nseg = _br_stack_count(rps[0])
+            if nseg is None:
+                return None
+            if nseg:
+                labels = [p for p in _content_paras(left) if not _p_padding(p)]
+                if len(labels) != nseg + 1:
+                    return None
+                if not all(_WORDY.search(_el_text(p)) for p in labels):
+                    return None
             plan.append(("tab", left, right))
             dates += 1
             if dates > DATE_ROW_MAX:
@@ -1547,19 +1740,368 @@ def _row_width(tr):
     return sum(_tw(tc, "tcW") for tc in tr.findall(qn("w:tc")))
 
 
+def _soft_br(el):
+    return (el.tag == qn("w:br")
+            and (el.get(qn("w:type")) or "textWrapping") == "textWrapping")
+
+
+def _br_stack_count(p):
+    """Number of top-level soft breaks in a paragraph, or None if it is not flat.
+
+    "Flat" means every break sits directly inside a direct w:r child of the
+    paragraph, which is where pdf2docx puts them. A break nested any deeper (in
+    a hyperlink, a text box, a smartTag) is not something this pass knows how to
+    slice, so it reports None and the caller refuses the table rather than
+    guessing at the structure.
+    """
+    flat = sum(1 for r in p.findall(qn("w:r")) for br in r.findall(qn("w:br"))
+               if _soft_br(br))
+    total = sum(1 for br in p.iter(qn("w:br")) if _soft_br(br))
+    return flat if flat == total else None
+
+
+def _br_segments(p):
+    """The paragraph's renderable children grouped into soft-break segments.
+
+    Returns [[el, ...], ...] with the break runs removed. A run that holds text
+    on both sides of a break is rebuilt as one run per side, each keeping a copy
+    of the original rPr; a run with no break is passed through untouched, so a
+    break-free paragraph returns exactly its own child list and this is a no-op
+    for every row that was already handled correctly.
+    """
+    segs, cur = [], []
+    for child in list(p):
+        if child.tag == qn("w:pPr"):
+            continue
+        if child.tag != qn("w:r") or not any(_soft_br(s) for s in child):
+            cur.append(child)
+            continue
+        rpr = child.find(qn("w:rPr"))
+        piece = []
+        for sub in list(child):
+            if sub.tag == qn("w:rPr"):
+                continue
+            if _soft_br(sub):
+                if piece:
+                    cur.append(_rebuild_run(rpr, piece))
+                segs.append(cur)
+                cur, piece = [], []
+                continue
+            piece.append(sub)
+        if piece:
+            cur.append(_rebuild_run(rpr, piece))
+    segs.append(cur)
+    return segs
+
+
+def _rebuild_run(rpr, children):
+    run = parse_xml("<w:r %s/>" % nsdecls("w"))
+    if rpr is not None:
+        run.append(copy.deepcopy(rpr))
+    for child in children:
+        run.append(copy.deepcopy(child))
+    return run
+
+
+def _seg_text(children):
+    return "".join(t.text or ""
+                   for child in children for t in child.iter(qn("w:t")))
+
+
+def _tab_attach(target, children, stop):
+    """Move one flush-right segment onto a label paragraph behind a right tab."""
+    ppr = target.get_or_add_pPr()
+    jc = ppr.find(qn("w:jc"))
+    if jc is not None:
+        ppr.remove(jc)
+    if stop > 0:
+        tabs = parse_xml('<w:tabs %s><w:tab w:val="right" w:pos="%d"/></w:tabs>'
+                         % (nsdecls("w"), stop))
+        old = ppr.find(qn("w:tabs"))
+        if old is not None:
+            ppr.remove(old)
+        _ppr_insert(ppr, tabs)
+    # the gap the two cells used to provide has to survive as a real
+    # character: a bare w:tab is invisible to every extractor that reads
+    # only w:t, which would silently weld "...Adma" onto "Mar 2025"
+    seam = _el_text(target)[-1:] + _seg_text(children)[:1]
+    gap = "" if (seam.strip() != seam or not seam) else \
+        '<w:t xml:space="preserve"> </w:t>'
+    target.append(parse_xml("<w:r %s>%s<w:tab/></w:r>" % (nsdecls("w"), gap)))
+    for child in children:
+        parent = child.getparent()
+        if parent is not None:
+            parent.remove(child)
+        target.append(child)
+
+
+# --- date_column_untable indent repair (F2) ---------------------------------
+# A right tab stop is measured from the section's left text margin, but the
+# paragraph's TEXT AREA ends at (section width - right indent). pdf2docx gives
+# every cell paragraph the cell's own right indent, so after the cells are
+# flowed back into the body the stop this pass writes at the text margin can
+# sit OUTSIDE the text area: the tab is unreachable, Word gives up on it, and
+# the date wraps onto its own line (or lands mid-line) while the entries that
+# happened to come from a full-width cell stay flush right. The column goes
+# ragged. The cell's right indent is furniture — the cell is gone — so it is
+# dropped for the whole cell group whose date it strands.
+# The left edge is the same story in miniature: pdf2docx measures each cell's
+# left edge independently, so identical entries land on 10 twips and 22 twips
+# (0.6pt apart). Only differences below _IND_SNAP_TWIPS are treated as one
+# edge measured twice; anything larger is a real indent and is left alone.
+
+_IND_SNAP_TWIPS = 30  # 1.5pt
+_IND_HAIR_TWIPS = 20  # 1pt: below this an indent is cell residue, not an indent
+
+
+def _ind_val(p, *attrs):
+    ppr = p.find(qn("w:pPr"))
+    ind = ppr.find(qn("w:ind")) if ppr is not None else None
+    if ind is None:
+        return None
+    for attr in attrs:
+        raw = ind.get(qn("w:" + attr))
+        if raw is not None:
+            try:
+                return int(round(float(raw)))
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
+def _ind_set(p, value, *attrs):
+    ppr = p.find(qn("w:pPr"))
+    ind = ppr.find(qn("w:ind")) if ppr is not None else None
+    if ind is None:
+        return
+    for attr in attrs:
+        if ind.get(qn("w:" + attr)) is not None:
+            ind.set(qn("w:" + attr), str(value))
+
+
+def _dominant_left(body):
+    """Modal left indent of the body's OWN paragraphs (never a cell's).
+
+    None when the body has no indented paragraph of its own or when two values
+    tie, so an ambiguous document is left exactly as it was.
+    """
+    counts = {}
+    for p in body.iterchildren(qn("w:p")):
+        if not _el_text(p).strip():
+            continue
+        left = _ind_val(p, "left", "start")
+        if left is None:
+            continue
+        counts[left] = counts.get(left, 0) + 1
+    if not counts:
+        return None
+    top = max(counts.values())
+    winners = [k for k, v in counts.items() if v == top]
+    return winners[0] if len(winners) == 1 else None
+
+
+# --- G1: the date column's own right edge, measured in the PDF --------------
+# Both tab-writing passes used to align a flush-right date at the SECTION's
+# right text margin, on the assumption that flush-right means flush with the
+# page. Two things are wrong with that.
+#
+#   * It is often the wrong column. On a CV whose dates stop 78pt short of the
+#     margin, every date was pushed out to the paper edge and no longer lined
+#     up with anything in the source.
+#   * It is frequently UNREACHABLE. pdf2docx leaves a hair-width left indent
+#     (10 twips) on the paragraphs it flows out of a cell, so a stop written at
+#     the full text width sits past the end of that paragraph's own line box.
+#     Real Word drops such a tab outright and the column goes ragged; QuickLook
+#     renders custom stops loosely and hid this for a whole season.
+#
+# Measuring the edge in the source PDF fixes the first, and _clamp_stop_to_line
+# below fixes the second for every stop this file writes, measured or not.
+#
+# A line only counts when its text occurs at ONE right edge in the whole PDF
+# and every line of the column shares that edge. Anything ambiguous returns
+# None and the caller keeps its width-derived stop, so this can never move a
+# tab it did not actually measure.
+
+_TAB_EDGE_TOL_PT = 2.0     # right-aligned lines share an edge this closely
+_TAB_MIN_STOP = 720        # half an inch: no measured stop lands left of this
+_WS_RUN_RE = re.compile(r"[\s\u00a0\u2007\u202f]+")
+
+
+def _norm_line(text):
+    return _WS_RUN_RE.sub(" ", text or "").strip()
+
+
+def _pdf_right_edges(pdf_doc):
+    """{line text: [(right edge pt, page width pt), ...]} for the whole PDF."""
+    index = {}
+    if pdf_doc is None:
+        return index
+    try:
+        pages = list(pdf_doc)
+    except Exception:  # noqa: BLE001 - a measurement is never worth a failure
+        return index
+    for page in pages:
+        try:
+            width = float(page.rect.width)
+            blocks = page.get_text("dict").get("blocks", [])
+        except Exception:  # noqa: BLE001
+            continue
+        if width <= 0:
+            continue
+        for b in blocks:
+            if b.get("type") != 0:
+                continue
+            for ln in b.get("lines", []):
+                text = _norm_line("".join(s.get("text", "")
+                                          for s in ln.get("spans", [])))
+                if not text:
+                    continue
+                index.setdefault(text, []).append((float(ln["bbox"][2]), width))
+    return index
+
+
+def _measured_stop(index, texts, page_w, left_margin, limit):
+    """The right edge shared by every one of `texts`, in twips from the left
+    text margin, or None when the column does not measure unambiguously.
+
+    Edges are compared as a FRACTION of the page width, so the index survives
+    any rescaling between the PDF page and the docx pgSz.
+    """
+    if not index or not texts or page_w <= 0 or limit <= 0:
+        return None
+    tol = _TAB_EDGE_TOL_PT * 20.0 / page_w
+    edges = []
+    for text in texts:
+        hits = index.get(text)
+        if not hits:
+            return None
+        fracs = [x / w for x, w in hits]
+        if max(fracs) - min(fracs) > tol:
+            return None      # the same text sits at two different edges
+        edges.append(max(fracs))
+    if max(edges) - min(edges) > tol:
+        return None          # the column is not one column
+    stop = int(round(max(edges) * page_w)) - left_margin
+    if stop < _TAB_MIN_STOP or stop > limit:
+        return None
+    return stop
+
+
+def _section_geoms(body):
+    """(index in body, (usable width, page width, left margin)) per section."""
+    out = []
+    for i, child in enumerate(body):
+        for sect in child.iter(qn("w:sectPr")) if child.tag == qn("w:p") else ():
+            out.append((i, sect))
+    tail = body.find(qn("w:sectPr"))
+    if tail is not None:
+        out.append((len(body), tail))
+    geoms = []
+    for i, sect in out:
+        node = sect.find(qn("w:pgSz"))
+        try:
+            page_w = int(round(float(node.get(qn("w:w")))))
+        except (AttributeError, TypeError, ValueError):
+            page_w = 0
+        geoms.append((i, (_sect_width(sect), page_w,
+                          _sect_margin(sect, "left"))))
+    return geoms
+
+
+def _geom_at(geoms, idx, inclusive=False):
+    """Geometry of the section governing body child `idx`.
+
+    A sectPr rides on the LAST paragraph of its own section, so a PARAGRAPH is
+    governed by the first sectPr recorded at or after it (inclusive), while a
+    table, which can never carry one, is governed by the first one after it.
+    """
+    return next((g for i, g in geoms if (i >= idx if inclusive else i > idx)),
+                (0, 0, 0))
+
+
+def _plan_date_texts(plan):
+    """Every flush-right line this plan is about to put behind a tab."""
+    texts = []
+    for kind, _left, right in plan:
+        if kind != "tab":
+            continue
+        cells = right.findall(qn("w:p"))
+        if not cells:
+            continue
+        for seg in _br_segments(cells[0]):
+            text = _norm_line(_seg_text(seg))
+            if text:
+                texts.append(text)
+    return texts
+
+
+def _clamp_stop_to_line(p, limit):
+    """Pull a stop sitting past the end of THIS paragraph's line box back
+    inside it, so real Word can still reach the tab."""
+    tabs, stops = _direct_stops(p)
+    if tabs is None or limit <= 0:
+        return
+    room = (limit
+            - max(_ind_val(p, "left", "start") or 0, 0)
+            - max(_ind_val(p, "right", "end") or 0, 0))
+    if room <= 0:
+        return
+    for stop in stops:
+        pos = _stop_pos(stop)
+        if pos is not None and pos > room:
+            stop.set(qn("w:pos"), str(room))
+
+
+def _untable_indent_repair(groups, stop, limit, dom_left):
+    """Drop a cell right indent that strands this pass's own right tab, and
+    snap a hair-width left indent onto the body's own left edge."""
+    for paras, tabbed in groups:
+        if tabbed and stop > 0 and limit > 0:
+            for p in paras:
+                right = _ind_val(p, "right", "end")
+                if right and stop > limit - right:
+                    for q in paras:
+                        _ind_set(q, 0, "right", "end")
+                    break
+        if tabbed:
+            for p in paras:
+                # A hair-width left indent is the cell's own left edge, not an
+                # author's indent: it survives the untabling as a sub-point
+                # offset that shifts every stop on the line right by the same
+                # amount, so the date column no longer meets the edge measured
+                # for it, and a stop written at the full text width lands
+                # outside the line box entirely. Drop it before clamping.
+                left = _ind_val(p, "left", "start")
+                if left is not None and 0 < left <= _IND_HAIR_TWIPS:
+                    _ind_set(p, 0, "left", "start")
+                _clamp_stop_to_line(p, limit)
+        if dom_left is None:
+            continue
+        for p in paras:
+            left = _ind_val(p, "left", "start")
+            if left is None or left == dom_left:
+                continue
+            if abs(left - dom_left) <= _IND_SNAP_TWIPS:
+                _ind_set(p, dom_left, "left", "start")
+
+
 def date_column_untable(data, pdf_doc=None):
     """Flow pdf2docx's flush-right date "tables" back into tabbed paragraphs."""
     doc = Document(io.BytesIO(data))
     body = doc.element.body
     sects = _section_widths(body)
+    geoms = _section_geoms(body)
+    edges = _pdf_right_edges(pdf_doc)
+    dom_left = _dominant_left(body)
     changed = False
 
     # section widths are resolved against the ORIGINAL body order, before the
     # rewrite starts shifting indices around
-    candidates = [(c, next((w for i, w in sects if i > idx), 0) or 0)
+    candidates = [(c, next((w for i, w in sects if i > idx), 0) or 0,
+                   _geom_at(geoms, idx))
                   for idx, c in enumerate(body) if c.tag == qn("w:tbl")]
 
-    for tbl, limit in candidates:
+    for tbl, limit, geom in candidates:
         plan = _untable_plan(tbl)
         if plan is None:
             continue
@@ -1572,6 +2114,13 @@ def date_column_untable(data, pdf_doc=None):
             stop = limit
         if limit:
             stop = min(stop, limit)
+        # the cell widths are pdf2docx's guess at the column; the PDF knows
+        # where the dates actually end. Prefer the measurement when the whole
+        # column resolves to one edge.
+        measured = _measured_stop(edges, _plan_date_texts(plan),
+                                  geom[1], geom[2], limit)
+        if measured:
+            stop = measured
         rule = None
         first_pr = rows[0].find(qn("w:tc") + "/" + qn("w:tcPr") + "/" + qn("w:tcBorders"))
         if first_pr is not None:
@@ -1580,6 +2129,7 @@ def date_column_untable(data, pdf_doc=None):
                 rule = top
 
         out = []
+        groups = []
         for kind, left, right in plan:
             if kind == "drop":
                 continue
@@ -1593,6 +2143,7 @@ def date_column_untable(data, pdf_doc=None):
                     child.getparent().remove(child)
                     target.insert(at, child)
                 out.append(target)
+                groups.append(([target], False))
                 continue
             # trailing padding is dropped, so the date lands on the label rather
             # than on a blank line below it, and the cell's row-height spacing
@@ -1600,7 +2151,9 @@ def date_column_untable(data, pdf_doc=None):
             paras = _content_paras(left)
             out.extend(paras)
             if kind == "flow":
+                groups.append((paras, False))
                 continue
+            groups.append((paras, True))
             # The date goes on the label cell's FIRST content line, not its last.
             # _untable_plan only plans a "tab" row when the right cell holds ONE
             # paragraph, i.e. pdf2docx wrote no vertical padding around it, so the
@@ -1609,32 +2162,21 @@ def date_column_untable(data, pdf_doc=None):
             # same on a one-line label and is wrong on every longer one: on a CV
             # entry whose cell holds a title line and a subtitle line it welded
             # "2020 - 2023" onto the subtitle, fusing three source lines into two.
-            target, src = paras[_first_content(paras)], right.findall(qn("w:p"))[0]
-            ppr = target.get_or_add_pPr()
-            jc = ppr.find(qn("w:jc"))
-            if jc is not None:
-                ppr.remove(jc)
-            if stop > 0:
-                tabs = parse_xml('<w:tabs %s><w:tab w:val="right" w:pos="%d"/></w:tabs>'
-                                 % (nsdecls("w"), stop))
-                old = ppr.find(qn("w:tabs"))
-                if old is not None:
-                    ppr.remove(old)
-                _ppr_insert(ppr, tabs)
-            # the gap the two cells used to provide has to survive as a real
-            # character: a bare w:tab is invisible to every extractor that reads
-            # only w:t, which would silently weld "...Adma" onto "Mar 2025"
-            seam = _el_text(target)[-1:] + _el_text(src)[:1]
-            gap = "" if (seam.strip() != seam or not seam) else \
-                '<w:t xml:space="preserve"> </w:t>'
-            target.append(parse_xml("<w:r %s>%s<w:tab/></w:r>" % (nsdecls("w"), gap)))
-            for child in list(src):
-                if child.tag != qn("w:pPr"):
-                    src.remove(child)
-                    target.append(child)
+            src = right.findall(qn("w:p"))[0]
+            segs = _br_segments(src)
+            if len(segs) == 1:
+                _tab_attach(paras[_first_content(paras)], segs[0], stop)
+                continue
+            # stacked dates: _untable_plan has already proved there is exactly
+            # one label line per segment, so they pair off in order
+            labels = [p for p in paras if not _p_padding(p)]
+            for target, children in zip(labels, segs):
+                if children:
+                    _tab_attach(target, children, stop)
 
         if not out:
             continue
+        _untable_indent_repair(groups, stop, limit, dom_left)
         if rule is not None:
             ppr = out[0].get_or_add_pPr()
             if ppr.find(qn("w:pBdr")) is None:
@@ -2129,6 +2671,241 @@ def br_row_split(data, pdf_doc=None):
         changed = True
 
     if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+# --------------------------------------------------------------------------
+# label_row_split: the general case of br_row_split, done at SOURCE-LINE
+# granularity instead of at w:br granularity.
+#
+# br_row_split can only cut where pdf2docx happened to leave a <w:br/>, and it
+# needs one segment per source line. Real definition blocks defeat both: a CV's
+# TECHNICAL SKILLS panel comes back as ONE paragraph in which some row
+# boundaries carry a br and others carry nothing at all (the rows are merely
+# adjacent in the run stream and looked separate only because the page wrapped
+# there), so six rows arrive as five br-joined segments, one of which holds two
+# rows fused. SOFT SKILLS & LANGUAGES arrives as two rows fused with no break
+# element anywhere. Either way the rows cannot be edited or reordered on their
+# own and collapse into each other on the first edit.
+#
+# This pass reconstructs the rows from the page instead of from the markup: it
+# binds the whole paragraph to one contiguous run of lines inside exactly ONE
+# PDF block, and emits one paragraph per line. It fires only on structural
+# proof, all of which must hold:
+#
+#   * the paragraph's text, whitespace-normalised, equals the join of >=2
+#     consecutive lines of one block, and that window is UNIQUE in the document
+#     (the unique-match binding wrap_break_heal uses);
+#   * EVERY line in the window is a short "Label: value" row head
+#     (_rs_label_ok, shared with br_row_split) -- this is what separates a
+#     definition block from wrapped prose, and it is why the "the next word
+#     would have fit" wrap test is not used here: a row whose value happens to
+#     fill the column to the right edge is still a row when the line under it
+#     opens a new label;
+#   * the rows share a left edge and sit at normal leading, so a two-column
+#     panel or a gapped list is not mistaken for one block of rows;
+#   * every cut lands exactly on a child boundary of the run stream -- no run
+#     is ever divided, so no formatting is re-derived -- and every w:br the
+#     paragraph does carry lands on one of those same cuts, so no authored
+#     break is silently swallowed;
+#   * the paragraph carries no tab (a label/date column is a row of its own
+#     kind and belongs to tabbed_subline_split), no list numbering, and no
+#     element outside the known-splittable set.
+#
+# Continuation rows inherit the sibling spacing when an adjacent standalone row
+# of the same style exists to copy it from, and otherwise take w:before="0",
+# which is what they had inside the paragraph they are being cut out of.
+_LRS_X0_EPS = 2.0            # pt, two rows share a left edge
+_LRS_MAX_PITCH_RATIO = 2.0   # row pitch / line height; above this it is a gap
+_LRS_MAX_SPLITS = 60         # runaway guard
+
+
+def _lrs_flatten(p):
+    """[[element, text, br_after]] for p's content, or None to bail.
+
+    Runs holding a top-level wrap w:br are divided at it into separate runs
+    with the break recorded as a boundary flag, so the caller sees one flat
+    child stream whatever pdf2docx did with the breaks.
+    """
+    if p.find(qn("w:pPr") + "/" + qn("w:numPr")) is not None:
+        return None
+    if p.find(".//" + qn("w:tab")) is not None:
+        return None
+    if p.find(".//" + qn("w:cr")) is not None:
+        return None
+    for tag in _FS_OPAQUE:
+        if p.find(".//" + qn(tag)) is not None:
+            return None
+    out = []
+    for c in list(p):
+        if c.tag == qn("w:pPr"):
+            continue
+        if c.tag not in _FS_SPLITTABLE:
+            return None
+        brs = [k for k in c if k.tag == qn("w:br")] if c.tag == qn("w:r") else []
+        if brs:
+            if any(b.get(qn("w:type")) not in (None, "textWrapping") for b in brs):
+                return None
+            if any(d.tag == qn("w:br") for d in c.iter()) and len(
+                    [d for d in c.iter(qn("w:br"))]) != len(brs):
+                return None          # a br nested below the run's top level
+            parts = _rs_split_run(c)
+            if parts is None:
+                return None
+            for j, part in enumerate(parts):
+                if j:
+                    if not out or out[-1][2]:
+                        return None  # a break with no row before it
+                    out[-1][2] = True
+                if part is not None:
+                    out.append([part, _el_text(part), False])
+            continue
+        if any(d.tag == qn("w:br") for d in c.iter()):
+            return None
+        out.append([copy.deepcopy(c), _el_text(c), False])
+    if out and out[-1][2]:
+        return None                  # trailing break: an empty row
+    return out
+
+
+def _lrs_text(items):
+    parts = []
+    for _, text, br_after in items:
+        parts.append(text)
+        if br_after:
+            parts.append(" ")
+    return _fs_norm("".join(parts))
+
+
+def _lrs_window(text, blocks):
+    """The one (block, i, j) whose lines i..j join to exactly `text`."""
+    hit = None
+    for block in blocks:
+        norms = [_fs_norm(l["text"]) for l in block["lines"]]
+        for i in range(len(norms)):
+            if not norms[i] or not text.startswith(norms[i]):
+                continue
+            acc = norms[i]
+            for j in range(i + 1, len(norms)):
+                acc = acc + " " + norms[j]
+                if len(acc) > len(text) or not text.startswith(acc):
+                    break
+                if acc == text:
+                    if hit is not None:
+                        return None      # ambiguous: cut nothing
+                    hit = (block, i, j)
+                    break
+    return hit
+
+
+def _lrs_rows_ok(lines):
+    """Every line is a label row, on a shared left edge, at normal leading."""
+    if len(lines) < 2:
+        return False
+    if not all(_rs_label_ok(l["text"]) for l in lines):
+        return False
+    x0 = lines[0]["x0"]
+    if any(abs(l["x0"] - x0) > _LRS_X0_EPS for l in lines):
+        return False
+    for prev, nxt in zip(lines, lines[1:]):
+        h = max(prev["y1"] - prev["y0"], nxt["y1"] - nxt["y0"])
+        pitch = nxt["y0"] - prev["y0"]
+        if h <= 0 or pitch <= 0 or pitch > _LRS_MAX_PITCH_RATIO * h:
+            return False
+    return True
+
+
+def _lrs_cuts(items, norms):
+    """Child indices to cut at, one per row boundary, or None to bail.
+
+    Bails unless EVERY boundary lands on a child boundary and every w:br the
+    paragraph carries is one of those boundaries -- a partial split would fuse
+    the rows the cut could not reach.
+    """
+    offsets, acc = {}, ""
+    for k, (_, text, br_after) in enumerate(items):
+        acc += text
+        if br_after:
+            acc += " "
+        offsets.setdefault(len(_fs_norm(acc)), k + 1)
+    cuts, pos = [], 0
+    for m in range(len(norms) - 1):
+        pos += len(norms[m])
+        k = offsets.get(pos)
+        pos += 1                       # the space the join put between them
+        if k is None or k <= 0 or k >= len(items):
+            return None                # the boundary falls inside a run
+        cuts.append(k)
+    if sorted(set(cuts)) != cuts:
+        return None
+    breaks = {k + 1 for k, it in enumerate(items) if it[2]}
+    if not breaks <= set(cuts):
+        return None                    # an authored break we would swallow
+    return cuts
+
+
+def label_row_split(data, pdf_doc=None):
+    if pdf_doc is None:
+        return data
+    blocks = _wb_blocks(pdf_doc)
+    if not blocks:
+        return data
+    doc = Document(io.BytesIO(data))
+    body = doc.element.body
+    splits = 0
+
+    for p in list(body.findall(qn("w:p"))):
+        items = _lrs_flatten(p)
+        if not items or len(items) < 2:
+            continue
+        text = _lrs_text(items)
+        if not text:
+            continue
+        window = _lrs_window(text, blocks)
+        if window is None:
+            continue
+        block, i, j = window
+        lines = block["lines"][i:j + 1]
+        if not _lrs_rows_ok(lines):
+            continue
+        cuts = _lrs_cuts(items, [_fs_norm(l["text"]) for l in lines])
+        if not cuts:
+            continue
+        splits += len(cuts)
+        if splits > _LRS_MAX_SPLITS:
+            return data
+
+        pPr = p.find(qn("w:pPr"))
+        sibling = _rs_row_sibling(body, p)
+        before = _rs_before(sibling) if sibling is not None else "0"
+        groups = [[items[x][0] for x in range(a, b)]
+                  for a, b in zip([0] + cuts, cuts + [len(items)])]
+        for c in list(p):
+            if c.tag != qn("w:pPr"):
+                p.remove(c)
+        for c in groups[0]:
+            p.append(c)
+        anchor = p
+        for group in groups[1:]:
+            np = parse_xml("<w:p %s/>" % nsdecls("w"))
+            if pPr is not None:
+                new_pPr = copy.deepcopy(pPr)
+                if before is not None:
+                    sp = new_pPr.find(qn("w:spacing"))
+                    if sp is None:
+                        sp = parse_xml("<w:spacing %s/>" % nsdecls("w"))
+                        _ppr_insert(new_pPr, sp)
+                    sp.set(qn("w:before"), before)
+                np.append(new_pPr)
+            for c in group:
+                np.append(c)
+            anchor.addnext(np)
+            anchor = np
+
+    if not splits:
         return data
     buf = io.BytesIO()
     doc.save(buf)
@@ -3103,8 +3880,9 @@ _RULE_MAX_GAP_PT = 12.0
 _RULE_MAX_ANCHOR_WORDS = 12
 _RULE_MAX_PER_PAGE = 12
 _RULE_MIN_HEADER_PAGES = 3
-_RULE_BDR_XML = ('<w:pBdr %s><w:bottom w:val="single" w:sz="6" w:space="1" '
-                 'w:color="auto"/></w:pBdr>')
+_RULE_MIN_ANCHOR_KEY = 3   # alphanumerics an anchor needs to identify a line
+_RULE_BDR_XML = ('<w:pBdr %s><w:bottom w:val="single" w:sz="%d" w:space="1" '
+                 'w:color="%s"/></w:pBdr>')
 # CT_PPrBase child sequence; pBdr has to be inserted at its own slot.
 _PPR_ORDER = ("pStyle", "keepNext", "keepLines", "pageBreakBefore", "framePr",
               "widowControl", "numPr", "suppressLineNumbers", "pBdr", "shd",
@@ -3121,6 +3899,71 @@ def _rule_norm(s):
     return re.sub(r"\s+", " ", (s or "")).strip().lower()
 
 
+def _rule_key(s):
+    """Whitespace- and punctuation-free identity of a line.
+
+    The anchor match has to survive the converter's own spacing damage: a
+    heading pdf2docx emits as "TECHNICALSKILLS" is the PDF's "TECHNICAL
+    SKILLS", and span_space_repair may put the space back on some runs and
+    not others. Comparing alphanumerics only makes the match independent of
+    that, and it is still a whole-line equality, so it cannot slide onto a
+    different heading.
+    """
+    return re.sub(r"[^0-9a-z]+", "", (s or "").lower())
+
+
+def _rule_rects(page):
+    """Deduplicated hairline rules on one page: (rect, colour, stroke width).
+
+    A generator routinely strokes the same rule twice (a fill pass and a
+    stroke pass, or one stroke per content stream), and PyMuPDF reports each
+    one. Counting the raw strokes made a plain CV with seven section rules
+    look like a fourteen-line form grid, which tripped the _RULE_MAX_PER_PAGE
+    guard and turned this pass (and the E5 dedupe, which shares the guard)
+    off on exactly the documents it exists for. Two strokes with the same
+    geometry to a tenth of a point are one rule.
+    """
+    width = page.rect.width
+    seen = {}
+    for drawing in page.get_drawings():
+        r = drawing["rect"]
+        if r.height > _RULE_MAX_H_PT or r.width < _RULE_MIN_WIDTH_SHARE * width:
+            continue
+        if any(item[0] not in ("re", "l") for item in drawing.get("items", ())):
+            continue
+        key = (round(r.x0, 1), round(r.y0, 1), round(r.x1, 1), round(r.y1, 1))
+        if key in seen:
+            continue
+        seen[key] = (r, drawing.get("color") or drawing.get("fill"),
+                     drawing.get("width"))
+    return [seen[k] for k in sorted(seen, key=lambda k: (k[1], k[0]))]
+
+
+def _rule_style(color, width):
+    """(w:sz eighths-of-a-point, w:color) for a PDF stroke.
+
+    Taken from the stroke itself so every re-emitted rule on a page matches
+    the one pdf2docx happened to absorb as a table border (which carries the
+    source colour already) - seven rules at one weight and one colour, not a
+    mix of black paragraph borders and grey table borders.
+    """
+    sz = 6
+    if width:
+        try:
+            sz = max(2, min(12, int(round(float(width) * 8))))
+        except (TypeError, ValueError):
+            sz = 6
+    hexc = "auto"
+    if color is not None:
+        try:
+            chan = [max(0, min(255, int(round(float(c) * 255)))) for c in color[:3]]
+        except (TypeError, ValueError):
+            chan = []
+        if len(chan) == 3:
+            hexc = "%02X%02X%02X" % tuple(chan)
+    return sz, hexc
+
+
 def _rule_lines(page):
     out = []
     for block in page.get_text("dict").get("blocks", []):
@@ -3132,21 +3975,13 @@ def _rule_lines(page):
 
 
 def _page_rules(page):
-    """Anchor texts of the hairline rules on one page, in reading order."""
-    width = page.rect.width
-    rects = []
-    for drawing in page.get_drawings():
-        r = drawing["rect"]
-        if r.height > _RULE_MAX_H_PT or r.width < _RULE_MIN_WIDTH_SHARE * width:
-            continue
-        if any(item[0] not in ("re", "l") for item in drawing.get("items", ())):
-            continue
-        rects.append(r)
-    if not rects or len(rects) > _RULE_MAX_PER_PAGE:
+    """Anchors of the hairline rules on one page: (text, sz, colour)."""
+    rules = _rule_rects(page)
+    if not rules or len(rules) > _RULE_MAX_PER_PAGE:
         return []
     lines = _rule_lines(page)
     out = []
-    for r in sorted(rects, key=lambda x: x.y0):
+    for r, color, stroke in rules:
         above = [(bb, t) for bb, t in lines
                  if bb[3] <= r.y0 + 1.5 and r.y0 - bb[3] <= _RULE_MAX_GAP_PT
                  and bb[0] < r.x1 and bb[2] > r.x0]
@@ -3159,7 +3994,8 @@ def _page_rules(page):
             continue
         if len(text.split()) > _RULE_MAX_ANCHOR_WORDS:
             continue
-        out.append(_rule_norm(text))
+        sz, hexc = _rule_style(color, stroke)
+        out.append((_rule_norm(text), sz, hexc))
     return out
 
 
@@ -3174,11 +4010,11 @@ def _pdf_rule_anchors(pdf_doc):
     """
     per_page = [_page_rules(page) for page in pdf_doc]
     pages_seen = {}
-    for texts in per_page:
-        for t in set(texts):
+    for rules in per_page:
+        for t in {r[0] for r in rules}:
             pages_seen[t] = pages_seen.get(t, 0) + 1
     running = {t for t, n in pages_seen.items() if n >= _RULE_MIN_HEADER_PAGES}
-    return [t for texts in per_page for t in texts if t not in running]
+    return [r for rules in per_page for r in rules if r[0] not in running]
 
 
 def _tbl_has_top_border(tbl):
@@ -3190,14 +4026,14 @@ def _tbl_has_top_border(tbl):
     return False
 
 
-def _add_bottom_border(p):
+def _add_bottom_border(p, sz=6, color="auto"):
     ppr = p.find(qn("w:pPr"))
     if ppr is None:
         ppr = parse_xml("<w:pPr %s/>" % nsdecls("w"))
         p.insert(0, ppr)
     if ppr.find(qn("w:pBdr")) is not None:
         return False
-    bdr = parse_xml(_RULE_BDR_XML % nsdecls("w"))
+    bdr = parse_xml(_RULE_BDR_XML % (nsdecls("w"), sz, color))
     limit = _PPR_INDEX[qn("w:pBdr")]
     for child in ppr:
         if _PPR_INDEX.get(child.tag, len(_PPR_ORDER)) > limit:
@@ -3217,19 +4053,20 @@ def section_rules(data, pdf_doc=None):
     doc = Document(io.BytesIO(data))
     body = doc.element.body
     blocks = list(body)
-    paras = [(i, el, _rule_norm("".join(t.text or "" for t in el.iter(qn("w:t")))))
+    paras = [(i, el, _rule_key("".join(t.text or "" for t in el.iter(qn("w:t")))))
              for i, el in enumerate(blocks) if el.tag == qn("w:p")]
     changed = False
     cursor = 0
-    for anchor in anchors:
-        if not anchor:
+    for anchor, sz, color in anchors:
+        key = _rule_key(anchor)
+        if len(key) < _RULE_MIN_ANCHOR_KEY:
             continue
         hit = None
         for k in range(cursor, len(paras)):
-            # exact match only: a prefix match lets a short anchor swallow a
-            # body sentence that merely starts with the same words, and draws
-            # a rule through the middle of prose
-            if paras[k][2] == anchor:
+            # whole-line equality only: a prefix match lets a short anchor
+            # swallow a body sentence that merely starts with the same words,
+            # and draws a rule through the middle of prose
+            if paras[k][2] == key:
                 hit = k
                 break
         if hit is None:
@@ -3239,7 +4076,7 @@ def section_rules(data, pdf_doc=None):
         nxt = blocks[i + 1] if i + 1 < len(blocks) else None
         if nxt is not None and nxt.tag == qn("w:tbl") and _tbl_has_top_border(nxt):
             continue  # the same rule already survived as that table's top border
-        changed |= _add_bottom_border(el)
+        changed |= _add_bottom_border(el, sz, color)
     if not changed:
         return data
     buf = io.BytesIO()
@@ -3421,17 +4258,39 @@ def _fs_lines(pdf_doc):
     return out
 
 
+def _fs_trailing_breaks_only(p):
+    """True when no w:br in the paragraph has any text after it.
+
+    A hard break INSIDE the run stream is already a line boundary and belongs to
+    wrap_break_heal, so a paragraph carrying one is not this pass's to cut. A
+    break hanging off the END is different: there is no text after it, so it
+    cannot be a seam between two source lines and it cannot move when the
+    paragraph is cut (it stays on the last piece, exactly where it is now).
+    Excluding those too is what kept a job header welded on the CV -- pdf2docx
+    parks a stray trailing w:br + w:tab on the block, and the vetoed paragraph
+    then held a company, its flush-right date and the role line underneath.
+    """
+    seen_break = False
+    for el in p.iter():
+        if el.tag == qn("w:br"):
+            seen_break = True
+        elif el.tag == qn("w:t") and (el.text or "").strip():
+            if seen_break:
+                return False
+    return True
+
+
 def _fs_children(p):
     """[(element, text)] for the paragraph's content children, or None to bail.
 
     Bails on anything this pass must not move or reason about: a picture or a
-    text box (its anchor position is not the run stream), a hard break (already
-    a line boundary, wrap_break_heal owns those), a list paragraph, or any child
-    tag outside the known-safe set.
+    text box (its anchor position is not the run stream), a mid-stream hard
+    break (already a line boundary, wrap_break_heal owns those), a list
+    paragraph, or any child tag outside the known-safe set.
     """
     if p.find(qn("w:pPr") + "/" + qn("w:numPr")) is not None:
         return None
-    if p.find(".//" + qn("w:br")) is not None:
+    if not _fs_trailing_breaks_only(p):
         return None
     for tag in _FS_OPAQUE:
         if p.find(".//" + qn(tag)) is not None:
@@ -3594,6 +4453,203 @@ def fused_line_split(data, pdf_doc=None):
     return buf.getvalue()
 
 
+# A CV education/experience entry is two authored lines plus a right-hand date
+# column: a BOLD institution line carrying a flush-right date, and a lighter
+# sub-line under it (the degree, "Primary and Secondary Education"). pdf2docx
+# sometimes welds the two lines into one paragraph, so the degree runs on after
+# the institution and the date lands at the end of the pair. fused_line_split
+# cannot repair those: its window match joins consecutive PDF lines, and the
+# flush-right date sits BETWEEN the two lines in reading order, so the join
+# never equals the paragraph text; it also declines any paragraph carrying a
+# tab, because a label/date column is normally exactly what must not be cut.
+#
+# This pass owns that one shape, and only when the page proves it:
+#   * the paragraph holds exactly one tab, with text on both sides of it;
+#   * before the tab the run stream flips ONCE from bold to non-bold;
+#   * the bold text is one whole PDF line, the non-bold text is another whole
+#     PDF line, each occurring exactly once on its page;
+#   * the two lines share a left edge and the sub-line sits one line below;
+#   * the tail after the tab is a third line on the institution's OWN baseline,
+#     to its right - that is the date column, and it stays with the institution;
+#   * nothing else is printed between those two baselines.
+# Wrapped prose fails every geometric test (no date column, no shared-x0 pair
+# with a third line on the first baseline), so it is never touched.
+TSS_X0_EPS = 2.0           # pt, two lines share a left edge
+TSS_MIN_DROP = 2.0         # pt, the sub-line is strictly below, not the same row
+TSS_ROW_EPS = 3.0          # pt of baseline drift allowed inside one row
+TSS_MAX_LEAD = 2.5         # sub-line must be within this many line heights
+TSS_TAIL_MAX = 40          # chars: a right-hand column, never a sentence
+TSS_SPLIT_MAX = 50         # runaway guard
+
+
+def _tss_lines(pdf_doc):
+    """[page][line] with the geometry this pass reasons about."""
+    pages = []
+    for page in pdf_doc:
+        rows = []
+        for block in page.get_text("dict")["blocks"]:
+            if block.get("type") != 0:
+                continue
+            for ln in block.get("lines", []):
+                text = _fs_norm("".join(sp["text"] for sp in ln["spans"]))
+                if not text:
+                    continue
+                x0, y0, x1, y1 = ln["bbox"]
+                rows.append({"text": text, "x0": x0, "y0": y0, "x1": x1, "y1": y1})
+        pages.append(rows)
+    return pages
+
+
+def _tss_only(rows, text):
+    """The one line on the page reading exactly `text`, else None."""
+    hits = [r for r in rows if r["text"] == text]
+    return hits[0] if len(hits) == 1 else None
+
+
+def _tss_boundary(items, stop):
+    """The single bold -> non-bold flip inside items[:stop], else None."""
+    marks = [(i, _run_bold(el)) for i, (el, text) in enumerate(items[:stop])
+             if text.strip()]
+    if len(marks) < 2 or not marks[0][1]:
+        return None
+    flips = [n for n in range(1, len(marks)) if marks[n][1] != marks[n - 1][1]]
+    if len(flips) != 1 or marks[-1][1]:
+        return None
+    return marks[flips[0]][0]
+
+
+def _tss_pad(items):
+    """Index just past the last child that carries text.
+
+    pdf2docx likes to park furniture with no text of its own -- a stray w:br, a
+    trailing w:tab -- on the end of a block. It is not part of any source line,
+    so it must not be counted when the tab that marks the date column is being
+    located, and it rides along with whatever piece ends up last.
+    """
+    pad = 0
+    for i, (_el, text) in enumerate(items):
+        if (text or "").strip():
+            pad = i + 1
+    return pad
+
+
+def _tss_tabs(items):
+    """The index of the paragraph's only tab-bearing child, else None."""
+    at = [i for i, (el, _) in enumerate(items) if _fs_tabbed(el)]
+    return at[0] if len(at) == 1 else None
+
+
+def _tss_geometry(rows, head, sub, tail):
+    """True when the page shows head/sub as two stacked lines + a date column."""
+    a, b, t = (_tss_only(rows, head), _tss_only(rows, sub), _tss_only(rows, tail))
+    if a is None or b is None or t is None:
+        return False
+    if abs(a["x0"] - b["x0"]) > TSS_X0_EPS:
+        return False
+    drop = b["y0"] - a["y0"]
+    height = max(a["y1"] - a["y0"], 1.0)
+    if drop < TSS_MIN_DROP or drop > TSS_MAX_LEAD * height:
+        return False
+    if abs(t["y0"] - a["y0"]) > TSS_ROW_EPS or t["x0"] <= a["x1"]:
+        return False
+    for other in rows:
+        if other is a or other is b or other is t:
+            continue
+        if a["y0"] + TSS_MIN_DROP < other["y0"] < b["y0"] - TSS_MIN_DROP:
+            return False
+    return True
+
+
+def _tss_plan(items, pages, pad, stop):
+    """(cut, end) for the sub-line inside a welded entry, or None.
+
+    pdf2docx serialises the same three source lines -- institution, its
+    flush-right date, the sub-line beneath -- in either of two orders, because
+    which one it emits depends on how it grouped the page's blocks, not on the
+    page:
+
+        head | TAB | sub | date      the sub-line before the date column
+        head | TAB | date | sub      the date column before the sub-line
+
+    Both are one visual row plus one line under it, and in both the repair is
+    the same: the sub-line leaves, the head keeps its tab and its date. So the
+    arrangement is searched over child boundaries and accepted only on the
+    geometry test, which is what actually proves the shape -- head and sub are
+    each a whole line of their own, one directly under the other at the same
+    left edge, with the date alone on the head's baseline to its right and
+    nothing printed in between. Prose that merely happens to carry a tab
+    matches none of that.
+    """
+    if stop >= 2:
+        k = _tss_boundary(items, stop)
+        tail = _fs_norm("".join(t for _, t in items[stop:pad]))
+        if k is not None and tail and len(tail) <= TSS_TAIL_MAX:
+            head = _fs_norm("".join(t for _, t in items[:k]))
+            sub = _fs_norm("".join(t for _, t in items[k:stop]))
+            if head and sub and any(_tss_geometry(rows, head, sub, tail)
+                                    for rows in pages):
+                return (k, stop)
+    head = _fs_norm("".join(t for _, t in items[:stop]))
+    if not head:
+        return None
+    for cut in range(stop + 1, pad):
+        tail = _fs_norm("".join(t for _, t in items[stop:cut]))
+        sub = _fs_norm("".join(t for _, t in items[cut:pad]))
+        if not tail or not sub or len(tail) > TSS_TAIL_MAX:
+            continue
+        if any(_tss_geometry(rows, head, sub, tail) for rows in pages):
+            return (cut, len(items))
+    return None
+
+
+def _tss_split(p, items, k, stop):
+    """Move items[k:stop] into a Normal paragraph of its own, right after p."""
+    new = copy.deepcopy(p)
+    for child in list(new):
+        if child.tag != qn("w:pPr"):
+            new.remove(child)
+    ppr = new.find(qn("w:pPr"))
+    if ppr is not None:
+        for tabs in ppr.findall(qn("w:tabs")):
+            ppr.remove(tabs)
+    for el, _ in items[k:stop]:
+        el.getparent().remove(el)
+        new.append(el)
+    p.addnext(new)
+
+
+def tabbed_subline_split(data, pdf_doc=None):
+    """Unweld a bold institution line from the lighter sub-line beneath it."""
+    if pdf_doc is None:
+        return data
+    pages = _tss_lines(pdf_doc)
+    if not any(pages):
+        return data
+    doc = Document(io.BytesIO(data))
+    pending, splits = [], 0
+    for p in doc.element.body.findall(qn("w:p")):
+        items = _fs_children(p)
+        if not items or len(items) < 3:
+            continue
+        pad = _tss_pad(items)
+        stop = _tss_tabs(items[:pad])
+        if stop is None:
+            continue
+        plan = _tss_plan(items, pages, pad, stop)
+        if plan is None:
+            continue
+        splits += 1
+        if splits > TSS_SPLIT_MAX:
+            return data
+        pending.append((p, items) + plan)
+    if not pending:
+        return data
+    for p, items, k, stop in pending:
+        _tss_split(p, items, k, stop)
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
 # On a centred paragraph a left and a right indent of the same size cannot move
 # the text: the centre of the box is the centre of the page either way. So it is
 # never authored, it is pdf2docx restating where the line happened to start and
@@ -3688,18 +4744,10 @@ _SRD_MIN_ANCHOR = 8       # chars a source line needs before a prefix match coun
 
 def _srd_page_rule_ys(page):
     """y0 of every hairline on the page, or None when the page is a grid."""
-    width = page.rect.width
-    ys = []
-    for drawing in page.get_drawings():
-        r = drawing["rect"]
-        if r.height > _RULE_MAX_H_PT or r.width < _RULE_MIN_WIDTH_SHARE * width:
-            continue
-        if any(item[0] not in ("re", "l") for item in drawing.get("items", ())):
-            continue
-        ys.append(r.y0)
-    if len(ys) > _RULE_MAX_PER_PAGE:
+    rules = _rule_rects(page)
+    if len(rules) > _RULE_MAX_PER_PAGE:
         return None
-    return sorted(ys)
+    return sorted(r.y0 for r, _, _ in rules)
 
 
 def _srd_pages(pdf_doc):
@@ -3807,6 +4855,211 @@ def section_rule_dedupe(data, pdf_doc=None):
             continue
         _srd_drop(top)
         changed = True
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+# --- wrap_tab_unfold: a soft wrap encoded as a tab is not a tab -------------
+# Raw pdf2docx output for this CV carries ten paragraphs shaped
+# <w:t>...monitoring, </w:t><w:r><w:tab/></w:r><w:t>and automated risk...</w:t>.
+# There is no tab in the source. pdf2docx folded the wrapped continuation line
+# into the paragraph that started it and, because the continuation line's x0
+# sits a little right of the paragraph indent (a bullet's text column is
+# outdented from its marker), encoded that leading offset as a TAB CHARACTER
+# instead of a soft wrap. The paragraph then declares only the bullet's own
+# stop, so the tab falls through to Word's default half-inch grid and paints a
+# blank hole in the middle of a sentence ("such as        guns and knives").
+#
+# No other pass reaches it: paragraph_reflow and list_wrap_merge merge SEPARATE
+# paragraphs, wrap_break_heal only heals w:br, and tab_stop_normalize bails on
+# these (they are list items, and it only rewrites a single-tab date line).
+#
+# The discriminator is structural, not stylistic: in a REAL tabbed layout the
+# text on both sides of the tab sits on the SAME line of the PDF (a label and
+# its flush-right date). Here the text after the tab begins a NEW line, one row
+# below, of a paragraph the page had to wrap. So a bare tab run is unfolded to a
+# single space only when every one of these holds:
+#
+#   * the run holds a w:tab and nothing else (date_column_untable writes its
+#     tabs as " \t" inside a text run, so its own output is out of scope), and
+#     it has text on both sides;
+#   * the words either side of it match the END of one PDF line and the START
+#     of another EXACTLY ONCE in the document (unique-match binding, as in
+#     wrap_break_heal) - ambiguous or absent evidence keeps the tab;
+#   * that second line sits directly below the first (nothing between them,
+#     normal leading) and starts further right - the offset that became the tab;
+#   * the first line is a full measure AND the second line's first word could
+#     not have fitted in the room left on it, so the wrap was forced by the
+#     page, not chosen by the author;
+#   * no hyphen at the seam (re-\tsign must not become "re- sign"; those keep
+#     the tab rather than risk a meaning flip).
+#
+# The tab becomes one space, or nothing when a space already borders the seam,
+# so the sentence reads with exactly one space wherever the hole used to be.
+
+_WT_CTX_WORDS = 4          # words of context taken either side of the tab
+_WT_MIN_CTX_WORDS = 5      # ...and at least this many in total, so the
+                           # evidence n-gram is specific enough to bind
+_WT_PITCH_RATIO = 2.0      # (row pitch / line height) above this is a gap
+_WT_WORD_SLACK = 1.0       # extra character in the "would it have fitted" sum
+_WT_HYPHENS = "-‐‑­"
+_WT_SEG_RE = re.compile(r"[\n\t]")
+
+
+def _wt_pages(pdf_doc):
+    """Per page: every non-empty text line with its bbox, plus that page's own
+    left-most and right-most text edges (the measure a full line is judged
+    against)."""
+    pages = []
+    for page in pdf_doc:
+        lines = []
+        for b in page.get_text("dict")["blocks"]:
+            if b.get("type") != 0:
+                continue
+            for ln in b.get("lines", []):
+                text = "".join(s["text"] for s in ln["spans"])
+                if not text.strip():
+                    continue
+                x0, y0, x1, y1 = ln["bbox"]
+                lines.append({"text": text, "words": text.split(),
+                              "x0": x0, "y0": y0, "x1": x1, "y1": y1,
+                              "mid": (y0 + y1) / 2.0})
+        if lines:
+            pages.append({"lines": lines,
+                          "left": min(l["x0"] for l in lines),
+                          "right": max(l["x1"] for l in lines)})
+    return pages
+
+
+def _wt_bare_tab(el):
+    """The w:tab is the whole run: no text, no drawing, nothing but rPr."""
+    run = el.getparent()
+    if run is None or run.tag != qn("w:r"):
+        return False
+    kids = [c for c in run if c.tag != qn("w:rPr")]
+    return len(kids) == 1 and kids[0] is el
+
+
+def _wt_context(items, i):
+    """(head, tail, words before, words after) for the tab at items[i]; the
+    word context is taken from its own visual segment only, so another tab or
+    a w:br ends it."""
+    head = "".join(_char_of(el) for el in items[:i])
+    tail = "".join(_char_of(el) for el in items[i + 1:])
+    hw = _WT_SEG_RE.split(head)[-1].split()[-_WT_CTX_WORDS:]
+    tw = _WT_SEG_RE.split(tail)[0].split()[:_WT_CTX_WORDS]
+    return head, tail, hw, tw
+
+
+def _wt_between(lines, a, b):
+    """Some other line's vertical centre lies strictly between a's and b's."""
+    lo, hi = a["mid"], b["mid"]
+    for c in lines:
+        if c is a or c is b:
+            continue
+        if lo + 0.01 < c["mid"] < hi - 0.01:
+            return True
+    return False
+
+
+def _wt_forced(a, b, page):
+    """b's first word could not have fitted in the room left on a, measured
+    with a's own average character width."""
+    if not b["words"] or not a["text"]:
+        return False
+    avg = (a["x1"] - a["x0"]) / max(1, len(a["text"]))
+    remaining = page["right"] - a["x1"]
+    return remaining < (len(b["words"][0]) + _WT_WORD_SLACK) * avg
+
+
+def _wt_pair_ok(a, b, page):
+    """b is the wrapped continuation of a: directly below it, offset right,
+    behind a full measure that had no room for b's first word."""
+    if b["mid"] <= a["mid"] or b["x0"] <= a["x0"]:
+        return False
+    height = max(a["y1"] - a["y0"], 1e-6)
+    if (b["mid"] - a["mid"]) > _WT_PITCH_RATIO * height:
+        return False
+    if _wt_between(page["lines"], a, b):
+        return False
+    width = a["x1"] - a["x0"]
+    if width < _WRAP_FULL_MIN_PT:
+        return False
+    if width < _WRAP_FULL_SHARE * (page["right"] - page["left"]):
+        return False
+    return _wt_forced(a, b, page)
+
+
+def _wt_evidence(pages, hw, tw):
+    """True when exactly one line pair in the document ends with hw, starts
+    with tw, and reads as a forced wrap."""
+    hits = 0
+    for page in pages:
+        ends = [l for l in page["lines"] if l["words"][-len(hw):] == hw]
+        starts = [l for l in page["lines"] if l["words"][:len(tw)] == tw]
+        for a in ends:
+            for b in starts:
+                if a is b:
+                    continue
+                if _wt_pair_ok(a, b, page):
+                    hits += 1
+                    if hits > 1:
+                        return False
+    return hits == 1
+
+
+def _wt_collapse_trailing(items, i, tail_leads_space):
+    """Leave exactly one space (or none) where the tab's neighbour ended."""
+    if i == 0:
+        return
+    prev = items[i - 1]
+    if prev.tag != qn("w:t"):
+        return
+    txt = prev.text or ""
+    if not txt or not txt[-1:].isspace():
+        return
+    new = txt.rstrip() if tail_leads_space else txt.rstrip() + " "
+    if new == txt:
+        return
+    prev.text = new
+    if new[-1:].isspace():
+        prev.set(_XML_SPACE, "preserve")
+
+
+def wrap_tab_unfold(data, pdf_doc=None):
+    """Replace a bare tab run that only encodes a forced line wrap with the
+    single space the sentence actually reads with."""
+    if pdf_doc is None:
+        return data
+    pages = _wt_pages(pdf_doc)
+    if not pages:
+        return data
+    doc = Document(io.BytesIO(data))
+    changed = False
+
+    for p in doc.element.body.iter(qn("w:p")):
+        items = _wb_items(p)
+        for i, el in enumerate(items):
+            if el.tag != qn("w:tab") or not _wt_bare_tab(el):
+                continue
+            head, tail, hw, tw = _wt_context(items, i)
+            if not hw or not tw or len(hw) + len(tw) < _WT_MIN_CTX_WORDS:
+                continue
+            if hw[-1][-1:] in _WT_HYPHENS:
+                continue  # never fuse across a hyphen
+            if not _wt_evidence(pages, hw, tw):
+                continue
+            tail_leads_space = tail[:1].isspace()
+            needs_space = not head[-1:].isspace() and not tail_leads_space
+            # _wb_remove_br drops the element and the run it emptied; a w:tab
+            # and a w:br are the same shape of run child to it.
+            _wb_remove_br(el, replace_with_space=needs_space)
+            _wt_collapse_trailing(items, i, tail_leads_space)
+            changed = True
+
     if not changed:
         return data
     buf = io.BytesIO()
@@ -3986,11 +5239,24 @@ def _rstrip_paragraph(p):
 # default: page 1 here is right=810 bottom=478 twips, page 2 right=1440
 # bottom=1440, so the text column narrows by half an inch halfway down a CV
 # whose two PDF pages are exactly the same size. Where the PDF pages really do
-# share one geometry, a continuation section takes the first section's margin on
-# any side where the first section's is the SMALLER of the two. Only-smaller is
-# what keeps this safe on arbitrary documents: the text area of a continuation
-# section can grow but never shrink, so no page can be made to overflow and
-# nothing already laid out is pushed off the bottom.
+# share one geometry, every section of that page size takes, on each side, the
+# SMALLEST margin any of them measured. Only-smaller is what keeps this safe on
+# arbitrary documents: a section's text area can grow but never shrink, so no
+# page can be made to overflow and nothing already laid out is pushed off the
+# bottom.
+#
+# Taking the floor across ALL the sections rather than propagating the first
+# one's value forward is what makes the second half of this work on a document
+# with more than two sections. pdf2docx measures each page's margins from that
+# page's own ink, so two sections over the same paper differ by a few twips in
+# whichever direction the ink happened to fall (408 vs 400 at the top of a
+# two-page CV). Propagating forwards only repairs the sections that measured
+# LARGER than the first, and leaves a section that measured smaller as a
+# permanent mismatch -- which then reads as a real property change and stops
+# stray_mark_cleanup from removing the section break sitting on it. With the
+# floor applied, page geometry that the PDF says is uniform is uniform in the
+# docx too, and every break between two such sections that carries no other
+# change becomes provably inert.
 SB_SIDES = ("top", "right", "bottom", "left")
 
 
@@ -4114,16 +5380,21 @@ def section_break_tidy(data, pdf_doc=None):
     # (b) one page geometry in the PDF -> one set of margins in the docx.
     sects = [s for _, s in _sb_sections(body)]
     if len(sects) > 1 and pdf_doc is not None and _sb_uniform_pages(pdf_doc):
-        first_size, first_mar = _sb_pgsz(sects[0]), _sb_margins(sects[0])
-        if first_size and first_mar and all(v > 0 for v in first_mar.values()):
-            for sect in sects[1:]:
-                mar = _sb_margins(sect)
-                if mar is None or _sb_pgsz(sect) != first_size:
-                    continue
+        first_size = _sb_pgsz(sects[0])
+        group = []
+        for sect in sects:
+            mar = _sb_margins(sect)
+            if (first_size and _sb_pgsz(sect) == first_size
+                    and mar and all(v > 0 for v in mar.values())):
+                group.append((sect, mar))
+        if len(group) > 1:
+            floor = {side: min(mar[side] for _s, mar in group)
+                     for side in SB_SIDES}
+            for sect, mar in group:
                 node = sect.find(qn("w:pgMar"))
                 for side in SB_SIDES:
-                    if first_mar[side] < mar[side]:
-                        node.set(qn("w:" + side), str(first_mar[side]))
+                    if floor[side] < mar[side]:
+                        node.set(qn("w:" + side), str(floor[side]))
                         changed = True
 
     if not changed:
@@ -4138,6 +5409,8 @@ def tab_stop_normalize(data, pdf_doc=None):
     doc = Document(io.BytesIO(data))
     body = doc.element.body
     sects = _section_text_columns(body)
+    geoms = _section_geoms(body)
+    edges = _pdf_right_edges(pdf_doc)
     changed = False
 
     for idx, p in enumerate(body):
@@ -4174,10 +5447,35 @@ def tab_stop_normalize(data, pdf_doc=None):
             continue
         if len(tail.strip()) > TAB_TAIL_MAX_CHARS:
             continue
-        if stops[0].get(qn("w:val")) == "right" and pos == width:
+        # A hair-width left indent is pdf2docx's measurement of a cell edge,
+        # not an author's indent. It costs the line box that much width, so a
+        # stop written at the text margin ends up outside it and real Word
+        # drops the tab (QuickLook places custom stops loosely and hid this).
+        # Dropping it is also what makes the measured stop land exactly on the
+        # column the dates were measured at.
+        left = _ind_val(p, "left", "start")
+        if left is not None and 0 < left <= _IND_HAIR_TWIPS:
+            _ind_set(p, 0, "left", "start")
+            changed = True
+        # Where the tail REALLY ends in the source, when the PDF can say so.
+        # Falling back to the text margin assumes every flush-right tail is
+        # flush with the paper, which is false whenever the author right-aligned
+        # to a column of their own; and the margin has to be reduced by this
+        # paragraph's own indents or the stop lands outside its line box and
+        # real Word drops the tab (see _clamp_stop_to_line).
+        geom = _geom_at(geoms, idx, inclusive=True)
+        target = _measured_stop(edges, [_norm_line(tail)],
+                                geom[1], geom[2], width)
+        if target is None:
+            target = (width
+                      - max(_ind_val(p, "left", "start") or 0, 0)
+                      - max(_ind_val(p, "right", "end") or 0, 0))
+        if target <= 0:
+            continue
+        if stops[0].get(qn("w:val")) == "right" and pos == target:
             continue
         stops[0].set(qn("w:val"), "right")
-        stops[0].set(qn("w:pos"), str(width))
+        stops[0].set(qn("w:pos"), str(target))
         changed = True
 
     if not changed:
@@ -4260,6 +5558,347 @@ def char_scale_normalize(data, pdf_doc=None):
     return buf.getvalue()
 
 
+# --- phantom two-column page regions -----------------------------------------
+# pdf2docx decides a page's column count by looking for a vertical strip of
+# white space that runs down the text. A CV whose entries put the school on the
+# left and the date flush right hands it exactly that strip, so it reads the
+# page as a real two-column region and emits it as one: a `continuous` section
+# break carrying <w:cols w:num="2"> for the left text, then a `nextColumn`
+# section for the dates. Two things break at once inside that band. The left
+# column is narrower than the page, so the source lines pdf2docx folded into one
+# block ("... Achrafieh, Lebanon" and "BA in Computer Science") stay welded with
+# no separator at all, which is why fused_line_split cannot cut them: there is
+# no child boundary to cut on. And the date is exiled into column two, several
+# paragraphs of vertical white space away from the line it belongs to.
+#
+# phantom_column_flatten dissolves such a band and rebuilds it from the PDF's
+# own lines. It refutes the column reading with geometry, never with wording:
+# on a genuine two-column page NO line may cross the gutter, so a page whose
+# body lines straddle pdf2docx's own column boundary has one text column and
+# the band is an artefact. The rebuild is evidence-only:
+#   * every run of the band must match exactly ONE source line, at exactly one
+#     offset in it, or nothing is touched: an ambiguous run means the band
+#     cannot be re-ordered safely;
+#   * output paragraphs are the PDF's lines, in the PDF's own (y, x) order, so
+#     the date returns to the line it was set on and the welded lines separate;
+#   * two segments share one output paragraph only when they overlap vertically
+#     AND the second starts to the right of the first, i.e. they were one visual
+#     line; they are joined by a tab and a RIGHT stop written at the x the PDF
+#     ends the second segment on, so the date stays flush right;
+#   * runs, run properties and paragraph properties are moved, never rewritten.
+# The band's section breaks disappear with the paragraphs that carried them, so
+# no w:cols above one survives; a nextPage break directly in front of a band
+# whose text is on the same PDF page is demoted to `continuous`, because a page
+# break there is provably wrong.
+PCB_TWIPS_PER_PT = 20.0
+PCB_SCALE_TOL = 0.01       # pgSz vs PDF page width
+PCB_MIN_CROSS = 2          # body lines straddling the gutter that refute columns
+PCB_MAX_BAND_PARAS = 24    # a band longer than this is a document, not an entry
+PCB_ROW_OVERLAP = 0.5      # share of line height two segments must share
+PCB_MIN_TAB_TW = 240       # a right stop closer in than this is not a column
+
+
+def _pcb_cols(sect):
+    """(column count, first column width in twips) declared by a sectPr."""
+    node = sect.find(qn("w:cols")) if sect is not None else None
+    if node is None:
+        return 1, None
+    try:
+        num = int(node.get(qn("w:num")) or 1)
+    except (TypeError, ValueError):
+        num = 1
+    first = None
+    for col in node.findall(qn("w:col")):
+        try:
+            first = int(col.get(qn("w:w")))
+        except (TypeError, ValueError):
+            first = None
+        break
+    return max(1, num), first
+
+
+def _pcb_type(sect):
+    node = sect.find(qn("w:type")) if sect is not None else None
+    val = node.get(qn("w:val")) if node is not None else None
+    return val or "nextPage"
+
+
+def _pcb_sections(body):
+    """[(carrier w:p or None, sectPr or None, [blocks])] in document order."""
+    out, acc = [], []
+    for child in body:
+        if child.tag == qn("w:sectPr"):
+            continue
+        acc.append(child)
+        if child.tag != qn("w:p"):
+            continue
+        ppr = child.find(qn("w:pPr"))
+        sect = ppr.find(qn("w:sectPr")) if ppr is not None else None
+        if sect is not None:
+            out.append((child, sect, acc))
+            acc = []
+    out.append((None, body.find(qn("w:sectPr")), acc))
+    return out
+
+
+def _pcb_bands(sections):
+    """Maximal runs of >=2 consecutive sections sharing one multi-column spec."""
+    bands, i = [], 0
+    while i < len(sections):
+        num, width = _pcb_cols(sections[i][1])
+        if num < 2 or not width:
+            i += 1
+            continue
+        j = i + 1
+        while j < len(sections) and _pcb_cols(sections[j][1]) == (num, width):
+            j += 1
+        if j - i >= 2:
+            bands.append((i, j, width))
+        i = j
+    return bands
+
+
+def _pcb_page_lines(page):
+    out = []
+    for block in page.get_text("dict")["blocks"]:
+        if block.get("type"):
+            continue
+        for ln in block.get("lines", ()):
+            text = _fs_norm("".join(sp["text"] for sp in ln["spans"]))
+            if not text:
+                continue
+            x0, y0, x1, y1 = ln["bbox"]
+            out.append({"text": text, "x0": x0, "y0": y0, "x1": x1, "y1": y1})
+    return out
+
+
+def _pcb_pages(pdf_doc):
+    try:
+        return [(_pcb_page_lines(page), float(page.rect.width)) for page in pdf_doc]
+    except Exception:  # noqa: BLE001 - unreadable geometry is just "do nothing"
+        return []
+
+
+def _pcb_boundary(sect, col1_tw, page_width_pt):
+    """Gutter x in PDF points, or None when the docx and PDF pages disagree."""
+    node = sect.find(qn("w:pgSz"))
+    try:
+        page_tw = int(node.get(qn("w:w")))
+    except (AttributeError, TypeError, ValueError):
+        return None
+    if page_tw <= 0 or page_width_pt <= 0:
+        return None
+    if abs(page_tw / (page_width_pt * PCB_TWIPS_PER_PT) - 1.0) > PCB_SCALE_TOL:
+        return None
+    left = _sect_margin(sect, "left")
+    if left <= 0:
+        return None
+    return (left + col1_tw) / PCB_TWIPS_PER_PT
+
+
+def _pcb_crossings(lines, boundary):
+    """Body lines that straddle the gutter: each one refutes the column split."""
+    return sum(1 for l in lines
+               if l["x0"] < boundary - 1.0 and l["x1"] > boundary + 1.0)
+
+
+def _pcb_locate(key, lines):
+    """The one line containing `key` exactly once, as (index, offset), or None."""
+    hit = None
+    for i, line in enumerate(lines):
+        n = line["text"].count(key)
+        if not n:
+            continue
+        if n > 1 or hit is not None:
+            return None
+        hit = (i, line["text"].index(key))
+    return hit
+
+
+def _pcb_segments(paras, lines):
+    """{line index: [elements in reading order]} for the whole band, or None."""
+    placed, pending, seen = {}, [], {}
+    for p in paras:
+        items = _fs_children(p)
+        if items is None:
+            return None
+        last = None
+        for el, text in items:
+            key = _fs_norm(text)
+            if not key:
+                pending.append((el, last))
+                continue
+            hit = _pcb_locate(key, lines)
+            if hit is None:
+                return None
+            idx, off = hit
+            placed.setdefault(idx, []).append((off, len(seen), el))
+            seen[el] = idx
+            last = el
+    for el, anchor in pending:
+        idx = seen.get(anchor)
+        if idx is None:
+            return None
+        placed[idx].append((10 ** 9, len(seen), el))
+        seen[el] = idx
+    if not placed:
+        return None
+    return {idx: [el for _, _, el in sorted(seg, key=lambda t: t[:2])]
+            for idx, seg in placed.items()}
+
+
+def _pcb_rows(placed, lines):
+    """Group the used source lines into visual rows: [[line index, ...], ...]."""
+    used = sorted(placed, key=lambda i: (round(lines[i]["y0"], 1), lines[i]["x0"]))
+    rows = []
+    for idx in used:
+        line = lines[idx]
+        if rows:
+            prev = lines[rows[-1][-1]]
+            share = min(prev["y1"], line["y1"]) - max(prev["y0"], line["y0"])
+            height = min(prev["y1"] - prev["y0"], line["y1"] - line["y0"])
+            if (height > 0 and share >= PCB_ROW_OVERLAP * height
+                    and line["x0"] >= prev["x1"]):
+                rows[-1].append(idx)
+                continue
+        rows.append([idx])
+    return rows
+
+
+def _pcb_set_right_stop(ppr, pos_tw):
+    """One right stop where the PDF ends the line, and no right indent to clip it."""
+    for tabs in ppr.findall(qn("w:tabs")):
+        ppr.remove(tabs)
+    _ppr_insert(ppr, parse_xml(
+        '<w:tabs %s><w:tab w:val="right" w:pos="%d"/></w:tabs>'
+        % (nsdecls("w"), pos_tw)))
+    ind = ppr.find(qn("w:ind"))
+    if ind is not None:
+        for attr in ("right", "end", "rightChars", "endChars"):
+            if ind.get(qn("w:" + attr)) is not None:
+                del ind.attrib[qn("w:" + attr)]
+
+
+def _pcb_build(row, placed, lines, owner, left_tw, text_tw):
+    """One output paragraph for one visual row of the band."""
+    new = copy.deepcopy(owner[placed[row[0]][0]])
+    for child in list(new):
+        if child.tag != qn("w:pPr"):
+            new.remove(child)
+    ppr = new.find(qn("w:pPr"))
+    if ppr is not None:
+        for sect in ppr.findall(qn("w:sectPr")):
+            ppr.remove(sect)
+    for n, idx in enumerate(row):
+        if n:
+            # pdf2docx's own label/date convention is a space and then the tab;
+            # the space is what keeps the two segments separate words for any
+            # reader that ignores tabs, so it is written unless one is there
+            tail = _el_text(new)
+            new.append(parse_xml(
+                "<w:r %s>%s<w:tab/></w:r>"
+                % (nsdecls("w"),
+                   "" if not tail or tail[-1].isspace()
+                   else '<w:t xml:space="preserve"> </w:t>')))
+        for el in placed[idx]:
+            parent = el.getparent()
+            if parent is not None:
+                parent.remove(el)
+            new.append(el)
+    if len(row) > 1 and ppr is not None:
+        pos = int(round(lines[row[-1]]["x1"] * PCB_TWIPS_PER_PT)) - left_tw
+        if PCB_MIN_TAB_TW <= pos <= text_tw:
+            _pcb_set_right_stop(ppr, pos)
+    return new
+
+
+def _pcb_demote_break(first, lines):
+    """A nextPage break in front of a band on the SAME PDF page is wrong: make
+    it continuous, so the band no longer starts a page of its own."""
+    prev = first.getprevious()
+    if prev is None or prev.tag != qn("w:p"):
+        return
+    sect = prev.find(qn("w:pPr") + "/" + qn("w:sectPr"))
+    if sect is None or _pcb_type(sect) in ("continuous", "nextColumn"):
+        return
+    # the carrier is often pdf2docx's own empty paragraph, so the text that has
+    # to be shown to sit on the band's page is the nearest one above it
+    key, back = "", prev
+    while back is not None and back.tag == qn("w:p") and not key:
+        key = _fs_norm(_el_text(back))
+        back = back.getprevious()
+    if not key or _pcb_locate(key, lines) is None:
+        return
+    for node in sect.findall(qn("w:type")):
+        sect.remove(node)
+    sect.insert(0, parse_xml('<w:type %s w:val="continuous"/>' % nsdecls("w")))
+
+
+def phantom_column_flatten(data, pdf_doc=None):
+    """Dissolve a pdf2docx column band on a single-text-column page and rebuild
+    its paragraphs from the PDF's own source lines."""
+    if pdf_doc is None:
+        return data
+    pages = _pcb_pages(pdf_doc)
+    if not pages:
+        return data
+    doc = Document(io.BytesIO(data))
+    body = doc.element.body
+    sections = _pcb_sections(body)
+    changed = False
+    for start, stop, col1_tw in _pcb_bands(sections):
+        band = sections[start:stop]
+        paras = [c for _, _, blocks in band for c in blocks]
+        if not paras or len(paras) > PCB_MAX_BAND_PARAS:
+            continue
+        if any(p.tag != qn("w:p") for p in paras):
+            continue
+        sect = band[0][1]
+        text_tw = _sect_width(sect)
+        left_tw = _sect_margin(sect, "left")
+        if text_tw <= 0:
+            continue
+        found = None
+        for lines, width in pages:
+            boundary = _pcb_boundary(sect, col1_tw, width)
+            if boundary is None or _pcb_crossings(lines, boundary) < PCB_MIN_CROSS:
+                continue
+            placed = _pcb_segments(paras, lines)
+            if placed is not None:
+                found = (lines, placed)
+                break
+        if found is None:
+            continue
+        lines, placed = found
+        owner = {}
+        for p in paras:
+            for el in p:
+                if el.tag != qn("w:pPr"):
+                    owner[el] = p
+        built = [_pcb_build(row, placed, lines, owner, left_tw, text_tw)
+                 for row in _pcb_rows(placed, lines)]
+        anchor = paras[0]
+        for new in built:
+            anchor.addprevious(new)
+        _pcb_demote_break(built[0], lines)
+        for p in paras:
+            body.remove(p)
+        for carrier, sect_el, _blocks in band:
+            if carrier is not None or sect_el is None:
+                continue
+            for node in sect_el.findall(qn("w:cols")):
+                sect_el.replace(node, parse_xml("<w:cols %s/>" % nsdecls("w")))
+            for node in sect_el.findall(qn("w:type")):
+                if (node.get(qn("w:val")) or "") == "nextColumn":
+                    sect_el.remove(node)
+        changed = True
+    if not changed:
+        return data
+    out = io.BytesIO()
+    doc.save(out)
+    return out.getvalue()
+
+
 # fused_line_split runs after date_column_untable so it sees the tabs that pass
 # writes (a tab at a seam vetoes a cut), and before heading_styles so a title
 # line freed from its subtitle can still be recognised as a heading.
@@ -4269,12 +5908,829 @@ def char_scale_normalize(data, pdf_doc=None):
 # only ever touches runs with text, so the empties it leaves alone are exactly
 # what the prune is for).
 
-PASSES = (hyperlink_unnest, span_space_repair, br_row_split, header_footer_parts,
-          date_column_untable, fused_line_split, centred_indent_drop, heading_styles,
+# ------------------------------------------------------------------ stray marks
+# pdf2docx leaves three structural marks on a page the PDF itself does not have.
+#
+# (a) A continuous w:sectPr parked in a body paragraph's w:pPr whose page size,
+#     margins, columns and grid are identical to the section that follows it.
+#     It changes no layout at all, and shows up in Word as a "Section Break
+#     (Continuous)" marker (a box glyph in other renderers). A section break
+#     that carries no property change is removable by definition, so the test is
+#     a serialised comparison of the two sections' properties, not a heuristic.
+#
+# (b) A trailing w:br (and the trailing space in front of it) on a heading run.
+#     pdf2docx emits it where the source page simply ends the title line, so the
+#     docx gets an empty line the PDF does not have. Only ever applied to a
+#     Heading-styled paragraph, and only to breaks at the very end of it, so a
+#     deliberate mid-heading line break and every prose paragraph are untouched.
+#
+# (c) A w:ind w:right measured off the text block's bounding box rather than off
+#     a real right-hand constraint. When a docx paragraph matches exactly ONE
+#     line in the PDF, that line never wrapped, so the source says nothing about
+#     where its right boundary is; the invented indent narrows the paragraph for
+#     whoever edits it next and can wrap the very line it was measured from.
+#     Requires a unique whole-line match and clear space to the right of it, so a
+#     genuine narrow column (something else printed alongside) keeps its indent.
+#     Widening a paragraph can only unwrap text, never push it off the page --
+#     but only while the text hangs off the LEFT margin. On a right-aligned or
+#     centred paragraph the right indent is not a wrap boundary at all, it is
+#     what positions the text; clearing it slides the line to the right margin.
+#     So the effective alignment (direct w:jc, else the w:jc inherited down the
+#     paragraph style's w:basedOn chain) has to say left/start/justify before
+#     the indent can be treated as measurement noise.
+
+_SM_HEADING_RE = re.compile(r"^Heading[1-9]$")
+_SM_POSITIONAL_JC = frozenset(("right", "end", "center", "centre"))
+SM_RIGHT_GAP_PT = 2.0        # ink this close to the right edge still counts as adjacent
+SM_BAND_PAD_PT = 1.0         # vertical slack when testing "on the same line"
+
+
+def _sm_sig(sect):
+    """Section properties minus w:type, canonically ordered, for comparison."""
+    out = []
+    for child in sect:
+        if child.tag == qn("w:type"):
+            continue
+        out.append((child.tag, tuple(sorted(child.attrib.items())),
+                    tuple((g.tag, tuple(sorted(g.attrib.items()))) for g in child)))
+    return tuple(sorted(out))
+
+
+def _sm_type(sect):
+    node = sect.find(qn("w:type"))
+    return (node.get(qn("w:val")) or "") if node is not None else ""
+
+
+def _sm_drop_inert_sections(body):
+    """(a) remove every continuous break that changes nothing about the page."""
+    sects = [s for _, s in _sb_sections(body)]
+    changed = False
+    for i, sect in enumerate(sects[:-1]):
+        if _sm_type(sect) != "continuous":
+            continue
+        if _sm_sig(sect) != _sm_sig(sects[i + 1]):
+            continue
+        parent = sect.getparent()
+        if parent is None or parent.tag != qn("w:pPr"):
+            continue          # the body-level sectPr is the document's own
+        parent.remove(sect)
+        changed = True
+    return changed
+
+
+def _sm_runs_with_text(p):
+    return [r for r in p.findall(qn("w:r"))
+            if any((t.text or "") for t in r.findall(qn("w:t")))]
+
+
+def _sm_strip_heading_tail(p):
+    """(b) drop trailing breaks and trailing spaces from a heading paragraph."""
+    ppr = p.find(qn("w:pPr"))
+    if ppr is None:
+        return False
+    style = ppr.find(qn("w:pStyle"))
+    if style is None or not _SM_HEADING_RE.match(style.get(qn("w:val")) or ""):
+        return False
+    changed = False
+    while True:
+        runs = p.findall(qn("w:r"))
+        if not runs:
+            break
+        last = runs[-1]
+        kids = [k for k in last if k.tag != qn("w:rPr")]
+        if kids and all(k.tag == qn("w:br") for k in kids):
+            if not _sm_runs_with_text(p):
+                break                     # never empty the heading out
+            p.remove(last)
+            changed = True
+            continue
+        while kids and kids[-1].tag == qn("w:br"):
+            last.remove(kids[-1])
+            kids.pop()
+            changed = True
+        break
+    # Only strip when the heading really ends in one of its own runs.  If the
+    # last thing in it is a w:hyperlink, both the link's trailing space and the
+    # space in front of it are deliberate, so leave the paragraph alone.
+    content = [k for k in p if k.tag in (qn("w:r"), qn("w:hyperlink"))]
+    if content and content[-1].tag == qn("w:hyperlink"):
+        return changed
+    texts = [t for r in p.findall(qn("w:r"))
+             for t in r.findall(qn("w:t")) if (t.text or "")]
+    if texts:
+        last_t = texts[-1]
+        stripped = (last_t.text or "").rstrip()
+        if stripped and stripped != last_t.text:
+            last_t.text = stripped
+            changed = True
+    return changed
+
+
+def _sm_page_ink(page):
+    """(text lines, every drawn box) on one page, in PDF points."""
+    lines, boxes = [], []
+    for block in page.get_text("dict")["blocks"]:
+        if block.get("type"):
+            boxes.append(tuple(float(v) for v in block["bbox"]))
+            continue
+        for ln in block.get("lines", ()):
+            body = _fs_norm("".join(sp["text"] for sp in ln["spans"]))
+            if not body:
+                continue
+            bbox = tuple(float(v) for v in ln["bbox"])
+            lines.append({"text": body, "bbox": bbox})
+            boxes.append(bbox)
+    return lines, boxes
+
+
+def _sm_pages(pdf_doc):
+    try:
+        return [_sm_page_ink(page) for page in pdf_doc]
+    except Exception:  # noqa: BLE001 - unreadable geometry is just "do nothing"
+        return []
+
+
+def _sm_unwrapped(pages, text):
+    """True when `text` is exactly one PDF line with nothing printed right of it."""
+    hit = None
+    for lines, boxes in pages:
+        for line in lines:
+            if line["text"] != text:
+                continue
+            if hit is not None:
+                return False              # ambiguous: two lines say the same thing
+            hit = (line["bbox"], boxes)
+    if hit is None:
+        return False
+    (x0, y0, x1, y1), boxes = hit
+    for bx0, by0, bx1, by1 in boxes:
+        if bx0 < x1 + SM_RIGHT_GAP_PT:
+            continue
+        if by1 > y0 + SM_BAND_PAD_PT and by0 < y1 - SM_BAND_PAD_PT:
+            return False                  # a real column: something sits alongside
+    return True
+
+
+def _sm_style_jc(doc):
+    """styleId -> the w:jc it ends up with, resolved through w:basedOn."""
+    try:
+        root = doc.styles.element
+    except Exception:  # noqa: BLE001 - no styles part is just "inherit nothing"
+        return {}
+    own, based = {}, {}
+    for style in root.findall(qn("w:style")):
+        sid = style.get(qn("w:styleId"))
+        if not sid:
+            continue
+        ppr = style.find(qn("w:pPr"))
+        jc = None if ppr is None else ppr.find(qn("w:jc"))
+        val = None if jc is None else jc.get(qn("w:val"))
+        if val:
+            own[sid] = val
+        parent = style.find(qn("w:basedOn"))
+        if parent is not None and parent.get(qn("w:val")):
+            based[sid] = parent.get(qn("w:val"))
+    out = {}
+    for sid in set(own) | set(based):
+        seen, cur, val = set(), sid, ""
+        while cur and cur not in seen:
+            seen.add(cur)
+            if cur in own:
+                val = own[cur]
+                break
+            cur = based.get(cur)
+        out[sid] = val
+    return out
+
+
+def _sm_effective_jc(ppr, style_jc):
+    """The alignment the paragraph actually renders with ("" when unset)."""
+    jc = ppr.find(qn("w:jc"))
+    if jc is not None and jc.get(qn("w:val")):
+        return jc.get(qn("w:val"))
+    style = ppr.find(qn("w:pStyle"))
+    if style is None:
+        return ""
+    return style_jc.get(style.get(qn("w:val")) or "", "")
+
+
+def _sm_drop_phantom_right(body, pages, style_jc):
+    """(c) clear right indents no line in the PDF ever wrapped against."""
+    changed = False
+    for p in body:
+        if p.tag != qn("w:p"):
+            continue
+        ppr = p.find(qn("w:pPr"))
+        if ppr is None:
+            continue
+        if _sm_effective_jc(ppr, style_jc) in _SM_POSITIONAL_JC:
+            continue      # the indent places the text; it is not a wrap boundary
+        ind = ppr.find(qn("w:ind"))
+        if ind is None:
+            continue
+        try:
+            right = int(round(float(ind.get(qn("w:right")))))
+        except (TypeError, ValueError):
+            continue
+        if right <= 0:
+            continue
+        text = _fs_norm("".join(t.text or "" for t in p.iter(qn("w:t"))))
+        if not text or not _sm_unwrapped(pages, text):
+            continue
+        ind.set(qn("w:right"), "0")
+        changed = True
+    return changed
+
+
+def stray_mark_cleanup(data, pdf_doc=None):
+    """Remove the section break, heading line break and right indent pdf2docx
+    invents from the PDF's geometry rather than from the page's own structure."""
+    doc = Document(io.BytesIO(data))
+    body = doc.element.body
+    changed = _sm_drop_inert_sections(body)
+    for p in body.iter(qn("w:p")):
+        changed = _sm_strip_heading_tail(p) or changed
+    if pdf_doc is not None:
+        pages = _sm_pages(pdf_doc)
+        if pages:
+            changed = _sm_drop_phantom_right(body, pages, _sm_style_jc(doc)) or changed
+    if not changed:
+        return data
+    out = io.BytesIO()
+    doc.save(out)
+    return out.getvalue()
+
+
+# --------------------------------------------------------------- illegible shading
+# pdf2docx builds a cell's background by sampling the page under the text.  On a
+# heading band it sometimes samples the glyphs instead of the band, and writes the
+# TEXT colour out as w:shd/@w:fill -- black text on a black bar, four of five
+# section headings invisible.  The text colour is the half that survived; the fill
+# is the misread half, so drop the fill and keep the text.
+CS_MIN_CONTRAST = 2.0          # WCAG ratio under which the text cannot be read at all
+_CS_FLAT_SHD = ("clear", "solid")
+
+
+def _cs_rgb(value):
+    """'RRGGBB' -> (r, g, b) in 0..1, or None when it is not a real colour."""
+    if not value:
+        return None
+    v = value.strip().lstrip("#")
+    if len(v) != 6:
+        return None                      # 'auto' and anything malformed
+    try:
+        return tuple(int(v[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+    except ValueError:
+        return None
+
+
+def _cs_luminance(rgb):
+    def chan(c):
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = (chan(c) for c in rgb)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def _cs_contrast(a, b):
+    la, lb = _cs_luminance(a), _cs_luminance(b)
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+
+def _cs_fill(pr):
+    """(w:shd element, fill rgb) for a flat solid fill, else (None, None)."""
+    if pr is None:
+        return None, None
+    shd = pr.find(qn("w:shd"))
+    if shd is None:
+        return None, None
+    if (shd.get(qn("w:val")) or "clear") not in _CS_FLAT_SHD:
+        return None, None                # a hatch pattern is not one flat colour
+    rgb = _cs_rgb(shd.get(qn("w:fill")))
+    return (shd, rgb) if rgb else (None, None)
+
+
+def _cs_runs(el):
+    """The text-bearing runs this shading actually sits behind."""
+    paras = el.findall(qn("w:p")) if el.tag == qn("w:tc") else (el,)
+    out = []
+    for para in paras:
+        for r in para.iter(qn("w:r")):
+            if any((t.text or "") for t in r.findall(qn("w:t"))):
+                out.append(r)
+    return out
+
+
+def _cs_illegible(el, fill):
+    """True only when EVERY run under the fill has an explicit, unreadable colour."""
+    runs = _cs_runs(el)
+    if not runs:
+        return False                     # an empty shaded cell is a drawn band
+    for r in runs:
+        rpr = r.find(qn("w:rPr"))
+        col = None if rpr is None else rpr.find(qn("w:color"))
+        rgb = None if col is None else _cs_rgb(col.get(qn("w:val")))
+        if rgb is None:
+            return False                 # inherited colour: never guess
+        if _cs_contrast(rgb, fill) >= CS_MIN_CONTRAST:
+            return False                 # legible: the fill is deliberate
+    return True
+
+
+def illegible_shading_drop(data, pdf_doc=None):
+    """Drop a cell/paragraph shading fill that its own text cannot be read against."""
+    doc = Document(io.BytesIO(data))
+    changed = False
+    for el in doc.element.body.iter(qn("w:tc"), qn("w:p")):
+        pr = el.find(qn("w:tcPr")) if el.tag == qn("w:tc") else el.find(qn("w:pPr"))
+        shd, fill = _cs_fill(pr)
+        if shd is None or not _cs_illegible(el, fill):
+            continue
+        pr.remove(shd)
+        changed = True
+    if not changed:
+        return data
+    out = io.BytesIO()
+    doc.save(out)
+    return out.getvalue()
+
+
+# --- font_metric_twin -------------------------------------------------------
+# A document authored in LibreOffice names its faces Carlito, Caladea or
+# Liberation Sans/Serif/Mono, and the PDF carries those names through. They are
+# the free clones of Microsoft's Calibri, Cambria, Arial, Times New Roman and
+# Courier New: same glyph widths, same line metrics, different name. font_names
+# copies the PDF's family onto the run, so the converted .docx asks Word for a
+# font a Windows recruiter does not have; Word substitutes an arbitrary
+# installed face (usually a serif) and the whole page reflows.
+#
+# The fix is a rename, not a guess: each pair below is metric-compatible by
+# design, so naming the Microsoft twin changes nothing about how the document
+# lays out on a machine that HAS the clone, and fixes it everywhere else. The
+# rename covers every font-naming attribute in the package - run and style
+# rFonts, the theme's typeface attributes, and the fontTable declarations - so
+# no part of the document is left pointing at the clone. Theme references
+# (asciiTheme and friends) name no family and are untouched.
+_FMT_TWINS = {
+    "carlito": "Calibri",
+    "caladea": "Cambria",
+    "liberationsans": "Arial",
+    "liberationserif": "Times New Roman",
+    "liberationmono": "Courier New",
+}
+_FMT_RFONT_ATTRS = ("ascii", "hAnsi", "cs", "eastAsia")
+_FMT_PARTS_RE = re.compile(
+    r"^word/(document|styles|stylesWithEffects|numbering|footnotes|endnotes|"
+    r"settings|fontTable|header\d*|footer\d*|theme/theme\d*)\.xml$")
+_FMT_A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
+_FMT_MARKERS = (b"carlito", b"caladea", b"liberation")
+
+
+def _fmt_key(name):
+    """Whitespace- and punctuation-free identity of a font family name."""
+    return re.sub(r"[^0-9a-z]+", "", (name or "").lower())
+
+
+def _fmt_twin(name):
+    """The Microsoft twin of a metric-compatible free face, else None."""
+    twin = _FMT_TWINS.get(_fmt_key(name))
+    return twin if twin and twin != (name or "").strip() else None
+
+
+def _fmt_rewrite_tree(root):
+    """Rename clone faces in one parsed part. True when anything changed."""
+    changed = False
+    for el in root.iter(qn("w:rFonts")):
+        for attr in _FMT_RFONT_ATTRS:
+            twin = _fmt_twin(el.get(qn("w:" + attr)))
+            if twin:
+                el.set(qn("w:" + attr), twin)
+                changed = True
+    for el in root.iter("{%s}latin" % _FMT_A_NS, "{%s}ea" % _FMT_A_NS,
+                        "{%s}cs" % _FMT_A_NS, "{%s}font" % _FMT_A_NS):
+        twin = _fmt_twin(el.get("typeface"))
+        if twin:
+            el.set("typeface", twin)
+            changed = True
+    # fontTable: rename the declaration, then drop it if the twin is declared
+    # twice (Word reads the first and a duplicate name is invalid).
+    seen = set()
+    for el in list(root.iter(qn("w:font"))):
+        name = el.get(qn("w:name"))
+        twin = _fmt_twin(name)
+        if twin:
+            el.set(qn("w:name"), twin)
+            name, changed = twin, True
+        key = _fmt_key(name)
+        if not key:
+            continue
+        if key in seen:
+            el.getparent().remove(el)
+            changed = True
+        else:
+            seen.add(key)
+    return changed
+
+
+def font_metric_twin(data, pdf_doc=None):
+    """Point every clone font name at its metric-compatible Microsoft twin."""
+    src = zipfile.ZipFile(io.BytesIO(data))
+    parts = {}
+    for info in src.infolist():
+        if not _FMT_PARTS_RE.match(info.filename):
+            continue
+        blob = src.read(info.filename)
+        low = blob.lower()
+        if not any(marker in low for marker in _FMT_MARKERS):
+            continue
+        try:
+            root = etree.fromstring(blob)
+        except Exception:  # noqa: BLE001 - an unparsable part is left alone
+            continue
+        if _fmt_rewrite_tree(root):
+            parts[info.filename] = etree.tostring(
+                root, xml_declaration=True, encoding="UTF-8", standalone=True)
+    if not parts:
+        return data
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as dst:
+        for info in src.infolist():
+            dst.writestr(info, parts.get(info.filename)
+                         or src.read(info.filename))
+    return out.getvalue()
+
+
+
+
+# ------------------------------------------------------------- inline bullet welds
+# A PDF that draws its bullet glyphs as their OWN text blocks (a "• " span at
+# x=54.5 sitting beside the item's first line at x=60.3) gives pdf2docx two
+# independent block streams to interleave.  When it folds them back together the
+# glyph sometimes lands INSIDE the previous paragraph instead of opening a new
+# one, so two list items arrive welded into a single w:p with a literal bullet
+# left in the middle of the sentence.  The second item then no longer has the
+# leading-bullet shape list_numbering keys on, so it never becomes a list item:
+# it keeps a bare paragraph at whatever indent pdf2docx guessed while its
+# siblings carry w:numPr.  The same interleave also loses the space at the seam
+# where two source lines were folded ("contremaîtres et" + "équipes d'ouvriers"
+# -> "etéquipes"), which span_space_repair cannot see because its bigram
+# evidence is built per PDF line and those two words never share a line.
+#
+# Every decision here is grounded in the PDF's own geometry, never in prose:
+#
+#   * a BARE-BULLET run (its entire text is one bullet glyph) that is not the
+#     paragraph's first content run is a stray marker;
+#   * if the text FOLLOWING it opens a PDF line that carries a bullet marker of
+#     its own, the glyph really does open a new item -> cut the paragraph there,
+#     leaving the leading glyph in place so list_numbering numbers the new half
+#     into the same sibling list;
+#   * otherwise the glyph belongs to this paragraph's own first line and was
+#     merely sorted to the wrong end -> move it to the front, where
+#     list_numbering can see it;
+#   * a marker matching neither test is left exactly where it is.
+#
+# The seam repair fires only when the left half ENDS a PDF line and the right
+# half OPENS one, and never when the two halves spell a word the PDF holds
+# solid.  Both halves must be at least IBS_SEAM_CHARS long, so a mid-line
+# bold/italic run split cannot satisfy the test by accident.
+
+_IBS_GLYPHS = "•▪●◦‣∙"
+_IBS_BARE = re.compile("^[" + _IBS_GLYPHS + "]\\s*$")
+_IBS_LEAD = re.compile("^[" + _IBS_GLYPHS + "\\s]+")
+IBS_START_CHARS = 24      # prefix compared against a PDF line's opening
+IBS_SEAM_CHARS = 12       # tail/head compared at a run seam
+IBS_MARKER_DX = 30.0      # pt: how far right of the glyph its own line may start
+IBS_MARKER_DY = 3.0       # pt: baseline tolerance between glyph and its line
+
+
+def _ibs_norm(text):
+    return re.sub(r"\s+", " ", text or "").strip()
+
+
+def _ibs_evidence(pdf_doc):
+    """(line openings, openings of bulleted lines, line endings) from the PDF."""
+    starts, bullet_starts, ends = set(), set(), set()
+    for page in pdf_doc:
+        markers, bodies = [], []
+        for block in page.get_text("dict").get("blocks", ()):
+            if block.get("type") != 0:
+                continue
+            for line in block.get("lines", ()):
+                norm = _ibs_norm("".join(s.get("text", "")
+                                         for s in line.get("spans", ())))
+                if not norm:
+                    continue
+                x0, y0, x1, _y1 = line["bbox"]
+                if len(norm) == 1 and norm in _IBS_GLYPHS:
+                    markers.append((y0, x1))
+                    continue
+                bodies.append((y0, x0, norm))
+                starts.add(norm[:IBS_START_CHARS])
+                ends.add(norm[-IBS_SEAM_CHARS:])
+        for my0, mx1 in markers:
+            for by0, bx0, norm in bodies:
+                if (abs(by0 - my0) <= IBS_MARKER_DY
+                        and 0 <= bx0 - mx1 <= IBS_MARKER_DX):
+                    bullet_starts.add(norm[:IBS_START_CHARS])
+    return starts, bullet_starts, ends
+
+
+def _ibs_children(p):
+    return [c for c in p if c.tag != qn("w:pPr")]
+
+
+def _ibs_text(el):
+    return "".join(t.text or "" for t in el.iter(qn("w:t")))
+
+
+def _ibs_is_bare_marker(el, text):
+    if el.tag != qn("w:r") or not _IBS_BARE.match(text or ""):
+        return False
+    # a run that also carries a break, a tab or a picture is layout, not a marker
+    return not any(c.tag in (qn("w:br"), qn("w:tab"), qn("w:drawing"))
+                   for c in el)
+
+
+def _ibs_plan(children, texts, bullet_starts):
+    """[(index, "split"|"move")] for every stray marker run in the paragraph."""
+    markers, seen_text = [], False
+    for i, (child, text) in enumerate(zip(children, texts)):
+        if _ibs_is_bare_marker(child, text):
+            if seen_text:
+                markers.append(i)
+            continue
+        if _ibs_norm(text):
+            seen_text = True
+    if not markers:
+        return []
+    head = _IBS_LEAD.sub("", _ibs_norm("".join(texts[:markers[0]])))
+    head_is_item = head[:IBS_START_CHARS] in bullet_starts
+    front_taken = _ibs_is_bare_marker(children[0], texts[0])
+    plan = []
+    for i in markers:
+        after = _IBS_LEAD.sub("", _ibs_norm("".join(texts[i + 1:])))
+        if after[:IBS_START_CHARS] in bullet_starts:
+            plan.append((i, "split"))
+        elif head_is_item and not front_taken:
+            plan.append((i, "move"))
+            front_taken = True
+    return plan
+
+
+def _ibs_keep_gap(p, marker):
+    """Hoisting a marker out of mid-paragraph must not weld its neighbours.
+
+    The glyph run carries its own trailing space, and a later pass is free to
+    drop the w:br that happens to sit where it was, so the space is put back on
+    the last w:t before the marker rather than left to the surrounding markup.
+    """
+    stream = _seam_stream(p)
+    try:
+        cut = min(k for k, el in enumerate(stream) if el in set(marker.iter()))
+    except ValueError:
+        return
+    for el in reversed(stream[:cut]):
+        if el.tag != qn("w:t"):
+            continue
+        text = el.text or ""
+        if text and not text[-1].isspace():
+            el.text = text + " "
+            el.set(_XML_SPACE, "preserve")
+        return
+
+
+def _ibs_apply(p, children, plan):
+    """Cut at each split marker, hoist each stray one, last marker first."""
+    for i, action in reversed(plan):
+        if action == "split":
+            new = copy.deepcopy(p)
+            for child in list(new):
+                if child.tag != qn("w:pPr"):
+                    new.remove(child)
+            for child in children[i:]:
+                child.getparent().remove(child)
+                new.append(child)
+            p.addnext(new)
+        else:
+            marker = children[i]
+            _ibs_keep_gap(p, marker)
+            marker.getparent().remove(marker)
+            p.insert(1 if p.find(qn("w:pPr")) is not None else 0, marker)
+
+
+def _ibs_seam_spaces(p, starts, ends, words):
+    """Re-insert the single space lost where two source lines were folded."""
+    changed = False
+    stream = _seam_stream(p)
+    for a, b in zip(stream, stream[1:]):
+        if a.tag != qn("w:t") or b.tag != qn("w:t"):
+            continue
+        ta, tb = a.text or "", b.text or ""
+        if len(ta) < IBS_SEAM_CHARS or len(tb) < IBS_SEAM_CHARS:
+            continue
+        if not (ta[-1].isalnum() and tb[0].isalnum()):
+            continue
+        na, nb = _ibs_norm(ta), _ibs_norm(tb)
+        if na[-IBS_SEAM_CHARS:] not in ends:
+            continue
+        if nb[:IBS_START_CHARS] not in starts:
+            continue
+        tail = re.search(r"\S+$", ta).group()
+        head = re.search(r"^\S+", tb).group()
+        if _EDGE_PUNCT.sub("", tail + head).lower() in words:
+            continue      # the PDF spells it solid; the seam is inside one word
+        a.text = ta + " "
+        a.set(_XML_SPACE, "preserve")
+        changed = True
+    return changed
+
+
+def inline_bullet_split(data, pdf_doc=None):
+    """Unweld list items pdf2docx fused around a stray inline bullet glyph."""
+    if pdf_doc is None:
+        return data
+    starts, bullet_starts, ends = _ibs_evidence(pdf_doc)
+    if not starts:
+        return data
+    words, _bigrams = _pdf_word_evidence(pdf_doc)
+    doc = Document(io.BytesIO(data))
+    changed = False
+    if bullet_starts:
+        for p in list(doc.element.body.iter(qn("w:p"))):
+            children = _ibs_children(p)
+            if not children:
+                continue
+            texts = [_ibs_text(c) for c in children]
+            plan = _ibs_plan(children, texts, bullet_starts)
+            if plan:
+                _ibs_apply(p, children, plan)
+                changed = True
+    for p in list(doc.element.body.iter(qn("w:p"))):
+        if _ibs_seam_spaces(p, starts, ends, words):
+            changed = True
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+# pdf2docx measures the height of every printed line and freezes it as
+# <w:spacing w:line="226" w:lineRule="exact"/>.  "exact" means Word clips any
+# glyph taller than that box, so the moment a reader changes the font, the size,
+# or adds a superscript, the text loses its ascenders and descenders instead of
+# reflowing.  "atLeast" keeps the measured rhythm as a floor and lets the line
+# grow, which is what a person retyping the document in Word would have written.
+#
+# The same measurement produces the space-before drift: every paragraph carries
+# the rounded gap that happened to be printed above it, so structural siblings
+# (the entries of one section, the bullets of one list, the section headings of
+# one document) end up with seven different values that no editor can maintain.
+# Siblings are grouped structurally, never by wording, and each group is pulled
+# to its own median, so a document whose spacing is already regular is untouched.
+RHYTHM_MIN_GROUP = 3        # a median needs three siblings before it means anything
+RHYTHM_MAX_DEV_TWIPS = 200  # 10pt: past this the gap is deliberate, not drift
+_HEADING_STYLE_RE = re.compile(r"^Heading[1-9]\d*$")
+
+
+def _rn_style(p):
+    ppr = p.find(qn("w:pPr"))
+    st = ppr.find(qn("w:pStyle")) if ppr is not None else None
+    return (st.get(qn("w:val")) or "") if st is not None else ""
+
+
+def _rn_spacing(p):
+    ppr = p.find(qn("w:pPr"))
+    return ppr.find(qn("w:spacing")) if ppr is not None else None
+
+
+def _rn_before(p):
+    """This paragraph's direct space-before in twips, or None when it has none.
+
+    Auto and line-counted spacing are somebody's deliberate rule rather than a
+    measurement, so a paragraph carrying either is left out of the grouping.
+    """
+    sp = _rn_spacing(p)
+    if sp is None:
+        return None
+    if sp.get(qn("w:beforeLines")) is not None:
+        return None
+    if (sp.get(qn("w:beforeAutospacing")) or "0") not in ("0", "false", "off"):
+        return None
+    raw = sp.get(qn("w:before"))
+    if raw is None:
+        return None
+    try:
+        return int(round(float(raw)))
+    except (TypeError, ValueError):
+        return None
+
+
+def _rn_num_key(p):
+    ppr = p.find(qn("w:pPr"))
+    numpr = ppr.find(qn("w:numPr")) if ppr is not None else None
+    if numpr is None:
+        return ("", "")
+    def val(tag):
+        el = numpr.find(qn(tag))
+        return "" if el is None else (el.get(qn("w:val")) or "")
+    return (val("w:numId"), val("w:ilvl"))
+
+
+def _rn_median(vals):
+    vals = sorted(vals)
+    n = len(vals)
+    return vals[n // 2] if n % 2 else (vals[n // 2 - 1] + vals[n // 2]) // 2
+
+
+def spacing_rhythm_normalize(data, pdf_doc=None):
+    """Editability polish: growable line boxes, one rhythm per sibling group,
+    and no hair-width indent residue on body paragraphs."""
+    doc = Document(io.BytesIO(data))
+    changed = False
+
+    # (a) frozen line boxes -> a floor the text can grow past.  w:spacing in an
+    # rPr is character spacing and carries no lineRule, so it is never touched.
+    for root in _xml_roots(doc):
+        for sp in root.iter(qn("w:spacing")):
+            if sp.get(qn("w:lineRule")) == "exact":
+                sp.set(qn("w:lineRule"), "atLeast")
+                changed = True
+
+    body = doc.element.body
+    paras = list(body.iterchildren(qn("w:p")))
+
+    # (c) a sub-point left indent is pdf2docx's memory of a cell edge (10 twips
+    # = 6350 EMU), not an indent anybody typed.  A hanging indent means the
+    # paragraph really is offset, so those are left alone.
+    for p in paras:
+        left = _ind_val(p, "left", "start")
+        if left is None or not 0 < left <= _IND_HAIR_TWIPS:
+            continue
+        if _ind_val(p, "hanging"):
+            continue
+        _ind_set(p, 0, "left", "start")
+        changed = True
+
+    # (b) one space-before per sibling group.  Headings are siblings of every
+    # other heading of their level; body paragraphs only of the ones in their
+    # own block (the run between two headings) that share style, list level and
+    # indent.  The FIRST paragraph of a block is excluded: the extra gap under a
+    # heading is structure, not drift.
+    groups = {}
+    block = 0
+    seen_in_block = 0
+    for p in paras:
+        style = _rn_style(p)
+        if _HEADING_STYLE_RE.match(style):
+            block += 1
+            seen_in_block = 0
+            key = ("H", style)
+        else:
+            if not _para_all_text(p).strip():
+                continue          # a spacer paragraph owns its own gap
+            seen_in_block += 1
+            if seen_in_block == 1:
+                continue
+            key = ("B", block, style, _rn_num_key(p),
+                   _ind_val(p, "left", "start") or 0,
+                   _ind_val(p, "hanging") or 0)
+        before = _rn_before(p)
+        if before is None:
+            continue
+        groups.setdefault(key, []).append((p, before))
+
+    for members in groups.values():
+        if len(members) < RHYTHM_MIN_GROUP:
+            continue
+        med = _rn_median([v for _, v in members])
+        for p, v in members:
+            if v == med or abs(v - med) > RHYTHM_MAX_DEV_TWIPS:
+                continue
+            _rn_spacing(p).set(qn("w:before"), str(med))
+            changed = True
+
+    if not changed:
+        return data
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+PASSES = (hyperlink_unnest, phantom_column_flatten, span_space_repair, line_space_realign, br_row_split, label_row_split,
+          header_footer_parts,
+          date_column_untable,
+          # inline_bullet_split first: it is the pass that gets a job header out
+          # of the same w:p as the first bullet of its list, and until it has,
+          # that header still carries a mid-stream w:br, which is what makes the
+          # two splitters below decline the paragraph.
+          inline_bullet_split, fused_line_split, tabbed_subline_split,
+          centred_indent_drop, heading_styles,
           bullet_image_lists, list_numbering, paragraph_reflow, list_wrap_merge,
-          list_hanging_indent, hyperlink_autolink, font_names,
+          list_hanging_indent, hyperlink_autolink, font_names, font_metric_twin,
           section_rules, empty_para_prune, section_rule_dedupe,
-          section_break_tidy, tab_stop_normalize, char_scale_normalize)
+          section_break_tidy, wrap_tab_unfold, tab_stop_normalize,
+          char_scale_normalize, stray_mark_cleanup,
+          illegible_shading_drop,
+          # last: it reads the spacing and indents every other pass leaves behind
+          spacing_rhythm_normalize)
 
 
 def enhance(docx_bytes, pdf_doc=None):

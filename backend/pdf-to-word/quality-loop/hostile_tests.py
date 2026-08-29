@@ -1357,6 +1357,191 @@ if tab is not None:
     check(int(tab.get(qn("w:pos"))) > 5000,
           "T17: tab stop is not at the text margin: %r" % tab.get(qn("w:pos")))
 
+# T18-T24: one cell can hold SEVERAL dates stacked behind soft line breaks, one
+# per label line in the cell beside it -- pdf2docx merges a whole run of CV
+# entries into a single 1x2 row that way. Each date belongs to its own label;
+# moving the cell wholesale stacks them all on the first label and leaves every
+# later entry dateless. Pair them 1:1, or refuse the table.
+STACK_LABELS = ["ETSTC, Lebanon", "Val Pere Jacques, Bkennaya"]
+STACK_DATES = ["2020 - 2023", "2007 - 2019"]
+
+
+def stack_table(labels, dates, rule=True, bold=False, nest=False):
+    """A 1x2 row: N label paragraphs on the left, M br-separated dates right."""
+    d = build_table([[(labels[0], "left"), (dates[0], "right")]], rule=rule)
+    tc = d.tables[0].rows[0].cells[0]._tc
+    for text in labels[1:]:
+        tc.append(parse_xml(
+            '<w:p %s><w:pPr><w:jc w:val="left"/></w:pPr>'
+            '<w:r %s><w:t xml:space="preserve">%s</w:t></w:r></w:p>'
+            % (nsdecls("w"), nsdecls("w"), text)))
+    p = d.tables[0].rows[0].cells[1]._tc.findall(qn("w:p"))[0]
+    for text in dates[1:]:
+        if nest:
+            # the break lives inside a hyperlink, not a direct w:r child
+            p.append(parse_xml(
+                '<w:hyperlink %s><w:r><w:br/><w:t>%s</w:t></w:r></w:hyperlink>'
+                % (nsdecls("w"), text)))
+        elif bold:
+            # one run carrying text on BOTH sides of the break
+            p.append(parse_xml(
+                '<w:r %s><w:rPr><w:b/></w:rPr><w:br/>'
+                '<w:t>%s</w:t></w:r>' % (nsdecls("w"), text)))
+        else:
+            p.append(parse_xml('<w:r %s><w:br/></w:r>' % nsdecls("w")))
+            p.append(parse_xml('<w:r %s><w:t>%s</w:t></w:r>'
+                               % (nsdecls("w"), text)))
+    return d
+
+
+# T18: two stacked dates, two labels -> one date per label, each behind its own
+# right tab stop, and no line break left anywhere
+r, out = run_untable(stack_table(STACK_LABELS, STACK_DATES))
+check(not r.tables, "T18: stacked date table survived")
+texts = [p.text for p in r.paragraphs]
+check(texts == ["ETSTC, Lebanon \t2020 - 2023",
+                "Val Pere Jacques, Bkennaya \t2007 - 2019"],
+      "T18: dates not paired with their own labels: %r" % texts)
+check(count_tag(out, "w:br") == 0,
+      "T18: a stacked date kept its line break")
+for i, p in enumerate(r.paragraphs):
+    tab = p._p.find(qn("w:pPr") + "/" + qn("w:tabs") + "/" + qn("w:tab"))
+    check(tab is not None and tab.get(qn("w:val")) == "right",
+          "T18: paragraph %d has no right tab stop" % i)
+    check(p._p.find(qn("w:pPr") + "/" + qn("w:jc")) is None,
+          "T18: flush-right alignment left on paragraph %d" % i)
+
+# T19: a naive w:t-only reader must still see a gap between label and date
+check("Lebanon2020" not in full_text(r) and "Bkennaya2007" not in full_text(r),
+      "T19: label welded to its date: %r" % full_text(r))
+
+# T20: three dates against two labels cannot be paired -- refuse to untable
+# rather than stack the leftovers on somebody else's line
+buf = io.BytesIO()
+stack_table(STACK_LABELS, STACK_DATES + ["1999 - 2007"]).save(buf)
+check(de.date_column_untable(buf.getvalue()) == buf.getvalue(),
+      "T20: unpairable 3-dates-2-labels row was untabled anyway")
+
+# T21: two dates against ONE label -- the original defect's shape. Refuse.
+buf = io.BytesIO()
+stack_table(STACK_LABELS[:1], STACK_DATES).save(buf)
+check(de.date_column_untable(buf.getvalue()) == buf.getvalue(),
+      "T21: two dates were stacked onto a single label")
+
+# T22: a run carrying text on both sides of the break splits into two runs that
+# each keep the original rPr -- the second date must not lose its bold
+r, out = run_untable(stack_table(STACK_LABELS, STACK_DATES, bold=True))
+texts = [p.text for p in r.paragraphs]
+check(texts == ["ETSTC, Lebanon \t2020 - 2023",
+                "Val Pere Jacques, Bkennaya \t2007 - 2019"],
+      "T22: split run lost or reordered text: %r" % texts)
+check(count_tag(out, "w:br") == 0, "T22: the split run kept its break")
+bolds = [t.text for run in r.paragraphs[1]._p.iter(qn("w:r"))
+         if run.find(qn("w:rPr") + "/" + qn("w:b")) is not None
+         for t in run.iter(qn("w:t"))]
+check("2007 - 2019" in bolds,
+      "T22: the second date lost its run properties: %r" % bolds)
+
+# T23: a label line with no words (a rule glyph, a stray bullet) is not a label
+# this pass can pair a date with -- leave the table alone
+buf = io.BytesIO()
+stack_table(["ETSTC, Lebanon", "---"], STACK_DATES).save(buf)
+check(de.date_column_untable(buf.getvalue()) == buf.getvalue(),
+      "T23: a wordless label line was paired with a date")
+
+# T24: a break nested somewhere this pass cannot slice (inside a hyperlink) is
+# not a shape to guess at -- refuse
+buf = io.BytesIO()
+stack_table(STACK_LABELS, STACK_DATES, nest=True).save(buf)
+check(de.date_column_untable(buf.getvalue()) == buf.getvalue(),
+      "T24: a nested line break was sliced anyway")
+# T25-T31: the SECOND spelling of a flush-right date cell. pdf2docx does not
+# always write w:jc="right": on some layouts it reproduces the position it
+# measured as a large w:ind on an otherwise left-aligned line, so the date sits
+# at the right of its cell with no w:jc to say so. That spelling made the whole
+# plan return None and left a live 2-column table in the body (a CV's ADDITIONAL
+# EXPERIENCE line, with the section rule frozen into a tcBorders top). The
+# indent has to clear BOTH a share of the cell width and an absolute floor, so a
+# cell margin or an ordinary paragraph indent in a genuine second text column
+# cannot pass for a date.
+def indent_cell(d, row, col, tw, jc="left"):
+    """Rewrite a cell's single paragraph as jc + a w:ind left of tw twips."""
+    p = d.tables[0].rows[row].cells[col]._tc.findall(qn("w:p"))[0]
+    ppr = p.get_or_add_pPr()
+    for el in ppr.findall(qn("w:jc")) + ppr.findall(qn("w:ind")):
+        ppr.remove(el)
+    ppr.append(parse_xml('<w:jc %s w:val="%s"/>' % (nsdecls("w"), jc)))
+    ppr.append(parse_xml('<w:ind %s w:left="%d"/>' % (nsdecls("w"), tw)))
+    return d
+
+
+def indent_rows(tw, width=4000, jc="left", rule=True):
+    d = build_table([[("Royal Reality Real Estate, Mount Lebanon", "left"),
+                      ("Jun 2025 - Nov 2025", "left")]], rule=rule, width=width)
+    return indent_cell(d, 0, 1, tw, jc=jc)
+
+
+# T25: an indent-pushed date dissolves exactly like the w:jc="right" spelling
+r, out = run_untable(indent_rows(722, width=3866))
+check(not r.tables, "T25: indent-pushed date table survived")
+body = [p for p in r.paragraphs if p.text.strip()]
+check(len(body) == 1, "T25: expected one paragraph, got %d" % len(body))
+if body:
+    check(body[0].text ==
+          "Royal Reality Real Estate, Mount Lebanon \tJun 2025 - Nov 2025",
+          "T25: text not flowed: %r" % body[0].text)
+    tab = body[0]._p.find(qn("w:pPr") + "/" + qn("w:tabs") + "/" + qn("w:tab"))
+    check(tab is not None and tab.get(qn("w:val")) == "right",
+          "T25: no right tab stop on the indent-pushed spelling")
+    check(body[0]._p.find(qn("w:pPr") + "/" + qn("w:pBdr") + "/" + qn("w:top"))
+          is not None, "T25: absorbed section rule dropped")
+
+# T26: a cell margin's worth of indent is not a date. 300tw is under the
+# absolute floor even though it clears the share of a narrow cell.
+r, _ = run_untable(indent_rows(300, width=1600))
+check(len(r.tables) == 1, "T26: a cell-margin indent was read as a date column")
+
+# T27: half an inch of indent inside a WIDE column is an ordinary paragraph
+# indent -- it clears the absolute floor but not the share.
+r, _ = run_untable(indent_rows(720, width=6000))
+check(len(r.tables) == 1, "T27: a paragraph indent in a wide cell dissolved")
+
+# T28: T5's unindented left-aligned second column must still survive -- the new
+# spelling widens what counts as flush right, it does not replace the old test.
+r, _ = run_untable(indent_rows(0, width=4000))
+check(len(r.tables) == 1, "T28: an unindented second text column dissolved")
+
+# T29: centred is a third thing. A centred short cell is not pushed right, and
+# an indent under a centred line is a centring offset, not a date gap.
+r, _ = run_untable(indent_rows(2000, width=4000, jc="center"))
+check(len(r.tables) == 1, "T29: a centred short cell was read as a date")
+
+# T30: every other guard still applies to this spelling. A long indent-pushed
+# cell is prose in a second column, not a date.
+d = build_table([[("Royal Reality Real Estate", "left"), (LONG, "left")]],
+                rule=True, width=4000)
+r, _ = run_untable(indent_cell(d, 0, 1, 900))
+check(len(r.tables) == 1, "T30: a long indent-pushed cell dissolved")
+
+# T31: an indent-pushed LEFT cell is a second column read from the wrong side,
+# never a label. Both sides are judged by the same rule.
+d = indent_rows(722, width=3866)
+indent_cell(d, 0, 0, 900)
+r, _ = run_untable(d)
+check(len(r.tables) == 1, "T31: a table with both cells pushed right dissolved")
+
+# T32: a MULTI-LINE right cell is a second column, whatever its first line's
+# indent. w:jc="right" states that a whole cell is right-aligned; a w:ind states
+# only where the first line starts. The letterhead in the real-world corpus is
+# the case: a phone/fax/web block, under DATE_CELL_MAX_CHARS in total, that this
+# pass would otherwise inline behind the postal address beside it.
+d = indent_rows(722, width=3866)
+tc = d.tables[0].rows[0].cells[1]._tc
+tc.findall(qn("w:p"))[0].append(parse_xml(
+    '<w:r %s><w:br/><w:t>F +966.11.463.8750</w:t></w:r>' % nsdecls("w")))
+r, _ = run_untable(d)
+check(len(r.tables) == 1, "T32: a multi-line indent-pushed cell dissolved")
+
 # ---- reflow first-line-indent oracle (R24-R25) ------------------------------
 # A block's leftmost line is not its paragraph margin. When the block also holds
 # a line further left than the body — the flush-left label of a CV entry whose
@@ -2304,6 +2489,132 @@ r, out = run_rules(d, pdf)
 check(bdr_texts(r) == ["NOTES", "NOTES"], "S9b: two pages treated as a running "
       "header: %r" % bdr_texts(r))
 
+# --- E6: duplicated strokes, damaged anchors, and the rule's own weight -----
+def rule_pdf_strokes(lines, strokes):
+    """A page whose rules are STROKED lines, optionally more than once.
+
+    strokes: [(y, x0, x1, colour, width, times)].  A real generator commonly
+    lays the same hairline down twice (once per content-stream pass); PyMuPDF
+    reports both, and the raw count used to look like a form grid.
+    """
+    pdf = fitz.open()
+    pg = pdf.new_page(width=595, height=842)
+    for y, t in lines:
+        pg.insert_text((72, y), t, fontsize=10)
+    for y, x0, x1, color, width, times in strokes:
+        for _ in range(times):
+            shape = pg.new_shape()
+            shape.draw_line(fitz.Point(x0, y), fitz.Point(x1, y))
+            shape.finish(color=color, width=width)
+            shape.commit()
+    return pdf
+
+
+S_HEADS = ["CAREER OBJECTIVE", "EDUCATION", "TECHNICAL SKILLS",
+           "ACADEMIC PROJECTS", "TRAINING & ACADEMIES",
+           "ADDITIONAL EXPERIENCE", "SOFT SKILLS & LANGUAGES"]
+S_GREY = (0.4, 0.4, 0.4)
+
+# S10: the CV defect. Seven section rules, each stroked twice, is seven rules
+# and not a fourteen-line grid: every heading gets its border.
+lines, strokes = [], []
+for i, h in enumerate(S_HEADS):
+    lines.append((100 + 60 * i, h))
+    lines.append((130 + 60 * i, "Body line %d." % i))
+    strokes.append((104 + 60 * i, 60, 540, S_GREY, 0.75, 2))
+pdf = rule_pdf_strokes(lines, strokes)
+d = Document()
+for _, t in lines:
+    d.add_paragraph(t)
+r, out = run_rules(d, pdf)
+check(bdr_texts(r) == S_HEADS,
+      "S10: doubled strokes lost the section rules: %r" % bdr_texts(r))
+
+# S10b: and the double stroke produces ONE border per heading, not two
+check(count_tag(out, "w:pBdr") == len(S_HEADS),
+      "S10b: %d borders for %d rules" % (count_tag(out, "w:pBdr"), len(S_HEADS)))
+
+# S11: the grid guard still holds after the dedupe - 13 DISTINCT hairlines is
+# a ruled table however many times each one is stroked
+lines, strokes = [], []
+for i in range(13):
+    lines.append((90 + 20 * i, "Row %d value" % i))
+    strokes.append((94 + 20 * i, 60, 540, S_GREY, 0.75, 2))
+pdf = rule_pdf_strokes(lines, strokes)
+d = Document()
+for _, t in lines:
+    d.add_paragraph(t)
+r, out = run_rules(d, pdf)
+check(bdr_texts(r) == [], "S11: fired on a doubly-stroked grid: %r" % bdr_texts(r)[:3])
+
+# S12: the anchor match survives the converter's own spacing damage - pdf2docx
+# emits "TECHNICAL SKILLS" as "TECHNICALSKILLS" and it is still that heading
+pdf = rule_pdf_strokes([(100, "TECHNICAL SKILLS"), (130, "C++, Java")],
+                       [(104, 60, 540, S_GREY, 0.75, 1)])
+d = Document()
+d.add_paragraph("TECHNICALSKILLS")
+d.add_paragraph("C++, Java")
+r, out = run_rules(d, pdf)
+check(bdr_texts(r) == ["TECHNICALSKILLS"],
+      "S12: welded heading lost its rule: %r" % bdr_texts(r))
+
+# S12b: it is still WHOLE-line equality, not a prefix - a body sentence that
+# merely opens with the anchor's words gets no rule through its middle
+pdf = rule_pdf_strokes([(100, "SKILLS"), (130, "other")],
+                       [(104, 60, 540, S_GREY, 0.75, 1)])
+d = Document()
+d.add_paragraph("Skills matrix and the competency levels behind it.")
+d.add_paragraph("other")
+r, out = run_rules(d, pdf)
+check(bdr_texts(r) == [], "S12b: squashed key matched a body sentence: %r"
+      % bdr_texts(r))
+
+# S12c: an anchor with almost no alphanumeric content ("1.", a bullet glyph)
+# cannot identify a paragraph, so it is declined
+pdf = rule_pdf_strokes([(100, "1."), (130, "1.")],
+                       [(104, 60, 540, S_GREY, 0.75, 1)])
+d = Document()
+d.add_paragraph("1.")
+d.add_paragraph("1.")
+r, out = run_rules(d, pdf)
+check(bdr_texts(r) == [], "S12c: a two-character anchor drew a rule: %r"
+      % bdr_texts(r))
+
+
+def s_bdr_style(doc):
+    out = []
+    for p in doc.paragraphs:
+        ppr = p._p.find(qn("w:pPr"))
+        pbdr = ppr.find(qn("w:pBdr")) if ppr is not None else None
+        if pbdr is None:
+            continue
+        b = pbdr.find(qn("w:bottom"))
+        out.append((b.get(qn("w:sz")), b.get(qn("w:color"))))
+    return out
+
+
+# S13: weight and colour come from the stroke itself, so a re-emitted rule
+# matches the one pdf2docx absorbed as a table border on the same page
+pdf = rule_pdf_strokes([(100, "SUMMARY"), (130, "body")],
+                       [(104, 60, 540, S_GREY, 0.75, 2)])
+d = Document()
+d.add_paragraph("SUMMARY")
+d.add_paragraph("body")
+r, out = run_rules(d, pdf)
+check(s_bdr_style(r) == [("6", "666666")],
+      "S13: border style not taken from the stroke: %r" % s_bdr_style(r))
+
+# S13b: a hairline thinner than a quarter point clamps to the thinnest border
+# Word will draw rather than emitting w:sz="0" (which draws nothing)
+pdf = rule_pdf_strokes([(100, "SUMMARY"), (130, "body")],
+                       [(104, 60, 540, (0, 0, 0), 0.1, 1)])
+d = Document()
+d.add_paragraph("SUMMARY")
+d.add_paragraph("body")
+r, out = run_rules(d, pdf)
+check(s_bdr_style(r) == [("2", "000000")],
+      "S13c: thin stroke not clamped: %r" % s_bdr_style(r))
+
 # E1: leading and trailing empties go, a run between blocks collapses to one
 d = Document()
 d.add_paragraph("")
@@ -3034,6 +3345,169 @@ d.save(buf)
 check(de.br_row_split(buf.getvalue(), None) == buf.getvalue(),
       "S9: pass mutated the document without PDF evidence")
 
+# ---- label_row_split cases (L) ---------------------------------------------
+# The general form of the S cases: rows welded into ONE paragraph with only
+# SOME of the boundaries carrying a w:br (and sometimes none at all), split at
+# the source lines instead of at the breaks.
+
+def run_lrs(doc, pdf):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.label_row_split(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+L_ROWS = ["Languages: Python, SQL",
+          "Web and Mobile: React Native",
+          "AI and Vision: TensorFlow"]
+
+
+def l_pdf(rows=L_ROWS, y0=100, dy=12.0, x=72, extra=()):
+    lines = [(y0 + i * dy, t, x) for i, t in enumerate(rows)]
+    return make_pdf([list(lines) + list(extra)])
+
+
+def l_doc(rows=L_ROWS, breaks=(), before=6, tail=None, fuse=None):
+    """One paragraph holding every row: a bold label run and a value run each.
+    `breaks` are the row boundaries (1-based) that carry a w:br; the rest carry
+    nothing at all. `fuse` welds that boundary's label into the run before it,
+    so the cut would fall inside a run."""
+    d = Document()
+    para = d.add_paragraph()
+    para.paragraph_format.space_before = Pt(before)
+    for i, row in enumerate(rows):
+        head, sep, value = row.partition(": ")
+        lead = "" if i == 0 else " "
+        if i and i in breaks:
+            para.add_run().add_break()
+            lead = ""
+        if not sep:
+            para.add_run(lead + row)
+            continue
+        if i and fuse == i:
+            para.runs[-1].text = para.runs[-1].text + lead + head + ": "
+        else:
+            r = para.add_run(lead + head + ": ")
+            r.bold = True
+        para.add_run(value)
+    if tail is not None:
+        t = d.add_paragraph()
+        t.paragraph_format.space_before = Pt(tail)
+        t.add_run(L_ROWS[0]).bold = True
+    return d
+
+
+def l_texts(doc):
+    return [p.text.strip() for p in doc.paragraphs]
+
+
+L_JOINED = " ".join(L_ROWS)
+
+# L1: no break element anywhere -- three source lines, three paragraphs
+r, out = run_lrs(l_doc(), l_pdf())
+check(l_texts(r) == L_ROWS, "L1: rows not split at source lines: %r" % l_texts(r))
+check(" ".join(full_text(r).split()) == L_JOINED,
+      "L1: text changed by the split: %r" % full_text(r))
+check(all(p.runs and p.runs[0].bold for p in r.paragraphs),
+      "L1: label run formatting lost")
+
+# L2: a br on the first boundary and nothing on the second -- both are cut
+r, out = run_lrs(l_doc(breaks=(1,)), l_pdf())
+check(l_texts(r) == L_ROWS, "L2: mixed break/no-break rows: %r" % l_texts(r))
+check(count_tag(out, "w:br") == 0, "L2: w:br left behind")
+
+# L3: wrapped prose, no label heads -- never split
+PROSE = ["The committee met on Tuesday to review the quarterly figures",
+         "and agreed the revised forecast should be circulated on Friday",
+         "before the board sits again at the end of the month."]
+r, out = run_lrs(l_doc(PROSE), l_pdf(PROSE))
+check(len(r.paragraphs) == 1, "L3: prose block was split")
+
+# L4: the rows sit far apart -- a gap between paragraphs, not row leading
+r, out = run_lrs(l_doc(), l_pdf(dy=45.0))
+check(len(r.paragraphs) == 1, "L4: split across a paragraph gap")
+
+# L5: the second label is welded inside the first row's value run -- the cut
+# would fall inside a run, so nothing is cut at all (never a partial split)
+r, out = run_lrs(l_doc(fuse=1), l_pdf())
+check(len(r.paragraphs) == 1, "L5: cut inside a run")
+
+# L6: the same rows appear twice on the page -- ambiguous, decline
+r, out = run_lrs(l_doc(), l_pdf(extra=[(400, L_ROWS[0], 72), (412, L_ROWS[1], 72),
+                                       (424, L_ROWS[2], 72)]))
+check(len(r.paragraphs) == 1, "L6: split on ambiguous block evidence")
+
+# L7: no PDF at all -- the pass is a no-op
+buf = io.BytesIO()
+l_doc().save(buf)
+check(de.label_row_split(buf.getvalue(), None) == buf.getvalue(),
+      "L7: pass mutated the document without PDF evidence")
+
+# L8: a tab means a label/date column, which is not this pass's shape
+d = l_doc()
+d.paragraphs[0].runs[1]._r.append(parse_xml("<w:tab %s/>" % nsdecls("w")))
+r, out = run_lrs(d, l_pdf())
+check(len(r.paragraphs) == 1, "L8: split a tabbed paragraph")
+
+# L9: the rows do not share a left edge -- a stepped panel, not a row block
+pdf = make_pdf([[(100, L_ROWS[0], 72), (112, L_ROWS[1], 90),
+                 (124, L_ROWS[2], 72)]])
+r, out = run_lrs(l_doc(), pdf)
+check(len(r.paragraphs) == 1, "L9: split rows off a shared left edge")
+
+# L10: a page break is never a row boundary
+d = Document()
+d.add_paragraph().add_run(L_ROWS[0] + " ").bold = True
+para = d.paragraphs[0]
+para.add_run()._r.append(parse_xml('<w:br %s w:type="page"/>' % nsdecls("w")))
+para.add_run(L_ROWS[1] + " ").bold = True
+para.add_run(L_ROWS[2])
+r, out = run_lrs(d, l_pdf())
+check(count_tag(out, "w:br") == 1, "L10: page break consumed")
+
+# L11: with no sibling row to copy, continuation rows take w:before=0, which is
+# the leading they had inside the paragraph they came out of
+r, out = run_lrs(l_doc(before=6), l_pdf())
+sp = [p.paragraph_format.space_before for p in r.paragraphs]
+check(sp[0].pt == 6 and all(v.pt == 0 for v in sp[1:]),
+      "L11: continuation rows did not take zero leading: %r" % sp)
+
+# L12: an adjacent standalone row of the same shape IS the spacing to inherit
+r, out = run_lrs(l_doc(before=6, tail=3), l_pdf(extra=[(200, L_ROWS[0], 72)]))
+sp = [p.paragraph_format.space_before for p in r.paragraphs]
+check(l_texts(r)[:3] == L_ROWS and all(v.pt == 3 for v in sp[1:3]),
+      "L12: sibling spacing not inherited: %r %r" % (l_texts(r), sp))
+
+# L14-L17: fitz groups a stepped or gapped run of lines into separate blocks,
+# so the end-to-end cases above cannot reach the row geometry itself. These
+# drive _lrs_rows_ok directly, on line records of the shape _wb_blocks emits.
+def l_lines(specs):
+    return [{"text": t, "x0": x, "x1": x + 200.0, "y0": y, "y1": y + 11.0}
+            for t, x, y in specs]
+
+
+check(de._lrs_rows_ok(l_lines([(L_ROWS[0], 72.0, 100.0),
+                               (L_ROWS[1], 72.0, 112.0),
+                               (L_ROWS[2], 72.0, 124.0)])),
+      "L14: a flush, normally-led row block was rejected")
+check(not de._lrs_rows_ok(l_lines([(L_ROWS[0], 72.0, 100.0),
+                                   (L_ROWS[1], 96.0, 112.0)])),
+      "L15: rows off a shared left edge accepted")
+check(not de._lrs_rows_ok(l_lines([(L_ROWS[0], 72.0, 100.0),
+                                   (L_ROWS[1], 72.0, 145.0)])),
+      "L16: a paragraph gap accepted as row leading")
+check(not de._lrs_rows_ok(l_lines([(L_ROWS[0], 72.0, 100.0),
+                                   ("and the forecast was circulated", 72.0, 112.0)])),
+      "L17: a line that is not a label row accepted")
+
+# L13: a list paragraph is a list, whatever its text looks like
+d = l_doc()
+d.paragraphs[0]._p.get_or_add_pPr().append(parse_xml(
+    '<w:numPr %s><w:ilvl w:val="0"/><w:numId w:val="3"/></w:numPr>' % nsdecls("w")))
+r, out = run_lrs(d, l_pdf())
+check(len(r.paragraphs) == 1, "L13: split a numbered list paragraph")
+
+
 # ---- section_rule_dedupe cases (D) ----------------------------------------
 D_H = "TRAINING & PROFESSIONAL DEVELOPMENT"
 D_E = "React Native Academy, Eurisko"
@@ -3132,6 +3606,14 @@ pdf = rule_pdf([(100, D_H), (130, D_E)],
 r, out = run_dd(d_doc(), pdf)
 check(d_sides(r) == [(D_H, ("bottom",)), (D_E, ("top",))],
       "D7: deduped on a grid page: %r" % d_sides(r))
+
+# D7b: the grid guard counts DISTINCT hairlines, so a page whose single rule
+# is stroked twice is still section furniture and the dedupe still referees
+pdf = rule_pdf_strokes([(100, D_H), (130, D_E)],
+                       [(104, 60, 540, (0.4, 0.4, 0.4), 0.75, 2)])
+r, out = run_dd(d_doc(), pdf)
+check(d_sides(r) == [(D_H, ("bottom",))],
+      "D7b: a doubly-stroked rule disabled the dedupe: %r" % d_sides(r))
 
 # D8: without a PDF the pass cannot know anything -- byte-identical no-op
 d = d_doc()
@@ -3484,6 +3966,1668 @@ r, _ = cs_run(d)
 _cs_hp = r.sections[0].header.paragraphs[0]
 check([el.get(qn("w:val")) for el in _cs_hp._p.iter(qn("w:w"))] == ["98"],
       "E7-6: left a float scale in the header part")
+
+
+# === E8: phantom two-column bands (phantom_column_flatten) ===================
+# pdf2docx reads a CV's flush-right dates as a real second page column and
+# emits <w:cols w:num="2">; inside the narrowed first column it also welds the
+# source lines it folded. These cases pin both halves of the repair and, more
+# importantly, the refusals: a genuine two-column page, an ambiguous run, and a
+# band the pass may not take apart must all come out untouched.
+PCB_W, PCB_H = 612, 792          # letter, so pgSz w=12240 matches at 20 tw/pt
+PCB_SECT = ('<w:sectPr %s>%s<w:pgSz w:w="12240" w:h="15840"/>'
+            '<w:pgMar w:top="208" w:right="814" w:bottom="510" w:left="832"'
+            ' w:header="720" w:footer="720" w:gutter="0"/>%s'
+            '<w:docGrid w:linePitch="360"/></w:sectPr>')
+PCB_COLS2 = ('<w:cols w:num="2" w:equalWidth="0">'
+             '<w:col w:w="6505" w:space="0"/><w:col w:w="4087" w:space="0"/></w:cols>')
+
+
+def pcb_pdf(lines):
+    """lines: [(x, y, text)] on one letter page."""
+    pdf = fitz.open()
+    pg = pdf.new_page(width=PCB_W, height=PCB_H)
+    for x, y, t in lines:
+        pg.insert_text((x, y), t, fontsize=9)
+    return pdf
+
+
+def pcb_sect(kind, cols):
+    typ = '<w:type w:val="%s"/>' % kind if kind else ""
+    return PCB_SECT % (nsdecls("w"), typ, cols or "<w:cols/>")
+
+
+def pcb_para(doc, runs, kind=None, cols=None):
+    p = doc.add_paragraph()
+    for text in runs:
+        p.add_run(text)
+    if kind is not None or cols is not None:
+        p._p.get_or_add_pPr().append(parse_xml(pcb_sect(kind, cols)))
+    return p
+
+
+def pcb_run(doc, pdf):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.phantom_column_flatten(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+def pcb_texts(doc):
+    return [p.text for p in doc.paragraphs]
+
+
+# the CV shape: one text column, two body lines straddling pdf2docx's gutter,
+# and an entry whose date is set flush right on the school's own line.
+PCB_BODY = [(42, 60, "A determined graduate with a passion for the field and "
+                     "an appetite for work that lasts a long time indeed"),
+            (42, 76, "committed to projects that foster growth and expertise "
+                     "through practical experience over many long years"),
+            (42, 92, "EDUCATION")]
+PCB_ENTRY = [(42, 110, "Acme University of Somewhere, Anywhere"),
+             (430, 110, "Graduated August 2026"),
+             (42, 124, "BA in Computer Science")]
+
+
+def pcb_cv_doc():
+    d = Document()
+    pcb_para(d, ["EDUCATION"], kind=None, cols="<w:cols/>")   # nextPage break
+    pcb_para(d, ["Acme University of Somewhere, Anywhere ",
+                 "BA in Computer Science"], kind="continuous", cols=PCB_COLS2)
+    pcb_para(d, ["Graduated August 2026"], kind="nextColumn", cols=PCB_COLS2)
+    pcb_para(d, ["Afterwards, prose that is not in the band at all."])
+    return d
+
+
+# E8-1: the band is rebuilt into the PDF's own lines, date back on line one.
+r, out = pcb_run(pcb_cv_doc(), pcb_pdf(PCB_BODY + PCB_ENTRY))
+check(pcb_texts(r) == ["EDUCATION",
+                       "Acme University of Somewhere, Anywhere \tGraduated August 2026",
+                       "BA in Computer Science",
+                       "Afterwards, prose that is not in the band at all."],
+      "E8-1: band not rebuilt into source lines: %r" % (pcb_texts(r),))
+
+# E8-2: no multi-column section survives, and the date row gets a right stop.
+check(count_tag(out, 'w:cols w:num="2"') == 0, "E8-2: a w:cols num=2 survived")
+_e8_stops = [int(s.get(qn("w:pos"))) for s in r.paragraphs[1]._p.iter(qn("w:tab"))
+             if s.get(qn("w:val")) == "right"]
+check(len(_e8_stops) == 1 and de.PCB_MIN_TAB_TW <= _e8_stops[0] <= 12240 - 832 - 814,
+      "E8-2: no usable right stop on the date row: %r" % (_e8_stops,))
+check(len(r.paragraphs[1]._p.findall(qn("w:r") + "/" + qn("w:tab"))) == 1,
+      "E8-2: the date row is not joined by exactly one tab")
+
+# E8-3: the nextPage break in front of the band becomes continuous - the PDF
+# puts the heading and the entry on one page, so a page break there is wrong.
+_e8_types = [t.get(qn("w:val")) for t in r.paragraphs[0]._p.iter(qn("w:type"))]
+check(_e8_types == ["continuous"], "E8-3: leading break not demoted: %r" % (_e8_types,))
+
+# E8-4: not one character is gained or lost by the rebuild.
+check(sorted(full_text(r)) == sorted(full_text(pcb_cv_doc())),
+      "E8-4: text changed by the rebuild")
+
+# E8-5: a GENUINE two-column page is left alone - no line crosses the gutter.
+_e8_two = pcb_pdf([(42, 60, "left column line one"), (42, 74, "left column line two"),
+                   (42, 88, "EDUCATION"),
+                   (42, 110, "Acme University of Somewhere, Anywhere"),
+                   (430, 110, "Graduated August 2026"),
+                   (42, 124, "BA in Computer Science")])
+r2, out2 = pcb_run(pcb_cv_doc(), _e8_two)
+check(pcb_texts(r2) == pcb_texts(pcb_cv_doc()), "E8-5: flattened a real two-column page")
+check(count_tag(out2, 'w:cols w:num="2"') == 2, "E8-5: real column spec destroyed")
+
+# E8-6: an ambiguous run - its text is on two source lines - cuts nothing.
+_e8_amb = pcb_pdf(PCB_BODY + PCB_ENTRY + [(42, 300, "BA in Computer Science")])
+r3, _ = pcb_run(pcb_cv_doc(), _e8_amb)
+check(pcb_texts(r3) == pcb_texts(pcb_cv_doc()), "E8-6: rebuilt on an ambiguous run")
+
+# E8-7: a band the pass may not take apart (a list paragraph) is left alone.
+_e8_list = pcb_cv_doc()
+_e8_list.paragraphs[1]._p.get_or_add_pPr().insert(0, parse_xml(
+    '<w:numPr %s><w:ilvl w:val="0"/><w:numId w:val="3"/></w:numPr>' % nsdecls("w")))
+r4, _ = pcb_run(_e8_list, pcb_pdf(PCB_BODY + PCB_ENTRY))
+check([p.text for p in r4.paragraphs] == pcb_texts(pcb_cv_doc()),
+      "E8-7: took apart a band containing a list paragraph")
+
+# E8-8: no PDF, no evidence, no change.
+_e8_none = pcb_cv_doc()
+_e8_buf = io.BytesIO()
+_e8_none.save(_e8_buf)
+check(de.phantom_column_flatten(_e8_buf.getvalue(), None) == _e8_buf.getvalue(),
+      "E8-8: changed the document without a PDF")
+
+# E8-9: a lone multi-column section (no second column) is not a band.
+_e8_solo = Document()
+pcb_para(_e8_solo, ["EDUCATION"], kind=None, cols="<w:cols/>")
+pcb_para(_e8_solo, ["Acme University of Somewhere, Anywhere ",
+                    "BA in Computer Science"], kind="continuous", cols=PCB_COLS2)
+pcb_para(_e8_solo, ["Graduated August 2026"])
+r5, out5 = pcb_run(_e8_solo, pcb_pdf(PCB_BODY + PCB_ENTRY))
+check(count_tag(out5, 'w:cols w:num="2"') == 1 and
+      [p.text for p in r5.paragraphs][1] ==
+      "Acme University of Somewhere, Anywhere BA in Computer Science",
+      "E8-9: treated a single multi-column section as a band")
+
+# E8-10: prose whose page size does not match the docx page is out of scale
+# and must not be reflowed on a guess.
+_e8_a4 = fitz.open()
+_e8_pg = _e8_a4.new_page(width=595, height=842)
+for x, y, t in PCB_BODY + PCB_ENTRY:
+    _e8_pg.insert_text((x, y), t, fontsize=9)
+r6, _ = pcb_run(pcb_cv_doc(), _e8_a4)
+check(pcb_texts(r6) == pcb_texts(pcb_cv_doc()), "E8-10: reflowed across a page-size mismatch")
+
+
+# --- wrap_tab_unfold ---------------------------------------------------------
+# pdf2docx encodes a wrapped continuation line as a TAB when the continuation
+# sits right of the paragraph indent, so a bare tab run paints a blank hole in
+# the middle of a sentence. The pass unfolds it to one space, but ONLY where
+# the PDF says the two sides are consecutive lines of one forced wrap; every
+# case below is a way that evidence can be absent, ambiguous, or contradicted.
+
+WT_L = 72.0
+WT_HEAD = ("alpha bravo charlie delta echo foxtrot golf hotel india juliet "
+           "kilo lima mike november oscar papa")
+WT_TAIL = "quebec romeo sierra tango."
+
+
+def wt_pdf(lines):
+    """lines: (x, y, text) drawn at 10pt on one page."""
+    pdf = fitz.open()
+    pg = pdf.new_page(width=595, height=842)
+    for x, y, t in lines:
+        pg.insert_text((x, y), t, fontsize=10)
+    return pdf
+
+
+def wt_wrapped(head=WT_HEAD, tail=WT_TAIL, cont_x=WT_L + 18, dy=12.0, extra=()):
+    """The live shape: a full-measure line, its continuation offset right on
+    the next row. The head line is the widest thing on the page, so the row it
+    wrapped on had no room left at all."""
+    return wt_pdf([(WT_L, 100.0, head), (cont_x, 100.0 + dy, tail)] + list(extra))
+
+
+def wt_para(doc, head, tail, bare=True):
+    """head <tab> tail; the tab alone in its run unless bare is False (which
+    is how date_column_untable writes its own tabs: ' \t' inside a text run)."""
+    p = doc.add_paragraph()
+    p.add_run(head)
+    r = p.add_run("" if bare else " ")
+    r._r.append(parse_xml("<w:tab %s/>" % nsdecls("w")))
+    p.add_run(tail)
+    return p
+
+
+def run_wt(doc, pdf):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.wrap_tab_unfold(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+def wt_texts(doc):
+    return ["".join(de._char_of(el) for el in de._wb_items(p._p))
+            for p in doc.paragraphs]
+
+
+# WT-1: the live defect. The tab goes, the sentence keeps exactly one space,
+# and no word is lost on either side of the seam.
+d = Document()
+wt_para(d, WT_HEAD + " ", WT_TAIL)
+r, _ = run_wt(d, wt_wrapped())
+check(wt_texts(r) == [WT_HEAD + " " + WT_TAIL],
+      "WT-1: mid-sentence tab not unfolded to one space: %r" % (wt_texts(r),))
+
+# WT-2: a REAL tab. Label and value sit on the SAME PDF line (a flush-right
+# date), so there is no second line to be the continuation of anything.
+d = Document()
+wt_para(d, WT_HEAD + " ", WT_TAIL)
+r, _ = run_wt(d, wt_pdf([(WT_L, 100.0, WT_HEAD + "    " + WT_TAIL)]))
+check("\t" in wt_texts(r)[0], "WT-2: ate a real tab between same-line text")
+
+# WT-3: no PDF, no evidence, no edit -- and byte-identical, not a re-save.
+d = Document()
+wt_para(d, WT_HEAD + " ", WT_TAIL)
+_wt_buf = io.BytesIO()
+d.save(_wt_buf)
+check(de.wrap_tab_unfold(_wt_buf.getvalue()) == _wt_buf.getvalue(),
+      "WT-3: touched the document with no pdf_doc to judge it by")
+
+# WT-4: date_column_untable's own output (' \t' in one text run) is not a bare
+# tab run and stays, even though the geometry would otherwise qualify.
+d = Document()
+wt_para(d, WT_HEAD, WT_TAIL, bare=False)
+r, _ = run_wt(d, wt_wrapped())
+check("\t" in wt_texts(r)[0], "WT-4: unfolded a tab that shares its run with text")
+
+# WT-5: ambiguous evidence. The same word pair wraps twice on the page, so no
+# single line pair can be bound to this paragraph and the tab is kept.
+d = Document()
+wt_para(d, WT_HEAD + " ", WT_TAIL)
+r, _ = run_wt(d, wt_wrapped(extra=[(WT_L, 300.0, WT_HEAD),
+                                   (WT_L + 18, 312.0, WT_TAIL)]))
+check("\t" in wt_texts(r)[0], "WT-5: bound a tab to one of two identical wraps")
+
+# WT-6: a hyphen at the seam keeps its tab. Unfolding "re-\tsign" would print
+# "re- sign", and fusing it would print "resign" -- a different word.
+d = Document()
+wt_para(d, WT_HEAD + "- ", WT_TAIL)
+r, _ = run_wt(d, wt_wrapped(head=WT_HEAD + "-"))
+check("\t" in wt_texts(r)[0], "WT-6: unfolded across a hyphen")
+
+# WT-7: the continuation is NOT offset right of its own first line, so nothing
+# about it explains a tab and the geometry is not the defect's.
+d = Document()
+wt_para(d, WT_HEAD + " ", WT_TAIL)
+r, _ = run_wt(d, wt_wrapped(cont_x=WT_L))
+check("\t" in wt_texts(r)[0], "WT-7: unfolded a tab with no leading offset")
+
+# WT-8: the wrap was CHOSEN, not forced -- the first line stops well short of
+# the measure and the next line's first word would have fitted easily. That is
+# an author's line, and its tab may be their own.
+d = Document()
+wt_para(d, "mike november oscar papa ", "a decision engine follows.")
+r, _ = run_wt(d, wt_pdf([(WT_L, 100.0, "mike november oscar papa"),
+                         (WT_L + 18, 112.0, "a decision engine follows."),
+                         (WT_L, 700.0, WT_HEAD + " " + WT_HEAD)]))
+check("\t" in wt_texts(r)[0], "WT-8: unfolded a short, unforced line")
+
+# WT-9: whitespace already borders the seam on BOTH sides. The tab must leave
+# one space behind, not two.
+d = Document()
+wt_para(d, WT_HEAD + " ", " " + WT_TAIL)
+r, _ = run_wt(d, wt_wrapped())
+check(wt_texts(r) == [WT_HEAD + " " + WT_TAIL],
+      "WT-9: left a double space at the seam: %r" % (wt_texts(r),))
+
+# WT-10: another line lies between the two, so they are not consecutive rows of
+# one wrapped paragraph however well their words match.
+d = Document()
+wt_para(d, WT_HEAD + " ", WT_TAIL)
+r, _ = run_wt(d, wt_pdf([(WT_L, 100.0, WT_HEAD),
+                         (WT_L, 112.0, "an unrelated line in between"),
+                         (WT_L + 18, 124.0, WT_TAIL)]))
+check("\t" in wt_texts(r)[0], "WT-10: joined two lines with a line between them")
+
+# WT-11: too little context to bind anything -- one word each side is a
+# coincidence, not evidence.
+d = Document()
+wt_para(d, "papa ", "quebec")
+r, _ = run_wt(d, wt_wrapped(head="papa", tail="quebec"))
+check("\t" in wt_texts(r)[0], "WT-11: unfolded on a two-word n-gram")
+
+# ---- line_space_realign cases (E4) -----------------------------------------
+# The pass may only ADD a space, and only when the paragraph's whole text stream
+# is character-identical to exactly one PDF line that carries more whitespace.
+def lsr_run(doc, pdf):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.line_space_realign(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+def lsr_doc(*frags):
+    d = Document()
+    par = d.add_paragraph()
+    for f in frags:
+        par.add_run(f)
+    return d
+
+
+# E4-1: the reported defect — per-glyph shattering hides the inter-word space
+# from span_space_repair's bigram probe; whole-line alignment restores it.
+_d = lsr_doc("TE", "CHNICAL", "S", "K", "I", "L", "LS")
+_r, _ = lsr_run(_d, rule_pdf([(100, "TECHNICAL SKILLS")], []))
+check(_r.paragraphs[0].text == "TECHNICAL SKILLS", "E4-1: not repaired: %r"
+      % (_r.paragraphs[0].text,))
+check(len(_r.paragraphs[0].runs) == 7, "E4-1: run count changed")
+
+# E4-2: same shattering, but the PDF has no such line -> no evidence, no edit.
+_d = lsr_doc("AC", "ADEMIC", "P", "R", "OJECTS")
+_r, _ = lsr_run(_d, rule_pdf([(100, "SOMETHING ELSE ENTIRELY")], []))
+check(_r.paragraphs[0].text == "ACADEMICPROJECTS", "E4-2: invented a space")
+
+# E4-3: letter-spaced display text. pdf2docx correctly joined "H E L L O" into
+# "HELLO"; re-splitting it would be the corruption, so the line is unusable.
+_d = lsr_doc("HELLO")
+_r, _ = lsr_run(_d, rule_pdf([(100, "H E L L O")], []))
+check(_r.paragraphs[0].text == "HELLO", "E4-3: re-split letter-spaced text: %r"
+      % (_r.paragraphs[0].text,))
+
+# E4-4: two PDF lines share the despaced key with different spacings. There is
+# no safe choice, so the pass declines rather than guessing.
+_d = lsr_doc("ABC", "DEF")
+_r, _ = lsr_run(_d, rule_pdf([(100, "AB CDEF"), (130, "ABC DEF")], []))
+check(_r.paragraphs[0].text == "ABCDEF", "E4-4: resolved an ambiguous key")
+
+# E4-5: a tab (or break) in the paragraph means docx offsets and PDF-line
+# offsets are not comparable -> decline.
+_d = lsr_doc("FOO", "BAR")
+_d.paragraphs[0].runs[0]._r.append(parse_xml("<w:tab %s/>" % nsdecls("w")))
+_r, _ = lsr_run(_d, rule_pdf([(100, "FOO BAR")], []))
+check(_r.paragraphs[0].text == "FOO\tBAR", "E4-5: edited a tabbed paragraph: %r"
+      % (_r.paragraphs[0].text,))
+
+# E4-6: the paragraph already carries the line's spaces -> exact match, no-op,
+# and no duplicated space.
+_d = lsr_doc("TECHNICAL ", "SKILLS")
+_r, out = lsr_run(_d, rule_pdf([(100, "TECHNICAL SKILLS")], []))
+check(_r.paragraphs[0].text == "TECHNICAL SKILLS", "E4-6: doubled a space: %r"
+      % (_r.paragraphs[0].text,))
+
+# E4-7: prose. A lost space inside a wrapped sentence is NOT a whole PDF line,
+# so this pass leaves it to span_space_repair instead of splicing blind.
+_d = lsr_doc("Aligned with the", "deploymentchecklist agreed last week")
+_r, _ = lsr_run(_d, rule_pdf([(100, "Aligned with the deployment checklist"),
+                              (114, "agreed last week")], []))
+check(_r.paragraphs[0].text == "Aligned with thedeploymentchecklist agreed last week",
+      "E4-7: touched a multi-line prose paragraph: %r" % (_r.paragraphs[0].text,))
+
+# E4-8: a missing space whose position falls exactly on a run boundary lands on
+# the left run, and the space is marked preserve so Word keeps it.
+_d = lsr_doc("CAREER", "OBJECTIVE")
+_r, out = lsr_run(_d, rule_pdf([(100, "CAREER OBJECTIVE")], []))
+check(_r.paragraphs[0].text == "CAREER OBJECTIVE", "E4-8: boundary seam missed")
+check(_r.paragraphs[0].runs[0].text == "CAREER ", "E4-8: space on the wrong run")
+_e48 = _r.paragraphs[0].runs[0]._r.find(qn("w:t"))
+check(_e48.get("{http://www.w3.org/XML/1998/namespace}space") == "preserve",
+      "E4-8: trailing space not marked preserve")
+
+# E4-9: no PDF at all (browser/no-evidence path) is a clean no-op.
+_r, _ = lsr_run(lsr_doc("TE", "CHNICALSKILLS"), None)
+check(_r.paragraphs[0].text == "TECHNICALSKILLS", "E4-9: edited without a PDF")
+
+# E4-10: the pass is insertion-only — it never deletes a character even when the
+# PDF line is shorter than what the docx holds.
+_d = lsr_doc("TECHNICALSKILLSEXTRA")
+_r, _ = lsr_run(_d, rule_pdf([(100, "TECHNICAL SKILLS")], []))
+check(_r.paragraphs[0].text == "TECHNICALSKILLSEXTRA", "E4-10: mangled a longer run")
+
+
+
+# ---- tabbed_subline_split cases (F1) ----------------------------------------
+# A bold institution line welded to the lighter sub-line beneath it, with the
+# entry's flush-right date at the end of the pair, must become two paragraphs:
+# institution + tab + date, then the sub-line on its own. Every case where the
+# page does not prove that shape must be a no-op.
+
+TSS_H = "Val Pere Jacques - Bkennaya, Lebanon"
+TSS_S = "Primary and Secondary Education"
+TSS_D = "2007 - 2019"
+
+
+def tss_pdf(head=TSS_H, sub=TSS_S, date=TSS_D, dy=12.0, sub_x=72,
+            date_x=400, date_dy=0.0, extra=()):
+    rows = [(100.0, head), (100.0 + date_dy, date, date_x), (100.0 + dy, sub, sub_x)]
+    rows.extend(extra)
+    return make_pdf([rows])
+
+
+def tss_doc(head=TSS_H, sub=TSS_S, date=TSS_D, head_bold=True, sub_bold=False,
+            tabs=1, numbered=False, extra_run=None):
+    d = Document()
+    p = d.add_paragraph()
+    r = p.add_run(head + " ")
+    r.bold = head_bold
+    r2 = p.add_run(sub)
+    r2.bold = sub_bold
+    if extra_run is not None:
+        r3 = p.add_run(extra_run[0])
+        r3.bold = extra_run[1]
+    for _ in range(tabs):
+        p.add_run().add_tab()
+    p.add_run(date)
+    if numbered:
+        ppr = p._p.get_or_add_pPr()
+        ppr.append(parse_xml(
+            '<w:numPr %s><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr>'
+            % nsdecls("w")))
+    return d
+
+
+def run_tss(doc, pdf):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.tabbed_subline_split(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+def tss_texts(doc):
+    return [p.text for p in doc.paragraphs]
+
+
+# F1-1: the canonical shape splits, and the date stays on the institution line.
+_r, _ = run_tss(tss_doc(), tss_pdf())
+check(tss_texts(_r) == [TSS_H + " \t" + TSS_D, TSS_S],
+      "F1-1: not split as institution+date / sub-line: %r" % (tss_texts(_r),))
+check(_r.paragraphs[0].runs[0].bold is True and _r.paragraphs[1].runs[0].bold is False,
+      "F1-1: run weights not preserved across the split")
+
+# F1-2: no PDF (browser path, no evidence) is a clean no-op.
+_r, _ = run_tss(tss_doc(), None)
+check(len(_r.paragraphs) == 1, "F1-2: split without any PDF evidence")
+
+# F1-3: no bold flip - both halves the same weight - is wrapped prose, untouched.
+_r, _ = run_tss(tss_doc(sub_bold=True), tss_pdf())
+check(len(_r.paragraphs) == 1, "F1-3: split a paragraph with no weight change")
+
+# F1-4: the tail is NOT on the institution's own baseline, so it is not that
+# entry's date column and the pair is not the education shape.
+_r, _ = run_tss(tss_doc(), tss_pdf(date_dy=24.0))
+check(len(_r.paragraphs) == 1, "F1-4: split with the tail on another row")
+
+# F1-5: the sub-line does not share the institution's left edge -> a wrapped
+# continuation or an indented note, never a sub-line.
+_r, _ = run_tss(tss_doc(), tss_pdf(sub_x=110))
+check(len(_r.paragraphs) == 1, "F1-5: split lines that do not share a left edge")
+
+# F1-6: something else is printed between the two baselines, so they are not
+# adjacent lines of one entry.
+_r, _ = run_tss(tss_doc(), tss_pdf(dy=24.0, extra=((112.0, "intervening line"),)))
+check(len(_r.paragraphs) == 1, "F1-6: split across an intervening line")
+
+# F1-7: two tabs - a multi-column row, not an institution + date.
+_r, _ = run_tss(tss_doc(tabs=2), tss_pdf())
+check(len(_r.paragraphs) == 1, "F1-7: split a two-tab column row")
+
+# F1-8: a sentence after the tab is not a date column.
+_long = "a full sentence of prose that is certainly not a date column"
+_r, _ = run_tss(tss_doc(date=_long), tss_pdf(date=_long))
+check(len(_r.paragraphs) == 1, "F1-8: split with a sentence in the tail")
+
+# F1-9: the sub-line text occurs twice on the page - ambiguous, so nothing.
+_r, _ = run_tss(tss_doc(), tss_pdf(extra=((300.0, TSS_S),)))
+check(len(_r.paragraphs) == 1, "F1-9: split on an ambiguous page match")
+
+# F1-10: bold -> regular -> bold is two flips, not the one this pass owns.
+_r, _ = run_tss(tss_doc(extra_run=(" Honours", True)), tss_pdf())
+check(len(_r.paragraphs) == 1, "F1-10: split a paragraph with two weight flips")
+
+# F1-11: a list paragraph is never cut (_fs_children refuses it).
+_r, _ = run_tss(tss_doc(numbered=True), tss_pdf())
+check(len(_r.paragraphs) == 1, "F1-11: split a numbered list paragraph")
+
+# F1-12: the sub-line paragraph keeps the entry's pPr but drops the tab stops,
+# which belong to the date column it no longer carries.
+_d = tss_doc()
+_d.paragraphs[0].paragraph_format.left_indent = Pt(9)
+_d.paragraphs[0]._p.get_or_add_pPr().append(parse_xml(
+    '<w:tabs %s><w:tab w:val="right" w:pos="9360"/></w:tabs>' % nsdecls("w")))
+_r, _ = run_tss(_d, tss_pdf())
+check(len(_r.paragraphs) == 2, "F1-12: canonical shape with tab stops did not split")
+check(_r.paragraphs[1].paragraph_format.left_indent == Pt(9),
+      "F1-12: sub-line lost the entry indent")
+check(_r.paragraphs[1]._p.find(qn("w:pPr")).find(qn("w:tabs")) is None,
+      "F1-12: sub-line kept the date column's tab stops")
+check(_r.paragraphs[0]._p.find(qn("w:pPr")).find(qn("w:tabs")) is not None,
+      "F1-12: institution line lost its tab stops")
+
+# F1-13: no tab at all - fused_line_split owns that shape, not this pass.
+_d = Document()
+_p = _d.add_paragraph()
+_p.add_run(TSS_H + " ").bold = True
+_p.add_run(TSS_S)
+_r, _ = run_tss(_d, tss_pdf())
+check(len(_r.paragraphs) == 1, "F1-13: split a paragraph carrying no tab")
+
+
+# ---- F2: date_column_untable indent repair ----------------------------------
+# A right tab stop is measured from the left text margin; the paragraph's text
+# area ends at (section width - right indent). pdf2docx hands every cell
+# paragraph the cell's own right indent, so once the cells are flowed back into
+# the body the stop this pass writes at the text margin can sit outside the
+# text area and the date wraps onto its own line instead of going flush right.
+# The cell's indents are furniture and are repaired; a reachable stop, a real
+# indent, and an undissolved table are all left exactly as they were.
+
+F2_SECT = 9360  # python-docx default: 12240 page - 2 x 1440 margin
+
+
+def f2_doc(cell_right=0, cell_left=None, width=6000, extra=(), body_left=None,
+           second_line=None):
+    """A date-shaped table whose cells carry pdf2docx's own indents, sitting in
+    a body whose own paragraphs establish a dominant left edge."""
+    d = build_table([[("Eurisko, Adma", "left"), ("Mar 2025 - Present", "right")]],
+                    width=width)
+    tbl = d.tables[0]._tbl
+    if second_line is not None:
+        tc = tbl.findall(qn("w:tr"))[0].findall(qn("w:tc"))[0]
+        tc.append(parse_xml(
+            '<w:p %s><w:r><w:t xml:space="preserve">%s</w:t></w:r></w:p>'
+            % (nsdecls("w"), second_line)))
+    for tc in tbl.iter(qn("w:tc")):
+        for cp in tc.findall(qn("w:p")):
+            bits = []
+            if cell_left is not None:
+                bits.append('w:left="%d"' % cell_left)
+            if cell_right:
+                bits.append('w:right="%d"' % cell_right)
+            if bits:
+                cp.get_or_add_pPr().append(
+                    parse_xml("<w:ind %s %s/>" % (nsdecls("w"), " ".join(bits))))
+    for text in extra:
+        para = d.add_paragraph(text)
+        if body_left is not None:
+            para._p.get_or_add_pPr().append(
+                parse_xml('<w:ind %s w:left="%d"/>' % (nsdecls("w"), body_left)))
+    return d
+
+
+def f2_para(r, needle):
+    for para in r.paragraphs:
+        if needle in para.text:
+            return para
+    return None
+
+
+def f2_ind(para, attr):
+    ppr = para._p.find(qn("w:pPr"))
+    ind = ppr.find(qn("w:ind")) if ppr is not None else None
+    raw = ind.get(qn("w:" + attr)) if ind is not None else None
+    return None if raw is None else int(raw)
+
+
+# F2-1: the stop lands at the text margin, so ANY right indent strands it.
+_r, _ = run_untable(f2_doc(cell_right=2000))
+_p = f2_para(_r, "Eurisko")
+check(_p is not None and f2_ind(_p, "right") == 0,
+      "F2-1: stranding right indent survived: %r"
+      % (None if _p is None else f2_ind(_p, "right")))
+_tab = _p._p.find(qn("w:pPr") + "/" + qn("w:tabs") + "/" + qn("w:tab"))
+check(_tab is not None and int(_tab.get(qn("w:pos"))) <= F2_SECT,
+      "F2-1: tab stop is outside the section text width")
+
+# F2-2: a stop the paragraph can still reach keeps the indent it came with.
+# 2 x 2000 twip cells put the stop at 4000, well inside 9360 - 1000.
+_r, _ = run_untable(f2_doc(cell_right=1000, width=2000))
+_p = f2_para(_r, "Eurisko")
+check(_p is not None and f2_ind(_p, "right") == 1000,
+      "F2-2: dropped a right indent that was not stranding anything")
+
+# F2-3: the second line of the SAME cell loses the indent too - it is the same
+# cell's furniture, and leaving it narrows the entry the date belongs to.
+_r, _ = run_untable(f2_doc(cell_right=2000, second_line="BA in Computer Science"))
+_p = f2_para(_r, "BA in Computer")
+check(_p is not None and f2_ind(_p, "right") == 0,
+      "F2-3: continuation line kept the cell right indent")
+
+# F2-4: a hair-width left difference is one edge measured twice - snap it.
+_r, _ = run_untable(f2_doc(cell_left=22, extra=("CAREER OBJECTIVE", "EDUCATION"),
+                           body_left=10))
+_p = f2_para(_r, "Eurisko")
+check(_p is not None and f2_ind(_p, "left") == 10,
+      "F2-4: left edge not snapped onto the body: %r"
+      % (None if _p is None else f2_ind(_p, "left")))
+
+# F2-5: a real indent is content, never noise - 720 twips stays 720.
+_r, _ = run_untable(f2_doc(cell_left=720, extra=("CAREER OBJECTIVE", "EDUCATION"),
+                           body_left=10))
+_p = f2_para(_r, "Eurisko")
+check(_p is not None and f2_ind(_p, "left") == 720,
+      "F2-5: flattened a deliberate 720-twip indent")
+
+# F2-6: no body paragraph carries a left indent, so there is no edge to snap
+# onto and the cell's own left indent is kept rather than guessed at.
+_r, _ = run_untable(f2_doc(cell_left=22))
+_p = f2_para(_r, "Eurisko")
+check(_p is not None and f2_ind(_p, "left") == 22,
+      "F2-6: snapped a left edge with no dominant body edge to snap to")
+
+# F2-7: two body left edges tie, so the document is ambiguous and untouched.
+_d = f2_doc(cell_left=22, extra=("CAREER OBJECTIVE",), body_left=10)
+_extra = _d.add_paragraph("EDUCATION")
+_extra._p.get_or_add_pPr().append(
+    parse_xml('<w:ind %s w:left="40"/>' % nsdecls("w")))
+_r, _ = run_untable(_d)
+_p = f2_para(_r, "Eurisko")
+check(_p is not None and f2_ind(_p, "left") == 22,
+      "F2-7: snapped a left edge on a tied document")
+
+# F2-8: a table the pass refuses to dissolve keeps every indent it had.
+_d = build_table(DATE_ROWS, boxed=True)
+for _tc in _d.tables[0]._tbl.iter(qn("w:tc")):
+    for _cp in _tc.findall(qn("w:p")):
+        _cp.get_or_add_pPr().append(
+            parse_xml('<w:ind %s w:left="22" w:right="2000"/>' % nsdecls("w")))
+_r, _ = run_untable(_d)
+check(len(_r.tables) == 1, "F2-8: bordered table dissolved")
+_cp = _r.tables[0]._tbl.findall(qn("w:tr"))[0].findall(qn("w:tc"))[0].findall(qn("w:p"))[0]
+_ind = _cp.find(qn("w:pPr")).find(qn("w:ind"))
+check(_ind.get(qn("w:right")) == "2000" and _ind.get(qn("w:left")) == "22",
+      "F2-8: rewrote the indents of a table it did not dissolve")
+
+# F2-9: the date still reads as its own token after the repair.
+_r, _ = run_untable(f2_doc(cell_right=2000, cell_left=22,
+                           extra=("CAREER OBJECTIVE", "EDUCATION"), body_left=10))
+check("Adma" in full_text(_r) and "AdmaMar" not in full_text(_r),
+      "F2-9: repair welded the label to the date: %r" % full_text(_r))
+
+
+
+
+# ---------------------------------------------------------------------------
+# F4: stray_mark_cleanup.  Three leftovers pdf2docx measures off the page
+# instead of reading off the document: an inert continuous section break, a
+# trailing line break on a heading, and a right indent no line ever wrapped
+# against.  The guards below are the ones that keep each rule structural.
+# ---------------------------------------------------------------------------
+import copy as _f4_copy
+
+
+def f4_run(doc, pdf=None):
+    buf = io.BytesIO()
+    doc.save(buf)
+    out = de.stray_mark_cleanup(buf.getvalue(), pdf)
+    return Document(io.BytesIO(out)), out
+
+
+def f4_sect_count(doc):
+    return len(list(doc.element.body.iter(qn("w:sectPr"))))
+
+
+def f4_doc_with_sect(kind="continuous", tweak=None):
+    """Two paragraphs; the first carries a copy of the document's own sectPr."""
+    d = Document()
+    d.add_paragraph("first")
+    d.add_paragraph("second")
+    sect = _f4_copy.deepcopy(d.element.body.find(qn("w:sectPr")))
+    for t in sect.findall(qn("w:type")):
+        sect.remove(t)
+    if kind:
+        sect.insert(0, parse_xml('<w:type %s w:val="%s"/>' % (nsdecls("w"), kind)))
+    if tweak:
+        tweak(sect)
+    d.paragraphs[0]._p.get_or_add_pPr().append(sect)
+    return d
+
+
+def f4_heading(text, style="Heading 1", trailing_br=1, mid_br=False):
+    d = Document()
+    para = d.add_paragraph(style=style)
+    para.add_run(text)
+    if mid_br:
+        run = para.add_run()
+        run._r.append(parse_xml("<w:br %s/>" % nsdecls("w")))
+        para.add_run("second line")
+    for _ in range(trailing_br):
+        run = para.add_run()
+        run._r.append(parse_xml("<w:br %s/>" % nsdecls("w")))
+    return d, para
+
+
+def f4_pdf(lines, width=595, height=842):
+    """lines: (x, y, text) drawn at 11pt on one page."""
+    pdf = fitz.open()
+    page = pdf.new_page(width=width, height=height)
+    for x, y, t in lines:
+        page.insert_text((x, y), t, fontsize=11)
+    return pdf
+
+
+def f4_right_doc(text, right=1440):
+    d = Document()
+    para = d.add_paragraph(text)
+    para._p.get_or_add_pPr().append(
+        parse_xml('<w:ind %s w:left="10" w:right="%d"/>' % (nsdecls("w"), right)))
+    return d
+
+
+def f4_right(doc, needle):
+    for para in doc.paragraphs:
+        if needle in para.text:
+            ppr = para._p.find(qn("w:pPr"))
+            ind = None if ppr is None else ppr.find(qn("w:ind"))
+            return None if ind is None else ind.get(qn("w:right"))
+    return "MISSING"
+
+
+# F4-1: a continuous break with the document's own page setup changes nothing.
+_r, _ = f4_run(f4_doc_with_sect())
+check(f4_sect_count(_r) == 1, "F4-1: inert continuous break not removed (%d sectPr)"
+      % f4_sect_count(_r))
+check([p.text for p in _r.paragraphs] == ["first", "second"],
+      "F4-1: removing the break lost a paragraph")
+
+# F4-2: different margins mean the break is doing work - keep it.
+_r, _ = f4_run(f4_doc_with_sect(
+    tweak=lambda s: s.find(qn("w:pgMar")).set(qn("w:left"), "2880")))
+check(f4_sect_count(_r) == 2, "F4-2: dropped a break that changes the margins")
+
+# F4-3: a page break is visible output even when the geometry matches.
+_r, _ = f4_run(f4_doc_with_sect(kind="nextPage"))
+check(f4_sect_count(_r) == 2, "F4-3: dropped a nextPage section break")
+
+# F4-3b: a continuous break that changes the column count stays.
+_r, _ = f4_run(f4_doc_with_sect(
+    tweak=lambda s: s.append(parse_xml('<w:cols %s w:num="2"/>' % nsdecls("w")))))
+check(f4_sect_count(_r) == 2, "F4-3b: dropped a break that starts two columns")
+
+# F4-3c: the document's own body sectPr is never a candidate.
+_r, _ = f4_run(Document())
+check(f4_sect_count(_r) == 1, "F4-3c: removed the body sectPr")
+
+# F4-4: the heading's trailing break and trailing space both go.
+_d, _ = f4_heading("Maroun Daher ")
+_r, _ = f4_run(_d)
+check(_r.paragraphs[0].text == "Maroun Daher",
+      "F4-4: heading tail not stripped: %r" % _r.paragraphs[0].text)
+check(count_tag(f4_run(_d)[1], "w:br") == 0, "F4-4: trailing w:br survived")
+
+# F4-5: a break INSIDE the heading is content - only the tail is noise.
+_d, _ = f4_heading("Title", trailing_br=1, mid_br=True)
+_r, out = f4_run(_d)
+check(count_tag(out, "w:br") == 1, "F4-5: removed a mid-heading line break")
+check("second line" in _r.paragraphs[0].text, "F4-5: lost text after the break")
+
+# F4-6: body prose keeps its trailing break; only headings are cleaned.
+_d = Document()
+_p6 = _d.add_paragraph()
+_p6.add_run("plain body text ")
+_p6.add_run()._r.append(parse_xml("<w:br %s/>" % nsdecls("w")))
+_r, out = f4_run(_d)
+check(count_tag(out, "w:br") == 1, "F4-6: stripped a break from a Normal paragraph")
+check(_r.paragraphs[0].text.startswith("plain body text "),
+      "F4-6: rstripped a Normal paragraph: %r" % _r.paragraphs[0].text)
+
+# F4-7: a heading made only of a break is left alone rather than emptied.
+_d = Document()
+_p7 = _d.add_paragraph(style="Heading 2")
+_p7.add_run()._r.append(parse_xml("<w:br %s/>" % nsdecls("w")))
+_r, out = f4_run(_d)
+check(count_tag(out, "w:br") == 1, "F4-7: emptied a break-only heading")
+
+# F4-8: one PDF line, nothing to its right -> the right indent is invented.
+_pdf8 = f4_pdf([(42, 100, "Databases: SQL, SQLite")])
+_r, _ = f4_run(f4_right_doc("Databases: SQL, SQLite"), _pdf8)
+check(f4_right(_r, "Databases") == "0",
+      "F4-8: phantom right indent kept: %r" % f4_right(_r, "Databases"))
+
+# F4-9: something printed alongside is a real column - the indent stays.
+_pdf9 = f4_pdf([(42, 100, "Databases: SQL, SQLite"), (400, 100, "right column")])
+_r, _ = f4_run(f4_right_doc("Databases: SQL, SQLite"), _pdf9)
+check(f4_right(_r, "Databases") == "1440",
+      "F4-9: cleared the indent of a genuine narrow column")
+
+# F4-10: no matching source line means no evidence either way.
+_r, _ = f4_run(f4_right_doc("Databases: SQL, SQLite"),
+               f4_pdf([(42, 100, "something else entirely")]))
+check(f4_right(_r, "Databases") == "1440",
+      "F4-10: cleared an indent with no matching PDF line")
+
+# F4-11: two identical source lines are ambiguous - measure nothing.
+_r, _ = f4_run(f4_right_doc("Databases: SQL, SQLite"),
+               f4_pdf([(42, 100, "Databases: SQL, SQLite"),
+                       (42, 200, "Databases: SQL, SQLite")]))
+check(f4_right(_r, "Databases") == "1440",
+      "F4-11: cleared an indent on an ambiguous match")
+
+# F4-12: without the PDF the pass has no geometry, so it must not guess.
+_r, _ = f4_run(f4_right_doc("Databases: SQL, SQLite"), None)
+check(f4_right(_r, "Databases") == "1440",
+      "F4-12: cleared a right indent with no PDF to check against")
+
+# F4-13: a left indent and the paragraph text are never touched.
+_r, _ = f4_run(f4_right_doc("Databases: SQL, SQLite"), _pdf8)
+_ind13 = _r.paragraphs[0]._p.find(qn("w:pPr")).find(qn("w:ind"))
+check(_ind13.get(qn("w:left")) == "10", "F4-13: rewrote the left indent")
+check(_r.paragraphs[0].text == "Databases: SQL, SQLite",
+      "F4-13: rewrote the paragraph text")
+
+# F4-14: a document with none of the three marks comes back byte-identical.
+_d14 = Document()
+_d14.add_paragraph("nothing to clean here")
+_buf14 = io.BytesIO()
+_d14.save(_buf14)
+_before14 = _buf14.getvalue()
+check(de.stray_mark_cleanup(_before14, _pdf8) is _before14,
+      "F4-14: rewrote a document it had nothing to change")
+
+
+def f4_aligned_doc(text, jc, right=1440, style=None):
+    """A right indent on a paragraph whose alignment PLACES the text."""
+    d = Document()
+    para = d.add_paragraph(text, style=style) if style else d.add_paragraph(text)
+    ppr = para._p.get_or_add_pPr()
+    ppr.append(parse_xml('<w:ind %s w:right="%d"/>' % (nsdecls("w"), right)))
+    if jc:
+        ppr.append(parse_xml('<w:jc %s w:val="%s"/>' % (nsdecls("w"), jc)))
+    return d
+
+
+# F4-15: on a RIGHT-aligned paragraph the indent is the position of the text,
+# not a wrap boundary - clearing it slides the line to the right margin.
+_r, _ = f4_run(f4_aligned_doc("Databases: SQL, SQLite", "right"), _pdf8)
+check(f4_right(_r, "Databases") == "1440",
+      "F4-15: cleared the right indent of a right-aligned paragraph: %r"
+      % f4_right(_r, "Databases"))
+
+# F4-15b: w:jc="end" is the same alignment under a different name.
+_r, _ = f4_run(f4_aligned_doc("Databases: SQL, SQLite", "end"), _pdf8)
+check(f4_right(_r, "Databases") == "1440",
+      "F4-15b: cleared the right indent of an end-aligned paragraph")
+
+# F4-16: centred text is positioned by both indents at once.
+_r, _ = f4_run(f4_aligned_doc("Databases: SQL, SQLite", "center"), _pdf8)
+check(f4_right(_r, "Databases") == "1440",
+      "F4-16: cleared the right indent of a centred paragraph")
+
+# F4-16b: the alignment can be inherited from the paragraph style, and an
+# inherited w:jc positions the text exactly as a direct one does.
+_d16 = f4_aligned_doc("Databases: SQL, SQLite", None, style="Heading 3")
+for _st in _d16.styles.element.findall(qn("w:style")):
+    if _st.get(qn("w:styleId")) == "Heading3":
+        _st.find(qn("w:pPr")).append(
+            parse_xml('<w:jc %s w:val="right"/>' % nsdecls("w")))
+_r, _ = f4_run(_d16, _pdf8)
+check(f4_right(_r, "Databases") == "1440",
+      "F4-16b: cleared the indent of a paragraph right-aligned by its style")
+
+# F4-16c: left and justified paragraphs are still cleared - the guard is
+# narrow, not a blanket opt-out.
+for _jc in ("left", "start", "both", None):
+    _r, _ = f4_run(f4_aligned_doc("Databases: SQL, SQLite", _jc), _pdf8)
+    check(f4_right(_r, "Databases") == "0",
+          "F4-16c: stopped clearing a phantom indent on jc=%r" % _jc)
+
+
+# F4-17: a heading that ends in a hyperlink keeps that link's own trailing
+# space - the tail strip is about the heading's runs, not a link's label.
+_d17 = Document()
+_p17 = _d17.add_paragraph(style="Heading 1")
+_p17.add_run("Contact ")
+_link17 = parse_xml(
+    '<w:hyperlink %s><w:r><w:t xml:space="preserve">home </w:t></w:r>'
+    '</w:hyperlink>' % nsdecls("w", "r"))
+_p17._p.append(_link17)
+_r17, _ = f4_run(_d17)
+_t17 = [t.text for t in _r17.paragraphs[0]._p.iter(qn("w:t"))]
+check(_t17 == ["Contact ", "home "],
+      "F4-17: rewrote text inside a heading's hyperlink: %r" % _t17)
+
+# ---------------------------------------------------------------------------
+# G2: illegible_shading_drop.  pdf2docx can sample the glyph colour instead of
+# the band colour and emit it as w:shd/@w:fill, giving black text on a black
+# bar.  The pass drops such a fill and NEVER touches a legible one.
+
+def g2_doc(fill, colour, text="FORMATION", shd_val="clear", second=None,
+           on_para=False):
+    """One table cell (or one paragraph) shaded `fill` with `colour` text."""
+    d = Document()
+    if on_para:
+        para = d.add_paragraph()
+        holder = para._p
+        pr = holder.get_or_add_pPr()
+    else:
+        tbl = d.add_table(rows=1, cols=1)
+        cell = tbl.cell(0, 0)
+        para = cell.paragraphs[0]
+        holder = cell._tc
+        pr = holder.get_or_add_tcPr()
+    if fill is not None:
+        pr.append(parse_xml('<w:shd %s w:val="%s" w:fill="%s"/>'
+                            % (nsdecls("w"), shd_val, fill)))
+    for body, col in [(text, colour)] + ([second] if second else []):
+        run = para.add_run(body)
+        if col is not None:
+            run._r.get_or_add_rPr().append(
+                parse_xml('<w:color %s w:val="%s"/>' % (nsdecls("w"), col)))
+    return d, holder
+
+
+def g2_run(d):
+    buf = io.BytesIO()
+    d.save(buf)
+    out = de.illegible_shading_drop(buf.getvalue())
+    return Document(io.BytesIO(out))
+
+
+def g2_fills(doc):
+    """Every surviving non-auto shading fill in the body, in document order."""
+    out = []
+    for el in doc.element.body.iter(qn("w:tc"), qn("w:p")):
+        pr = (el.find(qn("w:tcPr")) if el.tag == qn("w:tc")
+              else el.find(qn("w:pPr")))
+        if pr is None:
+            continue
+        shd = pr.find(qn("w:shd"))
+        if shd is not None and shd.get(qn("w:fill")):
+            out.append(shd.get(qn("w:fill")))
+    return out
+
+
+def g2_text(doc):
+    return "".join(t.text or "" for t in doc.element.body.iter(qn("w:t")))
+
+
+# G2-1: the defect itself - black fill under black text loses the fill.
+_d, _ = g2_doc("000000", "000000")
+_r = g2_run(_d)
+check(g2_fills(_r) == [], "G2-1: kept a black fill under black text: %r"
+      % g2_fills(_r))
+check(g2_text(_r) == "FORMATION", "G2-1: lost the heading text: %r" % g2_text(_r))
+
+# G2-1b: the run colour itself is never rewritten - only the fill goes.
+_col = [c.get(qn("w:val")) for c in _r.element.body.iter(qn("w:color"))]
+check(_col == ["000000"], "G2-1b: rewrote the run colour: %r" % _col)
+
+# G2-2: the near-black variant pdf2docx also emits (151A21 on 000000).
+_d, _ = g2_doc("151A21", "000000")
+check(g2_fills(g2_run(_d)) == [], "G2-2: kept a near-black fill under black text")
+
+# G2-3: white on black is the point of a heading band - never touched.
+_d, _ = g2_doc("000000", "FFFFFF")
+check(g2_fills(g2_run(_d)) == ["000000"],
+      "G2-3: dropped a legible white-on-black band")
+
+# G2-4: dark text on a light band is the source layout - never touched.
+_d, _ = g2_doc("D9D9D9", "1A1A1A")
+check(g2_fills(g2_run(_d)) == ["D9D9D9"],
+      "G2-4: dropped a legible dark-on-light band")
+
+# G2-5: a mid-grey band that is merely low-contrast, not unreadable, stays.
+# 404040 under 000000 is ratio 2.02 - just above the threshold.
+_d, _ = g2_doc("404040", "000000")
+check(g2_fills(g2_run(_d)) == ["404040"],
+      "G2-5: dropped a fill above the contrast threshold")
+
+# G2-6: an inherited (unset) run colour is a guess, so the fill survives.
+_d, _ = g2_doc("000000", None)
+check(g2_fills(g2_run(_d)) == ["000000"],
+      "G2-6: dropped a fill under a run with no explicit colour")
+
+# G2-6b: w:color="auto" is not a colour either.
+_d, _ = g2_doc("000000", "auto")
+check(g2_fills(g2_run(_d)) == ["000000"], "G2-6b: treated w:color=auto as black")
+
+# G2-7: mixed legibility - one readable run means the band is deliberate.
+_d, _ = g2_doc("000000", "000000", second=("VISIBLE", "FFFFFF"))
+check(g2_fills(g2_run(_d)) == ["000000"],
+      "G2-7: dropped a band that one of its runs is readable against")
+
+# G2-8: an empty shaded cell is a drawn rule, not misread text.
+_d, _ = g2_doc("000000", "000000", text="")
+check(g2_fills(g2_run(_d)) == ["000000"], "G2-8: dropped an empty cell's fill")
+
+# G2-9: a patterned shd is not one flat colour, so it is not a sampling error.
+_d, _ = g2_doc("000000", "000000", shd_val="pct25")
+check(g2_fills(g2_run(_d)) == ["000000"], "G2-9: dropped a patterned shading")
+
+# G2-10: w:fill="auto" carries no colour to compare against.
+_d, _ = g2_doc("auto", "000000")
+check(g2_fills(g2_run(_d)) == ["auto"],
+      "G2-10: invented a comparison for fill=auto")
+
+# G2-11: the same repair applies to paragraph-level shading.
+_d, _ = g2_doc("000000", "000000", on_para=True)
+_r = g2_run(_d)
+check(g2_fills(_r) == [], "G2-11: kept a black paragraph fill under black text")
+check(g2_text(_r) == "FORMATION", "G2-11: lost the shaded paragraph's text")
+
+# G2-12: a document with no shading at all comes back byte-identical.
+_d = Document()
+_d.add_paragraph("Ordinary prose that no pass should rewrite.")
+_buf = io.BytesIO()
+_d.save(_buf)
+_bytes = _buf.getvalue()
+check(de.illegible_shading_drop(_bytes) is _bytes,
+      "G2-12: rewrote a document that has no shading")
+
+# G2-13: a cell judges only its own paragraphs - a legible NESTED table inside
+# it must not license an unreadable outer band, and vice versa.
+_d = Document()
+_outer = _d.add_table(rows=1, cols=1).cell(0, 0)
+_outer._tc.get_or_add_tcPr().append(
+    parse_xml('<w:shd %s w:val="clear" w:fill="000000"/>' % nsdecls("w")))
+_orun = _outer.paragraphs[0].add_run("OUTER")
+_orun._r.get_or_add_rPr().append(
+    parse_xml('<w:color %s w:val="000000"/>' % nsdecls("w")))
+_inner = _outer.add_table(rows=1, cols=1).cell(0, 0)
+_irun = _inner.paragraphs[0].add_run("INNER")
+_irun._r.get_or_add_rPr().append(
+    parse_xml('<w:color %s w:val="FFFFFF"/>' % nsdecls("w")))
+_r = g2_run(_d)
+check(g2_fills(_r) == [], "G2-13: a nested cell's run blocked the outer repair")
+check("OUTER" in g2_text(_r) and "INNER" in g2_text(_r),
+      "G2-13: lost text while repairing a nested table")
+
+
+
+# --- G3 font_metric_twin ---------------------------------------------------
+# A LibreOffice-authored PDF names Carlito / Caladea / Liberation Sans-Serif-
+# Mono. Those are metric clones of Calibri / Cambria / Arial / Times New Roman
+# / Courier New, and Word on a recruiter's machine has the twin, not the clone.
+# The pass renames the clone everywhere a font can be named; every other face,
+# and every piece of body text, has to survive untouched.
+import re
+import zipfile as _g3zip
+
+
+def g3_docx(runs, style_font=None):
+    """A .docx whose runs name the given fonts (font, text) pairs."""
+    d = Document()
+    for fam, text in runs:
+        r = d.add_paragraph().add_run(text)
+        rpr = r._r.get_or_add_rPr()
+        rpr.append(parse_xml('<w:rFonts %s w:ascii="%s" w:hAnsi="%s" w:cs="%s"/>'
+                             % (nsdecls("w"), fam, fam, fam)))
+    if style_font:
+        st = d.styles["Normal"].element.get_or_add_rPr()
+        st.append(parse_xml('<w:rFonts %s w:ascii="%s" w:hAnsi="%s"/>'
+                            % (nsdecls("w"), style_font, style_font)))
+    buf = io.BytesIO()
+    d.save(buf)
+    return buf.getvalue()
+
+
+def g3_repack(data, part, xml):
+    """Same package with one part replaced (fontTable / theme surgery)."""
+    src = _g3zip.ZipFile(io.BytesIO(data))
+    out = io.BytesIO()
+    with _g3zip.ZipFile(out, "w", _g3zip.ZIP_DEFLATED) as dst:
+        for info in src.infolist():
+            dst.writestr(info, xml if info.filename == part
+                         else src.read(info.filename))
+    return out.getvalue()
+
+
+def g3_part(data, part):
+    return _g3zip.ZipFile(io.BytesIO(data)).read(part).decode("utf-8")
+
+
+def g3_fonts(data):
+    """Every ascii font named by a run in the converted document."""
+    doc = Document(io.BytesIO(data))
+    out = []
+    for rf in doc.element.body.iter(qn("w:rFonts")):
+        out.append(rf.get(qn("w:ascii")))
+    return out
+
+
+# G3-1: the five metric-compatible clones become their Microsoft twins.
+_g3in = [("Carlito", "one"), ("Caladea", "two"), ("Liberation Sans", "three"),
+         ("Liberation Serif", "four"), ("Liberation Mono", "five")]
+_g3out = de.font_metric_twin(g3_docx(_g3in))
+check(g3_fonts(_g3out) == ["Calibri", "Cambria", "Arial", "Times New Roman",
+                           "Courier New"],
+      "G3-1: did not map the clone faces to their Microsoft twins")
+check([p.text for p in Document(io.BytesIO(_g3out)).paragraphs]
+      == ["one", "two", "three", "four", "five"],
+      "G3-1: lost or reordered text while renaming fonts")
+
+# G3-2: the name match ignores spacing and punctuation, as PostScript names do.
+_g3out = de.font_metric_twin(g3_docx(
+    [("LiberationSans", "a"), ("Liberation-Serif", "b"), ("CARLITO", "c")]))
+check(g3_fonts(_g3out) == ["Arial", "Times New Roman", "Calibri"],
+      "G3-2: missed a clone spelled without spaces or in caps")
+
+# G3-3: a face that is NOT a metric clone is never renamed - including one whose
+# name merely starts with a clone's ("Liberation Sans Narrow" is its own face).
+_g3keep = [("Lato", "a"), ("DejaVu Sans", "b"), ("Liberation Sans Narrow", "c"),
+           ("Calibri", "d")]
+_g3out = de.font_metric_twin(g3_docx(_g3keep))
+check(g3_fonts(_g3out) == ["Lato", "DejaVu Sans", "Liberation Sans Narrow",
+                           "Calibri"],
+      "G3-3: renamed a face that is not a metric clone")
+
+# G3-4: a document naming no clone comes back as the very same bytes.
+_g3same = g3_docx([("Lato", "prose")])
+check(de.font_metric_twin(_g3same) is _g3same,
+      "G3-4: rewrote a package that names no clone font")
+
+# G3-5: a style-level rFonts is renamed too - a run inheriting Carlito from
+# Normal reflows exactly like one naming it directly.
+_g3out = de.font_metric_twin(g3_docx([("Lato", "x")], style_font="Carlito"))
+check('w:ascii="Calibri"' in g3_part(_g3out, "word/styles.xml"),
+      "G3-5: left a clone font named by a style")
+check(g3_fonts(_g3out) == ["Lato"], "G3-5: renamed an unrelated run font")
+
+# G3-6: the fontTable declaration is renamed, and a declaration that collides
+# with an already-present twin is dropped rather than duplicated.
+_g3ft = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+         '<w:fonts %s><w:font w:name="Calibri"/><w:font w:name="Carlito"/>'
+         '<w:font w:name="Lato"/></w:fonts>' % nsdecls("w"))
+_g3out = de.font_metric_twin(
+    g3_repack(g3_docx([("Carlito", "x")]), "word/fontTable.xml", _g3ft))
+_g3names = re.findall(r'w:name="([^"]*)"', g3_part(_g3out, "word/fontTable.xml"))
+check(_g3names == ["Calibri", "Lato"],
+      "G3-6: fontTable ended up wrong: %r" % (_g3names,))
+
+# G3-7: body text is data, not a font name - a person called Carlito keeps his
+# name even though the part matches the pass's cheap marker scan.
+_g3d = Document()
+_g3r = _g3d.add_paragraph().add_run("Carlito Liberation wrote about Caladea.")
+_g3r._r.get_or_add_rPr().append(
+    parse_xml('<w:rFonts %s w:ascii="Carlito" w:hAnsi="Carlito"/>' % nsdecls("w")))
+_g3buf = io.BytesIO()
+_g3d.save(_g3buf)
+_g3out = de.font_metric_twin(_g3buf.getvalue())
+check(Document(io.BytesIO(_g3out)).paragraphs[0].text
+      == "Carlito Liberation wrote about Caladea.",
+      "G3-7: rewrote body text that happens to spell a font name")
+check(g3_fonts(_g3out) == ["Calibri"], "G3-7: failed to rename that run's font")
+
+# G3-8: the theme's minor/major typefaces are font names as well.
+_g3theme = g3_part(g3_docx([("Lato", "x")]), "word/theme/theme1.xml")
+_g3theme = _g3theme.replace('typeface="Cambria"', 'typeface="Caladea"', 1)
+_g3out = de.font_metric_twin(
+    g3_repack(g3_docx([("Lato", "x")]), "word/theme/theme1.xml",
+              _g3theme.encode("utf-8")))
+check("Caladea" not in g3_part(_g3out, "word/theme/theme1.xml"),
+      "G3-8: left a clone face in the theme's typeface list")
+
+# G3-9: a THEME reference names no family; rewriting it would break the link.
+_g3d = Document()
+_g3r = _g3d.add_paragraph().add_run("themed")
+_g3r._r.get_or_add_rPr().append(parse_xml(
+    '<w:rFonts %s w:asciiTheme="minorHAnsi" w:cs="Carlito"/>' % nsdecls("w")))
+_g3buf = io.BytesIO()
+_g3d.save(_g3buf)
+_g3out = de.font_metric_twin(_g3buf.getvalue())
+_g3rf = Document(io.BytesIO(_g3out)).element.body.iter(qn("w:rFonts"))
+_g3rf = next(_g3rf)
+check(_g3rf.get(qn("w:asciiTheme")) == "minorHAnsi",
+      "G3-9: touched a theme reference")
+check(_g3rf.get(qn("w:cs")) == "Calibri", "G3-9: skipped the w:cs clone name")
+
+# G3-10: the repacked package keeps every part it started with.
+_g3src = g3_docx([("Carlito", "x")])
+_g3out = de.font_metric_twin(_g3src)
+check(_g3zip.ZipFile(io.BytesIO(_g3out)).namelist()
+      == _g3zip.ZipFile(io.BytesIO(_g3src)).namelist(),
+      "G3-10: lost or reordered a package part while repacking")
+
+# G3-11: a corrupt part is left alone instead of taking the conversion down.
+_g3out = de.font_metric_twin(
+    g3_repack(g3_docx([("Carlito", "x")]), "word/numbering.xml",
+              b"<w:fonts not xml at all Carlito"))
+check('w:ascii="Calibri"' in g3_part(_g3out, "word/document.xml"),
+      "G3-11: an unparsable part stopped the rest of the rename")
+check(g3_part(_g3out, "word/numbering.xml").startswith("<w:fonts not xml"),
+      "G3-11: did not leave the unparsable part exactly as it found it")
+
+
+# ---- inline_bullet_split cases (G4) -----------------------------------------
+# A PDF that draws its bullets as their own text blocks lets pdf2docx weld two
+# list items into one paragraph with the glyph stranded inline. The pass may
+# only act on evidence the PDF actually carries: a bare-bullet run, and a line
+# opening that the PDF marks with a glyph of its own.
+class _IbsPage:
+    """A page whose every line is its own block, with real geometry."""
+
+    def __init__(self, lines):
+        self._lines = lines            # [(y0, x0, x1, text)]
+
+    def get_text(self, kind, **_kw):
+        if kind == "words":
+            out = []
+            for y0, x0, x1, text in self._lines:
+                for word in text.split():
+                    out.append((x0, y0, x1, y0 + 10.0, word, 0, 0, 0))
+            return out
+        return {"blocks": [{"type": 0, "lines": [{
+            "bbox": (x0, y0, x1, y0 + 10.0),
+            "spans": [{"text": text, "bbox": (x0, y0, x1, y0 + 10.0)}]}]}
+            for y0, x0, x1, text in self._lines]}
+
+
+def ibs_runs(*chunks):
+    """A one-paragraph docx; a chunk of None emits a w:br run."""
+    d = Document()
+    p = d.add_paragraph()
+    for chunk in chunks:
+        if chunk is None:
+            p._p.append(parse_xml(f'<w:r {nsdecls("w")}><w:br/></w:r>'))
+        else:
+            r = p.add_run(chunk)
+            r._r.find(qn("w:t")).set(
+                "{http://www.w3.org/XML/1998/namespace}space", "preserve")
+    buf = io.BytesIO()
+    d.save(buf)
+    return buf.getvalue()
+
+
+def ibs_run(raw, pdf):
+    doc = Document(io.BytesIO(de.inline_bullet_split(raw, pdf)))
+    return doc, ["".join(t.text or "" for t in p._p.iter(qn("w:t")))
+                 for p in doc.paragraphs]
+
+
+G4A = "First bullet item about the wiring survey"
+G4B = "continuation of that first item on line two"
+G4C = "Second bullet item about the cable trays"
+_g4_pdf = [_IbsPage([(100.0, 54.5, 60.3, "• "),
+                     (100.0, 60.3, 400.0, G4A),
+                     (112.0, 60.3, 400.0, G4B),
+                     (124.0, 54.5, 60.3, "• "),
+                     (124.0, 60.3, 400.0, G4C)])]
+
+# G4-1: the welded pair is cut at the stranded glyph, both halves keep a leading
+# bullet, and no glyph is left inline.
+_g4raw = ibs_runs("• ", G4A + " ", G4B, "• ", G4C)
+_g4doc, _g4txt = ibs_run(_g4raw, _g4_pdf)
+check(len(_g4txt) == 2, "G4-1: expected 2 paragraphs, got %d %r" % (len(_g4txt), _g4txt))
+check(_g4txt[0] == "• " + G4A + " " + G4B, "G4-1: first half %r" % _g4txt[0])
+check(_g4txt[1] == "• " + G4C, "G4-1: second half %r" % _g4txt[1])
+check("•" not in _g4txt[0][1:] and "•" not in _g4txt[1][1:],
+      "G4-1: a glyph is still inline")
+
+# G4-2: list_numbering then numbers both halves into the SAME sibling list.
+_g4num = Document(io.BytesIO(de.list_numbering(de.inline_bullet_split(_g4raw, _g4_pdf))))
+check(all(has_numpr(p) for p in _g4num.paragraphs),
+      "G4-2: a half did not become a list item")
+check(numid_of(_g4num.paragraphs[0]) == numid_of(_g4num.paragraphs[1]),
+      "G4-2: halves landed in different lists")
+check(_g4num.paragraphs[1].text == G4C, "G4-2: second item text %r"
+      % _g4num.paragraphs[1].text)
+
+# G4-3: a glyph sorted to the WRONG END of its own item is hoisted to the front,
+# not used as a cut, and the space it vacated survives a dropped w:br.
+G4D = "Prioritise the work fronts and coordinate"
+G4E = "the labour allocation across the whole site."
+_g4_pdf2 = [_IbsPage([(100.0, 54.5, 60.3, "• "),
+                      (100.0, 60.3, 400.0, G4D),
+                      (112.0, 60.3, 400.0, G4E)])]
+_g4doc2, _g4txt2 = ibs_run(ibs_runs(G4D, "• ", None, G4E), _g4_pdf2)
+check(len(_g4txt2) == 1, "G4-3: hoist became a split: %r" % _g4txt2)
+check(_g4txt2[0] == "• " + G4D + " " + G4E, "G4-3: hoisted text %r" % _g4txt2[0])
+
+# G4-4: an inline glyph the PDF does not mark as a line opening is left alone —
+# prose that merely contains a bullet character is never cut.
+G4F = "Bullets • are sometimes used inline in running prose."
+_g4_pdf3 = [_IbsPage([(100.0, 60.3, 400.0, G4F)])]
+_g4raw3 = ibs_runs("Bullets ", "• ", "are sometimes used inline in running prose.")
+check(de.inline_bullet_split(_g4raw3, _g4_pdf3) == _g4raw3,
+      "G4-4: edited a document whose PDF marks no bulleted line")
+
+# G4-5: a glyph whose following text opens an UNbulleted line, in a paragraph
+# whose own opening is not bulleted either, is left exactly where it is.
+G4G = "Plain heading line with no marker"
+G4H = "and its unbulleted continuation line"
+_g4_pdf4 = [_IbsPage([(100.0, 54.5, 60.3, "• "),
+                      (100.0, 60.3, 400.0, G4A),
+                      (140.0, 60.3, 400.0, G4G),
+                      (152.0, 60.3, 400.0, G4H)])]
+_g4raw4 = ibs_runs(G4G + " ", "• ", G4H)
+_g4doc4, _g4txt4 = ibs_run(_g4raw4, _g4_pdf4)
+check(_g4txt4 == [G4G + " • " + G4H], "G4-5: moved an unattributable glyph: %r"
+      % _g4txt4)
+
+# G4-6: the fold seam gets exactly one space when the left half ends a PDF line
+# and the right half opens one.
+G4I = "The quarterly report covers all regional"
+G4J = "operations across the northern territory."
+_g4_pdf5 = [_IbsPage([(100.0, 60.3, 400.0, G4I), (112.0, 60.3, 400.0, G4J)])]
+_g4doc5, _g4txt5 = ibs_run(ibs_runs(G4I, G4J), _g4_pdf5)
+check(_g4txt5 == [G4I + " " + G4J], "G4-6: seam not repaired: %r" % _g4txt5)
+_g4doc5b, _g4txt5b = ibs_run(ibs_runs(G4I + " ", G4J), _g4_pdf5)
+check(_g4txt5b == [G4I + " " + G4J], "G4-6b: doubled an existing space: %r" % _g4txt5b)
+
+# G4-7: a seam the PDF spells solid is never opened — "inter"+"national" stays
+# "international" because the PDF carries that word whole.
+K1 = "The company handles inter"
+K2 = "national shipping every day"
+K3 = "international shipping manifests are filed"
+_g4_pdf6 = [_IbsPage([(100.0, 60.3, 400.0, K1), (112.0, 60.3, 400.0, K2),
+                      (124.0, 60.3, 400.0, K3)])]
+_g4raw6 = ibs_runs(K1, K2)
+check(de.inline_bullet_split(_g4raw6, _g4_pdf6) == _g4raw6,
+      "G4-7: opened a seam inside a word the PDF holds solid")
+
+# G4-8: a mid-line formatting split is not a fold seam and gets no space.
+G4K = "The quarterly report covers "
+G4L = "all regional operations across the territory."
+_g4_pdf7 = [_IbsPage([(100.0, 60.3, 400.0, G4K + G4L)])]
+_g4raw7 = ibs_runs(G4K, G4L)
+check(de.inline_bullet_split(_g4raw7, _g4_pdf7) == _g4raw7,
+      "G4-8: touched a mid-line run split")
+
+# G4-9: no PDF at all is a hard no-op, and the pass is idempotent.
+check(de.inline_bullet_split(_g4raw) == _g4raw, "G4-9: edited without a PDF")
+_g4once = de.inline_bullet_split(_g4raw, _g4_pdf)
+check(de.inline_bullet_split(_g4once, _g4_pdf) == _g4once, "G4-9: not idempotent")
+
+# G4-10: no token is lost or invented by the cut.
+def _g4_tokens(text):
+    return sorted(text.replace("•", " ").split())
+
+
+check(_g4_tokens("".join(_g4txt)) == _g4_tokens(G4A + " " + G4B + " " + G4C),
+      "G4-10: the cut changed the word stream")
+
+
+def g5_bytes(doc):
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+# ---- multi-page section breaks + reversed date/sub-line order (G5) ----------
+# (a) pdf2docx measures each page's margins from that page's own ink, so two
+# sections over one paper size disagree by a few twips in EITHER direction.
+# section_break_tidy now takes the per-side FLOOR across every section of that
+# page size, so a section that measured smaller than the first one is repaired
+# too -- and a break between two sections that then differ in nothing becomes
+# provably inert, which is what lets stray_mark_cleanup remove it.
+
+G5_UNIFORM = sb_pdf([(595.0, 842.0), (595.0, 842.0)])
+G5_MIXED = sb_pdf([(595.0, 842.0), (419.5, 595.3)])
+
+
+def g5_doc(*sects):
+    """A body whose paragraphs each carry one of `sects` (last -> body level)."""
+    d = Document()
+    for i, kwargs in enumerate(sects):
+        p = d.add_paragraph("line %d" % i)
+        if i == len(sects) - 1:
+            sb_body_sect(d, **kwargs)
+        else:
+            p._p.get_or_add_pPr().append(parse_xml(sb_sect(**kwargs)))
+    return d
+
+
+# G5-1: the later section measured the SMALLER top margin. The floor pulls the
+# FIRST section down to it; forward-only propagation could not.
+_r, _ = run_sb(g5_doc(dict(top=408), dict(top=400)), G5_UNIFORM)
+check([m["top"] for _t, m in sb_sects(_r)] == [400, 400],
+      "G5-1: top margin floor not applied backwards: %r"
+      % ([m["top"] for _t, m in sb_sects(_r)],))
+
+# G5-2: the floor is per SIDE and only ever shrinks a margin, so no section's
+# text area can be made smaller than it already was.
+_r, _ = run_sb(g5_doc(dict(top=408, left=900, right=814),
+                      dict(top=400, left=832, right=880)), G5_UNIFORM)
+check([(m["top"], m["left"], m["right"]) for _t, m in sb_sects(_r)]
+      == [(400, 832, 814), (400, 832, 814)],
+      "G5-2: floor not taken per side: %r"
+      % ([(m["top"], m["left"], m["right"]) for _t, m in sb_sects(_r)],))
+
+# G5-3: pages of different sizes are not one geometry, so nothing is unified.
+_r, _ = run_sb(g5_doc(dict(top=408), dict(top=400)), G5_MIXED)
+check([m["top"] for _t, m in sb_sects(_r)] == [408, 400],
+      "G5-3: unified margins across differently sized pages")
+
+# G5-4: a section over a different PAPER size is outside the group even when
+# the PDF's own pages are uniform.
+_r, _ = run_sb(g5_doc(dict(top=408), dict(top=400, w=12240, h=15840)),
+               G5_UNIFORM)
+check([m["top"] for _t, m in sb_sects(_r)] == [408, 400],
+      "G5-4: pulled a different paper size into the floor")
+
+# G5-5: no PDF at all (browser path, no page evidence) is a clean no-op.
+_r, _ = run_sb(g5_doc(dict(top=408), dict(top=400)), None)
+check([m["top"] for _t, m in sb_sects(_r)] == [408, 400],
+      "G5-5: unified margins with no PDF evidence")
+
+# G5-6: end to end -- once the margins agree, the continuous break between two
+# otherwise identical sections is removed, and the document keeps its own
+# body-level sectPr.
+_d = g5_doc(dict(top=408), dict(top=400))
+_d.paragraphs[0]._p.find(qn("w:pPr")).find(qn("w:sectPr")).append(
+    parse_xml('<w:type %s w:val="continuous"/>' % nsdecls("w")))
+_g5b = de.stray_mark_cleanup(
+    de.section_break_tidy(g5_bytes(_d), G5_UNIFORM), G5_UNIFORM)
+check(count_tag(_g5b, "w:sectPr") == 1,
+      "G5-6: inert continuous break survived the margin floor: %d"
+      % count_tag(_g5b, "w:sectPr"))
+check([p.text for p in Document(io.BytesIO(_g5b)).paragraphs]
+      == ["line 0", "line 1"], "G5-6: lost a paragraph")
+
+# G5-7: a real column-count change is a real property change, so the same
+# end-to-end run keeps that break even though the margins now match.
+_d = g5_doc(dict(top=408), dict(top=400))
+_s0 = _d.paragraphs[0]._p.find(qn("w:pPr")).find(qn("w:sectPr"))
+_s0.append(parse_xml('<w:type %s w:val="continuous"/>' % nsdecls("w")))
+_s0.remove(_s0.find(qn("w:cols")))
+_s0.append(parse_xml('<w:cols %s w:num="2"/>' % nsdecls("w")))
+_g5c = de.stray_mark_cleanup(
+    de.section_break_tidy(g5_bytes(_d), G5_UNIFORM), G5_UNIFORM)
+check(count_tag(_g5c, "w:sectPr") == 2,
+      "G5-7: dropped a genuine column-count change")
+
+
+# (b) The same three source lines -- institution, its flush-right date, the
+# sub-line beneath -- also arrive in the order head | TAB | date | sub, and
+# with pdf2docx's text-less furniture (a trailing w:br, a trailing w:tab)
+# parked on the end of the block.
+
+G5_H = "Pierre Dammous & Partners Energy"
+G5_S = "Electrical Project Engineer / Technical Consultant"
+G5_D = "Aug 2022 - Dec 2023"
+
+
+def g5_tss_pdf(sub_x=72, dy=12.0, extra=()):
+    rows = [(100.0, G5_H), (100.0, G5_D, 400), (100.0 + dy, G5_S, sub_x)]
+    rows.extend(extra)
+    return make_pdf([rows])
+
+
+def g5_tss_doc(furniture=True, mid_break=False):
+    """head | TAB | date | sub, the reversed order, plus trailing furniture."""
+    d = Document()
+    p = d.add_paragraph()
+    p.add_run(G5_H + " ").bold = True
+    p.add_run().add_tab()
+    p.add_run(G5_D + " ").bold = False
+    if mid_break:
+        p.add_run().add_break()
+    p.add_run(G5_S).bold = True
+    if furniture:
+        p.add_run().add_break()
+        p.add_run().add_tab()
+    return d
+
+
+# G5-8: the reversed order splits, the date stays with the institution, and the
+# trailing furniture rides along with the piece that ends up last.
+_r, _out = run_tss(g5_tss_doc(), g5_tss_pdf())
+check([p.text for p in _r.paragraphs] == [G5_H + " \t" + G5_D + " ", G5_S + "\n\t"],
+      "G5-8: reversed order not split: %r" % ([p.text for p in _r.paragraphs],))
+check(count_tag(_out, "w:br") == 1 and count_tag(_out, "w:tab") == 2,
+      "G5-8: furniture lost or duplicated by the split")
+
+# G5-9: with no trailing furniture at all the same shape still splits.
+_r, _ = run_tss(g5_tss_doc(furniture=False), g5_tss_pdf())
+check([p.text for p in _r.paragraphs] == [G5_H + " \t" + G5_D + " ", G5_S],
+      "G5-9: reversed order without furniture not split")
+
+# G5-10: a break in the MIDDLE of the run stream is already a line boundary and
+# belongs to wrap_break_heal, so the paragraph is refused.
+_r, _ = run_tss(g5_tss_doc(mid_break=True), g5_tss_pdf())
+check(len(_r.paragraphs) == 1, "G5-10: cut a paragraph with a mid-stream break")
+
+# G5-11: the sub-line does not share the institution's left edge -> a wrapped
+# continuation, not a sub-line. No cut in the reversed order either.
+_r, _ = run_tss(g5_tss_doc(), g5_tss_pdf(sub_x=140))
+check(len(_r.paragraphs) == 1, "G5-11: reversed cut without a shared left edge")
+
+# G5-12: something else printed between the two baselines breaks the pair.
+_r, _ = run_tss(g5_tss_doc(), g5_tss_pdf(dy=24.0,
+                                         extra=((112.0, "intervening line"),)))
+check(len(_r.paragraphs) == 1, "G5-12: reversed cut across an intervening line")
+
+# G5-13: no PDF evidence, and idempotence.
+_r, _ = run_tss(g5_tss_doc(), None)
+check(len(_r.paragraphs) == 1, "G5-13: reversed cut without any PDF evidence")
+_g5once = de.tabbed_subline_split(g5_bytes(g5_tss_doc()), g5_tss_pdf())
+check(de.tabbed_subline_split(_g5once, g5_tss_pdf()) == _g5once,
+      "G5-13: reversed cut is not idempotent")
+
+# G5-14: no word is lost or invented by the cut.
+_r, _ = run_tss(g5_tss_doc(), g5_tss_pdf())
+check(sorted("".join(p.text for p in _r.paragraphs).split())
+      == sorted((G5_H + " " + G5_D + " " + G5_S).split()),
+      "G5-14: the reversed cut changed the word stream")
+
+# ---------------------------------------------------------------- G6 spacing_rhythm_normalize
+# (a) exact line boxes clip glyphs on any font change, (b) measured space-before
+# drifts apart inside one sibling group, (c) hair-width left indents are cell
+# residue.  Every case here is structural: nothing may key off wording.
+
+def g6_p(text="body", style=None, before=None, line=226, rule="exact",
+         left=None, hanging=None, numid=None, ilvl=0):
+    bits = []
+    if style:
+        bits.append('<w:pStyle w:val="%s"/>' % style)
+    if numid is not None:
+        bits.append('<w:numPr><w:ilvl w:val="%d"/><w:numId w:val="%d"/></w:numPr>'
+                    % (ilvl, numid))
+    sp = []
+    if before is not None:
+        sp.append('w:before="%d"' % before)
+    if line is not None:
+        sp.append('w:line="%d" w:lineRule="%s"' % (line, rule))
+    if sp:
+        bits.append("<w:spacing %s/>" % " ".join(sp))
+    ind = []
+    if left is not None:
+        ind.append('w:left="%d"' % left)
+    if hanging is not None:
+        ind.append('w:hanging="%d"' % hanging)
+    if ind:
+        bits.append("<w:ind %s/>" % " ".join(ind))
+    ppr = "<w:pPr>%s</w:pPr>" % "".join(bits) if bits else ""
+    return ('<w:p %s>%s<w:r><w:t xml:space="preserve">%s</w:t></w:r></w:p>'
+            % (nsdecls("w"), ppr, text))
+
+
+def g6_doc(paras):
+    doc = Document()
+    body = doc.element.body
+    for p in list(body.iterchildren(qn("w:p"))):
+        body.remove(p)
+    for xml in paras:
+        body.insert(len(body) - 1 if body.find(qn("w:sectPr")) is not None
+                    else len(body), parse_xml(xml))
+    return doc
+
+
+def g6_run(paras):
+    buf = io.BytesIO()
+    g6_doc(paras).save(buf)
+    out = de.spacing_rhythm_normalize(buf.getvalue())
+    return Document(io.BytesIO(out)), out
+
+
+def g6_before(p):
+    sp = p._p.find(qn("w:pPr")).find(qn("w:spacing"))
+    raw = sp.get(qn("w:before")) if sp is not None else None
+    return None if raw is None else int(raw)
+
+
+def g6_rules(doc):
+    return [sp.get(qn("w:lineRule"))
+            for sp in doc.element.body.iter(qn("w:spacing"))]
+
+
+def g6_left(p):
+    ppr = p._p.find(qn("w:pPr"))
+    ind = ppr.find(qn("w:ind")) if ppr is not None else None
+    raw = ind.get(qn("w:left")) if ind is not None else None
+    return None if raw is None else int(raw)
+
+
+# G6-1: every exact line box becomes atLeast, and the measured height survives.
+_r, _out = g6_run([g6_p("one"), g6_p("two", rule="exact", line=300)])
+check(g6_rules(_r) == ["atLeast", "atLeast"], "G6-1: exact line rule kept")
+check([sp.get(qn("w:line")) for sp in _r.element.body.iter(qn("w:spacing"))]
+      == ["226", "300"], "G6-1: line height changed with the rule")
+
+# G6-2: a rule the author chose (auto) and character spacing in an rPr are not
+# lineRule at all, so neither is rewritten.
+_doc = g6_doc([g6_p("auto", rule="auto")])
+_doc.element.body.find(qn("w:p")).find(qn("w:r")).insert(
+    0, parse_xml('<w:rPr %s><w:spacing w:val="20"/></w:rPr>' % nsdecls("w")))
+_buf = io.BytesIO(); _doc.save(_buf)
+_r = Document(io.BytesIO(de.spacing_rhythm_normalize(_buf.getvalue())))
+check([sp.get(qn("w:lineRule")) for sp in _r.element.body.iter(qn("w:spacing"))
+       if sp.getparent().tag == qn("w:pPr")] == ["auto"],
+      "G6-2: a non-exact line rule was rewritten")
+check(_r.element.body.find(".//" + qn("w:rPr")).find(qn("w:spacing")).get(qn("w:val"))
+      == "20", "G6-2: character spacing was mistaken for line spacing")
+
+# G6-3: five siblings under one heading, one of them drifted -> all at the median.
+# The FIRST paragraph of the block keeps its post-heading gap.
+_r, _ = g6_run([g6_p("H", style="Heading2", before=60)]
+               + [g6_p("first", before=90)]
+               + [g6_p("e%d" % i, before=b) for i, b in enumerate((18, 18, 94, 18))])
+check([g6_before(p) for p in _r.paragraphs] == [60, 90, 18, 18, 18, 18],
+      "G6-3: sibling rhythm not normalised: %r"
+      % ([g6_before(p) for p in _r.paragraphs],))
+
+# G6-4: two siblings are not evidence of a rhythm; nothing moves.
+_r, _ = g6_run([g6_p("H", style="Heading2", before=60), g6_p("first", before=90),
+                g6_p("a", before=18), g6_p("b", before=94)])
+check([g6_before(p) for p in _r.paragraphs] == [60, 90, 18, 94],
+      "G6-4: normalised a group of two")
+
+# G6-5: a deliberate gap (more than RHYTHM_MAX_DEV_TWIPS from the median) is
+# left exactly where the author put it.
+_r, _ = g6_run([g6_p("H", style="Heading2", before=60), g6_p("first", before=90)]
+               + [g6_p("a", before=18), g6_p("b", before=18),
+                  g6_p("c", before=18), g6_p("gap", before=1200)])
+check([g6_before(p) for p in _r.paragraphs] == [60, 90, 18, 18, 18, 1200],
+      "G6-5: flattened a deliberate gap")
+
+# G6-6: headings of one level are siblings across the whole document even though
+# their blocks differ; body paragraphs of DIFFERENT blocks are not.
+_r, _ = g6_run([g6_p("H1", style="Heading2", before=24),
+                g6_p("first", before=50), g6_p("a", before=18), g6_p("b", before=18),
+                g6_p("H2", style="Heading2", before=78),
+                g6_p("first", before=50), g6_p("c", before=90), g6_p("d", before=90),
+                g6_p("H3", style="Heading2", before=62)])
+check([g6_before(p) for p in _r.paragraphs]
+      == [62, 50, 18, 18, 62, 50, 90, 90, 62],
+      "G6-6: cross-block grouping or heading grouping wrong: %r"
+      % ([g6_before(p) for p in _r.paragraphs],))
+
+# G6-7: different list levels / different lists are different sibling groups.
+_r, _ = g6_run([g6_p("H", style="Heading2", before=60), g6_p("lead", before=50),
+                g6_p("l1", before=20, left=368, hanging=215, numid=7),
+                g6_p("l2", before=20, left=368, hanging=215, numid=7),
+                g6_p("l3", before=90, left=368, hanging=215, numid=7),
+                g6_p("o1", before=40, left=368, hanging=215, numid=8),
+                g6_p("o2", before=41, left=368, hanging=215, numid=8)])
+check([g6_before(p) for p in _r.paragraphs] == [60, 50, 20, 20, 20, 40, 41],
+      "G6-7: lists merged into one rhythm group: %r"
+      % ([g6_before(p) for p in _r.paragraphs],))
+
+# G6-8: hair-width left indent is cleared to a true zero; a real indent and a
+# hanging indent of any width are kept.
+_r, _ = g6_run([g6_p("residue", left=10), g6_p("real", left=720),
+                g6_p("hair-hang", left=6, hanging=6)])
+check([g6_left(p) for p in _r.paragraphs] == [0, 720, 6],
+      "G6-8: indent residue handling wrong: %r"
+      % ([g6_left(p) for p in _r.paragraphs],))
+
+# G6-9: the pass never edits the word stream, is idempotent, and is byte-exact
+# no-op on a document that already has the shape it wants.
+_src = [g6_p("H", style="Heading2", before=60, rule="exact"),
+        g6_p("first", before=90), g6_p("a", before=18, left=10),
+        g6_p("b", before=18), g6_p("c", before=94)]
+_r, _out = g6_run(_src)
+check(full_text(_r) == "Hfirstabc", "G6-9: the word stream changed")
+check(de.spacing_rhythm_normalize(_out) == _out, "G6-9: not idempotent")
+_clean = [g6_p("H", style="Heading2", before=60, rule="atLeast"),
+          g6_p("first", before=90, rule="atLeast"),
+          g6_p("a", before=18, rule="atLeast"), g6_p("b", before=18, rule="atLeast"),
+          g6_p("c", before=18, rule="atLeast")]
+_buf = io.BytesIO(); g6_doc(_clean).save(_buf)
+check(de.spacing_rhythm_normalize(_buf.getvalue()) == _buf.getvalue(),
+      "G6-9: rewrote a document that needed nothing")
+
+# G6-10: paragraphs with no direct spacing, or with auto/line-counted spacing,
+# are not dragged into a median.
+_r, _ = g6_run([g6_p("H", style="Heading2", before=60), g6_p("first", before=90),
+                g6_p("a", before=18), g6_p("b", before=18), g6_p("c", before=18),
+                g6_p("none", before=None)])
+check(g6_before(_r.paragraphs[-1]) is None, "G6-10: invented a space-before")
+_doc = g6_doc([g6_p("H", style="Heading2", before=60), g6_p("first", before=90),
+               g6_p("a", before=18), g6_p("b", before=18), g6_p("c", before=18),
+               g6_p("auto", before=94)])
+_last = list(_doc.element.body.iterchildren(qn("w:p")))[-1]
+_last.find(qn("w:pPr")).find(qn("w:spacing")).set(qn("w:beforeAutospacing"), "1")
+_buf = io.BytesIO(); _doc.save(_buf)
+_r = Document(io.BytesIO(de.spacing_rhythm_normalize(_buf.getvalue())))
+check(g6_before(_r.paragraphs[-1]) == 94, "G6-10: normalised auto spacing")
 
 
 print("hostile suite:", "ALL PASS" if not FAILS else f"{len(FAILS)} FAILURES")

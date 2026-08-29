@@ -329,3 +329,189 @@ Dropped: hyperlink preservation — pdf2docx already keeps links live (links 1.0
   and a 2-page repeat that is NOT yet a running header. rule_pdf now commits
   one path per hairline (batching them into a single shape hid them behind one
   tall bounding rect, which was silently defusing the ruled-grid case S3).
+
+### E4 - all-caps headings lose their inter-word space (line_space_realign)
+
+"TECHNICAL SKILLS" and "ACADEMIC PROJECTS" came out of the new CV as
+"TECHNICALSKILLS" / "ACADEMICPROJECTS". The loss is already in RAW pdf2docx
+output. Every all-caps heading on that document is run-shattered per glyph
+("C"|"AR"|"EER", "TE"|"CHNICAL"|"S"|"K"|"I"|"L"|"LS"); only these two lose text,
+because only here does a run boundary land on the inter-word space.
+
+span_space_repair exists for this class but cannot reach it: it tests one seam
+at a time and needs both halves to be whole PDF words. At the "CHNICAL"|"S"
+seam it probes the bigram ("chnical", "s"), which no PDF contains, so its own
+whole-token guard vetoes the repair. Loosening that guard would let it splice
+spaces into ordinary prose, so it stays as it is.
+
+New pass `line_space_realign`, immediately after span_space_repair (it must run
+before paragraph_reflow merges paragraphs, which would destroy the one-line
+correspondence). It ignores run boundaries entirely: it rebuilds the
+paragraph's whole text stream, strips all whitespace, and looks the result up
+in an index of the PDF's own text lines keyed the same way. It edits only when
+that key resolves to exactly ONE PDF line, that line carries more whitespace
+than the paragraph does, and a character-by-character walk of the line against
+the paragraph consumes both to the end. Then it re-inserts the line's spaces at
+the aligned offsets, marking the carrying w:t xml:space="preserve".
+
+Insertion-only and exact-match-only, so it cannot fire on prose: a wrapped
+sentence is several PDF lines, never one, and its key never resolves (E4-7).
+Declines: two PDF lines sharing a key with different spacings (E4-4), a
+paragraph holding a tab or break, where docx and PDF offsets are not comparable
+(E4-5), and any evidence line whose own tokens are single characters, which is
+letter-spaced display text that pdf2docx correctly joined and must not be
+re-split (E4-3).
+
+Effect over the whole real-world corpus: exactly 2 paragraphs changed, both on
+target_cv2, both the reported defect; the other 8 documents are untouched.
+target_cv2 token_recall 0.991 -> 1.000, composite 0.8642 -> 0.8717. No
+synthetic or real document drops. Hostile cases E4-1..E4-10.
+
+
+## Round 5, F1 - the education sub-line welded to the institution line
+
+`ETSTC - Technical Education Institution, Lebanon` and `Val Pere Jacques -
+Bkennaya, Lebanon` each came out as ONE paragraph holding the bold institution,
+the lighter sub-line ("Technical Baccalaureate (BT3) in Computer Programming",
+"Primary and Secondary Education") and then the entry's date, while the AUST
+entry directly above was correctly two paragraphs. The judges called it the
+defect a recruiter reads as broken.
+
+Why the existing pass could not reach it: AUST is split by
+`phantom_column_flatten`, which rebuilds body rows from the page. ETSTC and Val
+Pere leave pdf2docx inside a table and only become paragraphs at
+`date_column_untable`, welded. `fused_line_split`, the pass that owns exactly
+this repair, declines them twice over - it matches a paragraph against a window
+of CONSECUTIVE PDF lines joined by spaces, and the entry's flush-right date sits
+between the institution and the sub-line in reading order, so no join ever
+equals the paragraph text; and it refuses any paragraph carrying a tab, because
+a label/date column is normally the thing that must not be cut.
+
+New pass `tabbed_subline_split`, immediately after `fused_line_split`, owning
+that one shape and only when the page proves it: exactly one tab with text on
+both sides; the run stream flips exactly ONCE from bold to non-bold before that
+tab; the bold text is one whole PDF line and the non-bold text another, each
+occurring exactly once on its page; the two lines share a left edge within 2pt;
+the sub-line sits below by at least 2pt and at most 2.5 line heights; the tail
+after the tab is a third line on the institution's OWN baseline and to its
+right (the date column, which stays with the institution); and nothing else is
+printed between the two baselines. The sub-line paragraph inherits the entry's
+pPr minus its tab stops.
+
+Wrapped prose fails every one of those: it has no date column on the first
+line's baseline, and its continuation is not a separate same-x0 line paired with
+one. Tail length is capped at 40 chars so a sentence after a tab is never read
+as a date.
+
+Effect over the real-world corpus: 2 paragraphs split, both on target_cv2, both
+the reported defect; the other 8 documents untouched, no synthetic document
+moved. target_cv2 composite 0.8642 -> 1.0000 (token_recall 0.991 -> 1.000, all
+ten subscores 1.0). Hostile cases F1-1..F1-13.
+
+## Round 5, F2 - unreachable right tab on the merged education rows
+
+A right tab stop is measured from the section's left text margin, but the
+paragraph's text area ends at (section width - right indent). pdf2docx gives
+every cell paragraph the cell's own right indent, and `date_column_untable`
+flowed those paragraphs into the body carrying it. On target_cv2 the section is
+10594 twips wide, so the pass writes its right stop at 10594 - exactly the text
+margin - while the ETSTC and Val Pere paragraphs still carried `w:ind
+w:right="1728"` / `"2880"`. The stop sat 1728 (2880) twips outside the text
+area, unreachable: "2020 - 2023" wrapped onto its own line and "2007 - 2019"
+landed mid-line, while the AUST and Eurisko entries, whose cells happened to be
+full width, stayed flush right. The date column was ragged across entries. The
+same cells also measured their left edge at 22 twips against 10 twips on every
+sibling, a 0.6pt ragged left edge.
+
+Fixed inside `date_column_untable` (`_untable_indent_repair`), per cell group,
+before the paragraphs leave the table:
+
+- if the group carries this pass's own right stop and any of its paragraphs has
+  a right indent R with stop > (section width - R), the right indent is dropped
+  from every paragraph of that group. The cell is gone, so its right indent is
+  furniture; a stop the paragraph can still reach is left alone.
+- the left indent is snapped onto the modal left indent of the body's OWN
+  (non-cell) paragraphs, and only when the two are within 30 twips (1.5pt) of
+  each other - one edge measured twice. A real indent (bullets at 368/720) is
+  never touched, and a body with no dominant left edge, or with two tied edges,
+  is left exactly as it was.
+
+Evidence on target_cv2: paragraphs 9-12 go left 22 -> 10 and right 1728/2880 ->
+0; paragraphs 7, 9, 11, 29 and 32 now all carry the same left edge (10) and the
+same reachable right stop (10594 = the text margin). Text, paragraph count and
+every rw subscore are unchanged - the scorer cannot see indents, this is a
+layout repair. QuickLook confirms the left edge; it does not honour right tab
+positions at all (the untouched AUST entry renders mid-line there too), so the
+stop is verified structurally against the section width.
+
+Gate: exit 0, no synthetic or real-world document dropped. Hostile cases
+F2-1..F2-9 (F2-1/F2-3/F2-4 fail without the repair; F2-2, F2-5..F2-8 are the
+negative controls).
+
+
+## G5 - stray section breaks on a multi-page document, and the entry welded around its own date
+
+Two halves of one defect, both visible on the two-page French CV (rw corpus
+`cv_carlos_fr`), neither of which any rw metric can see: the scorer counts
+tokens, headings, lists and links, not section breaks or paragraph boundaries.
+Evidence is structural and visual.
+
+**(a) The margin floor.** pdf2docx measures each page's margins from that page's
+own ink, so two sections over one paper size disagree by a few twips in EITHER
+direction: on this CV, top=408 on the first section and top=400 on the last.
+`section_break_tidy` used to propagate the FIRST section's margin forward and
+only where it was the smaller of the two, so a later section that measured
+smaller than the first stayed as it was. That leftover 8-twip difference is a
+real property difference, so `stray_mark_cleanup._sm_drop_inert_sections` read
+the continuous break sitting between those two sections as a genuine one and
+kept it. The pass now takes the per-side FLOOR across every section that shares
+the first section's `pgSz`. The safety argument is unchanged and now applies to
+every section rather than only to the continuation ones: a margin can only
+shrink, so a text area can only grow, so nothing already laid out can be pushed
+off a page.
+
+Result on `cv_carlos_fr`: 4 sectPr -> 3. The one that goes is the inert
+continuous break; the two that remain are the genuine 1-column -> 2-column ->
+1-column band around the education entries, which is a real property change and
+must stay. Text will now reflow across the break that was removed.
+
+**(b) The reversed date/sub-line order.** `tabbed_subline_split` owned the shape
+`head | TAB | sub | date`. pdf2docx emits the same three source lines as
+`head | TAB | date | sub` just as often - which of the two depends on how it
+grouped the page's blocks, not on the page - and it parks text-less furniture (a
+trailing `w:br`, a trailing `w:tab`) on the end of the block. Both facts vetoed
+the repair: `_fs_children` refused any paragraph containing a `w:br`, and
+`_tss_tabs` refused a paragraph with two tab-bearing children even when the
+second carried no text.
+
+- `_fs_trailing_breaks_only` narrows the `w:br` veto to breaks with text AFTER
+  them. A break hanging off the end cannot be a seam between two source lines
+  and cannot move when the paragraph is cut, so it is not a reason to decline.
+  Mid-stream breaks are still refused - those belong to `wrap_break_heal`.
+- `_tss_pad` ignores trailing text-less children when locating the date column's
+  tab, and they ride along with whichever piece ends up last.
+- `_tss_plan` searches both arrangements over child boundaries and accepts one
+  only on the existing `_tss_geometry` test, which is what actually proves the
+  shape: head and sub each a whole unique line of their own, one directly under
+  the other at the same left edge, the date alone on the head's baseline to its
+  right, nothing printed in between. Prose that happens to carry a tab matches
+  none of that.
+
+`inline_bullet_split` moved ahead of the two splitters in `PASSES`. It is the
+pass that gets a job header out of the same `w:p` as the first bullet of its
+list; until it has run, that header still carries a mid-stream `w:br`, which is
+exactly what makes the splitters decline it.
+
+Evidence on `cv_carlos_fr`, paragraph 28. Before: one paragraph, two font sizes,
+`Pierre Dammous & Partners Energy - PDPE \tAout 2022 - Dec. 2023 Ingenieur
+Projet Electrique / Consultant Technique`. After: `... - PDPE \tAout 2022 -
+Dec. 2023` and `Ingenieur Projet Electrique / Consultant Technique` on its own
+line - the same shape the pass already produced for the Freelance Eng, ME Green
+and Stage INDEVCO entries. QuickLook page 1 confirms it and shows nothing else
+moved.
+
+Gate: exit 0. Synthetic mean 0.9582, rw mean 0.8477, no document down. Hostile
+cases G5-1..G5-14; G5-1, G5-2, G5-6, G5-8 and G5-9 fail without the change, the
+other nine are negative controls (mixed page sizes, a different paper size, no
+PDF, a genuine column-count change, a mid-stream break, no shared left edge, an
+intervening line, idempotence, word-stream conservation).
