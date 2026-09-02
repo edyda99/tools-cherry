@@ -1965,23 +1965,13 @@ function stateRateFigure(state) {
 // "{state} income tax rate {year}" query they already rank near page 1 for, and
 // their take-home framing still sits in the meta description and the lead
 // paragraph under the H1.
-//
-// Every other state now spends its clause on the FIGURE rather than on the words
-// "Take-Home Pay After Taxes". The page's answer box, its lead sentence and its
-// meta all answer for a $75,000 single filer; the title said no number at all,
-// which is the one field an answer engine is most likely to quote. `net` is the
-// same computed annual take-home the lead paragraph prints, so the title cannot
-// state a figure the page contradicts. Long state names blow the 60-char budget
-// with it and fall through to the existing variants, by the mechanism already
-// here — no state can lose its phrase or its year.
-function stateTitle(state, year, net) {
+function stateTitle(state, year) {
   const base = `${state.name} Paycheck Calculator ${year}`;
   const variants = [];
   if (TARGET_STATES.has(state.slug)) {
     const fig = stateRateFigure(state);
     if (fig) variants.push(`${base}: ${fig.title} Income Tax`);
   }
-  if (Number.isFinite(net) && net > 0) variants.push(`${base}: $75k Nets ${usd0(net)}`);
   variants.push(`${base}: Take-Home Pay After Taxes`, `${base}: Take-Home Pay`, base);
   return variants.find((t) => decodedLen(t) <= 60) || base;
 }
@@ -7883,7 +7873,7 @@ async function main() {
     statePageAnswers[slug] = answer.leadText;
     const html = fill(stateTpl, {
       STATE_NAME: state.name,
-      STATE_TITLE: stateTitle(state, year, net75.annualNet),
+      STATE_TITLE: stateTitle(state, year),
       STATE_META_DESC: stateMetaDesc(state, year),
       // Short, human, and the exact phrase a searcher types, with nothing wedged
       // into the middle of it. The take-home framing lives in the answer-lead
