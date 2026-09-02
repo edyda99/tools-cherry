@@ -2606,6 +2606,10 @@ function stateAnswerParts(state, year, net75) {
   const h2 = rateSentence ? `<h2>${state.name} income tax rate ${year}</h2>` : '';
   return {
     lead: `<p class="answer-lead"><strong>${lead}</strong></p>`,
+    // The same sentence before it was wrapped in markup. llms.txt describes each
+    // state page with this string, so the manifest entry and the page cannot say
+    // two different numbers: there is one sentence and two renderings of it.
+    leadText: lead,
     rate: rateSentence ? `${h2}<p class="note"><strong>${rateSentence}</strong></p>` : '',
     tail: `<p class="note">${tail}</p>`
   };
@@ -7299,6 +7303,15 @@ async function main() {
   // llms.txt is byte-identical to the sentence on the page rather than a second,
   // drifting copy of it. Read by the llms.txt writer at the end of main().
   const dataPageAnswers = {};
+  // Same idea for the 51 state paycheck pages, keyed by state slug: the plain-text
+  // half of the answer-lead sentence each page already prints, written at the state
+  // write site and read by the llms.txt writer at the end of main(). Those manifest
+  // lines were bare links; now they carry the page's own computed figure, from the
+  // same string the page renders.
+  const statePageAnswers = {};
+  // And for the per-state salary-ladder hubs: the first sentence of the hub's own
+  // number-bearing lede, tags stripped. Written inside the ladder block below.
+  const ladderHubAnswers = {};
   // Standalone /data/ reference tables (citable link-bait): each re-packages an
   // already-sourced dataset that lives inside an existing tool page, plus an
   // iframe-able /embed/data/* twin.
@@ -7828,6 +7841,7 @@ async function main() {
     }
     const panel = statePanel(state, taxData, net75);
     const answer = stateAnswerParts(state, year, net75);
+    statePageAnswers[slug] = answer.leadText;
     const html = fill(stateTpl, {
       STATE_NAME: state.name,
       STATE_TITLE: stateTitle(state, year),
@@ -11593,9 +11607,24 @@ async function main() {
       return `- [${t.name}](${SITE.url}${t.path}): ${d}`;
     })
     .join('\n');
+  // These sentences were escaped for HTML on their way into a page. llms.txt is
+  // plain markdown, so the entities have to come back off or a consumer quotes
+  // "&amp;" at a reader.
+  const unesc = (s) => String(s)
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&');
+  // Each state calculator described by the exact answer sentence its own page
+  // leads with (statePageAnswers, written at the state write site). These were 51
+  // bare links, which is the only text an engine reads before deciding whether to
+  // fetch the page; they now carry that state's computed take-home figure. A state
+  // with no recorded sentence keeps its link and loses only the description.
   const builtStateLines = roster
     .filter((s) => builtSlugs.has(s.slug))
-    .map((s) => `- [${s.name} Paycheck Calculator](${SITE.url}/${s.slug}-paycheck-calculator/)`)
+    .map((s) => {
+      const link = `- [${s.name} Paycheck Calculator](${SITE.url}/${s.slug}-paycheck-calculator/)`;
+      return statePageAnswers[s.slug] ? `${link}: ${unesc(statePageAnswers[s.slug])}` : link;
+    })
     .join('\n');
   // The /data/ reference tables, described by the exact one-sentence computed answer
   // each of those pages now opens with (dataPageAnswers, written by the blocks that
@@ -11612,13 +11641,7 @@ async function main() {
     ['/data/treasury-tipped-occupation-codes/', 'Treasury Tipped Occupation Codes (TTOC)'],
     ['/data/2026-student-loan-limits/', `${year} Federal Student Loan Borrowing Limits`],
   ];
-  // These sentences were escaped for HTML on their way into a page. llms.txt is
-  // plain markdown, so the entities have to come back off or a consumer quotes
-  // "&amp;" at a reader.
-  const unesc = (s) => String(s)
-    .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
-    .replace(/&amp;/g, '&');
+  // (unesc is defined above builtStateLines, which is the first consumer.)
   const llmsDataLines = LLMS_DATA_PAGES
     .filter(([p]) => dataPageAnswers[p])
     .map(([p, title]) => `- [${title}](${SITE.url}${p}): ${unesc(dataPageAnswers[p])}`)
