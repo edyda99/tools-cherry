@@ -517,6 +517,24 @@ function humanDate(iso) {
   return m ? `${MONTH_NAMES[+m[2] - 1]} ${+m[3]}, ${m[1]}` : '';
 }
 
+// The three fixed anchor dates the fixed-interval date pages count their worked
+// examples from. Derived from an ISO date rather than from the clock, so two
+// builds a week apart produce byte-identical pages: the base date plus the 1st
+// of each of the next two months. The base handed in is the same signal
+// sitemapLastmod already uses for those pages, so the examples move only when
+// their content module does.
+function dftAnchors(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+  if (!m) return [];
+  const y = +m[1], mo = +m[2];
+  const firstOf = (n) => {
+    const yr = y + Math.floor((mo + n - 1) / 12);
+    const month = ((mo + n - 1) % 12) + 1;
+    return `${yr}-${String(month).padStart(2, '0')}-01`;
+  };
+  return [iso, firstOf(1), firstOf(2)];
+}
+
 // Tax/finance tool pages whose figures are post-cutoff 2026 statutory numbers
 // AI assistants retrieve live. Each gets a visible "Last updated" byline under
 // its <h1> (injected in fillTool) so the freshness date is machine-readable —
@@ -2604,8 +2622,23 @@ function stateAnswerParts(state, year, net75) {
   // that is the literal query — a better extraction unit than the old
   // rate-plus-take-home run-on paragraph, not a worse one.
   const h2 = rateSentence ? `<h2>${state.name} income tax rate ${year}</h2>` : '';
+  // The question the page answers, stated as a heading directly above the sentence
+  // that answers it. The H1 was deliberately shortened to the bare phrase a searcher
+  // types, so the take-home framing had no heading of its own anywhere on the page;
+  // an extractor saw a numeric paragraph under a headline that asks nothing. This is
+  // the same heading/answer pairing already proven on the RATE_BLOCK h2 below,
+  // rotated through frames keyed on the slug so 51 headings are not byte-identical.
+  const askH2 = pickFrame(state.slug, 'answerq', [
+    `What is the take-home pay on $75,000 in ${state.name} in ${year}?`,
+    `How much is $75,000 a year after taxes in ${state.name} in ${year}?`,
+    `$75,000 a year in ${state.name}: what is the ${year} take-home pay?`
+  ]);
   return {
-    lead: `<p class="answer-lead"><strong>${lead}</strong></p>`,
+    lead: `<h2>${askH2}</h2><p class="answer-lead"><strong>${lead}</strong></p>`,
+    // The same sentence before it was wrapped in markup. llms.txt describes each
+    // state page with this string, so the manifest entry and the page cannot say
+    // two different numbers: there is one sentence and two renderings of it.
+    leadText: lead,
     rate: rateSentence ? `${h2}<p class="note"><strong>${rateSentence}</strong></p>` : '',
     tail: `<p class="note">${tail}</p>`
   };
@@ -7299,6 +7332,15 @@ async function main() {
   // llms.txt is byte-identical to the sentence on the page rather than a second,
   // drifting copy of it. Read by the llms.txt writer at the end of main().
   const dataPageAnswers = {};
+  // Same idea for the 51 state paycheck pages, keyed by state slug: the plain-text
+  // half of the answer-lead sentence each page already prints, written at the state
+  // write site and read by the llms.txt writer at the end of main(). Those manifest
+  // lines were bare links; now they carry the page's own computed figure, from the
+  // same string the page renders.
+  const statePageAnswers = {};
+  // And for the per-state salary-ladder hubs: the first sentence of the hub's own
+  // number-bearing lede, tags stripped. Written inside the ladder block below.
+  const ladderHubAnswers = {};
   // Standalone /data/ reference tables (citable link-bait): each re-packages an
   // already-sourced dataset that lives inside an existing tool page, plus an
   // iframe-able /embed/data/* twin.
@@ -7828,6 +7870,7 @@ async function main() {
     }
     const panel = statePanel(state, taxData, net75);
     const answer = stateAnswerParts(state, year, net75);
+    statePageAnswers[slug] = answer.leadText;
     const html = fill(stateTpl, {
       STATE_NAME: state.name,
       STATE_TITLE: stateTitle(state, year),
@@ -7913,12 +7956,37 @@ async function main() {
       TAX_DATA_JSON: JSON.stringify(payload),
       YEAR: year,
       VERIFIED: verified,
+      // The same date, spelled for a reader. The byline it feeds is now a <time>
+      // element, so the machine reads the ISO attribute and the person reads
+      // "August 26, 2026" — one date, two renderings, no second source.
+      VERIFIED_HUMAN: humanDate(verified) || verified,
       SITE_NAME: SITE.name,
       SITE_URL: SITE.url
     });
     const dir = join(DIST, `${slug}-paycheck-calculator`);
     await mkdir(dir, { recursive: true });
-    const pageHtml = html.replace('<footer class="site">', `${stateRelated}\n<footer class="site">`);
+    let pageHtml = html.replace('<footer class="site">', `${stateRelated}\n<footer class="site">`);
+    // Freshness, near the top and machine-readable. These 51 pages go through
+    // fill(), not fillTool(), so they never got the "Last updated" byline the 25
+    // dated tax tools carry, and their only date sat in the footer of the links
+    // section. Same markup as toolUpdatedLine(), dated from taxData._meta
+    // .lastSourced rather than from a template's git date, because that is the
+    // date these pages' figures were actually checked against their sources.
+    if (verified) {
+      pageHtml = pageHtml.replace(
+        '</h1>',
+        `</h1>\n    <p class="tool-updated muted-small">Last updated: <time datetime="${verified}">${humanDate(verified) || verified}</time></p>`
+      );
+      // ...and make the crawler's date agree with the one the reader now sees at
+      // the top. injectEntitySchema stamped this page's WebPage node with the
+      // site-wide CONTENT_DATE (2026-06-28) while the page told a person
+      // 2026-08-26. Same one-line rewrite fillTool already performs for the dated
+      // tax tools, scoped to this page's string — CONTENT_DATE itself and its
+      // twenty other call sites are untouched.
+      if (verified !== CONTENT_DATE) {
+        pageHtml = pageHtml.replace(`"dateModified":"${CONTENT_DATE}"`, `"dateModified":"${verified}"`);
+      }
+    }
     // Checked against the bytes about to be written, not against the token map
     // that produced them, so a template that stops using a token is caught too.
     assertPanelParity(state, net75, panel, pageHtml, appScan);
@@ -8406,6 +8474,38 @@ async function main() {
           `${methodStateClause}${methodProgClause}. Nothing on this page is hand-typed, and nothing is ` +
           `fetched: a person updates the tax data file when a figure changes and the next build recomputes ` +
           `all ${rungs.length} rows.`;
+        // The number-bearing sentence leads. It used to sit second, behind a
+        // sentenceless fragment ("What a California salary actually pays,
+        // computed for nine salary levels..."), which is what an answer engine
+        // lifts first and which answers nothing on its own. This version names
+        // the state, the year, both ends of the ladder and both computed
+        // figures, so it stands up quoted with no headline attached.
+        //
+        // Hoisted out of the fill() map so llms.txt can describe this hub with
+        // the hub's own first sentence rather than a second, drifting copy of it.
+        const hubLede = `In ${NAME} for ${year}, a single filer earning ${usd0(low.amount)} takes home ` +
+          `<strong>${usd0(low.a.net)}</strong> a year and one earning ${usd0(high.amount)} takes home ` +
+          `<strong>${usd0(high.a.net)}</strong>, after ` +
+          // Names only the withholdings this state actually has, and joins them as
+          // English rather than as a trailing comma list. A no-income-tax state
+          // that still runs an employee-paid premium (Washington) has to say so, or
+          // the sentence explains its own figure wrongly.
+          (() => {
+            const parts = ['federal income tax', 'Social Security', 'Medicare'];
+            if (kind !== 'none') parts.push(`${NAME} income tax`);
+            if (low.a.statePrograms > 0) parts.push(`${NAME}'s employee-paid state payroll premiums`);
+            return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
+          })() +
+          `. This page computes ` +
+          `${numWord(rungs.length)} salary levels from ${usd0(low.amount)} to ${usd0(high.amount)}. Pick a salary for the full ` +
+          `${kind === 'bracket' ? `federal and ${NAME} bracket-by-bracket` : (kind === 'flat' ? `federal bracket-by-bracket, and the ${NAME}` : `federal bracket-by-bracket`)} working.`;
+        // First sentence only, inline <strong> removed. The ladder LEDE is the one
+        // shared sentence on the site that carries markup inside it, so the strip is
+        // here rather than in the llms.txt writer. Ends at the first period followed
+        // by whitespace, which is the period after the withholding list — no figure
+        // in this sentence contains one (usd0 prints no cents).
+        ladderHubAnswers[ladderSlugKey] =
+          (hubLede.replace(/<\/?strong>/g, '').match(/^[\s\S]*?\.(?=\s|$)/) || [''])[0];
         const hubHtml = fill(hubTpl, {
           SITE_NAME: SITE.name, SITE_URL: SITE.url,
           TAX_YEAR: year,
@@ -8422,28 +8522,7 @@ async function main() {
           PUB_DATE: pubDate,
           FIGURE_BASIS: ladderBasis,
           FIGURE_BANNER: figureYearBanner(state, year),
-          // The number-bearing sentence leads. It used to sit second, behind a
-          // sentenceless fragment ("What a California salary actually pays,
-          // computed for nine salary levels..."), which is what an answer engine
-          // lifts first and which answers nothing on its own. This version names
-          // the state, the year, both ends of the ladder and both computed
-          // figures, so it stands up quoted with no headline attached.
-          LEDE: `In ${NAME} for ${year}, a single filer earning ${usd0(low.amount)} takes home ` +
-            `<strong>${usd0(low.a.net)}</strong> a year and one earning ${usd0(high.amount)} takes home ` +
-            `<strong>${usd0(high.a.net)}</strong>, after ` +
-            // Names only the withholdings this state actually has, and joins them as
-            // English rather than as a trailing comma list. A no-income-tax state
-            // that still runs an employee-paid premium (Washington) has to say so, or
-            // the sentence explains its own figure wrongly.
-            (() => {
-              const parts = ['federal income tax', 'Social Security', 'Medicare'];
-              if (kind !== 'none') parts.push(`${NAME} income tax`);
-              if (low.a.statePrograms > 0) parts.push(`${NAME}'s employee-paid state payroll premiums`);
-              return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
-            })() +
-            `. This page computes ` +
-            `${numWord(rungs.length)} salary levels from ${usd0(low.amount)} to ${usd0(high.amount)}. Pick a salary for the full ` +
-            `${kind === 'bracket' ? `federal and ${NAME} bracket-by-bracket` : (kind === 'flat' ? `federal bracket-by-bracket, and the ${NAME}` : `federal bracket-by-bracket`)} working.`,
+          LEDE: hubLede,
           SHORT_VERSION: `Across this ladder the share of gross pay withheld runs from ` +
             `${pct1(low.allInRate)} at ${usd0(low.amount)} to ${pct1(high.allInRate)} at ` +
             `${usd0(high.amount)}. Over the whole ${usd0(high.amount - low.amount)} climb, ` +
@@ -8889,6 +8968,13 @@ async function main() {
   // Related-tools is overridden per page to the date cluster rather than the
   // random calc pick: someone on "60 days from today" wants the neighbouring
   // intervals and the general date tools, not a paint calculator.
+  //
+  // What they DO now carry is a small worked table counting the interval from
+  // three named, fixed dates. That is not the page's answer and never claims to
+  // be today's: each row says what it counted from, so it cannot go stale, and it
+  // gives a crawler that never executes anything a real date to read instead of
+  // the em dash in #dftBig.
+  const DFT_ANCHORS = dftAnchors(gitDate('src/content/days-from-today.js') || CONTENT_DATE);
   for (const p of DFT_PAGES) {
     const path = dftPath(p);
     RELATED_OVERRIDES[path] = [
@@ -8903,7 +8989,7 @@ async function main() {
     await mkdir(dir, { recursive: true });
     await writeFile(
       join(dir, 'index.html'),
-      fillTool(dftTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, ...dftPageParts(p) }, path)
+      fillTool(dftTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, ...dftPageParts(p, DFT_ANCHORS) }, path)
     );
     urls.push(`${SITE.url}${path}`);
   }
@@ -11593,9 +11679,24 @@ async function main() {
       return `- [${t.name}](${SITE.url}${t.path}): ${d}`;
     })
     .join('\n');
+  // These sentences were escaped for HTML on their way into a page. llms.txt is
+  // plain markdown, so the entities have to come back off or a consumer quotes
+  // "&amp;" at a reader.
+  const unesc = (s) => String(s)
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&');
+  // Each state calculator described by the exact answer sentence its own page
+  // leads with (statePageAnswers, written at the state write site). These were 51
+  // bare links, which is the only text an engine reads before deciding whether to
+  // fetch the page; they now carry that state's computed take-home figure. A state
+  // with no recorded sentence keeps its link and loses only the description.
   const builtStateLines = roster
     .filter((s) => builtSlugs.has(s.slug))
-    .map((s) => `- [${s.name} Paycheck Calculator](${SITE.url}/${s.slug}-paycheck-calculator/)`)
+    .map((s) => {
+      const link = `- [${s.name} Paycheck Calculator](${SITE.url}/${s.slug}-paycheck-calculator/)`;
+      return statePageAnswers[s.slug] ? `${link}: ${unesc(statePageAnswers[s.slug])}` : link;
+    })
     .join('\n');
   // The /data/ reference tables, described by the exact one-sentence computed answer
   // each of those pages now opens with (dataPageAnswers, written by the blocks that
@@ -11612,13 +11713,7 @@ async function main() {
     ['/data/treasury-tipped-occupation-codes/', 'Treasury Tipped Occupation Codes (TTOC)'],
     ['/data/2026-student-loan-limits/', `${year} Federal Student Loan Borrowing Limits`],
   ];
-  // These sentences were escaped for HTML on their way into a page. llms.txt is
-  // plain markdown, so the entities have to come back off or a consumer quotes
-  // "&amp;" at a reader.
-  const unesc = (s) => String(s)
-    .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
-    .replace(/&amp;/g, '&');
+  // (unesc is defined above builtStateLines, which is the first consumer.)
   const llmsDataLines = LLMS_DATA_PAGES
     .filter(([p]) => dataPageAnswers[p])
     .map(([p, title]) => `- [${title}](${SITE.url}${p}): ${unesc(dataPageAnswers[p])}`)
@@ -11629,7 +11724,11 @@ async function main() {
     .filter((slug) => builtSlugs.has(slug))
     .map((slug) => {
       const st = roster.find((s) => s.slug === slug);
-      return `- [${st ? st.name : slug} Take-Home Pay by Salary](${SITE.url}/${ladderHubSlug(slug)}/)`;
+      const link = `- [${st ? st.name : slug} Take-Home Pay by Salary](${SITE.url}/${ladderHubSlug(slug)}/)`;
+      // Described by the hub's own opening sentence, which already names both ends
+      // of the ladder and both computed figures. A hub with no recorded sentence
+      // keeps its link and loses only the description.
+      return ladderHubAnswers[slug] ? `${link}: ${unesc(ladderHubAnswers[slug])}` : link;
     })
     .join('\n');
   const llmsTxt =
