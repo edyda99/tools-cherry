@@ -8420,6 +8420,38 @@ async function main() {
           `${methodStateClause}${methodProgClause}. Nothing on this page is hand-typed, and nothing is ` +
           `fetched: a person updates the tax data file when a figure changes and the next build recomputes ` +
           `all ${rungs.length} rows.`;
+        // The number-bearing sentence leads. It used to sit second, behind a
+        // sentenceless fragment ("What a California salary actually pays,
+        // computed for nine salary levels..."), which is what an answer engine
+        // lifts first and which answers nothing on its own. This version names
+        // the state, the year, both ends of the ladder and both computed
+        // figures, so it stands up quoted with no headline attached.
+        //
+        // Hoisted out of the fill() map so llms.txt can describe this hub with
+        // the hub's own first sentence rather than a second, drifting copy of it.
+        const hubLede = `In ${NAME} for ${year}, a single filer earning ${usd0(low.amount)} takes home ` +
+          `<strong>${usd0(low.a.net)}</strong> a year and one earning ${usd0(high.amount)} takes home ` +
+          `<strong>${usd0(high.a.net)}</strong>, after ` +
+          // Names only the withholdings this state actually has, and joins them as
+          // English rather than as a trailing comma list. A no-income-tax state
+          // that still runs an employee-paid premium (Washington) has to say so, or
+          // the sentence explains its own figure wrongly.
+          (() => {
+            const parts = ['federal income tax', 'Social Security', 'Medicare'];
+            if (kind !== 'none') parts.push(`${NAME} income tax`);
+            if (low.a.statePrograms > 0) parts.push(`${NAME}'s employee-paid state payroll premiums`);
+            return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
+          })() +
+          `. This page computes ` +
+          `${numWord(rungs.length)} salary levels from ${usd0(low.amount)} to ${usd0(high.amount)}. Pick a salary for the full ` +
+          `${kind === 'bracket' ? `federal and ${NAME} bracket-by-bracket` : (kind === 'flat' ? `federal bracket-by-bracket, and the ${NAME}` : `federal bracket-by-bracket`)} working.`;
+        // First sentence only, inline <strong> removed. The ladder LEDE is the one
+        // shared sentence on the site that carries markup inside it, so the strip is
+        // here rather than in the llms.txt writer. Ends at the first period followed
+        // by whitespace, which is the period after the withholding list — no figure
+        // in this sentence contains one (usd0 prints no cents).
+        ladderHubAnswers[ladderSlugKey] =
+          (hubLede.replace(/<\/?strong>/g, '').match(/^[\s\S]*?\.(?=\s|$)/) || [''])[0];
         const hubHtml = fill(hubTpl, {
           SITE_NAME: SITE.name, SITE_URL: SITE.url,
           TAX_YEAR: year,
@@ -8436,28 +8468,7 @@ async function main() {
           PUB_DATE: pubDate,
           FIGURE_BASIS: ladderBasis,
           FIGURE_BANNER: figureYearBanner(state, year),
-          // The number-bearing sentence leads. It used to sit second, behind a
-          // sentenceless fragment ("What a California salary actually pays,
-          // computed for nine salary levels..."), which is what an answer engine
-          // lifts first and which answers nothing on its own. This version names
-          // the state, the year, both ends of the ladder and both computed
-          // figures, so it stands up quoted with no headline attached.
-          LEDE: `In ${NAME} for ${year}, a single filer earning ${usd0(low.amount)} takes home ` +
-            `<strong>${usd0(low.a.net)}</strong> a year and one earning ${usd0(high.amount)} takes home ` +
-            `<strong>${usd0(high.a.net)}</strong>, after ` +
-            // Names only the withholdings this state actually has, and joins them as
-            // English rather than as a trailing comma list. A no-income-tax state
-            // that still runs an employee-paid premium (Washington) has to say so, or
-            // the sentence explains its own figure wrongly.
-            (() => {
-              const parts = ['federal income tax', 'Social Security', 'Medicare'];
-              if (kind !== 'none') parts.push(`${NAME} income tax`);
-              if (low.a.statePrograms > 0) parts.push(`${NAME}'s employee-paid state payroll premiums`);
-              return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
-            })() +
-            `. This page computes ` +
-            `${numWord(rungs.length)} salary levels from ${usd0(low.amount)} to ${usd0(high.amount)}. Pick a salary for the full ` +
-            `${kind === 'bracket' ? `federal and ${NAME} bracket-by-bracket` : (kind === 'flat' ? `federal bracket-by-bracket, and the ${NAME}` : `federal bracket-by-bracket`)} working.`,
+          LEDE: hubLede,
           SHORT_VERSION: `Across this ladder the share of gross pay withheld runs from ` +
             `${pct1(low.allInRate)} at ${usd0(low.amount)} to ${pct1(high.allInRate)} at ` +
             `${usd0(high.amount)}. Over the whole ${usd0(high.amount - low.amount)} climb, ` +
@@ -11652,7 +11663,11 @@ async function main() {
     .filter((slug) => builtSlugs.has(slug))
     .map((slug) => {
       const st = roster.find((s) => s.slug === slug);
-      return `- [${st ? st.name : slug} Take-Home Pay by Salary](${SITE.url}/${ladderHubSlug(slug)}/)`;
+      const link = `- [${st ? st.name : slug} Take-Home Pay by Salary](${SITE.url}/${ladderHubSlug(slug)}/)`;
+      // Described by the hub's own opening sentence, which already names both ends
+      // of the ladder and both computed figures. A hub with no recorded sentence
+      // keeps its link and loses only the description.
+      return ladderHubAnswers[slug] ? `${link}: ${unesc(ladderHubAnswers[slug])}` : link;
     })
     .join('\n');
   const llmsTxt =
