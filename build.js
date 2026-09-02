@@ -7966,12 +7966,37 @@ async function main() {
       TAX_DATA_JSON: JSON.stringify(payload),
       YEAR: year,
       VERIFIED: verified,
+      // The same date, spelled for a reader. The byline it feeds is now a <time>
+      // element, so the machine reads the ISO attribute and the person reads
+      // "August 26, 2026" — one date, two renderings, no second source.
+      VERIFIED_HUMAN: humanDate(verified) || verified,
       SITE_NAME: SITE.name,
       SITE_URL: SITE.url
     });
     const dir = join(DIST, `${slug}-paycheck-calculator`);
     await mkdir(dir, { recursive: true });
-    const pageHtml = html.replace('<footer class="site">', `${stateRelated}\n<footer class="site">`);
+    let pageHtml = html.replace('<footer class="site">', `${stateRelated}\n<footer class="site">`);
+    // Freshness, near the top and machine-readable. These 51 pages go through
+    // fill(), not fillTool(), so they never got the "Last updated" byline the 25
+    // dated tax tools carry, and their only date sat in the footer of the links
+    // section. Same markup as toolUpdatedLine(), dated from taxData._meta
+    // .lastSourced rather than from a template's git date, because that is the
+    // date these pages' figures were actually checked against their sources.
+    if (verified) {
+      pageHtml = pageHtml.replace(
+        '</h1>',
+        `</h1>\n    <p class="tool-updated muted-small">Last updated: <time datetime="${verified}">${humanDate(verified) || verified}</time></p>`
+      );
+      // ...and make the crawler's date agree with the one the reader now sees at
+      // the top. injectEntitySchema stamped this page's WebPage node with the
+      // site-wide CONTENT_DATE (2026-06-28) while the page told a person
+      // 2026-08-26. Same one-line rewrite fillTool already performs for the dated
+      // tax tools, scoped to this page's string — CONTENT_DATE itself and its
+      // twenty other call sites are untouched.
+      if (verified !== CONTENT_DATE) {
+        pageHtml = pageHtml.replace(`"dateModified":"${CONTENT_DATE}"`, `"dateModified":"${verified}"`);
+      }
+    }
     // Checked against the bytes about to be written, not against the token map
     // that produced them, so a template that stops using a token is caught too.
     assertPanelParity(state, net75, panel, pageHtml, appScan);
