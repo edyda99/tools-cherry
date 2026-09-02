@@ -2614,8 +2614,19 @@ function stateAnswerParts(state, year, net75) {
   // that is the literal query — a better extraction unit than the old
   // rate-plus-take-home run-on paragraph, not a worse one.
   const h2 = rateSentence ? `<h2>${state.name} income tax rate ${year}</h2>` : '';
+  // The question the page answers, stated as a heading directly above the sentence
+  // that answers it. The H1 was deliberately shortened to the bare phrase a searcher
+  // types, so the take-home framing had no heading of its own anywhere on the page;
+  // an extractor saw a numeric paragraph under a headline that asks nothing. This is
+  // the same heading/answer pairing already proven on the RATE_BLOCK h2 below,
+  // rotated through frames keyed on the slug so 51 headings are not byte-identical.
+  const askH2 = pickFrame(state.slug, 'answerq', [
+    `What is the take-home pay on $75,000 in ${state.name} in ${year}?`,
+    `How much is $75,000 a year after taxes in ${state.name} in ${year}?`,
+    `$75,000 a year in ${state.name}: what is the ${year} take-home pay?`
+  ]);
   return {
-    lead: `<p class="answer-lead"><strong>${lead}</strong></p>`,
+    lead: `<h2>${askH2}</h2><p class="answer-lead"><strong>${lead}</strong></p>`,
     // The same sentence before it was wrapped in markup. llms.txt describes each
     // state page with this string, so the manifest entry and the page cannot say
     // two different numbers: there is one sentence and two renderings of it.
