@@ -3,10 +3,18 @@
 // prose sections, the FAQ and the sibling links.
 //
 // THE ANSWER IS NOT IN HERE. "30 days from today" is a different date every
-// morning, so nothing on these pages may be computed at build time; the date is
+// morning, so the page's own answer may not be computed at build time; it is
 // worked out in the reader's browser by /assets/days-from-today.js through the
 // shared date engine. What this file writes is the part that stays true — what
 // the interval means, how the count is defined, and what it is used for.
+//
+// The one exception, and the reason it is not a violation: a small worked table
+// that counts the interval from three NAMED, fixed anchor dates. "30 days from
+// today" cannot be baked; "30 days on from Tuesday, September 1, 2026" is true
+// forever, because it says what it counted from. Every sentence in that block
+// names its anchor and none of them says "today". Without it these 29 pages ship
+// a byte-identical `<p class="net-big" id="dftBig">&mdash;</p>` and an extractor
+// that never runs JavaScript has literally no date to read.
 //
 // Twenty-nine pages built from one shape is exactly how a template farm is
 // made, so three things vary deliberately: the per-page use-case copy (written
@@ -15,6 +23,9 @@
 // that is a digit-masked 5-gram similarity measurement across the built pages —
 // digit-masked because "30 days" and "60 days" are the same sentence otherwise.
 import { DFT_PAGES } from './days-from-today.js';
+// The same date engine /date-calculator/ and /assets/days-from-today.js run, so
+// the worked examples below cannot disagree with the live answer above them.
+import { parseISODate, addToDate, addBusinessDays, formatLong } from '../engine/date-add.js';
 
 // FNV-1a + the MurmurHash3 finalizer, so similar short slugs ("30-days-ago" vs
 // "60-days-ago") decorrelate across salts instead of picking the same variant in
@@ -175,12 +186,79 @@ function weekendBlock(p) {
     `</section>`;
 }
 
+// --- The anchored worked example -------------------------------------------
+// One interval, counted from three fixed dates build.js hands in. Uses the
+// shared engine rather than its own arithmetic, so a business-day page skips
+// exactly the days /assets/days-from-today.js skips.
+function anchoredResult(p, base) {
+  const sign = p.dir === 'back' ? -1 : 1;
+  if (p.unit === 'business') return addBusinessDays(base, p.amount, sign);
+  if (p.unit === 'week') return addToDate(base, { weeks: p.amount }, sign);
+  return addToDate(base, { days: p.amount }, sign);
+}
+
+// Anchors arrive as ISO strings and leave as long-form labels. A malformed or
+// unparseable anchor drops out rather than printing an Invalid Date, and an
+// empty list means the whole block is omitted.
+function anchoredRows(p, anchors) {
+  return (Array.isArray(anchors) ? anchors : [])
+    .map((iso) => parseISODate(iso))
+    .filter(Boolean)
+    .map((base) => ({ from: formatLong(base), to: formatLong(anchoredResult(p, base)) }))
+    .filter((r) => r.from && r.to);
+}
+
+const dirWordOf = (p) => (p.dir === 'back' ? 'back' : 'forward');
+
+// The sentence a quoting engine can lift whole. It names the anchor, so it stays
+// true on any day the page is read.
+function anchoredSentence(p, row) {
+  return `Counting ${dftUnitPhrase(p)} ${dirWordOf(p)} from ${row.from} gives ${row.to}.`;
+}
+
+function anchoredFaq(p, row) {
+  const iv = dftUnitPhrase(p);
+  return {
+    q: p.dir === 'back' ? `What date was ${iv} before ${row.from}?` : `What date is ${iv} from ${row.from}?`,
+    a: anchoredSentence(p, row),
+  };
+}
+
+function anchoredExampleBlock(p, rows) {
+  if (!rows.length) return '';
+  const iv = dftUnitPhrase(p);
+  const dirWord = dirWordOf(p);
+  const h2 = frame(p.slug, 'anch', [
+    `${iv} counted from three fixed dates`,
+    `Worked examples with the start date named`,
+    `Three dates, counted out in full`,
+  ]);
+  const intro = frame(p.slug, 'anchintro', [
+    `The answer at the top of the page comes from your own clock, so it is not written into the page. These three are, because each one says what it counted from: they read the same on any day you open them.`,
+    `Because every row below names its own starting date, none of them goes stale. They are the same count as the box above, run from three dates fixed in advance rather than from your device's clock.`,
+    `Here is the same arithmetic against three fixed dates. Nothing in this table depends on when you opened the page, which is exactly why it can be printed rather than calculated on load.`,
+  ]);
+  const skipNote = p.unit === 'business'
+    ? ` Saturdays and Sundays are skipped, so every row lands on a weekday.`
+    : '';
+  const body = rows
+    .map((r) => `<tr><td>${esc(r.from)}</td><td>${esc(r.to)}</td></tr>`)
+    .join('');
+  return `<section class="prose"><h2>${h2}</h2>` +
+    `<p>${esc(intro)}${skipNote}</p>` +
+    `<table><caption>${esc(iv)} ${dirWord}, counted from three fixed dates</caption>` +
+    `<thead><tr><th>Counting from</th><th>${esc(iv)} ${dirWord}</th></tr></thead>` +
+    `<tbody>${body}</tbody></table>` +
+    `<p><strong>${esc(anchoredSentence(p, rows[0]))}</strong></p>` +
+    `</section>`;
+}
+
 const useBlocks = (p) => p.uses.map((u) =>
   `<section class="prose"><h2>${u.h2}</h2><p>${u.p.replace(/\s+/g, ' ').trim()}</p></section>`);
 
 // Section ORDER rotates as well as section wording, so two pages in the same
 // family never present the same shapes in the same sequence.
-function sections(p) {
+function sections(p, rows = []) {
   const uses = useBlocks(p);
   const method = methodBlock(p);
   const weekend = weekendBlock(p);
@@ -189,6 +267,11 @@ function sections(p) {
   if (order === 0) out = [method, ...uses, weekend];
   else if (order === 1) out = [uses[0], method, ...uses.slice(1), weekend];
   else out = [...uses, weekend, method];
+  const anchored = anchoredExampleBlock(p, rows);
+  // Rotated into the stack on the same grounds as the order rotation itself, but
+  // never below the third slot: the worked figures are the extractable half of
+  // the page and should not sit at the bottom of a long prose run.
+  if (anchored) out.splice(mixIndex(slugHash(p.slug + 'anchpos'), Math.min(3, out.length + 1)), 0, anchored);
   return out.map((s) => '    ' + s).join('\n\n');
 }
 
@@ -220,11 +303,16 @@ function sibIntro(p) {
  * Everything one fixed-interval page needs, as template tokens.
  * Pure: no clocks, no files, no network. Called once per page by build.js.
  */
-export function dftPageParts(p) {
+export function dftPageParts(p, anchors = []) {
   const iv = dftUnitPhrase(p);
   const t = title(p);
   const d = desc(p);
-  const faqHtml = p.faq
+  // The worked-example rows, and the fourth FAQ entry drawn from the first of
+  // them — so the anchored answer lands in the FAQPage node as well as in the
+  // prose, which is where an answer engine reads a question/answer pair.
+  const rows = anchoredRows(p, anchors);
+  const faq = rows.length ? [...p.faq, anchoredFaq(p, rows[0])] : p.faq;
+  const faqHtml = faq
     .map((e) => `      <p><strong>${esc(e.q)}</strong> ${esc(e.a)}</p>`)
     .join('\n');
   return {
@@ -240,7 +328,7 @@ export function dftPageParts(p) {
     DIR: p.dir === 'back' ? 'back' : 'fwd',
     ARIA: escAttr(p.dir === 'back' ? `The date ${iv} ago` : `The date ${iv} from today`),
     CROSS_LABEL: crossLabel(p),
-    SECTIONS: sections(p),
+    SECTIONS: sections(p, rows),
     FAQ_HTML: faqHtml,
     SIB_H2: frame(p.slug, 'sibh2', ['Other intervals', 'Nearby counts', 'The rest of the family']),
     SIB_INTRO: esc(sibIntro(p)),
@@ -257,7 +345,7 @@ export function dftPageParts(p) {
     FAQ_LD: JSON.stringify({
       '@context': 'https://schema.org',
       '@type': 'FAQPage',
-      mainEntity: p.faq.map((e) => ({
+      mainEntity: faq.map((e) => ({
         '@type': 'Question',
         name: e.q,
         acceptedAnswer: { '@type': 'Answer', text: e.a },

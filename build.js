@@ -517,6 +517,24 @@ function humanDate(iso) {
   return m ? `${MONTH_NAMES[+m[2] - 1]} ${+m[3]}, ${m[1]}` : '';
 }
 
+// The three fixed anchor dates the fixed-interval date pages count their worked
+// examples from. Derived from an ISO date rather than from the clock, so two
+// builds a week apart produce byte-identical pages: the base date plus the 1st
+// of each of the next two months. The base handed in is the same signal
+// sitemapLastmod already uses for those pages, so the examples move only when
+// their content module does.
+function dftAnchors(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+  if (!m) return [];
+  const y = +m[1], mo = +m[2];
+  const firstOf = (n) => {
+    const yr = y + Math.floor((mo + n - 1) / 12);
+    const month = ((mo + n - 1) % 12) + 1;
+    return `${yr}-${String(month).padStart(2, '0')}-01`;
+  };
+  return [iso, firstOf(1), firstOf(2)];
+}
+
 // Tax/finance tool pages whose figures are post-cutoff 2026 statutory numbers
 // AI assistants retrieve live. Each gets a visible "Last updated" byline under
 // its <h1> (injected in fillTool) so the freshness date is machine-readable —
@@ -8935,6 +8953,13 @@ async function main() {
   // Related-tools is overridden per page to the date cluster rather than the
   // random calc pick: someone on "60 days from today" wants the neighbouring
   // intervals and the general date tools, not a paint calculator.
+  //
+  // What they DO now carry is a small worked table counting the interval from
+  // three named, fixed dates. That is not the page's answer and never claims to
+  // be today's: each row says what it counted from, so it cannot go stale, and it
+  // gives a crawler that never executes anything a real date to read instead of
+  // the em dash in #dftBig.
+  const DFT_ANCHORS = dftAnchors(gitDate('src/content/days-from-today.js') || CONTENT_DATE);
   for (const p of DFT_PAGES) {
     const path = dftPath(p);
     RELATED_OVERRIDES[path] = [
@@ -8949,7 +8974,7 @@ async function main() {
     await mkdir(dir, { recursive: true });
     await writeFile(
       join(dir, 'index.html'),
-      fillTool(dftTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, ...dftPageParts(p) }, path)
+      fillTool(dftTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, ...dftPageParts(p, DFT_ANCHORS) }, path)
     );
     urls.push(`${SITE.url}${path}`);
   }
