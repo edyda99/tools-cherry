@@ -183,12 +183,12 @@
     "thirdPartyEstimates": [
       {
         "publisher": "The Senior Citizens League (TSCL)",
-        "figure": 3.8,
-        "asOf": "2026-06-10",
-        "title": "COLA prediction remains high at 3.8% as Social Security falls behind cost of living",
-        "sourceUrl": "https://seniorsleague.org/cola-prediction-remains-high-at-3-8-percent-as-social-security-falls-behind-cost-of-living/",
-        "note": "TSCL's monthly model. The date shown is the publication date in the cited article's own structured data; the article text carries no visible date. Retrieved 2026-08-11.",
-        "_dateNote": "Originally dated 2026-07-14 here on the strength of a search summary. Corrected to the article's own datePublished (2026-06-10), which is the only date the cited page actually asserts. The figure itself, 3.8%, is stated in the article body."
+        "figure": 3.6,
+        "asOf": "2026-08-12",
+        "title": "COLA Projection Falls to 3.6% With 2 Months Remaining to 2027 Announcement",
+        "sourceUrl": "https://seniorsleague.org/cola-projection-falls-to-3-6-with-2-months-remaining-to-2027-announcement/",
+        "note": "TSCL's monthly model, revised after the July 2026 CPI release. Date is the article's own datePublished. Retrieved 2026-09-11, the day of the August CPI release; TSCL's post-August update had not been published at retrieval time, so this is one release behind the data above.",
+        "_dateNote": "Earlier entry (3.8%, dated 2026-06-10) replaced 2026-09-11 by the newer article; the 3.8% figure was TSCL's June model."
       },
       {
         "publisher": "Mary Johnson (independent Social Security and Medicare policy analyst)",
