@@ -83,7 +83,13 @@
         "publishedDate": "2026-08-12",
         "retrievedDate": "2026-09-11"
       },
-      "2026-08": null
+      "2026-08": {
+        "value": 185.739,
+        "vintage": "initial",
+        "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
+        "publishedDate": "2026-09-11",
+        "retrievedDate": "2026-09-11"
+      }
     },
     "schedule": {
       "2025-10": {
@@ -101,7 +107,7 @@
         "sourceUrl": "https://www.bls.gov/schedule/news_release/cpi.htm"
       },
       "2026-08": {
-        "status": "scheduled",
+        "status": "published",
         "due": "2026-09-11",
         "note": "August 2026 Consumer Price Index news release. This is the last month of the statutory window for tax year 2027.",
         "sourceUrl": "https://www.bls.gov/schedule/news_release/cpi.htm"
@@ -145,7 +151,13 @@
         "publishedDate": "2026-08-12",
         "retrievedDate": "2026-09-11"
       },
-      "2026-08": null,
+      "2026-08": {
+        "value": 328.481,
+        "vintage": "final",
+        "sourceUrl": "https://data.bls.gov/timeseries/CWUR0000SA0",
+        "publishedDate": "2026-09-11",
+        "retrievedDate": "2026-09-11"
+      },
       "2026-09": null
     },
     "schedule": {
@@ -156,7 +168,7 @@
         "sourceUrl": "https://www.bls.gov/schedule/news_release/cpi.htm"
       },
       "2026-08": {
-        "status": "scheduled",
+        "status": "published",
         "due": "2026-09-11",
         "note": "August 2026 Consumer Price Index news release.",
         "sourceUrl": "https://www.bls.gov/schedule/news_release/cpi.htm"
