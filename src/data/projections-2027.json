@@ -1,79 +1,88 @@
 {
   "_comment": "Inputs for /2027-tax-brackets/ and /2027-social-security-cola/. REFRESH after each BLS CPI release (2026-08-12 for reference month July 2026, 2026-09-11 for August 2026, 2026-10-14 for September 2026). REPLACE the projected-brackets page once the IRS Revenue Procedure for tax year 2027 lands (expected late October 2026) and replace the COLA figure once SSA announces (expected mid-October 2026). A month that BLS has not published is the literal null with a `due` date beside it in `schedule`: never interpolate it, never carry the previous month forward, never 'estimate the remaining months'.",
-  "retrievedDate": "2026-08-11",
+  "retrievedDate": "2026-09-11",
   "ccpiu": {
     "_what": "Chained CPI for All Urban Consumers (C-CPI-U), U.S. city average, all items, not seasonally adjusted. BLS series SUUR0000SA0. This is the index 26 U.S.C. 1(f)(6) uses to index federal tax figures, after the Tax Cuts and Jobs Act (P.L. 115-97) replaced CPI-U with it.",
     "seriesId": "SUUR0000SA0",
     "seriesUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
     "scheduleUrl": "https://www.bls.gov/schedule/news_release/cpi.htm",
     "_vintageNote": "BLS issues C-CPI-U first as `initial`, revises it to `interim`, then finalises it roughly a year later as `final`. The vintage on each month below is the footnote BLS attached to that value on the date we retrieved it. Values without an initial/interim footnote are final.",
-    "window": { "start": "2025-09", "end": "2026-08" },
+    "window": {
+      "start": "2025-09",
+      "end": "2026-08"
+    },
     "months": {
       "2025-09": {
-        "value": 180.196,
-        "vintage": "interim",
+        "value": 180.373,
+        "vintage": "final",
         "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
         "publishedDate": "2025-10-24",
-        "retrievedDate": "2026-08-11"
+        "retrievedDate": "2026-09-11"
       },
       "2025-10": null,
       "2025-11": {
-        "value": 179.712,
+        "value": 179.889,
         "vintage": "interim",
         "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
         "publishedDate": "2025-12-18",
-        "retrievedDate": "2026-08-11"
+        "retrievedDate": "2026-09-11"
       },
       "2025-12": {
-        "value": 179.598,
+        "value": 179.775,
         "vintage": "interim",
         "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
         "publishedDate": "2026-01-13",
-        "retrievedDate": "2026-08-11"
+        "retrievedDate": "2026-09-11"
       },
       "2026-01": {
-        "value": 180.232,
+        "value": 180.409,
         "vintage": "interim",
         "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
         "publishedDate": "2026-02-13",
-        "retrievedDate": "2026-08-11"
+        "retrievedDate": "2026-09-11"
       },
       "2026-02": {
-        "value": 181.080,
+        "value": 181.258,
         "vintage": "interim",
         "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
         "publishedDate": "2026-03-11",
-        "retrievedDate": "2026-08-11"
+        "retrievedDate": "2026-09-11"
       },
       "2026-03": {
-        "value": 183.013,
+        "value": 183.193,
         "vintage": "interim",
         "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
         "publishedDate": "2026-04-10",
-        "retrievedDate": "2026-08-11"
+        "retrievedDate": "2026-09-11"
       },
       "2026-04": {
-        "value": 184.499,
-        "vintage": "initial",
+        "value": 184.68,
+        "vintage": "interim",
         "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
         "publishedDate": "2026-05-12",
-        "retrievedDate": "2026-08-11"
+        "retrievedDate": "2026-09-11"
       },
       "2026-05": {
-        "value": 185.589,
-        "vintage": "initial",
+        "value": 185.771,
+        "vintage": "interim",
         "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
         "publishedDate": "2026-06-10",
-        "retrievedDate": "2026-08-11"
+        "retrievedDate": "2026-09-11"
       },
       "2026-06": {
-        "value": 184.992,
-        "vintage": "initial",
+        "value": 185.172,
+        "vintage": "interim",
         "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
         "publishedDate": "2026-07-14",
-        "retrievedDate": "2026-08-11"
+        "retrievedDate": "2026-09-11"
       },
-      "2026-07": null,
+      "2026-07": {
+        "value": 185.162,
+        "vintage": "initial",
+        "sourceUrl": "https://data.bls.gov/timeseries/SUUR0000SA0",
+        "publishedDate": "2026-08-12",
+        "retrievedDate": "2026-09-11"
+      },
       "2026-08": null
     },
     "schedule": {
@@ -86,7 +95,7 @@
         "sourceUrl": "https://www.bls.gov/bls/news-release/cpi.htm"
       },
       "2026-07": {
-        "status": "scheduled",
+        "status": "published",
         "due": "2026-08-12",
         "note": "July 2026 Consumer Price Index news release.",
         "sourceUrl": "https://www.bls.gov/schedule/news_release/cpi.htm"
@@ -97,7 +106,8 @@
         "note": "August 2026 Consumer Price Index news release. This is the last month of the statutory window for tax year 2027.",
         "sourceUrl": "https://www.bls.gov/schedule/news_release/cpi.htm"
       }
-    }
+    },
+    "_revisionNote": "Every month was re-read from the BLS API on 2026-09-11. BLS revises C-CPI-U after first publication (initial -> interim -> final), so a value here can differ from the one an earlier retrieval showed; `publishedDate` is the news release that FIRST carried the month, `vintage` and `value` are what BLS showed on `retrievedDate`."
   },
   "cpiw": {
     "_what": "CPI for Urban Wage Earners and Clerical Workers (CPI-W), U.S. city average, all items, not seasonally adjusted. BLS series CWUR0000SA0. This is the index the Social Security cost-of-living adjustment is computed from, comparing the third-quarter average of one year with the third-quarter average of the last year a COLA was set.",
@@ -128,13 +138,19 @@
       }
     },
     "q3_2026": {
-      "2026-07": null,
+      "2026-07": {
+        "value": 327.104,
+        "vintage": "final",
+        "sourceUrl": "https://data.bls.gov/timeseries/CWUR0000SA0",
+        "publishedDate": "2026-08-12",
+        "retrievedDate": "2026-09-11"
+      },
       "2026-08": null,
       "2026-09": null
     },
     "schedule": {
       "2026-07": {
-        "status": "scheduled",
+        "status": "published",
         "due": "2026-08-12",
         "note": "July 2026 Consumer Price Index news release.",
         "sourceUrl": "https://www.bls.gov/schedule/news_release/cpi.htm"
