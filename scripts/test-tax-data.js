@@ -690,6 +690,35 @@ t('legal-status watches: well-formed, none expired', () => {
     assert.ok(verdictBlock('district-of-columbia').includes('We last checked this on 2 October 2026.'),
       'DC verdict cards should carry their own 2 October 2026 check date');
   });
+
+  // The federal senior card carries a state-return line for each state whose
+  // row has a sourced verdict for that deduction, gated to that state, inside that card.
+  const cardWith = (h4) => {
+    const at = wam.FEDERAL_CARDS.indexOf(h4);
+    assert.ok(at >= 0, `no federal card headed ${h4}`);
+    const start = wam.FEDERAL_CARDS.lastIndexOf('<article', at);
+    return wam.FEDERAL_CARDS.slice(start, wam.FEDERAL_CARDS.indexOf('</article>', at));
+  };
+  const stateLinesIn = (card, field) => {
+    let n = 0;
+    for (const { slug, name } of wamRoster) {
+      const r = (obbba.states[slug] || {})[field];
+      const open = `<p class="g wam-note" data-st="${slug}"><strong>On the state return:</strong> `;
+      if (r && r.note) {
+        n++;
+        assert.ok(card.includes(open + esc(r.note)), `${slug}: ${field} card should carry its state-return line`);
+        assert.ok(card.includes(`We last checked this on ${humanDay(r.checkedOn)}.`), `${slug}: ${field} line should say when it was checked`);
+        assert.ok(card.includes(`href="${esc(r.source)}"`), `${slug}: ${field} line should link its source`);
+      } else {
+        assert.ok(!card.includes(`data-st="${slug}"`), `${slug}: no ${field} verdict, so no state line`);
+      }
+    }
+    return n;
+  };
+  t('what-applies-to-me: the senior card names each checked state, gated to it', () => {
+    const n = stateLinesIn(cardWith('<h4>The federal deduction for people 65 and older</h4>'), 'senior');
+    assert.ok(n >= 8, `expected the eight checked senior rows, found ${n}`);
+  });
 }
 
 // --- FEDERAL INCOME TAX SUBTRACTION: Alabama, Missouri, Oregon (added 2026-10-02) -------------

@@ -472,5 +472,52 @@ eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single'
   is('GA applies line stays generic', line('georgia'), 'federally deductible, with a smaller capped Georgia break on top');
 }
 
+// --- Turning 65 in the states that start from FEDERAL TAXABLE INCOME (checked 2026-10-02) -----
+// The senior deduction (151(d)(5)(C)) comes off before federal taxable income, so a state that
+// starts there gets it unless it adds it back. Colorado, Idaho, Iowa, Montana and North Dakota
+// let it through in 2025 and 2026; Oregon (OR-17: no IRC 151, "includes the deduction for
+// taxpayers who are age 65 or older") and South Carolina (IRC frozen at 2024-12-31, then Act 110
+// drops 63(b)-(g) and starts from AGI) do not. The line used to print the state's flat rate or
+// brackets "to the same wages" for all seven. Minnesota and Vermont start from federal AGI, so the
+// deduction never reaches them and their bracket line was already right.
+{
+  const ageLine = (slug) => {
+    const html = buildStateApplies({ state: taxData.states[slug], obbbaEntry: obbba.states[slug],
+      suppEntry: null, notaxAngle: '', pickFrame: (_s, _salt, arr) => arr[0] });
+    const m = html.match(/data-line="age"><strong>Turning 65:<\/strong> ([^<]*)</);
+    return m ? m[1] : '';
+  };
+  const YES = ['colorado', 'idaho', 'iowa', 'montana', 'north-dakota'];
+  const NO = ['oregon', 'south-carolina'];
+  for (const slug of [...YES, ...NO, 'district-of-columbia']) {
+    const sen = obbba.states[slug].senior || {};
+    is(`${slug} senior row has a plain note`, typeof sen.note === 'string' && sen.note.length > 40, true);
+    is(`${slug} senior note has no em or en dash`, /[\u2013\u2014]/.test(sen.note || ''), false);
+    is(`${slug} senior source is an https URL`, /^https:\/\//.test(sen.source || ''), true);
+    is(`${slug} senior source has a citation title`, typeof sen.sourceTitle === 'string' && sen.sourceTitle.length > 5, true);
+    is(`${slug} senior checkedOn is a date`, /^\d{4}-\d{2}-\d{2}$/.test(sen.checkedOn || ''), true);
+  }
+  for (const slug of YES) {
+    const name = taxData.states[slug].name;
+    is(`${slug} senior 2025`, obbba.states[slug].senior.y2025, 'yes');
+    is(`${slug} senior 2026`, obbba.states[slug].senior.y2026, 'yes');
+    is(`${slug} Turning 65 line says ${name} allows it`,
+      ageLine(slug).includes(`and ${name} allows it on your ${name} return too`), true);
+    is(`${slug} Turning 65 line has no "from 2026" (allowed in 2025 too)`, ageLine(slug).includes('from 2026'), false);
+    is(`${slug} Turning 65 line no longer says the same wages are taxed`, ageLine(slug).includes('to the same wages'), false);
+  }
+  for (const slug of NO) {
+    const name = taxData.states[slug].name;
+    is(`${slug} senior 2025`, obbba.states[slug].senior.y2025, 'no');
+    is(`${slug} senior 2026`, obbba.states[slug].senior.y2026, 'no');
+    is(`${slug} Turning 65 line says ${name} does not allow it`,
+      ageLine(slug).includes(`comes off your federal return only: ${name} does not allow it on your ${name} return`), true);
+  }
+  is('Minnesota (starts from AGI) keeps the bracket line', ageLine('minnesota').includes("Minnesota's") &&
+    ageLine('minnesota').includes('brackets still apply to the same wages'), true);
+  is('Vermont (starts from AGI) keeps the bracket line', ageLine('vermont').includes("Vermont's") &&
+    ageLine('vermont').includes('brackets still apply to the same wages'), true);
+}
+
 console.log(`\nOBBBA engine: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

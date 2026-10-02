@@ -1072,6 +1072,21 @@ const PAGES = [
       ['applies-line-names-the-premium', contains('Alabama lets you deduct up to $1,000 of the overtime premium on your Alabama return too')],
     ],
   },
+  {
+    // Turning 65 in a state that starts from federal taxable income: Colorado lets the
+    // senior deduction through, Oregon does not (OR-17, page 7).
+    file: 'colorado-paycheck-calculator/index.html',
+    pins: [
+      ['senior-line-says-colorado-allows-it', contains('and Colorado allows it on your Colorado return too')],
+      ['senior-line-no-longer-says-same-wages', absent('Colorado still applies its flat')],
+    ],
+  },
+  {
+    file: 'oregon-paycheck-calculator/index.html',
+    pins: [
+      ['senior-line-says-oregon-does-not', contains('comes off your federal return only: Oregon does not allow it on your Oregon return')],
+    ],
+  },
 ];
 
 let passed = 0;
