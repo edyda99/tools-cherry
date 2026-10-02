@@ -35,16 +35,22 @@
 //          { "federal": { "standardDeduction": {...}, "brackets": {...} },
 //            "revenueProcedure": { "name": "Rev. Proc. 2026-NN", "publishedDate": "...", "sourceUrl": "..." } }
 //        -> OFFICIAL
-//     c. projections-2027.json thirdPartyProjections, if an item (or the block)
-//        carries structured figures -> PROJECTED, attributed to its publishers
-//     d. FALLBACK_2027_PROJECTION in scripts/press-kit/inputs.js -> PROJECTED
-//        (TODO: remove once (c) lands)
+//     c. projections-2027.json thirdPartyProjections -> PROJECTED, attributed to
+//        every listed publisher. The block must pass the engine's own validator
+//        (thirdPartyBlockProblems, the check build.js renders it under), every
+//        item must carry single-number single and married-filing-jointly
+//        figures, and all items must agree on them exactly. Any disagreement
+//        FAILS the run: the chart names all publishers, so it cannot quietly
+//        use one publisher's numbers. Only the statuses charted (single, MFJ)
+//        are read; head-of-household figures are never used.
+//     There is no fallback: with none of (a) to (c) the run fails.
 //
 // FLAGS
 //   --svg-only              skip PNG rendering (no Chrome needed); PNGs left as they were
-//   --allow-expired-watch   proceed when a state's legal-status `_watch` has lapsed;
-//                           the state is then marked "under review" on the dot plot.
-//                           Without it the run fails, same as build.js.
+//   --allow-expired-watch   emergency override only, normally never passed: proceed
+//                           when a state's legal-status `_watch` has lapsed, marking
+//                           the state "under review" on the dot plot. Without it the
+//                           run fails, same as build.js.
 //   CHROME_PATH=...         override the Chrome binary.
 
 import { readFile, writeFile, mkdir, rm, mkdtemp } from 'node:fs/promises';
@@ -54,10 +60,12 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { federalIncomeTax, computePaycheck } from '../../src/engine/paycheck-engine.js';
-import { applyCola, colaPercent, average, windowStatus } from '../../src/engine/projections-2027.js';
+import {
+  applyCola, colaPercent, average, windowStatus, thirdPartyBlockProblems,
+} from '../../src/engine/projections-2027.js';
 import { colaChart, federalChart, takeHomeChart, usd } from './svg-charts.js';
 import {
-  PRESS_KIT_CONFIG as CFG, FALLBACK_2027_PROJECTION, loadPressKitInputs, inputsFingerprint,
+  PRESS_KIT_CONFIG as CFG, loadPressKitInputs, inputsFingerprint,
 } from './inputs.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -198,13 +206,49 @@ function normFed(node, label) {
   }
   return out;
 }
-// Find structured figures anywhere sensible on a third-party item.
-function extractFed(o) {
-  if (!o || typeof o !== 'object') return null;
-  for (const n of [o, o.figures, o.federal, o.projection, o.projected]) {
-    if (n && typeof n === 'object' && n.standardDeduction && (n.brackets || n.bracketFloors || n.floors)) return n;
+// A publisher's display name: "Wolters Kluwer (CCH AnswerConnect)" -> "Wolters
+// Kluwer", the same trailing-parenthetical strip the 2027 pages apply.
+const pubName = (p) => String(p).replace(/\s*\([^)]*\)$/, '');
+
+// The charted statuses only (single, MFJ), as engine-shaped {standardDeduction, brackets}.
+function thirdPartyFed(it) {
+  const fed = { standardDeduction: {}, brackets: {} };
+  for (const st of CFG.federalStatuses) {
+    const sd = it.standardDeduction && it.standardDeduction[st.id];
+    need(Number.isInteger(sd), `thirdPartyProjections: ${it.publisher} has no single-number ${st.label} standard ` +
+      `deduction (found ${JSON.stringify(sd)}). The chart names every listed publisher, so each must carry the figures it shows.`);
+    const br = it.brackets && it.brackets[st.id];
+    need(Array.isArray(br), `thirdPartyProjections: ${it.publisher} has no ${st.label} brackets. ` +
+      'The chart names every listed publisher, so each must carry the figures it shows.');
+    fed.standardDeduction[st.id] = sd;
+    fed.brackets[st.id] = normBrackets(br, `${it.publisher} ${st.id}`);
   }
-  return null;
+  return fed;
+}
+
+function resolveThirdParty() {
+  const tp = proj.thirdPartyProjections;
+  need(tp, 'no official 2027 figures and projections-2027.json has no thirdPartyProjections block: nothing to chart 2027 from.');
+  const problems = thirdPartyBlockProblems(tp);
+  need(!problems.length, `thirdPartyProjections is malformed (build.js refuses it too):\n  ${problems.join('\n  ')}`);
+  need(tp.items.length, 'thirdPartyProjections has no items: nothing to chart 2027 from.');
+  const per = tp.items.map((it) => ({ it, fed: thirdPartyFed(it) }));
+  // Exact agreement per charted status, or stop. Never pick one publisher.
+  for (const st of CFG.federalStatuses) {
+    const sig = (f) => `standard deduction ${usd(f.standardDeduction[st.id])}, brackets end at ` +
+      f.brackets[st.id].filter((b) => b.upTo != null).map((b) => usd(b.upTo)).join(' / ');
+    const sigs = per.map((p) => sig(p.fed));
+    need(sigs.every((x) => x === sigs[0]),
+      `thirdPartyProjections: the publishers DISAGREE on ${st.label}:\n` +
+      per.map((p, i) => `  ${p.it.publisher}: ${sigs[i]}`).join('\n') +
+      '\nRefusing to pick one. Decide whose figures the chart uses, and say so on it, before regenerating.');
+  }
+  const items = tp.items.map((i) => ({ publisher: pubName(i.publisher), fullName: i.publisher, title: i.title,
+    date: i.asOf, sourceUrl: i.sourceUrl, monthsUsed: i.monthsUsed, skipped: i.skipped }));
+  return { status: 'PROJECTED', fed: per[0].fed,
+    source: { kind: 'thirdParty', publishers: items.map((i) => i.publisher), checkedDate: tp.checkedDate,
+      // The newest publication date among them: what "data as of" means for the projections.
+      date: items.map((i) => i.date).sort().pop(), items } };
 }
 
 function resolveFederal2027() {
@@ -222,35 +266,7 @@ function resolveFederal2027() {
     return { status: 'OFFICIAL', fed: normFed(proj.official2027.federal, 'official2027.federal'),
       source: { kind: 'irs', name: rp.name, sourceUrl: rp.sourceUrl, date: rp.publishedDate } };
   }
-  const tp = proj.thirdPartyProjections || {};
-  const found = [];
-  for (const it of tp.items || []) {
-    const n = extractFed(it);
-    if (n) found.push({ fed: normFed(n, `thirdPartyProjections item "${it.publisher}"`), item: it });
-  }
-  const block = extractFed(tp);
-  if (block && !found.length) {
-    found.push({ fed: normFed(block, 'thirdPartyProjections'), item: { publisher: null } });
-  }
-  if (found.length) {
-    const ref = JSON.stringify(found[0].fed);
-    for (const f of found)
-      need(JSON.stringify(f.fed) === ref, `thirdPartyProjections disagree (${f.item.publisher} differs). ` +
-        'The chart would have to say whose figures it uses; decide that before regenerating.');
-    const publishers = (tp.items || []).map((i) => i.publisher).filter(Boolean);
-    need(publishers.length, 'thirdPartyProjections has figures but no named publisher');
-    return { status: 'PROJECTED', fed: found[0].fed,
-      source: { kind: 'thirdParty', publishers,
-        items: (tp.items || []).map((i) => ({ publisher: i.publisher, date: i.publishedDate || i.asOf || null,
-          sourceUrl: i.sourceUrl || null })) } };
-  }
-  console.warn('press-kit: thirdPartyProjections has no structured 2027 figures yet; using ' +
-    'FALLBACK_2027_PROJECTION from scripts/press-kit/inputs.js (TODO: switch to the JSON).');
-  return { status: 'PROJECTED',
-    fed: normFed({ standardDeduction: FALLBACK_2027_PROJECTION.standardDeduction,
-      brackets: FALLBACK_2027_PROJECTION.bracketFloors }, 'FALLBACK_2027_PROJECTION'),
-    source: { kind: 'thirdParty', fallback: true, publishers: FALLBACK_2027_PROJECTION.publishers,
-      items: FALLBACK_2027_PROJECTION.publishers.map((p) => ({ publisher: p, date: null, sourceUrl: null })) } };
+  return resolveThirdParty();
 }
 
 // ---------------------------------------------------------------- compute
@@ -341,7 +357,7 @@ const fedTitle = chMin >= 0
   : `${fedOfficial ? 'New' : 'Projected'} 2027 brackets ${fedOfficial ? 'change' : 'would change'} federal income tax by ${usd(Math.abs(chMin))} more to ${usd(chMax)} less on unchanged pay`;
 const fedSubtitle = fedOfficial
   ? `Official 2027 figures from the IRS (${fed27.source.name}, published ${humanDate(fed27.source.date)}) compared with official 2026 figures (${rp26.name}). Federal income tax on wages, standard deduction, before credits.`
-  : `PROJECTED: the IRS has not published official 2027 figures yet. 2027 uses the brackets and standard deduction projected by ${listAnd(pubs)}${pubs.length > 1 ? ', which agree on every figure' : ''}; 2026 uses the official IRS figures (${rp26.name}). Federal income tax on wages, standard deduction, before credits.`;
+  : `PROJECTED: the IRS has not published official 2027 figures yet. 2027 uses the brackets and standard deduction projected by ${listAnd(pubs)}${pubs.length > 1 ? ', which agree on every figure used here' : ''}; 2026 uses the official IRS figures (${rp26.name}). Federal income tax on wages, standard deduction, before credits.`;
 const fedSource = fedOfficial
   ? `Source: Tools Berry calculation (tools-berry.com/2027-tax-brackets/). 2027: IRS ${fed27.source.name}. 2026: IRS ${rp26.name}.`
   : `Source: Tools Berry calculation (tools-berry.com/2027-tax-brackets/). 2027 projections: ${listAnd(pubs)}. 2026: IRS ${rp26.name}.`;
@@ -439,9 +455,12 @@ for (const r of colaRows) {
   }
 }
 const src26 = `IRS ${rp26.name} (${rp26.sourceUrl}); Tools Berry calculation`;
+// "2027 projections: Wolters Kluwer, September 18, 2026 (url); ..." one citation per publisher.
+const pubSources = fedOfficial ? '' : `${YEAR + 1} projections: ` + fed27.source.items
+  .map((i) => `${i.publisher}, ${humanDate(i.date)} (${i.sourceUrl})`).join('; ');
 const src27 = fedOfficial
   ? `IRS ${fed27.source.name} (${fed27.source.sourceUrl}); Tools Berry calculation`
-  : `Projected by ${listAnd(pubs)}; Tools Berry calculation`;
+  : `${pubSources}; Tools Berry calculation`;
 const st27 = fedOfficial ? 'OFFICIAL' : 'PROJECTED';
 const statusLabel = Object.fromEntries(CFG.federalStatuses.map((s) => [s.id, s.label.toLowerCase().replace(' filer', '')]));
 for (const g of fedGroups) {
@@ -456,7 +475,7 @@ for (const g of fedGroups) {
 }
 for (const g of CFG.federalStatuses) {
   for (const [yr, fed, st, src] of [[YEAR, fed26, 'OFFICIAL', `IRS ${rp26.name} (${rp26.sourceUrl})`],
-    [YEAR + 1, fed27.fed, st27, fedOfficial ? `IRS ${fed27.source.name} (${fed27.source.sourceUrl})` : `Projected by ${listAnd(pubs)}`]]) {
+    [YEAR + 1, fed27.fed, st27, fedOfficial ? `IRS ${fed27.source.name} (${fed27.source.sourceUrl})` : pubSources]]) {
     csv.push(['Federal tax inputs', st, 'United States', '', statusLabel[g.id], '', '',
       `standard deduction, ${yr}`, fed.standardDeduction[g.id], '', src]);
     let lower = 0;
@@ -564,7 +583,9 @@ const manifest = {
     title: colaCopy.title, subtitle: colaCopy.subtitle, rows: colaRows },
   federal: { status2027: fed27.status, source2027: fed27.source,
     source2026: { name: rp26.name, sourceUrl: rp26.sourceUrl, date: rp26.publishedDate },
-    standardDeduction: { [YEAR]: fed26.standardDeduction, [YEAR + 1]: fed27.fed.standardDeduction },
+    // Charted statuses only, so nothing downstream can surface a figure the charts do not use.
+    standardDeduction: Object.fromEntries([[YEAR, fed26], [YEAR + 1, fed27.fed]].map(([y, f]) =>
+      [y, Object.fromEntries(CFG.federalStatuses.map((st) => [st.id, f.standardDeduction[st.id]]))])),
     title: fedTitle, subtitle: fedSubtitle, groups: fedGroups },
   takeHome: { year: YEAR, salaries, filingStatus: 'single', title: thTitle, subtitle: thSubtitle,
     spreads, notes: priorNotes, underReview: expiredWatch,
@@ -575,7 +596,7 @@ await writeFile(join(OUT, 'manifest.json'), JSON.stringify(manifest, null, 2) + 
 
 console.log(`press-kit: wrote ${OUT}`);
 console.log(`  COLA        ${cola.status} ${pct1(cola.percent)} (${cola.publisher}, ${cola.date})`);
-console.log(`  2027 federal ${fed27.status}${fed27.source.fallback ? ' (FALLBACK constant)' : ''}: ${pubs.join(', ') || fed27.source.name}`);
+console.log(`  2027 federal ${fed27.status}: ${pubs.join(', ') || fed27.source.name}`);
 console.log(`  take-home   ${thRows.length} jurisdictions x ${salaries.length} salaries${expiredWatch.length ? `, UNDER REVIEW: ${expiredWatch.map((w) => w.slug).join(', ')}` : ''}`);
 for (const [k, s] of Object.entries(pngSizes)) console.log(`  ${FILES[k]}.png ${s.w}x${s.h}`);
 console.log(`  fingerprint ${manifest.inputsFingerprint}`);

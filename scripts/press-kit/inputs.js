@@ -26,22 +26,6 @@ export const PRESS_KIT_CONFIG = {
   takeHomeSalaries: [75000, 100000],
 };
 
-// TODO(thirdPartyProjections): delete this constant once
-// src/data/projections-2027.json -> thirdPartyProjections carries the
-// structured 2027 figures (a parallel branch is adding them). Until then it is
-// the ONE place the projected 2027 numbers live. Figures as supplied for the
-// press kit on 2026-10-02: identical across all three publishers. Not yet
-// cross-checked against the publishers' own pages by this branch.
-export const FALLBACK_2027_PROJECTION = {
-  publishers: ['Bloomberg Tax', 'Thomson Reuters', 'Wolters Kluwer'],
-  standardDeduction: { single: 16600, married: 33200 },
-  // Bracket FLOORS (taxable income where each rate starts). 10% starts at $0.
-  bracketFloors: {
-    single: { 0.10: 0, 0.12: 12800, 0.22: 52025, 0.24: 109125, 0.32: 208325, 0.35: 264550, 0.37: 661375 },
-    married: { 0.10: 0, 0.12: 25600, 0.22: 104050, 0.24: 218250, 0.32: 416650, 0.35: 529100, 0.37: 793650 },
-  },
-};
-
 /** Read every data file the kit depends on. tax-data-2027.json is optional. */
 export async function loadPressKitInputs(root) {
   const read = async (...p) => JSON.parse(await readFile(join(root, ...p), 'utf8'));
@@ -85,7 +69,6 @@ export function inputsFingerprint({ taxData, proj, roster, taxData2027 }, config
       : null,
     roster,
     config,
-    fallback: FALLBACK_2027_PROJECTION,
   };
   return createHash('sha256').update(JSON.stringify(basis)).digest('hex').slice(0, 16);
 }

@@ -31,6 +31,13 @@ export function pressKitParts(m, { contactEmail }) {
   const yr = m.taxYear;
   const fedOfficial = fed.status2027 === 'OFFICIAL';
   const pubs = (fed.source2027 && fed.source2027.publishers) || [];
+  const tpItems = (!fedOfficial && fed.source2027.items) || [];
+  // "published September 11 to September 18, 2026": the span of the publishers' own dates.
+  const tpDays = [...new Set(tpItems.map((i) => i.date))].sort();
+  const tpPublished = !tpDays.length ? ''
+    : tpDays.length === 1 ? `published ${humanDate(tpDays[0])}`
+      : `published ${humanDate(tpDays[0]).replace(/, \d{4}$/, tpDays[0].slice(0, 4) === tpDays[tpDays.length - 1].slice(0, 4) ? '' : '$&')} ` +
+        `to ${humanDate(tpDays[tpDays.length - 1])}`;
   const hi = th.spreads[th.spreads.length - 1];
   const priorRows = th.rows.filter((r) => r.priorYear);
 
@@ -46,8 +53,8 @@ export function pressKitParts(m, { contactEmail }) {
   }[cola.status];
   const fedStatusText = fedOfficial
     ? `Official IRS figures, ${esc(fed.source2027.name)}, published ${esc(humanDate(fed.source2027.date))}.`
-    : `Projections published by ${esc(listAnd(pubs))}. The IRS has not published official 2027 figures yet; ` +
-      'it usually does between early October and early November.';
+    : `Projections by ${esc(listAnd(pubs))}, ${esc(tpPublished)}. The IRS has not published ` +
+      'official 2027 figures yet; it usually does between early October and early November.';
   const statusRows = [
     ['2027 Social Security cost-of-living increase (COLA)', cola.status, colaStatusText],
     [`${yr + 1} federal income tax brackets and standard deduction`, fed.status2027, fedStatusText],
@@ -127,11 +134,24 @@ export function pressKitParts(m, { contactEmail }) {
     'before Medicare premiums or tax withholding, which come out of many checks. Try any payment in our ' +
     '<a href="/2027-social-security-cola/">2027 COLA calculator</a>.</p>';
 
+  // How the publishers handled the price month that was never published, read
+  // from the data rather than asserted.
+  const skippedSig = (i) => `${i.monthsUsed}|${(i.skipped || []).join(',')}`;
+  const monthName = (k) => { const [y, m] = String(k).split('-'); return `${MONTHS[+m - 1]} ${y}`; };
+  const gapMethod = !tpItems.length ? ''
+    : tpItems.every((i) => skippedSig(i) === skippedSig(tpItems[0]))
+      ? (tpItems[0].skipped.length
+        ? `${tpItems.length > 1 ? 'Each' : 'It'} averaged the ${esc(tpItems[0].monthsUsed)} published months of the price ` +
+          `index and left out ${esc(listAnd(tpItems[0].skipped.map(monthName)))} (see the missing month, below). `
+        : `${tpItems.length > 1 ? 'Each' : 'It'} used all ${esc(tpItems[0].monthsUsed)} months of the price index. `)
+      : 'They handled the missing price month differently (see the missing month, below). ';
   const fedSource = fedOfficial
     ? `<p><strong>Both years are official IRS figures.</strong> ${esc(yr + 1)}: ${link(fed.source2027.sourceUrl, fed.source2027.name)}, ` +
       `published ${esc(humanDate(fed.source2027.date))}. ${esc(yr)}: ${link(fed.source2026.sourceUrl, fed.source2026.name)}.</p>`
     : `<p><strong>The ${esc(yr + 1)} figures are projections, not IRS figures.</strong> The brackets and standard ` +
-      `deduction come from projections published by ${esc(listAnd(pubs))}${pubs.length > 1 ? ', which agree on every figure' : ''}. ` +
+      `deduction come from projections published by ${listAnd(tpItems.map((i) =>
+        `${link(i.sourceUrl, i.publisher)} (${esc(humanDate(i.date))})`))}` +
+      `${tpItems.length > 1 ? ', which agree on every figure used here' : ''}. ${gapMethod}` +
       `The ${esc(yr)} figures are official: ${link(fed.source2026.sourceUrl, `IRS ${fed.source2026.name}`)}, published ` +
       `${esc(humanDate(fed.source2026.date))}.</p>`;
   const sd = fed.standardDeduction;
@@ -141,7 +161,11 @@ export function pressKitParts(m, { contactEmail }) {
     'rest through the brackets, using the same calculation as our paycheck calculators. Wages are the only income, ' +
     'there are no credits, and the newer deductions for tips, overtime, seniors and car-loan interest are left out. ' +
     'Pay is held at the same dollar amount in both years, so the difference is what inflation adjustments to the tax ' +
-    'brackets alone are worth. Compare the brackets on our <a href="/2027-tax-brackets/">2027 tax brackets page</a>.</p>';
+    'brackets alone are worth.</p>' +
+    (fedOfficial
+      ? '<p>The full brackets for every filing status are on our <a href="/2027-tax-brackets/">2027 tax brackets page</a>.</p>'
+      : '<p>Our <a href="/2027-tax-brackets/#others">2027 tax brackets page</a> shows each publisher\'s projected brackets ' +
+        'and standard deduction side by side, with a link to each publisher\'s own release.</p>');
 
   const priorText = priorRows.length
     ? `<p>${esc(priorRows.length)} jurisdictions had not published a ${esc(yr)} amount when these figures were made, ` +

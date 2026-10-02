@@ -48,6 +48,6 @@ words instead of "less".
 
 | Check | Why |
 |---|---|
-| The linked page shows the official figure | /2027-tax-brackets/ currently publishes no dollar figures by design; on IRS day it must be updated before Variant B goes out |
+| The linked page shows the official figure | /2027-tax-brackets/ currently shows the three publishers' projections side by side; on IRS day it must be switched to the official figures before Variant B goes out |
 | /press/2027/ is deployed | The page ships with every build but is unlisted (noindex, no sitemap); the link works only after a deploy |
 | `hello@tools-berry.com` receives mail | The press page offers custom figures by email |
