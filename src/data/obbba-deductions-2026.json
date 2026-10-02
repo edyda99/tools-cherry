@@ -491,6 +491,15 @@
         "sourceTitle": "North Dakota 2025 individual income tax booklet",
         "_sourceNote": "2025 booklet: 'The starting point for computing North Dakota taxable income perpetually conforms to the computation of federal taxable income. As a result, the federal changes to income and deductions that impact the computation of federal taxable income are by default included in the starting point for computing North Dakota taxable income for all years.' It then lists 'an additional $6,000 for some seniors'. N.D.C.C. 57-38-30.3(2): 'North Dakota taxable income' means the federal taxable income of an individual 'as computed under the Internal Revenue Code of 1986, as amended' (https://ndlegis.gov/cencode/t57c38.pdf). Schedule ND-1SA has no add-back for it. No regular session in 2026; the January and September 2026 special sessions passed nothing touching chapter 57-38."
       },
+      "carLoan": {
+        "y2025": "yes",
+        "y2026": "yes",
+        "note": "North Dakota starts from your federal taxable income and follows federal changes automatically, so the federal car loan interest deduction lowers your North Dakota tax too, for 2025 and 2026.",
+        "checkedOn": "2026-10-02",
+        "source": "https://www.tax.nd.gov/sites/www/files/documents/forms/individual/2025-iit/2025-individual-income-tax-booklet.pdf",
+        "sourceTitle": "North Dakota 2025 individual income tax booklet",
+        "_sourceNote": "2025 booklet: 'The starting point for computing North Dakota taxable income perpetually conforms to the computation of federal taxable income. As a result, the federal changes to income and deductions that impact the computation of federal taxable income are by default included in the starting point for computing North Dakota taxable income for all years.' N.D.C.C. 57-38-30.3(2) (IRC 'as amended'). Office of State Tax Commissioner, OBBBA impacts presentation to the interim committee (https://ndlegis.gov/sites/default/files/pdf/committees/69-2025/27.5038.02000presentation1300.pdf): 'e. Deduction for certain auto loan interest up to $10,000 2025-2028' with an estimated cost to North Dakota collections of $3 million in each of FY26 and FY27. Schedule ND-1SA has no add-back for it; the 2026 special sessions passed nothing touching chapter 57-38."
+      },
       "note": "North Dakota is a rolling-conformity state that starts from federal taxable income, so it automatically incorporates the federal overtime and tips deductions for tax years 2025–2028. No decoupling legislation has been enacted.",
       "source": "https://tax.thomsonreuters.com/blog/state-decoupling-from-federal-tax-provisions/"
     },
@@ -593,6 +602,15 @@
         "source": "https://revenuefiles.mt.gov/files/Forms/Montana-Individual-Income-Tax-Return-Form-2-Instructions/2025_Montana_Individual_Income_Tax_Return_Form_2_Instructions.pdf",
         "sourceTitle": "Montana 2025 Form 2 instructions, page 7",
         "_sourceNote": "2025 Form 2 instructions, page 7: 'The additional deductions found on Form 1040, Schedule 1-A for qualified tips, qualified overtime compensation, qualified passenger vehicle loan interest, and the enhanced deduction for seniors, are included in the calculation of Montana taxable income.' MCA 15-30-2101(22): 'Montana taxable income' means federal taxable income as determined for federal income tax purposes and adjusted as provided in 15-30-2120; (14) defines the Internal Revenue Code as amended (rolling). The legislature did not meet in 2026 (no regular or special session); the 2027 session starts January 4, 2027, and the 2026 Form 2 is not yet published."
+      },
+      "carLoan": {
+        "y2025": "yes",
+        "y2026": "yes",
+        "note": "Montana's return counts the federal Schedule 1-A deductions, including car loan interest, when it works out your Montana taxable income, so the federal car loan interest deduction lowers your Montana tax too. No 2026 law has changed that.",
+        "checkedOn": "2026-10-02",
+        "source": "https://revenuefiles.mt.gov/files/Forms/Montana-Individual-Income-Tax-Return-Form-2-Instructions/2025_Montana_Individual_Income_Tax_Return_Form_2_Instructions.pdf",
+        "sourceTitle": "Montana 2025 Form 2 instructions, page 7",
+        "_sourceNote": "2025 Form 2 instructions, page 7: 'The additional deductions found on Form 1040, Schedule 1-A for qualified tips, qualified overtime compensation, qualified passenger vehicle loan interest, and the enhanced deduction for seniors, are included in the calculation of Montana taxable income.' MCA 15-30-2101(22) (Montana taxable income is federal taxable income, adjusted) and (14) (rolling IRC). Legislative Fiscal Division, H.R. 1 memo of September 8, 2025, estimates the 'Car Loan Interest Deduction' at ($6.6) million a year of Montana income tax. The legislature did not meet in 2026; the 2027 session starts January 4, 2027."
       },
       "note": "Montana conforms; its 2025 forms allow the tips and overtime deductions.",
       "source": "https://revenuefiles.mt.gov/files/Forms/Montana-Individual-Income-Tax-Return-Form-2-Instructions/2025_Montana_Individual_Income_Tax_Return_Form_2_Instructions.pdf"
@@ -890,6 +908,15 @@
         "sourceTitle": "Colorado State Auditor, report 2026-TE5 (June 29, 2026)",
         "_sourceNote": "Office of the State Auditor, 'Report on Federal Tax Law Provisions and Changes that Impact the Colorado Tax Base' (2026-TE5, June 29, 2026, after the 2026 session ended): 'Since Colorado starts with federal taxable income for state tax purposes, the new bonus deduction for seniors will automatically apply to Colorado taxable income.' 2025 Colorado Individual Income Tax Guide (Book104_2025), DR 0104 line 1: 'Enter your federal taxable income from your federal income tax form 1040, 1040 SR, or 1040 SP, line 15.' C.R.S. 39-22-103(5.3) defines the Internal Revenue Code as amended from time to time (rolling). The 2026 additions list in C.R.S. 39-22-104(3), as amended through HB26-1289 (2026 Sess. Laws ch. 364), has no senior add-back; its only OBBBA add-back for individuals is overtime (39-22-104(3)(u), HB25-1296). Open edge, not shown on the page: Proposition MM caps the standard or itemized deduction for incomes of $300,000 or more from 2026; its text reaches the deductions under IRC 63(c)/(d), and the senior deduction is under 151(d)(5)(C), so it should not be caught. Re-check against the 2026 DR 0104 when it is published."
       },
+      "carLoan": {
+        "y2025": "yes",
+        "y2026": "yes",
+        "note": "Colorado starts from your federal taxable income and does not add this deduction back, so the federal car loan interest deduction lowers your Colorado tax too, for 2025 and 2026.",
+        "checkedOn": "2026-10-02",
+        "source": "https://content.leg.colorado.gov/sites/default/files/2026-te5-report-federal-tax-law-provisions-and-changes-impact-colorado-accessible.pdf",
+        "sourceTitle": "Colorado State Auditor, report 2026-TE5 (June 29, 2026)",
+        "_sourceNote": "Office of the State Auditor, report 2026-TE5, 'New: Auto Loan Interest Deduction', Potential State Impact: 'This provision reduces federal taxable income and flows through to Colorado taxable income; therefore, it will reduce Colorado taxable income and state revenue. The Office of State Planning and Budgeting estimated that this provision would reduce state revenues by $25 million to $40 million in FY 2026 and by $30 million to $40 million in FY 2027.' DR 0104 line 1 starts from federal taxable income; C.R.S. 39-22-103(5.3) rolling conformity. The additions in C.R.S. 39-22-104(3), as amended through HB26-1289 (2026 Sess. Laws ch. 364), have no add-back for 163(h)(4) interest; HB25-1296's overtime add-back is the only OBBBA add-back for individuals."
+      },
       "note": "Colorado allows the tips deduction both years. The overtime deduction flows through for 2025 but is added back from 2026 (HB25-1296), which is under a pending legal challenge.",
       "source": "https://leg.colorado.gov/bills/hb25-1296"
     },
@@ -984,6 +1011,15 @@
         "sourceTitle": "Iowa Department of Revenue, impact of the One Big Beautiful Bill Act on employee withholding",
         "_sourceNote": "Iowa Department of Revenue: 'Iowa will conform with the federal tax provisions related to no tax on tips, no tax on overtime, no tax on car loan interest, and the new enhanced deduction for senior citizens.' Iowa Code 422.7: 'net income' means 'the taxable income as properly computed for federal income tax purposes under section 63 of the Internal Revenue Code' (https://www.legis.iowa.gov/docs/code/422.7.pdf); 422.3(5)(b) ties tax years from 2020 to the Internal Revenue Code as amended (rolling). 2025 IA 1040 line 2 is 'Federal taxable income from federal 1040, line 15', and the expanded instructions (What's New, line 1f) say the deduction is 'already included in your federal taxable income' (https://revenue.iowa.gov/taxes/tax-guidance/individual-income-tax/1040-expanded-instructions/whats-new). No 2026 Iowa act amends 422.3 or adds a senior add-back to 422.7."
       },
+      "carLoan": {
+        "y2025": "yes",
+        "y2026": "yes",
+        "note": "Iowa starts from your federal taxable income, and Iowa's Department of Revenue says Iowa follows the federal car loan interest deduction, so it lowers your Iowa tax too, for 2025 and 2026.",
+        "checkedOn": "2026-10-02",
+        "source": "https://revenue.iowa.gov/taxes/tax-guidance/withholding-tax/impact-one-big-beautiful-bill-act-employee-withholding",
+        "sourceTitle": "Iowa Department of Revenue, impact of the One Big Beautiful Bill Act on employee withholding",
+        "_sourceNote": "Iowa Department of Revenue: 'The starting point for Iowa taxable income is federal taxable income. ... Iowa will conform with the federal tax provisions related to no tax on tips, no tax on overtime, no tax on car loan interest, and the new enhanced deduction for senior citizens.' On 2026: 'Similar to tax year 2025, Iowa taxpayers will not be taxed on the qualified portion of tip income, overtime pay, and will be able to benefit from the no tax on car loan interest allowed for federal purposes.' Iowa Code 422.7 (net income is federal taxable income under IRC 63) and 422.3(5)(b) (rolling IRC). The 2026 acts that amend 422.7 (HF 2770, SF 2465, SF 2472) add unrelated subtractions and no car loan add-back."
+      },
       "note": "Iowa conforms (federal-taxable-income base); the deductions flow through to the state return.",
       "source": "https://revenue.iowa.gov/taxes/tax-guidance/withholding-tax/impact-one-big-beautiful-bill-act-employee-withholding"
     },
@@ -1006,6 +1042,15 @@
         "source": "https://legislature.idaho.gov/wp-content/uploads/sessioninfo/2026/legislation/H0559.pdf",
         "sourceTitle": "Idaho HB 559 (2026), Internal Revenue Code conformity",
         "_sourceNote": "HB 559 (2026 Sess. Laws ch. 1), amending Idaho Code 63-3004: the Internal Revenue Code 'as amended and in effect on the first day of January 2026', effective 'retroactively to January 1, 2025'; its only exceptions are IRC 85 and research and experimental costs. Idaho Code 63-3011B: 'taxable income' means federal taxable income as determined under the Internal Revenue Code. 2025 Form 40 instructions (EIN00046, rev. 03-02-2026), 'Line 18 Qualified Business Income and Federal Schedule 1-A Deductions. Add lines 13a and 13b from federal Form 1040 or 1040-SR and enter the total on this line.' (https://tax.idaho.gov/document-manager/forms_EIN00046). Idaho Code 63-3022 has no senior add-back. The 2027 conformity bill, usually retroactive to January 1 of the prior year, is the next point it could change."
+      },
+      "carLoan": {
+        "y2025": "yes",
+        "y2026": "yes",
+        "note": "Idaho follows the federal tax code as it stood on January 1, 2026, back to 2025, and Idaho's return subtracts the federal Schedule 1-A deductions, so the federal car loan interest deduction lowers your Idaho tax too, for 2025 and 2026.",
+        "checkedOn": "2026-10-02",
+        "source": "https://legislature.idaho.gov/wp-content/uploads/sessioninfo/2026/legislation/H0559.pdf",
+        "sourceTitle": "Idaho HB 559 (2026), Internal Revenue Code conformity",
+        "_sourceNote": "HB 559 (2026 Sess. Laws ch. 1), amending Idaho Code 63-3004 to the Internal Revenue Code 'as amended and in effect on the first day of January 2026', 'retroactively to January 1, 2025'. Idaho State Tax Commission, 'Update on filing 2025 Idaho income taxes now that conformity is law' (https://tax.idaho.gov/pressrelease/update-on-filing-2025-idaho-income-taxes-now-that-conformity-is-law/): 'House Bill 559 conforms to most of the provisions in the federal One Big Beautiful Bill Act. This includes the larger standard deduction amounts, the enhanced senior deduction, and the deductions for qualified tips from wages, car loan interest, and overtime compensation.' 2025 Form 40 instructions, line 18 'Qualified Business Income and Federal Schedule 1-A Deductions. Add lines 13a and 13b from federal Form 1040'. Idaho Code 63-3022 has no add-back for it."
       },
       "note": "Idaho starts from federal taxable income and conformed via HB559 (2026), retroactive to 2025 — the deductions flow through.",
       "source": "https://rsmus.com/insights/tax-alerts/2026/idaho-conforms-one-big-beautiful-bill.html"

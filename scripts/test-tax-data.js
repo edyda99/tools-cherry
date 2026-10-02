@@ -719,11 +719,13 @@ t('legal-status watches: well-formed, none expired', () => {
     const n = stateLinesIn(cardWith('<h4>The federal deduction for people 65 and older</h4>'), 'senior');
     assert.ok(n >= 8, `expected the eight checked senior rows, found ${n}`);
   });
-  t('what-applies-to-me: the car loan card names Oregon and DC, gated to each', () => {
+  t('what-applies-to-me: the car loan card names each checked state, gated to each', () => {
     const card = cardWith('<h4>Interest on a new car loan</h4>');
     const n = stateLinesIn(card, 'carLoan');
-    assert.ok(n >= 2, `expected the Oregon and DC car loan rows, found ${n}`);
-    assert.ok(card.includes('data-st="oregon"') && card.includes('data-st="district-of-columbia"'));
+    assert.ok(n >= 8, `expected the eight checked car loan rows, found ${n}`);
+    for (const slug of ['oregon', 'district-of-columbia', 'arizona', 'colorado', 'iowa', 'montana', 'north-dakota', 'idaho']) {
+      assert.ok(card.includes(`data-st="${slug}"`), `car loan card has no line for ${slug}`);
+    }
   });
 }
 

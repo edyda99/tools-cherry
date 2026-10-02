@@ -542,6 +542,28 @@ eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single'
   is('DC car loan note says 2026 is allowed', /From 2026 it does\./.test(dc.note || ''), true);
 }
 
+// --- Car loan interest in the states that start from FEDERAL TAXABLE INCOME (checked 2026-10-02) ---
+// 163(h)(4) comes off before federal taxable income (Schedule 1-A), so these five pick it up for
+// 2025 and 2026 unless they add it back, and none does: Colorado (State Auditor 2026-TE5), Iowa
+// (IDR: "no tax on car loan interest"), Montana (2025 Form 2 instructions p.7), North Dakota
+// (booklet: perpetual conformity; Tax Commissioner OBBBA impacts item e) and Idaho (HB 559).
+// Every other state without a row prints nothing, not a guess.
+{
+  for (const slug of ['colorado', 'iowa', 'montana', 'north-dakota', 'idaho']) {
+    const r = obbba.states[slug].carLoan || {};
+    is(`${slug} car loan 2025 is yes`, r.y2025, 'yes');
+    is(`${slug} car loan 2026 is yes`, r.y2026, 'yes');
+    is(`${slug} car loan source is an https URL`, /^https:\/\//.test(r.source || ''), true);
+    is(`${slug} car loan has a citation title`, typeof r.sourceTitle === 'string' && r.sourceTitle.length > 5, true);
+    is(`${slug} car loan checkedOn`, r.checkedOn, '2026-10-02');
+    is(`${slug} car loan note has no em or en dash`, /[–—]/.test(r.note || ''), false);
+    is(`${slug} car loan note names the state`, (r.note || '').includes(obbba.states[slug].name), true);
+  }
+  is('car loan rows exist for exactly the eight checked states',
+    Object.entries(obbba.states).filter(([, e]) => e && e.carLoan).map(([s]) => s).sort().join(','),
+    ['arizona', 'colorado', 'district-of-columbia', 'idaho', 'iowa', 'montana', 'north-dakota', 'oregon'].join(','));
+}
+
 // --- Arizona: HB 4168 (Laws 2026, ch. 140, signed 2026-06-13) ---------------------------------
 // Arizona starts from federal AGI (A.R.S. 43-1001(2)), so a deduction taken after AGI reaches the
 // Arizona return only through a subtraction. HB 4168 added two to A.R.S. 43-1022: (35) the 151(d)(5)(C)

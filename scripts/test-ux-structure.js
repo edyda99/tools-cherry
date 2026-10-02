@@ -1094,7 +1094,30 @@ const PAGES = [
       ['state-question-answered', contains('<strong>Does it lower my state income tax too?</strong>')],
       ['state-answer-names-dc', contains('<li><strong>District of Columbia:</strong> DC does not allow')],
       ['state-answer-names-oregon', contains('<li><strong>Oregon:</strong> Oregon allows')],
+      ['state-answer-names-arizona', contains('<li><strong>Arizona:</strong> Arizona lets you subtract')],
+      ['state-answer-names-colorado', contains('<li><strong>Colorado:</strong> Colorado starts from your federal taxable income')],
+      ['state-answer-names-idaho', contains('<li><strong>Idaho:</strong> Idaho follows the federal tax code')],
+      ['state-answer-names-iowa', contains('<li><strong>Iowa:</strong> Iowa starts from your federal taxable income')],
+      ['state-answer-names-montana', contains('<li><strong>Montana:</strong> Montana')],
+      ['state-answer-names-north-dakota', contains('<li><strong>North Dakota:</strong> North Dakota starts from your federal taxable income')],
+      ['taxable-income-start-explained', contains('A state that starts from your federal taxable income picks it up unless it adds it back.')],
+      ['unchecked-states-told-to-ask', contains('We have not checked the other states one by one, so if yours is not listed, ask its tax department.')],
       ['no-unfilled-placeholder', absent('{{CAR_LOAN_STATES}}')],
+    ],
+  },
+  {
+    // Car loan interest in a state that starts from federal taxable income (State Auditor 2026-TE5).
+    file: 'colorado-paycheck-calculator/index.html',
+    pins: [
+      ['car-loan-line', contains('<strong>Car loan interest:</strong> Colorado starts from your federal taxable income and does not add this deduction back')],
+      ['car-loan-source-named', contains('>Colorado State Auditor, report 2026-TE5 (June 29, 2026)</a>')],
+    ],
+  },
+  {
+    // A state the data does not track for car loan prints no car loan line at all.
+    file: 'michigan-paycheck-calculator/index.html',
+    pins: [
+      ['no-car-loan-line-for-an-unchecked-state', absent('<strong>Car loan interest:</strong>')],
     ],
   },
   {

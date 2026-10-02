@@ -3238,6 +3238,7 @@ function carLoanStateAnswer(obbba) {
     return `<strong>${escHtml(e.name)}:</strong> ${escHtml(e.carLoan.note)}${link ? ` (${link})` : ''}`;
   });
   return `<p><strong>Does it lower my state income tax too?</strong> It depends on your state. A state that starts ` +
+    `from your federal taxable income picks it up unless it adds it back. A state that starts ` +
     `from your federal adjusted gross income does not pick it up on its own, because this deduction comes off ` +
     `after that figure. A state can still choose to allow it.` +
     (named.length ? ` The places we have checked:</p><ul>${named.map((n) => `<li>${n}</li>`).join('')}</ul>` +
