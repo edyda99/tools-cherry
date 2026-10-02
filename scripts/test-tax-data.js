@@ -624,5 +624,19 @@ t('legal-status watches: well-formed, none expired', () => {
   }
   assert.ok(n > 0, 'no _watch entries found; DC should carry one until its law is permanent');
 });
+// The tips/overtime conformity rows carry the same kind of tripwire.
+{
+  const obbba = JSON.parse(await readFile(join(__dirname, '..', 'src', 'data', 'obbba-deductions-2026.json'), 'utf8'));
+  t('tips/overtime conformity watches: well-formed, none expired', () => {
+    const today = new Date().toISOString().slice(0, 10);
+    for (const [slug, s] of Object.entries(obbba.states)) {
+      if (!s || !s._watch) continue;
+      assert.match(s._watch.until || '', /^\d{4}-\d{2}-\d{2}$/, `${slug} _watch.until must be YYYY-MM-DD`);
+      assert.ok(s._watch.what, `${slug} _watch must say what to re-verify`);
+      assert.ok(s._watch.until >= today,
+        `${slug} tips/overtime legal-status watch EXPIRED on ${s._watch.until}. ${s._watch.what}`);
+    }
+  });
+}
 
 console.log(`\n${pass} passing`);

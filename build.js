@@ -7547,6 +7547,13 @@ async function main() {
       throw new Error(`legal-status watch EXPIRED for ${wSlug} on ${wSt._watch.until}: ${wSt._watch.what}`);
     }
   }
+  // Same tripwire on the tips/overtime conformity rows, which sit on their own
+  // legal clocks (DC's rests on an emergency act until its permanent twin is law).
+  for (const [wSlug, wSt] of Object.entries(obbba.states)) {
+    if (wSt && wSt._watch && wSt._watch.until && wSt._watch.until < watchToday) {
+      throw new Error(`legal-status watch EXPIRED for ${wSlug} tips/overtime conformity on ${wSt._watch.until}: ${wSt._watch.what}`);
+    }
+  }
 
   const builtSlugs = new Set(Object.keys(taxData.states));
   const homeLinks = stateLinks(roster, builtSlugs, null);
@@ -10099,8 +10106,8 @@ async function main() {
     const esc = (s) => String(s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     const STUDY_PUBLISHED_ISO = '2026-07-02';
-    const STUDY_UPDATED_ISO = '2026-07-07';
-    const STUDY_DATE_HUMAN = 'July 7, 2026';
+    const STUDY_UPDATED_ISO = '2026-10-02';
+    const STUDY_DATE_HUMAN = 'October 2, 2026';
     const OT_LABEL = {
       no: { txt: 'Still taxed', cls: 'v-no', rank: 1 },
       partial: { txt: 'Partial', cls: 'v-partial', rank: 2 },
@@ -10223,8 +10230,8 @@ async function main() {
     const esc = (s) => String(s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     const STUDY_PUBLISHED_ISO = '2026-07-02';
-    const STUDY_UPDATED_ISO = '2026-07-07';
-    const STUDY_DATE_HUMAN = 'July 7, 2026';
+    const STUDY_UPDATED_ISO = '2026-10-02';
+    const STUDY_DATE_HUMAN = 'October 2, 2026';
     const TP_LABEL = {
       no: { txt: 'Still taxed', cls: 'v-no', rank: 1 },
       partial: { txt: 'Partial', cls: 'v-partial', rank: 2 },
