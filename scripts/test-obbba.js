@@ -28,14 +28,22 @@ function is(name, got, want) {
 eq('OT single below cap', allowedDeduction({ eligibleAmount: 5000, filingStatus: 'single', magi: 60000, params: OT }).deduction, 5000);
 // OT single above cap -> capped at 12500
 eq('OT single capped', allowedDeduction({ eligibleAmount: 20000, filingStatus: 'single', magi: 80000, params: OT }).deduction, 12500);
-// OT single phase-out: MAGI 200k -> over 50k -> -50*100=5000 -> cap 7500
+// OT single phase-out, Schedule 1-A Part III: line 15 = min(30,000, 12,500) = 12,500;
+// line 18 = 200,000 - 150,000 = 50,000; line 19 = 50; line 20 = 5,000;
+// line 21 = 12,500 - 5,000 = 7,500. allowedCap (cap minus line 20) is also 7,500.
 eq('OT single phaseout cap', allowedDeduction({ eligibleAmount: 30000, filingStatus: 'single', magi: 200000, params: OT }).allowedCap, 7500);
 eq('OT single phaseout deduction', allowedDeduction({ eligibleAmount: 30000, filingStatus: 'single', magi: 200000, params: OT }).deduction, 7500);
 // OT single full phase-out at/after 275k
 is('OT single fully phased out', allowedDeduction({ eligibleAmount: 30000, filingStatus: 'single', magi: 280000, params: OT }).fullyPhasedOut, true);
 eq('OT single full phaseout ded=0', allowedDeduction({ eligibleAmount: 30000, filingStatus: 'single', magi: 280000, params: OT }).deduction, 0);
-// Phase-out "fraction thereof": MAGI 150001 -> 1 step -> cap 12400
-eq('OT phaseout fraction', allowedDeduction({ eligibleAmount: 20000, filingStatus: 'single', magi: 150001, params: OT }).allowedCap, 12400);
+// Phase-out ROUNDS DOWN. IRC 225(b)(2)(A) says "for each $1,000", with no
+// "or fraction thereof" (contrast 163(h)(4)(C)(ii) "or portion thereof").
+// Schedule 1-A: line 18 = 150,001 - 150,000 = 1; line 19 = 1/1,000 = 0.001,
+// "decrease the result to the next lower whole number" -> 0; line 20 = 0;
+// line 21 = line 15 = 12,500. (Was 12,400 here, the old round-UP reading.)
+eq('OT phaseout fraction', allowedDeduction({ eligibleAmount: 20000, filingStatus: 'single', magi: 150001, params: OT }).allowedCap, 12500);
+eq('OT phaseout fraction deduction', allowedDeduction({ eligibleAmount: 20000, filingStatus: 'single', magi: 150001, params: OT }).deduction, 12500);
+is('OT phaseout fraction not phased', allowedDeduction({ eligibleAmount: 20000, filingStatus: 'single', magi: 150001, params: OT }).phasedOut, false);
 // OT married cap 25000
 eq('OT married cap', allowedDeduction({ eligibleAmount: 30000, filingStatus: 'married', magi: 120000, params: OT }).deduction, 25000);
 // OT head_of_household uses single cap 12500
@@ -46,6 +54,68 @@ eq('Tips single cap', allowedDeduction({ eligibleAmount: 30000, filingStatus: 's
 eq('Tips married cap (not doubled)', allowedDeduction({ eligibleAmount: 40000, filingStatus: 'married', magi: 120000, params: TIPS }).deduction, 25000);
 // Tips full phase-out single at 400k
 is('Tips single fully phased out at 400k', allowedDeduction({ eligibleAmount: 40000, filingStatus: 'single', magi: 400000, params: TIPS }).fullyPhasedOut, true);
+
+// --- Phase-out ORDER regression (IRC 224/225 (b)(2)(A), Schedule 1-A 2025) ---
+// "The amount allowable as a deduction under subsection (a) (after application
+// of paragraph (1)) shall be reduced (but not below zero) by $100 for each
+// $1,000 by which the taxpayer's modified adjusted gross income exceeds
+// $150,000 ($300,000 in the case of a joint return)." The reduction comes off
+// min(amount, cap), NOT off the cap. Expected values are hand-worked from the
+// Schedule 1-A lines named in each comment; the old engine's (wrong) figure is
+// noted for the record.
+const sch = (a) => allowedDeduction(a);
+{
+  // R1 tips single, MAGI 220,000 (200k wages + 20k tips), tips 20,000:
+  // line 7 = 20,000; line 10 = 70,000; line 11 = 70; line 12 = 7,000;
+  // line 13 = 13,000. (Old engine: min(20,000, 25,000 - 7,000) = 18,000.)
+  const r = sch({ eligibleAmount: 20000, filingStatus: 'single', magi: 220000, params: TIPS });
+  eq('R1 tips line 7 capped amount', r.cappedAmount, 20000);
+  eq('R1 tips line 12 reduction', r.reduction, 7000);
+  eq('R1 tips line 13 deduction', r.deduction, 13000);
+  is('R1 phasedOut', r.phasedOut, true);
+  is('R1 not fully phased out', r.fullyPhasedOut, false);
+  eq('R1 allowedCap is only a ceiling (25,000 - 7,000)', r.allowedCap, 18000);
+}
+// R2 OT single, MAGI 180,000, premium 10,000: line 15 = 10,000; line 18 = 30,000;
+// line 19 = 30; line 20 = 3,000; line 21 = 7,000. (Old: min(10,000, 9,500) = 9,500.)
+eq('R2 OT single line 21', sch({ eligibleAmount: 10000, filingStatus: 'single', magi: 180000, params: OT }).deduction, 7000);
+// R3 OT MFJ, MAGI 340,000, premium 20,000: line 15 = 20,000; line 18 = 40,000;
+// line 19 = 40; line 20 = 4,000; line 21 = 16,000. (Old: 20,000, cap 21,000 not binding.)
+eq('R3 OT MFJ line 21', sch({ eligibleAmount: 20000, filingStatus: 'married', magi: 340000, params: OT }).deduction, 16000);
+// R4 tips MFJ, MAGI 350,500, tips 15,000: line 7 = 15,000; line 10 = 50,500;
+// line 11 = 50.5 -> 50 (round DOWN); line 12 = 5,000; line 13 = 10,000. (Old: 15,000.)
+eq('R4 tips MFJ line 11 rounds down', sch({ eligibleAmount: 15000, filingStatus: 'married', magi: 350500, params: TIPS }).steps, 50);
+eq('R4 tips MFJ line 13', sch({ eligibleAmount: 15000, filingStatus: 'married', magi: 350500, params: TIPS }).deduction, 10000);
+// R5 tips single, MAGI 150,999, tips 25,000: line 10 = 999; line 11 = 0.999 -> 0;
+// line 12 = 0; line 13 = 25,000. (Old round-up: 24,900.)
+eq('R5 tips single line 13 sub-$1,000 excess', sch({ eligibleAmount: 25000, filingStatus: 'single', magi: 150999, params: TIPS }).deduction, 25000);
+// R6 tips single, MAGI 275,000, tips 12,500 (the worst case, half the cap at the
+// half-way income): line 7 = 12,500; line 10 = 125,000; line 11 = 125;
+// line 12 = 12,500; line 13 = 0. (Old: all 12,500, since 25,000 - 12,500 = 12,500.)
+{
+  const r = sch({ eligibleAmount: 12500, filingStatus: 'single', magi: 275000, params: TIPS });
+  eq('R6 tips single line 13 wiped out', r.deduction, 0);
+  is('R6 fullyPhasedOut', r.fullyPhasedOut, true);
+}
+// R7 tips HoH (single threshold), MAGI 200,000, tips 8,000: line 7 = 8,000;
+// line 12 = 5,000; line 13 = 3,000. (Old: 8,000.)
+eq('R7 tips HoH line 13', sch({ eligibleAmount: 8000, filingStatus: 'head_of_household', magi: 200000, params: TIPS }).deduction, 3000);
+// R8 OT single, MAGI 250,000, premium 5,000: line 15 = 5,000; line 20 = 10,000;
+// line 21 = 5,000 - 10,000 -> 0. (Old: min(5,000, 2,500) = 2,500.)
+{
+  const r = sch({ eligibleAmount: 5000, filingStatus: 'single', magi: 250000, params: OT });
+  eq('R8 OT single line 21 zero', r.deduction, 0);
+  is('R8 fullyPhasedOut', r.fullyPhasedOut, true);
+}
+// R9 cap AND phase-out both bind (unchanged by the fix): tips single, MAGI
+// 200,000, tips 30,000: line 7 = 25,000; line 12 = 5,000; line 13 = 20,000.
+eq('R9 tips cap then phase-out', sch({ eligibleAmount: 30000, filingStatus: 'single', magi: 200000, params: TIPS }).deduction, 20000);
+// R10 exactly on a $1,000 step: MAGI 151,000 -> line 11 = 1, line 12 = 100.
+eq('R10 first full step', sch({ eligibleAmount: 5000, filingStatus: 'single', magi: 151000, params: OT }).deduction, 4900);
+// R11 nothing entered, high income: not "fully phased out" until even a full-cap
+// claim would be gone (keeps the UI from saying "fully phased out" at 160k).
+is('R11 empty amount at 160k not fully phased', sch({ eligibleAmount: 0, filingStatus: 'single', magi: 160000, params: TIPS }).fullyPhasedOut, false);
+is('R11 empty amount at 400k fully phased', sch({ eligibleAmount: 0, filingStatus: 'single', magi: 400000, params: TIPS }).fullyPhasedOut, true);
 
 // --- federalTaxSaved: exact bracket diff -----------------------------------
 // $60k single, $5k deduction: taxable 43900 -> 38900, both in 12% band -> 600
@@ -73,6 +143,14 @@ is('estimate OT fica flag', e1.ficaStillApplies, true);
 const e2 = estimate({ kind: 'tips', eligibleAmount: 30000, grossAnnual: 60000, filingStatus: 'single', federal: obbba.federal, fed });
 eq('estimate tips deduction capped', e2.deduction, 25000);
 eq('estimate tips tax saved', e2.taxSaved, 3000); // 25000 * 12% (taxable 43900->18900 both 12%)
+// R1 end to end: single, $220,000 income, $20,000 tips. Line 13 = 13,000.
+// Taxable 220,000 - 16,100 = 203,900 -> 190,900: 2,125 at 32% (to 201,775)
+// + 10,875 at 24% = 680 + 2,610 = 3,290. (Old engine: 18,000 -> 4,490.)
+const e3 = estimate({ kind: 'tips', eligibleAmount: 20000, grossAnnual: 220000, filingStatus: 'single', federal: obbba.federal, fed });
+eq('estimate R1 tips deduction', e3.deduction, 13000);
+eq('estimate R1 tips reduction passthrough', e3.reduction, 7000);
+eq('estimate R1 tips capped passthrough', e3.cappedAmount, 20000);
+eq('estimate R1 tips tax saved', e3.taxSaved, 3290);
 
 // --- senior deduction (IRC §151(d)(5)(C)) ----------------------------------
 // All 12 fixtures from the sourced spec (obbba-senior-deduction-spec.md, §5).

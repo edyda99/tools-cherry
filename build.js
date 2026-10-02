@@ -23,6 +23,11 @@ import {
   // dollar step charged ON TOP of the band arithmetic, so a band table that ignored it would
   // not sum to the tax the engine charged. Imported, never reimplemented.
   steppedRecapture,
+  // Alabama, Missouri and Oregon subtract (some of) the federal income tax from the income
+  // they tax. stateTaxableIncome() returns every subtraction the engine made, so the ladder
+  // can name each one; the three tax functions let a page measure what that subtraction is
+  // worth and how far a raise has to go, with the engine's own arithmetic.
+  stateTaxableIncome, federalTaxSubtraction, federalIncomeTax, ficaTax, stateIncomeTax,
 } from './src/engine/paycheck-engine.js';
 import { computeBonus } from './src/engine/bonus-tax.js';
 // The 2027 seasonal pages. `assertComplete` is the one that matters: it is the
@@ -1855,9 +1860,25 @@ const hasStateDeduction = (t) => !!(t && t.standardDeduction);
 function stateTaxFacts(state, year, taxData) {
   const t = state.tax;
   const sd = t.standardDeduction;
+  // Alabama's deduction steps down to a floor (Ala. Code 40-18-15(b)(4)), so the published
+  // figures are maximums and the worked example below uses the floor. Said here so the two
+  // reconcile. Only the stepped shape carries `minimum`; Wisconsin and South Carolina keep
+  // the sentence they ship.
+  const sdStep = t.standardDeductionPhaseout && t.standardDeductionPhaseout.single;
+  const sdFloor = (sd && sdStep && sdStep.minimum != null && sdStep.per > 0 && sdStep.reduceBy > 0)
+    ? `, shrinking as income rises to ${usd0(sdStep.minimum)} and ` +
+      `${usd0((t.standardDeductionPhaseout.married || sdStep).minimum)} from ` +
+      `${usd0(sdStep.over + Math.ceil((sd.single - sdStep.minimum) / sdStep.reduceBy) * sdStep.per)} of income`
+    : '';
   const sdText = sd
-    ? `For ${year}, ${state.name}'s state standard deduction is ${usd0(sd.single)} for single filers and ${usd0(sd.married)} for married couples filing jointly`
+    ? `For ${year}, ${state.name}'s state standard deduction is ${usd0(sd.single)} for single filers and ${usd0(sd.married)} for married couples filing jointly${sdFloor}`
     : `${state.name} does not provide a state standard deduction`;
+  // The federal income tax the state lets you subtract (Alabama, Missouri, Oregon), stated
+  // from the data so the $60,000 example that follows can be reproduced.
+  const fedSubWords = fedSubRule(state);
+  const fedSubText = fedSubWords
+    ? ` When working out its taxable income, ${state.name} also lets you subtract ${fedSubWords}. The figures here include it.`
+    : '';
   let example = '';
   try {
     const ann = computePaycheck({ wage: { type: 'salary', amount: 60000 }, filingStatus: 'single', payFrequency: 'annual', stateSlug: state.slug }, taxData).annual;
@@ -1874,7 +1895,7 @@ function stateTaxFacts(state, year, taxData) {
     // deduction" it pointed at nothing.
     const rest = sd ? 'after that, all remaining taxable income is' : 'all taxable income is';
     return `<p>${sdText}; ${rest} taxed at the single ` +
-      `flat rate of <strong>${pctStr(t.rate)}</strong> — ${state.name} does not use graduated brackets for ${year}.${example}</p>`;
+      `flat rate of <strong>${pctStr(t.rate)}</strong> — ${state.name} does not use graduated brackets for ${year}.${fedSubText}${example}</p>`;
   }
   if (isEffectivelyFlat(t)) {
     const f = effectiveFlatFacts(t);
@@ -1890,11 +1911,11 @@ function stateTaxFacts(state, year, taxData) {
       return `<p>${sdText}; ${band} taxed at <strong>0%</strong>, and once taxable income passes ` +
         `${usd0(f.zeroUpTo)} the tax is a flat <strong>${usd0(f.base)}</strong> plus ` +
         `<strong>${pctStr(f.rate)}</strong> of the amount above it. ` +
-        `${state.name} does not run a ladder of rising rates for ${year}.${example}</p>`;
+        `${state.name} does not run a ladder of rising rates for ${year}.${fedSubText}${example}</p>`;
     }
     return `<p>${sdText}; ${band} taxed at ` +
       `<strong>0%</strong> and every dollar above it at the single flat rate of <strong>${pctStr(f.rate)}</strong> — ` +
-      `${state.name} does not run a ladder of rising rates for ${year}.${example}</p>`;
+      `${state.name} does not run a ladder of rising rates for ${year}.${fedSubText}${example}</p>`;
   }
   const b = t.brackets.single || [];
   const n = b.length;
@@ -1904,7 +1925,7 @@ function stateTaxFacts(state, year, taxData) {
   return `<p>${state.name} uses a <strong>graduated income tax with ${n} bracket${n > 1 ? 's' : ''}</strong> for ${year}, ` +
     `with marginal rates ranging from ${low} to a top rate of <strong>${top}</strong>` +
     (topThresh ? ` (which applies to single-filer taxable income above ${usd0(topThresh)})` : '') + `. ` +
-    `${sdText}.${example}</p>`;
+    `${sdText}.${fedSubText}${example}</p>`;
 }
 
 // Near-page-1 target states (06-28): the 5 with at least one query inside SERP
@@ -3067,7 +3088,7 @@ function obbbaConformityBlock(state, obbba, year) {
   const otV = e.overtime && e.overtime.y2026, tipV = e.tips && e.tips.y2026;
   let verdictTail;
   if (!e.hasWageTax) verdictTail = `Federally yes — no ${state.name} wage tax anyway`;
-  else if (otV === 'yes' && tipV === 'yes') verdictTail = `Federally yes — and on the ${state.name} return too`;
+  else if (otV === 'yes' && tipV === 'yes') verdictTail = `Federally yes, and on the ${state.name} return too`;
   else if (otV === 'no' && tipV === 'no') verdictTail = `Federally yes, but ${state.name} still taxes both`;
   else if (otV === 'partial' && tipV === 'partial') verdictTail = `Federally yes; ${state.name} allows a smaller capped break`;
   else if (otV === 'unclear' && tipV === 'unclear') verdictTail = `Federally yes; ${state.name}'s rules aren't confirmed yet`;
@@ -4259,6 +4280,18 @@ const LADDER_STATE_SET = new Set(LADDER_STATES);
 const ladderHubSlug = (slug) => `${slug}-take-home-pay`;
 const ladderPath = (slug, amount) => `/${ladderHubSlug(slug)}-${amount}/`;
 
+// A DIFFERENCE OF TWO ENGINE FIGURES, SNAPPED BEFORE IT IS PRINTED. Every cent on the ladder
+// pages goes through usdCents(), which is toLocaleString: half a cent rounds away from zero,
+// the rule the calculators (app.js usd2) and the rest of the site print with, and the ladder
+// keeps it so a rung's per-paycheck figures match the calculator's to the cent. A figure the
+// ladder DERIVES by subtracting two engine figures is different: a true $765.625 arrives as
+// 765.62499999 on one rung and 765.62500001 on the next, so sibling Oregon pages printed the
+// same worth as $765.62 and $765.63. roundCents() snaps such a difference to a millionth of a
+// dollar, which removes the subtraction noise, and then applies the same half-cent rule.
+const roundCents = (n) => {
+  const micro = Math.round(Math.abs(n) * 1e6);
+  return (Math.sign(n) * Math.round(micro / 1e4) / 100) || 0;   // || 0: never print "-$0.00"
+};
 const usdCents = (n) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const pct1 = (n) => (n * 100).toFixed(1) + '%';
 const pct2 = (n) => (n * 100).toFixed(2) + '%';
@@ -4389,17 +4422,21 @@ function caRung(amount, taxData, slug) {
   // Both helpers are the ENGINE'S OWN, imported at the top of this file. The band/flat
   // assertions below are what keep this honest: a subtraction that does not reproduce the
   // engine's tax fails the build rather than shipping a table that does not add up.
+  //   Alabama / Missouri / Oregon (2026-10-02): they also subtract federal income tax, all
+  //     of it (Alabama), a share set by income and capped (Missouri), or up to a limit that
+  //     phases out (Oregon). The engine hands the state its federal liability, which on this
+  //     page is `a.federal` (no extra withholding is entered), and we pass the same figure.
+  // ALL of it now comes from the engine's stateTaxableIncome(), the function stateIncomeTax()
+  // itself calls, so the parts printed here are the parts the engine subtracted.
   const stDedPublished = (t.standardDeduction && t.standardDeduction.single) || 0;
-  const stDedAfterPhaseout = t.standardDeductionPhaseout
-    ? phaseOutStandardDeduction(stDedPublished, amount, 'single', t.standardDeductionPhaseout)
-    : stDedPublished;
-  const stFicaDed = t.ficaPaidDeduction
-    ? ficaPaidDeduction(a.socialSecurity + a.medicare, t.ficaPaidDeduction)
-    : 0;
+  const stParts = stateTaxableIncome(amount, 'single', stData, 0, a.socialSecurity + a.medicare, a.federal);
+  const stDedAfterPhaseout = stParts.standardDeduction;
+  const stFicaDed = stParts.ficaDeduction;
+  const stFedSub = stParts.federalTaxSubtraction;
   // `stDed` keeps its old meaning for every wave-1 state (none of them phases anything
   // down or deducts FICA, so it is still the published figure) and becomes the whole of
   // what came off the salary where a state does more than one thing.
-  const stDed = stDedAfterPhaseout + stFicaDed;
+  const stDed = stDedAfterPhaseout + stFicaDed + stFedSub;
   if (kind === 'bracket') {
     st = federalBracketBreakdown(amount, 'single',
       { standardDeduction: { single: stDed }, brackets: t.brackets }, 0);
@@ -4488,6 +4525,7 @@ function caRung(amount, taxData, slug) {
     stDedPublished,
     stDedAfterPhaseout,
     stFicaDed,
+    stFedSub,
     stDedPhases: !!t.standardDeductionPhaseout,
     stBase,
     stRecapture,
@@ -4685,8 +4723,66 @@ function stateDeductionPhrase(r) {
   if (r.stDed <= 0) return null;
   if (r.slug === 'california') return `the ${usd0(r.stDed)} state standard deduction`; // legacy CA wording
   const base = `the ${usd0(r.stDedAfterPhaseout)} ${r.state.name} takes off first`;
-  if (r.stFicaDed <= 0) return base;
-  return `${base} and the ${usd0(r.stFicaDed)} it allows for the FICA already withheld from this salary`;
+  const extras = [];
+  if (r.stFicaDed > 0) extras.push(`the ${usd0(r.stFicaDed)} it allows for the FICA already withheld from this salary`);
+  if (r.stFedSub > 0) extras.push(`the ${usd0(r.stFedSub)} it allows for the federal income tax on this salary`);
+  if (!extras.length) return base;
+  return `${base} and ${caList(extras)}`;
+}
+
+// THE FEDERAL-TAX SUBTRACTION, IN WORDS, FROM THE DATA ALONE. Alabama, Missouri and Oregon
+// let a filer subtract federal income tax, each on different terms, and every page that
+// mentions it states the single-filer rule from `tax.federalTaxSubtraction` rather than from
+// a sentence written per state. The share and the cap at a given income are read through
+// the ENGINE'S federalTaxSubtraction(), fed a unit amount (share) or an unbounded one (cap),
+// so the pages and the engine cannot disagree about which row applies.
+function fedSubShareAt(cfg, agi) {
+  if (!(Array.isArray(cfg.shareByAgi) && cfg.shareByAgi.length)) return null;
+  return federalTaxSubtraction(1, agi, 'single', { shareByAgi: cfg.shareByAgi });
+}
+function fedSubCapAt(cfg, agi) {
+  if (!cfg.capByAgi) return null;
+  const big = 1e15;
+  const c = federalTaxSubtraction(big, agi, 'single', { capByAgi: cfg.capByAgi });
+  return c >= big ? null : c;
+}
+function fedSubFacts(cfg) {
+  const shares = Array.isArray(cfg.shareByAgi) && cfg.shareByAgi.length ? cfg.shareByAgi : null;
+  const caps = cfg.capByAgi && Array.isArray(cfg.capByAgi.single) && cfg.capByAgi.single.length
+    ? cfg.capByAgi.single : null;
+  const lastShare = shares ? [...shares].reverse().find((x) => x.share > 0 && x.agiUpTo != null) || null : null;
+  const zeroIdx = caps ? caps.findIndex((x) => x.cap === 0) : -1;
+  return {
+    shares,
+    caps,
+    firstShare: shares ? shares[0] : null,
+    lastShare,
+    maxCap: caps ? caps[0].cap : null,
+    capStepsFrom: caps && caps.length > 1 ? caps[0].agiUnder : null,
+    capZeroFrom: zeroIdx > 0 ? caps[zeroIdx - 1].agiUnder : null,
+  };
+}
+function fedSubRule(state) {
+  const cfg = state && state.tax && state.tax.federalTaxSubtraction;
+  if (!cfg) return null;
+  const f = fedSubFacts(cfg);
+  let what;
+  if (f.shares) {
+    what = `part of the federal income tax you owe: ${pctStr(f.firstShare.share)} of it at ` +
+      `${usd0(f.firstShare.agiUpTo)} of income or less` +
+      (f.lastShare ? `, falling in steps to ${pctStr(f.lastShare.share)} and to none above ${usd0(f.lastShare.agiUpTo)}` : '');
+  } else {
+    what = `the federal income tax you owe`;
+  }
+  if (f.caps && f.capStepsFrom != null) {
+    what += `, up to ${usd0(f.maxCap)}, a limit that steps down once income reaches ${usd0(f.capStepsFrom)}` +
+      (f.capZeroFrom != null ? ` and is zero from ${usd0(f.capZeroFrom)}` : '');
+  } else if (f.caps) {
+    what += `, capped at ${usd0(f.maxCap)}`;
+  } else if (!f.shares) {
+    what = `all of ${what}, with no cap`;
+  }
+  return what;
 }
 
 // WHY NOTHING CAME OFF. A state whose deduction has been phased ALL THE WAY OUT at this
@@ -4700,6 +4796,92 @@ function stateNoDeductionReason(r) {
     ? `${r.state.name}'s ${usd0(r.stDedPublished)} deduction is income-tested and has phased out ` +
       `completely by this salary`
     : `${r.state.name} subtracts nothing before its own rate applies`;
+}
+
+// The smallest whole-dollar raise that lifts this rung's state taxable income above `edge`,
+// computed by the engine at every candidate salary: its own FICA, its own federal income tax,
+// its own stateTaxableIncome(). Single filer, no pre-tax money, exactly as caRung() runs it.
+// Used only where the state subtracts federal tax, see raiseToEdge in caProseBlocks.
+function salaryRaiseToTaxable(r, edge, taxData) {
+  const fed = taxData.federal;
+  const taxableAt = (salary) => stateTaxableIncome(salary, 'single', r.state, 0,
+    ficaTax(salary, 'single', fed).total, federalIncomeTax(salary, 'single', fed)).taxable;
+  if (taxableAt(r.amount) > edge) return 0;
+  let lo = r.amount;
+  let hi = r.amount + Math.max(1000, Math.ceil(edge - r.st.taxable));
+  while (taxableAt(hi) <= edge) { lo = hi; hi = r.amount + (hi - r.amount) * 2; }
+  while (hi - lo > 1) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (taxableAt(mid) > edge) hi = mid; else lo = mid;
+  }
+  return hi - r.amount;
+}
+
+// WHY THAT RAISE IS NOT THE SAME SIZE AS THE GAP, read off the engine rather than asserted.
+// The subtraction is measured at this salary and at the raised one, and whichever way it
+// moved is the reason. "The federal tax moves with your pay" is only half of it: in Oregon
+// the subtraction grows with pay up to the limit, but the limit itself steps down past
+// $125,000, and every Oregon rung reaches its next band edge past that point, so from $70,000
+// up the subtraction at the edge is SMALLER than today's and the raise is smaller than the gap.
+// Missouri's share falls in steps the same way. The step that did it is named from the data.
+function raiseGapFacts(r, raise, taxData) {
+  const cfg = r.state.tax.federalTaxSubtraction;
+  const fed = taxData.federal;
+  const at = r.amount + raise;
+  const subAt = stateTaxableIncome(at, 'single', r.state, 0, ficaTax(at, 'single', fed).total,
+    federalIncomeTax(at, 'single', fed)).federalTaxSubtraction;
+  const subNow = r.stFedSub;
+  const f = fedSubFacts(cfg);
+  const capNow = fedSubCapAt(cfg, r.amount);
+  const capAt = fedSubCapAt(cfg, at);
+  const shareNow = fedSubShareAt(cfg, r.amount);
+  const shareAt = fedSubShareAt(cfg, at);
+  const atReducedLimit = capAt != null && f.maxCap != null && capAt < f.maxCap && subAt >= capAt - 0.005;
+  let kind = 'other';
+  if (subAt > subNow + 0.005) kind = 'grows';
+  else if (subAt < subNow - 0.005) {
+    if (capAt != null && capNow != null && capAt < capNow && atReducedLimit) kind = 'limit';
+    else if (shareAt != null && shareNow != null && shareAt < shareNow) kind = 'share';
+  }
+  // The income past which the share drops: the top of the band this salary sits in.
+  const shareRow = f.shares ? f.shares.find((x) => x.agiUpTo != null && r.amount <= x.agiUpTo) : null;
+  return { at, subNow, subAt, capAt, shareAt, atReducedLimit, kind, f,
+    shareFrom: shareRow ? shareRow.agiUpTo : null };
+}
+
+// The two wordings of that reason: a full sentence for the paragraph that walks the
+// schedule, and a short clause for the "near the top of the band" note.
+function raiseGapSentence(g, NAME, S, raise) {
+  if (g.kind === 'limit') {
+    return `but a raise of about ${usd0(raise)} gets you there. At ${usd0(g.at)} of pay your income is past ` +
+      `${usd0(g.f.capStepsFrom)}, where ${NAME}'s limit on the federal tax you can subtract starts to step ` +
+      `down. At that pay the limit is ${usd0(g.capAt)}, against the ${usd0(g.subNow)} that comes off at ${S}.`;
+  }
+  if (g.kind === 'share') {
+    return `but a raise of about ${usd0(raise)} gets you there. At ${usd0(g.at)} of pay your income is past ` +
+      `${usd0(g.shareFrom)}, where ${NAME} lets you subtract a smaller share of your federal tax, ` +
+      `${pctStr(g.shareAt)}, so ${usd0(g.subAt)} comes off against the ${usd0(g.subNow)} at ${S}.`;
+  }
+  if (g.kind === 'grows') {
+    return `but it takes a raise of about ${usd0(raise)} to get there, because more federal tax comes off ` +
+      `along the way: ${usd0(g.subAt)} at ${usd0(g.at)} of pay` +
+      (g.atReducedLimit ? `, which is ${NAME}'s reduced limit at that pay,` : '') +
+      ` against ${usd0(g.subNow)} at ${S}.`;
+  }
+  return `and the raise that gets you there is about ${usd0(raise)}, because the federal tax ${NAME} lets ` +
+    `you subtract is ${usd0(g.subAt)} at ${usd0(g.at)} of pay against ${usd0(g.subNow)} at ${S}.`;
+}
+function raiseGapClause(g, NAME) {
+  if (g.kind === 'limit') {
+    return `because past ${usd0(g.f.capStepsFrom)} of income ${NAME}'s limit on the federal tax you can ` +
+      `subtract steps down`;
+  }
+  if (g.kind === 'share') {
+    return `because past ${usd0(g.shareFrom)} of income ${NAME} lets you subtract a smaller share of your ` +
+      `federal tax`;
+  }
+  if (g.kind === 'grows') return `because more federal tax comes off ${NAME} taxable income as your pay rises`;
+  return `because the federal tax ${NAME} lets you subtract changes with your pay`;
 }
 
 // A block: { key, html }. `key` feeds the ordering hash and nothing else.
@@ -4863,6 +5045,21 @@ function caProseBlocks(r, rungs, ctx) {
     // edge is a different number and a different story on every rung.
     const nextEdge = stTop.upper === Infinity ? null : stTop.upper;
     const distance = nextEdge == null ? null : nextEdge - r.st.taxable;
+    // A RAISE IS NOT THE SAME SIZE AS THE GAP IN TAXABLE INCOME where the state subtracts
+    // federal tax: a raise adds federal tax, which adds to the subtraction (Alabama, Oregon
+    // under its limit), or crosses a step that shrinks it (Oregon past $125,000, Missouri's
+    // share bands). So for those states the raise is MEASURED: the smallest whole-dollar
+    // salary increase whose engine-computed state taxable income clears the edge. Taxable
+    // income rises with salary in all three, so a bisection finds it. Every other state keeps
+    // the taxable-income gap it has always printed. The REASON printed beside it is measured
+    // too (raiseGapFacts): which way the subtraction moved between here and the edge, and
+    // which step moved it.
+    // (Wisconsin's and South Carolina's phase-downs have the same gap and are not changed here.)
+    const raiseToEdge = (nextEdge == null || !st.tax.federalTaxSubtraction)
+      ? distance
+      : salaryRaiseToTaxable(r, nextEdge, taxData);
+    const raiseDiffers = distance != null && Math.abs(raiseToEdge - distance) >= 1;
+    const raiseGap = raiseDiffers ? raiseGapFacts(r, raiseToEdge, taxData) : null;
     // A BAND EDGE IS NOT ALWAYS A RATE CHANGE. Nebraska publishes four bands and its third
     // and fourth carry the SAME 4.55% rate (Neb. Rev. Stat. 77-2715.03(2)(c)(v) brought the
     // top rate down to meet the one below it), so on the rung that tops out in the third
@@ -4942,9 +5139,15 @@ function caProseBlocks(r, rungs, ctx) {
             `there is a long run before the next edge.</p>`
           : (intoBand > 0.66
             ? `<p>You are near the top of this band, roughly ${pct1(intoBand)} of the way through it, so the ` +
-              `next ${NAME} rate step is close. A raise of ${usd0(distance)} or more will push part of ` +
-              `your income into it — which matters for timing a bonus, not for whether the raise is worth ` +
-              `taking.</p>`
+              `next ${NAME} rate step is close. ` +
+              (raiseDiffers
+                ? `A raise of ${usd0(raiseToEdge)} or more will push part of your income into it, ` +
+                  `${raiseToEdge < distance ? 'less' : 'more'} than the ${usd0(distance)} gap in taxable ` +
+                  `income, ${raiseGapClause(raiseGap, NAME)}. That matters for timing a bonus, not for ` +
+                  `whether the raise is worth taking.</p>`
+                : `A raise of ${usd0(distance)} or more will push part of ` +
+                  `your income into it — which matters for timing a bonus, not for whether the raise is worth ` +
+                  `taking.</p>`)
             : `<p>You are around the middle of this band, about ${pct1(intoBand)} through it, so a modest ` +
               `raise stays at the same ${NAME} rate and a large one does not.</p>`)));
     // How the schedule behaves around this salary. California keeps the wording
@@ -5083,8 +5286,12 @@ function caProseBlocks(r, rungs, ctx) {
             : `That figure is the band's upper edge to the dollar, so the next band up begins here — and ` +
               `it is charged at the same ${pctStr(stTop.rate)}, so crossing it changes nothing. `)
           : nextRateHigher
-          ? `The next band up begins ${usd0(distance)} further on, so a raise of roughly that size is where ` +
-            `your ${NAME} rate next moves. `
+          ? (raiseDiffers
+            ? `The next band up begins ${usd0(distance)} of taxable income further on, ` +
+              `${raiseGapSentence(raiseGap, NAME, S, raiseToEdge)} That is where your ${NAME} rate next ` +
+              `moves. `
+            : `The next band up begins ${usd0(distance)} further on, so a raise of roughly that size is where ` +
+              `your ${NAME} rate next moves. `)
           : `The next band up begins ${usd0(distance)} further on and is charged at the same ` +
             `${pctStr(stTop.rate)}, so that edge is a line in the table rather than a rate step. `)
         // TWO STATES CAN BOTH "TOP OUT IN THE LAST BAND" AND MEAN COMPLETELY DIFFERENT
@@ -5206,6 +5413,8 @@ function caProseBlocks(r, rungs, ctx) {
       `is income-tested rather than fixed: it comes down as income rises` +
       (cfg.over != null ? ` from ${usd0(cfg.over)}` : '') +
       (goneAt != null ? ` and is gone entirely at ${usd0(goneAt)}` : '') +
+      // Alabama steps down to a floor instead of reaching zero (Ala. Code 40-18-15(b)(4)).
+      (cfg.minimum != null ? ` and stops at a floor of ${usd0(cfg.minimum)}` : '') +
       // Comma after the salary: "At $120,000 $15,000 of it" runs two dollar figures
       // together and reads as one number.
       `. At ${S}, ${usd0(lost)} of it has already been taken away, so the figure used everywhere on this ` +
@@ -5250,6 +5459,73 @@ function caProseBlocks(r, rungs, ctx) {
       ` It is already inside the ${usd0(r.a.state)} of ${NAME} income tax on this ` +
       `page. The cap is per taxpayer and cannot be pooled, so a two-earner couple has two of them; this ` +
       `page models one earner.</p>`);
+  }
+
+  // --- THE FEDERAL INCOME TAX THE STATE LETS YOU SUBTRACT. Three states on this ladder allow
+  // it, each on different terms: Alabama all of it (Ala. Code 40-18-15(c)), Missouri a share
+  // set by income and capped (RSMo 143.171), Oregon all of it up to a limit that phases out
+  // (ORS 316.695(3)). Like the FICA deduction it is invisible on a bracket table, and whether
+  // it is whole, capped, a share, or gone is a fact about the salary. Every figure is the
+  // engine's: the federal tax on this page, the subtraction stateTaxableIncome() took, and the
+  // state tax recomputed with no federal figure, so "what it is worth" is measured, not
+  // estimated from a marginal rate.
+  if (st.tax && st.tax.federalTaxSubtraction && r.a.federal > 0) {
+    const cfg = st.tax.federalTaxSubtraction;
+    const f = fedSubFacts(cfg);
+    const fedOwed = r.a.federal;
+    const sub = r.stFedSub;
+    const share = fedSubShareAt(cfg, r.amount);
+    const cap = fedSubCapAt(cfg, r.amount);
+    const before = share == null ? fedOwed : fedOwed * share;
+    const without = stateIncomeTax(r.amount, 'single', st, 0, r.a.socialSecurity + r.a.medicare, 0);
+    const worth = roundCents(Math.max(0, without - r.a.state));
+    let what;
+    if (sub <= 0.005) {
+      what = share === 0 && f.lastShare
+        ? `At ${S} none of it is left: ${NAME} allows no share at all once income is over ${usd0(f.lastShare.agiUpTo)}.`
+        : `At ${S} none of it is left: the limit is zero from ${usd0(f.capZeroFrom)} of income.`;
+    } else if (cap != null && before > cap + 0.005) {
+      what = `At ${S} ` +
+        (share == null
+          ? `the federal income tax on this page is ${usd0(fedOwed)}`
+          : `${pctStr(share)} of the ${usd0(fedOwed)} federal income tax on this page is ${usd0(before)}`) +
+        `, more than the ${usd0(cap)} limit at this income, so ${usd0(sub)} comes off and a raise does not ` +
+        `add to it` +
+        // Oregon's limit steps down with income. Below the first step say where it starts;
+        // inside the steps say this rung's limit is already a reduced one.
+        (f.capStepsFrom == null
+          ? ''
+          : (r.amount < f.capStepsFrom
+            ? `. Past ${usd0(f.capStepsFrom)} of income the limit itself starts to fall`
+            : `. The limit here is already below its ${usd0(f.maxCap)} maximum, because income is past ` +
+              `${usd0(f.capStepsFrom)}`)) +
+        `.`;
+    } else {
+      what = share == null
+        ? `At ${S} the federal income tax on this page is ${usd0(fedOwed)}, and all of it comes off ${NAME} ` +
+          `taxable income` + (cap != null ? `, because it is under the ${usd0(cap)} limit at this income` : '') +
+          `. A raise adds to your federal tax and so to this subtraction` +
+          (cap != null ? `, until it reaches the limit,` : ',') +
+          ` which is why ${NAME} takes a little less of the raise than its band rate suggests.`
+        : `At ${S} the share is ${pctStr(share)}, so ${usd0(sub)} of the ${usd0(fedOwed)} federal income tax ` +
+          `on this page comes off ${NAME} taxable income.`;
+    }
+    push('fedtaxsub',
+      `<h3>${frame('fedsubH', [
+        `${NAME} lets you subtract federal income tax`,
+        `The federal tax deduction ${NAME} allows on ${S}`,
+        `What ${NAME} does with the federal income tax on ${S}`,
+      ])}</h3>` +
+      `<p>${NAME} lets you subtract ${fedSubRule(st)}. ${what}` +
+      (worth > 0.005
+        ? ` That is worth ${usdCents(worth)} of ${NAME} income tax at this salary, and it is already inside ` +
+          `the ${usdCents(r.a.state)} on this page.`
+        : '') +
+      (worth > 0.005 && !cfg.inWithholdingFormula
+        ? ` ${NAME}'s withholding formula leaves this deduction out, so an employer withholds a little more ` +
+          `${NAME} tax than this and the difference comes back when you file.`
+        : '') +
+      `</p>`);
   }
 
   // --- The Child and Dependent Care Credit's applicable percentage. IRC §21 as
@@ -5562,14 +5838,36 @@ function caProseBlocks(r, rungs, ctx) {
     const start = ot.phaseoutStartMagi.single;
     if (r.amount >= start) {
       const over = r.amount - start;
-      const otLeft = Math.max(0, ot.cap.single - Math.floor(over / 1000) * ot.phaseoutReductionPer1000);
+      // IRC 224(b)(2)(A) / 225(b)(2)(A): the reduction is taken off the amount
+      // AFTER the cap (Schedule 1-A line 13 = line 7 minus line 12; line 21 =
+      // line 15 minus line 20), counting whole $1,000s only (line 11 / 19 rounds
+      // down). So the same dollar cut hits every claimant, and the "left" figures
+      // below are what a FULL-cap claim keeps, not a lowered cap.
+      const cut = Math.floor(over / 1000) * ot.phaseoutReductionPer1000;
+      const otLeft = Math.max(0, ot.cap.single - cut);
       const tpLeft = Math.max(0, tp.cap.single - Math.floor(over / 1000) * tp.phaseoutReductionPer1000);
       push('tipsot',
-        `<h3>The tips and overtime deductions are shrinking at ${S}</h3>` +
+        (cut > 0
+          ? `<h3>The tips and overtime deductions are shrinking at ${S}</h3>`
+          : `<h3>The tips and overtime deductions start shrinking just above ${S}</h3>`) +
         `<p>OBBBA's deductions for qualified tips (up to ${usd0(tp.cap.single)}) and the FLSA overtime ` +
         `premium (up to ${usd0(ot.cap.single)}) both start phasing out at ${usd0(start)} of modified AGI ` +
-        `for a single filer, at ${usd0(ot.phaseoutReductionPer1000)} per ${usd0(1000)} over. At ${S} that ` +
-        `leaves roughly ${usd0(tpLeft)} of the tips allowance and ${usd0(otLeft)} of the overtime one. ` +
+        `for a single filer, at ${usd0(ot.phaseoutReductionPer1000)} per full ${usd0(1000)} over. ` +
+        (cut > 0
+          ? `At ${S} that takes ${usd0(cut)} off each one. ` +
+            // These are DEDUCTION amounts (what comes off taxable income), not
+            // tax saved, so the sentence says "deduct", never "worth".
+            (tpLeft > 0
+              ? `With a full ${usd0(tp.cap.single)} of tips you can deduct ${usd0(tpLeft)} of it`
+              : `Even a full ${usd0(tp.cap.single)} of tips is no longer deductible`) +
+            (otLeft > 0
+              ? `, and with a full ${usd0(ot.cap.single)} overtime premium you can deduct ${usd0(otLeft)} of it. `
+              : `, and even a full ${usd0(ot.cap.single)} overtime premium is no longer deductible. `) +
+            ((tpLeft > 0 || otLeft > 0)
+              ? `A smaller amount loses the same ${usd0(cut)}, so it can be gone entirely. `
+              : '')
+          : `${S} is not over that line, so nothing is taken off. The first ` +
+            `${usd0(ot.phaseoutReductionPer1000)} comes off at ${usd0(start + 1000)}. `) +
         `Neither touches FICA either way: Social Security and Medicare are still charged on tips and ` +
         `overtime in full.</p>`);
     } else if (next && next.amount >= start) {
@@ -6123,9 +6421,12 @@ function caPageCopy(r, rungs, ctx) {
                   : `a separate and larger amount`)));
           // Massachusetts subtracts two things. Naming only the standard deduction would
           // leave the taxable figure in the next clause unreachable from this one.
-          const dedDesc = r.stFicaDed > 0
-            ? `${usd0(r.stDedAfterPhaseout)} of standard deduction plus ${usd0(r.stFicaDed)} for the ` +
-              `FICA already withheld from this salary, ${usd0(r.stDed)} in all`
+          // Alabama, Missouri and Oregon also subtract federal income tax, named the same way.
+          const dedParts = [`${usd0(r.stDedAfterPhaseout)} of standard deduction`];
+          if (r.stFicaDed > 0) dedParts.push(`${usd0(r.stFicaDed)} for the FICA already withheld from this salary`);
+          if (r.stFedSub > 0) dedParts.push(`${usd0(r.stFedSub)} for federal income tax`);
+          const dedDesc = dedParts.length > 1
+            ? `${dedParts.join(' plus ')}, ${usd0(r.stDed)} in all`
             : usd0(r.stDed);
           const gap = r.st.taxable - r.fed.taxable;
           const gapClause = Math.abs(gap) < 0.5
@@ -6293,9 +6594,15 @@ function caPageCopy(r, rungs, ctx) {
       // The method row has to be readable as arithmetic: gross, minus what came off,
       // equals the taxable figure printed beside it. Where the subtraction has two parts
       // (Massachusetts) both are named, or the row does not reconcile.
-      const dedText = r.stFicaDed > 0
-        ? ` after the ${usd0(r.stDedAfterPhaseout)} ${NAME} subtracts first and the ${usd0(r.stFicaDed)} ` +
-          `it allows for FICA already withheld`
+      const dedExtras = [];
+      if (r.stFicaDed > 0) dedExtras.push(`the ${usd0(r.stFicaDed)} it allows for FICA already withheld`);
+      if (r.stFedSub > 0) dedExtras.push(`the ${usd0(r.stFedSub)} it allows for federal income tax`);
+      const dedText = dedExtras.length
+        ? ` after the ${usd0(r.stDedAfterPhaseout)} ${NAME} subtracts first` +
+          (r.stDedPhases && r.stDedAfterPhaseout < r.stDedPublished - 0.5
+            ? ` (income-tested down at this salary from a published ${usd0(r.stDedPublished)})`
+            : '') +
+          ` and ${caList(dedExtras)}`
         : ` after the ${usd0(r.stDed)} ${NAME} subtracts first` +
           // Only where the phase-out has actually reduced it at THIS rung. South Carolina's
           // $30,000 rung is below the threshold and keeps the published figure whole.
@@ -6374,7 +6681,9 @@ function caPageCopy(r, rungs, ctx) {
   if (r.amount > mipP.threshold.single && r.amount < mipP.eliminatedAboveAgi.single) {
     live.push(`the partially phased-out mortgage insurance premium deduction`);
   }
-  if (r.amount >= obbba.federal.overtime.phaseoutStartMagi.single) {
+  // Whole $1,000s only (Schedule 1-A line 11 / 19 rounds down), so a rung
+  // sitting exactly on $150,000 has nothing phased out yet.
+  if (Math.floor((r.amount - obbba.federal.overtime.phaseoutStartMagi.single) / 1000) > 0) {
     live.push(`the partially phased-out tips and overtime deductions`);
   }
   const dcp = ctx.depCare && ctx.depCare.cdctc && ctx.depCare.cdctc.applicablePercent;
@@ -6637,6 +6946,17 @@ function caLadderSources(taxData, state) {
     const u = raw.replace(/[;,)]+$/, '');
     const hit = isCA ? CA_FTB_TITLES.find(([re]) => re.test(u)) : null;
     add(hit ? hit[1] : (isCA ? 'California Franchise Tax Board' : `${state.name}: source for the state figures on this page`), u);
+  });
+  // The rule behind the federal-tax subtraction (Alabama, Missouri, Oregon), cited from its
+  // own block of the data so the page names the statute it applies.
+  const fts = state.tax && state.tax.federalTaxSubtraction;
+  const ftsLabel = String((fts && fts.label) || 'Federal income tax subtraction').toLowerCase();
+  (String((fts && fts._source) || '').match(/https?:\/\/\S+/g) || []).forEach((raw) => {
+    const u = raw.replace(/[;,)]+$/, '');
+    // admincode.legislature... is the agency's rule, not the statute, despite the host name.
+    const kind = /admincode\./i.test(u) ? 'the Department of Revenue rule'
+      : /legislature|revisor\.|code-of-alabama/i.test(u) ? 'the statute' : 'official guidance';
+    add(`${state.name}: ${ftsLabel}, ${kind}`, u);
   });
   // The statutory basis for a no-income-tax state levying nothing. These are the
   // only citation for the `_noTaxBasis` prose, so losing them would leave a sourced
@@ -7551,6 +7871,13 @@ async function main() {
       throw new Error(`legal-status watch EXPIRED for ${wSlug} on ${wSt._watch.until}: ${wSt._watch.what}`);
     }
   }
+  // Same tripwire on the tips/overtime conformity rows, which sit on their own
+  // legal clocks (DC's rests on an emergency act until its permanent twin is law).
+  for (const [wSlug, wSt] of Object.entries(obbba.states)) {
+    if (wSt && wSt._watch && wSt._watch.until && wSt._watch.until < watchToday) {
+      throw new Error(`legal-status watch EXPIRED for ${wSlug} tips/overtime conformity on ${wSt._watch.until}: ${wSt._watch.what}`);
+    }
+  }
 
   const builtSlugs = new Set(Object.keys(taxData.states));
   const homeLinks = stateLinks(roster, builtSlugs, null);
@@ -8435,14 +8762,17 @@ async function main() {
         // the state subtracts that same amount at every rung. Wisconsin and South Carolina
         // income-test theirs down, and Massachusetts adds a second, FICA-based deduction
         // on top, so both of those get a description rather than a single number.
-        const dedClause = low.stDedPhases
+        const fedSubWords = fedSubRule(state);
+        const dedClause = (low.stDedPhases
           ? `after a standard deduction that is income-tested down as the ladder climbs, from ` +
             `${usd0(low.stDedAfterPhaseout)} at ${usd0(low.amount)} to ${usd0(high.stDedAfterPhaseout)} at ` +
             `${usd0(high.amount)}`
           : (low.stFicaDed > 0
             ? `after the ${usd0(low.stDedAfterPhaseout)} it subtracts first plus the capped deduction it ` +
               `allows for the FICA already withheld`
-            : `after the ${stDedText} it subtracts first`);
+            : `after the ${stDedText} it subtracts first`)) +
+          // Alabama, Missouri and Oregon: the federal income tax the state lets you subtract.
+          (fedSubWords ? `, and a deduction for ${fedSubWords}` : '');
         const methodStateClause = kind === 'none'
           ? `${NAME} levies no income tax on wages, so there is nothing to compute on that line`
           : (kind === 'flat'
@@ -10371,8 +10701,8 @@ async function main() {
     const esc = (s) => String(s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     const STUDY_PUBLISHED_ISO = '2026-07-02';
-    const STUDY_UPDATED_ISO = '2026-07-07';
-    const STUDY_DATE_HUMAN = 'July 7, 2026';
+    const STUDY_UPDATED_ISO = '2026-10-02';
+    const STUDY_DATE_HUMAN = 'October 2, 2026';
     const OT_LABEL = {
       no: { txt: 'Still taxed', cls: 'v-no', rank: 1 },
       partial: { txt: 'Partial', cls: 'v-partial', rank: 2 },
@@ -10416,10 +10746,10 @@ async function main() {
     const cntOther = cnt.partial + cnt.unclear;
     const jn = (arr) => arr.join(', ');
     const movers = [];
-    if (newlyFree.length) movers.push(`${jn(newlyFree)} — overtime newly tax-free for 2026`);
-    if (newlyTaxed.length) movers.push(`${jn(newlyTaxed)} — overtime taxed again in 2026 (subject to change)`);
-    if (partialList.length) movers.push(`${jn(partialList)} — only a partial state exclusion`);
-    if (unclearList.length) movers.push(`${jn(unclearList)} — still unsettled for 2026`);
+    if (newlyFree.length) movers.push(`${jn(newlyFree)}: overtime newly tax-free for 2026`);
+    if (newlyTaxed.length) movers.push(`${jn(newlyTaxed)}: overtime taxed again in 2026 (subject to change)`);
+    if (partialList.length) movers.push(`${jn(partialList)}: only a partial state exclusion`);
+    if (unclearList.length) movers.push(`${jn(unclearList)}: still unsettled for 2026`);
     const calloutMovers = movers.length ? movers.join('; ') + '.' : '';
 
     const articleLd = JSON.stringify({
@@ -10495,8 +10825,8 @@ async function main() {
     const esc = (s) => String(s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     const STUDY_PUBLISHED_ISO = '2026-07-02';
-    const STUDY_UPDATED_ISO = '2026-07-07';
-    const STUDY_DATE_HUMAN = 'July 7, 2026';
+    const STUDY_UPDATED_ISO = '2026-10-02';
+    const STUDY_DATE_HUMAN = 'October 2, 2026';
     const TP_LABEL = {
       no: { txt: 'Still taxed', cls: 'v-no', rank: 1 },
       partial: { txt: 'Partial', cls: 'v-partial', rank: 2 },
@@ -10540,10 +10870,10 @@ async function main() {
     const cntOther = cnt.partial + cnt.unclear;
     const jn = (arr) => arr.join(', ');
     const movers = [];
-    if (newlyFree.length) movers.push(`${jn(newlyFree)} — tips newly tax-free for 2026`);
-    if (newlyTaxed.length) movers.push(`${jn(newlyTaxed)} — tips taxed again in 2026 (subject to change)`);
-    if (partialList.length) movers.push(`${jn(partialList)} — only a partial state exclusion`);
-    if (unclearList.length) movers.push(`${jn(unclearList)} — still unsettled for 2026`);
+    if (newlyFree.length) movers.push(`${jn(newlyFree)}: tips newly tax-free for 2026`);
+    if (newlyTaxed.length) movers.push(`${jn(newlyTaxed)}: tips taxed again in 2026 (subject to change)`);
+    if (partialList.length) movers.push(`${jn(partialList)}: only a partial state exclusion`);
+    if (unclearList.length) movers.push(`${jn(unclearList)}: still unsettled for 2026`);
     const calloutMovers = movers.length ? movers.join('; ') + '.' : '';
 
     const articleLd = JSON.stringify({
@@ -10692,7 +11022,9 @@ async function main() {
   {
     const SALARIES = STUDY_SALARIES;
     const STUDY_PUBLISHED_ISO = '2026-07-25';
-    const STUDY_UPDATED_ISO = '2026-07-29';
+    // 2026-10-02: Alabama, Missouri and Oregon now apply their federal income tax subtraction
+    // (and Alabama its income-phased standard deduction), which moves those three rows.
+    const STUDY_UPDATED_ISO = '2026-10-02';
     const STUDY_DATE_HUMAN = humanDate(STUDY_UPDATED_ISO);
     const esc = escHtml;
     const pct1 = (r) => (r * 100).toFixed(1) + '%';
@@ -11044,6 +11376,12 @@ async function main() {
 
     // Rosters used in the methodology and limits sections, all counted from the data.
     const noTaxStates = thpRows.filter((r) => !r.hasIncomeTax).map((r) => r.name).sort();
+    // The states that let a filer subtract federal income tax (Alabama, Missouri, Oregon), read
+    // from the data so the sentence cannot name a state the engine does not treat that way.
+    const fedSubStates = roster
+      .filter((s) => taxData.states[s.slug] && taxData.states[s.slug].tax &&
+        taxData.states[s.slug].tax.federalTaxSubtraction)
+      .map((s) => s.name).sort();
     const programStates = thpRows.filter((r) => r.programs > 0).map((r) => r.name).sort();
     const localStates = roster
       .filter((s) => payroll[s.slug] && payroll[s.slug].localIncomeTax && payroll[s.slug].localIncomeTax.exists)
@@ -11244,6 +11582,10 @@ async function main() {
         SS_WAGE_BASE: usd0(taxData.federal.fica.socialSecurity.wageBase),
         ADDL_MEDICARE_THRESHOLD: addlMedicare ? usd0(addlMedicare) : '',
         NOTAX_COUNT: String(noTaxStates.length), NOTAX_STATES: esc(listAnd(noTaxStates)),
+        FEDSUB_SENTENCE: fedSubStates.length
+          ? esc(`${listAnd(fedSubStates)} also let you subtract some or all of your federal income tax ` +
+            `before their rates apply, each on its own terms, and the figures here include it. `)
+          : '',
         PROGRAM_COUNT: String(programStates.length), PROGRAM_STATES: esc(listAnd(programStates)),
         PROGRAM_KINDS: esc(listAnd(allProgramKinds)),
         LOCAL_COUNT: String(localStates.length), LOCAL_STATES: esc(listAnd(localStates)),

@@ -235,7 +235,7 @@
         <dt>FICA</dt>
         <dd>Social Security at 6.2% on wages up to the {{TAX_YEAR}} wage base of {{SS_WAGE_BASE}}, and Medicare at 1.45% with no cap, per the SSA {{TAX_YEAR}} COLA fact sheet. Both salary levels here are below the {{ADDL_MEDICARE_THRESHOLD}} Additional Medicare threshold for a single filer, so that 0.9% surtax does not apply on this page.</dd>
         <dt>State income tax</dt>
-        <dd>Each state's own {{TAX_YEAR}} rate structure, flat or graduated, applied after that state's own standard deduction where it offers one. {{NOTAX_COUNT}} states levy no wage income tax at all: {{NOTAX_STATES}}.</dd>
+        <dd>Each state's own {{TAX_YEAR}} rate structure, flat or graduated, applied after that state's own standard deduction where it offers one. {{FEDSUB_SENTENCE}}These figures estimate the tax owed for the year under each state's annual-return rules, not the amount an employer withholds from each paycheck, which in some states follows a different formula. {{NOTAX_COUNT}} states levy no wage income tax at all: {{NOTAX_STATES}}.</dd>
         <dt>State payroll deductions</dt>
         <dd>Employee-paid state premiums in the {{PROGRAM_COUNT}} jurisdictions that have them, covering {{PROGRAM_KINDS}}, with each program's own rate, wage base and annual cap: {{PROGRAM_STATES}}. The model withholds them after tax on gross wages, so they reduce take-home pay without reducing taxable income.</dd>
         <dt>Rounding and ties</dt>
@@ -267,7 +267,7 @@
       <p>Free to use and republish with attribution. Suggested citation:</p>
       <blockquote class="cite">Tools Berry, "Take-Home Pay on {{SALARY_LIST}} in All 51 States, Compared ({{TAX_YEAR}})", tools-berry.com/data/take-home-pay-by-state/ (updated {{PUB_DATE}}).</blockquote>
       <p class="muted-small">Download this study: <a href="/data/take-home-pay-by-state-{{TAX_YEAR}}.csv">CSV</a> · <a href="/data/take-home-pay-by-state-{{TAX_YEAR}}.json">JSON</a>. The full salary ladder, all {{ROW_COUNT}} jurisdictions at {{LADDER_RUNG_COUNT}} salary levels from {{LADDER_LOW}} to {{LADDER_HIGH}}: <a href="/data/take-home-pay-ladder-{{TAX_YEAR}}.csv">per-rung CSV</a> · <a href="/data/take-home-pay-ladder-by-state-{{TAX_YEAR}}.csv">one-row-per-state CSV</a>.</p>
-      <p class="muted-small">Source: Tools Berry, tools-berry.com — {{TAX_YEAR}} take-home pay computed from IRS and state DOR withholding tables.</p>
+      <p class="muted-small">Source: Tools Berry, tools-berry.com. {{TAX_YEAR}} take-home pay computed from IRS and state tax agency rate schedules, deductions and statutes.</p>
       <p class="muted-small">Licensed CC BY 4.0. Journalists and researchers: we are happy to run the same comparison at a different salary or filing status, or to supply the per-state sources. <a href="/contact/">Contact us</a>.</p>
       <p class="muted-small">Prefer to let your AI do this math? Connect it to the site's free <a href="/mcp/">MCP server</a>.</p>
       <p class="muted-small">Prefer a live calculator to a static table? <a href="/embed/">Embed it</a> on your own page with one copy-paste snippet, free, and the figures stay current on their own.</p>

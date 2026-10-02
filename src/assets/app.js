@@ -63,7 +63,7 @@
 // printed in a block of their own, below the table, labelled as money back when
 // you file. The bonus is the other way round — a payday figure — and its line
 // says so and carries the heavier rule that stops a reader adding it in.
-// federalIncomeTax / ficaTax / stateIncomeTax are imported, never re-derived:
+// federalIncomeTax / ficaTax / stateTaxOnSlice are imported, never re-derived:
 // tips on top of the pay are the SAME three taxes measured at a second income,
 // so the tips block is three differences of the functions that already wrote the
 // rows above it. Deriving a marginal rate by hand here would be a fourth opinion
@@ -71,7 +71,7 @@
 // Social Security wage base the moment pay plus tips crosses it.
 import {
   computePaycheck, PAY_PERIODS, federalBracketBreakdown, annualizeGross,
-  federalIncomeTax, ficaTax, stateIncomeTax
+  federalIncomeTax, ficaTax, stateTaxOnSlice
 } from '/assets/paycheck-engine.js';
 import { allowedDeduction, federalTaxSaved, overtimePremium, seniorDeduction } from '/assets/obbba-deduction.js';
 import { computeBonus } from '/assets/bonus-tax.js';
@@ -699,9 +699,21 @@ function tipsSlice(input, r) {
   const conformity = (ruleData.obbba.states && ruleData.obbba.states[stateSlug]
     && ruleData.obbba.states[stateSlug].tips && ruleData.obbba.states[stateSlug].tips.y2026) || '';
   const stateDed = conformity === 'yes' ? d.deduction : 0;
-  const stateTax = Math.max(0,
-    stateIncomeTax(W, filing, stateData, preTaxIncome + stateDed) -
-    stateIncomeTax(base, filing, stateData, preTaxIncome));
+  // The engine's stateTaxOnSlice() feeds each state term what computePaycheck feeds the
+  // state at that income (pre-tax money, the FICA paid there, the federal liability less
+  // the W-4 credits), so the term at the page's own pay IS the page's state figure. The
+  // term with the tips in it also takes the federal tips deduction off the federal
+  // liability, because Alabama, Missouri and Oregon subtract the federal tax owed on the
+  // return, and that is true whether the tips sit on top of the pay or inside it.
+  // computePaycheck has no tips input, so with tips inside the pay its state figure uses
+  // the liability before that deduction; the difference is the deduction's knock-on on
+  // the state, counted here and nowhere else (the at-filing block prices federal only).
+  const stateTax = stateTaxOnSlice({
+    base, top: W, filingStatus: filing, stateData, fed,
+    preTaxIncome, preTaxFica,
+    dependentsCredit: (input.adv && input.adv.dependentsCredit) || 0,
+    federalDeduction: d.deduction, stateDeduction: stateDed
+  });
 
   return {
     tips: t, inside, deduction: d, conformity, stateDed,
@@ -714,6 +726,23 @@ function tipsSlice(input, r) {
     keepFiled: t - fedFiled - fica - stateTax,
     keepWithheld: t - fedWithheld - fica - stateTax
   };
+}
+
+// Why a tips or overtime deduction came out under the amount entered, as the
+// clause after "X of your Y is deductible" (not for the fully-phased-out case,
+// which each caller words itself). The yearly cap is applied FIRST and the
+// income phase-out is taken off what the cap left, never off the cap (IRC
+// 224(b)(2)(A) / 225(b)(2)(A); Schedule 1-A lines 7 to 13 and 15 to 21), so an
+// amount under the cap still loses the whole income reduction, and either cut,
+// or both, can be the reason. `tail` finishes the sentence.
+function obbbaCutClause(d, entered, tail) {
+  const overCap = entered > d.statutoryCap;
+  const off = Math.min(d.reduction || 0, d.cappedAmount || 0);
+  if (overCap && off > 0) {
+    return `: the deduction stops at ${usd(d.statutoryCap)} a year and your income takes ${usd(off)} off that, ${tail}`;
+  }
+  if (off > 0) return `: your income takes ${usd(off)} off it, ${tail}`;
+  return `. The deduction stops at ${usd(d.statutoryCap)} a year, ${tail}`;
 }
 
 // The three deductions, in card order, each with the tax it saves. CHAINED, not
@@ -772,9 +801,7 @@ function filingRows(input, magi, mergeTips) {
         ? `${usd(d.deduction)} of your ${usd(rules.tips)} in tips is deductible` +
           (d.fullyPhasedOut
             ? `: your pay is high enough that the deduction is fully phased out.`
-            : d.phasedOut
-              ? `: the ${usd(d.statutoryCap)} cap falls to ${usd(d.allowedCap)} at your income, and the rest of your tips is taxed as usual.`
-              : `. The deduction stops at ${usd(d.allowedCap)} a year, and the rest of your tips is taxed as usual.`)
+            : obbbaCutClause(d, rules.tips, 'and the rest of your tips is taxed as usual.'))
         : `All ${usd(rules.tips)} of your tips comes off the income you are taxed on.`,
       extra: conformityClause('tips')
     });
@@ -830,9 +857,7 @@ function filingRows(input, magi, mergeTips) {
       note = `${basis} Of that ${usd(premium)}, ${usd(d.deduction)} is deductible` +
         (d.fullyPhasedOut
           ? `: your pay is high enough that the deduction is fully phased out.`
-          : d.phasedOut
-            ? `: the ${usd(d.statutoryCap)} cap falls to ${usd(d.allowedCap)} at your income, and the rest is taxed as usual.`
-            : `. The deduction stops at ${usd(d.allowedCap)} a year, and the rest is taxed as usual.`);
+          : obbbaCutClause(d, premium, 'and the rest is taxed as usual.'));
     } else {
       note = basis;
     }
@@ -972,8 +997,10 @@ function renderAtFiling(input, r, mergeTips) {
   // retirement plan, $5,000 of tips printed "+$1,100" against a real saving of
   // $600, because the bracket difference was taken at $75,000 rather than at the
   // $55,000 that is actually taxed. Single, $300,000 gross with $23,500 deferred
-  // showed a $10,000 tips deduction where the phase-out at $276,500 allows
-  // $12,300. renderBrackets() eleven lines below already derives the identical
+  // and $25,000 of tips inside that gross showed a $10,000 tips deduction where
+  // the phase-out at $276,500 allows $12,400 (the $25,000 limit less $100 for
+  // each of the 126 full $1,000s over $150,000, Schedule 1-A lines 7 to 13).
+  // renderBrackets() eleven lines below already derives the identical
   // preTax figure from the identical input, so the card was printing two taxable
   // bases and saying so nowhere.
   const preTax = input.adv ? (input.adv.retirement401k || 0) + (input.adv.cafeteria125 || 0) : 0;
@@ -1262,9 +1289,7 @@ function renderTipsBlock(input, r, tips, annualView) {
     notes.push(`<p class="otw-note">${usd(d.deduction)} of your ${usd(tips.tips)} in tips is deductible` +
       (d.fullyPhasedOut
         ? `: your pay is high enough that the deduction is fully phased out, so the federal tax above is the ordinary tax on all of it.`
-        : d.phasedOut
-          ? `: the ${usd(d.statutoryCap)} cap falls to ${usd(d.allowedCap)} at your income, and the federal tax above is on the rest.`
-          : `. The deduction stops at ${usd(d.allowedCap)} a year, and the federal tax above is on the rest.`));
+        : obbbaCutClause(d, tips.tips, 'and the federal tax above is on the rest.')));
   }
   if (!filed && !tips.inside) {
     notes.push(`<p class="otw-note">A paycheck is withholding, so the no-tax-on-tips deduction is not in the ` +

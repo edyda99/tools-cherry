@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { computePaycheck, stateIncomeTax } from '../src/engine/paycheck-engine.js';
+import { computePaycheck, stateIncomeTax, phaseOutStandardDeduction, federalTaxSubtraction, stateTaxOnSlice } from '../src/engine/paycheck-engine.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const tax = JSON.parse(await readFile(join(__dirname, '..', 'src', 'data', 'tax-data-2026.json'), 'utf8'));
@@ -249,12 +249,14 @@ t('South Carolina SCIAD phases down, rounding the reduction not the deduction', 
   // R. 1-26) is the same shape of rule, so it reuses this mechanism rather than growing a second
   // one. Wisconsin's own parameters are pinned in the dedicated test below; what this list guards
   // is that no THIRD state acquires a phase-down by accident.
+  // 2026-10-02: Alabama joined, with the stepped-to-a-floor row shape (Ala. Code 40-18-15(b)(4));
+  // its parameters are pinned in the federal-tax-subtraction block at the end of this file.
   const users = Object.entries(tax.states)
     .filter(([, s]) => s.tax && s.tax.standardDeductionPhaseout)
     .map(([slug]) => slug)
     .sort();
-  assert.deepEqual(users, ['south-carolina', 'wisconsin'],
-    'standardDeductionPhaseout is South Carolina + Wisconsin only');
+  assert.deepEqual(users, ['alabama', 'south-carolina', 'wisconsin'],
+    'standardDeductionPhaseout is Alabama + South Carolina + Wisconsin only');
   const cfg = tax.states['south-carolina'].tax.standardDeductionPhaseout;
   assert.equal(cfg.roundReductionDownTo, 10, 'statute rounds to ten dollars');
   assert.deepEqual(cfg.single, { over: 40000, denominator: 55000 });
@@ -626,6 +628,279 @@ t('legal-status watches: well-formed, none expired', () => {
       `${slug} legal-status watch EXPIRED on ${s._watch.until}. ${s._watch.what}`);
   }
   assert.ok(n > 0, 'no _watch entries found; DC should carry one until its law is permanent');
+});
+// The tips/overtime conformity rows carry the same kind of tripwire.
+{
+  const obbba = JSON.parse(await readFile(join(__dirname, '..', 'src', 'data', 'obbba-deductions-2026.json'), 'utf8'));
+  t('tips/overtime conformity watches: well-formed, none expired', () => {
+    const today = new Date().toISOString().slice(0, 10);
+    for (const [slug, s] of Object.entries(obbba.states)) {
+      if (!s || !s._watch) continue;
+      assert.match(s._watch.until || '', /^\d{4}-\d{2}-\d{2}$/, `${slug} _watch.until must be YYYY-MM-DD`);
+      assert.ok(s._watch.what, `${slug} _watch must say what to re-verify`);
+      assert.ok(s._watch.until >= today,
+        `${slug} tips/overtime legal-status watch EXPIRED on ${s._watch.until}. ${s._watch.what}`);
+    }
+  });
+
+  // /what-applies-to-me/ prints a row's own checkedOn date when it has one, and
+  // the file-wide _meta.lastSourced otherwise.
+  const { buildWamParts } = await import('../src/content/what-applies-to-me.js');
+  const readData = async (f) => JSON.parse(await readFile(join(__dirname, '..', 'src', 'data', f), 'utf8'));
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const wamRoster = await readData('states.json');
+  const wam = buildWamParts({
+    states: wamRoster,
+    obbba,
+    taxData: await readData('tax-data-2026.json'),
+    payroll: await readData('state-payroll-2026.json'),
+    supplemental: await readData('state-supplemental-2026.json'),
+    esc,
+  });
+  const humanDay = (iso) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    return `${d} ${new Date(Date.UTC(y, m - 1, d)).toLocaleString('en-GB', { month: 'long', timeZone: 'UTC' })} ${y}`;
+  };
+  const verdictBlock = (slug) => {
+    const start = wam.VERDICT_BLOCKS.indexOf(`<div class="g" data-st="${slug}">`);
+    assert.ok(start >= 0, `no verdict block for ${slug}`);
+    const next = wam.VERDICT_BLOCKS.indexOf('<div class="g" data-st="', start + 1);
+    return wam.VERDICT_BLOCKS.slice(start, next < 0 ? undefined : next);
+  };
+  t('what-applies-to-me: tips/overtime verdicts date each row by its own checkedOn', () => {
+    const globalLine = `We last checked this on ${humanDay(obbba._meta.lastSourced)}.`;
+    let withOwnDate = 0;
+    for (const { slug } of wamRoster) {
+      const s = obbba.states[slug] || {};
+      const block = verdictBlock(slug);
+      if (s.checkedOn) {
+        withOwnDate++;
+        assert.match(s.checkedOn, /^\d{4}-\d{2}-\d{2}$/, `${slug} checkedOn must be YYYY-MM-DD`);
+        const own = `We last checked this on ${humanDay(s.checkedOn)}.`;
+        assert.equal(block.split(own).length - 1, 2, `${slug}: both verdict cards should print "${own}"`);
+        if (s.checkedOn !== obbba._meta.lastSourced) {
+          assert.ok(!block.includes(globalLine), `${slug}: verdict cards still print the file-wide "${globalLine}"`);
+        }
+      } else {
+        assert.ok(block.includes(globalLine), `${slug}: verdict cards should print "${globalLine}"`);
+      }
+    }
+    assert.ok(withOwnDate >= 1, 'expected at least one row (DC) with its own checkedOn');
+    assert.ok(verdictBlock('district-of-columbia').includes('We last checked this on 2 October 2026.'),
+      'DC verdict cards should carry their own 2 October 2026 check date');
+  });
+}
+
+// --- FEDERAL INCOME TAX SUBTRACTION: Alabama, Missouri, Oregon (added 2026-10-02) -------------
+// The engine models the ANNUAL RETURN, and these three states let the return subtract (some of)
+// the federal income tax. The federal figure the engine hands the state is the federal liability
+// after the W-4 credits, excluding W-4 extra withholding (a prepayment, not tax).
+//
+// 2026 federal income tax, hand-computed (standard deduction 16,100 single / 32,200 MFJ /
+// 24,150 HoH; single 10% to 12,400, 12% to 50,400, 22% to 105,700, 24% to 201,775; MFJ 10% to
+// 24,800, 12% to 100,800, 22% to 211,400, 24% above; HoH 10% to 17,700, 12% to 67,450, 22% to
+// 105,700):
+//   single  50,000: taxable 33,900  -> 1,240 + 12% x 21,500 = 3,820
+//   single  75,000: taxable 58,900  -> 1,240 + 4,560 + 22% x 8,500 = 7,670
+//   single 100,000: taxable 83,900  -> 5,800 + 22% x 33,500 = 13,170
+//   single 125,000: taxable 108,900 -> 5,800 + 12,166 + 24% x 3,200 = 18,734
+//   single 130,000: taxable 113,900 -> 17,966 + 24% x 8,200 = 19,934
+//   single 140,000: taxable 123,900 -> 17,966 + 24% x 18,200 = 22,334
+//   single 150,000: taxable 133,900 -> 17,966 + 24% x 28,200 = 24,734
+//   MFJ    100,000: taxable 67,800  -> 2,480 + 12% x 43,000 = 7,640
+//   MFJ    260,000: taxable 227,800 -> 2,480 + 9,120 + 22% x 110,600 + 24% x 16,400 = 39,868
+//   HoH     75,000: taxable 50,850  -> 1,770 + 12% x 33,150 = 5,748
+//   HoH    130,000: taxable 105,850 -> 1,770 + 5,970 + 22% x 38,250 + 24% x 150 = 16,191
+t('federalTaxSubtraction is Alabama + Missouri + Oregon only, with the right withholding flag', () => {
+  const users = Object.entries(tax.states)
+    .filter(([, s]) => s.tax && s.tax.federalTaxSubtraction)
+    .map(([slug]) => slug)
+    .sort();
+  assert.deepEqual(users, ['alabama', 'missouri', 'oregon']);
+  // Alabama's and Oregon's withholding formulas subtract federal withholding; Missouri's does not.
+  assert.equal(tax.states.alabama.tax.federalTaxSubtraction.inWithholdingFormula, true);
+  assert.equal(tax.states.oregon.tax.federalTaxSubtraction.inWithholdingFormula, true);
+  assert.equal(tax.states.missouri.tax.federalTaxSubtraction.inWithholdingFormula, false);
+});
+
+t('Oregon federal tax subtraction: 2026 limits by AGI and filing status (ORS 316.695(3))', () => {
+  const cfg = tax.states.oregon.tax.federalTaxSubtraction;
+  // 150-206-436 (Rev. 12-31-25): $8,750 below $125,000 single / $250,000 joint, then 7,000,
+  // 5,250, 3,500, 1,750 in $5,000 ($10,000 joint) steps, zero from $145,000 / $290,000.
+  // ORS 316.695(3)(e): head of household uses the JOINT bands.
+  const owed = 1e6;
+  const capAt = (agi, fs) => federalTaxSubtraction(owed, agi, fs, cfg);
+  assert.deepEqual([124999, 125000, 129999, 130000, 135000, 140000, 144999, 145000].map((a) => capAt(a, 'single')),
+    [8750, 7000, 7000, 5250, 3500, 1750, 1750, 0]);
+  assert.deepEqual([249999, 250000, 260000, 270000, 280000, 289999, 290000].map((a) => capAt(a, 'married')),
+    [8750, 7000, 5250, 3500, 1750, 1750, 0]);
+  assert.equal(capAt(130000, 'head_of_household'), 8750, 'HoH is on the joint bands, single would be 5,250');
+  // Under the limit the whole liability comes off.
+  assert.equal(federalTaxSubtraction(7670, 75000, 'single', cfg), 7670);
+});
+
+// OREGON (single standard deduction 2,910, Chart S 4.75% to 4,550, 6.75% to 11,400, 8.75% to
+// 125,000, 9.9% above, so the first two bands are 216.125 + 462.375 = 678.50; MFJ/HoH 5,820 and
+// 4,650, Chart J 4.75% to 9,100, 6.75% to 22,800, 8.75% to 250,000, so 432.25 + 924.75 = 1,357).
+t('Oregon single $50k: subtracts all 3,820 of federal tax', () =>
+  // 50,000 - 2,910 - 3,820 = 43,270 -> 678.50 + 8.75% x 31,870 = 3,467.125
+  approx(stateTax('oregon', 50000), 3467.125, 0.01));
+t('Oregon single $75k: subtracts all 7,670 (under the 8,750 limit)', () =>
+  // 75,000 - 2,910 - 7,670 = 64,420 -> 678.50 + 8.75% x 53,020 = 5,317.75 (was 5,988.88)
+  approx(stateTax('oregon', 75000), 5317.75, 0.01));
+t('Oregon single $100k: 13,170 of federal tax, capped at 8,750', () =>
+  // 100,000 - 2,910 - 8,750 = 88,340 -> 678.50 + 8.75% x 76,940 = 7,410.75 (was 8,176.37)
+  approx(stateTax('oregon', 100000), 7410.75, 0.01));
+t('Oregon single $130k: inside the phase-out, limit 5,250', () =>
+  // 130,000 - 2,910 - 5,250 = 121,840 -> 678.50 + 8.75% x 110,440 = 10,342.00
+  approx(stateTax('oregon', 130000), 10342.00, 0.01));
+t('Oregon single $140k: inside the phase-out, limit 1,750', () =>
+  // 140,000 - 2,910 - 1,750 = 135,340 -> 678.50 + 8.75% x 113,600 + 9.9% x 10,340 = 11,642.16
+  approx(stateTax('oregon', 140000), 11642.16, 0.01));
+t('Oregon single $150k: above the phase-out, no subtraction', () =>
+  // 150,000 - 2,910 = 147,090 -> 678.50 + 9,940 + 9.9% x 22,090 = 12,805.41 (unchanged)
+  approx(stateTax('oregon', 150000), 12805.41, 0.01));
+t('Oregon MFJ $100k: subtracts all 7,640', () =>
+  // 100,000 - 5,820 - 7,640 = 86,540 -> 1,357 + 8.75% x 63,740 = 6,934.25
+  approx(stateTax('oregon', 100000, 'married'), 6934.25, 0.01));
+t('Oregon MFJ $260k: inside the joint phase-out, limit 5,250', () =>
+  // 260,000 - 5,820 - 5,250 = 248,930 -> 1,357 + 8.75% x 226,130 = 21,143.375
+  approx(stateTax('oregon', 260000, 'married'), 21143.375, 0.01));
+t('Oregon HoH $130k: joint bands keep the full 8,750 limit a single filer has lost', () =>
+  // 130,000 - 4,650 - 8,750 = 116,600 -> 1,357 + 8.75% x 93,800 = 9,564.50
+  approx(stateTax('oregon', 130000, 'head_of_household'), 9564.50, 0.01));
+
+// ALABAMA (single and head of family 2% to 500, 4% to 3,000, 5% above, so 10 + 100 = 110 below
+// the top band; MFJ 2% to 1,000, 4% to 6,000, so 20 + 200 = 220). Standard deduction per
+// Ala. Code 40-18-15(b)(4): $25 / $175 / $135 off per whole $500 of AGI over $25,500, floors
+// 2,500 / 5,000 / 2,500, reached at $35,500. Federal income tax deduction in full, no cap.
+t('Alabama standard deduction steps match the ADOR chart', () => {
+  const cfg = tax.states.alabama.tax.standardDeductionPhaseout;
+  assert.deepEqual(cfg.single, { over: 25500, per: 500, reduceBy: 25, minimum: 2500 });
+  assert.deepEqual(cfg.married, { over: 25500, per: 500, reduceBy: 175, minimum: 5000 });
+  assert.deepEqual(cfg.head_of_household, { over: 25500, per: 500, reduceBy: 135, minimum: 2500 });
+  // Chart rows: "$ 0 – $25,999 $3,000", "$26,000 – $26,499 $2,975", "$30,000 – $30,499 $2,775",
+  // "$35,500 and above $2,500"; MFJ "$30,000 – $30,499 $6,925", HoH "$30,000 – $30,499 $3,985".
+  const sd = (base, agi, fs) => phaseOutStandardDeduction(base, agi, fs, cfg);
+  assert.deepEqual([25999, 26000, 26499, 30000, 35499, 35500, 90000].map((a) => sd(3000, a, 'single')),
+    [3000, 2975, 2975, 2775, 2525, 2500, 2500]);
+  assert.equal(sd(8500, 30000, 'married'), 6925);
+  assert.equal(sd(8500, 35500, 'married'), 5000);
+  assert.equal(sd(5200, 30000, 'head_of_household'), 3985);
+  assert.equal(sd(5200, 35500, 'head_of_household'), 2500);
+});
+t('Alabama single $30k: deduction 2,775 on the chart, federal 1,420 off', () =>
+  // fed: 30,000 - 16,100 = 13,900 -> 1,240 + 12% x 1,500 = 1,420
+  // 30,000 - 2,775 - 1,420 = 25,805 -> 110 + 5% x 22,805 = 1,250.25
+  approx(stateTax('alabama', 30000), 1250.25, 0.01));
+t('Alabama single $50k: all 3,820 of federal tax off', () =>
+  // 50,000 - 2,500 - 3,820 = 43,680 -> 110 + 5% x 40,680 = 2,144.00
+  approx(stateTax('alabama', 50000), 2144.00, 0.01));
+t('Alabama single $75k: all 7,670 of federal tax off', () =>
+  // 75,000 - 2,500 - 7,670 = 64,830 -> 110 + 5% x 61,830 = 3,201.50 (was 3,560.00)
+  approx(stateTax('alabama', 75000), 3201.50, 0.01));
+t('Alabama single $100k: all 13,170 of federal tax off', () =>
+  // 100,000 - 2,500 - 13,170 = 84,330 -> 110 + 5% x 81,330 = 4,176.50 (was 4,810.00)
+  approx(stateTax('alabama', 100000), 4176.50, 0.01));
+t('Alabama single $150k: all 24,734 of federal tax off, no cap', () =>
+  // 150,000 - 2,500 - 24,734 = 122,766 -> 110 + 5% x 119,766 = 6,098.30
+  approx(stateTax('alabama', 150000), 6098.30, 0.01));
+t('Alabama MFJ $100k: 5,000 floor deduction, 7,640 federal off', () =>
+  // 100,000 - 5,000 - 7,640 = 87,360 -> 220 + 5% x 81,360 = 4,288.00
+  approx(stateTax('alabama', 100000, 'married'), 4288.00, 0.01));
+t('Alabama HoH $75k: head-of-family floor is 2,500, not the joint 5,000', () =>
+  // 75,000 - 2,500 - 5,748 = 66,752 -> 110 + 5% x 63,752 = 3,297.60
+  approx(stateTax('alabama', 75000, 'head_of_household'), 3297.60, 0.01));
+t('Alabama: the federal figure is liability after W-4 credits, not extra withholding', () => {
+  const run = (adv) => computePaycheck({ wage: { type: 'salary', amount: 75000 }, filingStatus: 'single',
+    payFrequency: 'annual', stateSlug: 'alabama', adv }, tax).annual.state;
+  // $2,000 of W-4 credits: federal owed 5,670, so 75,000 - 2,500 - 5,670 = 66,830 -> 110 + 5% x 63,830 = 3,301.50
+  approx(run({ dependentsCredit: 2000 }), 3301.50, 0.01);
+  // $1,000 of extra withholding is a prepayment, not tax: Alabama tax stays 3,201.50
+  approx(run({ extraWithholding: 1000 }), 3201.50, 0.01);
+});
+
+// MISSOURI (single 16,100 / MFJ 32,200 / HoH 24,150 standard deduction; one schedule: 0% to
+// 1,348, then 2%, 2.5%, 3%, 3.5%, 4%, 4.5% in 1,348 steps to 9,436, so 26.96 + 33.70 + 40.44 +
+// 47.18 + 53.92 + 60.66 = 262.86 below the 4.7% top band). RSMo 143.171.2: 35% at $25,000 or less,
+// 25% to $50,000, 15% to $100,000, 5% to $125,000, 0% above; cap 5,000, or 10,000 combined.
+t('Missouri federal tax deduction: share bands and caps (RSMo 143.171.2)', () => {
+  const cfg = tax.states.missouri.tax.federalTaxSubtraction;
+  const share = (agi) => federalTaxSubtraction(1, agi, 'single', cfg);
+  assert.deepEqual([25000, 25001, 50000, 50001, 100000, 100001, 125000, 125001].map(share),
+    [0.35, 0.25, 0.25, 0.15, 0.15, 0.05, 0.05, 0]);
+  // The cap applies after the percentage (MO-1040 line 13), and HoH keeps the single cap.
+  assert.equal(federalTaxSubtraction(40000, 20000, 'single', cfg), 5000);
+  assert.equal(federalTaxSubtraction(40000, 20000, 'head_of_household', cfg), 5000);
+  assert.equal(federalTaxSubtraction(40000, 20000, 'married', cfg), 10000);
+});
+t('Missouri single $50k: 25% of 3,820 = 955 off', () =>
+  // 50,000 - 16,100 - 955 = 32,945 -> 262.86 + 4.7% x 23,509 = 1,367.783
+  approx(stateTax('missouri', 50000), 1367.783, 0.01));
+t('Missouri single $75k: 15% of 7,670 = 1,150.50 off', () =>
+  // 75,000 - 16,100 - 1,150.50 = 57,749.50 -> 262.86 + 4.7% x 48,313.50 = 2,533.5945 (was 2,587.67)
+  approx(stateTax('missouri', 75000), 2533.5945, 0.01));
+t('Missouri single $100k: 15% of 13,170 = 1,975.50 off', () =>
+  // 100,000 - 16,100 - 1,975.50 = 81,924.50 -> 262.86 + 4.7% x 72,488.50 = 3,669.8195 (was 3,762.67)
+  approx(stateTax('missouri', 100000), 3669.8195, 0.01));
+t('Missouri single $150k: 0% share above $125,000', () =>
+  // 150,000 - 16,100 = 133,900 -> 262.86 + 4.7% x 124,464 = 6,112.668 (unchanged)
+  approx(stateTax('missouri', 150000), 6112.668, 0.01));
+t('Missouri MFJ $100k: 15% of 7,640 = 1,146 off', () =>
+  // 100,000 - 32,200 - 1,146 = 66,654 -> 262.86 + 4.7% x 57,218 = 2,952.106
+  approx(stateTax('missouri', 100000, 'married'), 2952.106, 0.01));
+t('Missouri HoH $75k: 15% of 5,748 = 862.20 off', () =>
+  // 75,000 - 24,150 - 862.20 = 49,987.80 -> 262.86 + 4.7% x 40,551.80 = 2,168.7946
+  approx(stateTax('missouri', 75000, 'head_of_household'), 2168.7946, 0.01));
+
+// --- THE TIPS BLOCK'S STATE FIGURE: stateTaxOnSlice() (added 2026-10-02) -----------------------
+// app.js's tipsSlice() prices the state tax on tips as stateTaxOnSlice(): the state tax at the pay
+// with the tips in it, less the state tax at the pay without them. Each term is fed what
+// computePaycheck feeds the state at that income, so with no tips deduction the slice is the
+// difference of two computePaycheck state figures to the cent, in every state and with every W-4
+// and pre-tax input (Massachusetts reads the FICA paid, the three subtraction states read the
+// federal liability after W-4 credits and without 4(c) extra withholding).
+const cpState = (slug, amount, fs, adv) => computePaycheck({ wage: { type: 'salary', amount },
+  filingStatus: fs, payFrequency: 'annual', stateSlug: slug, adv }, tax).annual.state;
+t('stateTaxOnSlice with no deduction = the difference of two computePaycheck state figures', () => {
+  const adv = { retirement401k: 3000, cafeteria125: 1200, dependentsCredit: 2000, extraWithholding: 500 };
+  for (const slug of ['alabama', 'missouri', 'oregon', 'massachusetts', 'california', 'connecticut', 'south-carolina']) {
+    for (const fs of ['single', 'married', 'head_of_household']) {
+      const got = stateTaxOnSlice({ base: 40000, top: 46000, filingStatus: fs, stateData: tax.states[slug],
+        fed: tax.federal, preTaxIncome: 4200, preTaxFica: 1200, dependentsCredit: 2000 });
+      const want = cpState(slug, 46000, fs, adv) - cpState(slug, 40000, fs, adv);
+      assert.ok(Math.abs(got - want) < 1e-6, `${slug} ${fs}: slice ${got} vs computePaycheck ${want}`);
+    }
+  }
+});
+t('Alabama, $5,000 of tips inside $50,000 of pay: the tips deduction reaches the state, $250.00', () => {
+  // Federal 2026 single: at 45,000 (the pay without the tips) taxable 28,900 -> 1,240 + 12% x 16,500
+  // = 3,220. At 50,000 before the tips deduction taxable 33,900 -> 3,820; after the full $5,000
+  // deduction (under the $25,000 cap, MAGI far under the $150,000 phase-out) taxable 28,900 -> 3,220.
+  // Alabama: standard deduction $2,500 at both incomes (the floor from $35,500), and above $3,000
+  // of taxable income the tax is 2% x 500 + 4% x 2,500 + 5% x (T - 3,000) = 5% x T - 40.
+  //   without the tips: 45,000 - 2,500 - 3,220 = 39,280 -> 1,964 - 40 = 1,924.00
+  //   with them, filed: 50,000 - 2,500 - 3,220 = 44,280 -> 2,214 - 40 = 2,174.00
+  //   slice 2,174 - 1,924 = 250.00, which is 5% of all $5,000: once deducted the tips add no
+  //   federal tax, so they add nothing to Alabama's federal subtraction either.
+  const slice = stateTaxOnSlice({ base: 45000, top: 50000, filingStatus: 'single',
+    stateData: tax.states.alabama, fed: tax.federal, federalDeduction: 5000 });
+  approx(slice, 250, 0.005);
+  // The pay without the tips is computePaycheck's own figure.
+  approx(cpState('alabama', 45000, 'single'), 1924, 0.005);
+  // computePaycheck at 50,000 has no tips input, so it subtracts the pre-deduction 3,820:
+  // 50,000 - 2,500 - 3,820 = 43,680 -> 2,144.00. The slice is $30.00 more, which is exactly
+  // Alabama's 5% on the $600 of federal tax (3,820 - 3,220) the return never shows.
+  approx(cpState('alabama', 50000, 'single'), 2144, 0.005);
+  approx(slice - (cpState('alabama', 50000, 'single') - cpState('alabama', 45000, 'single')), 30, 0.005);
+});
+t('Massachusetts, $2,000 of tips on $20,000: the FICA deduction moves with the tips, $92.35', () => {
+  // FICA 7.65%: 1,530 at 20,000, 1,683 at 22,000, both under the $2,000 cap, so both deducted in full.
+  //   20,000 - 4,400 - 1,530 = 14,070 -> 5% = 703.50
+  //   22,000 - 4,400 - 1,683 = 15,917 -> 5% = 795.85
+  //   slice 92.35 (the old tips block passed no FICA and printed 5% x 2,000 = 100.00)
+  approx(stateTaxOnSlice({ base: 20000, top: 22000, filingStatus: 'single',
+    stateData: tax.states.massachusetts, fed: tax.federal, federalDeduction: 2000 }), 92.35, 0.005);
 });
 
 console.log(`\n${pass} passing`);

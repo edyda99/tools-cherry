@@ -3,6 +3,8 @@
 // values are the §8 fixtures from docs/w4-overtime-tips-spec.md, generated from
 // the actual obbba-deduction.js engine against obbba-deductions-2026.json +
 // tax-data-2026.json (2026 brackets, std ded $16,100/$32,200/$24,150).
+// EXCEPT F11, corrected 2026-10-02 to IRC 225(b)(2)(A) / Schedule 1-A: the
+// phase-out comes off min(premium, cap), not off the cap, and F12 added.
 // Run: node scripts/test-w4-overtime-tips.js
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -45,7 +47,16 @@ const F = [
   ['F8', 'single', 420000, 'biweekly', 25000, 0, 0, 0, 0, 0.00, 0.00],
   ['F9', 'married', 280000, 'biweekly', 20000, 22000, 20000, 22000, 42000, 9968.00, 383.38],
   ['F10', 'single', 34000, 'weekly', 6000, 1350, 6000, 1350, 7350, 845.00, 16.25],
-  ['F11', 'married', 340000, 'monthly', 0, 20000, 0, 20000, 20000, 4800.00, 400.00]
+  // F11 MFJ $340k, $20,000 premium. Schedule 1-A Part III: line 15 = 20,000;
+  // line 18 = 40,000; line 19 = 40; line 20 = 4,000; line 21 = 16,000.
+  // Taxable 307,800 -> 291,800, all in the 24% band: 3,840; /12 = 320.00.
+  // (Was 20,000 / 4,800.00 / 400.00: the old engine shrank the CAP to 21,000.)
+  ['F11', 'married', 340000, 'monthly', 0, 20000, 0, 16000, 16000, 3840.00, 320.00],
+  // F12 single $220k, $20,000 tips + $5,000 premium. Part II: line 7 = 20,000;
+  // line 10 = 70,000; line 11 = 70; line 12 = 7,000; line 13 = 13,000. Part III:
+  // line 15 = 5,000; line 20 = 7,000; line 21 = 0. Taxable 203,900 -> 190,900:
+  // 2,125 x 32% + 10,875 x 24% = 3,290; /26 = 126.54.
+  ['F12', 'single', 220000, 'biweekly', 20000, 5000, 13000, 0, 13000, 3290.00, 126.54]
 ];
 
 for (const [id, status, income, freq, tipsIn, otIn, eDt, eDo, eDtot, eAnn, ePer] of F) {
@@ -122,6 +133,49 @@ for (const [id, status, income, freq, tipsIn, otIn, eDt, eDo, eDtot, eAnn, ePer]
   eq('F8 annual reduction 0', f8.annualReduction, 0);
   eq('F8 per paycheck 0', f8.perPaycheck, 0);
   is('F8 fica still applies', f8.ficaStillApplies, true);
+  // F11: the premium is under the $25,000 MFJ cap, so the cap does not bind,
+  // but the phase-out still takes 4,000 off it (line 21 = line 15 - line 20).
+  const f11 = run({ income: 340000, filingStatus: 'married', tips: 0, overtimePremium: 20000, payFrequency: 'monthly' });
+  is('F11 OT cap does not bind', f11.otCapBound, false);
+  is('F11 OT phased out', f11.otPhasedOut, true);
+  eq('F11 OT reduction (line 20)', f11.overtime.reduction, 4000);
+  eq('F11 OT deduction (line 21)', f11.dOt, 16000);
+}
+
+// --- W-4 worksheet cutoff, independent of the Schedule 1-A phase-out ---------
+// 2026 Form W-4, Step 4(b) Deductions Worksheet lines 1a/1b: "If your total
+// income is less than $150,000 ($300,000 if married filing jointly), enter an
+// estimate ...". So worksheetCliff is income >= $150,000 / $300,000, while the
+// phase-out (Schedule 1-A line 11 rounds down) takes nothing off until $151,000
+// / $301,000. From $150,000 to $150,999.99 the full deduction must show WITH the
+// "enter the accurate figure on Step 4(b)" note.
+{
+  const w = (income, filingStatus) => run({ income, filingStatus, tips: 20000, overtimePremium: 5000, payFrequency: 'biweekly' });
+  const c149 = w(149999, 'single');
+  is('W4 cliff single $149,999 off', c149.worksheetCliff, false);
+  const c150 = w(150000, 'single');
+  is('W4 cliff single $150,000 on', c150.worksheetCliff, true);
+  is('W4 cliff single $150,000 nothing phased out', c150.anyPhasedOut, false);
+  eq('W4 cliff single $150,000 full tips (Sch 1-A line 13 = line 7)', c150.dTips, 20000);
+  eq('W4 cliff single $150,000 full OT (Sch 1-A line 21 = line 15)', c150.dOt, 5000);
+  is('W4 cliff single $150,000 limit', c150.worksheetIncomeLimit, 150000);
+  const c1505 = w(150500, 'single');
+  is('W4 cliff single $150,500 on', c1505.worksheetCliff, true);
+  is('W4 cliff single $150,500 nothing phased out (line 11 = 0)', c1505.anyPhasedOut, false);
+  eq('W4 cliff single $150,500 full D_total', c1505.dTotal, 25000);
+  const c151 = w(151000, 'single');
+  is('W4 cliff single $151,000 on', c151.worksheetCliff, true);
+  is('W4 cliff single $151,000 phase-out starts (line 11 = 1)', c151.anyPhasedOut, true);
+  eq('W4 cliff single $151,000 tips (line 13 = 20,000 - 100)', c151.dTips, 19900);
+  is('W4 cliff HoH $150,000 on (form prints no HoH figure)', w(150000, 'head_of_household').worksheetCliff, true);
+  is('W4 cliff MFJ $299,999 off', w(299999, 'married').worksheetCliff, false);
+  const m300 = w(300000, 'married');
+  is('W4 cliff MFJ $300,000 on', m300.worksheetCliff, true);
+  is('W4 cliff MFJ $300,000 nothing phased out', m300.anyPhasedOut, false);
+  is('W4 cliff MFJ $300,000 limit', m300.worksheetIncomeLimit, 300000);
+  const m3005 = w(300500, 'married');
+  is('W4 cliff MFJ $300,500 on', m3005.worksheetCliff, true);
+  eq('W4 cliff MFJ $300,500 full D_total (line 11 = 0)', m3005.dTotal, 25000);
 }
 
 console.log(`\nW-4 overtime/tips helper: ${pass} passed, ${fail} failed`);

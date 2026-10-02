@@ -19,36 +19,67 @@ function pick(map, filingStatus) {
 }
 
 /**
- * The allowed deduction after the MAGI phase-out and the eligible-amount cap.
- * Phase-out: the statutory cap is reduced by `reductionPer1000` dollars for each
- * $1,000 (or fraction thereof) by which MAGI exceeds the threshold, never below 0.
- * The deduction can never exceed the actual eligible amount (premium or tips).
+ * The allowed deduction after the eligible-amount cap and the MAGI phase-out,
+ * in the order the statute and Schedule 1-A apply them.
+ *
+ * IRC §224(b)(2)(A) / §225(b)(2)(A) (P.L. 119-21): "The amount allowable as a
+ * deduction under subsection (a) (after application of paragraph (1)) shall be
+ * reduced (but not below zero) by $100 for each $1,000 by which the taxpayer's
+ * modified adjusted gross income exceeds $150,000 ($300,000 in the case of a
+ * joint return)."
+ *
+ * So the CAP comes first and the reduction is subtracted from the CAPPED
+ * AMOUNT, not from the cap (Schedule 1-A 2025, Part II lines 7-13 for tips,
+ * Part III lines 15-21 for overtime):
+ *   line 7 / 15   cappedAmount = min(eligible, cap)
+ *   line 10 / 18  excess       = MAGI - threshold (zero or less: no reduction)
+ *   line 11 / 19  steps        = excess / 1,000, ROUNDED DOWN to a whole number
+ *                 ("decrease the result to the next lower whole number"; the
+ *                 statute says "for each $1,000", with no "or fraction
+ *                 thereof", unlike the car-loan rule below)
+ *   line 12 / 20  reduction    = steps x $100
+ *   line 13 / 21  deduction    = cappedAmount - reduction, never below zero
+ *
+ * Reducing the CAP instead (min(eligible, cap - reduction)) overstates the
+ * deduction for anyone whose amount is under the cap, e.g. $20,000 of tips at
+ * $220,000 single MAGI is $13,000 deductible, not $18,000.
  *
  * @param {object} a
  * @param {number} a.eligibleAmount  overtime PREMIUM, or qualified tips (USD/yr)
  * @param {string} a.filingStatus    'single' | 'married' | 'head_of_household'
  * @param {number} a.magi            modified AGI (≈ total annual income)
  * @param {object} a.params          obbba.federal.overtime or .tips
- * @returns {{allowedCap:number, cappedByPhaseout:number, deduction:number, phasedOut:boolean}}
+ * @returns {{statutoryCap:number, cappedAmount:number, excess:number,
+ *   steps:number, reduction:number, allowedCap:number, deduction:number,
+ *   phasedOut:boolean, fullyPhasedOut:boolean}}
+ *   allowedCap is the most ANY amount could deduct at this income (cap minus
+ *   the reduction). It is a ceiling, not the rule: an amount under the cap
+ *   loses the full reduction too. phasedOut = the income reduction is non-zero.
+ *   fullyPhasedOut = the reduction wipes out the capped amount (with nothing
+ *   entered: it would wipe out even a full-cap claim).
  */
 export function allowedDeduction({ eligibleAmount, filingStatus, magi, params }) {
   const statutoryCap = pick(params.cap, filingStatus);
   const start = pick(params.phaseoutStartMagi, filingStatus);
   const per1000 = params.phaseoutReductionPer1000;
 
-  let allowedCap = statutoryCap;
-  if (magi > start) {
-    const steps = Math.ceil((magi - start) / 1000); // "or fraction thereof"
-    allowedCap = Math.max(0, statutoryCap - steps * per1000);
-  }
   const eligible = Math.max(0, eligibleAmount || 0);
-  const deduction = Math.max(0, Math.min(eligible, allowedCap));
+  const cappedAmount = Math.min(eligible, statutoryCap);           // line 7 / 15
+  const excess = Math.max(0, (magi || 0) - start);                  // line 10 / 18
+  const steps = Math.floor(excess / 1000);                          // line 11 / 19, round DOWN
+  const reduction = steps * per1000;                                // line 12 / 20
+  const deduction = Math.max(0, cappedAmount - reduction);          // line 13 / 21
+  const allowedCap = Math.max(0, statutoryCap - reduction);
   return {
     statutoryCap,
+    cappedAmount,
+    excess,
+    steps,
+    reduction,
     allowedCap,
     deduction,
-    phasedOut: allowedCap < statutoryCap,
-    fullyPhasedOut: allowedCap <= 0
+    phasedOut: reduction > 0,
+    fullyPhasedOut: reduction > 0 && reduction >= (cappedAmount > 0 ? cappedAmount : statutoryCap)
   };
 }
 
@@ -870,6 +901,18 @@ export function mipComparison({
 // helper offers; MFS-ineligible tips/overtime never use 'annual').
 export const W4_PAY_PERIODS = { weekly: 52, biweekly: 26, semimonthly: 24, monthly: 12 };
 
+// The 2026 Form W-4's OWN income line for worksheet lines 1a and 1b, kept apart
+// from the Schedule 1-A phase-out on purpose. The worksheet (page 4, Step 4(b)
+// Deductions Worksheet) reads: "Qualified tips. If your total income is less
+// than $150,000 ($300,000 if married filing jointly), enter an estimate of your
+// qualified tips up to $25,000", and line 1b says the same for overtime. So the
+// printed form is a cliff: at $150,000 ($300,000 joint) or MORE it gives no
+// line to fill in, while the filing-time deduction only starts losing $100s at
+// the first full $1,000 over (Schedule 1-A line 11 rounds down), i.e. $151,000.
+// Only married filing jointly gets the $300,000 line; head of household uses
+// the $150,000 one, as the form prints no separate figure for it.
+export const W4_WORKSHEET_INCOME_LIMIT = { single: 150000, married: 300000, head_of_household: 150000 };
+
 /**
  * Estimate the 2026 W-4 Step 4(b) adjustment for tips + overtime.
  * Computes the allowed tips deduction (worksheet line 1a) and the allowed
@@ -891,7 +934,8 @@ export const W4_PAY_PERIODS = { weekly: 52, biweekly: 26, semimonthly: 24, month
  * @param {object}  a.fed              taxData.federal (brackets + standardDeduction)
  * @returns {{tips:object, overtime:object, dTips:number, dOt:number, dTotal:number,
  *   tipsCapBound:boolean, otCapBound:boolean, tipsPhasedOut:boolean, otPhasedOut:boolean,
- *   anyPhasedOut:boolean, annualReduction:number, marginalRate:number,
+ *   anyPhasedOut:boolean, worksheetIncomeLimit:number, worksheetCliff:boolean,
+ *   annualReduction:number, marginalRate:number,
  *   periodsPerYear:number, remainingPeriods:number, fullYear:boolean,
  *   perPaycheck:number, perPaycheckRemaining:number, ficaStillApplies:boolean}}
  */
@@ -921,12 +965,20 @@ export function estimateW4Adjustment({ income, filingStatus, tips, overtimePremi
     dTips,
     dOt,
     dTotal,
-    // The entered amount exceeded the (possibly phased-down) allowed cap.
-    tipsCapBound: tipsIn > tipsRes.allowedCap && tipsRes.allowedCap > 0,
-    otCapBound: otIn > otRes.allowedCap && otRes.allowedCap > 0,
+    // The entered amount exceeded the yearly cap itself (Schedule 1-A line 7 /
+    // line 15 kept less than was entered). The income phase-out is a separate
+    // cut, taken off what the cap left: see tips.reduction / overtime.reduction.
+    tipsCapBound: tipsIn > tipsRes.statutoryCap,
+    otCapBound: otIn > otRes.statutoryCap,
     tipsPhasedOut: tipsRes.phasedOut,
     otPhasedOut: otRes.phasedOut,
     anyPhasedOut: tipsRes.phasedOut || otRes.phasedOut,
+    // Income at or above the W-4 worksheet's own line, where the printed form
+    // stops offering lines 1a/1b. Independent of the phase-out: from $150,000
+    // to $150,999.99 nothing is phased out yet, but the worksheet already says
+    // nothing, so the "enter the accurate figure on Step 4(b)" note must show.
+    worksheetIncomeLimit: pick(W4_WORKSHEET_INCOME_LIMIT, filingStatus),
+    worksheetCliff: magi >= pick(W4_WORKSHEET_INCOME_LIMIT, filingStatus),
     annualReduction: saved.taxSaved,
     marginalRate: saved.marginalRate,
     periodsPerYear,
@@ -952,6 +1004,8 @@ export function estimate({ kind, eligibleAmount, grossAnnual, filingStatus, fede
     kind,
     eligibleAmount: Math.max(0, eligibleAmount || 0),
     statutoryCap: d.statutoryCap,
+    cappedAmount: d.cappedAmount,
+    reduction: d.reduction,
     allowedCap: d.allowedCap,
     deduction: d.deduction,
     phasedOut: d.phasedOut,

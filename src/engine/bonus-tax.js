@@ -168,19 +168,27 @@ export function bracketBaseIncome(regIncome, filingStatus, householdIncome = 0) 
  * also exactly what computePaycheck() hands the state side, so the Massachusetts paycheck
  * page and this page cannot disagree about the same earner. Every state without a
  * `tax.ficaPaidDeduction` ignores the argument, so nothing else moves.
+ *
+ * THE FEDERAL ARGUMENT TO THE STATE TERMS, same reasoning. Alabama, Missouri and Oregon let a
+ * filer subtract federal income tax (all of it, a share of it, or up to a cap), so a bonus
+ * that raises the federal tax also raises the state subtraction, and each state term gets
+ * the federal tax at its own income level. Unlike FICA these are on the SAME base the
+ * federal terms use, the household figure for a joint filer who gave one, because the
+ * federal tax being subtracted is the tax on that joint return.
  * @returns {{federal:number, state:number}}
  */
 export function trueTaxOnBonus(bonus, regIncome, filingStatus, stateData, fed, householdIncome = 0) {
   const b = Math.max(0, bonus || 0);
   const reg = Math.max(0, regIncome || 0);
   const base = bracketBaseIncome(regIncome, filingStatus, householdIncome);
-  const federal =
-    federalIncomeTax(base + b, filingStatus, fed) - federalIncomeTax(base, filingStatus, fed);
+  const fedTax1 = federalIncomeTax(base, filingStatus, fed);
+  const fedTax2 = federalIncomeTax(base + b, filingStatus, fed);
+  const federal = fedTax2 - fedTax1;
   const ficaPaid1 = ficaTax(reg, filingStatus, fed).total;
   const ficaPaid2 = ficaTax(reg + b, filingStatus, fed).total;
   const state =
-    stateIncomeTax(base + b, filingStatus, stateData, 0, ficaPaid2) -
-    stateIncomeTax(base, filingStatus, stateData, 0, ficaPaid1);
+    stateIncomeTax(base + b, filingStatus, stateData, 0, ficaPaid2, fedTax2) -
+    stateIncomeTax(base, filingStatus, stateData, 0, ficaPaid1, fedTax1);
   return { federal: Math.max(0, federal), state: Math.max(0, state) };
 }
 
@@ -244,7 +252,16 @@ export function computeBonus(input, taxData, suppData) {
   let stateWithholdingMethod = supp ? supp.method : 'none';
   // regular-method states (or the aggregate override) -> paycheck-engine aggregate delta
   if (stateWithheld === null || (method === 'aggregate' && supp && supp.method === 'flat')) {
-    stateWithheld = Math.max(0, stateIncomeTax(regIncome + bonus, filingStatus, stateData) - stateIncomeTax(regIncome, filingStatus, stateData));
+    // This column is what comes off the check, so a state's federal-tax subtraction counts
+    // only where its WITHHOLDING formula takes it. Alabama's and Oregon's do (they subtract
+    // the federal tax withheld); Missouri's does not, it is a return-only deduction. The
+    // data says which, per state, in `federalTaxSubtraction.inWithholdingFormula`.
+    const fts = stateData && stateData.tax && stateData.tax.federalTaxSubtraction;
+    const withFed = !!(fts && fts.inWithholdingFormula);
+    const fedAt = (inc) => (withFed ? federalIncomeTax(inc, filingStatus, fed) : 0);
+    stateWithheld = Math.max(0,
+      stateIncomeTax(regIncome + bonus, filingStatus, stateData, 0, 0, fedAt(regIncome + bonus)) -
+      stateIncomeTax(regIncome, filingStatus, stateData, 0, 0, fedAt(regIncome)));
     stateWithholdingMethod = 'regular';
   }
 

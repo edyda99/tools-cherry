@@ -21,7 +21,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { computePaycheck } from '../src/engine/paycheck-engine.js';
+import { computePaycheck, stateTaxableIncome, federalIncomeTax, ficaTax } from '../src/engine/paycheck-engine.js';
 import { LADDER_SALARIES } from '../backend/mcp-server/tools.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -178,6 +178,31 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
   is('california keeps less of the step above than the step below', (c80 - c75) < (c75 - c70), true);
   eq('california step up from $70,000', c75 - c70, 3052.9, 0.5);
   eq('california step on to $80,000', c80 - c75, 3032.36, 0.5);
+}
+
+// --- 7. THE FEDERAL-TAX SUBTRACTION on the $75,000 rung (added 2026-10-02). Alabama, Missouri
+// and Oregon subtract (some of) the federal income tax, FED_TAX = 7,670 above, from the income
+// they tax. Written out by hand from each state's schedule.
+{
+  // Oregon: 75,000 - 2,910 - 7,670 (under the 8,750 limit) = 64,420;
+  //   4.75% x 4,550 + 6.75% x 6,850 + 8.75% x 53,020 = 216.125 + 462.375 + 4,639.25 = 5,317.75
+  eq('oregon $75k state tax, all 7,670 subtracted', net('oregon', RUNG).state,
+    4550 * 0.0475 + 6850 * 0.0675 + (75000 - 2910 - FED_TAX - 11400) * 0.0875);
+  // Alabama: deduction at its 2,500 floor; 75,000 - 2,500 - 7,670 = 64,830;
+  //   2% x 500 + 4% x 2,500 + 5% x 61,830 = 3,201.50
+  eq('alabama $75k state tax, all 7,670 subtracted', net('alabama', RUNG).state,
+    500 * 0.02 + 2500 * 0.04 + (75000 - 2500 - FED_TAX - 3000) * 0.05);
+  // Missouri: 15% of 7,670 = 1,150.50; 75,000 - 16,100 - 1,150.50 = 57,749.50;
+  //   262.86 below 9,436 (six 1,348 bands at 0/2/2.5/3/3.5/4/4.5%) + 4.7% x 48,313.50 = 2,533.5945
+  eq('missouri $75k state tax, 15% of 7,670 subtracted', net('missouri', RUNG).state,
+    1348 * (0.02 + 0.025 + 0.03 + 0.035 + 0.04 + 0.045) + (75000 - 16100 - 0.15 * FED_TAX - 9436) * 0.047);
+  // The Oregon $75,000 page says a raise of $58,161 reaches the 9.9% band, not the $60,580 gap in
+  // taxable income: past $125,000 of salary the limit falls to 5,250, so at 133,161 taxable is
+  // 133,161 - 2,910 - 5,250 = 125,001, one dollar over the edge, and at 133,160 it is exactly 125,000.
+  const orTaxable = (salary) => stateTaxableIncome(salary, 'single', taxData.states.oregon, 0,
+    ficaTax(salary, 'single', taxData.federal).total, federalIncomeTax(salary, 'single', taxData.federal)).taxable;
+  eq('oregon taxable at $133,160 sits on the 9.9% edge', orTaxable(133160), 125000);
+  eq('oregon taxable at $133,161 is one dollar into it', orTaxable(133161), 125001);
 }
 
 console.log(`\nSalary-ladder rungs: ${pass} passed, ${fail} failed`);

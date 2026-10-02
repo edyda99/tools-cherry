@@ -211,36 +211,50 @@ function renderResult({ state: s, result: r }) {
   // goes on line 1a" stop being the same number, and a sentence naming only one
   // of them is how a screen ends up reading "$25,000, the tips you expect" over
   // $31,000 of tips. Each sentence here names both. Asked of the DEDUCTION
-  // (eligible above the allowed cap), never of "did any tax come back": a figure
+  // (eligible above the deduction), never of "did any tax come back": a figure
   // can be capped all the way to nothing and still show a $0 headline over a row
   // claiming the whole amount was untaxed.
+  //
+  // The yearly limit is taken first and the income phase-out comes off what the
+  // limit left (Schedule 1-A lines 7 to 13 for tips, 15 to 21 for overtime), so
+  // either cut, or both, can be the reason, and the sentence names each one.
   let capFlags = '';
-  const tipsBinds = showTips && s.tips > 0 && s.tips > r.tips.allowedCap;
-  const otBinds = showOt && premium > 0 && premium > r.overtime.allowedCap;
+  const tipsBinds = showTips && s.tips > 0 && s.tips > r.tips.deduction;
+  const otBinds = showOt && premium > 0 && premium > r.overtime.deduction;
+  const limitReason = (res, entered, capText) => {
+    const capped = entered > res.statutoryCap;
+    const off = Math.min(res.reduction, res.cappedAmount);
+    if (capped && off > 0) return `${capText}. Your income is also above the phase-out line, which takes ${usd(off)} off what is left`;
+    if (capped) return capText;
+    return `Your income is above the phase-out line, which takes ${usd(off)} off it`;
+  };
   if (tipsBinds && !r.tips.fullyPhasedOut) {
     capFlags += `<p class="otw-flag">Heads up: ${usd(tipsR)} of your ${usd(s.tips)} in tips goes on line 1a. ` +
-      (r.tips.phasedOut
-        ? `Your income is above the phase-out line, so your tips cap drops to ${usd(r.tips.allowedCap)}`
-        : `The tips deduction stops at ${usd(r.tips.statutoryCap)} a year, and it is one limit per return, never doubled for a couple`) +
+      limitReason(r.tips, s.tips,
+        `The tips deduction stops at ${usd(r.tips.statutoryCap)} a year, and it is one limit per return, never doubled for a couple`) +
       `, and your employer keeps withholding on the rest as usual.</p>`;
   }
   if (otBinds && !r.overtime.fullyPhasedOut) {
     capFlags += `<p class="otw-flag">Heads up: ${usd(otR)} of your ${usd(premium)} overtime premium goes on line 1b. ` +
-      (r.overtime.phasedOut
-        ? `Your income is above the phase-out line, so your overtime cap drops to ${usd(r.overtime.allowedCap)}`
-        : `The overtime deduction stops at ${usd(r.overtime.statutoryCap)} a year for how you file`) +
+      limitReason(r.overtime, premium,
+        `The overtime deduction stops at ${usd(r.overtime.statutoryCap)} a year for how you file`) +
       `, and your employer keeps withholding on the rest as usual.</p>`;
   }
 
-  // The one thing this tool knows that the W-4 itself gets wrong, kept verbatim
-  // in substance from the old result panel: the printed worksheet uses a simple
-  // income cutoff and would tell a partly-phased-out worker to enter $0, when
-  // the real deduction phases out gradually and is still worth something.
-  const cliffFlag = (r.anyPhasedOut && totalR > 0)
-    ? `<p class="otw-flag">Your income is above the $150,000 ($300,000 filing jointly) line, so these deductions are ` +
-      `partly phased out. The printed worksheet uses a simple cutoff that would wrongly tell you to enter $0 — put the ` +
-      `${usd(totalR)} figure above straight on Step 4(b) instead. The worksheet is yours to keep; your employer only ` +
-      `sees the Step 4(b) number.</p>`
+  // The one thing this tool knows that the W-4 itself gets wrong, kept in
+  // substance from the old result panel: the printed worksheet only offers the
+  // tips and overtime lines when total income is LESS than $150,000 ($300,000
+  // joint), a simple cutoff that would leave a worker at or above that line at
+  // $0, when the real deduction phases out gradually and is still worth
+  // something. Keyed on the form's own line (r.worksheetCliff), not on the
+  // phase-out, so it shows from $150,000 even before any $100 has come off.
+  const cliffFlag = (r.worksheetCliff && totalR > 0)
+    ? `<p class="otw-flag">Your income is $150,000 ($300,000 filing jointly) or more. The printed worksheet only ` +
+      `lets you fill in the tips and overtime lines below that, a simple cutoff that would wrongly leave you at $0. ` +
+      `The real deduction shrinks gradually, and ` +
+      (r.anyPhasedOut ? 'at your income only part of it has come off' : 'at your income none of it has come off yet') +
+      `. Put the ${usd(totalR)} figure above straight on Step 4(b) instead. The worksheet is yours to keep; your ` +
+      `employer only sees the Step 4(b) number.</p>`
     : '';
 
   // ---- The plain-terms box ---------------------------------------------------
