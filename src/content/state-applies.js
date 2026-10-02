@@ -137,7 +137,16 @@ function seniorLine(state, pickFrame, wp, obbbaEntry) {
   const t = state.tax;
   const seniorV = obbbaEntry && obbbaEntry.senior && obbbaEntry.senior.y2026;
   if (wp.hasIncomeTax && seniorV === 'yes') {
-    return `the $6,000 federal senior deduction comes off your federal return, and is deductible on your ${state.name} return too`;
+    // Said as the jurisdiction allowing it, not "the deduction ... is deductible". The
+    // District is "the District" and its return the "DC return", as the District writes
+    // them; the year it started is read from the 2025 verdict, so a state that already
+    // allowed it in 2025 gets no "from 2026".
+    const isDC = state.slug === 'district-of-columbia';
+    const who = isDC ? 'the District' : state.name;
+    const ret = isDC ? state.abbr : state.name;
+    const since = obbbaEntry.senior.y2025 === 'yes' ? '' : ', from 2026';
+    return `the $6,000 federal senior deduction comes off your federal return, and ${who} allows it on ` +
+      `your ${ret} return too${since}`;
   }
   if (!wp.hasIncomeTax) {
     // "The whole story" and "all there is to claim" are exclusivity claims about

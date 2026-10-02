@@ -416,8 +416,10 @@ eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single'
   const dc = obbba.states['district-of-columbia'];
   is('DC senior verdict 2025 is no', dc.senior && dc.senior.y2025, 'no');
   is('DC senior verdict 2026 is yes', dc.senior && dc.senior.y2026, 'yes');
-  is('DC Turning 65 line says the DC return allows it',
-    ageLine('district-of-columbia').includes('deductible on your District of Columbia return too'), true);
+  is('DC Turning 65 line says the District allows it from 2026',
+    ageLine('district-of-columbia').includes('and the District allows it on your DC return too, from 2026'), true);
+  is('DC Turning 65 line no longer says the deduction is deductible',
+    ageLine('district-of-columbia').includes('is deductible on your'), false);
   is('DC Turning 65 line no longer says the brackets still apply',
     ageLine('district-of-columbia').includes('still apply to the same wages'), false);
   // States with no senior verdict keep the line keyed to their own tax structure.
