@@ -1400,7 +1400,22 @@ function injectSeo(html) {
 // Still deliberately NOT included:
 //  - sameAs: omitted until real owned profile URLs (X/GitHub/Reddit) are supplied —
 //    inventing links would mislead entity resolution.
-function injectEntitySchema(html) {
+// THE BREADCRUMB MARK. A <title> written "Lead ~: Tail" renders as "Lead: Tail", and its
+// breadcrumb name is "Lead". The mark sits on the titles whose separator used to be an em
+// dash, which the breadcrumb split below cut at, so those pages keep the short breadcrumb
+// name they always had. A title with a plain colon is untouched: its breadcrumb stays the
+// whole title, as it always has been. Taken out before anything else reads the title. The
+// lead is shortened the way compactTitle would have shortened it, because a lead over 60
+// characters was cut down before the old split ever saw it.
+const CRUMB_MARK = ' ~: ';
+function takeCrumbMark(html) {
+  const m = html.match(/<title>([\s\S]*?)<\/title>/i);
+  if (!m || !m[1].includes(CRUMB_MARK)) return { html, crumb: null };
+  const crumb = compactTitleStr(m[1].slice(0, m[1].indexOf(CRUMB_MARK)).trim());
+  return { html: html.replace(m[0], () => `<title>${m[1].split(CRUMB_MARK).join(': ')}</title>`), crumb };
+}
+
+function injectEntitySchema(html, crumb = null) {
   if (!html.includes('</head>')) return html;
   const orgId = `${SITE.url}/#organization`;
   if (html.includes(`"@id":"${orgId}"`)) return html; // already injected
@@ -1415,8 +1430,9 @@ function injectEntitySchema(html) {
     .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'");
   const rawTitle = decodeHtml(titleMatch ? titleMatch[1].trim() : SITE.name);
-  // Clean breadcrumb leaf label: drop any " — tagline" / " | brand" suffix.
-  const pageName = rawTitle.split(/\s[—|]\s/)[0].trim();
+  // Clean breadcrumb leaf label: drop any " — tagline" / " | brand" suffix, or the tail
+  // after a breadcrumb mark (see takeCrumbMark).
+  const pageName = crumb != null ? decodeHtml(crumb) : rawTitle.split(/\s[—|]\s/)[0].trim();
   const isHome = url === `${SITE.url}/` || url === SITE.url;
   const siteId = `${SITE.url}/#website`;
 
@@ -1585,12 +1601,14 @@ function fill(tpl, map) {
   // Trim over-long <title>/<meta description> to SERP-compliant lengths BEFORE
   // injectSeo, so the derived og:/twitter: title+description inherit the compact
   // values (no-op on fragments and on already-compliant tags).
+  const marked = takeCrumbMark(out);
+  out = marked.html;
   out = compactTitle(out);
   out = compactDesc(out);
   // Normalize/complete per-page SEO social tags (no-op on fragments).
   out = injectSeo(out);
   // Inject the site-wide entity @graph (Organization/WebSite/WebPage/Breadcrumb).
-  out = injectEntitySchema(out);
+  out = injectEntitySchema(out, marked.crumb);
   // Inject the site-wide search trigger + Cmd/Ctrl+K command palette (no-op on
   // header-less pages like embeds).
   out = injectSearch(out);
@@ -9415,7 +9433,7 @@ async function main() {
       fillTool(dftHubTpl, {
         SITE_NAME: SITE.name,
         SITE_URL: SITE.url,
-        TITLE: 'Days From Today: 30, 60, 90, 180 Days and More',
+        TITLE: 'Days From Today ~: 30, 60, 90, 180 Days and More',
         DESC: 'Ready-made answers for the intervals people count: 30, 60, 90 and 180 days from today, weeks from today, business days from today, and dates in the past. Each page works the date out in your browser.',
         APP_LD: JSON.stringify({
           '@context': 'https://schema.org',

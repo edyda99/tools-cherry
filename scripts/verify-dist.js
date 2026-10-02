@@ -792,6 +792,7 @@ export async function verifyDist(distPath) {
   const missingLoader = [];
   const embedWithLoader = [];
   const manualAds = [];
+  const crumbMarks = [];
   const tiny = [];
   // asset path -> the pages that reference it, so a missing asset can name a victim.
   const assetRefs = new Map();
@@ -818,6 +819,8 @@ export async function verifyDist(distPath) {
     if (isEmbedWidget && hasLoader) embedWithLoader.push(rel);
     if (!isEmbedWidget && !hasLoader) missingLoader.push(rel);
     if (MANUAL_AD.test(html)) manualAds.push(rel);
+    // build.js takeCrumbMark turns a title's " ~: " into ": "; one that survives renders as-is.
+    if (/<title>[^<]*~: /.test(html)) crumbMarks.push(rel);
 
     // The quotable answer sentence, on the /data/ reference pages only (parts[0] is
     // 'data' and it is a page, not the CSV/JSON siblings). Their /embed/data/ twins
@@ -884,6 +887,8 @@ export async function verifyDist(distPath) {
     failures.push(`${missingLoader.length} non-embed page(s) are missing the AdSense loader:` + list(missingLoader));
   if (embedWithLoader.length)
     failures.push(`${embedWithLoader.length} iframe widget page(s) under dist/embed/ carry the AdSense loader and must not:` + list(embedWithLoader));
+  if (crumbMarks.length)
+    failures.push(`${crumbMarks.length} page(s) show the breadcrumb mark " ~: " in their <title>:` + list(crumbMarks));
   if (manualAds.length)
     failures.push(`${manualAds.length} page(s) contain a manual <ins class="adsbygoogle"> unit; this site is Auto ads only:` + list(manualAds));
   if (badAnswers.length)

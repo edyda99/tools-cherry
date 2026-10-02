@@ -70,18 +70,20 @@ const dftUnitPhraseTitle = (p) =>
 
 const crossLabel = (p) => (p.unit === 'business' ? 'On the calendar' : 'Weekdays vs weekend days');
 
+// " ~: " renders as ": " and keeps the breadcrumb name to the part before it (build.js
+// takeCrumbMark), as the em dash it replaced did.
 function title(p) {
   const iv = dftUnitPhraseTitle(p);
   if (p.dir === 'back') {
     return frame(p.slug, 'title', [
       `What Date Was ${iv} Ago?`,
-      `${iv} Ago From Today: The Exact Date`,
+      `${iv} Ago From Today ~: The Exact Date`,
       `What Was the Date ${iv} Ago?`,
     ]);
   }
   return frame(p.slug, 'title', [
     `What Date Is ${iv} From Today?`,
-    `${iv} From Today: What Date Is That?`,
+    `${iv} From Today ~: What Date Is That?`,
     `${iv} From Today: Exact Date and Weekday`,
     `When Is ${iv} From Today?`,
   ]);
