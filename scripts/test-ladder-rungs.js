@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { computePaycheck, stateTaxableIncome, federalIncomeTax, ficaTax } from '../src/engine/paycheck-engine.js';
 import { LADDER_SALARIES } from '../backend/mcp-server/tools.js';
+import { carLoanDeduction } from '../src/engine/obbba-deduction.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const read = (p) => JSON.parse(readFileSync(join(__dirname, p), 'utf8'));
@@ -243,6 +244,46 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
     is('wisconsin $50k page no longer prints the gap as the raise', wi50.includes('A raise of $12,325'), false);
     is('south carolina $40k page prints the $3,931 raise', sc40.includes('a raise of about $3,931 gets you there'), true);
     is('south carolina $30k page prints the $13,931 raise', sc30.includes('a raise of about $13,931 gets you there'), true);
+  }
+}
+
+// --- 9. THE CAR-LOAN INTEREST PHASE-OUT ROUNDS UP. IRC 163(h)(4)(C)(ii)(I) cuts the $10,000
+// allowance "by $200 for each $1,000 (or portion thereof)" of modified AGI over $100,000, so a part
+// of a $1,000 counts as a whole one. The ladder used to round the steps DOWN with Math.floor; it
+// now prints what the engine computes. The rungs all sit on round thousands, where the two agree,
+// so the case that tells them apart is a non-round salary, worked by hand:
+//   $120,500: 20,500 over -> 21 steps (the last $500 counts) -> 21 x 200 = 4,200 off -> 5,800 left
+//   (rounding down would have counted 20 steps and left 6,000)
+{
+  const CL = obbba.federal.carLoan;
+  const allow = (magi) => carLoanDeduction({ year: Number(taxData.taxYear), filingStatus: 'single', magi,
+    interest: CL.interestCap, params: CL });
+  eq('car loan $120,500 keeps $5,800 (21 steps, the part step counts)', allow(120500).deduction, 5800, 0);
+  is('car loan $120,500 is not the round-down $6,000', allow(120500).deduction === 6000, false);
+  // $100,000 is the line itself: nothing over it, nothing cut, so not yet "partially phased out".
+  eq('car loan $100,000 keeps the full $10,000', allow(100000).deduction, 10000, 0);
+  is('car loan $100,000 is not phased out at all', allow(100000).phasedOut, false);
+  // One dollar over is a whole step: 10,000 - 200 = 9,800.
+  eq('car loan $100,001 already loses a $200 step', allow(100001).deduction, 9800, 0);
+  // $149,001: 49,001 over -> 50 steps -> 10,000 off, so it is gone before $150,000.
+  eq('car loan $149,001 is already gone', allow(149001).deduction, 0, 0);
+  is('car loan $149,001 is fully phased out', allow(149001).fullyPhasedOut, true);
+  eq('car loan $120,000 rung keeps $6,000', allow(120000).deduction, 6000, 0);
+
+  const page = (amount) => {
+    try { return readFileSync(join(__dirname, '..', 'dist', `texas-take-home-pay-${amount}`, 'index.html'), 'utf8'); }
+    catch { return null; }
+  };
+  const p100 = page(100000), p120 = page(120000), p150 = page(150000);
+  if (p100 && p120 && p150) {
+    is('$120,000 page prints the engine allowance', p120.includes('roughly $6,000 of the allowance survives'), true);
+    is('$120,000 page says a part of $1,000 counts', p120.includes('counting any part of $1,000 as a whole one'), true);
+    is('$120,000 page lists the loan deduction as partly phased out',
+      p120.includes('the partially phased-out new-vehicle loan interest deduction'), true);
+    is('$100,000 page no longer calls it partly phased out',
+      p100.includes('the partially phased-out new-vehicle loan interest deduction'), false);
+    is('$100,000 FAQ says all of it survives', p100.includes('Yes, all of it.'), true);
+    is('$150,000 FAQ says none of it is left', p150.includes('none of it is left at $150,000'), true);
   }
 }
 

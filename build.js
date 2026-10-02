@@ -30,6 +30,9 @@ import {
   stateTaxableIncome, federalTaxSubtraction, federalIncomeTax, ficaTax, stateIncomeTax,
 } from './src/engine/paycheck-engine.js';
 import { computeBonus } from './src/engine/bonus-tax.js';
+// The car-loan interest deduction (IRC 163(h)(4)), so the salary pages print the allowance the
+// calculator computes rather than a second, hand-rolled phase-out.
+import { carLoanDeduction } from './src/engine/obbba-deduction.js';
 // The 2027 seasonal pages. `assertComplete` is the one that matters: it is the
 // build-time refusal that stops a projected dollar figure being rendered while
 // any month of the statutory window is still unpublished.
@@ -4296,6 +4299,18 @@ const usdCents = (n) => '$' + n.toLocaleString('en-US', { minimumFractionDigits:
 const pct1 = (n) => (n * 100).toFixed(1) + '%';
 const pct2 = (n) => (n * 100).toFixed(2) + '%';
 
+// THE CAR-LOAN INTEREST ALLOWANCE AT A SINGLE FILER'S SALARY, from the engine the
+// /car-loan-interest-calculator/ runs. IRC 163(h)(4)(C)(ii)(I) cuts the deduction "by $200 for
+// each $1,000 (or portion thereof)" of modified AGI over $100,000, so a part of a $1,000 counts
+// as a whole one and the steps round UP. The ladder used to round them down: harmless on its
+// round-thousand rungs, but $120,500 would have kept $6,000 of the $10,000 where the statute
+// leaves $5,800. Measured on a full $10,000 of interest, so it is the most anyone can deduct.
+function carLoanAllowanceAt(amount, obbba, taxYear) {
+  const cl = obbba.federal.carLoan;
+  return carLoanDeduction({ year: Number(taxYear), filingStatus: 'single', magi: amount,
+    interest: cl.interestCap, params: cl });
+}
+
 // Which of the three shapes a state is, read from the data and nowhere else.
 function ladderKind(st) {
   if (!st || !st.hasIncomeTax || !st.tax || st.tax.type === 'none') return 'none';
@@ -5797,22 +5812,29 @@ function caProseBlocks(r, rungs, ctx) {
     const start = cl.phaseoutStartMagi.single;
     const gone = cl.fullPhaseoutMagi.single;
     const cap = cl.interestCap;
-    if (r.amount >= gone) {
+    const allow = carLoanAllowanceAt(r.amount, obbba, taxData.taxYear);
+    if (r.amount >= gone || allow.fullyPhasedOut) {
       push('carloan',
         `<h3>New-car loan interest is no longer deductible at ${S}</h3>` +
         `<p>OBBBA made interest on a qualifying new-vehicle loan deductible up to ${usd0(cap)} a year, ` +
-        `even without itemizing — but only below ${usd0(gone)} of modified AGI for a single filer. The ` +
-        `deduction falls by ${usd0(cl.phaseoutReductionPer1000)} for every ${usd0(1000)} above ` +
-        `${usd0(start)} and is gone by ${usd0(gone)}, which ${S} is at or above. Worth knowing before ` +
-        `a dealer quotes it as a reason to finance.</p>`);
+        `even without itemizing, but only below ${usd0(gone)} of modified AGI for a single filer. The ` +
+        `deduction falls by ${usd0(cl.phaseoutReductionPer1000)} for every ${usd0(1000)}, or part of ` +
+        `${usd0(1000)}, above ${usd0(start)} and is gone by ${usd0(gone)}, so nothing of it is left at ` +
+        `${S}. Worth knowing before a dealer quotes it as a reason to finance.</p>`);
     } else if (r.amount >= start) {
-      const left = Math.max(0, cap - Math.floor((r.amount - start) / 1000) * cl.phaseoutReductionPer1000);
+      const left = allow.deduction;
+      // Right on the line nothing is cut yet, but the first dollar over it costs a whole step.
+      const where = allow.phasedOut
+        ? `At ${S} you are ${usd0(r.amount - start)} past that line, so roughly ${usd0(left)} of the ` +
+          `allowance survives, and it is gone by ${usd0(gone)}.`
+        : `${S} is right on that line, so the full ${usd0(left)} is still there, but even a ${usd0(1)} ` +
+          `raise would cut it by ${usd0(cl.phaseoutReductionPer1000)}, and it is gone by ${usd0(gone)}.`;
       push('carloan',
-        `<h3>${S} is inside the car-loan interest phase-out</h3>` +
+        `<h3>${S} is ${allow.phasedOut ? 'inside' : 'where'} the car-loan interest phase-out` +
+        `${allow.phasedOut ? '' : ' starts'}</h3>` +
         `<p>The OBBBA deduction for interest on a qualifying new-vehicle loan is capped at ${usd0(cap)} ` +
-        `and shrinks by ${usd0(cl.phaseoutReductionPer1000)} per ${usd0(1000)} of modified AGI above ` +
-        `${usd0(start)}. At ${S} you are ${usd0(r.amount - start)} past that line, so roughly ` +
-        `${usd0(left)} of the allowance survives, and it reaches zero at ${usd0(gone)}. This is a ` +
+        `and shrinks by ${usd0(cl.phaseoutReductionPer1000)} for every ${usd0(1000)} of modified AGI ` +
+        `above ${usd0(start)}, counting any part of ${usd0(1000)} as a whole one. ${where} This is a ` +
         `deduction, not a credit, so what it is actually worth to you is that figure times your federal ` +
         `marginal rate.</p>`);
       // STRICTLY GREATER THAN, not >=. Every variant below tells the reader the
@@ -6715,8 +6737,10 @@ function caPageCopy(r, rungs, ctx) {
   if (r.amount > sen.phaseoutStartMagi.single && r.amount < sen.fullPhaseoutMagi.single) {
     live.push(`the partially phased-out senior deduction (if you are 65 or over)`);
   }
-  const cl = obbba.federal.carLoan;
-  if (r.amount >= cl.phaseoutStartMagi.single && r.amount < cl.fullPhaseoutMagi.single) {
+  // Partly phased out means some of it is gone and some is left, the engine's two flags. At
+  // exactly $100,000 nothing is gone yet: the cut is per $1,000 by which income EXCEEDS it.
+  const clAllow = carLoanAllowanceAt(r.amount, obbba, ctx.taxData.taxYear);
+  if (clAllow.phasedOut && !clAllow.fullyPhasedOut) {
     live.push(`the partially phased-out new-vehicle loan interest deduction`);
   }
   const mipP = obbba.federal.mip.phaseout;
@@ -6831,17 +6855,24 @@ function caLadderFaq(r, rungs, taxData, payrollState, obbba, secure2) {
   {
     const cl = obbba.federal.carLoan;
     if (r.amount >= cl.phaseoutStartMagi.single) {
+      const clAllow = carLoanAllowanceAt(r.amount, obbba, taxData.taxYear);
       faq.push({
         q: `Can I still deduct new-car loan interest on ${S}?`,
-        a: r.amount >= cl.fullPhaseoutMagi.single
+        a: (r.amount >= cl.fullPhaseoutMagi.single || clAllow.fullyPhasedOut)
           ? `No. The OBBBA deduction of up to ${usd0(cl.interestCap)} on qualifying new-vehicle loan ` +
             `interest phases out between ${usd0(cl.phaseoutStartMagi.single)} and ` +
-            `${usd0(cl.fullPhaseoutMagi.single)} of modified AGI for a single filer, and ${S} is at or ` +
-            `above the end of that range.`
-          : `Partly. The ${usd0(cl.interestCap)} allowance drops by ` +
-            `${usd0(cl.phaseoutReductionPer1000)} per ${usd0(1000)} of modified AGI above ` +
-            `${usd0(cl.phaseoutStartMagi.single)}, so at ${S} some of it survives and it reaches zero at ` +
-            `${usd0(cl.fullPhaseoutMagi.single)}.`,
+            `${usd0(cl.fullPhaseoutMagi.single)} of modified AGI for a single filer, and none of it is ` +
+            `left at ${S}.`
+          : clAllow.phasedOut
+            ? `Partly. The ${usd0(cl.interestCap)} allowance drops by ` +
+              `${usd0(cl.phaseoutReductionPer1000)} for every ${usd0(1000)}, or part of ${usd0(1000)}, of ` +
+              `modified AGI above ${usd0(cl.phaseoutStartMagi.single)}, so at ${S} up to ` +
+              `${usd0(clAllow.deduction)} of it survives, and it is gone by ` +
+              `${usd0(cl.fullPhaseoutMagi.single)}.`
+            : `Yes, all of it. The ${usd0(cl.interestCap)} allowance only shrinks above ` +
+              `${usd0(cl.phaseoutStartMagi.single)} of modified AGI: by ` +
+              `${usd0(cl.phaseoutReductionPer1000)} for every ${usd0(1000)} over that line, counting any ` +
+              `part of ${usd0(1000)} as a whole one, and it is gone by ${usd0(cl.fullPhaseoutMagi.single)}.`,
       });
     }
   }
