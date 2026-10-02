@@ -306,5 +306,74 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
   }
 }
 
+// --- 10. ALABAMA'S RAISE, BOTH WAYS AT ONCE (added 2026-10-02). Alabama's standard deduction
+// steps down with income (Ala. Code 40-18-15(b)(4): $3,000 less $25 for each $500 over $25,500,
+// to a $2,500 floor at $35,500) and it subtracts all of the federal income tax (40-18-15(c)). A
+// raise therefore adds the lost deduction to taxable income and takes the extra federal tax off
+// it. The pages explained each in its own paragraph as if the other did not exist, and on $30,000
+// they said both "rises faster than the bracket rates alone would suggest" and "takes a little
+// less of the raise than its band rate suggests". The net, by hand, is less:
+//   federal 2026 single: 30,000 -> 13,900 -> 1,240 + 12% x 1,500 = 1,420
+//                        40,000 -> 23,900 -> 1,240 + 12% x 11,500 = 2,620
+//                        50,000 -> 3,820;  70,000 -> 53,900 -> 5,800 + 22% x 3,500 = 6,570
+//   Alabama deduction:   30,000 -> 9 steps of $25 over 25,500 -> 2,775;  40,000 and up -> 2,500
+//   Alabama taxable:     30,000 - 2,775 - 1,420 = 25,805;  40,000 - 2,500 - 2,620 = 34,880
+//                        50,000 - 2,500 - 3,820 = 43,680;  70,000 - 2,500 - 6,570 = 60,930
+//   Alabama tax, 5% x T - 40 above $3,000: 1,250.25;  1,704.00;  2,144.00;  3,006.50
+//   $30,000 -> $40,000: deduction -275, subtraction +1,200, taxable +9,075, tax +453.75 (not 500.00)
+//   $30,000 -> $50,000: subtraction +2,400, taxable +17,875
+//   $50,000 -> $70,000: subtraction +2,750, taxable +17,250, tax +862.50 (not 1,000.00)
+{
+  const AL = taxData.states.alabama;
+  const parts = (salary) => stateTaxableIncome(salary, 'single', AL, 0,
+    ficaTax(salary, 'single', taxData.federal).total, federalIncomeTax(salary, 'single', taxData.federal));
+  const alTax = (salary) => computePaycheck({ wage: { type: 'salary', amount: salary }, filingStatus: 'single',
+    payFrequency: 'annual', stateSlug: 'alabama' }, taxData).annual.state;
+  eq('alabama $30k deduction', parts(30000).standardDeduction, 2775, 0);
+  eq('alabama $40k deduction is the floor', parts(40000).standardDeduction, 2500, 0);
+  eq('alabama $30k subtraction', parts(30000).federalTaxSubtraction, 1420, 0);
+  eq('alabama $40k subtraction', parts(40000).federalTaxSubtraction, 2620, 0);
+  eq('alabama $70k subtraction', parts(70000).federalTaxSubtraction, 6570, 0);
+  eq('alabama $30k taxable', parts(30000).taxable, 25805, 0);
+  eq('alabama $40k taxable', parts(40000).taxable, 34880, 0);
+  eq('alabama $50k taxable', parts(50000).taxable, 43680, 0);
+  eq('alabama $70k taxable', parts(70000).taxable, 60930, 0);
+  eq('alabama tax on the $30k -> $40k raise', alTax(40000) - alTax(30000), 453.75, 0.005);
+  eq('alabama tax on the $50k -> $70k raise', alTax(70000) - alTax(50000), 862.50, 0.005);
+  is('alabama: the net of both effects is less than the band rate', alTax(40000) - alTax(30000) < 0.05 * 10000, true);
+
+  const page = (amount) => {
+    try { return readFileSync(join(__dirname, '..', 'dist', `alabama-take-home-pay-${amount}`, 'index.html'), 'utf8'); }
+    catch { return null; }
+  };
+  const p30 = page(30000), p50 = page(50000);
+  if (p30 && p50) {
+    is('$30k page measures the raise to $40,000 with both effects',
+      p30.includes("On the raise to $40,000 it grows by $1,200, while Alabama's standard deduction falls by $275, " +
+        'so Alabama taxes $9,075 of the $10,000 raise and takes $453.75 of it, not the $500.00 its 5% rate on the ' +
+        'whole raise would be.'), true);
+    is('$30k deduction paragraph names the subtraction that outweighs it',
+      p30.includes('going up to $40,000 takes another $275 of it away. But Alabama also lets you subtract federal ' +
+        'income tax, and over that raise the amount subtracted grows by $1,200, which more than makes up for it: ' +
+        'Alabama taxable income rises by $9,075 on $10,000 of extra pay, less than the raise itself.'), true);
+    is('$30k page no longer says the share rises faster than the bracket rates',
+      p30.includes('rises faster than the bracket rates alone would suggest'), false);
+    is('$30k page no longer says "a little less of the raise"',
+      p30.includes('takes a little less of the raise than its band rate suggests'), false);
+    is('$50k deduction paragraph measures the raise from the bottom rung',
+      p50.includes('so the $20,000 raise from there to $50,000 took $275 of deduction away, a cost no bracket ' +
+        'table shows. Alabama also lets you subtract federal income tax, and over the same raise the amount ' +
+        'subtracted grew by $2,400, which more than makes up for it: Alabama taxable income rose by $17,875 on ' +
+        '$20,000 of extra pay, less than the raise itself.'), true);
+    is('$50k page measures the raise to $70,000',
+      p50.includes('On the raise to $70,000 it grows by $2,750, so Alabama taxes $17,250 of the $20,000 raise and ' +
+        'takes $862.50 of it, not the $1,000.00 its 5% rate on the whole raise would be.'), true);
+    is('$50k page no longer calls the lost deduction the whole story',
+      p50.includes('the gap between those two is a real cost of the raise that no bracket table shows'), false);
+    is('$50k worth clause names the subtraction',
+      p50.includes('The subtraction is worth $191.00 of Alabama income tax at this salary'), true);
+  }
+}
+
 console.log(`\nSalary-ladder rungs: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

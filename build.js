@@ -5057,6 +5057,41 @@ function raiseGapClause(g, NAME) {
   return `because the federal tax ${NAME} lets you subtract changes with your pay`;
 }
 
+// THE RAISE BETWEEN TWO RUNGS, ON THE STATE RETURN, read off the engine's own figures for
+// both rungs. Alabama moves its taxable income two ways on a raise, in opposite
+// directions: its standard deduction steps down with income (Ala. Code 40-18-15(b)(4), $25
+// for every $500 over $25,500 until the $2,500 floor at $35,500), which adds to taxable
+// income, and it subtracts all of the federal income tax (40-18-15(c)), which grows with
+// pay and takes away from it. The pages used to explain each one in its own paragraph as if
+// the other did not exist ("rises faster than the bracket rates alone would suggest" two
+// paragraphs from "takes a little less of the raise than its band rate suggests", both on
+// Alabama $30,000, where the net is less). This measures the raise once: the deduction
+// lost, the subtraction gained, the taxable income and the tax it actually adds. `rate` is
+// the band rate only when the whole raise is charged at it (the same marginal rate at both
+// rungs and the tax difference equal to that rate on the taxable difference to the cent),
+// so a sentence comparing the two is never made across a band edge or a flat add-back.
+function stateRaiseFacts(from, to) {
+  const taxable = to.st.taxable - from.st.taxable;
+  const tax = to.a.state - from.a.state;
+  const rFrom = stateMarginalRate(from);
+  const rTo = stateMarginalRate(to);
+  const rate = rFrom != null && rFrom === rTo && Math.abs(tax - rFrom * taxable) < 0.01 ? rFrom : null;
+  return {
+    pay: to.amount - from.amount,
+    sdLost: from.stDedAfterPhaseout - to.stDedAfterPhaseout,
+    subGrew: to.stFedSub - from.stFedSub,
+    taxable,
+    tax,
+    rate,
+  };
+}
+// "less than", "more than" or "the same as" the raise itself, from the measured figures.
+function raiseTaxableCompare(g) {
+  if (g.taxable < g.pay - 0.5) return 'less than';
+  if (g.taxable > g.pay + 0.5) return 'more than';
+  return 'the same as';
+}
+
 // A block: { key, html }. `key` feeds the ordering hash and nothing else.
 function caProseBlocks(r, rungs, ctx) {
   const { taxData, obbba, secure2 } = ctx;
@@ -5596,6 +5631,37 @@ function caProseBlocks(r, rungs, ctx) {
     const goneAt = (cfg.over != null && cfg.denominator != null) ? cfg.over + cfg.denominator : null;
     const lost = r.stDedPublished - r.stDedAfterPhaseout;
     const bottom = rungs[0];
+    // A state that also subtracts federal tax (Alabama) cannot be described by the shrinking
+    // deduction alone: over the same raise the subtraction grows, and by more. Both are
+    // measured between two rungs by stateRaiseFacts(): from the bottom of the ladder to this
+    // rung, or, on the bottom rung itself, from here to the next one.
+    const sdPhaseWithSubtraction = () => {
+      const atBottom = r.amount === bottom.amount;
+      const from = atBottom ? r : bottom;
+      const to = atBottom ? next : r;
+      if (!to) return '';
+      const g = stateRaiseFacts(from, to);
+      if (!atBottom && g.sdLost <= 0.5) return '';
+      const offset = g.subGrew > g.sdLost + 0.5
+        ? 'which more than makes up for it'
+        : (g.subGrew < g.sdLost - 0.5 ? 'which does not make up for it' : 'which cancels it');
+      const lead = atBottom
+        ? (g.sdLost > 0.5
+          ? `On its own that makes a raise cost more than the bracket rates suggest: going up to ` +
+            `${usd0(to.amount)} takes another ${usd0(g.sdLost)} of it away. `
+          : '')
+        : `At the bottom of this ladder, ${usd0(bottom.amount)}, the same filer keeps ` +
+          `${usd0(bottom.stDedAfterPhaseout)} of it, so the ${usd0(g.pay)} raise from there to ${S} took ` +
+          `${usd0(g.sdLost)} of deduction away, a cost no bracket table shows. `;
+      return lead +
+        `${atBottom ? 'But ' : ''}${NAME} also lets you subtract federal income tax, and over ` +
+        `${atBottom ? 'that' : 'the same'} raise the amount subtracted ${atBottom ? 'grows' : 'grew'} by ` +
+        `${usd0(g.subGrew)}` +
+        (g.sdLost > 0.5 ? `, ${offset}` : '') +
+        `: ${NAME} taxable income ${atBottom ? 'rises' : 'rose'} by ${usd0(g.taxable)} on ${usd0(g.pay)} of ` +
+        `extra pay, ` +
+        `${raiseTaxableCompare(g)} the raise itself.`;
+    };
     push('statededuction',
       `<h3>${frame('sdedH', [
         `${NAME}'s deduction is smaller at ${S} than the table says`,
@@ -5614,7 +5680,9 @@ function caProseBlocks(r, rungs, ctx) {
       `page is ${usd0(r.stDedAfterPhaseout)}` +
       (r.stDedAfterPhaseout <= 0 ? `, which is to say none of it survives` : '') +
       `. ` +
-      (bottom.stDedAfterPhaseout > r.stDedAfterPhaseout + 0.5
+      (st.tax.federalTaxSubtraction
+        ? sdPhaseWithSubtraction()
+        : bottom.stDedAfterPhaseout > r.stDedAfterPhaseout + 0.5
         ? `At the bottom of this ladder, ${usd0(bottom.amount)}, the same filer keeps ` +
           `${usd0(bottom.stDedAfterPhaseout)} of it — the gap between those two is a real cost of the ` +
           `raise that no bracket table shows.`
@@ -5694,12 +5762,32 @@ function caProseBlocks(r, rungs, ctx) {
               `${usd0(f.capStepsFrom)}`)) +
         `.`;
     } else {
+      // WHAT THAT DOES TO A RAISE, MEASURED. The neighbouring rung's figures are the engine's
+      // own, so the sentence names the raise, how much the subtraction grows over it, any
+      // standard deduction it takes away (Alabama's steps down until $35,500), and the tax the
+      // raise actually adds. The top rung reads the raise into it instead.
+      const up = next ? stateRaiseFacts(r, next) : (prev ? stateRaiseFacts(prev, r) : null);
+      const raiseWhat = !up ? '' : (next
+        ? ` On the raise to ${usd0(next.amount)} it grows by ${usd0(up.subGrew)}` +
+          (up.sdLost > 0.5 ? `, while ${NAME}'s standard deduction falls by ${usd0(up.sdLost)}` : '') +
+          `, so ${NAME} taxes ${usd0(up.taxable)} of the ${usd0(up.pay)} raise and takes ` +
+          `${usdCents(up.tax)} of it` +
+          (up.rate != null
+            ? `, not the ${usdCents(up.rate * up.pay)} its ${pctStr(up.rate)} rate on the whole raise would be.`
+            : '.')
+        : ` On the raise from ${usd0(prev.amount)} to ${S} it grew by ${usd0(up.subGrew)}` +
+          (up.sdLost > 0.5 ? `, while ${NAME}'s standard deduction fell by ${usd0(up.sdLost)}` : '') +
+          `, so ${NAME} taxed ${usd0(up.taxable)} of the ${usd0(up.pay)} raise and took ` +
+          `${usdCents(up.tax)} of it` +
+          (up.rate != null
+            ? `, not the ${usdCents(up.rate * up.pay)} its ${pctStr(up.rate)} rate on the whole raise would be.`
+            : '.'));
       what = share == null
         ? `At ${S} the federal income tax on this page is ${usd0(fedOwed)}, and all of it comes off ${NAME} ` +
           `taxable income` + (cap != null ? `, because it is under the ${usd0(cap)} limit at this income` : '') +
           `. A raise adds to your federal tax and so to this subtraction` +
-          (cap != null ? `, until it reaches the limit,` : ',') +
-          ` which is why ${NAME} takes a little less of the raise than its band rate suggests.`
+          (cap != null ? `, until it reaches the limit.` : '.') +
+          raiseWhat
         : `At ${S} the share is ${pctStr(share)}, so ${usd0(sub)} of the ${usd0(fedOwed)} federal income tax ` +
           `on this page comes off ${NAME} taxable income.`;
     }
@@ -5711,7 +5799,7 @@ function caProseBlocks(r, rungs, ctx) {
       ])}</h3>` +
       `<p>${NAME} lets you subtract ${fedSubRule(st)}. ${what}` +
       (worth > 0.005
-        ? ` That is worth ${usdCents(worth)} of ${NAME} income tax at this salary, and it is already inside ` +
+        ? ` The subtraction is worth ${usdCents(worth)} of ${NAME} income tax at this salary, and it is already inside ` +
           `the ${usdCents(r.a.state)} on this page.`
         : '') +
       (worth > 0.005 && !cfg.inWithholdingFormula
