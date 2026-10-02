@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>2027 COLA and Tax Press Kit: Charts, Data and Method</title>
+<meta name="description" content="Free charts and data for reporters on the 2027 Social Security COLA, the 2027 federal tax brackets and take-home pay in every state, with a plain-English note on what is official and what is not.">
+<link rel="canonical" href="{{SITE_URL}}/press/2027/">
+<meta name="robots" content="{{ROBOTS}}">
+<meta property="og:title" content="2027 COLA and tax press kit: charts, data and method">
+<meta property="og:description" content="Ready-to-use charts and a data file on the 2027 Social Security COLA, the 2027 tax brackets and take-home pay by state, with every source named.">
+<meta property="og:type" content="article">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Page-scoped only; styles.css is shared by every page on the site. */
+  .answer-first { font-size:1.1rem; font-weight:600; line-height:1.5; margin:0 0 10px; color:var(--text); }
+  .pk-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .pk-tag { display:inline-block; font-size:.74rem; font-weight:700; letter-spacing:.08em; padding:2px 8px;
+    border-radius:5px; border:1.5px solid currentColor; white-space:nowrap; }
+  .pk-chart { margin:28px 0 34px; }
+  .pk-chart figure { margin:10px 0 6px; }
+  .pk-chart img { display:block; width:100%; height:auto; border:1px solid var(--border); border-radius:var(--radius);
+    background:#fff; }
+  .pk-dl { font-size:.9rem; margin:6px 0 10px; }
+  .pk-table td.num, .pk-table th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .pk-note { font-size:.85rem; color:var(--muted); }
+  .pk-cite { padding:12px 16px; border-left:4px solid var(--brand); background:var(--brand-soft);
+    border-radius:0 var(--radius) var(--radius) 0; font-size:.95rem; }
+  .pk-chart details > summary { cursor:pointer; font-weight:600; }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>2027 Social Security and tax figures: charts and data for reporters</h1>
+    <p class="answer-first">{{ANSWER}}</p>
+
+    <section class="prose" id="status">
+      <h2>What is official right now</h2>
+      <div class="pk-wrap">
+        <table class="pk-table pk-status">
+          <caption class="sr-only">Which figures in this press kit are official, estimated or projected</caption>
+          <thead><tr><th scope="col">Figure</th><th scope="col">Status</th><th scope="col">Based on</th></tr></thead>
+          <tbody>{{STATUS_ROWS}}</tbody>
+        </table>
+      </div>
+      <p>Figures last updated from data as of {{DATA_AS_OF}}. When an official figure is published, we put it in, redraw every chart and update this page.</p>
+    </section>
+
+    <section class="prose" id="use">
+      <h2>Free to use, with credit</h2>
+      <p>You can publish these charts and numbers in print, online or on air. Please credit <strong>Tools Berry</strong> and, online, link to <a href="{{SITE_URL}}/">tools-berry.com</a>. Each chart already carries its source line and our name, so it can be used as it is.</p>
+      <p><strong>Need a number we have not charted?</strong> A different monthly payment, salary, state or filing status, or a household example for your story: email <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a> and we will run it for you, free.</p>
+    </section>
+
+    <section class="prose" id="charts">
+      <h2>The charts</h2>
+      <p>Each chart is a PNG at least 2,400 pixels wide, ready for print or the web, plus an SVG that scales to any size. Open the table under a chart to see every number it shows.</p>
+      {{CHARTS}}
+    </section>
+
+    <section class="prose" id="data">
+      <h2>The data file</h2>
+      <p><a href="{{CSV_FILE}}" download><strong>Download the data (CSV)</strong></a>. It opens in Excel, Google Sheets or Numbers and holds every number behind all three charts, one number per row, plus the federal tax inputs (standard deduction and the income level where each tax rate starts).</p>
+      <ul>
+        <li><strong>chart</strong> says which chart the row belongs to, and <strong>figure_status</strong> says whether the number is OFFICIAL, an ESTIMATE, PROJECTED, or computed under 2026 rules.</li>
+        <li><strong>input_amount_usd</strong> is the starting amount (a monthly Social Security payment, annual wages or an annual salary), and <strong>input_basis</strong> says which.</li>
+        <li><strong>measure</strong> names the result and <strong>value_usd</strong> gives it, in dollars. <strong>cola_percent</strong> is filled in on the COLA rows.</li>
+        <li><strong>source</strong> names where each number comes from. The last line of the file is the citation; delete it if you load the file into analysis software.</li>
+      </ul>
+    </section>
+
+    <section class="prose" id="method">
+      <h2>Where each number comes from</h2>
+      <h3>Social Security COLA</h3>
+      {{SOURCES_COLA}}
+      <h3>Federal income tax, 2027 compared with 2026</h3>
+      {{SOURCES_FED}}
+      <h3>Take-home pay by state</h3>
+      {{SOURCES_TAKE_HOME}}
+    </section>
+
+    <section class="prose" id="october-2025">
+      <h2>The missing month: October 2025</h2>
+      <p>The federal tax brackets for 2027 are adjusted for inflation using the average of a government price index (the chained consumer price index, C-CPI-U) over the 12 months that end in August 2026. One of those 12 months does not exist. During the federal government shutdown in the fall of 2025, the Bureau of Labor Statistics did not collect prices for October 2025, so no October value was ever published, and it will not be.</p>
+      <p>The IRS has not said how it will handle the gap. Anyone projecting the 2027 brackets had to make some assumption about that month, and the official figures may differ from the projections for that reason. Our <a href="/2027-tax-brackets/#gap">2027 tax brackets page</a> shows every monthly value and which one is missing.</p>
+      <p>The Social Security COLA is not affected. It uses a different index (CPI-W) for July, August and September only, and every one of those months was collected.</p>
+    </section>
+
+    <section class="prose" id="cite">
+      <h2>How to cite</h2>
+      <p class="pk-cite">{{CITATION}}</p>
+      <p>For a single chart, the source line printed on the chart is enough. Please keep the ESTIMATE or PROJECTED label with any figure that carries one.</p>
+    </section>
+
+    <p class="note">General information, not tax, benefits or financial advice. Individual results depend on income, deductions, credits and where you live.</p>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}}, free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a> · <a href="/embed/">Embed our calculators</a> · <a href="/corrections/">Corrections log</a></span>
+  </div>
+</footer>
+</body>
+</html>
