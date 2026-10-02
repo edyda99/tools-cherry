@@ -333,7 +333,9 @@ export function buildWamParts(deps) {
         + (obNote && !noteSuppressed
           ? `<p class="wam-detail-h">The detail on this one</p><p class="wam-verbatim">${esc(obNote)}</p>`
           : '')
-        + asOf(OB_DATE)
+        // A row re-checked on its own (checkedOn) says so; the file-wide date
+        // would understate it.
+        + asOf(ob.checkedOn ? humanDay(ob.checkedOn) : OB_DATE)
         + src(obSrc, 'Source')
         + btn(axis === 'tips' ? '/tips-tax-calculator/' : '/overtime-tax-calculator/', 'Do the math')
         + `<p class="wam-note"><a href="${axis === 'tips' ? '/data/tips-tax-by-state/' : '/data/overtime-tax-by-state/'}">See every state side by side</a>.</p>`
