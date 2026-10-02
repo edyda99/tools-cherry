@@ -4801,7 +4801,8 @@ function stateNoDeductionReason(r) {
 // The smallest whole-dollar raise that lifts this rung's state taxable income above `edge`,
 // computed by the engine at every candidate salary: its own FICA, its own federal income tax,
 // its own stateTaxableIncome(). Single filer, no pre-tax money, exactly as caRung() runs it.
-// Used only where the state subtracts federal tax, see raiseToEdge in caProseBlocks.
+// Used only where the state subtracts federal tax or phases its standard deduction down with
+// income, see raiseToEdge in caProseBlocks.
 function salaryRaiseToTaxable(r, edge, taxData) {
   const fed = taxData.federal;
   const taxableAt = (salary) => stateTaxableIncome(salary, 'single', r.state, 0,
@@ -4824,10 +4825,28 @@ function salaryRaiseToTaxable(r, edge, taxData) {
 // $125,000, and every Oregon rung reaches its next band edge past that point, so from $70,000
 // up the subtraction at the edge is SMALLER than today's and the raise is smaller than the gap.
 // Missouri's share falls in steps the same way. The step that did it is named from the data.
+//
+// WISCONSIN AND SOUTH CAROLINA HAVE THE SAME GAP FOR THE OPPOSITE REASON. Neither subtracts
+// federal tax, but each one's standard deduction shrinks as income rises (Wis. Stat.
+// 71.05(22)(dp); S.C. Code 12-6-1140(15)), so a raise adds to taxable income twice, once as
+// pay and again as the deduction it takes away, and the raise that reaches the next edge is
+// SMALLER than the gap. Their pages used to print the gap as the raise ("a raise of roughly
+// that size", "a raise of $12,325 or more" on Wisconsin $50,000, where $11,005 does it).
+// Read off the same engine: the deduction at this salary and at the raised one.
 function raiseGapFacts(r, raise, taxData) {
   const cfg = r.state.tax.federalTaxSubtraction;
   const fed = taxData.federal;
   const at = r.amount + raise;
+  if (!cfg) {
+    const ph = (r.state.tax.standardDeductionPhaseout && r.state.tax.standardDeductionPhaseout.single) || {};
+    const sdAt = stateTaxableIncome(at, 'single', r.state, 0, ficaTax(at, 'single', fed).total,
+      federalIncomeTax(at, 'single', fed)).standardDeduction;
+    return {
+      kind: 'sdphase', at, sdNow: r.stDedAfterPhaseout, sdAt,
+      over: ph.over != null ? ph.over : null,
+      goneAt: (ph.over != null && ph.denominator != null) ? ph.over + ph.denominator : null,
+    };
+  }
   const subAt = stateTaxableIncome(at, 'single', r.state, 0, ficaTax(at, 'single', fed).total,
     federalIncomeTax(at, 'single', fed)).federalTaxSubtraction;
   const subNow = r.stFedSub;
@@ -4851,7 +4870,21 @@ function raiseGapFacts(r, raise, taxData) {
 
 // The two wordings of that reason: a full sentence for the paragraph that walks the
 // schedule, and a short clause for the "near the top of the band" note.
-function raiseGapSentence(g, NAME, S, raise) {
+// How the shrinking deduction reads at this salary: already shrinking, or about to start.
+function sdPhasePhrase(g, NAME, amount) {
+  if (g.over == null) return `${NAME}'s standard deduction shrinks as income rises`;
+  return amount >= g.over
+    ? `${NAME}'s standard deduction shrinks as income rises past ${usd0(g.over)}` +
+      (g.goneAt != null ? ` until it is gone at ${usd0(g.goneAt)}` : '')
+    : `${NAME}'s standard deduction starts to shrink once income passes ${usd0(g.over)}`;
+}
+function raiseGapSentence(g, NAME, S, raise, amount) {
+  if (g.kind === 'sdphase') {
+    return `but a raise of about ${usd0(raise)} gets you there. ${sdPhasePhrase(g, NAME, amount)}, so ` +
+      `a raise adds to your ${NAME} taxable income twice: once as pay, and again as the deduction it ` +
+      `takes away. The deduction is ${usd0(g.sdNow)} at ${S} and ${usd0(Math.max(0, g.sdAt))} at ` +
+      `${usd0(g.at)} of pay.`;
+  }
   if (g.kind === 'limit') {
     return `but a raise of about ${usd0(raise)} gets you there. At ${usd0(g.at)} of pay your income is past ` +
       `${usd0(g.f.capStepsFrom)}, where ${NAME}'s limit on the federal tax you can subtract starts to step ` +
@@ -4872,6 +4905,10 @@ function raiseGapSentence(g, NAME, S, raise) {
     `you subtract is ${usd0(g.subAt)} at ${usd0(g.at)} of pay against ${usd0(g.subNow)} at ${S}.`;
 }
 function raiseGapClause(g, NAME) {
+  if (g.kind === 'sdphase') {
+    return `because ${NAME}'s standard deduction shrinks as your pay rises, so each dollar of a raise ` +
+      `adds more than a dollar to your ${NAME} taxable income`;
+  }
   if (g.kind === 'limit') {
     return `because past ${usd0(g.f.capStepsFrom)} of income ${NAME}'s limit on the federal tax you can ` +
       `subtract steps down`;
@@ -5054,8 +5091,13 @@ function caProseBlocks(r, rungs, ctx) {
     // the taxable-income gap it has always printed. The REASON printed beside it is measured
     // too (raiseGapFacts): which way the subtraction moved between here and the edge, and
     // which step moved it.
-    // (Wisconsin's and South Carolina's phase-downs have the same gap and are not changed here.)
-    const raiseToEdge = (nextEdge == null || !st.tax.federalTaxSubtraction)
+    // Wisconsin's and South Carolina's standard deductions shrink with income, which opens the
+    // same gap from the other side (see raiseGapFacts), so they are measured the same way, but
+    // only while there is still a deduction left to shrink: once it is gone (Wisconsin from
+    // $136,453, South Carolina from $95,000) a raise moves taxable income dollar for dollar.
+    const deductionStillShrinks = !!st.tax.standardDeductionPhaseout && r.stDedAfterPhaseout > 0;
+    const raiseToEdge = (nextEdge == null ||
+      !(st.tax.federalTaxSubtraction || deductionStillShrinks))
       ? distance
       : salaryRaiseToTaxable(r, nextEdge, taxData);
     const raiseDiffers = distance != null && Math.abs(raiseToEdge - distance) >= 1;
@@ -5288,7 +5330,7 @@ function caProseBlocks(r, rungs, ctx) {
           : nextRateHigher
           ? (raiseDiffers
             ? `The next band up begins ${usd0(distance)} of taxable income further on, ` +
-              `${raiseGapSentence(raiseGap, NAME, S, raiseToEdge)} That is where your ${NAME} rate next ` +
+              `${raiseGapSentence(raiseGap, NAME, S, raiseToEdge, r.amount)} That is where your ${NAME} rate next ` +
               `moves. `
             : `The next band up begins ${usd0(distance)} further on, so a raise of roughly that size is where ` +
               `your ${NAME} rate next moves. `)

@@ -205,5 +205,46 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
   eq('oregon taxable at $133,161 is one dollar into it', orTaxable(133161), 125001);
 }
 
+// --- 8. THE RAISE TO THE NEXT BAND WHERE THE DEDUCTION SHRINKS (added 2026-10-02). Wisconsin
+// and South Carolina take their standard deduction down as income rises, so a raise adds to
+// taxable income twice (once as pay, again as the deduction it removes) and the raise that
+// reaches the next band is SMALLER than the gap in taxable income. The pages used to print the
+// gap as the raise. Each deduction is written out by hand from its statute.
+{
+  const taxableAt = (slug, salary) => stateTaxableIncome(salary, 'single', taxData.states[slug], 0,
+    ficaTax(salary, 'single', taxData.federal).total, federalIncomeTax(salary, 'single', taxData.federal)).taxable;
+  // Wisconsin, Wis. Stat. 71.05(22)(dp): 13,960 less 12% of income over 20,120, whole dollars.
+  // The $50,000 page: deduction 13,960 - 3,585 = 10,375, taxable 39,625, so the 5.3% band at
+  // 51,950 is 12,325 of taxable income away. The page says a raise of $11,005 gets there:
+  //   at 61,004: 12% x 40,884 = 4,906.08 -> 4,906 off, deduction 9,054, taxable 51,950 (on the edge)
+  //   at 61,005: 12% x 40,885 = 4,906.20 -> 4,906 off, deduction 9,054, taxable 51,951 (one dollar in)
+  // and the old $12,325 raise (pay 62,325) is already 1,479 past it: 62,325 - (13,960 - 5,064) = 53,429.
+  eq('wisconsin $50k taxable', taxableAt('wisconsin', 50000), 39625);
+  eq('wisconsin taxable at $61,004 sits on the 5.3% edge', taxableAt('wisconsin', 61004), 51950);
+  eq('wisconsin taxable at $61,005 is one dollar into it', taxableAt('wisconsin', 61005), 51951);
+  eq('wisconsin: the gap as a raise overshoots the edge', taxableAt('wisconsin', 62325), 53429);
+  // South Carolina, S.C. Code 12-6-1140(15): 15,000 less 15,000 x (income over 40,000) / 55,000,
+  // the reduction rounded down to $10. The $40,000 page: taxable 25,000, the 5.21% band at 30,000
+  // is 5,000 away, and the page says a raise of $3,931 gets there:
+  //   at 43,930: 15,000 x 3,930 / 55,000 = 1,071.8 -> 1,070 off, taxable 30,000 (on the edge)
+  //   at 43,931: 15,000 x 3,931 / 55,000 = 1,072.1 -> 1,070 off, taxable 30,001 (one dollar in)
+  // The $30,000 page needs $10,000 more to reach $40,000 first, so its raise is $13,931.
+  eq('south carolina $40k taxable', taxableAt('south-carolina', 40000), 25000);
+  eq('south carolina taxable at $43,930 sits on the 5.21% edge', taxableAt('south-carolina', 43930), 30000);
+  eq('south carolina taxable at $43,931 is one dollar into it', taxableAt('south-carolina', 43931), 30001);
+  // And the built pages print those raises, not the gaps.
+  const page = (slug, amount) => {
+    try { return readFileSync(join(__dirname, '..', 'dist', `${slug}-take-home-pay-${amount}`, 'index.html'), 'utf8'); }
+    catch { return null; }
+  };
+  const wi50 = page('wisconsin', 50000), sc40 = page('south-carolina', 40000), sc30 = page('south-carolina', 30000);
+  if (wi50 && sc40 && sc30) {
+    is('wisconsin $50k page prints the $11,005 raise', wi50.includes('a raise of about $11,005 gets you there'), true);
+    is('wisconsin $50k page no longer prints the gap as the raise', wi50.includes('A raise of $12,325'), false);
+    is('south carolina $40k page prints the $3,931 raise', sc40.includes('a raise of about $3,931 gets you there'), true);
+    is('south carolina $30k page prints the $13,931 raise', sc30.includes('a raise of about $13,931 gets you there'), true);
+  }
+}
+
 console.log(`\nSalary-ladder rungs: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
