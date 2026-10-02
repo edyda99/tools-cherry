@@ -211,24 +211,33 @@ function renderResult({ state: s, result: r }) {
   // goes on line 1a" stop being the same number, and a sentence naming only one
   // of them is how a screen ends up reading "$25,000, the tips you expect" over
   // $31,000 of tips. Each sentence here names both. Asked of the DEDUCTION
-  // (eligible above the allowed cap), never of "did any tax come back": a figure
+  // (eligible above the deduction), never of "did any tax come back": a figure
   // can be capped all the way to nothing and still show a $0 headline over a row
   // claiming the whole amount was untaxed.
+  //
+  // The yearly limit is taken first and the income phase-out comes off what the
+  // limit left (Schedule 1-A lines 7 to 13 for tips, 15 to 21 for overtime), so
+  // either cut, or both, can be the reason, and the sentence names each one.
   let capFlags = '';
-  const tipsBinds = showTips && s.tips > 0 && s.tips > r.tips.allowedCap;
-  const otBinds = showOt && premium > 0 && premium > r.overtime.allowedCap;
+  const tipsBinds = showTips && s.tips > 0 && s.tips > r.tips.deduction;
+  const otBinds = showOt && premium > 0 && premium > r.overtime.deduction;
+  const limitReason = (res, entered, capText) => {
+    const capped = entered > res.statutoryCap;
+    const off = Math.min(res.reduction, res.cappedAmount);
+    if (capped && off > 0) return `${capText}. Your income is also above the phase-out line, which takes ${usd(off)} off what is left`;
+    if (capped) return capText;
+    return `Your income is above the phase-out line, which takes ${usd(off)} off it`;
+  };
   if (tipsBinds && !r.tips.fullyPhasedOut) {
     capFlags += `<p class="otw-flag">Heads up: ${usd(tipsR)} of your ${usd(s.tips)} in tips goes on line 1a. ` +
-      (r.tips.phasedOut
-        ? `Your income is above the phase-out line, so your tips cap drops to ${usd(r.tips.allowedCap)}`
-        : `The tips deduction stops at ${usd(r.tips.statutoryCap)} a year, and it is one limit per return, never doubled for a couple`) +
+      limitReason(r.tips, s.tips,
+        `The tips deduction stops at ${usd(r.tips.statutoryCap)} a year, and it is one limit per return, never doubled for a couple`) +
       `, and your employer keeps withholding on the rest as usual.</p>`;
   }
   if (otBinds && !r.overtime.fullyPhasedOut) {
     capFlags += `<p class="otw-flag">Heads up: ${usd(otR)} of your ${usd(premium)} overtime premium goes on line 1b. ` +
-      (r.overtime.phasedOut
-        ? `Your income is above the phase-out line, so your overtime cap drops to ${usd(r.overtime.allowedCap)}`
-        : `The overtime deduction stops at ${usd(r.overtime.statutoryCap)} a year for how you file`) +
+      limitReason(r.overtime, premium,
+        `The overtime deduction stops at ${usd(r.overtime.statutoryCap)} a year for how you file`) +
       `, and your employer keeps withholding on the rest as usual.</p>`;
   }
 

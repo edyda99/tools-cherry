@@ -19,36 +19,67 @@ function pick(map, filingStatus) {
 }
 
 /**
- * The allowed deduction after the MAGI phase-out and the eligible-amount cap.
- * Phase-out: the statutory cap is reduced by `reductionPer1000` dollars for each
- * $1,000 (or fraction thereof) by which MAGI exceeds the threshold, never below 0.
- * The deduction can never exceed the actual eligible amount (premium or tips).
+ * The allowed deduction after the eligible-amount cap and the MAGI phase-out,
+ * in the order the statute and Schedule 1-A apply them.
+ *
+ * IRC §224(b)(2)(A) / §225(b)(2)(A) (P.L. 119-21): "The amount allowable as a
+ * deduction under subsection (a) (after application of paragraph (1)) shall be
+ * reduced (but not below zero) by $100 for each $1,000 by which the taxpayer's
+ * modified adjusted gross income exceeds $150,000 ($300,000 in the case of a
+ * joint return)."
+ *
+ * So the CAP comes first and the reduction is subtracted from the CAPPED
+ * AMOUNT, not from the cap (Schedule 1-A 2025, Part II lines 7-13 for tips,
+ * Part III lines 15-21 for overtime):
+ *   line 7 / 15   cappedAmount = min(eligible, cap)
+ *   line 10 / 18  excess       = MAGI - threshold (zero or less: no reduction)
+ *   line 11 / 19  steps        = excess / 1,000, ROUNDED DOWN to a whole number
+ *                 ("decrease the result to the next lower whole number"; the
+ *                 statute says "for each $1,000", with no "or fraction
+ *                 thereof", unlike the car-loan rule below)
+ *   line 12 / 20  reduction    = steps x $100
+ *   line 13 / 21  deduction    = cappedAmount - reduction, never below zero
+ *
+ * Reducing the CAP instead (min(eligible, cap - reduction)) overstates the
+ * deduction for anyone whose amount is under the cap, e.g. $20,000 of tips at
+ * $220,000 single MAGI is $13,000 deductible, not $18,000.
  *
  * @param {object} a
  * @param {number} a.eligibleAmount  overtime PREMIUM, or qualified tips (USD/yr)
  * @param {string} a.filingStatus    'single' | 'married' | 'head_of_household'
  * @param {number} a.magi            modified AGI (≈ total annual income)
  * @param {object} a.params          obbba.federal.overtime or .tips
- * @returns {{allowedCap:number, cappedByPhaseout:number, deduction:number, phasedOut:boolean}}
+ * @returns {{statutoryCap:number, cappedAmount:number, excess:number,
+ *   steps:number, reduction:number, allowedCap:number, deduction:number,
+ *   phasedOut:boolean, fullyPhasedOut:boolean}}
+ *   allowedCap is the most ANY amount could deduct at this income (cap minus
+ *   the reduction). It is a ceiling, not the rule: an amount under the cap
+ *   loses the full reduction too. phasedOut = the income reduction is non-zero.
+ *   fullyPhasedOut = the reduction wipes out the capped amount (with nothing
+ *   entered: it would wipe out even a full-cap claim).
  */
 export function allowedDeduction({ eligibleAmount, filingStatus, magi, params }) {
   const statutoryCap = pick(params.cap, filingStatus);
   const start = pick(params.phaseoutStartMagi, filingStatus);
   const per1000 = params.phaseoutReductionPer1000;
 
-  let allowedCap = statutoryCap;
-  if (magi > start) {
-    const steps = Math.ceil((magi - start) / 1000); // "or fraction thereof"
-    allowedCap = Math.max(0, statutoryCap - steps * per1000);
-  }
   const eligible = Math.max(0, eligibleAmount || 0);
-  const deduction = Math.max(0, Math.min(eligible, allowedCap));
+  const cappedAmount = Math.min(eligible, statutoryCap);           // line 7 / 15
+  const excess = Math.max(0, (magi || 0) - start);                  // line 10 / 18
+  const steps = Math.floor(excess / 1000);                          // line 11 / 19, round DOWN
+  const reduction = steps * per1000;                                // line 12 / 20
+  const deduction = Math.max(0, cappedAmount - reduction);          // line 13 / 21
+  const allowedCap = Math.max(0, statutoryCap - reduction);
   return {
     statutoryCap,
+    cappedAmount,
+    excess,
+    steps,
+    reduction,
     allowedCap,
     deduction,
-    phasedOut: allowedCap < statutoryCap,
-    fullyPhasedOut: allowedCap <= 0
+    phasedOut: reduction > 0,
+    fullyPhasedOut: reduction > 0 && reduction >= (cappedAmount > 0 ? cappedAmount : statutoryCap)
   };
 }
 
@@ -921,9 +952,11 @@ export function estimateW4Adjustment({ income, filingStatus, tips, overtimePremi
     dTips,
     dOt,
     dTotal,
-    // The entered amount exceeded the (possibly phased-down) allowed cap.
-    tipsCapBound: tipsIn > tipsRes.allowedCap && tipsRes.allowedCap > 0,
-    otCapBound: otIn > otRes.allowedCap && otRes.allowedCap > 0,
+    // The entered amount exceeded the yearly cap itself (Schedule 1-A line 7 /
+    // line 15 kept less than was entered). The income phase-out is a separate
+    // cut, taken off what the cap left: see tips.reduction / overtime.reduction.
+    tipsCapBound: tipsIn > tipsRes.statutoryCap,
+    otCapBound: otIn > otRes.statutoryCap,
     tipsPhasedOut: tipsRes.phasedOut,
     otPhasedOut: otRes.phasedOut,
     anyPhasedOut: tipsRes.phasedOut || otRes.phasedOut,
@@ -952,6 +985,8 @@ export function estimate({ kind, eligibleAmount, grossAnnual, filingStatus, fede
     kind,
     eligibleAmount: Math.max(0, eligibleAmount || 0),
     statutoryCap: d.statutoryCap,
+    cappedAmount: d.cappedAmount,
+    reduction: d.reduction,
     allowedCap: d.allowedCap,
     deduction: d.deduction,
     phasedOut: d.phasedOut,

@@ -351,8 +351,16 @@ function render() {
   // Gating this on `benefits` left exactly that screen showing a headline "$0"
   // above a row still asserting the government skipped tax on the whole premium,
   // with nothing on the card reconciling the two numbers.
-  const capBinds = r.eligibleAmount > 0 && r.eligibleAmount > r.allowedCap;
-  const limitWord = r.phasedOut ? 'the income phase-out' : `the ${usd(r.statutoryCap)} yearly limit`;
+  // ORDER: the cap is applied first and the income phase-out comes off what the
+  // cap left (Schedule 1-A line 21 = line 15 minus line 20), so a premium UNDER
+  // the cap still loses the whole income reduction, and either cut, or both,
+  // can bite. The phase-out never "lowers the cap".
+  const capBinds = r.eligibleAmount > 0 && r.eligibleAmount > r.deduction;
+  const overCap = r.eligibleAmount > r.statutoryCap;
+  const phaseOff = Math.min(r.reduction || 0, r.cappedAmount || 0);
+  const limitWord = (overCap && phaseOff > 0)
+    ? `the ${usd(r.statutoryCap)} yearly limit and the income phase-out`
+    : (overCap ? `the ${usd(r.statutoryCap)} yearly limit` : 'the income phase-out');
 
   // ---- The story --------------------------------------------------------
   // ROUNDED ONCE. The labels invite the reader to add the lower rows up to the
@@ -427,13 +435,15 @@ function render() {
   if (capBinds && !r.fullyPhasedOut) {
     capFlag = `<p class="otw-flag">Heads up: ${usd(r.deduction)} of your ${usd(r.eligibleAmount)} overtime premium ` +
       `(the extra half above your normal rate) is deductible. ` +
-      (r.phasedOut
-        ? `Your income is above the phase-out threshold, so your cap drops to ${usd(r.allowedCap)}`
-        : `This deduction stops at ${usd(r.statutoryCap)} a year`) +
+      ((overCap && phaseOff > 0)
+        ? `This deduction stops at ${usd(r.statutoryCap)} a year, and your income is above the phase-out threshold, which takes ${usd(phaseOff)} off what is left`
+        : (overCap
+          ? `This deduction stops at ${usd(r.statutoryCap)} a year`
+          : `Your income is above the phase-out threshold, which takes ${usd(phaseOff)} off it`)) +
       `, and the rest of the premium is taxed as usual.</p>`;
   } else if (benefits && r.phasedOut && !r.fullyPhasedOut) {
-    capFlag = `<p class="otw-flag">Heads up: your income is above the phase-out threshold, so your deductible cap is ` +
-      `lowered to ${usd(r.allowedCap)}.</p>`;
+    capFlag = `<p class="otw-flag">Heads up: your income is above the phase-out threshold, so ` +
+      `${usd(r.reduction)} comes off your deduction.</p>`;
   }
 
   const plain = benefits
@@ -453,7 +463,7 @@ function render() {
   // result panel five cards away that they could neither see nor reach.
   if (step !== RESULT) return;
   const capSpoken = capBinds
-    ? ` Your ${usd(r.eligibleAmount)} premium is limited to ${usd(r.deduction)} deductible ${r.phasedOut ? 'by the income phase-out' : 'by the yearly cap'}.`
+    ? ` Your ${usd(r.eligibleAmount)} premium is limited to ${usd(r.deduction)} deductible ${(overCap && phaseOff > 0) ? 'by the yearly cap and the income phase-out' : (overCap ? 'by the yearly cap' : 'by the income phase-out')}.`
     : '';
   announce(`Federal tax saved on your overtime premium: ${usd(r.taxSaved)}.${capSpoken}` +
     (warning ? ' Check your numbers, there is a warning above the answer.' : ''));

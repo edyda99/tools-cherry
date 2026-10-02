@@ -243,21 +243,29 @@ function render() {
   }
   const warningBox = warning ? `<div class="ot-input-warning">${warning}</div>` : '';
 
-  // The premium is bigger than the law will let this visitor deduct — either the
-  // flat yearly cap or the cap after the income phase-out lowered it. EVERY
-  // sentence that names a premium and a deductible amount keys off this, because
-  // the two numbers stop being the same number the moment it is true, and the
-  // wording that conflated them is what shipped a screen reading "$12,500, the
-  // required extra half" over a $125,000 required extra half.
-  const capBinds = r.eligibleAmount > r.allowedCap;
-  const capReason = r.phasedOut
-    ? `your income lowers the cap to ${usd(r.allowedCap)}`
-    : `this deduction stops at ${usd(r.statutoryCap)} a year`;
-  const capNote = r.eligibleAmount > r.statutoryCap
+  // The premium is bigger than the law will let this visitor deduct: the flat
+  // yearly cap, the income phase-out, or both. EVERY sentence that names a
+  // premium and a deductible amount keys off this, because the two numbers stop
+  // being the same number the moment it is true, and the wording that conflated
+  // them is what shipped a screen reading "$12,500, the required extra half"
+  // over a $125,000 required extra half.
+  // ORDER MATTERS: the cap is applied first and the phase-out is taken off what
+  // the cap left (Schedule 1-A line 21 = line 15 minus line 20), so a premium
+  // UNDER the cap still loses the whole income reduction. The phase-out never
+  // "lowers the cap"; the sentences name the dollars it takes away.
+  const capBinds = r.eligibleAmount > r.deduction;
+  const overCap = r.eligibleAmount > r.statutoryCap;
+  const phaseOff = Math.min(r.reduction, r.cappedAmount);
+  const capReason = (overCap && phaseOff > 0)
+    ? `this deduction stops at ${usd(r.statutoryCap)} a year and your income takes ${usd(phaseOff)} off that`
+    : (overCap
+      ? `this deduction stops at ${usd(r.statutoryCap)} a year`
+      : `your income takes ${usd(phaseOff)} off it`);
+  const capNote = overCap
     ? ` <span class="obbba-note">(capped at ${usd(r.statutoryCap)})</span>`
     : '';
-  const phaseNote = r.phasedOut
-    ? `<div class="line"><span>Reduced by income phase-out</span><span class="num phaseout-flag">${r.fullyPhasedOut ? 'fully phased out' : 'yes — cap lowered to ' + usd(r.allowedCap)}</span></div>`
+  const phaseNote = (r.phasedOut && r.eligibleAmount > 0)
+    ? `<div class="line"><span>Reduced by income phase-out</span><span class="num phaseout-flag">${r.fullyPhasedOut ? 'fully phased out' : 'yes, minus ' + usd(r.reduction)}</span></div>`
     : '';
 
   // ---- Answer-first summary (stat card) --------------------------------
@@ -308,13 +316,15 @@ function render() {
     headlineCaveat =
       `<div class="obbba-note${r.phasedOut ? ' phaseout-flag' : ''}">Heads up: ${usd(r.deduction)} of your ` +
       `${usd(r.eligibleAmount)} premium is deductible. ` +
-      (r.phasedOut
-        ? `Your income is above the phase-out threshold, so your cap drops to ${usd(r.allowedCap)}`
-        : `This deduction stops at ${usd(r.statutoryCap)} a year`) +
+      ((overCap && phaseOff > 0)
+        ? `This deduction stops at ${usd(r.statutoryCap)} a year, and your income is above the phase-out threshold, which takes ${usd(phaseOff)} off what is left`
+        : (overCap
+          ? `This deduction stops at ${usd(r.statutoryCap)} a year`
+          : `Your income is above the phase-out threshold, which takes ${usd(phaseOff)} off it`)) +
       `, and the rest of the premium is taxed as usual (see the breakdown for the math).</div>`;
   } else if (benefits && r.phasedOut && !r.fullyPhasedOut) {
     headlineCaveat =
-      `<div class="obbba-note phaseout-flag">Heads up: your income is above the phase-out threshold, so your deductible cap is lowered to ${usd(r.allowedCap)} (see the breakdown for the math).</div>`;
+      `<div class="obbba-note phaseout-flag">Heads up: your income is above the phase-out threshold, so ${usd(r.reduction)} comes off your deduction (see the breakdown for the math).</div>`;
   }
 
   // ---- What is taxable and what is not ----------------------------------
@@ -340,7 +350,7 @@ function render() {
       `<div class="line"><span>Paid at your normal rate — taxed as usual</span><span class="num">${usd(normalR)}</span></div>` +
       `<div class="line"><span>The required extra half${capBinds ? '' : ' — the deductible part'}</span><span class="num">${usd(premiumR)}</span></div>` +
       (capBinds
-        ? `<div class="line"><span>Deductible after ${r.phasedOut ? 'the income phase-out' : `the ${usd(r.statutoryCap)} yearly limit`}</span><span class="num">${usd(r.deduction)}</span></div>`
+        ? `<div class="line"><span>Deductible after ${(overCap && phaseOff > 0) ? `the ${usd(r.statutoryCap)} yearly limit and the income phase-out` : (overCap ? `the ${usd(r.statutoryCap)} yearly limit` : 'the income phase-out')}</span><span class="num">${usd(r.deduction)}</span></div>`
         : '') +
       `<div class="obbba-note">If your employer pays above the required half, double time for instance, that extra is taxed as usual and is not counted here.</div>`
     : '';
@@ -397,7 +407,7 @@ function render() {
   // warning is announced for the same reason: it is rendered inside #out, which
   // is not a live region.
   const capSpoken = capBinds && r.eligibleAmount > 0
-    ? ` Your ${usd(r.eligibleAmount)} premium is limited to ${usd(r.deduction)} deductible ${r.phasedOut ? 'by the income phase-out' : 'by the yearly cap'}.`
+    ? ` Your ${usd(r.eligibleAmount)} premium is limited to ${usd(r.deduction)} deductible ${(overCap && phaseOff > 0) ? 'by the yearly cap and the income phase-out' : (overCap ? 'by the yearly cap' : 'by the income phase-out')}.`
     : '';
   announce(`Federal tax saved on your overtime premium: ${statValue}.${capSpoken}${warning ? ' Check your numbers, there is a warning above the answer.' : ''}`);
 }

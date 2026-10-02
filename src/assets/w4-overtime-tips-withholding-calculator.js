@@ -48,6 +48,31 @@ function phaseoutNote(r) {
   return `<div class="obbba-note phaseout-flag">Your income is above the $150,000 ($300,000 joint) line, so the deduction is partly phased out. The W-4 worksheet uses a simple cutoff that would wrongly tell you to enter $0 — enter the accurate ${usd(r.dTotal)} figure directly on Step 4(b) instead (the worksheet is "keep for your records"; your employer only sees the Step 4(b) number).</div>`;
 }
 
+// Why a line came out smaller than what was entered, naming each cut in the
+// order the tax form takes them: the yearly limit first, then the income
+// phase-out, which comes off what the limit left (Schedule 1-A lines 7 to 13
+// for tips, 15 to 21 for overtime). Empty when nothing was cut.
+function cutNote(what, entered, res) {
+  if (!(entered > 0) || res.deduction >= entered) return '';
+  const capped = entered > res.statutoryCap;
+  const off = Math.min(res.reduction, res.cappedAmount);
+  const result = res.deduction > 0 ? `so only ${usd(res.deduction)} is deductible` : 'so none of it is deductible';
+  const wiped = res.deduction <= 0;
+  let text;
+  if (capped && off > 0) {
+    text = wiped
+      ? `Your ${what} is above the ${usd(res.statutoryCap)} yearly limit, and the income phase-out takes all of what is left, ${result}.`
+      : `Your ${what} is above the ${usd(res.statutoryCap)} yearly limit, and your income takes ${usd(off)} off that, ${result}.`;
+  } else if (capped) {
+    text = `Your ${what} is above the ${usd(res.statutoryCap)} yearly limit, ${result}.`;
+  } else {
+    text = wiped
+      ? `The income phase-out takes all of your ${what}, ${result}.`
+      : `Your income takes ${usd(off)} off your ${what}, ${result}.`;
+  }
+  return `<div class="obbba-note">${text}</div>`;
+}
+
 function render() {
   const filing = $('filing').value;
   const income = moneyValue($('income'));
@@ -68,7 +93,7 @@ function render() {
   if (r.dTotal <= 0) {
     // The "why" already covers a full phase-out, so it isn't repeated as a
     // separate headline caveat too (phaseoutNote(r) would say the same thing).
-    const why = r.anyPhasedOut
+    const why = r.anyPhasedOut && (tips > 0 || premium > 0)
       ? `After the income phase-out, there's no tips or overtime deduction left to claim this year.`
       : `Enter your expected tips and/or overtime above to see what to put on your W-4.`;
     const statCard =
@@ -95,10 +120,8 @@ function render() {
   const headlineCaveat = phaseoutNote(r);
 
   // --- Estimated 2026 deduction (worksheet line 1a / 1b breakout) ---
-  const capTips = r.tipsCapBound
-    ? `<div class="obbba-note">Your $${Math.round(tips).toLocaleString('en-US')} of tips is above this year's ${usd(r.tips.allowedCap)} limit, so only ${usd(r.dTips)} is deductible.</div>` : '';
-  const capOt = r.otCapBound
-    ? `<div class="obbba-note">Your ${usd(premium)} overtime premium is above this year's ${usd(r.overtime.allowedCap)} limit, so only ${usd(r.dOt)} is deductible.</div>` : '';
+  const capTips = cutNote(`${usd(tips)} of tips`, tips, r.tips);
+  const capOt = cutNote(`${usd(premium)} overtime premium`, premium, r.overtime);
 
   const deductionBlock =
     `<div class="line"><span>Line 1a — Qualified tips</span><span class="num">${usd(r.dTips)}</span></div>` +

@@ -100,8 +100,11 @@ function render() {
   const capNote = r.eligibleAmount > r.statutoryCap
     ? ` <span class="obbba-note">(capped at ${usd(r.statutoryCap)})</span>`
     : '';
-  const phaseNote = r.phasedOut
-    ? `<div class="line"><span>Reduced by income phase-out</span><span class="num phaseout-flag">${r.fullyPhasedOut ? 'fully phased out' : 'yes — cap lowered to ' + usd(r.allowedCap)}</span></div>`
+  // The phase-out comes off the amount AFTER the $25,000 limit, never off the
+  // limit itself (Schedule 1-A line 13 = line 7 minus line 12), so the row
+  // names the dollars it takes away, not a lowered cap.
+  const phaseNote = (r.phasedOut && r.eligibleAmount > 0)
+    ? `<div class="line"><span>Reduced by income phase-out</span><span class="num phaseout-flag">${r.fullyPhasedOut ? 'fully phased out' : 'yes, minus ' + usd(r.reduction)}</span></div>`
     : '';
 
   // ---- Answer-first summary (stat card) --------------------------------
@@ -130,7 +133,7 @@ function render() {
 
   // ---- One headline caveat (phase-down) shown OUTSIDE the details -------
   const headlineCaveat = (benefits && r.phasedOut && !r.fullyPhasedOut)
-    ? `<div class="obbba-note phaseout-flag">Heads up: your income is above the phase-out threshold, so your deductible cap is lowered to ${usd(r.allowedCap)} (see the breakdown for the math).</div>`
+    ? `<div class="obbba-note phaseout-flag">Heads up: your income is above the phase-out threshold, so ${usd(r.reduction)} comes off your deduction (see the breakdown for the math).</div>`
     : '';
 
   // ---- Full derivation, moved VERBATIM into a collapsed panel -----------

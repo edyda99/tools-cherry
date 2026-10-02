@@ -716,6 +716,23 @@ function tipsSlice(input, r) {
   };
 }
 
+// Why a tips or overtime deduction came out under the amount entered, as the
+// clause after "X of your Y is deductible" (not for the fully-phased-out case,
+// which each caller words itself). The yearly cap is applied FIRST and the
+// income phase-out is taken off what the cap left, never off the cap (IRC
+// 224(b)(2)(A) / 225(b)(2)(A); Schedule 1-A lines 7 to 13 and 15 to 21), so an
+// amount under the cap still loses the whole income reduction, and either cut,
+// or both, can be the reason. `tail` finishes the sentence.
+function obbbaCutClause(d, entered, tail) {
+  const overCap = entered > d.statutoryCap;
+  const off = Math.min(d.reduction || 0, d.cappedAmount || 0);
+  if (overCap && off > 0) {
+    return `: the deduction stops at ${usd(d.statutoryCap)} a year and your income takes ${usd(off)} off that, ${tail}`;
+  }
+  if (off > 0) return `: your income takes ${usd(off)} off it, ${tail}`;
+  return `. The deduction stops at ${usd(d.statutoryCap)} a year, ${tail}`;
+}
+
 // The three deductions, in card order, each with the tax it saves. CHAINED, not
 // computed one at a time: obbba-deduction.js's own W-4 helper says why, and it
 // is the same reason — the tax saved by two deductions together is one
@@ -772,9 +789,7 @@ function filingRows(input, magi, mergeTips) {
         ? `${usd(d.deduction)} of your ${usd(rules.tips)} in tips is deductible` +
           (d.fullyPhasedOut
             ? `: your pay is high enough that the deduction is fully phased out.`
-            : d.phasedOut
-              ? `: the ${usd(d.statutoryCap)} cap falls to ${usd(d.allowedCap)} at your income, and the rest of your tips is taxed as usual.`
-              : `. The deduction stops at ${usd(d.allowedCap)} a year, and the rest of your tips is taxed as usual.`)
+            : obbbaCutClause(d, rules.tips, 'and the rest of your tips is taxed as usual.'))
         : `All ${usd(rules.tips)} of your tips comes off the income you are taxed on.`,
       extra: conformityClause('tips')
     });
@@ -830,9 +845,7 @@ function filingRows(input, magi, mergeTips) {
       note = `${basis} Of that ${usd(premium)}, ${usd(d.deduction)} is deductible` +
         (d.fullyPhasedOut
           ? `: your pay is high enough that the deduction is fully phased out.`
-          : d.phasedOut
-            ? `: the ${usd(d.statutoryCap)} cap falls to ${usd(d.allowedCap)} at your income, and the rest is taxed as usual.`
-            : `. The deduction stops at ${usd(d.allowedCap)} a year, and the rest is taxed as usual.`);
+          : obbbaCutClause(d, premium, 'and the rest is taxed as usual.'));
     } else {
       note = basis;
     }
@@ -1262,9 +1275,7 @@ function renderTipsBlock(input, r, tips, annualView) {
     notes.push(`<p class="otw-note">${usd(d.deduction)} of your ${usd(tips.tips)} in tips is deductible` +
       (d.fullyPhasedOut
         ? `: your pay is high enough that the deduction is fully phased out, so the federal tax above is the ordinary tax on all of it.`
-        : d.phasedOut
-          ? `: the ${usd(d.statutoryCap)} cap falls to ${usd(d.allowedCap)} at your income, and the federal tax above is on the rest.`
-          : `. The deduction stops at ${usd(d.allowedCap)} a year, and the federal tax above is on the rest.`));
+        : obbbaCutClause(d, tips.tips, 'and the federal tax above is on the rest.')));
   }
   if (!filed && !tips.inside) {
     notes.push(`<p class="otw-note">A paycheck is withholding, so the no-tax-on-tips deduction is not in the ` +
