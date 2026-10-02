@@ -3122,12 +3122,17 @@ function obbbaConformityBlock(state, obbba, year) {
   // Verdict-keyed heading: the query stays, and the state's actual 2026
   // treatment (from the sourced conformity data) is answered in the heading.
   const otV = e.overtime && e.overtime.y2026, tipV = e.tips && e.tips.y2026;
+  // A state whose own overtime deduction the paycheck engine models (Alabama's
+  // $1,000 premium deduction, tax-data-2026.json .tax.overtimePremiumDeduction)
+  // is named with its figure instead of the generic "smaller capped break".
+  const otCap = state.tax && state.tax.overtimePremiumDeduction && state.tax.overtimePremiumDeduction.cap;
   let verdictTail;
   if (!e.hasWageTax) verdictTail = `Federally yes — no ${state.name} wage tax anyway`;
   else if (otV === 'yes' && tipV === 'yes') verdictTail = `Federally yes, and on the ${state.name} return too`;
   else if (otV === 'no' && tipV === 'no') verdictTail = `Federally yes, but ${state.name} still taxes both`;
   else if (otV === 'partial' && tipV === 'partial') verdictTail = `Federally yes; ${state.name} allows a smaller capped break`;
   else if (otV === 'unclear' && tipV === 'unclear') verdictTail = `Federally yes; ${state.name}'s rules aren't confirmed yet`;
+  else if (otV === 'partial' && tipV === 'no' && otCap > 0) verdictTail = `Federally yes; ${state.name} lets you deduct up to ${usd0(otCap)} of the overtime premium, not tips`;
   else verdictTail = `Federally yes; ${state.name}'s state treatment is mixed`;
   const h2 = `Is overtime and tips tax-free in ${state.name}? ${verdictTail}`;
 
@@ -3143,8 +3148,13 @@ function obbbaConformityBlock(state, obbba, year) {
     unclear: `not yet confirmed for ${state.name}`,
     partial: `a smaller capped ${state.name} break`
   }[v] || v);
-  const row = (label, d) =>
-    `<li><strong>${label}:</strong> 2025 — ${verdict(d.y2025)}; 2026–2028 — ${verdict(d.y2026)}.</li>`;
+  // The overtime row says the figure when it is modeled: Alabama's 2025 verdict is
+  // "no" and only the 2026-2028 one is "partial", so the label is keyed to that cell.
+  const otVerdict = (v) => (v === 'partial' && otCap > 0
+    ? `${state.name}'s own deduction of up to ${usd0(otCap)} of the overtime premium`
+    : verdict(v));
+  const row = (label, d, say = verdict) =>
+    `<li><strong>${label}:</strong> 2025 — ${say(d.y2025)}; 2026–2028 — ${say(d.y2026)}.</li>`;
   const srcHost = (() => { try { return new URL(e.source).hostname.replace(/^www\./, ''); } catch (_) { return ''; } })();
   const srcLink = e.source && srcHost
     ? ` <span class="muted-small">(source: <a href="${escHtml(e.source)}" rel="noopener" target="_blank">${escHtml(srcHost)}</a>)</span>`
@@ -3152,7 +3162,7 @@ function obbbaConformityBlock(state, obbba, year) {
 
   return `<section class="prose"><h2>${h2}</h2>${fed}` +
     `<p><strong>${state.name} state income tax:</strong> ${escHtml(e.note)}${srcLink}</p>` +
-    `<ul class="facts">${row('Overtime', e.overtime)}${row('Tips', e.tips)}</ul>` +
+    `<ul class="facts">${row('Overtime', e.overtime, otVerdict)}${row('Tips', e.tips)}</ul>` +
     `<p>${calcLinks}</p></section>`;
 }
 
@@ -6965,6 +6975,18 @@ const CA_FTB_TITLES = [
   [/tax-news/, 'California FTB: annual inflation indexing of the standard deduction'],
 ];
 
+// Alabama's state-level URLs, titled for the same reason: five links all captioned
+// "Alabama: source for the state figures on this page" told a reader nothing
+// about which document settles which figure.
+const AL_SOURCE_TITLES = [
+  [/taxfoundation\.org\/.*state-income-tax-rates-2026/, 'Tax Foundation: 2026 state income tax rates and brackets'],
+  [/revenue\.alabama\.gov\/forms\/standard-deduction-chart/, 'Alabama Department of Revenue: standard deduction chart'],
+  [/code-of-alabama\?section=40-18-15$/, 'Code of Alabama Section 40-18-15: deductions on the Alabama return'],
+  [/2026RS\/HB527-enr\.pdf$/, 'Act 2026-604 (HB527): the overtime premium deduction, as enacted'],
+  [/overtime-premium-deduction-act-2026-604/, 'Alabama Department of Revenue: overtime premium deduction guidance'],
+];
+const STATE_SOURCE_TITLES = { california: CA_FTB_TITLES, alabama: AL_SOURCE_TITLES };
+
 // Sources, built from the URLs the data file already carries for this state and
 // for the federal figures. Titles are ours; the URLs are the data's, so a source
 // swap in tax-data-2026.json moves the citation with it.
@@ -6980,7 +7002,8 @@ function caLadderSources(taxData, state) {
   const stateUrls = String(state._source || '').match(/https?:\/\/\S+/g) || [];
   stateUrls.forEach((raw) => {
     const u = raw.replace(/[;,)]+$/, '');
-    const hit = isCA ? CA_FTB_TITLES.find(([re]) => re.test(u)) : null;
+    const titles = STATE_SOURCE_TITLES[state.slug];
+    const hit = titles ? titles.find(([re]) => re.test(u)) : null;
     add(hit ? hit[1] : (isCA ? 'California Franchise Tax Board' : `${state.name}: source for the state figures on this page`), u);
   });
   // The rule behind the federal-tax subtraction (Alabama, Missouri, Oregon), cited from its

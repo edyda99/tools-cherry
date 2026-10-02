@@ -401,5 +401,48 @@ is('CL F15 marginal 22% band', clSaved.marginalRate > 0.21 && clSaved.marginalRa
 // Ineligible end-to-end -> deduction 0 -> saved 0
 eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single', magi: 90000, interest: 2500, eligible: false, federal: obbba.federal, fed }).taxSaved, 0);
 
+// --- Alabama's own overtime deduction (Act 2026-604), data and copy -----------
+// The verdict stays 'partial' (Alabama does not follow the federal $12,500, it has
+// its own $1,000 premium deduction, Ala. Code 40-18-15(a)(29)); the figure the
+// engine uses lives in tax-data-2026.json and the copy that renders must agree.
+{
+  const al = obbba.states.alabama;
+  is('AL overtime 2025 verdict', al.overtime.y2025, 'no');
+  is('AL overtime 2026 verdict', al.overtime.y2026, 'partial');
+  is('AL tips 2026 verdict', al.tips.y2026, 'no');
+  is('AL source is the ADOR Act 2026-604 page', al.source,
+    'https://www.revenue.alabama.gov/individual-corporate/overtime-premium-deduction-act-2026-604/');
+  is('AL checkedOn', al.checkedOn, '2026-10-02');
+  is('AL note names the act', al.note.includes('Act 2026-604'), true);
+  is('AL note names the $1,000 cap', al.note.includes('up to $1,000 a year'), true);
+  is('AL note says 2026 through 2028', al.note.includes('2026 through 2028'), true);
+  is('AL note has no em or en dash', /[–—]/.test(al.note), false);
+  // Alabama subtracts federal income tax (40-18-15(c)), so a federal deduction
+  // RAISES the Alabama tax by about 5% of what it saves (test-tax-data.js: $110
+  // at $90k with a $10,000 premium, against the $50 the $1,000 cap saves). The
+  // note must say so and must not claim the tips deduction is federal-only.
+  is('AL note explains the federal-subtraction knock-on', al.note.includes(
+    'the federal overtime deduction raises your Alabama tax by about 5 cents per dollar it saves you'), true);
+  is('AL note no longer says tips lower federal tax only', /federal tax only/.test(al.note), false);
+  is('AL cap in the note = the engine cap', taxData.states.alabama.tax.overtimePremiumDeduction.cap, 1000);
+  is('AL disclaimer has no em dash', taxData.states.alabama.disclaimer.some((d) => /—/.test(d)), false);
+  is('AL disclaimer no longer says "not modeled" for overtime',
+    taxData.states.alabama.disclaimer.some((d) => /overtime/i.test(d) && /not modeled/i.test(d)), false);
+
+  // The state page's "which rules apply" overtime line names the modeled figure for
+  // Alabama, and Georgia (prose-only caps) keeps the generic wording.
+  const { buildStateApplies } = await import('../src/content/state-applies.js');
+  const pickFrame = (slug, salt, arr) => arr[0];
+  const line = (slug) => {
+    const html = buildStateApplies({ state: taxData.states[slug], obbbaEntry: obbba.states[slug], suppEntry: null,
+      notaxAngle: '', pickFrame });
+    const m = /data-line="ot"><strong>Overtime:<\/strong> ([^<]*)\./.exec(html);
+    return m ? m[1] : '';
+  };
+  is('AL applies line', line('alabama'),
+    'federally deductible, and Alabama lets you deduct up to $1,000 of the overtime premium on your Alabama return too');
+  is('GA applies line stays generic', line('georgia'), 'federally deductible, with a smaller capped Georgia break on top');
+}
+
 console.log(`\nOBBBA engine: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

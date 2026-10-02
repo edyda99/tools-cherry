@@ -71,7 +71,7 @@
 // Social Security wage base the moment pay plus tips crosses it.
 import {
   computePaycheck, PAY_PERIODS, federalBracketBreakdown, annualizeGross,
-  federalIncomeTax, ficaTax, stateTaxOnSlice
+  federalIncomeTax, ficaTax, stateTaxOnSlice, stateOvertimeAtFiling
 } from '/assets/paycheck-engine.js';
 import { allowedDeduction, federalTaxSaved, overtimePremium, seniorDeduction } from '/assets/obbba-deduction.js';
 import { computeBonus } from '/assets/bonus-tax.js';
@@ -745,6 +745,89 @@ function obbbaCutClause(d, entered, tail) {
   return `. The deduction stops at ${usd(d.statutoryCap)} a year, ${tail}`;
 }
 
+// A STATE'S OWN OVERTIME DEDUCTION, AT FILING. Only a state whose tax data
+// carries `overtimePremiumDeduction` gets rows here (Alabama, Ala. Code
+// 40-18-15(a)(29), Act 2026-604: the overtime premium, up to $1,000 a year, tax
+// years 2026 to 2028); stateOvertimeAtFiling() returns null for every other
+// state, so no other page can print a state figure it has no rule for. It is a
+// deduction on the state return, not in withholding, so it belongs in this
+// block and never in the paycheck rows above.
+//
+// TWO ROWS, ONE PER EFFECT, never one net row under the deduction's name. The
+// state deduction takes the premium (up to the cap) off taxable income: that
+// row is a saving. And Alabama subtracts the federal income tax owed, which the
+// federal overtime deduction in the "Extra hours" row has just lowered, so
+// there is less to subtract and the state tax goes up: that row is a cost, and
+// it is labelled for what causes it. A single net row called "Alabama overtime
+// deduction" printed -$60 at $90k with a $10,000 premium, blaming a deduction
+// that saves $50 for $110 the federal deduction put on the state return. The
+// "Extra hours" row prices federal only, so this is the one place that
+// knock-on is counted. At Alabama's 5% it is 5% of the federal saving and the
+// deduction is worth at most $50, so the cost row can outweigh the saving.
+//
+// WHOLE DOLLARS BY CONSTRUCTION, so a note and its row cannot disagree: each row
+// is the rounded figure its note prints, and both are marked `exact` so
+// renderAtFiling never re-derives them.
+function stateOvertimeRows(input, ret, fedBefore, fedOvertime, premium) {
+  const stateData = taxData.states ? taxData.states[stateSlug] : null;
+  if (!ret || !stateData) return [];
+  const s = stateOvertimeAtFiling({
+    income: ret.income, filingStatus: input.filingStatus, stateData, fed: taxData.federal,
+    preTaxIncome: ret.preTax, preTaxFica: ret.preTaxFica,
+    dependentsCredit: (input.adv && input.adv.dependentsCredit) || 0,
+    federalDeductionBefore: fedBefore, federalOvertimeDeduction: fedOvertime, premium
+  });
+  if (!s) return [];
+  const name = stateData.name;
+  const saveR = Math.round(s.stateSaving);
+  const knockR = Math.round(s.federalKnockOn);
+  const net = saveR - knockR;
+  const out = [];
+  if (saveR > 0) {
+    let note = s.deduction < premium
+      ? `${name} also lets you deduct that extra pay on your ${name} return, but only up to ${usd(s.cap)} a year, ` +
+        `so ${usd(s.deduction)} of your ${usd(premium)} comes off there and saves you ${usd(saveR)}.`
+      : `${name} also lets you deduct that extra pay on your ${name} return, up to ${usd(s.cap)} a year, ` +
+        `so all ${usd(s.deduction)} of it comes off there and saves you ${usd(saveR)}.`;
+    // The statute caps it "per taxpayer" and ADOR has not said how that works on
+    // a joint return, so a married filer is told the figure is one earner's.
+    if (input.filingStatus === 'married') {
+      note += ` Counted for one of you. ${name}'s limit is ${usd(s.cap)} per taxpayer, so if you both work ` +
+        `overtime each of you may be able to deduct up to ${usd(s.cap)}; ${name} has not said how it applies ` +
+        `on a joint return.`;
+    }
+    out.push({
+      label: `${name} overtime deduction`,
+      saved: saveR,
+      exact: true,
+      state: true,
+      // No wage of its own: the overtime pay is named once, on the "Extra hours" row.
+      fica: '',
+      note,
+      extra: ''
+    });
+  }
+  if (knockR > 0) {
+    let note = `${name} lets you subtract the federal income tax you owe, and the federal overtime deduction ` +
+      `lowers that tax, so you have less to subtract and your ${name} tax goes up by ${usd(knockR)}.`;
+    if (saveR > 0) {
+      if (net > 0) note += ` Taken with the ${name} overtime deduction, your ${name} tax comes out ${usd(net)} lower.`;
+      else if (net < 0) note += ` Taken with the ${name} overtime deduction, your ${name} tax comes out ${usd(-net)} higher, and the total counts that.`;
+      else note += ` Taken with the ${name} overtime deduction, the two cancel out.`;
+    }
+    out.push({
+      label: `Smaller federal tax to subtract on your ${name} return`,
+      saved: -knockR,
+      exact: true,
+      state: true,
+      fica: '',
+      note,
+      extra: ''
+    });
+  }
+  return out;
+}
+
 // The three deductions, in card order, each with the tax it saves. CHAINED, not
 // computed one at a time: obbba-deduction.js's own W-4 helper says why, and it
 // is the same reason — the tax saved by two deductions together is one
@@ -766,7 +849,7 @@ function obbbaCutClause(d, entered, tail) {
 // hundreds of dollars if tips were dropped from the arithmetic as well as from
 // the list. So the row is computed exactly as before and marked `merged`, and
 // renderAtFiling leaves it out of what it prints and out of what it totals.
-function filingRows(input, magi, mergeTips) {
+function filingRows(input, magi, mergeTips, ret) {
   const fed = taxData.federal;
   const obbba = ruleData.obbba.federal;
   const filing = input.filingStatus;
@@ -861,6 +944,10 @@ function filingRows(input, magi, mergeTips) {
     } else {
       note = basis;
     }
+    // The federal deductions already in the chain ahead of this one (tips), read
+    // BEFORE chain() adds the overtime deduction to the running total: the state
+    // row below measures the overtime knock-on on top of them, never including them.
+    const fedBefore = running;
     rows.push({
       label: 'Extra hours',
       saved: chain(d.deduction),
@@ -869,6 +956,9 @@ function filingRows(input, magi, mergeTips) {
       note,
       extra: conformityClause('overtime')
     });
+    if (!pending && premium > 0) {
+      rows.push(...stateOvertimeRows(input, ret, fedBefore, d.deduction, premium));
+    }
   }
 
   if (rules.age65) {
@@ -1031,7 +1121,16 @@ function renderAtFiling(input, r, mergeTips) {
     return;
   }
 
-  const { rows } = filingRows(input, magi, mergeTips);
+  // What the state side of the overtime row needs and MAGI has already netted
+  // away: the income on the return and the pre-tax money, split the way
+  // computePaycheck takes it (Section 125 also comes off FICA wages, a 401(k)
+  // deferral does not).
+  const ret = {
+    income: returnIncome,
+    preTax,
+    preTaxFica: input.adv ? (input.adv.cafeteria125 || 0) : 0
+  };
+  const { rows } = filingRows(input, magi, mergeTips, ret);
 
   // A ROW WITH ITS OWN FIGURES MISSING PRINTS NO MONEY. "Extra hours +$0" in the
   // accent colour, under a lead saying this arrives when you file, is read down
@@ -1070,20 +1169,30 @@ function renderAtFiling(input, r, mergeTips) {
     return;
   }
 
+  // The row that absorbs the rounding is the LAST ONE THAT IS NOT ALREADY WHOLE
+  // DOLLARS. A state overtime row is (`exact`, see stateOvertimeRows) and its note
+  // quotes its own figure, so re-deriving it could print a row a dollar away from
+  // the sentence explaining it; the federal row above it takes the cent instead.
   const amounts = shown.map((row) => Math.round(row.saved));
   let totalR = Math.round(total);
   if (shown.length > 1) {
-    const derived = totalR - amounts.slice(0, -1).reduce((a, b) => a + b, 0);
-    if (derived >= 0) amounts[amounts.length - 1] = derived;
+    let k = shown.length - 1;
+    while (k > 0 && shown[k].exact) k--;
+    const derived = totalR - amounts.reduce((a, b, i) => (i === k ? a : a + b), 0);
+    if (derived >= 0) amounts[k] = derived;
     else totalR = amounts.reduce((a, b) => a + b, 0);
   }
 
   // The rows carry the money and nothing else; every qualifying sentence goes
   // BELOW the list, named for the row it qualifies. A note nested inside a flex
   // row would sit on the same line as the label it belongs to.
+  // A state overtime row can be a cost (see stateOvertimeRows), so it prints its
+  // sign: a minus, and without the accent colour that marks money coming back.
   const items = shown.map((row, i) =>
     `<li><span>${escLbl(row.label)}</span>` +
-    `<span class="otw-amt otw-free">+${usd(amounts[i])}</span></li>`
+    (amounts[i] < 0
+      ? `<span class="otw-amt">\u2212${usd(-amounts[i])}</span></li>`
+      : `<span class="otw-amt otw-free">+${usd(amounts[i])}</span></li>`)
   ).join('');
 
   const totalRow = shown.length > 1
@@ -1158,13 +1267,19 @@ function renderAtFiling(input, r, mergeTips) {
   // claim about a $6,000 age allowance that is not pay at all. That is the same
   // exclusion the bonus-only answer already gets, for the same reason.
   const ficaItems = [...new Set(shown.map((row) => row.fica).filter(Boolean))];
+  // With a state overtime row on the card the deductions move the state's income
+  // tax too, and not always down (see stateOvertimeRows), so the sentence says
+  // they CHANGE it rather than lower it; the point of the sentence (not Social
+  // Security or Medicare) survives either way.
+  const incomeTaxes = shown.some((row) => row.state)
+    ? `the deductions change only your federal and ${escLbl(stateName)} income tax.`
+    : `the deduction lowers federal income tax only.`;
   let plain = '';
   if (shown.length) {
     plain = `<div class="otw-plain">This is money back when you file next year, as a bigger refund or a smaller ` +
       `bill, not extra in each paycheck.` +
       (ficaItems.length
-        ? ` Social Security and Medicare are still owed on ${ficaItems.join(' and ')}: the deduction lowers federal ` +
-          `income tax only.`
+        ? ` Social Security and Medicare are still owed on ${ficaItems.join(' and ')}: ${incomeTaxes}`
         : '') +
       ` Your take-home above does not change because of it. Ask your employer about your W-4 if you would rather ` +
       `have it during the year.</div>`;

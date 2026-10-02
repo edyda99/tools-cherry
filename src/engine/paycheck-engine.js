@@ -396,15 +396,24 @@ export function federalTaxSubtraction(federalTax, agi, filingStatus, cfg) {
  * the salary-ladder pages print it, so the two can never describe different arithmetic.
  *
  * Order: the standard deduction (after any income test), then the FICA-paid deduction
- * (Massachusetts), then the federal income tax subtraction (Alabama, Missouri, Oregon).
- * Each one is reported as the amount the rule allows, and taxable income is floored at
- * zero after each, which is what a state return does with a deduction larger than the
- * income left to take it from.
+ * (Massachusetts), then the federal income tax subtraction (Alabama, Missouri, Oregon),
+ * then the state's own overtime premium deduction (Alabama). Each one is reported as the
+ * amount the rule allows, and taxable income is floored at zero after each, which is what
+ * a state return does with a deduction larger than the income left to take it from.
+ *
+ * `overtimePremium` is the year's qualified overtime premium (the pay above the regular
+ * rate, 26 U.S.C. 225(c)), annual USD. Only a state carrying `tax.overtimePremiumDeduction`
+ * reads it, and it is taken AFTER AGI: Alabama's is a subsection (a) deduction of Ala. Code
+ * 40-18-15, so it does not lower the AGI the standard-deduction chart is read at.
+ * computePaycheck() never passes it, because the deduction is claimed on the return and is
+ * not in Alabama's withholding (`inWithholdingFormula: false`); stateOvertimeAtFiling()
+ * below is the one caller that does. Defaults to 0, which deducts nothing.
  *
  * @returns {{agi:number, standardDeduction:number, ficaDeduction:number,
- *            federalTaxSubtraction:number, taxable:number}}
+ *            federalTaxSubtraction:number, overtimeDeduction:number, taxable:number}}
  */
-export function stateTaxableIncome(grossAnnual, filingStatus, stateData, preTax = 0, ficaPaid = 0, federalTax = 0) {
+export function stateTaxableIncome(grossAnnual, filingStatus, stateData, preTax = 0, ficaPaid = 0, federalTax = 0,
+  overtimePremium = 0) {
   const t = (stateData && stateData.tax) || {};
   // grossAnnual - preTax is this engine's federal AGI: federalIncomeTax() above derives
   // federal TAXABLE income as exactly that minus the federal standard deduction, so the
@@ -423,7 +432,27 @@ export function stateTaxableIncome(grossAnnual, filingStatus, stateData, preTax 
     ? federalTaxSubtraction(federalTax, agi, filingStatus, t.federalTaxSubtraction)
     : 0;
   taxable = Math.max(0, taxable - fedSub);
-  return { agi, standardDeduction, ficaDeduction, federalTaxSubtraction: fedSub, taxable };
+  const otDed = stateOvertimeDeduction(overtimePremium, t.overtimePremiumDeduction);
+  taxable = Math.max(0, taxable - otDed);
+  return { agi, standardDeduction, ficaDeduction, federalTaxSubtraction: fedSub, overtimeDeduction: otDed, taxable };
+}
+
+/**
+ * A state's own deduction for the overtime premium: the premium, never more than the
+ * state's yearly cap. Opt-in and data-driven: with no `cfg` (every state but Alabama) it is
+ * zero. Alabama, Ala. Code 40-18-15(a)(29) (Act 2026-604): "qualified overtime compensation
+ * received during the taxable year, not to exceed one thousand dollars ($1,000) per
+ * taxpayer", qualified overtime compensation defined by 26 U.S.C. 225, so the premium only.
+ * There is no income limit: the Department of Revenue puts it as "the lesser of the actual
+ * overtime premium or a maximum annual amount of $1,000 per taxpayer".
+ *
+ * @param {number} premium - the year's qualified overtime premium (annual USD)
+ * @param {{cap:number}} [cfg] - the state's `tax.overtimePremiumDeduction`
+ * @returns {number}
+ */
+export function stateOvertimeDeduction(premium, cfg) {
+  if (!cfg) return 0;
+  return Math.min(Math.max(0, Number(premium) || 0), Math.max(0, Number(cfg.cap) || 0));
 }
 
 /**
@@ -458,14 +487,18 @@ export function stateTaxableIncome(grossAnnual, filingStatus, stateData, preTax 
  *   the W-4 dependent credit (see federalTaxSubtraction for why that figure); bonus-tax.js
  *   and the tips block in app.js pass the federal tax at each of their two income levels.
  *   Defaults to 0, which subtracts nothing.
+ * @param {number} overtimePremium - the year's qualified overtime premium, for a state with
+ *   its own overtime deduction (Alabama). See stateTaxableIncome; computePaycheck() never
+ *   passes it, since the deduction is claimed at filing and is not in withholding.
  */
-export function stateIncomeTax(grossAnnual, filingStatus, stateData, preTax = 0, ficaPaid = 0, federalTax = 0) {
+export function stateIncomeTax(grossAnnual, filingStatus, stateData, preTax = 0, ficaPaid = 0, federalTax = 0,
+  overtimePremium = 0) {
   if (!stateData || !stateData.hasIncomeTax || !stateData.tax) return 0;
   const t = stateData.tax;
   if (t.type === 'none') return 0;
 
   const { agi, taxable } =
-    stateTaxableIncome(grossAnnual, filingStatus, stateData, preTax, ficaPaid, federalTax);
+    stateTaxableIncome(grossAnnual, filingStatus, stateData, preTax, ficaPaid, federalTax, overtimePremium);
 
   let tax;
   if (t.type === 'flat') {
@@ -525,6 +558,73 @@ export function stateTaxOnSlice({ base, top, filingStatus, stateData, fed, preTa
     ficaTax(income, filingStatus, fed, preTaxFica).total,
     Math.max(0, federalIncomeTax(income, filingStatus, fed, preTaxIncome + fedDed) - credit));
   return Math.max(0, at(top, federalDeduction, stateDeduction) - at(base, 0, 0));
+}
+
+/**
+ * What overtime does to the STATE return at filing, for a state with its own overtime
+ * premium deduction (Alabama, Ala. Code 40-18-15(a)(29)). Returns null for every other
+ * state, so a caller cannot print a state figure for a state that has no such rule.
+ *
+ * TWO EFFECTS, BOTH ON THE ALABAMA RETURN, and both are counted here and nowhere else:
+ *   stateSaving     the state's own deduction: the premium up to the cap comes off taxable
+ *                   income. Measured with the federal liability already AFTER the federal
+ *                   overtime deduction, since that is the liability the return shows.
+ *   federalKnockOn  Alabama subtracts the federal income tax owed (40-18-15(c)). The federal
+ *                   overtime deduction lowers that tax, so there is less to subtract and the
+ *                   Alabama tax goes UP by the state rate on the federal saving. The same
+ *                   knock-on stateTaxOnSlice() counts for tips; the at-filing block that
+ *                   prices the federal overtime saving prices federal only, so this is the
+ *                   one place it is counted.
+ *   net = stateSaving - federalKnockOn, the change in state tax at filing. It is NEGATIVE
+ *   when the federal saving is large enough: at Alabama's 5% the knock-on is 5% of the
+ *   federal saving, and the state deduction is worth at most 5% of $1,000 = $50, so a
+ *   federal saving over $1,000 costs more on the Alabama return than the cap gives back.
+ *
+ * EACH TERM IS FED WHAT computePaycheck() FEEDS THE STATE at `income`: the pre-tax money,
+ * the FICA paid there and the federal liability less the W-4 credits (never the 4(c) extra
+ * withholding). With both deductions at zero, the `before` term is computePaycheck's own
+ * state figure at `income` to the cent.
+ *
+ * @param {object} a
+ * @param {number} a.income            wages on the return (W-2 box 1 before pre-tax money)
+ * @param {string} a.filingStatus
+ * @param {object} a.stateData         tax-data-2026.json .states[slug]
+ * @param {object} a.fed               tax-data-2026.json .federal
+ * @param {number} [a.preTaxIncome]    401(k) + Section 125, as computePaycheck takes them
+ * @param {number} [a.preTaxFica]      Section 125 only
+ * @param {number} [a.dependentsCredit] W-4 step 3 credits
+ * @param {number} [a.federalDeductionBefore] federal deductions already taken ahead of the
+ *                                     overtime one (tips, in the at-filing chain), so the
+ *                                     overtime knock-on is measured on top of them
+ * @param {number} [a.federalOvertimeDeduction] the federal overtime deduction allowed
+ *                                     (after its own cap and phase-out)
+ * @param {number} [a.premium]         the year's qualified overtime premium
+ * @returns {null|{deduction:number, cap:number, stateSaving:number, federalKnockOn:number,
+ *                 net:number, before:number, after:number}}
+ */
+export function stateOvertimeAtFiling({ income, filingStatus, stateData, fed, preTaxIncome = 0, preTaxFica = 0,
+  dependentsCredit = 0, federalDeductionBefore = 0, federalOvertimeDeduction = 0, premium = 0 }) {
+  const cfg = stateData && stateData.hasIncomeTax && stateData.tax && stateData.tax.overtimePremiumDeduction;
+  if (!cfg) return null;
+  const credit = Math.max(0, dependentsCredit || 0);
+  const fica = ficaTax(income, filingStatus, fed, preTaxFica).total;
+  const owed = (fedDed) =>
+    Math.max(0, federalIncomeTax(income, filingStatus, fed, preTaxIncome + Math.max(0, fedDed)) - credit);
+  const at = (fedDed, prem) => stateIncomeTax(income, filingStatus, stateData, preTaxIncome, fica, owed(fedDed), prem);
+  const fedBefore = Math.max(0, federalDeductionBefore || 0);
+  const fedAfter = fedBefore + Math.max(0, federalOvertimeDeduction || 0);
+  const before = at(fedBefore, 0);
+  const afterFederal = at(fedAfter, 0);
+  const after = at(fedAfter, premium);
+  return {
+    deduction: stateOvertimeDeduction(premium, cfg),
+    cap: cfg.cap,
+    stateSaving: afterFederal - after,
+    federalKnockOn: afterFederal - before,
+    net: before - after,
+    before,
+    after
+  };
 }
 
 /**
