@@ -746,64 +746,86 @@ function obbbaCutClause(d, entered, tail) {
 }
 
 // A STATE'S OWN OVERTIME DEDUCTION, AT FILING. Only a state whose tax data
-// carries `overtimePremiumDeduction` gets a row (Alabama, Ala. Code
+// carries `overtimePremiumDeduction` gets rows here (Alabama, Ala. Code
 // 40-18-15(a)(29), Act 2026-604: the overtime premium, up to $1,000 a year, tax
 // years 2026 to 2028); stateOvertimeAtFiling() returns null for every other
 // state, so no other page can print a state figure it has no rule for. It is a
 // deduction on the state return, not in withholding, so it belongs in this
 // block and never in the paycheck rows above.
 //
-// THE ROW IS THE NET CHANGE IN THE STATE TAX, and it carries two effects. The
-// state deduction takes the premium (up to the cap) off taxable income. And
-// Alabama subtracts the federal income tax owed, which the federal overtime
-// deduction in the row above has just lowered, so there is less to subtract and
-// some of that comes back onto the Alabama tax. The "Extra hours" row prices
-// federal only, so this is the one place that knock-on is counted. The net can
-// be NEGATIVE: at Alabama's 5% the knock-on is 5% of the federal saving and the
-// deduction is worth at most $50, so a federal saving over $1,000 costs more on
-// the Alabama return than the cap gives back. The row then prints a minus and
-// the note says the Alabama tax comes out higher.
+// TWO ROWS, ONE PER EFFECT, never one net row under the deduction's name. The
+// state deduction takes the premium (up to the cap) off taxable income: that
+// row is a saving. And Alabama subtracts the federal income tax owed, which the
+// federal overtime deduction in the "Extra hours" row has just lowered, so
+// there is less to subtract and the state tax goes up: that row is a cost, and
+// it is labelled for what causes it. A single net row called "Alabama overtime
+// deduction" printed -$60 at $90k with a $10,000 premium, blaming a deduction
+// that saves $50 for $110 the federal deduction put on the state return. The
+// "Extra hours" row prices federal only, so this is the one place that
+// knock-on is counted. At Alabama's 5% it is 5% of the federal saving and the
+// deduction is worth at most $50, so the cost row can outweigh the saving.
 //
-// WHOLE DOLLARS BY CONSTRUCTION, so the note and the row cannot disagree: the
-// net is the rounded saving less the rounded knock-on, the two figures the note
-// prints, and the row is marked `exact` so renderAtFiling never re-derives it.
-function stateOvertimeRow(input, ret, fedBefore, fedOvertime, premium) {
+// WHOLE DOLLARS BY CONSTRUCTION, so a note and its row cannot disagree: each row
+// is the rounded figure its note prints, and both are marked `exact` so
+// renderAtFiling never re-derives them.
+function stateOvertimeRows(input, ret, fedBefore, fedOvertime, premium) {
   const stateData = taxData.states ? taxData.states[stateSlug] : null;
-  if (!ret || !stateData) return null;
+  if (!ret || !stateData) return [];
   const s = stateOvertimeAtFiling({
     income: ret.income, filingStatus: input.filingStatus, stateData, fed: taxData.federal,
     preTaxIncome: ret.preTax, preTaxFica: ret.preTaxFica,
     dependentsCredit: (input.adv && input.adv.dependentsCredit) || 0,
     federalDeductionBefore: fedBefore, federalOvertimeDeduction: fedOvertime, premium
   });
-  if (!s) return null;
+  if (!s) return [];
   const name = stateData.name;
   const saveR = Math.round(s.stateSaving);
   const knockR = Math.round(s.federalKnockOn);
-  if (saveR === 0 && knockR === 0) return null;
   const net = saveR - knockR;
-  let note = s.deduction < premium
-    ? `${name} also lets you deduct that extra pay on your ${name} return, but only up to ${usd(s.cap)} a year, ` +
-      `so ${usd(s.deduction)} of your ${usd(premium)} comes off there and saves you ${usd(saveR)}.`
-    : `${name} also lets you deduct that extra pay on your ${name} return, up to ${usd(s.cap)} a year, ` +
-      `so all ${usd(s.deduction)} of it comes off there and saves you ${usd(saveR)}.`;
-  if (knockR > 0) {
-    note += ` But ${name} also lets you subtract the federal income tax you owe, and the federal overtime ` +
-      `deduction lowers that tax, which puts ${usd(knockR)} back on your ${name} tax.`;
-    if (net > 0) note += ` Together your ${name} tax comes out ${usd(net)} lower.`;
-    else if (net < 0) note += ` Together your ${name} tax comes out ${usd(-net)} higher, and the total counts that.`;
-    else note += ` Together the two cancel out.`;
+  const out = [];
+  if (saveR > 0) {
+    let note = s.deduction < premium
+      ? `${name} also lets you deduct that extra pay on your ${name} return, but only up to ${usd(s.cap)} a year, ` +
+        `so ${usd(s.deduction)} of your ${usd(premium)} comes off there and saves you ${usd(saveR)}.`
+      : `${name} also lets you deduct that extra pay on your ${name} return, up to ${usd(s.cap)} a year, ` +
+        `so all ${usd(s.deduction)} of it comes off there and saves you ${usd(saveR)}.`;
+    // The statute caps it "per taxpayer" and ADOR has not said how that works on
+    // a joint return, so a married filer is told the figure is one earner's.
+    if (input.filingStatus === 'married') {
+      note += ` Counted for one of you. ${name}'s limit is ${usd(s.cap)} per taxpayer, so if you both work ` +
+        `overtime each of you may be able to deduct up to ${usd(s.cap)}; ${name} has not said how it applies ` +
+        `on a joint return.`;
+    }
+    out.push({
+      label: `${name} overtime deduction`,
+      saved: saveR,
+      exact: true,
+      state: true,
+      // No wage of its own: the overtime pay is named once, on the "Extra hours" row.
+      fica: '',
+      note,
+      extra: ''
+    });
   }
-  return {
-    label: `${name} overtime deduction`,
-    saved: net,
-    exact: true,
-    state: true,
-    // No wage of its own: the overtime pay is named once, on the row above.
-    fica: '',
-    note,
-    extra: ''
-  };
+  if (knockR > 0) {
+    let note = `${name} lets you subtract the federal income tax you owe, and the federal overtime deduction ` +
+      `lowers that tax, so you have less to subtract and your ${name} tax goes up by ${usd(knockR)}.`;
+    if (saveR > 0) {
+      if (net > 0) note += ` Taken with the ${name} overtime deduction, your ${name} tax comes out ${usd(net)} lower.`;
+      else if (net < 0) note += ` Taken with the ${name} overtime deduction, your ${name} tax comes out ${usd(-net)} higher, and the total counts that.`;
+      else note += ` Taken with the ${name} overtime deduction, the two cancel out.`;
+    }
+    out.push({
+      label: `Smaller federal tax to subtract on your ${name} return`,
+      saved: -knockR,
+      exact: true,
+      state: true,
+      fica: '',
+      note,
+      extra: ''
+    });
+  }
+  return out;
 }
 
 // The three deductions, in card order, each with the tax it saves. CHAINED, not
@@ -935,8 +957,7 @@ function filingRows(input, magi, mergeTips, ret) {
       extra: conformityClause('overtime')
     });
     if (!pending && premium > 0) {
-      const stRow = stateOvertimeRow(input, ret, fedBefore, d.deduction, premium);
-      if (stRow) rows.push(stRow);
+      rows.push(...stateOvertimeRows(input, ret, fedBefore, d.deduction, premium));
     }
   }
 
@@ -1149,7 +1170,7 @@ function renderAtFiling(input, r, mergeTips) {
   }
 
   // The row that absorbs the rounding is the LAST ONE THAT IS NOT ALREADY WHOLE
-  // DOLLARS. A state overtime row is (`exact`, see stateOvertimeRow) and its note
+  // DOLLARS. A state overtime row is (`exact`, see stateOvertimeRows) and its note
   // quotes its own figure, so re-deriving it could print a row a dollar away from
   // the sentence explaining it; the federal row above it takes the cent instead.
   const amounts = shown.map((row) => Math.round(row.saved));
@@ -1165,7 +1186,7 @@ function renderAtFiling(input, r, mergeTips) {
   // The rows carry the money and nothing else; every qualifying sentence goes
   // BELOW the list, named for the row it qualifies. A note nested inside a flex
   // row would sit on the same line as the label it belongs to.
-  // A state overtime row can be a cost (see stateOvertimeRow), so it prints its
+  // A state overtime row can be a cost (see stateOvertimeRows), so it prints its
   // sign: a minus, and without the accent colour that marks money coming back.
   const items = shown.map((row, i) =>
     `<li><span>${escLbl(row.label)}</span>` +
@@ -1246,11 +1267,12 @@ function renderAtFiling(input, r, mergeTips) {
   // claim about a $6,000 age allowance that is not pay at all. That is the same
   // exclusion the bonus-only answer already gets, for the same reason.
   const ficaItems = [...new Set(shown.map((row) => row.fica).filter(Boolean))];
-  // With a state overtime row on the card the deductions lower the state's income
-  // tax too, so "federal income tax only" would be false; the point of the
-  // sentence (not Social Security or Medicare) survives either way.
+  // With a state overtime row on the card the deductions move the state's income
+  // tax too, and not always down (see stateOvertimeRows), so the sentence says
+  // they CHANGE it rather than lower it; the point of the sentence (not Social
+  // Security or Medicare) survives either way.
   const incomeTaxes = shown.some((row) => row.state)
-    ? `the deductions lower federal and ${escLbl(stateName)} income tax only.`
+    ? `the deductions change only your federal and ${escLbl(stateName)} income tax.`
     : `the deduction lowers federal income tax only.`;
   let plain = '';
   if (shown.length) {

@@ -3096,7 +3096,7 @@ function obbbaConformityBlock(state, obbba, year) {
   else if (otV === 'no' && tipV === 'no') verdictTail = `Federally yes, but ${state.name} still taxes both`;
   else if (otV === 'partial' && tipV === 'partial') verdictTail = `Federally yes; ${state.name} allows a smaller capped break`;
   else if (otV === 'unclear' && tipV === 'unclear') verdictTail = `Federally yes; ${state.name}'s rules aren't confirmed yet`;
-  else if (otV === 'partial' && tipV === 'no' && otCap > 0) verdictTail = `Federally yes; ${state.name} lets you deduct up to ${usd0(otCap)} of overtime, not tips`;
+  else if (otV === 'partial' && tipV === 'no' && otCap > 0) verdictTail = `Federally yes; ${state.name} lets you deduct up to ${usd0(otCap)} of the overtime premium, not tips`;
   else verdictTail = `Federally yes; ${state.name}'s state treatment is mixed`;
   const h2 = `Is overtime and tips tax-free in ${state.name}? ${verdictTail}`;
 
@@ -6939,6 +6939,18 @@ const CA_FTB_TITLES = [
   [/tax-news/, 'California FTB: annual inflation indexing of the standard deduction'],
 ];
 
+// Alabama's state-level URLs, titled for the same reason: five links all captioned
+// "Alabama: source for the state figures on this page" told a reader nothing
+// about which document settles which figure.
+const AL_SOURCE_TITLES = [
+  [/taxfoundation\.org\/.*state-income-tax-rates-2026/, 'Tax Foundation: 2026 state income tax rates and brackets'],
+  [/revenue\.alabama\.gov\/forms\/standard-deduction-chart/, 'Alabama Department of Revenue: standard deduction chart'],
+  [/code-of-alabama\?section=40-18-15$/, 'Code of Alabama Section 40-18-15: deductions on the Alabama return'],
+  [/2026RS\/HB527-enr\.pdf$/, 'Act 2026-604 (HB527): the overtime premium deduction, as enacted'],
+  [/overtime-premium-deduction-act-2026-604/, 'Alabama Department of Revenue: overtime premium deduction guidance'],
+];
+const STATE_SOURCE_TITLES = { california: CA_FTB_TITLES, alabama: AL_SOURCE_TITLES };
+
 // Sources, built from the URLs the data file already carries for this state and
 // for the federal figures. Titles are ours; the URLs are the data's, so a source
 // swap in tax-data-2026.json moves the citation with it.
@@ -6954,7 +6966,8 @@ function caLadderSources(taxData, state) {
   const stateUrls = String(state._source || '').match(/https?:\/\/\S+/g) || [];
   stateUrls.forEach((raw) => {
     const u = raw.replace(/[;,)]+$/, '');
-    const hit = isCA ? CA_FTB_TITLES.find(([re]) => re.test(u)) : null;
+    const titles = STATE_SOURCE_TITLES[state.slug];
+    const hit = titles ? titles.find(([re]) => re.test(u)) : null;
     add(hit ? hit[1] : (isCA ? 'California Franchise Tax Board' : `${state.name}: source for the state figures on this page`), u);
   });
   // The rule behind the federal-tax subtraction (Alabama, Missouri, Oregon), cited from its

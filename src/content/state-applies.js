@@ -67,7 +67,7 @@ function conformityLine(name, verdict, what, angle, ownCap) {
   if (verdict === 'no') return `federally deductible, but ${name} still taxes ${what} in full`;
   if (verdict === 'partial' && ownCap > 0) {
     return `federally deductible, and ${name} lets you deduct up to $${Math.round(ownCap).toLocaleString('en-US')} ` +
-      `of it on your ${name} return too`;
+      `of the overtime premium on your ${name} return too`;
   }
   if (verdict === 'partial') return `federally deductible, with a smaller capped ${name} break on top`;
   if (verdict === 'unclear') return `federally deductible; ${name} has not confirmed its own treatment yet`;

@@ -417,6 +417,13 @@ eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single'
   is('AL note names the $1,000 cap', al.note.includes('up to $1,000 a year'), true);
   is('AL note says 2026 through 2028', al.note.includes('2026 through 2028'), true);
   is('AL note has no em or en dash', /[–—]/.test(al.note), false);
+  // Alabama subtracts federal income tax (40-18-15(c)), so a federal deduction
+  // RAISES the Alabama tax by about 5% of what it saves (test-tax-data.js: $110
+  // at $90k with a $10,000 premium, against the $50 the $1,000 cap saves). The
+  // note must say so and must not claim the tips deduction is federal-only.
+  is('AL note explains the federal-subtraction knock-on', al.note.includes(
+    'the federal overtime deduction raises your Alabama tax by about 5 cents per dollar it saves you'), true);
+  is('AL note no longer says tips lower federal tax only', /federal tax only/.test(al.note), false);
   is('AL cap in the note = the engine cap', taxData.states.alabama.tax.overtimePremiumDeduction.cap, 1000);
   is('AL disclaimer has no em dash', taxData.states.alabama.disclaimer.some((d) => /—/.test(d)), false);
   is('AL disclaimer no longer says "not modeled" for overtime',
@@ -433,7 +440,7 @@ eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single'
     return m ? m[1] : '';
   };
   is('AL applies line', line('alabama'),
-    'federally deductible, and Alabama lets you deduct up to $1,000 of it on your Alabama return too');
+    'federally deductible, and Alabama lets you deduct up to $1,000 of the overtime premium on your Alabama return too');
   is('GA applies line stays generic', line('georgia'), 'federally deductible, with a smaller capped Georgia break on top');
 }
 
