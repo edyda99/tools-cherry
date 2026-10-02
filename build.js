@@ -4877,6 +4877,19 @@ function stateNoDeductionReason(r) {
     : `${r.state.name} subtracts nothing before its own rate applies`;
 }
 
+// A PERSONAL EXEMPTION THE ENGINE DOES NOT MODEL, counted only in the raise the ladder prints
+// for reaching the next band. Wisconsin takes a $700 personal exemption off a single filer's
+// income on top of its sliding standard deduction (Wis. Stat. 71.05(23)(b)). The engine leaves
+// it out, and the Wisconsin disclaimer says so, so every Wisconsin taxable figure on these pages
+// is $700 above the filer's real one, and a raise sized off those figures reaches the next band
+// too early: by about $625 while the deduction is still shrinking (each raise dollar adds $1.12
+// of taxable income there) and by $700 once it is gone. No state in tax-data-2026.json carries a
+// personal-exemption field, and folding $700 into Wisconsin's standard deduction would phase it
+// out with the deduction, which the statute does not do, so the engine and the take-home
+// figures stay as they are and only the raise sentence counts it. South Carolina has no
+// personal exemption for the filer and is not listed.
+const LADDER_UNMODELED_EXEMPTION = { WI: 700 };
+
 // The smallest whole-dollar raise that lifts this rung's state taxable income above `edge`,
 // computed by the engine at every candidate salary: its own FICA, its own federal income tax,
 // its own stateTaxableIncome(). Single filer, no pre-tax money, exactly as caRung() runs it.
@@ -4962,7 +4975,11 @@ function raiseGapSentence(g, NAME, S, raise, amount) {
     return `but a raise of about ${usd0(raise)} gets you there. ${sdPhasePhrase(g, NAME, amount)}, so ` +
       `a raise adds to your ${NAME} taxable income twice: once as pay, and again as the deduction it ` +
       `takes away. The deduction is ${usd0(g.sdNow)} at ${S} and ${usd0(Math.max(0, g.sdAt))} at ` +
-      `${usd0(g.at)} of pay.`;
+      `${usd0(g.at)} of pay.` +
+      (g.exemption
+        ? ` That raise also counts the ${usd0(g.exemption)} personal exemption ${NAME} gives a single ` +
+          `filer, which the taxable income figures on this page leave out.`
+        : '');
   }
   if (g.kind === 'limit') {
     return `but a raise of about ${usd0(raise)} gets you there. At ${usd0(g.at)} of pay your income is past ` +
@@ -4986,7 +5003,11 @@ function raiseGapSentence(g, NAME, S, raise, amount) {
 function raiseGapClause(g, NAME) {
   if (g.kind === 'sdphase') {
     return `because ${NAME}'s standard deduction shrinks as your pay rises, so each dollar of a raise ` +
-      `adds more than a dollar to your ${NAME} taxable income`;
+      `adds more than a dollar to your ${NAME} taxable income` +
+      (g.exemption
+        ? ` (the raise also counts the ${usd0(g.exemption)} personal exemption ${NAME} gives you, which ` +
+          `the taxable income figures on this page leave out)`
+        : '');
   }
   if (g.kind === 'limit') {
     return `because past ${usd0(g.f.capStepsFrom)} of income ${NAME}'s limit on the federal tax you can ` +
@@ -5175,12 +5196,16 @@ function caProseBlocks(r, rungs, ctx) {
     // only while there is still a deduction left to shrink: once it is gone (Wisconsin from
     // $136,453, South Carolina from $95,000) a raise moves taxable income dollar for dollar.
     const deductionStillShrinks = !!st.tax.standardDeductionPhaseout && r.stDedAfterPhaseout > 0;
+    // The exemption the engine leaves out (see LADDER_UNMODELED_EXEMPTION) moves the edge in
+    // engine terms: real taxable income clears it only once the engine's figure clears it by
+    // the exemption too.
+    const exemption = LADDER_UNMODELED_EXEMPTION[st.abbr] || 0;
     const raiseToEdge = (nextEdge == null ||
       !(st.tax.federalTaxSubtraction || deductionStillShrinks))
       ? distance
-      : salaryRaiseToTaxable(r, nextEdge, taxData);
+      : salaryRaiseToTaxable(r, nextEdge + exemption, taxData);
     const raiseDiffers = distance != null && Math.abs(raiseToEdge - distance) >= 1;
-    const raiseGap = raiseDiffers ? raiseGapFacts(r, raiseToEdge, taxData) : null;
+    const raiseGap = raiseDiffers ? { ...raiseGapFacts(r, raiseToEdge, taxData), exemption } : null;
     // A BAND EDGE IS NOT ALWAYS A RATE CHANGE. Nebraska publishes four bands and its third
     // and fourth carry the SAME 4.55% rate (Neb. Rev. Stat. 77-2715.03(2)(c)(v) brought the
     // top rate down to meet the one below it), so on the rung that tops out in the third

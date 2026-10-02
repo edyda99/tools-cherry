@@ -216,14 +216,16 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
     ficaTax(salary, 'single', taxData.federal).total, federalIncomeTax(salary, 'single', taxData.federal)).taxable;
   // Wisconsin, Wis. Stat. 71.05(22)(dp): 13,960 less 12% of income over 20,120, whole dollars.
   // The $50,000 page: deduction 13,960 - 3,585 = 10,375, taxable 39,625, so the 5.3% band at
-  // 51,950 is 12,325 of taxable income away. The page says a raise of $11,005 gets there:
-  //   at 61,004: 12% x 40,884 = 4,906.08 -> 4,906 off, deduction 9,054, taxable 51,950 (on the edge)
-  //   at 61,005: 12% x 40,885 = 4,906.20 -> 4,906 off, deduction 9,054, taxable 51,951 (one dollar in)
-  // and the old $12,325 raise (pay 62,325) is already 1,479 past it: 62,325 - (13,960 - 5,064) = 53,429.
+  // 51,950 is 12,325 of taxable income away. The engine leaves out the $700 personal exemption
+  // (Wis. Stat. 71.05(23)(b)), so the filer's real taxable income is the engine's less 700 and
+  // clears 51,950 only once the engine's figure clears 52,650. The page says $11,630 gets there:
+  //   at 61,629: 12% x 41,509 = 4,981.08 -> 4,981 off, deduction 8,979, taxable 52,650, real 51,950 (on the edge)
+  //   at 61,630: 12% x 41,510 = 4,981.20 -> 4,981 off, deduction 8,979, taxable 52,651, real 51,951 (one dollar in)
+  // Without the exemption it would be $11,005 (61,005: 4,906 off, taxable 51,951), $625 early.
   eq('wisconsin $50k taxable', taxableAt('wisconsin', 50000), 39625);
-  eq('wisconsin taxable at $61,004 sits on the 5.3% edge', taxableAt('wisconsin', 61004), 51950);
-  eq('wisconsin taxable at $61,005 is one dollar into it', taxableAt('wisconsin', 61005), 51951);
-  eq('wisconsin: the gap as a raise overshoots the edge', taxableAt('wisconsin', 62325), 53429);
+  eq('wisconsin taxable at $61,629 sits $700 above the 5.3% edge', taxableAt('wisconsin', 61629), 52650);
+  eq('wisconsin taxable at $61,630 is one dollar past edge plus exemption', taxableAt('wisconsin', 61630), 52651);
+  eq('wisconsin taxable at $61,005 is one dollar into the edge before the exemption', taxableAt('wisconsin', 61005), 51951);
   // South Carolina, S.C. Code 12-6-1140(15): 15,000 less 15,000 x (income over 40,000) / 55,000,
   // the reduction rounded down to $10. The $40,000 page: taxable 25,000, the 5.21% band at 30,000
   // is 5,000 away, and the page says a raise of $3,931 gets there:
@@ -240,8 +242,13 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
   };
   const wi50 = page('wisconsin', 50000), sc40 = page('south-carolina', 40000), sc30 = page('south-carolina', 30000);
   if (wi50 && sc40 && sc30) {
-    is('wisconsin $50k page prints the $11,005 raise', wi50.includes('a raise of about $11,005 gets you there'), true);
+    is('wisconsin $50k page prints the $11,630 raise', wi50.includes('a raise of about $11,630 gets you there'), true);
+    is('wisconsin $50k page no longer prints the raise without the exemption', wi50.includes('$11,005'), false);
+    is('wisconsin $50k page says the raise counts the $700 exemption',
+      wi50.includes('counts the $700 personal exemption Wisconsin gives a single filer'), true);
     is('wisconsin $50k page no longer prints the gap as the raise', wi50.includes('A raise of $12,325'), false);
+    const wi100 = page('wisconsin', 100000);
+    if (wi100) is('wisconsin $100k page prints the $233,421 raise', wi100.includes('a raise of about $233,421 gets you there'), true);
     is('south carolina $40k page prints the $3,931 raise', sc40.includes('a raise of about $3,931 gets you there'), true);
     is('south carolina $30k page prints the $13,931 raise', sc30.includes('a raise of about $13,931 gets you there'), true);
   }
