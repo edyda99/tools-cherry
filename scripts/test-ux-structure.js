@@ -1124,6 +1124,14 @@ const PAGES = [
     ],
   },
   {
+    // South Carolina: 2025 adds the deductions back, 2026 starts from federal AGI (Act 110, IL #26-20).
+    file: 'south-carolina-paycheck-calculator/index.html',
+    pins: [
+      ['sc-note-2026-agi-start', contains('From 2026, South Carolina starts from your federal adjusted gross income')],
+      ['sc-old-note-gone', absent('the 2026 conformity bill (H3368) was not enacted')],
+    ],
+  },
+  {
     // Oregon tips and overtime: the conformity note in plain words, SB 1507 named.
     file: 'oregon-paycheck-calculator/index.html',
     pins: [

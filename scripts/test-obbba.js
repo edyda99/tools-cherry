@@ -571,6 +571,24 @@ eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single'
   is('AZ note has no em or en dash', /[–—]/.test(az.note), false);
 }
 
+// --- South Carolina tips and overtime: 2025 add-back, 2026 AGI start ------------------------------
+// 2025: IRC frozen at 2024-12-31 (12-6-40), so the deductions are added back (IL #26-4 Revised).
+// 2026: Act 110 decouples from IRC 63(b)-(g) and starts from federal AGI (IL #26-20, 2026-08-31),
+// so nothing is added back; the deductions never reach the return. The old note said "must be added
+// back" with no year split. The verdicts stay "no", and so does the senior row (IL #26-20 item 3).
+{
+  const sc = obbba.states['south-carolina'];
+  is('SC tips 2026 stays no', sc.tips.y2026, 'no');
+  is('SC overtime 2026 stays no', sc.overtime.y2026, 'no');
+  is('SC senior 2026 stays no under the AGI start', sc.senior.y2026, 'no');
+  is('SC note splits 2025 (add back) from 2026 (AGI start)',
+    /For 2025 .* add them back/.test(sc.note) && /From 2026, South Carolina starts from your federal adjusted gross income/.test(sc.note), true);
+  is('SC note no longer cites the failed H3368 as the reason', /H3368/.test(sc.note), false);
+  is('SC note has no em or en dash', /[–—]/.test(sc.note), false);
+  is('SC source is Information Letter #26-20', sc.source, 'https://dor.sc.gov/sites/dor/files/policies/IL26-20.pdf');
+  is('SC checkedOn', sc.checkedOn, '2026-10-02');
+}
+
 // --- Oregon tips and overtime: the note says what the law does, in plain words -------------
 // SB 1507 makes three additions to federal taxable income (car loan interest, 1202 stock, 168(k))
 // and none for 224 tips or 225 overtime, so both stay "yes" for 2026. The paycheck page used to
