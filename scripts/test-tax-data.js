@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { computePaycheck, stateIncomeTax, phaseOutStandardDeduction, federalTaxSubtraction } from '../src/engine/paycheck-engine.js';
+import { computePaycheck, stateIncomeTax, phaseOutStandardDeduction, federalTaxSubtraction, stateTaxOnSlice } from '../src/engine/paycheck-engine.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const tax = JSON.parse(await readFile(join(__dirname, '..', 'src', 'data', 'tax-data-2026.json'), 'utf8'));
@@ -852,5 +852,55 @@ t('Missouri MFJ $100k: 15% of 7,640 = 1,146 off', () =>
 t('Missouri HoH $75k: 15% of 5,748 = 862.20 off', () =>
   // 75,000 - 24,150 - 862.20 = 49,987.80 -> 262.86 + 4.7% x 40,551.80 = 2,168.7946
   approx(stateTax('missouri', 75000, 'head_of_household'), 2168.7946, 0.01));
+
+// --- THE TIPS BLOCK'S STATE FIGURE: stateTaxOnSlice() (added 2026-10-02) -----------------------
+// app.js's tipsSlice() prices the state tax on tips as stateTaxOnSlice(): the state tax at the pay
+// with the tips in it, less the state tax at the pay without them. Each term is fed what
+// computePaycheck feeds the state at that income, so with no tips deduction the slice is the
+// difference of two computePaycheck state figures to the cent, in every state and with every W-4
+// and pre-tax input (Massachusetts reads the FICA paid, the three subtraction states read the
+// federal liability after W-4 credits and without 4(c) extra withholding).
+const cpState = (slug, amount, fs, adv) => computePaycheck({ wage: { type: 'salary', amount },
+  filingStatus: fs, payFrequency: 'annual', stateSlug: slug, adv }, tax).annual.state;
+t('stateTaxOnSlice with no deduction = the difference of two computePaycheck state figures', () => {
+  const adv = { retirement401k: 3000, cafeteria125: 1200, dependentsCredit: 2000, extraWithholding: 500 };
+  for (const slug of ['alabama', 'missouri', 'oregon', 'massachusetts', 'california', 'connecticut', 'south-carolina']) {
+    for (const fs of ['single', 'married', 'head_of_household']) {
+      const got = stateTaxOnSlice({ base: 40000, top: 46000, filingStatus: fs, stateData: tax.states[slug],
+        fed: tax.federal, preTaxIncome: 4200, preTaxFica: 1200, dependentsCredit: 2000 });
+      const want = cpState(slug, 46000, fs, adv) - cpState(slug, 40000, fs, adv);
+      assert.ok(Math.abs(got - want) < 1e-6, `${slug} ${fs}: slice ${got} vs computePaycheck ${want}`);
+    }
+  }
+});
+t('Alabama, $5,000 of tips inside $50,000 of pay: the tips deduction reaches the state, $250.00', () => {
+  // Federal 2026 single: at 45,000 (the pay without the tips) taxable 28,900 -> 1,240 + 12% x 16,500
+  // = 3,220. At 50,000 before the tips deduction taxable 33,900 -> 3,820; after the full $5,000
+  // deduction (under the $25,000 cap, MAGI far under the $150,000 phase-out) taxable 28,900 -> 3,220.
+  // Alabama: standard deduction $2,500 at both incomes (the floor from $35,500), and above $3,000
+  // of taxable income the tax is 2% x 500 + 4% x 2,500 + 5% x (T - 3,000) = 5% x T - 40.
+  //   without the tips: 45,000 - 2,500 - 3,220 = 39,280 -> 1,964 - 40 = 1,924.00
+  //   with them, filed: 50,000 - 2,500 - 3,220 = 44,280 -> 2,214 - 40 = 2,174.00
+  //   slice 2,174 - 1,924 = 250.00, which is 5% of all $5,000: once deducted the tips add no
+  //   federal tax, so they add nothing to Alabama's federal subtraction either.
+  const slice = stateTaxOnSlice({ base: 45000, top: 50000, filingStatus: 'single',
+    stateData: tax.states.alabama, fed: tax.federal, federalDeduction: 5000 });
+  approx(slice, 250, 0.005);
+  // The pay without the tips is computePaycheck's own figure.
+  approx(cpState('alabama', 45000, 'single'), 1924, 0.005);
+  // computePaycheck at 50,000 has no tips input, so it subtracts the pre-deduction 3,820:
+  // 50,000 - 2,500 - 3,820 = 43,680 -> 2,144.00. The slice is $30.00 more, which is exactly
+  // Alabama's 5% on the $600 of federal tax (3,820 - 3,220) the return never shows.
+  approx(cpState('alabama', 50000, 'single'), 2144, 0.005);
+  approx(slice - (cpState('alabama', 50000, 'single') - cpState('alabama', 45000, 'single')), 30, 0.005);
+});
+t('Massachusetts, $2,000 of tips on $20,000: the FICA deduction moves with the tips, $92.35', () => {
+  // FICA 7.65%: 1,530 at 20,000, 1,683 at 22,000, both under the $2,000 cap, so both deducted in full.
+  //   20,000 - 4,400 - 1,530 = 14,070 -> 5% = 703.50
+  //   22,000 - 4,400 - 1,683 = 15,917 -> 5% = 795.85
+  //   slice 92.35 (the old tips block passed no FICA and printed 5% x 2,000 = 100.00)
+  approx(stateTaxOnSlice({ base: 20000, top: 22000, filingStatus: 'single',
+    stateData: tax.states.massachusetts, fed: tax.federal, federalDeduction: 2000 }), 92.35, 0.005);
+});
 
 console.log(`\n${pass} passing`);

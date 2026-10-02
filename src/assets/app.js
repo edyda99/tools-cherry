@@ -63,7 +63,7 @@
 // printed in a block of their own, below the table, labelled as money back when
 // you file. The bonus is the other way round — a payday figure — and its line
 // says so and carries the heavier rule that stops a reader adding it in.
-// federalIncomeTax / ficaTax / stateIncomeTax are imported, never re-derived:
+// federalIncomeTax / ficaTax / stateTaxOnSlice are imported, never re-derived:
 // tips on top of the pay are the SAME three taxes measured at a second income,
 // so the tips block is three differences of the functions that already wrote the
 // rows above it. Deriving a marginal rate by hand here would be a fourth opinion
@@ -71,7 +71,7 @@
 // Social Security wage base the moment pay plus tips crosses it.
 import {
   computePaycheck, PAY_PERIODS, federalBracketBreakdown, annualizeGross,
-  federalIncomeTax, ficaTax, stateIncomeTax
+  federalIncomeTax, ficaTax, stateTaxOnSlice
 } from '/assets/paycheck-engine.js';
 import { allowedDeduction, federalTaxSaved, overtimePremium, seniorDeduction } from '/assets/obbba-deduction.js';
 import { computeBonus } from '/assets/bonus-tax.js';
@@ -699,17 +699,21 @@ function tipsSlice(input, r) {
   const conformity = (ruleData.obbba.states && ruleData.obbba.states[stateSlug]
     && ruleData.obbba.states[stateSlug].tips && ruleData.obbba.states[stateSlug].tips.y2026) || '';
   const stateDed = conformity === 'yes' ? d.deduction : 0;
-  // Alabama, Missouri and Oregon subtract (some of) the federal income tax on the return
-  // from the income they tax, so each state term gets the federal tax at its own income:
-  // the filed figure (after the tips deduction, which is what the federal return shows)
-  // less the W-4 credits, exactly the figure computePaycheck hands the state. Every other
-  // state ignores the argument.
-  const dc = Math.max(0, (input.adv && input.adv.dependentsCredit) || 0);
-  const fedOwedW = Math.max(0, federalIncomeTax(W, filing, fed, preTaxIncome + d.deduction) - dc);
-  const fedOwedBase = Math.max(0, fedBase - dc);
-  const stateTax = Math.max(0,
-    stateIncomeTax(W, filing, stateData, preTaxIncome + stateDed, 0, fedOwedW) -
-    stateIncomeTax(base, filing, stateData, preTaxIncome, 0, fedOwedBase));
+  // The engine's stateTaxOnSlice() feeds each state term what computePaycheck feeds the
+  // state at that income (pre-tax money, the FICA paid there, the federal liability less
+  // the W-4 credits), so the term at the page's own pay IS the page's state figure. The
+  // term with the tips in it also takes the federal tips deduction off the federal
+  // liability, because Alabama, Missouri and Oregon subtract the federal tax owed on the
+  // return, and that is true whether the tips sit on top of the pay or inside it.
+  // computePaycheck has no tips input, so with tips inside the pay its state figure uses
+  // the liability before that deduction; the difference is the deduction's knock-on on
+  // the state, counted here and nowhere else (the at-filing block prices federal only).
+  const stateTax = stateTaxOnSlice({
+    base, top: W, filingStatus: filing, stateData, fed,
+    preTaxIncome, preTaxFica,
+    dependentsCredit: (input.adv && input.adv.dependentsCredit) || 0,
+    federalDeduction: d.deduction, stateDeduction: stateDed
+  });
 
   return {
     tips: t, inside, deduction: d, conformity, stateDed,

@@ -4278,6 +4278,18 @@ const LADDER_STATE_SET = new Set(LADDER_STATES);
 const ladderHubSlug = (slug) => `${slug}-take-home-pay`;
 const ladderPath = (slug, amount) => `/${ladderHubSlug(slug)}-${amount}/`;
 
+// A DIFFERENCE OF TWO ENGINE FIGURES, SNAPPED BEFORE IT IS PRINTED. Every cent on the ladder
+// pages goes through usdCents(), which is toLocaleString: half a cent rounds away from zero,
+// the rule the calculators (app.js usd2) and the rest of the site print with, and the ladder
+// keeps it so a rung's per-paycheck figures match the calculator's to the cent. A figure the
+// ladder DERIVES by subtracting two engine figures is different: a true $765.625 arrives as
+// 765.62499999 on one rung and 765.62500001 on the next, so sibling Oregon pages printed the
+// same worth as $765.62 and $765.63. roundCents() snaps such a difference to a millionth of a
+// dollar, which removes the subtraction noise, and then applies the same half-cent rule.
+const roundCents = (n) => {
+  const micro = Math.round(Math.abs(n) * 1e6);
+  return (Math.sign(n) * Math.round(micro / 1e4) / 100) || 0;   // || 0: never print "-$0.00"
+};
 const usdCents = (n) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const pct1 = (n) => (n * 100).toFixed(1) + '%';
 const pct2 = (n) => (n * 100).toFixed(2) + '%';
@@ -4803,6 +4815,73 @@ function salaryRaiseToTaxable(r, edge, taxData) {
   return hi - r.amount;
 }
 
+// WHY THAT RAISE IS NOT THE SAME SIZE AS THE GAP, read off the engine rather than asserted.
+// The subtraction is measured at this salary and at the raised one, and whichever way it
+// moved is the reason. "The federal tax moves with your pay" is only half of it: in Oregon
+// the subtraction grows with pay up to the limit, but the limit itself steps down past
+// $125,000, and every Oregon rung reaches its next band edge past that point, so from $70,000
+// up the subtraction at the edge is SMALLER than today's and the raise is smaller than the gap.
+// Missouri's share falls in steps the same way. The step that did it is named from the data.
+function raiseGapFacts(r, raise, taxData) {
+  const cfg = r.state.tax.federalTaxSubtraction;
+  const fed = taxData.federal;
+  const at = r.amount + raise;
+  const subAt = stateTaxableIncome(at, 'single', r.state, 0, ficaTax(at, 'single', fed).total,
+    federalIncomeTax(at, 'single', fed)).federalTaxSubtraction;
+  const subNow = r.stFedSub;
+  const f = fedSubFacts(cfg);
+  const capNow = fedSubCapAt(cfg, r.amount);
+  const capAt = fedSubCapAt(cfg, at);
+  const shareNow = fedSubShareAt(cfg, r.amount);
+  const shareAt = fedSubShareAt(cfg, at);
+  const atReducedLimit = capAt != null && f.maxCap != null && capAt < f.maxCap && subAt >= capAt - 0.005;
+  let kind = 'other';
+  if (subAt > subNow + 0.005) kind = 'grows';
+  else if (subAt < subNow - 0.005) {
+    if (capAt != null && capNow != null && capAt < capNow && atReducedLimit) kind = 'limit';
+    else if (shareAt != null && shareNow != null && shareAt < shareNow) kind = 'share';
+  }
+  // The income past which the share drops: the top of the band this salary sits in.
+  const shareRow = f.shares ? f.shares.find((x) => x.agiUpTo != null && r.amount <= x.agiUpTo) : null;
+  return { at, subNow, subAt, capAt, shareAt, atReducedLimit, kind, f,
+    shareFrom: shareRow ? shareRow.agiUpTo : null };
+}
+
+// The two wordings of that reason: a full sentence for the paragraph that walks the
+// schedule, and a short clause for the "near the top of the band" note.
+function raiseGapSentence(g, NAME, S, raise) {
+  if (g.kind === 'limit') {
+    return `but a raise of about ${usd0(raise)} gets you there. At ${usd0(g.at)} of pay your income is past ` +
+      `${usd0(g.f.capStepsFrom)}, where ${NAME}'s limit on the federal tax you can subtract starts to step ` +
+      `down. At that pay the limit is ${usd0(g.capAt)}, against the ${usd0(g.subNow)} that comes off at ${S}.`;
+  }
+  if (g.kind === 'share') {
+    return `but a raise of about ${usd0(raise)} gets you there. At ${usd0(g.at)} of pay your income is past ` +
+      `${usd0(g.shareFrom)}, where ${NAME} lets you subtract a smaller share of your federal tax, ` +
+      `${pctStr(g.shareAt)}, so ${usd0(g.subAt)} comes off against the ${usd0(g.subNow)} at ${S}.`;
+  }
+  if (g.kind === 'grows') {
+    return `but it takes a raise of about ${usd0(raise)} to get there, because more federal tax comes off ` +
+      `along the way: ${usd0(g.subAt)} at ${usd0(g.at)} of pay` +
+      (g.atReducedLimit ? `, which is ${NAME}'s reduced limit at that pay,` : '') +
+      ` against ${usd0(g.subNow)} at ${S}.`;
+  }
+  return `and the raise that gets you there is about ${usd0(raise)}, because the federal tax ${NAME} lets ` +
+    `you subtract is ${usd0(g.subAt)} at ${usd0(g.at)} of pay against ${usd0(g.subNow)} at ${S}.`;
+}
+function raiseGapClause(g, NAME) {
+  if (g.kind === 'limit') {
+    return `because past ${usd0(g.f.capStepsFrom)} of income ${NAME}'s limit on the federal tax you can ` +
+      `subtract steps down`;
+  }
+  if (g.kind === 'share') {
+    return `because past ${usd0(g.shareFrom)} of income ${NAME} lets you subtract a smaller share of your ` +
+      `federal tax`;
+  }
+  if (g.kind === 'grows') return `because more federal tax comes off ${NAME} taxable income as your pay rises`;
+  return `because the federal tax ${NAME} lets you subtract changes with your pay`;
+}
+
 // A block: { key, html }. `key` feeds the ordering hash and nothing else.
 function caProseBlocks(r, rungs, ctx) {
   const { taxData, obbba, secure2 } = ctx;
@@ -4970,12 +5049,15 @@ function caProseBlocks(r, rungs, ctx) {
     // share bands). So for those states the raise is MEASURED: the smallest whole-dollar
     // salary increase whose engine-computed state taxable income clears the edge. Taxable
     // income rises with salary in all three, so a bisection finds it. Every other state keeps
-    // the taxable-income gap it has always printed.
+    // the taxable-income gap it has always printed. The REASON printed beside it is measured
+    // too (raiseGapFacts): which way the subtraction moved between here and the edge, and
+    // which step moved it.
     // (Wisconsin's and South Carolina's phase-downs have the same gap and are not changed here.)
     const raiseToEdge = (nextEdge == null || !st.tax.federalTaxSubtraction)
       ? distance
       : salaryRaiseToTaxable(r, nextEdge, taxData);
     const raiseDiffers = distance != null && Math.abs(raiseToEdge - distance) >= 1;
+    const raiseGap = raiseDiffers ? raiseGapFacts(r, raiseToEdge, taxData) : null;
     // A BAND EDGE IS NOT ALWAYS A RATE CHANGE. Nebraska publishes four bands and its third
     // and fourth carry the SAME 4.55% rate (Neb. Rev. Stat. 77-2715.03(2)(c)(v) brought the
     // top rate down to meet the one below it), so on the rung that tops out in the third
@@ -5057,10 +5139,10 @@ function caProseBlocks(r, rungs, ctx) {
             ? `<p>You are near the top of this band, roughly ${pct1(intoBand)} of the way through it, so the ` +
               `next ${NAME} rate step is close. ` +
               (raiseDiffers
-                ? `A raise of ${usd0(raiseToEdge)} or more will push part of your income into it, not the ` +
-                  `${usd0(distance)} gap in taxable income, because the federal tax ${NAME} lets you ` +
-                  `subtract moves with your pay. That matters for timing a bonus, not for whether the ` +
-                  `raise is worth taking.</p>`
+                ? `A raise of ${usd0(raiseToEdge)} or more will push part of your income into it, ` +
+                  `${raiseToEdge < distance ? 'less' : 'more'} than the ${usd0(distance)} gap in taxable ` +
+                  `income, ${raiseGapClause(raiseGap, NAME)}. That matters for timing a bonus, not for ` +
+                  `whether the raise is worth taking.</p>`
                 : `A raise of ${usd0(distance)} or more will push part of ` +
                   `your income into it — which matters for timing a bonus, not for whether the raise is worth ` +
                   `taking.</p>`)
@@ -5203,9 +5285,9 @@ function caProseBlocks(r, rungs, ctx) {
               `it is charged at the same ${pctStr(stTop.rate)}, so crossing it changes nothing. `)
           : nextRateHigher
           ? (raiseDiffers
-            ? `The next band up begins ${usd0(distance)} of taxable income further on. Because the federal ` +
-              `tax ${NAME} lets you subtract moves with your pay, the raise that gets you there is about ` +
-              `${usd0(raiseToEdge)}, and that is where your ${NAME} rate next moves. `
+            ? `The next band up begins ${usd0(distance)} of taxable income further on, ` +
+              `${raiseGapSentence(raiseGap, NAME, S, raiseToEdge)} That is where your ${NAME} rate next ` +
+              `moves. `
             : `The next band up begins ${usd0(distance)} further on, so a raise of roughly that size is where ` +
               `your ${NAME} rate next moves. `)
           : `The next band up begins ${usd0(distance)} further on and is charged at the same ` +
@@ -5394,7 +5476,7 @@ function caProseBlocks(r, rungs, ctx) {
     const cap = fedSubCapAt(cfg, r.amount);
     const before = share == null ? fedOwed : fedOwed * share;
     const without = stateIncomeTax(r.amount, 'single', st, 0, r.a.socialSecurity + r.a.medicare, 0);
-    const worth = Math.max(0, without - r.a.state);
+    const worth = roundCents(Math.max(0, without - r.a.state));
     let what;
     if (sub <= 0.005) {
       what = share === 0 && f.lastShare
@@ -5420,8 +5502,9 @@ function caProseBlocks(r, rungs, ctx) {
       what = share == null
         ? `At ${S} the federal income tax on this page is ${usd0(fedOwed)}, and all of it comes off ${NAME} ` +
           `taxable income` + (cap != null ? `, because it is under the ${usd0(cap)} limit at this income` : '') +
-          `. A raise adds to your federal tax and so to this subtraction, which is why ${NAME} takes a ` +
-          `little less of the raise than its band rate suggests.`
+          `. A raise adds to your federal tax and so to this subtraction` +
+          (cap != null ? `, until it reaches the limit,` : ',') +
+          ` which is why ${NAME} takes a little less of the raise than its band rate suggests.`
         : `At ${S} the share is ${pctStr(share)}, so ${usd0(sub)} of the ${usd0(fedOwed)} federal income tax ` +
           `on this page comes off ${NAME} taxable income.`;
     }
@@ -6868,7 +6951,9 @@ function caLadderSources(taxData, state) {
   const ftsLabel = String((fts && fts.label) || 'Federal income tax subtraction').toLowerCase();
   (String((fts && fts._source) || '').match(/https?:\/\/\S+/g) || []).forEach((raw) => {
     const u = raw.replace(/[;,)]+$/, '');
-    const kind = /legislature|revisor\.|code-of-alabama/i.test(u) ? 'the statute' : 'official guidance';
+    // admincode.legislature... is the agency's rule, not the statute, despite the host name.
+    const kind = /admincode\./i.test(u) ? 'the Department of Revenue rule'
+      : /legislature|revisor\.|code-of-alabama/i.test(u) ? 'the statute' : 'official guidance';
     add(`${state.name}: ${ftsLabel}, ${kind}`, u);
   });
   // The statutory basis for a no-income-tax state levying nothing. These are the
@@ -11234,6 +11319,12 @@ async function main() {
 
     // Rosters used in the methodology and limits sections, all counted from the data.
     const noTaxStates = thpRows.filter((r) => !r.hasIncomeTax).map((r) => r.name).sort();
+    // The states that let a filer subtract federal income tax (Alabama, Missouri, Oregon), read
+    // from the data so the sentence cannot name a state the engine does not treat that way.
+    const fedSubStates = roster
+      .filter((s) => taxData.states[s.slug] && taxData.states[s.slug].tax &&
+        taxData.states[s.slug].tax.federalTaxSubtraction)
+      .map((s) => s.name).sort();
     const programStates = thpRows.filter((r) => r.programs > 0).map((r) => r.name).sort();
     const localStates = roster
       .filter((s) => payroll[s.slug] && payroll[s.slug].localIncomeTax && payroll[s.slug].localIncomeTax.exists)
@@ -11434,6 +11525,10 @@ async function main() {
         SS_WAGE_BASE: usd0(taxData.federal.fica.socialSecurity.wageBase),
         ADDL_MEDICARE_THRESHOLD: addlMedicare ? usd0(addlMedicare) : '',
         NOTAX_COUNT: String(noTaxStates.length), NOTAX_STATES: esc(listAnd(noTaxStates)),
+        FEDSUB_SENTENCE: fedSubStates.length
+          ? esc(`${listAnd(fedSubStates)} also let you subtract some or all of your federal income tax ` +
+            `before their rates apply, each on its own terms, and the figures here include it. `)
+          : '',
         PROGRAM_COUNT: String(programStates.length), PROGRAM_STATES: esc(listAnd(programStates)),
         PROGRAM_KINDS: esc(listAnd(allProgramKinds)),
         LOCAL_COUNT: String(localStates.length), LOCAL_STATES: esc(listAnd(localStates)),

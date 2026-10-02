@@ -359,8 +359,9 @@ function rowForAgi(rows, agi) {
  * the W-4 dependent credit, floored at zero. It does NOT pass the extra W-4 4(c)
  * withholding, which is a prepayment and not tax. This engine sees wages only, so a filer
  * with other income, other credits or a refundable credit has a different federal
- * liability on the real return, and the state figure moves with it; the three states'
- * disclaimers say so.
+ * liability on the real return, and the state figure moves with it. Each of the three
+ * states' disclaimers says so in the same sentence: the estimate uses the federal income
+ * tax it works out from pay, and other income or credits on the real return change it.
  *
  * THE AGI. Both income tests read federal adjusted gross income (Missouri's reads Missouri
  * AGI, which starts from it). We pass `grossAnnual - preTax`, the engine's wages-only AGI
@@ -490,6 +491,40 @@ export function stateIncomeTax(grossAnnual, filingStatus, stateData, preTax = 0,
     for (const ladder of t.steppedRecapture) tax += steppedRecapture(agi, filingStatus, ladder);
   }
   return tax;
+}
+
+/**
+ * The state income tax on a slice of pay that sits on top of `base` (the paycheck page's
+ * tips block: tips on top, base = the pay; tips inside, base = the pay less the tips), as
+ * the difference of two full stateIncomeTax() runs.
+ *
+ * EACH RUN IS FED WHAT computePaycheck() FEEDS THE STATE AT THAT INCOME: the pre-tax money,
+ * the FICA paid there (Massachusetts deducts it) and the federal income tax liability there,
+ * bracket tax less the W-4 credits and never the 4(c) extra withholding (Alabama, Missouri
+ * and Oregon subtract it). So the BASE term is computePaycheck's own state figure at `base`
+ * to the cent, and with both deductions below at zero so is the TOP term at `top`.
+ *
+ * THE TOP TERM PARTS FROM computePaycheck IN TWO INPUTS, ON PURPOSE. Both are earned by the
+ * slice itself, and computePaycheck has no tips input, so it cannot see either:
+ *   federalDeduction  a federal deduction only the slice earns (no tax on tips). The three
+ *                     states subtract the federal tax OWED on the return, which is after
+ *                     that deduction, so the liability at the top is taken after it. That
+ *                     is the engine's annual-return basis, and it counts the deduction's
+ *                     knock-on on the state exactly once, here: the at-filing block prices
+ *                     the federal saving only. Pricing the state on the pre-deduction
+ *                     liability would credit a filer with federal tax the return never shows.
+ *   stateDeduction    the state's own matching deduction, where the state follows it.
+ *
+ * @returns {number} annual state income tax on the slice, never below zero
+ */
+export function stateTaxOnSlice({ base, top, filingStatus, stateData, fed, preTaxIncome = 0,
+  preTaxFica = 0, dependentsCredit = 0, federalDeduction = 0, stateDeduction = 0 }) {
+  const credit = Math.max(0, dependentsCredit || 0);
+  const at = (income, fedDed, stDed) => stateIncomeTax(income, filingStatus, stateData,
+    preTaxIncome + stDed,
+    ficaTax(income, filingStatus, fed, preTaxFica).total,
+    Math.max(0, federalIncomeTax(income, filingStatus, fed, preTaxIncome + fedDed) - credit));
+  return Math.max(0, at(top, federalDeduction, stateDeduction) - at(base, 0, 0));
 }
 
 /**
