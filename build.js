@@ -2120,7 +2120,8 @@ function stateMetaDesc(state, year) {
     if (fig) return `${state.name} income tax rate ${year}: ${fig.desc}. Free ${state.name} paycheck and take-home pay calculator. Enter your salary or hourly wage to see your ${year} take-home after federal tax, FICA and ${state.name} state income tax.`;
   }
   const metaTaxNote = wp.hasIncomeTax
-    ? `. It also works as ${/^[AEIOU]/.test(state.name) ? 'an' : 'a'} ${state.name} income tax calculator`
+    // anFor, not /^[AEIOU]/: that test wrote "an Utah", and Utah opens on a consonant sound.
+    ? `. It also works as ${anFor(state.name)} ${state.name} income tax calculator`
     : noTaxMetaNote(state);
   // The second sentence has to END inside the 157-character budget, or compactDescStr
   // can only cut it mid-phrase. The full wording fits a short state name; a long one
