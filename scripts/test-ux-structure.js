@@ -1045,6 +1045,33 @@ const PAGES = [
       ['fourteen-cards', count('data-step="', 14)],
     ],
   })),
+  {
+    // ALABAMA TAKE-HOME PAGE COPY (2026-10-02). Not a layout pin, but the same
+    // kind of guard: these strings are assembled by build.js, so only the built
+    // page can show them. Each of Alabama's state-level source URLs carries its
+    // own title (five links used to share "Alabama: source for the state figures
+    // on this page"), and the Alabama note says the federal overtime deduction
+    // raises the Alabama tax, because Alabama subtracts federal income tax.
+    file: 'alabama-take-home-pay-70000/index.html',
+    pins: [
+      ['no-repeated-generic-source-title', absent('Alabama: source for the state figures on this page')],
+      ['source-title-tax-foundation', contains('>Tax Foundation: 2026 state income tax rates and brackets</a>')],
+      ['source-title-std-deduction-chart', contains('>Alabama Department of Revenue: standard deduction chart</a>')],
+      ['source-title-40-18-15', contains('>Code of Alabama Section 40-18-15: deductions on the Alabama return</a>')],
+      ['source-title-act-2026-604', contains('>Act 2026-604 (HB527): the overtime premium deduction, as enacted</a>')],
+      ['source-title-ador-guidance', contains('>Alabama Department of Revenue: overtime premium deduction guidance</a>')],
+      ['note-names-the-federal-subtraction-knock-on', contains('raises your Alabama tax by about 5 cents per dollar it saves you')],
+    ],
+  },
+  {
+    // The Alabama paycheck page's overtime heading and "which rules apply" line
+    // name the premium, which is all Act 2026-604 lets you deduct, not "overtime".
+    file: 'alabama-paycheck-calculator/index.html',
+    pins: [
+      ['overtime-heading-names-the-premium', contains('Alabama lets you deduct up to $1,000 of the overtime premium, not tips')],
+      ['applies-line-names-the-premium', contains('Alabama lets you deduct up to $1,000 of the overtime premium on your Alabama return too')],
+    ],
+  },
 ];
 
 let passed = 0;

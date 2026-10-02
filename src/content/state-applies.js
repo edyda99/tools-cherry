@@ -54,7 +54,11 @@ const CHIPS = [
 // The nine no-wage-tax states all get verdict 'n/a', so their sentences are keyed
 // to that state's own revenue model instead, otherwise those nine pages would
 // share one long identical run (they are already the closest raw pairs on the site).
-function conformityLine(name, verdict, what, angle) {
+//
+// A 'partial' verdict names the state's own figure when the paycheck engine
+// models one (`ownCap`, Alabama's $1,000 overtime premium deduction from
+// tax-data-2026.json), rather than the generic "smaller capped break".
+function conformityLine(name, verdict, what, angle, ownCap) {
   if (verdict === 'n/a') {
     return angle
       ? `federally deductible, and ${name} runs on ${angle} rather than a wage tax, so nothing more is claimed at state level`
@@ -62,6 +66,10 @@ function conformityLine(name, verdict, what, angle) {
   }
   if (verdict === 'yes') return `federally deductible, and deductible on your ${name} return too`;
   if (verdict === 'no') return `federally deductible, but ${name} still taxes ${what} in full`;
+  if (verdict === 'partial' && ownCap > 0) {
+    return `federally deductible, and ${name} lets you deduct up to $${Math.round(ownCap).toLocaleString('en-US')} ` +
+      `of the overtime premium on your ${name} return too`;
+  }
   if (verdict === 'partial') return `federally deductible, with a smaller capped ${name} break on top`;
   if (verdict === 'unclear') return `federally deductible; ${name} has not confirmed its own treatment yet`;
   return `federally deductible; ${name} treatment varies`;
@@ -169,6 +177,7 @@ export function buildStateApplies({ state, obbbaEntry, suppEntry, notaxAngle, pi
   const name = esc(state.name);
   const otV = obbbaEntry && obbbaEntry.overtime && obbbaEntry.overtime.y2026;
   const tipV = obbbaEntry && obbbaEntry.tips && obbbaEntry.tips.y2026;
+  const otCap = state.tax && state.tax.overtimePremiumDeduction && state.tax.overtimePremiumDeduction.cap;
 
   const h2 = pickFrame(state.slug, 'appliesh2', [
     `Which 2026 rules apply to your ${name} paycheck?`,
@@ -191,7 +200,7 @@ export function buildStateApplies({ state, obbbaEntry, suppEntry, notaxAngle, pi
   const lines = [
     `<p class="applies-line" data-line="tips"><strong>Tips:</strong> ${conformityLine(name, tipV, 'tips', angle)}. ` +
       `<a href="/tips-tax-calculator/">Work out the tip deduction</a></p>`,
-    `<p class="applies-line" data-line="ot"><strong>Overtime:</strong> ${conformityLine(name, otV, 'overtime premium pay', '')}. ` +
+    `<p class="applies-line" data-line="ot"><strong>Overtime:</strong> ${conformityLine(name, otV, 'overtime premium pay', '', otCap)}. ` +
       `<a href="/overtime-tax-calculator/">Work out the overtime deduction</a></p>`,
     `<p class="applies-line" data-line="bonus"><strong>Bonuses:</strong> ${bonusLine(name, suppEntry, state.slug, pickFrame, wp)}. ` +
       `<a href="/${state.slug}-bonus-tax-calculator/">Estimate the tax on a bonus in ${name}</a></p>`,

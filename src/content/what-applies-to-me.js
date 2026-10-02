@@ -10,7 +10,8 @@
 //
 // HARD RULES ENFORCED HERE
 // 1. Six states print their `note` field VERBATIM and get NO generated sentence:
-//    Georgia, Alabama (caps that exist only in prose), Colorado (direction reverses
+//    Georgia and Alabama (their own capped breaks; Alabama's $1,000 overtime cap is
+//    also modeled on its paycheck page), Colorado (direction reverses
 //    in 2026 and is under legal challenge), Indiana (sunsets after 2026), New York
 //    (its own capped exclusion), Michigan (a state subtraction, not conformity).
 //    Every OTHER state also prints its note verbatim, under the generated sentence.
