@@ -276,6 +276,14 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
   eq('car loan $149,001 is already gone', allow(149001).deduction, 0, 0);
   is('car loan $149,001 is fully phased out', allow(149001).fullyPhasedOut, true);
   eq('car loan $120,000 rung keeps $6,000', allow(120000).deduction, 6000, 0);
+  // $149,000: 49,000 over -> 49 steps -> 9,800 off -> 200 left, so the last single MAGI with any
+  // allowance is $149,000 and the page says "up to $149,000", not "below $150,000". Joint is the
+  // same shape from $200,000: $249,000 keeps $200, $249,001 keeps nothing.
+  eq('car loan $149,000 still keeps $200', allow(149000).deduction, 200, 0);
+  const allowJ = (magi) => carLoanDeduction({ year: Number(taxData.taxYear), filingStatus: 'married', magi,
+    interest: CL.interestCap, params: CL });
+  eq('car loan joint $249,000 still keeps $200', allowJ(249000).deduction, 200, 0);
+  eq('car loan joint $249,001 is already gone', allowJ(249001).deduction, 0, 0);
 
   const page = (amount) => {
     try { return readFileSync(join(__dirname, '..', 'dist', `texas-take-home-pay-${amount}`, 'index.html'), 'utf8'); }
@@ -289,8 +297,12 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
       p120.includes('the partially phased-out new-vehicle loan interest deduction'), true);
     is('$100,000 page no longer calls it partly phased out',
       p100.includes('the partially phased-out new-vehicle loan interest deduction'), false);
-    is('$100,000 FAQ says all of it survives', p100.includes('Yes, all of it.'), true);
+    is('$100,000 FAQ says the full allowance survives', p100.includes('Yes, the full $10,000 allowance.'), true);
+    is('$100,000 FAQ no longer says "all of it"', p100.includes('Yes, all of it.'), false);
     is('$150,000 FAQ says none of it is left', p150.includes('none of it is left at $150,000'), true);
+    is('$150,000 page says the deduction runs up to $149,000',
+      p150.includes('but only up to $149,000 of modified AGI for a single filer'), true);
+    is('$150,000 page no longer says only below $150,000', p150.includes('only below $150,000'), false);
   }
 }
 

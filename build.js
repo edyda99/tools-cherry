@@ -4400,6 +4400,16 @@ function carLoanAllowanceAt(amount, obbba, taxYear) {
     interest: cl.interestCap, params: cl });
 }
 
+// THE HIGHEST MODIFIED AGI THAT STILL LEAVES SOME OF THE ALLOWANCE. The steps round up, so
+// $149,001 single already counts fifty $1,000 steps and loses all $10,000, while $149,000
+// counts forty-nine and keeps $200. "Only below $150,000" was therefore $1,000 too generous.
+// Joint: $249,000 keeps $200 and $249,001 keeps nothing. test-ladder-rungs.js checks both
+// against the engine.
+function carLoanLastMagi(cl, status) {
+  return cl.phaseoutStartMagi[status] +
+    (Math.ceil(cl.interestCap / cl.phaseoutReductionPer1000) - 1) * 1000;
+}
+
 // Which of the three shapes a state is, read from the data and nowhere else.
 function ladderKind(st) {
   if (!st || !st.hasIncomeTax || !st.tax || st.tax.type === 'none') return 'none';
@@ -5942,7 +5952,8 @@ function caProseBlocks(r, rungs, ctx) {
       push('carloan',
         `<h3>New-car loan interest is no longer deductible at ${S}</h3>` +
         `<p>OBBBA made interest on a qualifying new-vehicle loan deductible up to ${usd0(cap)} a year, ` +
-        `even without itemizing, but only below ${usd0(gone)} of modified AGI for a single filer. The ` +
+        `even without itemizing, but only up to ${usd0(carLoanLastMagi(cl, 'single'))} of modified AGI ` +
+        `for a single filer. The ` +
         `deduction falls by ${usd0(cl.phaseoutReductionPer1000)} for every ${usd0(1000)}, or part of ` +
         `${usd0(1000)}, above ${usd0(start)} and is gone by ${usd0(gone)}, so nothing of it is left at ` +
         `${S}. Worth knowing before a dealer quotes it as a reason to finance.</p>`);
@@ -6994,7 +7005,7 @@ function caLadderFaq(r, rungs, taxData, payrollState, obbba, secure2) {
               `modified AGI above ${usd0(cl.phaseoutStartMagi.single)}, so at ${S} up to ` +
               `${usd0(clAllow.deduction)} of it survives, and it is gone by ` +
               `${usd0(cl.fullPhaseoutMagi.single)}.`
-            : `Yes, all of it. The ${usd0(cl.interestCap)} allowance only shrinks above ` +
+            : `Yes, the full ${usd0(cl.interestCap)} allowance. It only shrinks above ` +
               `${usd0(cl.phaseoutStartMagi.single)} of modified AGI: by ` +
               `${usd0(cl.phaseoutReductionPer1000)} for every ${usd0(1000)} over that line, counting any ` +
               `part of ${usd0(1000)} as a whole one, and it is gone by ${usd0(cl.fullPhaseoutMagi.single)}.`,
