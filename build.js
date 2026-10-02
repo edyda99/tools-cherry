@@ -2,7 +2,7 @@
 // build.js — pSEO static generator. Reads templates + tax data, emits ./dist.
 // Cloudflare Pages: build command `npm run build`, output dir `dist`.
 import { readFile, writeFile, mkdir, cp, rm, readdir } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { dirname, join } from 'node:path';
@@ -37,6 +37,7 @@ import {
   monthKeys as p27MonthKeys, windowStatus as p27WindowStatus, average as p27Average,
   assertComplete as p27AssertComplete, colaPercent as p27ColaPercent,
   thirdPartyBlockProblems as p27ThirdPartyBlockProblems, TP_STATUSES as P27_TP_STATUSES,
+  officialColaProblems as p27OfficialColaProblems, official2027Problems as p27Official2027Problems,
 } from './src/engine/projections-2027.js';
 import { verifyDist, reportFailures } from './scripts/verify-dist.js';
 import { DFT_PAGES, DFT_GROUPS } from './src/content/days-from-today.js';
@@ -499,6 +500,12 @@ function sitemapLastmod(u) {
   // Fixed-interval date pages: 29 pages + a hub, all built from one template and
   // one content module. Without this they fall through to CONTENT_DATE and
   // advertise a lastmod older than the content they serve.
+  // The 2027 pages (and the 2026 page's 2027 section) change with their data
+  // file on announcement day, not only with their template.
+  if (TOOL_DATED_BY_DATA[`/${seg}/`]) {
+    return [`src/templates/${seg}.html`, ...TOOL_DATED_BY_DATA[`/${seg}/`]]
+      .map(gitDate).filter(Boolean).sort().pop() || CONTENT_DATE;
+  }
   if (DFT_SLUG_SET.has(seg) || seg === 'days-from-today') {
     return gitDate('src/content/days-from-today.js')
       || gitDate('src/templates/days-from-today.html')
@@ -580,9 +587,34 @@ const DATED_TAX_TOOLS = new Set([
 // Visible, machine-readable "Last updated" line for a dated tool page. Uses the
 // template's git last-change date (same signal as sitemapLastmod), CONTENT_DATE
 // as the fallback for an uncommitted new template.
+// The 2027 seasonal pages switch from ESTIMATE / PROJECTED to OFFICIAL from the
+// data alone: projections-2027.json cpiw.officialCola (SSA announcement day) and
+// official2027 (IRS Revenue Procedure day). Their site-wide names and summaries
+// switch with them, because a nav link that still says "Projected" next to a
+// page that says "official" is the same mixed message as a stale banner.
+const P27_MODE = (() => {
+  const d = JSON.parse(readFileSync(join(__dirname, 'src', 'data', 'projections-2027.json'), 'utf8'));
+  return { colaOfficial: !!(d.cpiw && d.cpiw.officialCola), irsOfficial: !!d.official2027 };
+})();
+const P27_BRACKETS_NAME = P27_MODE.irsOfficial ? '2027 Federal Tax Brackets' : '2027 Federal Tax Brackets (Projected)';
+const P27_COLA_NAME = P27_MODE.colaOfficial
+  ? '2027 Social Security COLA Calculator' : '2027 Social Security COLA Estimate & Calculator';
+
+// Pages whose wording is switched by a data file, not only by their template:
+// the 2027 pages flip to OFFICIAL when projections-2027.json gains the official
+// figures, so "Last updated" has to move on that day even though no template does.
+const TOOL_DATED_BY_DATA = {
+  '/2027-tax-brackets/': ['src/data/projections-2027.json',
+    ...(P27_MODE.irsOfficial ? ['src/templates/2027-tax-brackets-official.html'] : [])],
+  '/2027-social-security-cola/': ['src/data/projections-2027.json'],
+  // The 2026 page only reads projections-2027.json for its "What about 2027?"
+  // section, and only once the official 2027 figures exist.
+  '/2026-tax-brackets/': P27_MODE.irsOfficial ? ['src/data/projections-2027.json'] : [],
+};
 function toolUpdatedLine(currentPath) {
   const seg = currentPath.replace(/^\/+|\/+$/g, '');
-  const isoDate = gitDate(`src/templates/${seg}.html`) || CONTENT_DATE;
+  const isoDate = [`src/templates/${seg}.html`, ...(TOOL_DATED_BY_DATA[currentPath] || [])]
+    .map(gitDate).filter(Boolean).sort().pop() || CONTENT_DATE;
   return `<p class="tool-updated muted-small">Last updated: <time datetime="${isoDate}">${humanDate(isoDate) || isoDate}</time></p>`;
 }
 
@@ -652,8 +684,8 @@ const TOOLS = [
   { name: 'W-2 Box 12 Decoder & Tipped Occupation Lookup', path: '/w2-box-decoder/', cat: 'money' },
   { name: 'W-2 Box 1 vs Box 3 vs Box 5 Reconciliation', path: '/w2-box-1-vs-box-3-vs-box-5/', cat: 'money' },
   { name: '2026 Federal Tax Brackets', path: '/2026-tax-brackets/', cat: 'money' },
-  { name: '2027 Federal Tax Brackets (Projected)', path: '/2027-tax-brackets/', cat: 'money' },
-  { name: '2027 Social Security COLA Estimate & Calculator', path: '/2027-social-security-cola/', cat: 'money' },
+  { name: P27_BRACKETS_NAME, path: '/2027-tax-brackets/', cat: 'money' },
+  { name: P27_COLA_NAME, path: '/2027-social-security-cola/', cat: 'money' },
   { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/', cat: 'money' },
   { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/', cat: 'money' },
   { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/', cat: 'money' },
@@ -772,8 +804,12 @@ const TOOL_DESCRIPTIONS = {
   '/1099-threshold-checker/': 'See whether you\'ll get a 1099-K, 1099-NEC, or 1099-MISC under the 2025/2026 rules: payment apps at $20,000 and 200 transactions, card processors like Stripe/Square with no minimum at all, or a business paying you directly at $2,000 (2026) / $600 (2025) — plus the myth-bust that a 1099 is paperwork, not a tax.',
   '/w2-box-1-vs-box-3-vs-box-5/': 'Reconcile the three wage boxes on a W-2 and see line by line where each difference came from — a traditional 401(k) deferral lowers Box 1 only, Section 125 health and FSA amounts lower all three, and Box 3 stops at the Social Security wage base while Box 5 does not. Covers the current and prior tax year, because a W-2 is read in January for the year that just ended.',
   '/2026-tax-brackets/': 'The official 2026 federal income tax brackets and standard deduction from IRS Rev. Proc. 2025-32, rendered from the same dataset this site\'s paycheck engine computes with, plus a worked example of what a marginal rate actually costs.',
-  '/2027-tax-brackets/': 'PROJECTED, not official. Shows the statutory method the 2027 brackets will be indexed by, every monthly C-CPI-U value the calculation needs with its source and publication date, and which months remain unpublished, including October 2025, which was never collected and never will be. Publishes no projected dollar figures of its own while any month is missing; lists the 2027 projections tax publishers have released, each credited to its publisher.',
-  '/2027-social-security-cola/': 'ESTIMATE, not official. Type your monthly benefit and any cost-of-living percentage to see the new payment, the monthly increase and the annual increase. Plus a tracker of the three CPI-W months the official 2027 COLA is computed from, with their release dates, and published third-party estimates attributed to whoever made them.',
+  '/2027-tax-brackets/': P27_MODE.irsOfficial
+    ? 'The official 2027 federal income tax brackets and standard deduction for every filing status, as published by the IRS in its tax-year-2027 Revenue Procedure, side by side with 2026, plus a worked example of what the change is worth.'
+    : 'PROJECTED, not official. Shows the statutory method the 2027 brackets will be indexed by, every monthly C-CPI-U value the calculation needs with its source and publication date, and which months remain unpublished, including October 2025, which was never collected and never will be. Publishes no projected dollar figures of its own while any month is missing; lists the 2027 projections tax publishers have released, each credited to its publisher.',
+  '/2027-social-security-cola/': P27_MODE.colaOfficial
+    ? 'The official 2027 Social Security cost-of-living increase, as announced by the Social Security Administration. Type your monthly benefit to see the new payment, the monthly increase and the annual increase, plus the CPI-W months the figure is computed from.'
+    : 'ESTIMATE, not official. Type your monthly benefit and any cost-of-living percentage to see the new payment, the monthly increase and the annual increase. Plus a tracker of the three CPI-W months the official 2027 COLA is computed from, with their release dates, and published third-party estimates attributed to whoever made them.',
   '/w2-box-decoder/': 'Decode the three new 2026 W-2 Box 12 codes — TA (Trump account, excluded from Box 1), TP (reported tips) and TT (overtime premium, both still fully taxed inside Box 1, flagging the Schedule 1-A deduction) — plus a searchable lookup of all 71 Treasury Tipped Occupation Codes for Box 14b, including what code 000 means.',
   '/overtime-tax-calculator/': 'See how much of your overtime is deductible under the 2025 "no tax on overtime" law and what it saves you.',
   '/tips-tax-calculator/': 'See how much of your tips are deductible under the 2025 "no tax on tips" law (up to $25,000) and what it saves you.',
@@ -1073,14 +1109,14 @@ const RELATED_OVERRIDES = {
   // visitor who wants settled figures, and vice versa.
   '/2027-tax-brackets/': [
     { name: '2026 Federal Tax Brackets', path: '/2026-tax-brackets/' },
-    { name: '2027 Social Security COLA Estimate & Calculator', path: '/2027-social-security-cola/' },
+    { name: P27_COLA_NAME, path: '/2027-social-security-cola/' },
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
     { name: 'Inflation Calculator', path: '/inflation-calculator/' },
     { name: 'W-2 Box 1 vs Box 3 vs Box 5 Reconciliation', path: '/w2-box-1-vs-box-3-vs-box-5/' },
     { name: 'Take-Home Pay by State (Data Study)', path: '/data/take-home-pay-by-state/' }
   ],
   '/2026-tax-brackets/': [
-    { name: '2027 Federal Tax Brackets (Projected)', path: '/2027-tax-brackets/' },
+    { name: P27_BRACKETS_NAME, path: '/2027-tax-brackets/' },
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
     { name: 'W-2 Box 1 vs Box 3 vs Box 5 Reconciliation', path: '/w2-box-1-vs-box-3-vs-box-5/' },
     { name: 'Social Security Wage Base Max-Out Date Calculator', path: '/ss-wage-base-calculator/' },
@@ -1088,7 +1124,7 @@ const RELATED_OVERRIDES = {
     { name: 'Take-Home Pay by State (Data Study)', path: '/data/take-home-pay-by-state/' }
   ],
   '/2027-social-security-cola/': [
-    { name: '2027 Federal Tax Brackets (Projected)', path: '/2027-tax-brackets/' },
+    { name: P27_BRACKETS_NAME, path: '/2027-tax-brackets/' },
     { name: 'Social Security Wage Base Max-Out Date Calculator', path: '/ss-wage-base-calculator/' },
     { name: 'Inflation Calculator', path: '/inflation-calculator/' },
     { name: '2026 Federal Tax Brackets', path: '/2026-tax-brackets/' },
@@ -7679,6 +7715,7 @@ async function main() {
   // base the Box 3 cap needs, for the current year AND the prior one, because a
   // W-2 is read in January for the year that just ended.
   const brackets2027Tpl = await read(join(SRC, 'templates', '2027-tax-brackets.html'));
+  const brackets2027OfficialTpl = await read(join(SRC, 'templates', '2027-tax-brackets-official.html'));
   const brackets2026Tpl = await read(join(SRC, 'templates', '2026-tax-brackets.html'));
   const cola2027Tpl = await read(join(SRC, 'templates', '2027-social-security-cola.html'));
   const pressKitTpl = await read(join(SRC, 'templates', 'press-kit-2027.html'));
@@ -10279,8 +10316,142 @@ async function main() {
       isAccessibleForFree: true,
     });
 
+    // ---- 1b. /2027-tax-brackets/ OFFICIAL ------------------------------------
+    // Once the IRS publishes the tax-year-2027 Revenue Procedure, its figures go
+    // in projections-2027.json official2027 and this URL renders the official
+    // template instead: the IRS figures for every filing status beside 2026, a
+    // worked example through the paycheck engine, and the publishers'
+    // projections reduced to a dated record of whether they matched.
+    const off27 = proj2027.official2027 || null;
+    const relatedCola = P27_MODE.colaOfficial
+      ? 'The 2027 Social Security increase is out too: <a href="/2027-social-security-cola/">2027 COLA and ' +
+        'benefit calculator</a>.'
+      : 'Social Security\'s 2027 increase runs on a different index and a different window: ' +
+        '<a href="/2027-social-security-cola/">2027 COLA estimate and calculator</a>.';
+    let official27Html = null;
+    if (off27) {
+      const bad = p27Official2027Problems(off27);
+      if (bad.length)
+        throw new Error(`projections-2027.json: official2027 is malformed, refusing to render it as official IRS figures:\n  ${bad.join('\n  ')}`);
+      const rp27 = off27.revenueProcedure;
+      const f27 = off27.federal;
+      const f26 = taxData.federal;
+      const stLabel = { single: 'Single', married: 'Married filing jointly', head_of_household: 'Head of household' };
+      const rpLink = srcLink(rp27.sourceUrl, rp27.name);
+      const sourceLine = `IRS, ${rpLink}` +
+        (rp27.newsroomUrl ? ` (${srcLink(rp27.newsroomUrl, 'IRS announcement')})` : '') +
+        `, published ${escHtml(humanDate(rp27.publishedDate))}. 2026 figures: IRS ${srcLink(revProc.sourceUrl, revProc.name)}.`;
+      const moved = (a, b) => (a === b ? 'same as 2026' : `${a > b ? 'up' : 'down'} ${usd0(Math.abs(a - b))} from 2026`);
+      const sdHtml = P27_TP_STATUSES.map((k) => `<div><span>${escHtml(stLabel[k])}</span>` +
+        `<span class="b27-amt">${usd0(f27.standardDeduction[k])}</span>` +
+        (Number.isFinite(f26.standardDeduction[k])
+          ? `<span class="b27-was">${moved(f27.standardDeduction[k], f26.standardDeduction[k])}</span>` : '') +
+        '</div>').join('');
+      const band = (rows, i) => {
+        const from = i === 0 ? 0 : rows[i - 1].upTo;
+        return rows[i].upTo == null ? `${usd0(from)} and above` : `${usd0(from)} &ndash; ${usd0(rows[i].upTo)}`;
+      };
+      const brHtml = P27_TP_STATUSES.map((k) => {
+        const r27 = f27.brackets[k];
+        const r26 = Array.isArray(f26.brackets[k]) ? f26.brackets[k] : null;
+        return '<div class="b27-wrap"><table class="b27-table">' +
+          `<caption>${escHtml(stLabel[k])}: 2027 federal income tax brackets</caption>` +
+          '<thead><tr><th scope="col">Rate</th><th scope="col" class="num">2027 taxable income</th>' +
+          (r26 ? '<th scope="col" class="num">2026, for comparison</th>' : '') + '</tr></thead><tbody>' +
+          r27.map((row, i) => `<tr><th scope="row">${pctStr(row.rate)}</th><td class="num">${band(r27, i)}</td>` +
+            (r26 ? `<td class="num">${band(r26, i)}</td>` : '') + '</tr>').join('') +
+          '</tbody></table></div>';
+      }).join('');
+
+      // Same pay in both years, through the paycheck engine's own federal tax.
+      const exW = DEFAULT_SALARY;
+      const t26 = Math.round(federalIncomeTax(exW, 'single', f26));
+      const t27 = Math.round(federalIncomeTax(exW, 'single', f27));
+      const workedExample27 = `A single filer earning ${usd0(exW)} in both years, with no other income and no ` +
+        `credits, owes ${usd0(t26)} of federal income tax for 2026 and ${usd0(t27)} for 2027. ` +
+        (t27 === t26 ? 'The two are the same.'
+          : `That is ${usd0(Math.abs(t26 - t27))} ${t27 < t26 ? 'less' : 'more'}, only because the standard ` +
+            'deduction and the brackets moved; the pay did not.');
+
+      // The projections, as a record: whether each publisher's figures matched
+      // the IRS, line by line, derived from the data rather than asserted.
+      let projectionsSection = '';
+      if (tpItems.length) {
+        const lineName = { single: 'single', married: 'married filing jointly', head_of_household: 'head of household' };
+        const rowsHtml = tpItems.map((i) => {
+          const matched = [];
+          const differed = [];
+          const twoNote = [];
+          for (const k of P27_TP_STATUSES) {
+            const f = i.standardDeduction && i.standardDeduction[k];
+            if (f !== undefined) {
+              const label = `${lineName[k]} standard deduction`;
+              if (Number.isFinite(f)) (f === f27.standardDeduction[k] ? matched : differed).push(label);
+              else if (f && Array.isArray(f.values))
+                (f.values.includes(f27.standardDeduction[k]) ? twoNote : differed).push(label);
+            }
+            const rows = i.brackets && i.brackets[k];
+            if (Array.isArray(rows)) {
+              const label = `${lineName[k]} brackets`;
+              const same = rows.every((r, n) => r.upTo === f27.brackets[k][n].upTo);
+              (same ? matched : differed).push(label);
+            }
+          }
+          const result = (differed.length
+            ? `Differed on ${andList(differed)}.` : 'Matched on every figure it published.') +
+            (differed.length && matched.length ? ` Matched on ${andList(matched)}.` : '') +
+            (twoNote.length ? ` Printed two figures for the ${andList(twoNote)}; one of them is the official one.` : '');
+          return `<tr><th scope="row">${srcLink(i.sourceUrl, tpShort(i))}</th>` +
+            `<td>${escHtml(humanDate(i.asOf))}</td><td>${escHtml(result)}</td></tr>`;
+        }).join('');
+        projectionsSection = '<section class="prose" id="projections"><h2>How the projections compared</h2>' +
+          `<p>Before the IRS published, ${escHtml(andList(tpItems.map(tpShort)))} had released their own ` +
+          '<strong>projected</strong> 2027 figures. They were estimates, not IRS figures. Here is how each one ' +
+          'compared with the official numbers above.</p>' +
+          '<div class="b27-wrap"><table class="b27-table"><caption class="sr-only">How each publisher&rsquo;s ' +
+          'projected 2027 figures compared with the official IRS figures</caption><thead><tr>' +
+          '<th scope="col">Publisher</th><th scope="col">Projection published</th><th scope="col">Against the IRS figures</th>' +
+          `</tr></thead><tbody>${rowsHtml}</tbody></table></div></section>`;
+      }
+      // October 2025, the month BLS never published: only the IRS's own words, or nothing.
+      const gapSection27 = off27.gapNote
+        ? '<section class="prose" id="gap"><h2>What the IRS said about the missing month</h2>' +
+          '<p>One of the twelve monthly price readings the adjustment is averaged over, October 2025, was never ' +
+          'published. The Revenue Procedure says:</p>' +
+          `<blockquote class="b27-quote">&ldquo;${escHtml(off27.gapNote.quote)}&rdquo;` +
+          `<cite>${srcLink(off27.gapNote.sourceUrl, rp27.name)}</cite></blockquote></section>`
+        : '';
+
+      const ld27o = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: '2027 federal tax brackets and standard deduction (official IRS figures)',
+        description: `The official 2027 federal income tax brackets and standard deduction by filing status, as ` +
+          `published by the IRS in ${rp27.name}, compared with 2026.`,
+        mainEntityOfPage: `${SITE.url}/2027-tax-brackets/`,
+        publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
+        isAccessibleForFree: true,
+      });
+      official27Html = fillTool(brackets2027OfficialTpl, {
+        SITE_NAME: SITE.name,
+        SITE_URL: SITE.url,
+        ARTICLE_LD: ld27o,
+        RP_NAME: escHtml(rp27.name),
+        RP_LINK: rpLink,
+        RP_DATE: escHtml(humanDate(rp27.publishedDate)),
+        STANDARD_DEDUCTION: sdHtml,
+        BRACKET_TABLES: brHtml,
+        SOURCE_LINE: sourceLine,
+        WORKED_EXAMPLE: workedExample27,
+        PROJECTIONS_SECTION: projectionsSection,
+        GAP_SECTION: gapSection27,
+        QUOTE_ROUNDING: quoteBlock(proj2027.statute.roundingBrackets, 'b27-quote'),
+        RELATED_COLA: relatedCola,
+      }, '/2027-tax-brackets/');
+    }
+
     await mkdir(join(DIST, '2027-tax-brackets'), { recursive: true });
-    await writeFile(join(DIST, '2027-tax-brackets', 'index.html'), fillTool(brackets2027Tpl, {
+    await writeFile(join(DIST, '2027-tax-brackets', 'index.html'), official27Html || fillTool(brackets2027Tpl, {
       SITE_NAME: SITE.name,
       SITE_URL: SITE.url,
       ARTICLE_LD: ld27,
@@ -10300,10 +10471,16 @@ async function main() {
       RP2026_NAME: revProc.name,
       RP2026_URL: revProc.sourceUrl,
       RP2026_DATE: humanDate(revProc.publishedDate),
+      RELATED_COLA: relatedCola,
     }, '/2027-tax-brackets/'));
     urls.push(`${SITE.url}/2027-tax-brackets/`);
 
-    // ---- 2. /2027-social-security-cola/ (ESTIMATE) -------------------------
+    // ---- 2. /2027-social-security-cola/ (ESTIMATE until SSA announces) ------
+    // Two modes, chosen by the data alone. Without cpiw.officialCola the page is
+    // an ESTIMATE tracker whose calculator starts on a named third-party
+    // forecast. With it (typed in on announcement day) the page is OFFICIAL: the
+    // announced figure, its source, and the calculator pre-filled with it, and
+    // the forecasts kept as a dated record of what was predicted.
     const cw = proj2027.cpiw;
     const q3PriorKeys = Object.keys(cw.q3_2025).sort();
     const q3CurKeys = Object.keys(cw.q3_2026).sort();
@@ -10312,6 +10489,22 @@ async function main() {
     // The denominator is settled and can be averaged; the numerator cannot, and
     // p27Average would throw if anything tried. That is the intended behaviour.
     const q3PriorAvg = q3PriorStatus.complete ? p27Average(q3PriorKeys, cw.q3_2025) : null;
+    const q3ComputedPct = q3CurStatus.complete && q3PriorAvg
+      ? p27ColaPercent(q3PriorAvg, p27Average(q3CurKeys, cw.q3_2026)) : null;
+
+    const colaOff = cw.officialCola || null;
+    if (colaOff) {
+      const bad = p27OfficialColaProblems(colaOff);
+      if (bad.length)
+        throw new Error(`projections-2027.json: cpiw.officialCola is malformed, refusing to render it:\n  ${bad.join('\n  ')}`);
+      // The same cross-check the press kit makes: once September is in, the
+      // statutory formula and the announcement must give the same figure.
+      if (q3ComputedPct !== null && Math.abs(q3ComputedPct - colaOff.percent) > 1e-9)
+        throw new Error(`projections-2027.json: cpiw.officialCola says ${colaOff.percent}% but the published CPI-W ` +
+          `months give ${q3ComputedPct}%. One of them is wrong.`);
+    }
+    const offPct = colaOff ? `${colaOff.percent.toFixed(1)}%` : '';
+    const offDate = colaOff ? humanDate(colaOff.announcedDate) : '';
 
     const cpiwRow = (k, entry, sched, pendingClass) => {
       if (entry === null) {
@@ -10327,8 +10520,20 @@ async function main() {
 
     let colaStatusLine;
     let q3CurStatusText;
-    if (q3CurStatus.complete && q3PriorAvg) {
-      const pct = p27ColaPercent(q3PriorAvg, p27Average(q3CurKeys, cw.q3_2026));
+    if (colaOff) {
+      colaStatusLine = q3ComputedPct !== null
+        ? `The September 2026 price data is in as well, and the formula gives the same ${offPct} from the three ` +
+          'months in the table below.'
+        : `The ${offPct} is the Social Security Administration&rsquo;s announced figure. The table below adds ` +
+          'September 2026 once the Bureau of Labor Statistics data series carries it.';
+      q3CurStatusText = q3ComputedPct !== null
+        ? `With all three months in, the July&ndash;September 2026 average divided by the July&ndash;September 2025 ` +
+          `average gives ${q3ComputedPct.toFixed(1)}% after rounding to the nearest tenth, the same figure the ` +
+          'Social Security Administration announced.'
+        : 'The September value is in the Bureau of Labor Statistics release the announcement was based on. We add ' +
+          'it here once we have read it from the BLS data series, and the arithmetic will be shown beside it.';
+    } else if (q3ComputedPct !== null) {
+      const pct = q3ComputedPct;
       colaStatusLine = `All three months are published. The arithmetic gives <strong>${pct.toFixed(1)}%</strong> ` +
         '&mdash; our calculation from the published index values, not an SSA announcement.';
       q3CurStatusText = `With all three months in, the July&ndash;September 2026 average divided by the ` +
@@ -10346,22 +10551,126 @@ async function main() {
     }
 
     const est = cw.thirdPartyEstimates;
-    const estimateChips = est.map((e) =>
-      `<button type="button" data-cola-pct="${escHtml(String(e.figure))}">${escHtml(String(e.figure))}% &mdash; ` +
-      `${escHtml(e.publisher.replace(/\s*\(.*\)$/, ''))}</button>`).join('') +
-      '<button type="button" data-cola-pct="0">0% &mdash; no increase</button>';
+    const estimateChips = colaOff
+      ? `<button type="button" data-cola-pct="${escHtml(String(colaOff.percent))}">${escHtml(offPct)}, official</button>`
+      : est.map((e) =>
+        `<button type="button" data-cola-pct="${escHtml(String(e.figure))}">${escHtml(String(e.figure))}% &mdash; ` +
+        `${escHtml(e.publisher.replace(/\s*\(.*\)$/, ''))}</button>`).join('') +
+        '<button type="button" data-cola-pct="0">0% &mdash; no increase</button>';
     const estimateRows = est.map((e) =>
       `<tr><th scope="row">${escHtml(e.publisher)}</th><td class="num">${escHtml(String(e.figure))}%</td>` +
       `<td>${escHtml(humanDate(e.asOf))}</td><td>${srcLink(e.sourceUrl, e.title || 'source')}</td></tr>` +
       (e.note ? `<tr><td colspan="4" class="cola-src">${escHtml(e.note)}</td></tr>` : '')).join('');
 
+    // Mode-dependent copy. The ESTIMATE strings are the page's original wording,
+    // except where that wording described how many CPI-W months were out: those
+    // are derived from the data now, so they cannot go stale as months land.
+    const q3Out = q3CurStatus.present.length;
+    const q3Left = q3CurStatus.missing.length;
+    const colaCopy = colaOff ? {
+      // Under 60 characters, or compactTitle cuts it at a separator and drops the figure.
+      PAGE_TITLE: `2027 Social Security COLA Is ${offPct} (OFFICIAL)`,
+      META_DESC: `OFFICIAL: the 2027 Social Security cost-of-living increase is ${offPct}, announced by the Social ` +
+        `Security Administration on ${offDate}. See what it does to your monthly benefit.`,
+      OG_TITLE: `2027 Social Security COLA is ${offPct}: see your new benefit`,
+      OG_DESC: `The Social Security Administration announced a ${offPct} cost-of-living increase for 2027. Type ` +
+        'your current benefit to see the new monthly amount.',
+      H1: `2027 Social Security COLA: ${offPct}`,
+      BANNER: `<strong class="cola-tag">OFFICIAL</strong> <strong>The 2027 cost-of-living increase is ${offPct}.</strong> ` +
+        `The Social Security Administration announced it on ${escHtml(offDate)} ` +
+        `(${srcLink(colaOff.sourceUrl, 'read the announcement')}). It takes effect with January 2027 payments.`,
+      LEDE: `The Social Security Administration has announced the 2027 cost-of-living increase: ${offPct}. Put your ` +
+        'current monthly benefit in below to see what your payment becomes from January 2027. The box is filled ' +
+        `in with the official ${offPct}, and you can type any other percentage to compare.`,
+      CALC_H2: `What the ${offPct} increase does to your payment`,
+      PCT_NOTE: `Filled in with the official ${offPct} announced by the Social Security Administration on ` +
+        `${escHtml(offDate)}. Type any other percentage to compare.`,
+      CALC_NOTE: 'General information only, not financial or benefits advice. The figures above apply the ' +
+        'percentage in the box to the benefit you typed. Your exact new amount is on your own benefit notice from ' +
+        'Social Security.',
+      TRACKER_H2: 'The three months the figure is computed from',
+      TRACKER_INTRO: 'The increase is not a judgement call, it is a division. Take the average of the price index ' +
+        'called <strong>CPI-W</strong> for July, August and September <strong>2026</strong>, divide it by the ' +
+        'average for the same three months of <strong>2025</strong>, and that percentage is the COLA. Here are ' +
+        'the three months:',
+      TRACKER_CAPTION: 'CPI-W months the 2027 Social Security COLA is computed from',
+      ESTIMATES_H2: 'What forecasters estimated before the announcement',
+      ESTIMATES_INTRO: 'These were forecasts made before the official figure existed, and none of them is ours. ' +
+        `They are kept here with their dates so you can see how each compared with the ${offPct} that was announced.`,
+      ESTIMATES_FOOT: 'Each forecast above was made with fewer months of price data than the official figure used, ' +
+        'which is why the date beside it matters as much as the number.',
+      DISAGREE_SECTION: '',
+      FOOT_NOTE: `General information only, not financial, benefits or tax advice. The ${offPct} figure is the ` +
+        'Social Security Administration&rsquo;s; the dollar amounts are our arithmetic on it. Check ssa.gov or ' +
+        'your own benefit letter for anything that matters.',
+    } : {
+      PAGE_TITLE: '2027 Social Security COLA (ESTIMATE) — Running Tracker and Benefit Calculator',
+      META_DESC: 'ESTIMATE, not official. See what any cost-of-living increase does to your monthly Social ' +
+        'Security benefit, and track the months the real figure needs.',
+      OG_TITLE: '2027 Social Security COLA — estimate tracker and benefit calculator',
+      OG_DESC: 'Type your benefit and any COLA percentage to see the new monthly amount. Plus: which of the three ' +
+        'CPI-W months the official figure needs are published, and when the rest land.',
+      H1: '2027 Social Security COLA estimate',
+      BANNER: '<strong class="cola-tag">ESTIMATE</strong> <strong>Not official.</strong> The Social Security ' +
+        'Administration announces the real 2027 cost-of-living increase in mid-October 2026, and it takes effect ' +
+        'with January 2027 payments.',
+      LEDE: `Nobody knows the 2027 increase yet, including us — the government has not ${q3Out ? 'yet published ' +
+        'the last of' : 'published'} the numbers it is computed from. What you <em>can</em> do today is see what ` +
+        'any given increase would mean for your own payment. Put your current monthly benefit in below and try a ' +
+        'percentage. The estimates people are quoting in the news are loaded as one-tap buttons, with the name of ' +
+        'whoever published each one, so you can see whose number you are trying.',
+      CALC_H2: 'What would an increase do to your payment?',
+      PCT_NOTE: 'Type any percentage you want to test. There is no official 2027 figure to fill in yet, so this ' +
+        'box starts on a published outside estimate, named below — it is somebody else\'s forecast, not ours and ' +
+        'not the government\'s.',
+      CALC_NOTE: 'General information only, not financial or benefits advice. The figures above are arithmetic on ' +
+        'the percentage you typed, not a forecast of what your 2027 payment will be.',
+      TRACKER_H2: 'The three months the official figure is waiting on',
+      TRACKER_INTRO: 'The increase is not a judgement call, it is a division. Take the average of the price index ' +
+        'called <strong>CPI-W</strong> for July, August and September <strong>2026</strong>, divide it by the ' +
+        'average for the same three months of <strong>2025</strong>, and that percentage is the COLA. ' +
+        (q3Left === 3 ? 'So there are exactly three numbers still outstanding, on three known dates:'
+          : q3Left ? `${q3Left === 1 ? 'One' : 'Two'} of those three numbers ${q3Left === 1 ? 'is' : 'are'} still ` +
+            'outstanding, on a known date:'
+            : 'All three are now published:'),
+      TRACKER_CAPTION: 'CPI-W months required for the 2027 Social Security COLA (ESTIMATE page — input status)',
+      ESTIMATES_H2: 'What other people are estimating, and when they said it',
+      ESTIMATES_INTRO: 'These are not our figures. Each one belongs to the organisation named, on the date named, ' +
+        'and they move every month as new price data lands — which is exactly why the date matters as much as ' +
+        'the number.',
+      ESTIMATES_FOOT: 'If you see a figure quoted without a date beside it, treat it as stale until proven ' +
+        'otherwise. One of the estimates above moved by a full percentage point in a single month.',
+      DISAGREE_SECTION: '<section class="prose" id="disagree">\n      <h2>Why the estimates disagree with each ' +
+        'other</h2>\n      <p>None of the outside forecasters have more data than anyone else — the published ' +
+        'price index is the same for everybody. What differs is the assumption each one makes about the months ' +
+        'that are not out yet. Some carry recent monthly changes forward, some model them. That assumption is the ' +
+        'entire difference between one estimate and another, and it is why they all converge as the real months ' +
+        'land, and why the spread between them is a better guide to uncertainty than any single figure.</p>\n      ' +
+        '<p>We publish no estimate of our own here for the same reason: with ' +
+        (q3Out ? `${numWord(q3Left)} of the three required months still unpublished`
+          : 'none of the three required months published') +
+        ', our number would be nothing but our assumption, dressed as arithmetic.</p>\n    </section>',
+      FOOT_NOTE: 'General information only, not financial, benefits or tax advice. Figures marked ESTIMATE are not ' +
+        'from the Social Security Administration. Check ssa.gov or your own benefit letter for anything that matters.',
+    };
+    colaCopy.RELATED_BRACKETS = P27_MODE.irsOfficial
+      ? '<a href="/2027-tax-brackets/">2027 federal tax brackets</a>, the official IRS figures for the tax side ' +
+        'of the same autumn.'
+      : '<a href="/2027-tax-brackets/">Projected 2027 federal tax brackets</a> — the tax side of the same October ' +
+        'news cycle, running on a different index and a different window.';
+
     const ldCola = JSON.stringify({
       '@context': 'https://schema.org',
       '@type': 'Article',
-      headline: '2027 Social Security COLA: running estimate tracker and benefit calculator',
-      description: 'What any cost-of-living increase would do to a monthly Social Security benefit, plus ' +
-        'the publication status of the three CPI-W months the official 2027 figure is computed from. ' +
-        'Estimates shown are attributed third-party forecasts, not official SSA figures.',
+      headline: colaOff ? `2027 Social Security COLA: ${offPct}, with a benefit calculator`
+        : '2027 Social Security COLA: running estimate tracker and benefit calculator',
+      description: colaOff
+        ? `The official 2027 Social Security cost-of-living increase of ${offPct}, announced by the Social ` +
+          `Security Administration on ${offDate}, with a calculator for what it does to a monthly benefit and the ` +
+          'CPI-W months it is computed from.'
+        : 'What any cost-of-living increase would do to a monthly Social Security benefit, plus ' +
+          'the publication status of the three CPI-W months the official 2027 figure is computed from. ' +
+          'Estimates shown are attributed third-party forecasts, not official SSA figures.',
       mainEntityOfPage: `${SITE.url}/2027-social-security-cola/`,
       publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
       isAccessibleForFree: true,
@@ -10379,9 +10688,12 @@ async function main() {
       Q3_2026_STATUS: q3CurStatusText,
       Q3_2025_ROWS: q3PriorRows,
       Q3_2025_AVG: q3PriorAvg ? q3PriorAvg.toFixed(3) : 'not yet complete',
-      // The percentage box is pre-filled from a PUBLISHED third-party estimate,
-      // never from a figure of ours, and the chips name whose it is.
-      COLA_CFG: JSON.stringify({ prefill: est.length ? est[0].figure : 0 }),
+      ...colaCopy,
+      // The percentage box is pre-filled from the OFFICIAL figure once SSA has
+      // announced it, and before that from a PUBLISHED third-party estimate,
+      // never from a figure of ours; the chips name whose it is.
+      COLA_CFG: JSON.stringify({ prefill: colaOff ? colaOff.percent : (est.length ? est[0].figure : 0),
+        official: !!colaOff }),
     }, '/2027-social-security-cola/'));
     urls.push(`${SITE.url}/2027-social-security-cola/`);
 
@@ -10538,7 +10850,11 @@ async function main() {
       ARTICLE_LD: ld26,
       RP_NAME: revProc.name,
       RP_DATE: humanDate(revProc.publishedDate),
-      NEXT_RP_TIMING: nextRpTiming,
+      NEXT_YEAR_BODY: off27
+        ? `<p>The official 2027 figures are out. The IRS published them in ${srcLink(off27.revenueProcedure.sourceUrl, off27.revenueProcedure.name)} ` +
+          `on ${escHtml(humanDate(off27.revenueProcedure.publishedDate))}, and they are on our <a href="/2027-tax-brackets/">2027 tax brackets page</a>, ` +
+          'side by side with the 2026 figures. The 2026 figures on this page still apply to money earned in 2026 and to the return you file in early 2027.</p>'
+        : `<p>The 2027 figures do not exist yet. The IRS publishes them in a Revenue Procedure ${nextRpTiming}, after the government publishes the last of the price-index months the adjustment is computed from. The IRS does not announce the date in advance, and the last four have landed anywhere from early October to early November, so autumn is a pattern rather than a promise. If you want to see how that calculation works and how much of it is actually knowable today, we keep a page that shows its inputs rather than just a table: <a href="/2027-tax-brackets/">projected 2027 tax brackets, and what is still pending</a>.</p>`,
       STANDARD_DEDUCTION: standardDeductionHtml,
       SD_SOURCE: `IRS, ${revProc.name} ` +
         `(<a href="${escHtml(taxData._meta.sources.standard_deduction)}" rel="noopener" target="_blank">IRS newsroom</a>). ` +

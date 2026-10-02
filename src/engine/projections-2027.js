@@ -240,6 +240,30 @@ export function figureValues(f) {
 }
 
 /**
+ * Every way one filing status's bracket table is malformed: seven rows, the
+ * statutory rates in order, rising whole-dollar thresholds, an open top band.
+ * @param {*} rows the [{rate, upTo}] list
+ * @param {string} where prefix for the messages, e.g. "brackets.single"
+ * @returns {string[]}
+ */
+function bracketRowProblems(rows, where) {
+  const p = [];
+  if (!Array.isArray(rows) || rows.length !== TP_RATES.length) return [`${where} does not have ${TP_RATES.length} rows`];
+  rows.forEach((r, i) => {
+    if (!r || r.rate !== TP_RATES[i]) p.push(`${where}[${i}] rate is not ${TP_RATES[i]}`);
+    const last = i === rows.length - 1;
+    if (last) {
+      if (r && r.upTo !== null) p.push(`${where}: the top bracket must have upTo null`);
+    } else if (!r || !plausibleAmount(r.upTo, 5000000)) {
+      p.push(`${where}[${i}].upTo is not a whole-dollar threshold`);
+    } else if (i > 0 && rows[i - 1] && !(r.upTo > rows[i - 1].upTo)) {
+      p.push(`${where}[${i}].upTo (${r.upTo}) does not rise above the bracket below it`);
+    }
+  });
+  return p;
+}
+
+/**
  * Every way one third-party projection item is malformed, as readable strings.
  * An empty array means the item is fit to render.
  * @param {*} item one entry of thirdPartyProjections.items
@@ -285,22 +309,8 @@ export function thirdPartyProblems(item, checkedDate) {
       const keys = Object.keys(br).filter((k) => !k.startsWith('_'));
       if (!keys.length) p.push('brackets is empty');
       for (const k of keys) {
-        const rows = br[k];
         if (!TP_STATUSES.includes(k)) { p.push(`brackets has unknown filing status "${k}"`); continue; }
-        if (!Array.isArray(rows) || rows.length !== TP_RATES.length) {
-          p.push(`brackets.${k} does not have ${TP_RATES.length} rows`); continue;
-        }
-        rows.forEach((r, i) => {
-          if (!r || r.rate !== TP_RATES[i]) p.push(`brackets.${k}[${i}] rate is not ${TP_RATES[i]}`);
-          const last = i === rows.length - 1;
-          if (last) {
-            if (r && r.upTo !== null) p.push(`brackets.${k}: the top bracket must have upTo null`);
-          } else if (!r || !plausibleAmount(r.upTo, 5000000)) {
-            p.push(`brackets.${k}[${i}].upTo is not a whole-dollar threshold`);
-          } else if (i > 0 && rows[i - 1] && !(r.upTo > rows[i - 1].upTo)) {
-            p.push(`brackets.${k}[${i}].upTo (${r.upTo}) does not rise above the bracket below it`);
-          }
-        });
+        p.push(...bracketRowProblems(br[k], `brackets.${k}`));
       }
     }
   }
@@ -341,5 +351,76 @@ export function thirdPartyBlockProblems(block) {
     seen.add(who);
     for (const msg of thirdPartyProblems(it, block.checkedDate)) p.push(`${who}: ${msg}`);
   });
+  return p;
+}
+
+// ---------------------------------------------------------------------------
+// The official figures (projections-2027.json -> cpiw.officialCola and
+// official2027). These are the day-of slots: when SSA announces the COLA and
+// when the IRS publishes the tax-year-2027 Revenue Procedure, the figure goes
+// here and the pages, the press kit and the gates all switch to OFFICIAL from
+// the data alone. A typo here is an official-looking wrong figure, so build.js
+// refuses to render either slot unless its validator returns nothing.
+
+/**
+ * Problems with cpiw.officialCola. Empty means it is fit to render.
+ * Shape: { percent, announcedDate, sourceUrl, title? }. percent is the COLA as
+ * SSA announced it, e.g. 2.8, which is always a multiple of 0.1.
+ * @param {*} o
+ * @returns {string[]}
+ */
+export function officialColaProblems(o) {
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return ['officialCola is not an object'];
+  const p = [];
+  if (!Number.isFinite(o.percent) || o.percent < 0 || o.percent > 20)
+    p.push('officialCola.percent is not a number from 0 to 20');
+  else if (Math.abs(Math.round(o.percent * 10) / 10 - o.percent) > 1e-9)
+    p.push(`officialCola.percent (${o.percent}) is not rounded to one decimal place, as every COLA is`);
+  if (!ISO_DATE.test(o.announcedDate || '')) p.push('officialCola.announcedDate is not an ISO date');
+  if (!isHttps(o.sourceUrl)) p.push('officialCola.sourceUrl is not an https URL');
+  if (o.title !== undefined && (!isText(o.title) || o.title.includes('\u2014')))
+    p.push('officialCola.title is empty or contains an em dash');
+  return p;
+}
+
+/**
+ * Problems with official2027. Empty means it is fit to render.
+ * Shape: { revenueProcedure: { name: "Rev. Proc. 2026-NN", publishedDate,
+ * sourceUrl, newsroomUrl? }, federal: { standardDeduction: {single, married,
+ * head_of_household}, brackets: {single, married, head_of_household} } }, with
+ * brackets in the same [{rate, upTo}] shape tax-data-2026.json uses. All three
+ * filing statuses are required: the official page prints all three.
+ * Optional gapNote { quote, sourceUrl }: the IRS's own words on how it treated
+ * October 2025, verbatim; the page says nothing about that month without it.
+ * @param {*} o
+ * @returns {string[]}
+ */
+export function official2027Problems(o) {
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return ['official2027 is not an object'];
+  const p = [];
+  const rp = o.revenueProcedure;
+  if (!rp || typeof rp !== 'object') p.push('official2027.revenueProcedure is missing');
+  else {
+    if (typeof rp.name !== 'string' || !/^Rev\. Proc\. 20\d\d-\d{1,3}$/.test(rp.name))
+      p.push('official2027.revenueProcedure.name is not of the form "Rev. Proc. 2026-NN"');
+    if (!ISO_DATE.test(rp.publishedDate || '')) p.push('official2027.revenueProcedure.publishedDate is not an ISO date');
+    if (!isHttps(rp.sourceUrl)) p.push('official2027.revenueProcedure.sourceUrl is not an https URL');
+    if (rp.newsroomUrl !== undefined && !isHttps(rp.newsroomUrl))
+      p.push('official2027.revenueProcedure.newsroomUrl is not an https URL');
+  }
+  const fed = o.federal;
+  if (!fed || typeof fed !== 'object') return [...p, 'official2027.federal is missing'];
+  const sd = fed.standardDeduction;
+  const br = fed.brackets;
+  for (const k of TP_STATUSES) {
+    if (!sd || !plausibleAmount(sd[k], 100000))
+      p.push(`official2027.federal.standardDeduction.${k} is not a whole-dollar amount from $1,000 to $100,000`);
+    p.push(...bracketRowProblems(br && br[k], `official2027.federal.brackets.${k}`));
+  }
+  if (o.gapNote !== undefined) {
+    const g = o.gapNote;
+    if (!g || !isText(g.quote, 20) || !isHttps(g.sourceUrl))
+      p.push('official2027.gapNote needs the IRS\'s own words (quote) and an https sourceUrl');
+  }
   return p;
 }
