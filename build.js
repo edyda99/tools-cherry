@@ -5560,14 +5560,36 @@ function caProseBlocks(r, rungs, ctx) {
     const start = ot.phaseoutStartMagi.single;
     if (r.amount >= start) {
       const over = r.amount - start;
-      const otLeft = Math.max(0, ot.cap.single - Math.floor(over / 1000) * ot.phaseoutReductionPer1000);
+      // IRC 224(b)(2)(A) / 225(b)(2)(A): the reduction is taken off the amount
+      // AFTER the cap (Schedule 1-A line 13 = line 7 minus line 12; line 21 =
+      // line 15 minus line 20), counting whole $1,000s only (line 11 / 19 rounds
+      // down). So the same dollar cut hits every claimant, and the "left" figures
+      // below are what a FULL-cap claim keeps, not a lowered cap.
+      const cut = Math.floor(over / 1000) * ot.phaseoutReductionPer1000;
+      const otLeft = Math.max(0, ot.cap.single - cut);
       const tpLeft = Math.max(0, tp.cap.single - Math.floor(over / 1000) * tp.phaseoutReductionPer1000);
       push('tipsot',
-        `<h3>The tips and overtime deductions are shrinking at ${S}</h3>` +
+        (cut > 0
+          ? `<h3>The tips and overtime deductions are shrinking at ${S}</h3>`
+          : `<h3>The tips and overtime deductions start shrinking just above ${S}</h3>`) +
         `<p>OBBBA's deductions for qualified tips (up to ${usd0(tp.cap.single)}) and the FLSA overtime ` +
         `premium (up to ${usd0(ot.cap.single)}) both start phasing out at ${usd0(start)} of modified AGI ` +
-        `for a single filer, at ${usd0(ot.phaseoutReductionPer1000)} per ${usd0(1000)} over. At ${S} that ` +
-        `leaves roughly ${usd0(tpLeft)} of the tips allowance and ${usd0(otLeft)} of the overtime one. ` +
+        `for a single filer, at ${usd0(ot.phaseoutReductionPer1000)} per full ${usd0(1000)} over. ` +
+        (cut > 0
+          ? `At ${S} that takes ${usd0(cut)} off each one. ` +
+            // These are DEDUCTION amounts (what comes off taxable income), not
+            // tax saved, so the sentence says "deduct", never "worth".
+            (tpLeft > 0
+              ? `With a full ${usd0(tp.cap.single)} of tips you can deduct ${usd0(tpLeft)} of it`
+              : `Even a full ${usd0(tp.cap.single)} of tips is no longer deductible`) +
+            (otLeft > 0
+              ? `, and with a full ${usd0(ot.cap.single)} overtime premium you can deduct ${usd0(otLeft)} of it. `
+              : `, and even a full ${usd0(ot.cap.single)} overtime premium is no longer deductible. `) +
+            ((tpLeft > 0 || otLeft > 0)
+              ? `A smaller amount loses the same ${usd0(cut)}, so it can be gone entirely. `
+              : '')
+          : `${S} is not over that line, so nothing is taken off. The first ` +
+            `${usd0(ot.phaseoutReductionPer1000)} comes off at ${usd0(start + 1000)}. `) +
         `Neither touches FICA either way: Social Security and Medicare are still charged on tips and ` +
         `overtime in full.</p>`);
     } else if (next && next.amount >= start) {
@@ -6372,7 +6394,9 @@ function caPageCopy(r, rungs, ctx) {
   if (r.amount > mipP.threshold.single && r.amount < mipP.eliminatedAboveAgi.single) {
     live.push(`the partially phased-out mortgage insurance premium deduction`);
   }
-  if (r.amount >= obbba.federal.overtime.phaseoutStartMagi.single) {
+  // Whole $1,000s only (Schedule 1-A line 11 / 19 rounds down), so a rung
+  // sitting exactly on $150,000 has nothing phased out yet.
+  if (Math.floor((r.amount - obbba.federal.overtime.phaseoutStartMagi.single) / 1000) > 0) {
     live.push(`the partially phased-out tips and overtime deductions`);
   }
   const dcp = ctx.depCare && ctx.depCare.cdctc && ctx.depCare.cdctc.applicablePercent;

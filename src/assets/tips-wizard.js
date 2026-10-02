@@ -102,6 +102,16 @@ function stateParts(slug) {
 }
 
 // ---- The answer -------------------------------------------------------------
+// Which limit cut the tips, in the order the tax form applies them: the yearly
+// cap first, then the income phase-out taken off what the cap left (Schedule
+// 1-A lines 7 to 13). Both can apply at once.
+function limitCuts(r) {
+  return {
+    overCap: r.eligibleAmount > r.statutoryCap,
+    phaseOff: Math.min(r.reduction || 0, r.cappedAmount || 0)
+  };
+}
+
 function zeroBenefitNote(r) {
   if (r.eligibleAmount <= 0) return 'Enter your tips to see your federal tax saving.';
   if (r.fullyPhasedOut) {
@@ -124,8 +134,16 @@ function renderResult({ state: s, result: r }) {
   // and still produce taxSaved = 0, and gating this on the saving left that
   // screen showing a $0 headline above a row claiming the whole amount came off
   // the taxable income.
-  const capBinds = r.eligibleAmount > 0 && r.eligibleAmount > r.allowedCap;
-  const limitWord = r.phasedOut ? 'the income phase-out' : `the ${usd(r.statutoryCap)} yearly limit`;
+  // The cap is applied first and the income phase-out comes off what the cap
+  // left (Schedule 1-A line 13 = line 7 minus line 12), so tips UNDER the cap
+  // still lose the whole income reduction, and either cut, or both, can bite.
+  const capBinds = r.eligibleAmount > 0 && r.eligibleAmount > r.deduction;
+  const { overCap, phaseOff } = limitCuts(r);
+  // Why the "taxed as usual" row exists, in the order the form takes the cuts:
+  // the yearly limit first, then the income phase-out off what the limit left.
+  const restWhy = (overCap && phaseOff > 0)
+    ? `over the ${usd(r.statutoryCap)} limit or ruled out by your income`
+    : (overCap ? `over the ${usd(r.statutoryCap)} limit` : 'ruled out by your income');
 
   // ---- The story ------------------------------------------------------------
   // ROUNDED ONCE. The labels invite the reader to add the lower rows up to the
@@ -146,7 +164,7 @@ function renderResult({ state: s, result: r }) {
       `<li><span>Taken off the income you are taxed on${dedR > 0 ? ' — the government skips tax on this' : ''}</span>` +
         `<span class="otw-amt${dedR > 0 ? ' otw-free' : ''}">${usd(dedR)}</span></li>` +
       (taxedR > 0
-        ? `<li><span>The rest, above ${limitWord} — taxed as usual</span><span class="otw-amt otw-taxed">${usd(taxedR)}</span></li>`
+        ? `<li><span>The rest, ${restWhy}, taxed as usual</span><span class="otw-amt otw-taxed">${usd(taxedR)}</span></li>`
         : '') +
       // Not part of the split above, so it carries the heavier rule that stops a
       // reader adding it in: the first rows are the tips themselves, this one is
@@ -166,13 +184,16 @@ function renderResult({ state: s, result: r }) {
   let capFlag = '';
   if (capBinds && !r.fullyPhasedOut) {
     capFlag = `<p class="otw-flag">Heads up: ${usd(r.deduction)} of your ${usd(r.eligibleAmount)} in tips is deductible. ` +
-      (r.phasedOut
-        ? `Your income is above the phase-out threshold, so your cap drops to ${usd(r.allowedCap)}`
-        : `This deduction stops at ${usd(r.statutoryCap)} a year, and it is one limit per return, never doubled for a couple`) +
+      ((overCap && phaseOff > 0)
+        ? `This deduction stops at ${usd(r.statutoryCap)} a year, and it is one limit per return, never doubled for a couple. ` +
+          `Your income is also above the phase-out threshold, which takes ${usd(phaseOff)} off what is left`
+        : (overCap
+          ? `This deduction stops at ${usd(r.statutoryCap)} a year, and it is one limit per return, never doubled for a couple`
+          : `Your income is above the phase-out threshold, which takes ${usd(phaseOff)} off it`)) +
       `, and the rest of your tips are taxed as usual.</p>`;
   } else if (benefits && r.phasedOut && !r.fullyPhasedOut) {
-    capFlag = `<p class="otw-flag">Heads up: your income is above the phase-out threshold, so your deductible cap is ` +
-      `lowered to ${usd(r.allowedCap)}.</p>`;
+    capFlag = `<p class="otw-flag">Heads up: your income is above the phase-out threshold, so ` +
+      `${usd(r.reduction)} comes off your deduction.</p>`;
   }
 
   // The three sentences the benchmark readers needed and did not get: when the
@@ -233,8 +254,9 @@ mountWizard({
   ],
 
   announce: (s, r) => {
-    const capSpoken = r.eligibleAmount > 0 && r.eligibleAmount > r.allowedCap
-      ? ` Your ${usd(r.eligibleAmount)} in tips is limited to ${usd(r.deduction)} deductible ${r.phasedOut ? 'by the income phase-out' : 'by the yearly cap'}.`
+    const { overCap, phaseOff } = limitCuts(r);
+    const capSpoken = r.eligibleAmount > 0 && r.eligibleAmount > r.deduction
+      ? ` Your ${usd(r.eligibleAmount)} in tips is limited to ${usd(r.deduction)} deductible ${(overCap && phaseOff > 0) ? 'by the yearly cap and the income phase-out' : (overCap ? 'by the yearly cap' : 'by the income phase-out')}.`
       : '';
     return `Federal tax saved on your tips: ${usd(r.taxSaved)}.${capSpoken}` +
       (incomeWarning(s) ? ' Check your numbers, there is a warning above the answer.' : '');

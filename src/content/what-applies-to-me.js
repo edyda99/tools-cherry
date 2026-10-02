@@ -573,8 +573,8 @@ export function buildWamParts(deps) {
     + `<ul class="wam-list">`
     + `<li>Most you can deduct: ${usd0(tipsCap)}. <strong>This is one limit per tax return. It is not doubled if you are married and file together.</strong></li>`
     + `<li>You get the full amount if you make up to: ${usd0(tipsPo.single)} on your own, or ${usd0(tipsPo.married)} if you are married and file together.</li>`
-    + `<li>Above that it shrinks: you lose $${F.tips.phaseoutReductionPer1000} of the break for every $1,000 you make over the line.</li>`
-    + `<li>It is gone completely at: ${usd0(tipsGone.single)} on your own, or ${usd0(tipsGone.married)} married filing together.</li>`
+    + `<li>Above that it shrinks: you lose $${F.tips.phaseoutReductionPer1000} of the break for every full $1,000 you make over the line, taken off the tips you can deduct, not off the ${usd0(tipsCap)} limit.</li>`
+    + `<li>Even the full ${usd0(tipsCap)} is gone at: ${usd0(tipsGone.single)} on your own, or ${usd0(tipsGone.married)} married filing together. A smaller amount of tips runs out sooner.</li>`
     + `<li>You need a Social Security number on the return.</li>`
     + `</ul>`
     + `<p>Not every job that gets tips counts. The government publishes a list of jobs that do, and yours has to be on it. <a href="/data/treasury-tipped-occupation-codes/">See the published list</a>.</p>`
@@ -592,8 +592,8 @@ export function buildWamParts(deps) {
     + `<ul class="wam-list">`
     + `<li>Most you can deduct: ${usd0(otCap.single)} on your own, ${usd0(otCap.married)} married filing together.</li>`
     + `<li>You get the full amount if you make up to: ${usd0(otPo.single)} on your own, or ${usd0(otPo.married)} married filing together.</li>`
-    + `<li>Above that it shrinks by $${F.overtime.phaseoutReductionPer1000} for every $1,000 you make over the line.</li>`
-    + `<li>It is gone completely at ${usd0(otGone.single)} on your own, or ${usd0(otGone.married)} married filing together.</li>`
+    + `<li>Above that it shrinks by $${F.overtime.phaseoutReductionPer1000} for every full $1,000 you make over the line, taken off the overtime you can deduct, not off the limit.</li>`
+    + `<li>Even the full limit is gone at ${usd0(otGone.single)} on your own, or ${usd0(otGone.married)} married filing together. A smaller amount of overtime runs out sooner.</li>`
     + `<li>You need a Social Security number on the return.</li>`
     + `</ul>`
     + bandLine(otPo.single, otPo.married, otGone.single, otGone.married)
