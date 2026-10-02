@@ -1280,6 +1280,31 @@ t('Georgia at filing, single $50,000: its $1,750 cap is worth $87.33, with no kn
   // No income limit: at $400,000 the federal tips deduction is gone, and Georgia's $1,750 still comes off.
   approx(atFiling(GA, 400000, 0, 1750).stateSaving, 87.325, 0.005);
 });
+t('a state that follows the senior deduction prices its own saving: AZ, CO, IA, ID, MT, ND, DC', () => {
+  // The 2026 senior verdicts in obbba-deductions-2026.json: "yes" for Arizona, Colorado, Idaho, Iowa,
+  // Montana, North Dakota and DC. The $6,000 deduction in full under $75,000 of MAGI, by hand at $50,000:
+  //   Arizona 2.5%, deduction 15,750: 34,250 -> 856.25, after 28,250 -> 706.25, saving 150.00
+  //   Colorado 4.4%, 16,100: 33,900 -> 1,491.60, after 27,900 -> 1,227.60, saving 264.00
+  //   Iowa 3.8%, 16,100: 33,900 -> 1,288.20, after 27,900 -> 1,060.20, saving 228.00
+  //   Idaho 0% to 4,811 then 5.3%, 16,100: 29,089 x 5.3% = 1,541.717, after 23,089 -> 1,223.717, saving 318.00
+  //   Montana 4.7% to 47,500, 16,100: 33,900 -> 1,593.30, after 27,900 -> 1,311.30, saving 282.00
+  //   DC 6% band from 10,000 to 40,000, 15,000: 35,000 -> 1,900.00, after 29,000 -> 1,540.00, saving 360.00
+  // North Dakota taxes nothing below 49,575, so at $50,000 it is worth $0; at $90,000 the deduction is
+  // 6,000 - 6% x 15,000 = 5,100, and 73,900 -> 1.95% x 24,325 = 474.3375, after 68,800 -> 374.8875,
+  // saving 99.45.
+  const cases = [['arizona', 856.25, 150], ['colorado', 1491.6, 264], ['iowa', 1288.2, 228], ['idaho', 1541.717, 318],
+    ['montana', 1593.3, 282], ['district-of-columbia', 1900, 360]];
+  for (const [slug, before, saving] of cases) {
+    const r = atFiling(tax.states[slug], 50000, 6000, 6000);
+    approx(r.before, before, 0.005);
+    approx(r.stateSaving, saving, 0.005);
+    approx(r.federalKnockOn, 0, 1e-9);
+  }
+  approx(atFiling(tax.states['north-dakota'], 50000, 6000, 6000).stateSaving, 0, 1e-9);
+  const nd = atFiling(tax.states['north-dakota'], 90000, 5100, 5100);
+  approx(nd.before, 474.3375, 0.005);
+  approx(nd.stateSaving, 99.45, 0.005);
+});
 t('knock-on, Oregon at $150,000: the limit is $0, so no knock-on', () => {
   // AGI 150,000 is past the last step ($145,000), so Oregon subtracts nothing before or after.
   const r = atFiling(OR, 150000, 4000, 4000);
