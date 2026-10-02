@@ -16,7 +16,8 @@ import { fileURLToPath } from 'node:url';
 import {
   monthKeys, monthValue, windowStatus, average, partialAverage,
   assertComplete, colaPercent, applyCola, roundIncrease,
-  thirdPartyProblems, thirdPartyBlockProblems, TP_RATES, figureValues,
+  thirdPartyProblems, thirdPartyBlockProblems, TP_RATES, TP_STATUSES, figureValues,
+  officialColaProblems, official2027Problems,
 } from '../src/engine/projections-2027.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -260,6 +261,79 @@ tpBroken('em dash in rendered note', (i) => { i.note = 'Figures \u2014 as report
     'a block without an ISO checkedDate is rejected');
   ok(thirdPartyBlockProblems({ checkedDate: '2026-10-02', items: [] }).length === 0,
     'an empty items list is valid: nobody has published is a legitimate state');
+}
+
+// --- the official day-of slots ---------------------------------------------
+// cpiw.officialCola and official2027 are what flips the pages and the press kit
+// to OFFICIAL. They are typed in on announcement day, under time pressure, so
+// every way they can be malformed is pinned with a broken fixture, and the live
+// values (when present) must agree with the rest of the file.
+const goodCola = () => ({ percent: 2.8, announcedDate: '2026-10-14',
+  sourceUrl: 'https://www.ssa.gov/news/press/releases/2026-10-14.html', title: 'Example announcement' });
+ok(officialColaProblems(goodCola()).length === 0, `the officialCola fixture is valid: ${officialColaProblems(goodCola()).join(' | ')}`);
+const colaBroken = (label, mutate, re) => {
+  const o = goodCola(); mutate(o);
+  const probs = officialColaProblems(o);
+  ok(probs.some((m) => re.test(m)), `malformed officialCola is rejected (${label}); problems were: ${probs.join(' | ') || 'none'}`);
+};
+colaBroken('percent as a string', (o) => { o.percent = '2.8'; }, /percent is not a number/);
+colaBroken('percent typed as a fraction of one', (o) => { o.percent = 0.028; }, /not rounded to one decimal/);
+colaBroken('two decimals', (o) => { o.percent = 2.85; }, /not rounded to one decimal/);
+colaBroken('no date', (o) => { delete o.announcedDate; }, /announcedDate/);
+colaBroken('http source', (o) => { o.sourceUrl = 'http://www.ssa.gov/'; }, /sourceUrl/);
+colaBroken('quote in source URL', (o) => { o.sourceUrl = 'https://www.ssa.gov/" onclick="x'; }, /sourceUrl/);
+colaBroken('em dash in title', (o) => { o.title = 'COLA \u2014 2027'; }, /em dash/);
+ok(officialColaProblems(null).length > 0, 'a null officialCola is rejected');
+
+const tpRef = (data.thirdPartyProjections.items || []).find((i) => TP_STATUSES.every((k) =>
+  Number.isInteger(i.standardDeduction && i.standardDeduction[k]) && i.brackets && i.brackets[k]));
+const good27 = () => ({
+  revenueProcedure: { name: 'Rev. Proc. 2026-40', publishedDate: '2026-10-20',
+    sourceUrl: 'https://www.irs.gov/pub/irs-drop/rp-26-40.pdf' },
+  federal: tpRef
+    ? { standardDeduction: { ...tpRef.standardDeduction }, brackets: JSON.parse(JSON.stringify(tpRef.brackets)) }
+    : { standardDeduction: { single: 16600, married: 33200, head_of_household: 24900 },
+      brackets: Object.fromEntries(TP_STATUSES.map((k) => [k, TP_RATES.map((rate, i) =>
+        ({ rate, upTo: i === TP_RATES.length - 1 ? null : (i + 1) * 20000 }))])) },
+});
+ok(official2027Problems(good27()).length === 0, `the official2027 fixture is valid: ${official2027Problems(good27()).join(' | ')}`);
+const irsBroken = (label, mutate, re) => {
+  const o = good27(); mutate(o);
+  const probs = official2027Problems(o);
+  ok(probs.some((m) => re.test(m)), `malformed official2027 is rejected (${label}); problems were: ${probs.join(' | ') || 'none'}`);
+};
+irsBroken('Rev. Proc. name spelled loosely', (o) => { o.revenueProcedure.name = 'RP 26-40'; }, /form "Rev\. Proc\./);
+irsBroken('no publication date', (o) => { delete o.revenueProcedure.publishedDate; }, /publishedDate/);
+irsBroken('no source', (o) => { o.revenueProcedure.sourceUrl = ''; }, /sourceUrl/);
+irsBroken('head of household left out', (o) => { delete o.federal.standardDeduction.head_of_household; }, /head_of_household/);
+irsBroken('extra zero in a deduction', (o) => { o.federal.standardDeduction.single = 166000; }, /standardDeduction\.single/);
+irsBroken('a bracket row missing', (o) => { o.federal.brackets.married.pop(); }, /does not have 7 rows/);
+irsBroken('thresholds out of order', (o) => { o.federal.brackets.single[3].upTo = 1; }, /upTo/);
+irsBroken('gap note without a source', (o) => { o.gapNote = { quote: 'The IRS used eleven months of data for this.' }; }, /gapNote/);
+
+if (data.cpiw.officialCola !== undefined) {
+  const live = officialColaProblems(data.cpiw.officialCola);
+  ok(live.length === 0, `the live cpiw.officialCola validates cleanly: ${live.join(' | ')}`);
+  // Once September is in, the statutory formula and SSA's announcement must agree.
+  if (windowStatus(q3cur, data.cpiw.q3_2026).complete) {
+    const computed = colaPercent(average(q3prior, data.cpiw.q3_2025), average(q3cur, data.cpiw.q3_2026));
+    ok(Math.abs(computed - data.cpiw.officialCola.percent) < 1e-9,
+      `cpiw.officialCola (${data.cpiw.officialCola.percent}%) matches the COLA the published CPI-W months give (${computed}%)`);
+  }
+}
+if (data.official2027 !== undefined) {
+  const live = official2027Problems(data.official2027);
+  ok(live.length === 0, `the live official2027 validates cleanly: ${live.join(' | ')}`);
+  const f = data.official2027.federal || {};
+  // A dropped or doubled digit in either table: married-joint is twice single up
+  // to the 32% band, and the joint standard deduction is twice the single one.
+  if (f.brackets && f.brackets.single && f.brackets.married)
+    for (let r = 0; r < 5; r++)
+      ok(f.brackets.married[r] && f.brackets.single[r] && f.brackets.married[r].upTo === 2 * f.brackets.single[r].upTo,
+        `official2027: married-joint ${TP_RATES[r] * 100}% threshold is twice the single one`);
+  if (f.standardDeduction)
+    ok(f.standardDeduction.married === 2 * f.standardDeduction.single,
+      'official2027: married-joint standard deduction is twice the single one');
 }
 
 // The whole reason the projected-brackets page ships without dollar figures.

@@ -182,7 +182,19 @@ export function pressKitParts(m, { contactEmail }) {
     '<a href="/data/take-home-pay-by-state/">take-home pay by state study</a>, which uses the same calculation.</p>' +
     priorText + reviewText;
 
+  // The missing-month section: before the IRS publishes, nobody knows how it
+  // will treat October 2025; after, that sentence would be false, so it points
+  // at the official figures instead and claims nothing about the IRS's method.
+  const gapStatus = fedOfficial
+    ? `<p>The IRS has now published the official ${esc(yr + 1)} figures (${link(fed.source2027.sourceUrl, fed.source2027.name)}, ` +
+      `${esc(humanDate(fed.source2027.date))}), so the charts here use them rather than any projection. Our ` +
+      `<a href="/2027-tax-brackets/">${esc(yr + 1)} tax brackets page</a> has the full official brackets for every filing status.</p>`
+    : '<p>The IRS has not said how it will handle the gap. Anyone projecting the 2027 brackets had to make some ' +
+      'assumption about that month, and the official figures may differ from the projections for that reason. Our ' +
+      '<a href="/2027-tax-brackets/#gap">2027 tax brackets page</a> shows every monthly value and which one is missing.</p>';
+
   return {
+    GAP_STATUS: gapStatus,
     STATUS_ROWS: statusRows,
     ANSWER: answer,
     CHARTS: charts,

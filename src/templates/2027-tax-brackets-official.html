@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<!-- /2027-tax-brackets/ once the IRS has published the tax-year-2027 Revenue
+     Procedure (projections-2027.json official2027 is set). Before that the same
+     URL renders 2027-tax-brackets.html, the PROJECTED page. build.js picks. -->
+<title>2027 Tax Brackets and Standard Deduction (OFFICIAL)</title>
+<meta name="description" content="OFFICIAL 2027 federal income tax brackets and standard deduction from IRS {{RP_NAME}}, by filing status, next to 2026.">
+<link rel="canonical" href="{{SITE_URL}}/2027-tax-brackets/">
+<meta property="og:title" content="2027 federal tax brackets and standard deduction (official)">
+<meta property="og:description" content="The IRS has published the 2027 figures. The brackets and standard deduction for every filing status, side by side with 2026.">
+<meta property="og:type" content="article">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  /* Page-scoped. styles.css serves every page on the site. */
+  .b27-banner { margin:14px 0 18px; padding:14px 16px; border-left:5px solid #1f6b3a;
+    border-radius:8px; background:rgba(31,107,58,.09); }
+  .b27-banner p { margin:0; font-size:.95rem; }
+  .b27-banner strong.b27-tag { display:inline-block; font-size:.78rem; letter-spacing:.08em;
+    padding:2px 8px; border-radius:5px; background:rgba(31,107,58,.18); color:#1f6b3a; margin-right:8px; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .b27-banner strong.b27-tag { color:#8fd6a6; }
+  }
+  :root[data-theme="dark"] .b27-banner strong.b27-tag { color:#8fd6a6; }
+  .b27-wrap { overflow-x:auto; }
+  .b27-table { width:100%; border-collapse:collapse; font-size:.92rem; }
+  .b27-table th, .b27-table td { text-align:left; padding:8px 10px;
+    border-bottom:1px solid rgba(128,128,128,.22); vertical-align:top; }
+  .b27-table td.num, .b27-table th.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .b27-table caption { text-align:left; font-weight:700; padding:10px 0 6px; font-size:1rem; }
+  .b27-note { font-size:.85rem; opacity:.9; margin-top:6px; }
+  .b27-sd { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:8px 0 4px; }
+  .b27-sd div { padding:12px 10px; border:1px solid rgba(128,128,128,.28); border-radius:10px; text-align:center; }
+  .b27-sd .b27-amt { display:block; font-size:1.3rem; font-weight:700; font-variant-numeric:tabular-nums; margin-top:4px; }
+  .b27-sd .b27-was { display:block; font-size:.82rem; opacity:.85; margin-top:2px; }
+  @media (max-width:520px) { .b27-sd { grid-template-columns:1fr; } }
+  .b27-quote { margin:10px 0; padding:10px 14px; border-left:3px solid rgba(42,93,143,.55);
+    background:rgba(42,93,143,.07); border-radius:0 8px 8px 0; font-size:.93rem; }
+  .b27-quote cite { display:block; margin-top:6px; font-size:.82rem; opacity:.85; font-style:normal; }
+</style>
+<script type="application/ld+json">{{ARTICLE_LD}}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{{SITE_NAME}}</a>
+    <nav aria-label="Primary"><a href="/#tools">Tools</a></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <h1>Official 2027 federal tax brackets and standard deduction</h1>
+
+    <div class="b27-banner">
+      <p><strong class="b27-tag">OFFICIAL</strong> <strong>These are the IRS's own figures for tax year 2027.</strong> The IRS published them in {{RP_LINK}} on {{RP_DATE}}.</p>
+    </div>
+
+    <p class="lede">These numbers apply to money you earn during 2027 and to the tax return you file in early 2028. Money you earn in 2026 still uses the <a href="/2026-tax-brackets/">2026 brackets</a>, and so does the return you file in early 2027. Every 2027 figure below is shown next to its 2026 figure, so you can see how far each one moved.</p>
+
+    <section class="prose" id="standard-deduction">
+      <h2>The standard deduction for 2027</h2>
+      <p>Most people never pay tax on their whole income. The standard deduction comes off first, and only what is left runs through the brackets.</p>
+      <div class="b27-sd">{{STANDARD_DEDUCTION}}</div>
+      <p class="b27-note">Source: {{SOURCE_LINE}}</p>
+    </section>
+
+    <div class="ad-slot" data-ad="leaderboard">Advertisement</div>
+
+    <section class="prose" id="official">
+      <h2>The 2027 brackets, by filing status</h2>
+      <p>Read each row as "this rate applies to the part of your taxable income inside this range", not to all of it. The income figures are <strong>taxable</strong> income: what is left after the standard deduction above.</p>
+      {{BRACKET_TABLES}}
+      <p class="b27-note">Source: {{SOURCE_LINE}}</p>
+    </section>
+
+    <div class="ad-slot" data-ad="incontent">Advertisement</div>
+
+    <section class="prose" id="example">
+      <h2>What the change is worth on the same pay</h2>
+      <p>{{WORKED_EXAMPLE}}</p>
+      <p>To see the whole paycheck, including Social Security, Medicare and your state, use the <a href="/#paycheck">paycheck calculator for your state</a>.</p>
+    </section>
+
+    {{PROJECTIONS_SECTION}}
+
+    {{GAP_SECTION}}
+
+    <section class="prose" id="method">
+      <h2>Why the numbers move every year</h2>
+      <p>The tax code adjusts the brackets and the standard deduction for inflation every year, using a price index the government publishes monthly. The IRS does the arithmetic and publishes the result in a Revenue Procedure each autumn. The rounding rule is why the new figures are round numbers:</p>
+      {{QUOTE_ROUNDING}}
+    </section>
+
+    <section class="prose">
+      <h2>Related</h2>
+      <ul>
+        <li><a href="/2026-tax-brackets/">2026 federal tax brackets</a>, for money earned in 2026 and the return you file in early 2027.</li>
+        <li>{{RELATED_COLA}}</li>
+        <li><a href="/bonus-tax-calculator/">Bonus tax calculator</a>, if a bonus is coming.</li>
+      </ul>
+    </section>
+
+    <p class="note">For general information only, not tax advice. Figures are reproduced from the IRS Revenue Procedure cited above; check irs.gov or a tax professional for your own situation.</p>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>{{SITE_NAME}} — free online tools.</span>
+    <span><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a> · <a href="/embed/">Embed our calculators</a> · <a href="/corrections/">Corrections log</a></span>
+  </div>
+</footer>
+</body>
+</html>

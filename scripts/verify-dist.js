@@ -182,6 +182,65 @@ const PAYCHECK_PREVIEW_RE = /<iframe src="[^"]*\/embed\/paycheck-calculator\/"[^
 const HEIGHT_ATTR_RE = /height="(\d+)"/;
 
 /**
+ * Gate /2027-tax-brackets/ in OFFICIAL mode (projections-2027.json official2027
+ * set). The failure modes are the mirror image of the projected page's: a
+ * leftover PROJECTED claim, an official-looking figure that is not the IRS's,
+ * or an IRS figure that did not make it onto the page.
+ * @returns {string[]}
+ */
+function verifyOfficial2027Page(html, proj, off, fed26) {
+  const fails = [];
+  const P = `/${PROJECTED_PAGE}/`;
+  const title = (/<title>([\s\S]*?)<\/title>/.exec(html) || [])[1] || '';
+  const h1 = (/<h1[^>]*>([\s\S]*?)<\/h1>/.exec(html) || [])[1] || '';
+  const desc = (/<meta name="description" content="([^"]*)"/.exec(html) || [])[1] || '';
+  if (/PROJECTED/i.test(title) || /projected/i.test(h1))
+    fails.push(`${P}: official2027 is set but the <title> or <h1> still says projected.`);
+  if (!/official/i.test(title) || !/official/i.test(h1) || !/official/i.test(desc))
+    fails.push(`${P}: the <title>, <h1> and meta description must all say official.`);
+  if (!html.includes('OFFICIAL')) fails.push(`${P}: the OFFICIAL banner is missing.`);
+  const rp = off.revenueProcedure || {};
+  if (!html.includes(rp.name)) fails.push(`${P}: the Revenue Procedure (${rp.name}) is not named on the page.`);
+  if (!html.includes(`href="${String(rp.sourceUrl).replace(/&/g, '&amp;')}"`))
+    fails.push(`${P}: no link to the Revenue Procedure itself (${rp.sourceUrl}).`);
+  if (/not publishing projected dollar figures|Nothing on this page comes from the IRS/i.test(html))
+    fails.push(`${P}: projected-mode wording survived into the official page.`);
+  // The tables: every dollar figure in the #official and #standard-deduction
+  // sections must be an IRS figure for 2027, or the 2026 figure it is compared
+  // with; and every 2027 IRS figure must be on the page.
+  const allowed = new Set();
+  const want = new Set();
+  const fed = off.federal || {};
+  for (const v of Object.values(fed.standardDeduction || {})) if (Number.isFinite(v)) { allowed.add(v); want.add(v); }
+  for (const rows of Object.values(fed.brackets || {}))
+    for (const r of rows || []) if (r && Number.isFinite(r.upTo)) { allowed.add(r.upTo); want.add(r.upTo); }
+  const sec = (id) => ((new RegExp(`<section class="prose" id="${id}">[\\s\\S]*?</section>`)).exec(html) || [''])[0];
+  const tables = sec('standard-deduction') + sec('official');
+  if (!sec('official')) fails.push(`${P}: the #official brackets section is missing.`);
+  const shown = [...new Set(tables.match(DOLLAR_FIGURE) || [])].map((x) => Number(x.replace(/[$,\s]/g, '')))
+    .filter((n) => n >= PROJECTION_FLOOR);
+  // The 2026 comparison column and the "up $X from 2026" notes: official 2026
+  // figures from tax-data-2026.json, and the differences between the two years.
+  const f26 = fed26 || {};
+  for (const v of Object.values(f26.standardDeduction || {})) if (Number.isFinite(v)) allowed.add(v);
+  for (const rows of Object.values(f26.brackets || {}))
+    for (const r of rows || []) if (r && Number.isFinite(r.upTo)) allowed.add(r.upTo);
+  for (const k of Object.keys(fed.standardDeduction || {}))
+    if (f26.standardDeduction && Number.isFinite(f26.standardDeduction[k]))
+      allowed.add(Math.abs(fed.standardDeduction[k] - f26.standardDeduction[k]));
+  const stray = shown.filter((n) => !allowed.has(n));
+  if (stray.length)
+    fails.push(`${P}: the official tables show ${stray.length} dollar figure(s) that are neither a 2027 IRS ` +
+      `figure from official2027 nor a 2026 figure from tax-data-2026.json: ` +
+      list(stray.map((n) => '$' + n.toLocaleString('en-US'))));
+  const missing = [...want].filter((n) => !shown.includes(n));
+  if (missing.length)
+    fails.push(`${P}: ${missing.length} official 2027 figure(s) from official2027 are not on the page: ` +
+      list(missing.map((n) => '$' + n.toLocaleString('en-US'))));
+  return fails;
+}
+
+/**
  * Gate the 2027 seasonal pages.
  * @param {string} DIST dist directory
  * @param {string} ROOT repo root (holds src/data and src/engine)
@@ -215,10 +274,20 @@ async function verifySeasonal2027(DIST, ROOT) {
   }
   const windowComplete = missing.length === 0;
 
-  // --- the projected brackets page
+  // --- the 2027 brackets page: OFFICIAL once official2027 is in the data,
+  // PROJECTED until then. The two modes are checked by different rules.
   const p27 = await readPage(PROJECTED_PAGE);
+  const off27 = proj.official2027 || null;
   if (!p27) {
     fails.push(`/${PROJECTED_PAGE}/ was not written.`);
+  } else if (off27) {
+    let fed26 = null;
+    try {
+      fed26 = JSON.parse(await readFile(join(ROOT, 'src', 'data', 'tax-data-2026.json'), 'utf8')).federal;
+    } catch (e) {
+      fails.push(`cannot read src/data/tax-data-2026.json (${e.message}) for the 2026 comparison column.`);
+    }
+    fails.push(...verifyOfficial2027Page(p27, proj, off27, fed26));
   } else {
     const title = (/<title>([\s\S]*?)<\/title>/.exec(p27) || [])[1] || '';
     const h1 = (/<h1[^>]*>([\s\S]*?)<\/h1>/.exec(p27) || [])[1] || '';
@@ -319,7 +388,38 @@ async function verifySeasonal2027(DIST, ROOT) {
   if (!cola) {
     fails.push(`/${COLA_PAGE}/ was not written.`);
   } else {
-    if (!/ESTIMATE/.test(cola)) fails.push(`/${COLA_PAGE}/: the ESTIMATE banner is gone.`);
+    const offCola = proj.cpiw.officialCola || null;
+    if (offCola) {
+      // OFFICIAL mode: the announced figure, credited to SSA and linked, in the
+      // places a reader lands first, and no leftover ESTIMATE framing.
+      const pct = `${Number(offCola.percent).toFixed(1)}%`;
+      const title = (/<title>([\s\S]*?)<\/title>/.exec(cola) || [])[1] || '';
+      const h1 = (/<h1[^>]*>([\s\S]*?)<\/h1>/.exec(cola) || [])[1] || '';
+      const desc = (/<meta name="description" content="([^"]*)"/.exec(cola) || [])[1] || '';
+      if (!/OFFICIAL/.test(cola)) fails.push(`/${COLA_PAGE}/: cpiw.officialCola is set but the OFFICIAL banner is missing.`);
+      if (/ESTIMATE/i.test(title) || /estimate/i.test(h1) || /ESTIMATE/i.test(desc))
+        fails.push(`/${COLA_PAGE}/: cpiw.officialCola is set but the title, H1 or description still says estimate.`);
+      for (const [where, txt] of [['<title>', title], ['<h1>', h1], ['meta description', desc]])
+        if (!txt.includes(pct)) fails.push(`/${COLA_PAGE}/: the official ${pct} is not in the ${where}.`);
+      if (!cola.includes(`href="${offCola.sourceUrl.replace(/&/g, '&amp;')}"`))
+        fails.push(`/${COLA_PAGE}/: the official COLA is shown without a link to the announcement (${offCola.sourceUrl}).`);
+      if (!/Social Security Administration/.test(cola))
+        fails.push(`/${COLA_PAGE}/: the official COLA is not credited to the Social Security Administration.`);
+      const cfg = /window\.__COLA__\s*=\s*(\{[^;]*\});/.exec(cola);
+      let prefill = null;
+      try { prefill = cfg ? JSON.parse(cfg[1]).prefill : null; } catch { /* reported below */ }
+      if (prefill !== offCola.percent)
+        fails.push(`/${COLA_PAGE}/: the calculator starts on ${prefill}% instead of the official ${offCola.percent}%.`);
+      if (/not putting a figure of our own|Nobody knows the 2027 increase/i.test(cola))
+        fails.push(`/${COLA_PAGE}/: the page still says the 2027 figure is unknown after SSA announced it.`);
+    } else {
+      if (!/ESTIMATE/.test(cola)) fails.push(`/${COLA_PAGE}/: the ESTIMATE banner is gone.`);
+      // All three 2026 months in but no announcement yet: the figure is settled
+      // arithmetic, so the page must not still call it unknowable.
+      const q3Done = ['2026-07', '2026-08', '2026-09'].every((k) => proj.cpiw.q3_2026[k] != null);
+      if (q3Done && /Nobody knows the 2027 increase|still unpublished|still outstanding|not putting a figure of our own/i.test(cola))
+        fails.push(`/${COLA_PAGE}/: all three CPI-W months are published but the page still says the 2027 figure is unknown.`);
+    }
     if (!/id="benefit"/.test(cola) || !/id="colaPct"/.test(cola))
       fails.push(`/${COLA_PAGE}/: the benefit calculator inputs are missing — that calculator is the ` +
         'only part of this page that works before the data exists, so without it the page is a stub.');
@@ -383,6 +483,16 @@ async function verifySeasonal2027(DIST, ROOT) {
         }
       }
     }
+  }
+
+  // --- the 2026 page's "What about 2027?" section must not say the 2027 figures
+  // do not exist once they do, and must point at them.
+  if (off27) {
+    const b26 = await readPage('2026-tax-brackets');
+    if (b26 && /The 2027 figures do not exist yet/.test(b26))
+      fails.push('/2026-tax-brackets/: still says the 2027 figures do not exist, but official2027 is set.');
+    if (b26 && !b26.includes(off27.revenueProcedure && off27.revenueProcedure.name))
+      fails.push('/2026-tax-brackets/: does not name the 2027 Revenue Procedure now that it is published.');
   }
 
   // The visible "Last updated" byline and the machine-readable dateModified must
