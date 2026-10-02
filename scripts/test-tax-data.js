@@ -888,11 +888,61 @@ t('Alabama, $5,000 of tips inside $50,000 of pay: the tips deduction reaches the
   approx(slice, 250, 0.005);
   // The pay without the tips is computePaycheck's own figure.
   approx(cpState('alabama', 45000, 'single'), 1924, 0.005);
-  // computePaycheck at 50,000 has no tips input, so it subtracts the pre-deduction 3,820:
+  // computePaycheck at 50,000 with no tips input subtracts the pre-deduction 3,820:
   // 50,000 - 2,500 - 3,820 = 43,680 -> 2,144.00. The slice is $30.00 more, which is exactly
   // Alabama's 5% on the $600 of federal tax (3,820 - 3,220) the return never shows.
   approx(cpState('alabama', 50000, 'single'), 2144, 0.005);
   approx(slice - (cpState('alabama', 50000, 'single') - cpState('alabama', 45000, 'single')), 30, 0.005);
+  // So the paycheck page, with the tips inside the pay, hands computePaycheck the deduction
+  // (returnDeductions) and its state line is the 2,174.00 the return shows, which is the
+  // slice on top of the pay without the tips.
+  const withTips = computePaycheck({ wage: { type: 'salary', amount: 50000 }, filingStatus: 'single',
+    payFrequency: 'annual', stateSlug: 'alabama', returnDeductions: { federal: 5000, state: 0 } }, tax).annual;
+  approx(withTips.state, 2174, 0.005);
+  approx(withTips.state - cpState('alabama', 45000, 'single'), slice, 1e-6);
+});
+
+// --- TIPS INSIDE THE PAY: the page's state line and the tips block agree (added 2026-10-02) -----
+// With tips inside the pay, the tips block prices the state tax on them as the state's return
+// WITH the tips deduction less the return without the tips, and the page's state line is the
+// first of those two terms. The line used to ignore the deduction, so in Oregon the block said
+// the tips cost $0.00 of Oregon tax while the line charged $385 for them.
+t('Oregon, $5,000 of tips inside $50,000 of pay: state line $3,082.13, tips block $0.00', () => {
+  // Federal 2026 single: 3,220 at 45,000; 3,820 at 50,000 before the tips deduction and 3,220
+  // after the full $5,000 (Oregon follows the deduction for 2026, so its own base drops by the
+  // same $5,000). Oregon: standard deduction 2,910, federal tax subtracted in full (under the
+  // $8,750 limit); 4.75% to 4,550, 6.75% to 11,400, 8.75% to 125,000.
+  //   without the tips, at 45,000:  45,000 - 2,910 - 3,220 = 38,870 -> 678.50 + 8.75% x 27,470 = 3,082.125
+  //   tips inside, return:  50,000 - 5,000 - 2,910 - 3,220 = 38,870 -> 3,082.125
+  //   tips inside, old line: 50,000 - 2,910 - 3,820 = 43,270 -> 678.50 + 8.75% x 31,870 = 3,467.125
+  const bands = (taxable) => 4550 * 0.0475 + 6850 * 0.0675 + (taxable - 11400) * 0.0875;
+  const or = tax.states.oregon;
+  const slice = stateTaxOnSlice({ base: 45000, top: 50000, filingStatus: 'single', stateData: or,
+    fed: tax.federal, federalDeduction: 5000, stateDeduction: 5000 });
+  approx(slice, 0, 0.005);
+  const line = (rd) => computePaycheck({ wage: { type: 'salary', amount: 50000 }, filingStatus: 'single',
+    payFrequency: 'annual', stateSlug: 'oregon', returnDeductions: rd }, tax).annual;
+  approx(line().state, bands(50000 - 2910 - 3820), 0.005);
+  approx(line().state, 3467.125, 0.005);
+  approx(line({ federal: 5000, state: 5000 }).state, bands(50000 - 5000 - 2910 - 3220), 0.005);
+  approx(line({ federal: 5000, state: 5000 }).state, 3082.125, 0.005);
+  // The two agree: the line less the pay without the tips is the block's figure.
+  approx(line({ federal: 5000, state: 5000 }).state - cpState('oregon', 45000, 'single'), slice, 1e-6);
+  // And only the state line moves: gross, the federal line and FICA are unchanged.
+  const a = line(), b = line({ federal: 5000, state: 5000 });
+  assert.equal(b.gross, a.gross);
+  assert.equal(b.federal, a.federal);
+  assert.equal(b.socialSecurity + b.medicare, a.socialSecurity + a.medicare);
+});
+t('returnDeductions at zero reproduces every state figure exactly', () => {
+  const adv = { retirement401k: 3000, cafeteria125: 1200, dependentsCredit: 2000, extraWithholding: 500 };
+  for (const slug of Object.keys(tax.states)) {
+    for (const fs of ['single', 'married', 'head_of_household']) {
+      const run = (rd) => computePaycheck({ wage: { type: 'salary', amount: 61234 }, filingStatus: fs,
+        payFrequency: 'annual', stateSlug: slug, adv, returnDeductions: rd }, tax).annual.state;
+      assert.equal(run({ federal: 0, state: 0 }), run(undefined), `${slug} ${fs}`);
+    }
+  }
 });
 t('Massachusetts, $2,000 of tips on $20,000: the FICA deduction moves with the tips, $92.35', () => {
   // FICA 7.65%: 1,530 at 20,000, 1,683 at 22,000, both under the $2,000 cap, so both deducted in full.
