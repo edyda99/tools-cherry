@@ -56,9 +56,11 @@ const CHIPS = [
 // share one long identical run (they are already the closest raw pairs on the site).
 //
 // A 'partial' verdict names the state's own figure when the paycheck engine
-// models one (`ownCap`, Alabama's $1,000 overtime premium deduction from
-// tax-data-2026.json), rather than the generic "smaller capped break".
-function conformityLine(name, verdict, what, angle, ownCap) {
+// models one (`own`, from tax-data-2026.json: Alabama's $1,000 overtime premium
+// deduction, Georgia's $1,750 overtime and cash-tips exclusions), rather than the
+// generic "smaller capped break". `own.of` is what the cap is a cap on, and a rule
+// for hourly workers only (Georgia's overtime, `hourlyOnly`) says so.
+function conformityLine(name, verdict, what, angle, own) {
   if (verdict === 'n/a') {
     return angle
       ? `federally deductible, and ${name} runs on ${angle} rather than a wage tax, so nothing more is claimed at state level`
@@ -66,9 +68,10 @@ function conformityLine(name, verdict, what, angle, ownCap) {
   }
   if (verdict === 'yes') return `federally deductible, and deductible on your ${name} return too`;
   if (verdict === 'no') return `federally deductible, but ${name} still taxes ${what} in full`;
-  if (verdict === 'partial' && ownCap > 0) {
-    return `federally deductible, and ${name} lets you deduct up to $${Math.round(ownCap).toLocaleString('en-US')} ` +
-      `of the overtime premium on your ${name} return too`;
+  if (verdict === 'partial' && own && own.cap > 0) {
+    return `federally deductible, and ${name} lets you deduct up to $${Math.round(own.cap).toLocaleString('en-US')} ` +
+      `of ${own.of} on your ${name} return too` +
+      (own.hourlyOnly ? `, if you work full time and are paid by the hour` : '');
   }
   if (verdict === 'partial') return `federally deductible, with a smaller capped ${name} break on top`;
   if (verdict === 'unclear') return `federally deductible; ${name} has not confirmed its own treatment yet`;
@@ -133,20 +136,34 @@ function bonusLine(name, supp, slug, pickFrame, wp) {
 // filer the District taxes the same wages in full. DC: D.C. Act 26-416, sec.
 // 7112(e), new D.C. Code 47-1803.04(e)(6) allows the 151(d)(5)(C) senior deduction
 // for tax years beginning after December 31, 2025.
+//
+// The states that start from FEDERAL TAXABLE INCOME are the ones the bracket line
+// got wrong: the deduction is already out of the figure they start from, so
+// Colorado, Idaho, Iowa, Montana and North Dakota let it through, and their line
+// used to say the state still applies its flat rate or its brackets "to the same wages". Each now
+// carries a sourced senior verdict. A state that starts there and still refuses it
+// (Oregon, South Carolina) carries a "no", and says so in words, because a reader
+// who knows the state starts from federal taxable income would assume the opposite.
 function seniorLine(state, pickFrame, wp, obbbaEntry) {
   const t = state.tax;
-  const seniorV = obbbaEntry && obbbaEntry.senior && obbbaEntry.senior.y2026;
+  const sen = obbbaEntry && obbbaEntry.senior;
+  const seniorV = sen && sen.y2026;
+  // Said as the jurisdiction allowing it, not "the deduction ... is deductible". The
+  // District is "the District" and its return the "DC return", as the District writes
+  // them.
+  const isDC = state.slug === 'district-of-columbia';
+  const who = isDC ? 'the District' : state.name;
+  const ret = isDC ? state.abbr : state.name;
   if (wp.hasIncomeTax && seniorV === 'yes') {
-    // Said as the jurisdiction allowing it, not "the deduction ... is deductible". The
-    // District is "the District" and its return the "DC return", as the District writes
-    // them; the year it started is read from the 2025 verdict, so a state that already
+    // The year it started is read from the 2025 verdict, so a state that already
     // allowed it in 2025 gets no "from 2026".
-    const isDC = state.slug === 'district-of-columbia';
-    const who = isDC ? 'the District' : state.name;
-    const ret = isDC ? state.abbr : state.name;
-    const since = obbbaEntry.senior.y2025 === 'yes' ? '' : ', from 2026';
+    const since = sen.y2025 === 'yes' ? '' : ', from 2026';
     return `the $6,000 federal senior deduction comes off your federal return, and ${who} allows it on ` +
       `your ${ret} return too${since}`;
+  }
+  if (wp.hasIncomeTax && seniorV === 'no' && sen.y2025 === 'no') {
+    return `the $6,000 federal senior deduction comes off your federal return only: ${who} does not allow it on ` +
+      `your ${ret} return`;
   }
   if (!wp.hasIncomeTax) {
     // "The whole story" and "all there is to claim" are exclusivity claims about
@@ -186,7 +203,9 @@ export function buildStateApplies({ state, obbbaEntry, suppEntry, notaxAngle, pi
   const name = esc(state.name);
   const otV = obbbaEntry && obbbaEntry.overtime && obbbaEntry.overtime.y2026;
   const tipV = obbbaEntry && obbbaEntry.tips && obbbaEntry.tips.y2026;
-  const otCap = state.tax && state.tax.overtimePremiumDeduction && state.tax.overtimePremiumDeduction.cap;
+  const ownRule = (rule, of) => (rule ? { cap: rule.cap, hourlyOnly: !!rule.hourlyOnly, of } : null);
+  const otOwn = ownRule(state.tax && state.tax.overtimePremiumDeduction, 'the overtime premium');
+  const tipOwn = ownRule(state.tax && state.tax.cashTipsDeduction, 'tips');
 
   const h2 = pickFrame(state.slug, 'appliesh2', [
     `Which 2026 rules apply to your ${name} paycheck?`,
@@ -207,9 +226,9 @@ export function buildStateApplies({ state, obbbaEntry, suppEntry, notaxAngle, pi
   // overtime line would put the same words back on all nine no-tax pages.
   const angle = esc(notaxAngle || '');
   const lines = [
-    `<p class="applies-line" data-line="tips"><strong>Tips:</strong> ${conformityLine(name, tipV, 'tips', angle)}. ` +
+    `<p class="applies-line" data-line="tips"><strong>Tips:</strong> ${conformityLine(name, tipV, 'tips', angle, tipOwn)}. ` +
       `<a href="/tips-tax-calculator/">Work out the tip deduction</a></p>`,
-    `<p class="applies-line" data-line="ot"><strong>Overtime:</strong> ${conformityLine(name, otV, 'overtime premium pay', '', otCap)}. ` +
+    `<p class="applies-line" data-line="ot"><strong>Overtime:</strong> ${conformityLine(name, otV, 'overtime premium pay', '', otOwn)}. ` +
       `<a href="/overtime-tax-calculator/">Work out the overtime deduction</a></p>`,
     `<p class="applies-line" data-line="bonus"><strong>Bonuses:</strong> ${bonusLine(name, suppEntry, state.slug, pickFrame, wp)}. ` +
       `<a href="/${state.slug}-bonus-tax-calculator/">Estimate the tax on a bonus in ${name}</a></p>`,

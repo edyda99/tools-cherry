@@ -7,7 +7,7 @@ import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { computePaycheck, stateIncomeTax, phaseOutStandardDeduction, federalTaxSubtraction, stateTaxOnSlice,
-  stateTaxableIncome, stateOvertimeDeduction, stateOvertimeAtFiling } from '../src/engine/paycheck-engine.js';
+  stateTaxableIncome, stateOvertimeDeduction, stateOvertimeAtFiling, stateDeductionAtFiling } from '../src/engine/paycheck-engine.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const tax = JSON.parse(await readFile(join(__dirname, '..', 'src', 'data', 'tax-data-2026.json'), 'utf8'));
@@ -690,6 +690,43 @@ t('legal-status watches: well-formed, none expired', () => {
     assert.ok(verdictBlock('district-of-columbia').includes('We last checked this on 2 October 2026.'),
       'DC verdict cards should carry their own 2 October 2026 check date');
   });
+
+  // The federal senior and car loan cards carry a state-return line for each state whose
+  // row has a sourced verdict for that deduction, gated to that state, inside that card.
+  const cardWith = (h4) => {
+    const at = wam.FEDERAL_CARDS.indexOf(h4);
+    assert.ok(at >= 0, `no federal card headed ${h4}`);
+    const start = wam.FEDERAL_CARDS.lastIndexOf('<article', at);
+    return wam.FEDERAL_CARDS.slice(start, wam.FEDERAL_CARDS.indexOf('</article>', at));
+  };
+  const stateLinesIn = (card, field) => {
+    let n = 0;
+    for (const { slug, name } of wamRoster) {
+      const r = (obbba.states[slug] || {})[field];
+      const open = `<p class="g wam-note" data-st="${slug}"><strong>On the state return:</strong> `;
+      if (r && r.note) {
+        n++;
+        assert.ok(card.includes(open + esc(r.note)), `${slug}: ${field} card should carry its state-return line`);
+        assert.ok(card.includes(`We last checked this on ${humanDay(r.checkedOn)}.`), `${slug}: ${field} line should say when it was checked`);
+        assert.ok(card.includes(`href="${esc(r.source)}"`), `${slug}: ${field} line should link its source`);
+      } else {
+        assert.ok(!card.includes(`data-st="${slug}"`), `${slug}: no ${field} verdict, so no state line`);
+      }
+    }
+    return n;
+  };
+  t('what-applies-to-me: the senior card names each checked state, gated to it', () => {
+    const n = stateLinesIn(cardWith('<h4>The federal deduction for people 65 and older</h4>'), 'senior');
+    assert.ok(n >= 8, `expected the eight checked senior rows, found ${n}`);
+  });
+  t('what-applies-to-me: the car loan card names each checked state, gated to each', () => {
+    const card = cardWith('<h4>Interest on a new car loan</h4>');
+    const n = stateLinesIn(card, 'carLoan');
+    assert.ok(n >= 8, `expected the eight checked car loan rows, found ${n}`);
+    for (const slug of ['oregon', 'district-of-columbia', 'arizona', 'colorado', 'iowa', 'montana', 'north-dakota', 'idaho']) {
+      assert.ok(card.includes(`data-st="${slug}"`), `car loan card has no line for ${slug}`);
+    }
+  });
 }
 
 // --- FEDERAL INCOME TAX SUBTRACTION: Alabama, Missouri, Oregon (added 2026-10-02) -------------
@@ -965,9 +1002,9 @@ t('Massachusetts, $2,000 of tips on $20,000: the FICA deduction moves with the t
 // the AGI before it. Alabama's top band is 5% above $3,000 of taxable income (single), so there
 // the tax is 5% x T - 40, and every dollar of deduction is worth 5 cents.
 const AL = tax.states.alabama;
-t('overtimePremiumDeduction is Alabama only: $1,000, 2026 to 2028, not in withholding', () => {
+t('overtimePremiumDeduction: Alabama $1,000, 2026 to 2028, not in withholding (Georgia is the only other)', () => {
   const users = Object.entries(tax.states).filter(([, s]) => s.tax && s.tax.overtimePremiumDeduction).map(([k]) => k);
-  assert.deepEqual(users, ['alabama']);
+  assert.deepEqual(users.sort(), ['alabama', 'georgia']);
   const cfg = AL.tax.overtimePremiumDeduction;
   assert.equal(cfg.cap, 1000);
   assert.equal(cfg.firstTaxYear, 2026);
@@ -982,7 +1019,7 @@ t('stateOvertimeDeduction: the premium, never above the $1,000 cap, zero without
   assert.deepEqual([0, 600, 999.99, 1000, 3333.33, 25000, -50].map((p) => stateOvertimeDeduction(p, cfg)),
     [0, 600, 999.99, 1000, 1000, 1000, 0]);
   assert.equal(stateOvertimeDeduction(5000, undefined), 0);
-  assert.equal(stateOvertimeDeduction(5000, tax.states.georgia.tax.overtimePremiumDeduction), 0);
+  assert.equal(stateOvertimeDeduction(5000, tax.states.california.tax.overtimePremiumDeduction), 0);
 });
 t('Alabama single $70k: the paycheck figure is unchanged, the deduction is not in withholding', () =>
   // fed: 70,000 - 16,100 = 53,900 -> 1,240 + 4,560 + 22% x 3,500 = 6,570
@@ -1006,7 +1043,7 @@ t('Alabama: the deduction is taken after AGI, so the standard-deduction chart do
   approx(stateIncomeTax(30000, 'single', AL, 0, 0, 1420, 1000), 1200.25, 0.005);
 });
 t('Other states ignore an overtime premium (no rule, no deduction)', () => {
-  for (const slug of ['georgia', 'missouri', 'oregon', 'california', 'new-york']) {
+  for (const slug of ['missouri', 'oregon', 'california', 'new-york']) {
     const s = tax.states[slug];
     assert.equal(stateIncomeTax(70000, 'single', s, 0, 5355, 6570, 3000), stateIncomeTax(70000, 'single', s, 0, 5355, 6570, 0), slug);
     assert.equal(stateOvertimeAtFiling({ income: 70000, filingStatus: 'single', stateData: s, fed: tax.federal, premium: 3000 }), null, slug);
@@ -1100,6 +1137,233 @@ t('Alabama at filing: W-4 credits and pre-tax money are fed exactly as computePa
     preTaxIncome: 4200, preTaxFica: 1200, dependentsCredit: 2000, federalOvertimeDeduction: 0, premium: 0 });
   approx(r.before, cpState('alabama', 70000, 'single', adv), 1e-9);
   approx(r.net, 0, 1e-9);
+});
+
+// --- THE KNOCK-ON EVERYWHERE: stateDeductionAtFiling() (added 2026-10-02) -----------------------
+// Alabama, Missouri and Oregon subtract federal income tax, so every federal deduction (tips,
+// overtime, the senior deduction) lowers what they subtract and raises the state tax. The paycheck
+// page prints that as a row of its own, from this one helper, for tips (inside the tips block),
+// overtime and the senior deduction (at filing). Federal 2026 single, from the tests above:
+// 10% to 12,400, 12% to 50,400 (5,800 there), 22% to 105,700 (17,966 there), standard deduction
+// 16,100.
+const MO = tax.states.missouri;
+const OR = tax.states.oregon;
+const atFiling = (stateData, income, fedDed, stDed = 0, extra = {}) => stateDeductionAtFiling({ income,
+  filingStatus: 'single', stateData, fed: tax.federal, federalDeduction: fedDed, stateDeduction: stDed, ...extra });
+t('knock-on, Alabama tips on top: $5,000 on $50,000 costs $30.00 of Alabama tax, inside the $250.00', () => {
+  // At 55,000 (pay plus tips): fed 38,900 -> 1,240 + 12% x 26,500 = 4,420; after the $5,000
+  // deduction 33,900 -> 3,820, a $600 saving. Alabama standard deduction $2,500 (the floor).
+  //   before        55,000 - 2,500 - 4,420 = 48,080 -> 5% x 48,080 - 40 = 2,364.00
+  //   federal only  55,000 - 2,500 - 3,820 = 48,680 -> 5% x 48,680 - 40 = 2,394.00, knock-on 30.00
+  // Alabama has no tips deduction of its own, so nothing comes back.
+  const r = atFiling(AL, 55000, 5000);
+  approx(r.before, 2364, 0.005);
+  approx(r.federalKnockOn, 30, 0.005);
+  approx(r.stateSaving, 0, 1e-9);
+  approx(r.net, -30, 0.005);
+  approx(r.federalTaxBefore - r.federalTaxAfter, 600, 0.005);
+  // The tips block's state figure is 2,394.00 - 2,144.00 (Alabama at the pay alone) = 250.00:
+  // 220.00 of Alabama tax on the tips and this 30.00 knock-on, which it now prints on its own row.
+  const slice = stateTaxOnSlice({ base: 50000, top: 55000, filingStatus: 'single', stateData: AL,
+    fed: tax.federal, federalDeduction: 5000 });
+  approx(slice, 250, 0.005);
+  approx(slice - r.federalKnockOn, 220, 0.005);
+});
+t('knock-on, Missouri overtime: $3,000 of premium on $75,000 costs $4.65 of Missouri tax', () => {
+  // $30 an hour, 200 hours at time and a half: premium 200 x $15 = 3,000, all deductible (under
+  // $12,500, MAGI under $150,000). Fed 58,900 -> 5,800 + 22% x 8,500 = 7,670; after 55,900 ->
+  // 5,800 + 22% x 5,500 = 7,010, a $660 saving.
+  // Missouri: AGI 75,000 -> 15% of the federal tax, under the $5,000 cap.
+  //   subtraction 15% x 7,670 = 1,150.50 before, 15% x 7,010 = 1,051.50 after: 99.00 less
+  //   75,000 - 16,100 - 1,150.50 = 57,749.50 and 57,848.50, both in the 4.7% band: 4.7% x 99 = 4.653
+  // Missouri has no overtime deduction of its own (verdict "no").
+  const r = atFiling(MO, 75000, 3000);
+  approx(r.subtractionBefore, 1150.5, 0.005);
+  approx(r.subtractionAfter, 1051.5, 0.005);
+  approx(r.federalKnockOn, 4.653, 0.0005);
+  approx(r.stateSaving, 0, 1e-9);
+  approx(r.before, cpState('missouri', 75000, 'single'), 1e-9);
+});
+t('knock-on, Oregon overtime under the limit: $3,000 on $50,000, +$262.50 Oregon deduction, -$31.50 knock-on', () => {
+  // $20 an hour, 300 hours: premium 300 x $10 = 3,000. Fed 3,820; after 30,900 -> 1,240 + 12% x
+  // 18,500 = 3,460, a $360 saving. Oregon: AGI 50,000, limit $8,750, so all of it is subtracted.
+  //   before        50,000 - 2,910 - 3,820         = 43,270 -> 678.50 + 8.75% x 31,870 = 3,467.125
+  //   federal only  50,000 - 2,910 - 3,460         = 43,630 -> 3,498.625, knock-on 8.75% x 360 = 31.50
+  //   both          50,000 - 2,910 - 3,460 - 3,000 = 40,630 -> 3,236.125, Oregon deduction 262.50
+  //   net 231.00 less Oregon tax
+  const r = atFiling(OR, 50000, 3000, 3000);
+  approx(r.before, 3467.125, 0.005);
+  approx(r.federalKnockOn, 31.5, 0.005);
+  approx(r.stateSaving, 262.5, 0.005);
+  approx(r.net, 231, 0.005);
+  approx(r.after, 3236.125, 0.005);
+});
+t('knock-on, Oregon overtime over the limit: $4,000 on $100,000, knock-on $0.00', () => {
+  // $40 an hour, 200 hours: premium 4,000. Fed 83,900 -> 5,800 + 22% x 33,500 = 13,170; after
+  // 79,900 -> 12,290, an $880 saving. Oregon AGI 100,000 (under $125,000): limit $8,750, and the
+  // federal tax is over it before AND after, so 8,750 is subtracted both times and nothing moves.
+  //   before 100,000 - 2,910 - 8,750 = 88,340 -> 678.50 + 8.75% x 76,940 = 7,410.75
+  //   Oregon deduction 8.75% x 4,000 = 350.00, net 350.00
+  const r = atFiling(OR, 100000, 4000, 4000);
+  assert.equal(r.subtractionBefore, 8750);
+  assert.equal(r.subtractionAfter, 8750);
+  approx(r.federalTaxBefore - r.federalTaxAfter, 880, 0.005);
+  approx(r.federalKnockOn, 0, 1e-9);
+  approx(r.before, 7410.75, 0.005);
+  approx(r.stateSaving, 350, 0.005);
+  approx(r.net, 350, 0.005);
+});
+t('a state that follows the overtime deduction prices its own saving, with no knock-on', () => {
+  // The paycheck page now prints a state saving row for every 2026 overtime "yes" state, not only
+  // the three that subtract federal tax. Same $3,000 premium on $50,000, by hand:
+  //   Arizona 2.5% flat, deduction 15,750: 34,250 -> 856.25, after 31,250 -> 781.25, saving 75.00
+  //   Michigan 4.25% flat, 5,900: 44,100 -> 1,874.25, after 41,100 -> 1,746.75, saving 127.50
+  //   DC 6% band from 10,000 to 40,000, deduction 15,000: 35,000 -> 400 + 6% x 25,000 = 1,900.00,
+  //     after 32,000 -> 1,720.00, saving 180.00
+  //   North Dakota 0% to 49,575, deduction 16,100: 33,900 and 30,900 both untaxed, saving 0.00, so
+  //     the page prints no row for it
+  const az = atFiling(tax.states.arizona, 50000, 3000, 3000);
+  approx(az.before, 856.25, 0.005);
+  approx(az.stateSaving, 75, 0.005);
+  approx(az.federalKnockOn, 0, 1e-9);
+  approx(az.net, 75, 0.005);
+  const mi = atFiling(tax.states.michigan, 50000, 3000, 3000);
+  approx(mi.before, 1874.25, 0.005);
+  approx(mi.stateSaving, 127.5, 0.005);
+  const dc = atFiling(tax.states['district-of-columbia'], 50000, 3000, 3000);
+  approx(dc.before, 1900, 0.005);
+  approx(dc.stateSaving, 180, 0.005);
+  approx(atFiling(tax.states['north-dakota'], 50000, 3000, 3000).stateSaving, 0, 1e-9);
+});
+// Georgia, HB 463 (2026, signed May 11, 2026; https://www.legis.ga.gov/api/legislation/document/20252026/249080),
+// adds two subtractions from federal AGI to O.C.G.A. 48-7-27(a): (16) "any amount of qualified overtime
+// compensation, as such term is defined in Section 225 of the Internal Revenue Code, up to $1,750.00
+// received by a full-time employee paid by an hourly wage", tax years 2026 to 2028, and (17) "any amount
+// up to $1,750.00 received in cash tips", from 2026, repealed December 31, 2028. Neither has an income
+// limit, and Georgia subtracts no federal tax, so there is no knock-on. Georgia 2026: 4.99% flat,
+// standard deduction $15,000 single.
+const GA = tax.states.georgia;
+t('Georgia carries its HB 463 overtime and cash-tips exclusions: $1,750 each, 2026 to 2028, cited', () => {
+  const ot = GA.tax.overtimePremiumDeduction;
+  assert.equal(ot.cap, 1750);
+  assert.equal(ot.hourlyOnly, true);
+  assert.equal(ot.capPer, 'employee');
+  assert.equal(ot.firstTaxYear, 2026);
+  assert.equal(ot.lastTaxYear, 2028);
+  assert.equal(ot.inWithholdingFormula, false);
+  assert.match(ot._statute, /48-7-27\(a\)\(16\)/);
+  assert.match(ot._source, /legis\.ga\.gov\/api\/legislation\/document\/20252026\/249080/);
+  const tp = GA.tax.cashTipsDeduction;
+  assert.equal(tp.cap, 1750);
+  assert.equal(tp.hourlyOnly, undefined);
+  assert.equal(tp.firstTaxYear, 2026);
+  assert.equal(tp.lastTaxYear, 2028);
+  assert.equal(tp.inWithholdingFormula, false);
+  assert.match(tp._statute, /48-7-27\(a\)\(17\)/);
+  assert.match(tp._source, /legis\.ga\.gov\/api\/legislation\/document\/20252026\/249080/);
+  assert.ok(ot.firstTaxYear <= tax.taxYear && tax.taxYear <= ot.lastTaxYear, 'the data year must be inside the act window');
+  const users = Object.entries(tax.states).filter(([, s]) => s.tax && s.tax.cashTipsDeduction).map(([k]) => k);
+  assert.deepEqual(users, ['georgia']);
+});
+t('Georgia at filing, single $50,000: its $1,750 cap is worth $87.33, with no knock-on', () => {
+  // The amount is the premium (or the tips) up to the cap: 3,000 -> 1,750, 1,000 -> 1,000.
+  //   before  50,000 - 15,000         = 35,000 -> 4.99% = 1,746.50
+  //   after   50,000 - 15,000 - 1,750 = 33,250 -> 4.99% = 1,659.175, saving 87.325
+  assert.equal(stateOvertimeDeduction(3000, GA.tax.overtimePremiumDeduction), 1750);
+  assert.equal(stateOvertimeDeduction(1000, GA.tax.overtimePremiumDeduction), 1000);
+  assert.equal(stateOvertimeDeduction(5000, GA.tax.cashTipsDeduction), 1750);
+  const r = atFiling(GA, 50000, 3000, 1750);
+  approx(r.before, 1746.5, 0.005);
+  approx(r.stateSaving, 87.325, 0.005);
+  approx(r.federalKnockOn, 0, 1e-9);
+  approx(r.net, 87.325, 0.005);
+  // No income limit: at $400,000 the federal tips deduction is gone, and Georgia's $1,750 still comes off.
+  approx(atFiling(GA, 400000, 0, 1750).stateSaving, 87.325, 0.005);
+});
+t('a state that follows the senior deduction prices its own saving: AZ, CO, IA, ID, MT, ND, DC', () => {
+  // The 2026 senior verdicts in obbba-deductions-2026.json: "yes" for Arizona, Colorado, Idaho, Iowa,
+  // Montana, North Dakota and DC. The $6,000 deduction in full under $75,000 of MAGI, by hand at $50,000:
+  //   Arizona 2.5%, deduction 15,750: 34,250 -> 856.25, after 28,250 -> 706.25, saving 150.00
+  //   Colorado 4.4%, 16,100: 33,900 -> 1,491.60, after 27,900 -> 1,227.60, saving 264.00
+  //   Iowa 3.8%, 16,100: 33,900 -> 1,288.20, after 27,900 -> 1,060.20, saving 228.00
+  //   Idaho 0% to 4,811 then 5.3%, 16,100: 29,089 x 5.3% = 1,541.717, after 23,089 -> 1,223.717, saving 318.00
+  //   Montana 4.7% to 47,500, 16,100: 33,900 -> 1,593.30, after 27,900 -> 1,311.30, saving 282.00
+  //   DC 6% band from 10,000 to 40,000, 15,000: 35,000 -> 1,900.00, after 29,000 -> 1,540.00, saving 360.00
+  // North Dakota taxes nothing below 49,575, so at $50,000 it is worth $0; at $90,000 the deduction is
+  // 6,000 - 6% x 15,000 = 5,100, and 73,900 -> 1.95% x 24,325 = 474.3375, after 68,800 -> 374.8875,
+  // saving 99.45.
+  const cases = [['arizona', 856.25, 150], ['colorado', 1491.6, 264], ['iowa', 1288.2, 228], ['idaho', 1541.717, 318],
+    ['montana', 1593.3, 282], ['district-of-columbia', 1900, 360]];
+  for (const [slug, before, saving] of cases) {
+    const r = atFiling(tax.states[slug], 50000, 6000, 6000);
+    approx(r.before, before, 0.005);
+    approx(r.stateSaving, saving, 0.005);
+    approx(r.federalKnockOn, 0, 1e-9);
+  }
+  approx(atFiling(tax.states['north-dakota'], 50000, 6000, 6000).stateSaving, 0, 1e-9);
+  const nd = atFiling(tax.states['north-dakota'], 90000, 5100, 5100);
+  approx(nd.before, 474.3375, 0.005);
+  approx(nd.stateSaving, 99.45, 0.005);
+});
+t('knock-on, Oregon at $150,000: the limit is $0, so no knock-on', () => {
+  // AGI 150,000 is past the last step ($145,000), so Oregon subtracts nothing before or after.
+  const r = atFiling(OR, 150000, 4000, 4000);
+  assert.equal(r.subtractionBefore, 0);
+  assert.equal(r.subtractionAfter, 0);
+  approx(r.federalKnockOn, 0, 1e-9);
+});
+t('knock-on, the senior deduction at $50,000: Alabama $36.00, Missouri $8.46, Oregon $63.00', () => {
+  // $6,000 senior deduction (MAGI under $75,000): fed 33,900 -> 3,820 and 27,900 -> 3,100, $720.
+  //   Alabama 5% x 720 = 36.00
+  //   Missouri 25% share at AGI 50,000: subtraction 955.00 -> 775.00, 4.7% x 180 = 8.46
+  //   Oregon under the limit: 8.75% x 720 = 63.00
+  // None of the three has a senior verdict in obbba-deductions-2026.json, so no state deduction.
+  approx(atFiling(AL, 50000, 6000).federalKnockOn, 36, 0.005);
+  approx(atFiling(MO, 50000, 6000).federalKnockOn, 8.46, 0.005);
+  approx(atFiling(OR, 50000, 6000).federalKnockOn, 63, 0.005);
+});
+t('knock-on: zero in every state that subtracts no federal tax', () => {
+  for (const [slug, s] of Object.entries(tax.states)) {
+    if (s.tax && s.tax.federalTaxSubtraction) continue;
+    const r = atFiling(s, 60000, 3000);
+    if (r === null) continue;
+    assert.ok(Math.abs(r.federalKnockOn) < 1e-9, `${slug}: ${r.federalKnockOn}`);
+  }
+  assert.equal(atFiling(tax.states.texas, 60000, 3000), null);
+});
+t('chained: a deduction ahead in the chain is the starting point on both sides', () => {
+  // Alabama $50,000, $5,000 of tips ahead, then the $6,000 senior deduction: fed 28,900 -> 3,220,
+  // then 22,900 -> 1,240 + 12% x 10,500 = 2,500, $720 again; knock-on 36.00 on top of the tips.
+  const r = atFiling(AL, 50000, 6000, 0, { federalDeductionBefore: 5000 });
+  approx(r.before, 2174, 0.005);
+  approx(r.federalKnockOn, 36, 0.005);
+  // Oregon follows the tips: a $5,000 state deduction ahead lowers taxable income, not the knock-on rate.
+  const o = atFiling(OR, 50000, 6000, 0, { federalDeductionBefore: 5000, stateDeductionBefore: 5000 });
+  approx(o.before, 3082.125, 0.005);
+  approx(o.federalKnockOn, 63, 0.005);
+});
+t('stateOvertimeAtFiling is stateDeductionAtFiling run with Alabama\'s own capped deduction', () => {
+  const prem = 10000 / 3;
+  const a = stateOvertimeAtFiling({ income: 70000, filingStatus: 'single', stateData: AL, fed: tax.federal,
+    federalOvertimeDeduction: prem, premium: prem });
+  const b = atFiling(AL, 70000, prem, 1000);
+  for (const k of ['stateSaving', 'federalKnockOn', 'net', 'before', 'after']) approx(a[k], b[k], 1e-9);
+});
+t('a state deduction is taken below AGI: Oregon $128,000 keeps the $7,000 limit with $5,000 deducted', () => {
+  // Fed with the $5,000 tips deduction: 128,000 - 16,100 - 5,000 = 106,900 -> 17,966 + 24% x 1,200
+  // = 18,254. AGI stays 128,000 (the tips deduction is below federal AGI), so Oregon's limit is the
+  // $7,000 step (125,000 to 130,000), not the $8,750 that AGI 123,000 would read.
+  //   128,000 - 2,910 - 7,000 - 5,000 = 113,090 -> 678.50 + 8.75% x 101,690 = 9,576.375
+  const r = stateTaxableIncome(128000, 'single', OR, 0, 0, 18254, 0, 5000);
+  assert.equal(r.agi, 128000);
+  assert.equal(r.federalTaxSubtraction, 7000);
+  assert.equal(r.deductionAfterAgi, 5000);
+  assert.equal(r.taxable, 113090);
+  approx(stateIncomeTax(128000, 'single', OR, 0, 0, 18254, 0, 5000), 9576.375, 0.005);
+  // The paycheck page's tips-inside line goes through the same path.
+  const line = computePaycheck({ wage: { type: 'salary', amount: 128000 }, filingStatus: 'single',
+    payFrequency: 'annual', stateSlug: 'oregon', returnDeductions: { federal: 5000, state: 5000 } }, tax).annual;
+  approx(line.state, 9576.375, 0.005);
 });
 
 console.log(`\n${pass} passing`);

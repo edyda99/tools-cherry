@@ -135,6 +135,20 @@ function renderState() {
     `<div class="obbba-note">${e.note}</div>`;
 }
 
+// The income tax the deduction lowers, read off the picked state's 2026 verdict.
+// "federal income tax only" used to sit under a state box saying "deductible on
+// your state return too" (Oregon and the rest of the "yes" list). No state
+// picked, or a verdict that is not a plain yes or no, gets the wording that is
+// true either way.
+function whichIncomeTax(kind) {
+  const sel = $('state');
+  const e = sel && STATES[sel.value];
+  const v = e && (e.hasWageTax ? (e[kind] && e[kind].y2026) : 'n/a');
+  if (v === 'yes') return `only your federal and ${e.name} income tax`;
+  if (v === 'no' || v === 'n/a') return 'federal income tax only';
+  return 'income tax only';
+}
+
 // Plain-words reason when there's $0 federal tax saved.
 function zeroBenefitNote(r, saidTheyKnow) {
   if (r.eligibleAmount <= 0) {
@@ -377,7 +391,8 @@ function render() {
       `<div class="line"><span>Deductible amount</span><span class="num">${usd(r.deduction)}</span></div>` +
       `<div class="line big"><span>Estimated federal tax saved</span><span class="num">${usd(r.taxSaved)}</span></div>` +
       `<div class="line"><span>Effective federal rate on this deduction</span><span class="num">${pct(r.marginalRate)}</span></div>` +
-      `<div class="obbba-note">Social Security and Medicare (FICA) still apply to this overtime — the deduction lowers federal income tax only, claimed when you file.</div>` +
+      // Which income tax, in step with the state box above (see whichIncomeTax).
+      `<div class="obbba-note">Social Security and Medicare (FICA) still apply to this overtime: the deduction lowers ${whichIncomeTax('overtime')}, claimed when you file.</div>` +
       `<div class="obbba-note">Your weekly paycheck and its withholding don't change now.</div>` +
     `</details>`;
 

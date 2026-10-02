@@ -79,6 +79,18 @@ function renderState() {
     `<div class="obbba-note">${e.note}</div>`;
 }
 
+// The income tax the deduction lowers, read off the picked state's 2026 verdict.
+// No state picked, or a verdict that is not a plain yes or no, gets the wording
+// that is true either way.
+function whichIncomeTax(kind) {
+  const sel = $('state');
+  const e = sel && STATES[sel.value];
+  const v = e && (e.hasWageTax ? (e[kind] && e[kind].y2026) : 'n/a');
+  if (v === 'yes') return `only your federal and ${e.name} income tax`;
+  if (v === 'no' || v === 'n/a') return 'federal income tax only';
+  return 'income tax only';
+}
+
 // Plain-words reason when there's $0 federal tax saved.
 function zeroBenefitNote(r) {
   if (r.eligibleAmount <= 0) {
@@ -157,8 +169,11 @@ function render() {
   // Out of the collapsed panel on purpose: both benchmark personas said that
   // with this sentence hidden they'd have left believing tips were tax-free
   // outright. It rides beside the good news, not behind a tap.
+  // Which income tax it lowers, in step with the state box: "federal income tax
+  // only" used to sit under "deductible on your state return too" for the states
+  // whose return allows it (Oregon, Iowa and the rest of the "yes" list).
   const ficaNote =
-    `<div class="obbba-note">Social Security and Medicare (FICA) still apply to your tips — the deduction lowers federal income tax only, claimed when you file. You must work in a customarily-tipped occupation.</div>`;
+    `<div class="obbba-note">Social Security and Medicare (FICA) still apply to your tips: the deduction lowers ${whichIncomeTax('tips')}, claimed when you file. You must work in a customarily-tipped occupation.</div>`;
 
   // Preserve the user's open/closed choice across re-renders (default closed).
   const out = $('out');

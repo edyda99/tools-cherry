@@ -18,7 +18,7 @@
 //      only true while the phase-out start is exactly $75,000 and the reduction
 //      is computed on the excess. If either changes, the rung stops earning its
 //      page and the prose becomes false, so both are asserted directly.
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { computePaycheck, stateTaxableIncome, federalIncomeTax, ficaTax } from '../src/engine/paycheck-engine.js';
@@ -303,6 +303,117 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
     is('$150,000 page says the deduction runs up to $149,000',
       p150.includes('but only up to $149,000 of modified AGI for a single filer'), true);
     is('$150,000 page no longer says only below $150,000', p150.includes('only below $150,000'), false);
+  }
+}
+
+// --- 10. ALABAMA'S RAISE, BOTH WAYS AT ONCE (added 2026-10-02). Alabama's standard deduction
+// steps down with income (Ala. Code 40-18-15(b)(4): $3,000 less $25 for each $500 over $25,500,
+// to a $2,500 floor at $35,500) and it subtracts all of the federal income tax (40-18-15(c)). A
+// raise therefore adds the lost deduction to taxable income and takes the extra federal tax off
+// it. The pages explained each in its own paragraph as if the other did not exist, and on $30,000
+// they said both "rises faster than the bracket rates alone would suggest" and "takes a little
+// less of the raise than its band rate suggests". The net, by hand, is less:
+//   federal 2026 single: 30,000 -> 13,900 -> 1,240 + 12% x 1,500 = 1,420
+//                        40,000 -> 23,900 -> 1,240 + 12% x 11,500 = 2,620
+//                        50,000 -> 3,820;  70,000 -> 53,900 -> 5,800 + 22% x 3,500 = 6,570
+//   Alabama deduction:   30,000 -> 9 steps of $25 over 25,500 -> 2,775;  40,000 and up -> 2,500
+//   Alabama taxable:     30,000 - 2,775 - 1,420 = 25,805;  40,000 - 2,500 - 2,620 = 34,880
+//                        50,000 - 2,500 - 3,820 = 43,680;  70,000 - 2,500 - 6,570 = 60,930
+//   Alabama tax, 5% x T - 40 above $3,000: 1,250.25;  1,704.00;  2,144.00;  3,006.50
+//   $30,000 -> $40,000: deduction -275, subtraction +1,200, taxable +9,075, tax +453.75 (not 500.00)
+//   $30,000 -> $50,000: subtraction +2,400, taxable +17,875
+//   $50,000 -> $70,000: subtraction +2,750, taxable +17,250, tax +862.50 (not 1,000.00)
+{
+  const AL = taxData.states.alabama;
+  const parts = (salary) => stateTaxableIncome(salary, 'single', AL, 0,
+    ficaTax(salary, 'single', taxData.federal).total, federalIncomeTax(salary, 'single', taxData.federal));
+  const alTax = (salary) => computePaycheck({ wage: { type: 'salary', amount: salary }, filingStatus: 'single',
+    payFrequency: 'annual', stateSlug: 'alabama' }, taxData).annual.state;
+  eq('alabama $30k deduction', parts(30000).standardDeduction, 2775, 0);
+  eq('alabama $40k deduction is the floor', parts(40000).standardDeduction, 2500, 0);
+  eq('alabama $30k subtraction', parts(30000).federalTaxSubtraction, 1420, 0);
+  eq('alabama $40k subtraction', parts(40000).federalTaxSubtraction, 2620, 0);
+  eq('alabama $70k subtraction', parts(70000).federalTaxSubtraction, 6570, 0);
+  eq('alabama $30k taxable', parts(30000).taxable, 25805, 0);
+  eq('alabama $40k taxable', parts(40000).taxable, 34880, 0);
+  eq('alabama $50k taxable', parts(50000).taxable, 43680, 0);
+  eq('alabama $70k taxable', parts(70000).taxable, 60930, 0);
+  eq('alabama tax on the $30k -> $40k raise', alTax(40000) - alTax(30000), 453.75, 0.005);
+  eq('alabama tax on the $50k -> $70k raise', alTax(70000) - alTax(50000), 862.50, 0.005);
+  is('alabama: the net of both effects is less than the band rate', alTax(40000) - alTax(30000) < 0.05 * 10000, true);
+
+  const page = (amount) => {
+    try { return readFileSync(join(__dirname, '..', 'dist', `alabama-take-home-pay-${amount}`, 'index.html'), 'utf8'); }
+    catch { return null; }
+  };
+  const p30 = page(30000), p50 = page(50000);
+  if (p30 && p50) {
+    is('$30k page measures the raise to $40,000 with both effects',
+      p30.includes("On the raise to $40,000 it grows by $1,200, while Alabama's standard deduction falls by $275, " +
+        'so Alabama taxes $9,075 of the $10,000 raise and takes $453.75 of it, not the $500.00 its 5% rate on the ' +
+        'whole raise would be.'), true);
+    is('$30k deduction paragraph names the subtraction that outweighs it',
+      p30.includes('going up to $40,000 takes another $275 of it away. But Alabama also lets you subtract federal ' +
+        'income tax, and over that raise the amount subtracted grows by $1,200, which more than makes up for it: ' +
+        'Alabama taxable income rises by $9,075 on $10,000 of extra pay, less than the raise itself.'), true);
+    is('$30k page no longer says the share rises faster than the bracket rates',
+      p30.includes('rises faster than the bracket rates alone would suggest'), false);
+    is('$30k page no longer says "a little less of the raise"',
+      p30.includes('takes a little less of the raise than its band rate suggests'), false);
+    is('$50k deduction paragraph measures the raise from the bottom rung',
+      p50.includes('so the $20,000 raise from there to $50,000 took $275 of deduction away, a cost no bracket ' +
+        'table shows. Alabama also lets you subtract federal income tax, and over the same raise the amount ' +
+        'subtracted grew by $2,400, which more than makes up for it: Alabama taxable income rose by $17,875 on ' +
+        '$20,000 of extra pay, less than the raise itself.'), true);
+    is('$50k page measures the raise to $70,000',
+      p50.includes('On the raise to $70,000 it grows by $2,750, so Alabama taxes $17,250 of the $20,000 raise and ' +
+        'takes $862.50 of it, not the $1,000.00 its 5% rate on the whole raise would be.'), true);
+    is('$50k page no longer calls the lost deduction the whole story',
+      p50.includes('the gap between those two is a real cost of the raise that no bracket table shows'), false);
+    is('$50k worth clause names the subtraction',
+      p50.includes('The subtraction is worth $191.00 of Alabama income tax at this salary'), true);
+  }
+}
+
+// --- 11. EVERY SOURCE LINK SAYS WHAT IT IS (added 2026-10-02). Most states' own URLs were all
+// captioned "<State>: source for the state figures on this page", so Maryland printed that line
+// five times over five different documents. The titles now live beside each URL in
+// tax-data-2026.json (_sourceTitles); a URL with no title falls back to the bare address. Every
+// take-home page is swept: no generic caption, no bare address, no title used twice for
+// different links, and no link listed twice.
+{
+  const DIST = join(__dirname, '..', 'dist');
+  const dirs = existsSync(DIST) ? readdirSync(DIST).filter((d) => /-take-home-pay(-\d+)?$/.test(d)) : [];
+  let pages = 0, links = 0;
+  const bad = [];
+  for (const d of dirs) {
+    const f = join(DIST, d, 'index.html');
+    if (!existsSync(f)) continue;
+    const html = readFileSync(f, 'utf8');
+    const m = html.match(/<h2 id="sources">Sources<\/h2>\s*<ul>([\s\S]*?)<\/ul>/);
+    if (!m) continue;
+    pages++;
+    const items = [...m[1].matchAll(/<a href="([^"]+)"[^>]*>([^<]*)<\/a>/g)].map((x) => ({ url: x[1], title: x[2] }));
+    links += items.length;
+    const titles = new Map();
+    const urls = new Set();
+    for (const { url, title } of items) {
+      if (/source for the state figures/i.test(title)) bad.push(`${d}: generic caption on ${url}`);
+      if (/^[a-z0-9.-]+\.[a-z]{2,}\//i.test(title)) bad.push(`${d}: no title for ${url}`);
+      if (titles.has(title) && titles.get(title) !== url) bad.push(`${d}: "${title}" on two links`);
+      if (urls.has(url)) bad.push(`${d}: ${url} listed twice`);
+      titles.set(title, url);
+      urls.add(url);
+    }
+  }
+  if (dirs.length) {
+    is('take-home pages with a sources list were found', pages > 300, true);
+    is('every take-home source link has its own accurate title', bad.slice(0, 5).join(' | '), '');
+    is('links were read', links > pages * 5, true);
+    const md = readFileSync(join(DIST, 'maryland-take-home-pay-50000', 'index.html'), 'utf8');
+    is('Maryland names the statute', md.includes('>Maryland Code, Tax-General 10-217: the standard deduction</a>'), true);
+    is('Maryland names the withholding guide',
+      md.includes('>Comptroller of Maryland: 2026 Employer Withholding Guide</a>'), true);
   }
 }
 

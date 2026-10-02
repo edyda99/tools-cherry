@@ -71,7 +71,7 @@
 // Social Security wage base the moment pay plus tips crosses it.
 import {
   computePaycheck, PAY_PERIODS, federalBracketBreakdown, annualizeGross,
-  federalIncomeTax, ficaTax, stateTaxOnSlice, stateOvertimeAtFiling
+  federalIncomeTax, ficaTax, stateTaxOnSlice, stateDeductionAtFiling, stateOvertimeDeduction
 } from '/assets/paycheck-engine.js';
 import { allowedDeduction, federalTaxSaved, overtimePremium, seniorDeduction } from '/assets/obbba-deduction.js';
 import { computeBonus } from '/assets/bonus-tax.js';
@@ -610,20 +610,38 @@ async function ensureRuleData() {
 // this page's own pointer lines (src/content/state-applies.js): "still taxes it
 // in full", "has not confirmed its own treatment yet".
 const CONFORMITY = {
-  yes: (name) => `It is deductible on your ${name} return too.`,
-  no: (name) => `${name} still taxes it in full.`,
-  partial: (name) => `It is federally deductible, and ${name} adds a smaller capped break of its own.`,
-  unclear: (name) => `${name} has not confirmed its own treatment yet.`
+  yes: (w) => `It is deductible on your ${w.ret} return too.`,
+  no: (w) => `${w.Who} still taxes it in full.`,
+  partial: (w) => `It is federally deductible, and ${w.who} adds a smaller capped break of its own.`,
+  unclear: (w) => `${w.Who} has not confirmed its own treatment yet.`
 };
+
+// How a sentence names the place. The District is "the District" in a sentence
+// and its return the "D.C. return", the way the District writes them, rather than
+// "District of Columbia follows" and "your District of Columbia return"; every
+// state is its own name in all three slots.
+function placeWords() {
+  const name = (taxData.states && taxData.states[stateSlug] && taxData.states[stateSlug].name) || '';
+  const isDC = stateSlug === 'district-of-columbia';
+  return { name, Who: isDC ? 'The District' : name, who: isDC ? 'the District' : name, ret: isDC ? 'D.C.' : name };
+}
 
 function conformityClause(kind) {
   const e = ruleData && ruleData.obbba.states && ruleData.obbba.states[stateSlug];
-  const name = taxData.states[stateSlug]?.name || '';
-  if (!e || !name) return '';
-  if (!e.hasWageTax) return `${name} taxes no wages, so the federal deduction is the whole story here.`;
+  const w = placeWords();
+  if (!e || !w.name) return '';
+  if (!e.hasWageTax) return `${w.name} taxes no wages, so the federal deduction is the whole story here.`;
   const v = e[kind] && e[kind].y2026;
   const say = CONFORMITY[v];
-  return say ? say(name) : '';
+  return say ? say(w) : '';
+}
+
+// The same 2026 verdict, bare: '' when the state taxes no wages or has no data.
+// The one verdict reader for the money as well as the words (stateOwnDeduction
+// prices a "yes" from it), so a state that taxes no wages can never be priced.
+function stateVerdict(kind) {
+  const e = ruleData && ruleData.obbba.states && ruleData.obbba.states[stateSlug];
+  return e && e.hasWageTax && e[kind] ? (e[kind].y2026 || '') : '';
 }
 
 // --- tips, inside the take-home summary --------------------------------------
@@ -690,15 +708,16 @@ function tipsSlice(input, r) {
 
   // THE STATE FOLLOWS THE STATE'S OWN LAW, not the federal deduction. The nine
   // states that tax no wages return 0 from stateIncomeTax without being asked
-  // to. Of the rest, only a state whose 2026 verdict is a full "yes" gets the
-  // federal deduction subtracted from its base; "no" and "not confirmed yet"
-  // get none of it, and neither does "partial" — Georgia's smaller capped
-  // exclusion is $1,750 of tips written in the prose of its data entry, not in a
-  // machine-readable field, and guessing at a money number is worse than
-  // declining to model it. The note under the block says so in words.
-  const conformity = (ruleData.obbba.states && ruleData.obbba.states[stateSlug]
-    && ruleData.obbba.states[stateSlug].tips && ruleData.obbba.states[stateSlug].tips.y2026) || '';
-  const stateDed = conformity === 'yes' ? d.deduction : 0;
+  // to. Of the rest, a state whose 2026 verdict is a full "yes" gets the federal
+  // deduction subtracted from its base; a state with its own capped tips rule in
+  // tax-data-2026.json gets that instead. Georgia is the one: HB 463 adds O.C.G.A.
+  // 48-7-27(a)(17), "any amount up to $1,750.00 received in cash tips", with no
+  // income limit and no tie to the federal deduction, so it is the tips
+  // themselves up to $1,750 even where the federal deduction phases out. "No" and
+  // "not confirmed yet" get nothing. stateOwnDeduction() is the same reading the
+  // at-filing rows use.
+  const conformity = stateVerdict('tips');
+  const stateDed = stateOwnDeduction('tips', d.deduction, t, input.wage && input.wage.type);
   // The engine's stateTaxOnSlice() feeds each state term what computePaycheck feeds the
   // state at that income (pre-tax money, the FICA paid there, the federal liability less
   // the W-4 credits), so the term at the page's own pay IS the page's state figure. The
@@ -732,10 +751,38 @@ function tipsSlice(input, r) {
   // Missouri, where only that knock-on applies and the return charges MORE than the
   // withholding. renderTipsBlock() discloses it per paycheck only when it is a saving.
   const stateSaving = stateTaxOnSlice({ ...sliceArgs, federalDeduction: 0, stateDeduction: 0 }) - stateTax;
+  // THE KNOCK-ON, NAMED. Where the state takes no tips deduction of its own but
+  // subtracts federal tax (Alabama, Missouri), part of `stateTax` is caused by the
+  // federal deduction alone: it lowers the federal tax the state lets you subtract.
+  // The engine's stateDeductionAtFiling(), the helper behind the at-filing state
+  // rows, measures that part at the income with the tips in it, and the block
+  // prints it as a row of its own so the state figure is not a mystery. It is
+  // already inside `stateTax`; the split moves no total. Where the state follows
+  // the deduction (Oregon) the two effects net inside one row, as before.
+  const sAtFiling = stateDed > 0 ? null : stateDeductionAtFiling({
+    income: W, filingStatus: filing, stateData, fed, preTaxIncome, preTaxFica,
+    dependentsCredit: sliceArgs.dependentsCredit, federalDeduction: d.deduction, stateDeduction: 0
+  });
+  const stateKnockOn = sAtFiling ? Math.min(Math.max(0, sAtFiling.federalKnockOn), stateTax) : 0;
+  // THE STEP, NAMED. Oregon follows the tips deduction, so tips it fully deducts should
+  // add no Oregon tax, and below $125,000 they add none. But Oregon's limit on the federal
+  // tax you can subtract steps down with AGI ($8,750 under $125,000, then $1,750 less for
+  // each $5,000 to nothing at $145,000, single; tax-data-2026.json .federalTaxSubtraction
+  // .capByAgi), and the deduction does not lower AGI, so tips that carry AGI across a step
+  // cut the subtraction and the Oregon tax still rises. Measured only where the whole tips amount is deducted, so the rise is the
+  // step and nothing else. renderTipsBlock() says so under the figure.
+  const fts = stateData && stateData.tax && stateData.tax.federalTaxSubtraction;
+  const agiTop = Math.max(0, W - preTaxIncome);
+  const subtractionStep = stateDed > 0 && d.deduction >= t
+    ? subtractionStepCrossed(fts, filing, Math.max(0, base - preTaxIncome), agiTop)
+    : 0;
+  // "past $135,000" when AGI goes over the step, "to $135,000" when it lands on it: the
+  // limit already drops AT the step (it is the cap for AGI under it).
+  const subtractionStepWord = subtractionStep > 0 && agiTop > subtractionStep ? 'past' : 'to';
 
   return {
     tips: t, inside, deduction: d, conformity, stateDed, returnDeductions,
-    fedWithheld, fedFiled, fica, state: stateTax, stateSaving,
+    fedWithheld, fedFiled, fica, state: stateTax, stateSaving, stateKnockOn, subtractionStep, subtractionStepWord,
     // What the pay's own take-home has to gain, per view. The yearly answer is
     // the filing truth, the per-paycheck answer is the withholding truth, and
     // they differ by exactly the deduction's benefit — which is why the
@@ -744,6 +791,19 @@ function tipsSlice(input, r) {
     keepFiled: t - fedFiled - fica - stateTax,
     keepWithheld: t - fedWithheld - fica - stateTax
   };
+}
+
+// The AGI step a federal-tax subtraction's limit drops at between two incomes
+// (Oregon's capByAgi rows, read the way the engine's rowForAgi reads them), or 0
+// when the limit is the same at both.
+function subtractionStepCrossed(cfg, filing, agiBase, agiTop) {
+  const rows = cfg && cfg.capByAgi ? (cfg.capByAgi[filing] || cfg.capByAgi.single) : null;
+  if (!Array.isArray(rows) || !rows.length) return 0;
+  const rowAt = (agi) => rows.find((row) => (row.agiUpTo != null ? agi <= row.agiUpTo
+    : (row.agiUnder != null ? agi < row.agiUnder : true))) || rows[rows.length - 1];
+  const from = rowAt(agiBase);
+  if (!(rowAt(agiTop).cap < from.cap)) return 0;
+  return from.agiUnder ?? from.agiUpTo ?? 0;
 }
 
 // Why a tips or overtime deduction came out under the amount entered, as the
@@ -763,78 +823,189 @@ function obbbaCutClause(d, entered, tail) {
   return `. The deduction stops at ${usd(d.statutoryCap)} a year, ${tail}`;
 }
 
-// A STATE'S OWN OVERTIME DEDUCTION, AT FILING. Only a state whose tax data
-// carries `overtimePremiumDeduction` gets rows here (Alabama, Ala. Code
-// 40-18-15(a)(29), Act 2026-604: the overtime premium, up to $1,000 a year, tax
-// years 2026 to 2028); stateOvertimeAtFiling() returns null for every other
-// state, so no other page can print a state figure it has no rule for. It is a
-// deduction on the state return, not in withholding, so it belongs in this
-// block and never in the paycheck rows above.
+// THE STATE RETURN, AT FILING. A federal deduction can move the state return two
+// ways, and these rows print both, one row per effect, never one net row under the
+// deduction's name:
+//   the state's own deduction   Alabama's capped overtime deduction (Ala. Code
+//     40-18-15(a)(29), Act 2026-604: the premium, up to $1,000 a year), or the
+//     federal deduction itself where the state follows it ("yes" in
+//     obbba-deductions-2026.json, Oregon's overtime). A saving.
+//   the knock-on   Alabama, Missouri and Oregon let you subtract federal income
+//     tax. The federal deduction in the row above lowers that tax, so there can be
+//     less to subtract and the state tax goes up. A cost, labelled for what causes
+//     it. A single net row called "Alabama overtime deduction" printed -$60 at $90k
+//     with a $10,000 premium, blaming a deduction that saves $50 for $110 the
+//     federal deduction put on the state return.
+// Both come from the engine's stateDeductionAtFiling(), which runs the state's own
+// rules, so the knock-on is zero wherever the subtraction does not move: Oregon
+// once the federal tax is over its limit before and after the deduction, Missouri
+// once its share is zero. No state is named here.
 //
-// TWO ROWS, ONE PER EFFECT, never one net row under the deduction's name. The
-// state deduction takes the premium (up to the cap) off taxable income: that
-// row is a saving. And Alabama subtracts the federal income tax owed, which the
-// federal overtime deduction in the "Extra hours" row has just lowered, so
-// there is less to subtract and the state tax goes up: that row is a cost, and
-// it is labelled for what causes it. A single net row called "Alabama overtime
-// deduction" printed -$60 at $90k with a $10,000 premium, blaming a deduction
-// that saves $50 for $110 the federal deduction put on the state return. The
-// "Extra hours" row prices federal only, so this is the one place that
-// knock-on is counted. At Alabama's 5% it is 5% of the federal saving and the
-// deduction is worth at most $50, so the cost row can outweigh the saving.
+// WHEREVER THE STATE RETURN MOVES: a state that subtracts federal tax (its tax
+// moves with the federal row), has its own overtime rule, or follows the
+// deduction ("yes": Arizona, Idaho, Indiana, Iowa, Michigan, Montana, North Dakota,
+// Oregon and DC for 2026 overtime). Without its own row a state that follows the
+// deduction said so under the federal row but priced only the federal saving, so
+// the total at filing left out money the reader gets back.
 //
 // WHOLE DOLLARS BY CONSTRUCTION, so a note and its row cannot disagree: each row
 // is the rounded figure its note prints, and both are marked `exact` so
 // renderAtFiling never re-derives them.
-function stateOvertimeRows(input, ret, fedBefore, fedOvertime, premium) {
+
+// The state's OWN capped rule for one deduction, where tax-data-2026.json carries
+// one: Alabama's overtime premium deduction (Act 2026-604), Georgia's overtime and
+// cash-tips exclusions (HB 463). null for every other state and kind.
+function stateOwnRule(kind) {
+  const s = taxData.states && taxData.states[stateSlug];
+  const t = s && s.hasIncomeTax && s.tax;
+  if (!t) return null;
+  if (kind === 'overtime') return t.overtimePremiumDeduction || null;
+  if (kind === 'tips') return t.cashTipsDeduction || null;
+  return null;
+}
+
+// The state's own deduction to go with a federal one, in dollars. Its own rule
+// first: the amount it applies to (the overtime premium, the tips themselves),
+// never more than its cap, and nothing for a salaried filer under a rule that is
+// for hourly workers only (Georgia's overtime exclusion). Else the federal amount
+// where the state follows the deduction in full (2026 verdict "yes"), else
+// nothing: "partial" with no rule in the data, "no", "not confirmed yet" and no
+// verdict at all deduct nothing. tipsSlice() and filingRows() both read it, so
+// the tips block and the at-filing rows can never price a different state rule.
+// stateOvertimeDeduction() is the engine's capped-amount arithmetic; nothing in
+// it is specific to overtime, so the tips rule uses it too.
+function stateOwnDeduction(kind, federalAmount, amount, payType) {
+  const rule = stateOwnRule(kind);
+  if (rule) return rule.hourlyOnly && payType !== 'hourly' ? 0 : stateOvertimeDeduction(amount, rule);
+  return stateVerdict(kind) === 'yes' ? Math.max(0, federalAmount || 0) : 0;
+}
+
+// How much federal tax the state lets you subtract, read from the shape of its
+// rule: all of it (Alabama), a share keyed to income (Missouri), or all of it up
+// to a limit (Oregon).
+function subtractWhat(cfg) {
+  if (cfg && Array.isArray(cfg.shareByAgi) && cfg.shareByAgi.length) return 'part of the federal income tax you owe';
+  if (cfg && cfg.capByAgi) return 'the federal income tax you owe, up to a limit';
+  return 'the federal income tax you owe';
+}
+
+const STATE_ROW_KIND = {
+  overtime: { deduction: 'overtime deduction', knockLabel: (name) => `Smaller federal tax to subtract on your ${name} return` },
+  senior: { deduction: 'senior deduction', knockLabel: (name) => `Smaller federal tax to subtract on your ${name} return, from turning 65` }
+};
+
+// The engine's measure of one deduction on the state return, or null where the
+// state return cannot move: no federal-tax subtraction for the federal deduction
+// to knock on, and no state deduction of its own.
+function stateAtFiling(input, ret, before, federalAmount, stateAmount) {
   const stateData = taxData.states ? taxData.states[stateSlug] : null;
-  if (!ret || !stateData) return [];
-  const s = stateOvertimeAtFiling({
+  const t = stateData && stateData.tax;
+  if (!ret || !t) return null;
+  if (!t.federalTaxSubtraction && !(stateAmount > 0)) return null;
+  return stateDeductionAtFiling({
     income: ret.income, filingStatus: input.filingStatus, stateData, fed: taxData.federal,
     preTaxIncome: ret.preTax, preTaxFica: ret.preTaxFica,
     dependentsCredit: (input.adv && input.adv.dependentsCredit) || 0,
-    federalDeductionBefore: fedBefore, federalOvertimeDeduction: fedOvertime, premium
+    federalDeductionBefore: before.federal, stateDeductionBefore: before.state,
+    federalDeduction: federalAmount, stateDeduction: stateAmount
   });
+}
+
+// Which way a deduction moves the state's income tax, for the plain box's "which
+// income tax" sentence: 'change' when the federal deduction raises it through the
+// subtraction (it may still come out lower overall), 'lower' when the state's own
+// deduction saves something, '' when it does not move. Read in whole dollars, the
+// figures the rows print. A state that allows the deduction but taxes nothing at
+// this income (North Dakota below its first taxed band) saves nothing, so the
+// sentence says federal income tax only rather than naming a tax that is $0.
+function stateMoveOf(s) {
+  if (s && Math.round(s.federalKnockOn) > 0) return 'change';
+  return s && Math.round(s.stateSaving) > 0 ? 'lower' : '';
+}
+
+function stateReturnRows(kind, input, ret, before, federalAmount, stateAmount, premium) {
+  const stateData = taxData.states ? taxData.states[stateSlug] : null;
+  const t = stateData && stateData.tax;
+  const k = STATE_ROW_KIND[kind];
+  if (!ret || !t || !k) return [];
+  const ownRule = stateOwnRule(kind);
+  const s = stateAtFiling(input, ret, before, federalAmount, stateAmount);
   if (!s) return [];
   const name = stateData.name;
+  const w = placeWords();
   const saveR = Math.round(s.stateSaving);
   const knockR = Math.round(s.federalKnockOn);
   const net = saveR - knockR;
+  // THE LABEL SAYS WHOSE DEDUCTION IT IS. A state's own rule (Alabama's Act 2026-604,
+  // Georgia's HB 463) is the state's break and carries its name. A state that follows
+  // the federal deduction is taking the FEDERAL deduction on its own return, and
+  // "Colorado senior deduction" read like Colorado's own 65-and-over break, which is a
+  // different thing (its pension and annuity subtraction), so that row says so.
+  const savingLabel = ownRule ? `${name} ${k.deduction}` : `Federal ${k.deduction} on your ${w.ret} return`;
+  const savingRef = ownRule ? savingLabel : `federal ${k.deduction} on your ${w.ret} return`;
   const out = [];
   if (saveR > 0) {
-    let note = s.deduction < premium
-      ? `${name} also lets you deduct that extra pay on your ${name} return, but only up to ${usd(s.cap)} a year, ` +
-        `so ${usd(s.deduction)} of your ${usd(premium)} comes off there and saves you ${usd(saveR)}.`
-      : `${name} also lets you deduct that extra pay on your ${name} return, up to ${usd(s.cap)} a year, ` +
-        `so all ${usd(s.deduction)} of it comes off there and saves you ${usd(saveR)}.`;
-    // The statute caps it "per taxpayer" and ADOR has not said how that works on
-    // a joint return, so a married filer is told the figure is one earner's.
-    if (input.filingStatus === 'married') {
-      note += ` Counted for one of you. ${name}'s limit is ${usd(s.cap)} per taxpayer, so if you both work ` +
-        `overtime each of you may be able to deduct up to ${usd(s.cap)}; ${name} has not said how it applies ` +
-        `on a joint return.`;
+    let note;
+    if (ownRule) {
+      const cap = ownRule.cap;
+      // Georgia's is for "a full-time employee paid by an hourly wage" (O.C.G.A.
+      // 48-7-27(a)(16)). stateOwnDeduction() already prices nothing for a salaried
+      // filer; an hourly one is told the full-time condition, which the page does not ask.
+      const who = ownRule.hourlyOnly ? ` if you work full time and are paid by the hour` : '';
+      note = stateAmount < premium
+        ? `${name} also lets you deduct that extra pay on your ${name} return${who}, but only up to ${usd(cap)} a year, ` +
+          `so ${usd(stateAmount)} of your ${usd(premium)} comes off there and saves you ${usd(saveR)}.`
+        : `${name} also lets you deduct that extra pay on your ${name} return${who}, up to ${usd(cap)} a year, ` +
+          `so all ${usd(stateAmount)} of it comes off there and saves you ${usd(saveR)}.`;
+      // A married filer is told the figure is one earner's. Georgia's cap is per
+      // employee, so each spouse's own overtime counts toward that spouse's cap.
+      // Alabama's statute says "per taxpayer" and ADOR has not said how that works
+      // on a joint return, so there the reader is told so.
+      if (input.filingStatus === 'married') {
+        note += ownRule.capPer === 'employee'
+          ? ` Counted for one of you. ${name}'s limit is ${usd(cap)} per employee, so if you both work ` +
+            `overtime each of you can deduct up to ${usd(cap)} of your own.`
+          : ` Counted for one of you. ${name}'s limit is ${usd(cap)} per taxpayer, so if you both work ` +
+            `overtime each of you may be able to deduct up to ${usd(cap)}; ${name} has not said how it applies ` +
+            `on a joint return.`;
+      }
+    } else {
+      note = `${w.Who} follows the federal ${k.deduction}, so the same ${usd(stateAmount)} comes off your ${w.ret} ` +
+        `return too and saves you ${usd(saveR)}.`;
+    }
+    // No knock-on to show although the federal tax fell: the subtraction did not
+    // move. Said here, on the row that is printed, so the missing cost row is
+    // explained rather than looking forgotten.
+    if (knockR === 0 && t.federalTaxSubtraction && s.federalTaxAfter < s.federalTaxBefore) {
+      if (s.subtractionBefore > 0 && s.subtractionBefore === s.subtractionAfter) {
+        note += ` ${name} limits how much federal income tax you can subtract, and yours is over that limit with ` +
+          `or without the federal deduction, so the federal deduction does not raise your ${name} tax.`;
+      } else if (s.subtractionBefore === 0 && s.subtractionAfter === 0) {
+        note += ` At your income ${name} lets you subtract none of your federal income tax, so the federal ` +
+          `deduction does not raise your ${name} tax.`;
+      }
     }
     out.push({
-      label: `${name} overtime deduction`,
+      label: savingLabel,
       saved: saveR,
       exact: true,
       state: true,
-      // No wage of its own: the overtime pay is named once, on the "Extra hours" row.
+      // No wage of its own: the pay behind it is named once, on the federal row.
       fica: '',
       note,
       extra: ''
     });
   }
   if (knockR > 0) {
-    let note = `${name} lets you subtract the federal income tax you owe, and the federal overtime deduction ` +
+    let note = `${name} lets you subtract ${subtractWhat(t.federalTaxSubtraction)}, and the federal ${k.deduction} ` +
       `lowers that tax, so you have less to subtract and your ${name} tax goes up by ${usd(knockR)}.`;
     if (saveR > 0) {
-      if (net > 0) note += ` Taken with the ${name} overtime deduction, your ${name} tax comes out ${usd(net)} lower.`;
-      else if (net < 0) note += ` Taken with the ${name} overtime deduction, your ${name} tax comes out ${usd(-net)} higher, and the total counts that.`;
-      else note += ` Taken with the ${name} overtime deduction, the two cancel out.`;
+      if (net > 0) note += ` Taken with the ${savingRef}, your ${name} tax comes out ${usd(net)} lower.`;
+      else if (net < 0) note += ` Taken with the ${savingRef}, your ${name} tax comes out ${usd(-net)} higher, and the total counts that.`;
+      else note += ` Taken with the ${savingRef}, the two cancel out.`;
     }
     out.push({
-      label: `Smaller federal tax to subtract on your ${name} return`,
+      label: k.knockLabel(name),
       saved: -knockR,
       exact: true,
       state: true,
@@ -875,6 +1046,9 @@ function filingRows(input, magi, mergeTips, ret) {
   const rows = [];
   let running = 0;
   let savedSoFar = 0;
+  // The STATE side of the same chain: the state deductions already taken, so each
+  // state row is measured on top of the ones above it, the way each federal row is.
+  let stateRunning = 0;
   const chain = (deduction) => {
     running += Math.max(0, deduction);
     const total = federalTaxSaved(magi, filing, running, fed).taxSaved;
@@ -896,6 +1070,7 @@ function filingRows(input, magi, mergeTips, ret) {
       // leaves this empty and is left out of that sentence: there is no dollar
       // of a $6,000 age allowance for Social Security to reach.
       fica: 'your tips',
+      kind: 'tips',
       // Both numbers, always, the moment the cap or the phase-out binds: "your
       // tips" and "the deductible amount" are the same figure only until it does.
       note: d.deduction < rules.tips
@@ -906,6 +1081,13 @@ function filingRows(input, magi, mergeTips, ret) {
         : `All ${usd(rules.tips)} of your tips comes off the income you are taxed on.`,
       extra: conformityClause('tips')
     });
+    // Tips get no state row here: the tips block prices the state tax on them,
+    // knock-on included. They are still the first link of the state chain, and
+    // the row still says which way they move the state tax, for the plain box.
+    const tipsState = stateOwnDeduction('tips', d.deduction, rules.tips, input.wage && input.wage.type);
+    rows[rows.length - 1].stateMove = stateMoveOf(
+      stateAtFiling(input, ret, { federal: 0, state: 0 }, d.deduction, tipsState));
+    stateRunning += tipsState;
   }
 
   if (rules.otHours > 0 || rules.otRate > 0 || rules.normalRate > 0) {
@@ -962,24 +1144,42 @@ function filingRows(input, magi, mergeTips, ret) {
     } else {
       note = basis;
     }
-    // The federal deductions already in the chain ahead of this one (tips), read
-    // BEFORE chain() adds the overtime deduction to the running total: the state
-    // row below measures the overtime knock-on on top of them, never including them.
-    const fedBefore = running;
-    rows.push({
+    // The deductions already in the chain ahead of this one (tips), read BEFORE
+    // chain() adds the overtime deduction to the running total: the state rows
+    // below measure the overtime effects on top of them, never including them.
+    const before = { federal: running, state: stateRunning };
+    // A state break for hourly workers only, on a salaried answer: said under the
+    // row, because the clause above it has just promised a state break and the
+    // card prices none. Georgia, O.C.G.A. 48-7-27(a)(16).
+    const otRule = stateOwnRule('overtime');
+    const payType = input.wage && input.wage.type;
+    const hourlyOnlyMiss = otRule && otRule.hourlyOnly && payType !== 'hourly' && premium > 0;
+    const otRow = {
       label: 'Extra hours',
       saved: chain(d.deduction),
       pending,
       fica: paidExtra > 0 ? 'that overtime pay' : '',
+      kind: 'overtime',
       note,
-      extra: conformityClause('overtime')
-    });
+      extra: [conformityClause('overtime'),
+        hourlyOnlyMiss
+          ? `${taxData.states[stateSlug].name}'s break is only for full-time employees paid by the hour, ` +
+            `so it is not counted here.`
+          : ''].filter(Boolean).join(' ')
+    };
+    rows.push(otRow);
     if (!pending && premium > 0) {
-      rows.push(...stateOvertimeRows(input, ret, fedBefore, d.deduction, premium));
+      const stateAmount = stateOwnDeduction('overtime', d.deduction, premium, payType);
+      const stateRows = stateReturnRows('overtime', input, ret, before, d.deduction, stateAmount, premium);
+      rows.push(...stateRows);
+      otRow.stateMove = stateRows.some((row) => row.saved < 0) ? 'change'
+        : (stateRows.some((row) => row.saved > 0) ? 'lower' : '');
+      stateRunning += stateAmount;
     }
   }
 
   if (rules.age65) {
+    const seniorBefore = { federal: running, state: stateRunning };
     const d = seniorDeduction({
       year: Number(taxData.taxYear), filingStatus: filing, age65: true, spouseAge65: false,
       magi, params: obbba.senior
@@ -1009,6 +1209,11 @@ function filingRows(input, magi, mergeTips, ret) {
         ? 'Counted for one of you. If you both turn 65 this year it is doubled, which the senior calculator works out.'
         : ''
     });
+
+    // The senior deduction moves the state return the same way overtime does.
+    const seniorState = stateOwnDeduction('senior', d.deduction);
+    rows.push(...stateReturnRows('senior', input, ret, seniorBefore, d.deduction, seniorState, 0));
+    stateRunning += seniorState;
   }
   return { rows, total: savedSoFar };
 }
@@ -1188,7 +1393,7 @@ function renderAtFiling(input, r, mergeTips) {
   }
 
   // The row that absorbs the rounding is the LAST ONE THAT IS NOT ALREADY WHOLE
-  // DOLLARS. A state overtime row is (`exact`, see stateOvertimeRows) and its note
+  // DOLLARS. A state row is (`exact`, see stateReturnRows) and its note
   // quotes its own figure, so re-deriving it could print a row a dollar away from
   // the sentence explaining it; the federal row above it takes the cent instead.
   const amounts = shown.map((row) => Math.round(row.saved));
@@ -1204,7 +1409,7 @@ function renderAtFiling(input, r, mergeTips) {
   // The rows carry the money and nothing else; every qualifying sentence goes
   // BELOW the list, named for the row it qualifies. A note nested inside a flex
   // row would sit on the same line as the label it belongs to.
-  // A state overtime row can be a cost (see stateOvertimeRows), so it prints its
+  // A state row can be a cost (see stateReturnRows), so it prints its
   // sign: a minus, and without the accent colour that marks money coming back.
   const items = shown.map((row, i) =>
     `<li><span>${escLbl(row.label)}</span>` +
@@ -1285,13 +1490,35 @@ function renderAtFiling(input, r, mergeTips) {
   // claim about a $6,000 age allowance that is not pay at all. That is the same
   // exclusion the bonus-only answer already gets, for the same reason.
   const ficaItems = [...new Set(shown.map((row) => row.fica).filter(Boolean))];
-  // With a state overtime row on the card the deductions move the state's income
-  // tax too, and not always down (see stateOvertimeRows), so the sentence says
-  // they CHANGE it rather than lower it; the point of the sentence (not Social
-  // Security or Medicare) survives either way.
-  const incomeTaxes = shown.some((row) => row.state)
-    ? `the deductions change only your federal and ${escLbl(stateName)} income tax.`
-    : `the deduction lowers federal income tax only.`;
+  // WHICH INCOME TAX, PER DEDUCTION. Each wage row carries how it moves the
+  // state's income tax (stateMove, set in filingRows from the same engine figures
+  // the rows print): 'lower' where the state's own deduction saves something (a 2026
+  // "yes", or its own capped rule such as Georgia's HB 463 exclusions), 'change'
+  // where the federal deduction also shrinks the federal tax the state lets you
+  // subtract (Alabama, Missouri, Oregon), so the state tax can go up, '' where the
+  // state tax does not move, which includes a state that allows the deduction but
+  // taxes nothing at this income (North Dakota at $50,000). Each row is judged on
+  // its own, because a state can allow one and not the other (Colorado 2026: tips
+  // yes, overtime no), and a
+  // senior row is not a wage row, so it never decides what this sentence says
+  // about tips or overtime.
+  const wageRows = shown.filter((row) => row.fica);
+  const stateToo = wageRows.filter((row) => row.stateMove);
+  const fedOnly = wageRows.filter((row) => !row.stateMove);
+  const kindsOf = (list) => list.map((row) => row.kind).join(' and ');
+  const verbOf = (list, plural) => (list.some((row) => row.stateMove === 'change')
+    ? (plural ? 'change' : 'changes') : (plural ? 'lower' : 'lowers'));
+  let incomeTaxes;
+  if (stateToo.length && !fedOnly.length) {
+    const plural = stateToo.length > 1;
+    incomeTaxes = `the ${plural ? 'deductions' : 'deduction'} ${verbOf(stateToo, plural)} only your federal and ` +
+      `${escLbl(placeWords().ret)} income tax.`;
+  } else if (stateToo.length) {
+    incomeTaxes = `the ${kindsOf(stateToo)} deduction ${verbOf(stateToo, false)} only your federal and ` +
+      `${escLbl(placeWords().ret)} income tax, and the ${kindsOf(fedOnly)} deduction lowers federal income tax only.`;
+  } else {
+    incomeTaxes = `the ${fedOnly.length > 1 ? 'deductions lower' : 'deduction lowers'} federal income tax only.`;
+  }
   let plain = '';
   if (shown.length) {
     plain = `<div class="otw-plain">This is money back when you file next year, as a bigger refund or a smaller ` +
@@ -1360,13 +1587,24 @@ function renderTipsBlock(input, r, tips, annualView) {
   // repeated float rounding can, because the four rows have to visibly sum on
   // screen: 38.46 − 8.46 − 2.96 − 1.92 = 25.12 is arithmetic a reader can
   // check, which four independently dollar-rounded lines never promised.
-  const toCents = (v) => Math.round(v * 100);
+  // HALF A CENT ROUNDS UP. v * 100 is not exact in binary: Georgia's $162.175 of tax on
+  // $3,250 of tips arrives as 162.17499999999995 and Math.round alone printed $162.17.
+  // Twelve significant digits clear that float noise first, then half a cent rounds away
+  // from zero. (Adding Number.EPSILON, the pattern some engines here use, is too small
+  // to move a value over 100, so it would not fix this one.)
+  const toCents = (v) => {
+    const c = +(v * 100).toPrecision(12);
+    return Math.sign(c) * Math.round(Math.abs(c));
+  };
   const money = (c) => usd2(c / 100);
   const grossC = toCents(per(tips.tips));
   const fedRaw = filed ? tips.fedFiled : tips.fedWithheld;
   const fedC = toCents(per(fedRaw));
   const ficaC = toCents(per(tips.fica));
   const stateC = hasStateTax ? toCents(per(tips.state)) : 0;
+  // The knock-on is a slice of the state figure, printed as its own row; the
+  // state row is what is left, so the two still add to stateC to the cent.
+  const knockC = hasStateTax ? Math.min(toCents(per(tips.stateKnockOn || 0)), stateC) : 0;
   const keepC = grossC - fedC - ficaC - stateC;
 
   // THE TWO NUMBERS THAT RECONCILE THE VIEWS, and the reason the per-paycheck
@@ -1404,7 +1642,11 @@ function renderTipsBlock(input, r, tips, annualView) {
     `<li><span>Social Security &amp; Medicare</span><span class="otw-amt otw-taxed">−${money(ficaC)}</span></li>`
   ];
   if (hasStateTax) {
-    rows.push(`<li><span>${escLbl(stateName)} tax</span><span class="otw-amt otw-taxed">−${money(stateC)}</span></li>`);
+    rows.push(`<li><span>${escLbl(stateName)} tax</span><span class="otw-amt otw-taxed">−${money(stateC - knockC)}</span></li>`);
+    if (knockC > 0) {
+      rows.push(`<li><span>Smaller federal tax to subtract on your ${escLbl(stateName)} return</span>` +
+        `<span class="otw-amt otw-taxed">−${money(knockC)}</span></li>`);
+    }
   }
   // "Tips you keep" is true of the year and false of a paycheck: per period the
   // federal line above it is withholding, so some of what this row subtracts is
@@ -1448,11 +1690,30 @@ function renderTipsBlock(input, r, tips, annualView) {
   // withholding, so the gap is said out loud, in this view only and only where it is a
   // saving. Kept out of the fold below: it qualifies a figure, it is not background.
   let stateWithholdingNote = '';
+  // The knock-on row, explained where it is printed. Outside the fold for the same
+  // reason: it qualifies a figure.
+  if (knockC > 0) {
+    const nm = escLbl(stateName);
+    const cfg = taxData.states[stateSlug]?.tax?.federalTaxSubtraction;
+    stateWithholdingNote += `<p class="otw-note">${nm} lets you subtract ${subtractWhat(cfg)}. The no-tax-on-tips ` +
+      `deduction lowers that tax, so you have less to subtract and your ${nm} tax on these tips goes up by ` +
+      `${money(knockC)}.</p>`;
+  }
+  // Tips that carry AGI across a step of the state's limit on the federal tax you can
+  // subtract (Oregon, $125,000 to $145,000 single): the state tax above is that step.
+  if (hasStateTax && tips.subtractionStep > 0 && stateC - knockC > 0) {
+    const nm = escLbl(stateName);
+    stateWithholdingNote += `<p class="otw-note">Your tips take your income ${tips.subtractionStepWord} ` +
+      `${usd(tips.subtractionStep)}, ` +
+      `where ${nm}'s limit on the federal tax you can subtract steps down, so your ${nm} tax still rises by ` +
+      `${money(stateC - knockC)}.</p>`;
+  }
   const stateSavingC = hasStateTax ? toCents(per(tips.stateSaving || 0)) : 0;
   if (!annualView && stateSavingC > 0) {
     const nm = escLbl(stateName);
-    stateWithholdingNote = `<p class="otw-note">${nm} tax above is figured the way your ${nm} return will ` +
-      `figure it, with the tips deduction taken off. Your employer's ${nm} withholding may not take it off, ` +
+    const what = tips.conformity === 'partial' ? `${nm}'s own tips break` : 'the tips deduction';
+    stateWithholdingNote += `<p class="otw-note">${nm} tax above is figured the way your ${escLbl(placeWords().ret)} return will ` +
+      `figure it, with ${what} taken off. Your employer's ${nm} withholding may not take it off, ` +
       `so up to ${money(stateSavingC)} more a paycheck can be withheld, and it comes back when you file.</p>`;
   }
   if (tips.inside) {
@@ -1462,15 +1723,39 @@ function renderTipsBlock(input, r, tips, annualView) {
   }
   // The state's own 2026 verdict, in the same words the rest of the page uses.
   // The "partial" wording already says the state adds a smaller break of its
-  // own; here it has to also say that this figure does not include it, because
-  // the figure is right above the sentence.
+  // own; here it also says whether the figure right above the sentence takes it
+  // off. Georgia's does (tax-data-2026.json .tax.cashTipsDeduction, priced by
+  // tipsSlice), so the note names the cap and the amount; a partial state with no
+  // rule in the data is told the figure leaves it out.
   const clause = conformityClause('tips');
   if (clause) {
-    notes.push(`<p class="otw-note">${escLbl(clause)}` +
-      (tips.conformity === 'partial'
-        ? ` The state tax above does not take that smaller break off — ${escLbl(stateName)} sets its own cap, and ` +
-          `the state's own return is where it is claimed.`
-        : '') + `</p>`);
+    let partialNote = '';
+    if (tips.conformity === 'partial') {
+      const rule = stateOwnRule('tips');
+      const nm = escLbl(stateName);
+      // Georgia's tips paragraph (O.C.G.A. 48-7-27(a)(17)) counts only tips from an
+      // occupation with a Treasury Tipped Occupation Code, and unlike its overtime
+      // paragraph ("received by a full-time employee") it says nothing per person, so
+      // on a joint return the cap may be one per return. The figure above is one
+      // earner's tips either way; a married filer is told the limit may be shared.
+      const otRule = stateOwnRule('overtime');
+      const occupation = rule && rule.tippedOccupationsOnly
+        ? ` It counts only tips from a job on the U.S. Treasury's list of tipped occupations.` : '';
+      const shared = rule && input.filingStatus === 'married' && rule.capPer !== 'employee'
+        ? ` ${nm}'s law does not say the ${usd(rule.cap)} tips limit is per person` +
+          (otRule && otRule.capPer === 'employee' ? `, as it does for overtime` : '') +
+          `, so on a joint return it may be ${usd(rule.cap)} for the two of you together.`
+        : '';
+      partialNote = rule && tips.stateDed > 0
+        ? ` ${nm}'s break takes up to ${usd(rule.cap)} of tips a year off your ${nm} income, so ` +
+          (tips.stateDed < tips.tips
+            ? `${usd(tips.stateDed)} of your ${usd(tips.tips)} comes off there`
+            : `all ${usd(tips.stateDed)} of your tips comes off there`) +
+          `, and the ${nm} tax above already counts it.${occupation}${shared}`
+        : ` The state tax above does not take that smaller break off: ${nm} sets its own cap, and ` +
+          `the state's own return is where it is claimed.`;
+    }
+    notes.push(`<p class="otw-note">${escLbl(clause)}${partialNote}</p>`);
   }
   if (hasStateTax && tips.fica > 0) {
     notes.push(`<p class="otw-note">Social Security and Medicare are owed on tips whatever the income-tax rules ` +

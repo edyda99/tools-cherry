@@ -10,8 +10,9 @@
 //
 // HARD RULES ENFORCED HERE
 // 1. Six states print their `note` field VERBATIM and get NO generated sentence:
-//    Georgia and Alabama (their own capped breaks; Alabama's $1,000 overtime cap is
-//    also modeled on its paycheck page), Colorado (direction reverses
+//    Georgia and Alabama (their own capped breaks; Alabama's $1,000 overtime cap and
+//    Georgia's $1,750 overtime and tips caps are also modeled on their paycheck
+//    pages), Colorado (direction reverses
 //    in 2026 and is under legal challenge), Indiana (sunsets after 2026), New York
 //    (its own capped exclusion), Michigan (a state subtraction, not conformity).
 //    Every OTHER state also prints its note verbatim, under the generated sentence.
@@ -515,6 +516,23 @@ export function buildWamParts(deps) {
   noteSource(F.mip.sources && F.mip.sources[0] ? F.mip.sources[0].url : '', 'Mortgage insurance premium deduction');
   noteSource(F.qcd.sources && F.qcd.sources[0] ? F.qcd.sources[0].url : '', 'Qualified charitable distributions');
 
+  // A FEDERAL CARD'S STATE-RETURN ANSWER, for the few states whose row in
+  // obbba-deductions-2026.json carries a sourced verdict for that deduction
+  // (states[slug].senior and .carLoan). Gated to the reader's state, so nobody reads
+  // another state's rule; a state without the field prints nothing, which is
+  // what the "What this does not cover" list says.
+  const stateReturnLines = (field) => Object.entries(obbba.states || {})
+    .filter(([slug, e]) => slug !== '_note' && e && e[field] && e[field].note)
+    .map(([slug, e]) => {
+      const r = e[field];
+      let label = r.sourceTitle || '';
+      if (!label && r.source) { try { label = new URL(r.source).hostname.replace(/^www\./, ''); } catch (_) { label = 'Source'; } }
+      return `<p class="g wam-note" data-st="${esc(slug)}"><strong>On the state return:</strong> ${esc(r.note)}`
+        + (r.checkedOn ? ` We last checked this on ${esc(humanDay(r.checkedOn))}.` : '')
+        + (r.source ? ` <a href="${esc(r.source)}" rel="noopener" target="_blank">Source: ${esc(label)}</a>.` : '')
+        + `</p>`;
+    }).join('');
+
   const tipsCap = F.tips.cap.single;
   const tipsPo = F.tips.phaseoutStartMagi;
   const tipsGone = F.tips.fullPhaseoutMagi;
@@ -617,6 +635,7 @@ export function buildWamParts(deps) {
     + `<p>${usd0(sen.amountPerPerson)} for each person who is 65 or older, for tax years ${sen.firstYear} through ${sen.lastYear}. It shrinks by ${(sen.phaseoutRate * 100).toFixed(0)}% of everything you make over ${usd0(sen.phaseoutStartMagi.single)} on your own, or ${usd0(sen.phaseoutStartMagi.married)} married filing together.</p>`
     + `<p>Gone at ${usd0(sen.fullPhaseoutMagi.single)} on your own, or ${usd0(sen.fullPhaseoutMagi.married)} married filing together.</p>`
     + `<p>This comes off after your income total is worked out, so it does not change that total, and it does not change how much of your Social Security gets taxed. It does not rise with inflation.</p>`
+    + stateReturnLines('senior')
     + bandLine(sen.phaseoutStartMagi.single, sen.phaseoutStartMagi.married, sen.fullPhaseoutMagi.single, sen.fullPhaseoutMagi.married)
     + asOf(OB_DATE) + src(F.senior.sources[0].url, 'Source')
     + btn('/senior-deduction-calculator/', 'Do the math')
@@ -646,6 +665,7 @@ export function buildWamParts(deps) {
     + `<p>New vehicle, first owner. Final assembly in the United States. Loan taken after 31 December 2024, secured by a first lien on the vehicle, not a lease, not from a relative. Personal use, under 14,000 lbs. The VIN goes on the return.</p>`
     + `<p>${usd0(car.interestCap)} of interest per tax return, not per vehicle. Full amount up to ${usd0(car.phaseoutStartMagi.single)} on your own, or ${usd0(car.phaseoutStartMagi.married)} married filing together. It shrinks by $${car.phaseoutReductionPer1000} for every $1,000 over that, and is gone at ${usd0(car.fullPhaseoutMagi.single)} or ${usd0(car.fullPhaseoutMagi.married)}. It works on a separate return.</p>`
     + `<p>This comes off after your income total is worked out, so it does not change that total.</p>`
+    + stateReturnLines('carLoan')
     + bandLine(car.phaseoutStartMagi.single, car.phaseoutStartMagi.married, car.fullPhaseoutMagi.single, car.fullPhaseoutMagi.married)
     + asOf(OB_DATE) + src(car.sources && car.sources[0] ? car.sources[0].url : '', 'Source')
     + btn('/car-loan-interest-calculator/', 'Do the math')
