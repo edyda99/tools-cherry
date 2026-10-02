@@ -7252,11 +7252,17 @@ function caLadderSources(taxData, state) {
   };
   const isCA = state.slug === 'california';
   const stateUrls = String(state._source || '').match(/https?:\/\/\S+/g) || [];
+  // Every other state titles its own URLs in the data, beside the _source text that says
+  // what each one settles (_sourceTitles, keyed by URL, stripped from the published JSON).
+  // "Maryland: source for the state figures on this page" printed five times over five
+  // different documents. A URL with no title yet is shown as itself, which is at least
+  // distinct and true; test-ladder-rungs fails if one reaches a page.
+  const dataTitles = state._sourceTitles || {};
   stateUrls.forEach((raw) => {
     const u = raw.replace(/[;,)]+$/, '');
     const titles = STATE_SOURCE_TITLES[state.slug];
     const hit = titles ? titles.find(([re]) => re.test(u)) : null;
-    add(hit ? hit[1] : (isCA ? 'California Franchise Tax Board' : `${state.name}: source for the state figures on this page`), u);
+    add(hit ? hit[1] : (dataTitles[u] || (isCA ? 'California Franchise Tax Board' : u.replace(/^https?:\/\/(www\.)?/, ''))), u);
   });
   // The rule behind the federal-tax subtraction (Alabama, Missouri, Oregon), cited from its
   // own block of the data so the page names the statute it applies.

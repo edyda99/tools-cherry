@@ -18,7 +18,7 @@
 //      only true while the phase-out start is exactly $75,000 and the reduction
 //      is computed on the excess. If either changes, the rung stops earning its
 //      page and the prose becomes false, so both are asserted directly.
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { computePaycheck, stateTaxableIncome, federalIncomeTax, ficaTax } from '../src/engine/paycheck-engine.js';
@@ -372,6 +372,48 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
       p50.includes('the gap between those two is a real cost of the raise that no bracket table shows'), false);
     is('$50k worth clause names the subtraction',
       p50.includes('The subtraction is worth $191.00 of Alabama income tax at this salary'), true);
+  }
+}
+
+// --- 11. EVERY SOURCE LINK SAYS WHAT IT IS (added 2026-10-02). Most states' own URLs were all
+// captioned "<State>: source for the state figures on this page", so Maryland printed that line
+// five times over five different documents. The titles now live beside each URL in
+// tax-data-2026.json (_sourceTitles); a URL with no title falls back to the bare address. Every
+// take-home page is swept: no generic caption, no bare address, no title used twice for
+// different links, and no link listed twice.
+{
+  const DIST = join(__dirname, '..', 'dist');
+  const dirs = existsSync(DIST) ? readdirSync(DIST).filter((d) => /-take-home-pay(-\d+)?$/.test(d)) : [];
+  let pages = 0, links = 0;
+  const bad = [];
+  for (const d of dirs) {
+    const f = join(DIST, d, 'index.html');
+    if (!existsSync(f)) continue;
+    const html = readFileSync(f, 'utf8');
+    const m = html.match(/<h2 id="sources">Sources<\/h2>\s*<ul>([\s\S]*?)<\/ul>/);
+    if (!m) continue;
+    pages++;
+    const items = [...m[1].matchAll(/<a href="([^"]+)"[^>]*>([^<]*)<\/a>/g)].map((x) => ({ url: x[1], title: x[2] }));
+    links += items.length;
+    const titles = new Map();
+    const urls = new Set();
+    for (const { url, title } of items) {
+      if (/source for the state figures/i.test(title)) bad.push(`${d}: generic caption on ${url}`);
+      if (/^[a-z0-9.-]+\.[a-z]{2,}\//i.test(title)) bad.push(`${d}: no title for ${url}`);
+      if (titles.has(title) && titles.get(title) !== url) bad.push(`${d}: "${title}" on two links`);
+      if (urls.has(url)) bad.push(`${d}: ${url} listed twice`);
+      titles.set(title, url);
+      urls.add(url);
+    }
+  }
+  if (dirs.length) {
+    is('take-home pages with a sources list were found', pages > 300, true);
+    is('every take-home source link has its own accurate title', bad.slice(0, 5).join(' | '), '');
+    is('links were read', links > pages * 5, true);
+    const md = readFileSync(join(DIST, 'maryland-take-home-pay-50000', 'index.html'), 'utf8');
+    is('Maryland names the statute', md.includes('>Maryland Code, Tax-General 10-217: the standard deduction</a>'), true);
+    is('Maryland names the withholding guide',
+      md.includes('>Comptroller of Maryland: 2026 Employer Withholding Guide</a>'), true);
   }
 }
 
