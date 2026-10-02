@@ -668,6 +668,41 @@ eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single'
   is('no figures, no move', stateMoveOf(null), '');
   is('overtime row no longer counts an unsaved state amount as a move',
     /stateRows\.some\(\(row\) => row\.saved > 0\) \? 'lower' : ''/.test(app) && !/\|\| stateAmount > 0 \? 'lower'/.test(app), true);
+
+  // A STATE THAT FOLLOWS A FEDERAL DEDUCTION IS TAKING THE FEDERAL DEDUCTION, so its row
+  // says so ("Federal senior deduction on your Colorado return"); only a state's own rule
+  // (Alabama, Georgia) is labelled as the state's deduction. The District is "the District"
+  // and its return the "D.C. return".
+  is('follow-the-federal row label names the federal deduction',
+    app.includes('`Federal ${k.deduction} on your ${w.ret} return`'), true);
+  is('own-rule row label keeps the state name', app.includes('ownRule ? `${name} ${k.deduction}`'), true);
+  is('follows note uses the place words', app.includes('`${w.Who} follows the federal ${k.deduction}'), true);
+  is('DC is the District, its return the D.C. return',
+    /Who: isDC \? 'The District' : name, who: isDC \? 'the District' : name, ret: isDC \? 'D\.C\.' : name/.test(app), true);
+
+  // Oregon's limit on the federal tax you can subtract steps down by $1,750 at each $5,000
+  // from $125,000 (single, $250,000 joint), so tips that carry AGI across a step raise the
+  // Oregon tax although Oregon deducts them: 1,750 x 8.75% = $153.13 at $124k + $5k.
+  const stepSrc = /function subtractionStepCrossed\([^)]*\) \{[\s\S]*?\n\}/.exec(app);
+  is('subtractionStepCrossed is in app.js', !!stepSrc, true);
+  const stepCrossed = new Function(`${stepSrc[0]}; return subtractionStepCrossed;`)();
+  const orFts = taxData.states.oregon.tax.federalTaxSubtraction;
+  is('OR $124k + $5k crosses $125,000', stepCrossed(orFts, 'single', 124000, 129000), 125000);
+  is('OR $130k + $5k crosses $135,000', stepCrossed(orFts, 'single', 130000, 135000), 135000);
+  is('OR $120k + $4k crosses nothing', stepCrossed(orFts, 'single', 120000, 124000), 0);
+  is('OR $150k + $5k: no limit either side', stepCrossed(orFts, 'single', 150000, 155000), 0);
+  is('OR joint $248k + $5k crosses $250,000', stepCrossed(orFts, 'married', 248000, 253000), 250000);
+  is('no capByAgi, no step', stepCrossed(taxData.states.alabama.tax.federalTaxSubtraction, 'single', 124000, 129000), 0);
+
+  // HALF A CENT ROUNDS UP in the tips block: Georgia's tax on $3,250 of tips is 4.99% =
+  // $162.175, which the engine returns as 162.17499999999995.
+  const centsSrc = /const toCents = \(v\) => \{[\s\S]*?\n  \};/.exec(app);
+  is('toCents is in app.js', !!centsSrc, true);
+  const toCents = new Function(`${centsSrc[0]}; return toCents;`)();
+  is('$162.175 prints as $162.18', toCents(162.17499999999995), 16218);
+  is('$162.174 stays $162.17', toCents(162.174), 16217);
+  is('a negative half cent rounds away from zero', toCents(-0.005), -1);
+  is('whole cents are untouched', toCents(1746.5), 174650);
   for (const f of ['tips-tax-calculator.js', 'overtime-tax-calculator.js']) {
     const src = readFileSync(join(__dirname, '../src/assets', f), 'utf8');
     is(`${f} FICA note reads the state verdict`, src.includes('the deduction lowers ${whichIncomeTax('), true);

@@ -610,20 +610,30 @@ async function ensureRuleData() {
 // this page's own pointer lines (src/content/state-applies.js): "still taxes it
 // in full", "has not confirmed its own treatment yet".
 const CONFORMITY = {
-  yes: (name) => `It is deductible on your ${name} return too.`,
-  no: (name) => `${name} still taxes it in full.`,
-  partial: (name) => `It is federally deductible, and ${name} adds a smaller capped break of its own.`,
-  unclear: (name) => `${name} has not confirmed its own treatment yet.`
+  yes: (w) => `It is deductible on your ${w.ret} return too.`,
+  no: (w) => `${w.Who} still taxes it in full.`,
+  partial: (w) => `It is federally deductible, and ${w.who} adds a smaller capped break of its own.`,
+  unclear: (w) => `${w.Who} has not confirmed its own treatment yet.`
 };
+
+// How a sentence names the place. The District is "the District" in a sentence
+// and its return the "D.C. return", the way the District writes them, rather than
+// "District of Columbia follows" and "your District of Columbia return"; every
+// state is its own name in all three slots.
+function placeWords() {
+  const name = (taxData.states && taxData.states[stateSlug] && taxData.states[stateSlug].name) || '';
+  const isDC = stateSlug === 'district-of-columbia';
+  return { name, Who: isDC ? 'The District' : name, who: isDC ? 'the District' : name, ret: isDC ? 'D.C.' : name };
+}
 
 function conformityClause(kind) {
   const e = ruleData && ruleData.obbba.states && ruleData.obbba.states[stateSlug];
-  const name = taxData.states[stateSlug]?.name || '';
-  if (!e || !name) return '';
-  if (!e.hasWageTax) return `${name} taxes no wages, so the federal deduction is the whole story here.`;
+  const w = placeWords();
+  if (!e || !w.name) return '';
+  if (!e.hasWageTax) return `${w.name} taxes no wages, so the federal deduction is the whole story here.`;
   const v = e[kind] && e[kind].y2026;
   const say = CONFORMITY[v];
-  return say ? say(name) : '';
+  return say ? say(w) : '';
 }
 
 // The same 2026 verdict, bare: '' when the state taxes no wages or has no data.
@@ -754,10 +764,25 @@ function tipsSlice(input, r) {
     dependentsCredit: sliceArgs.dependentsCredit, federalDeduction: d.deduction, stateDeduction: 0
   });
   const stateKnockOn = sAtFiling ? Math.min(Math.max(0, sAtFiling.federalKnockOn), stateTax) : 0;
+  // THE STEP, NAMED. Oregon follows the tips deduction, so tips it fully deducts should
+  // add no Oregon tax, and below $125,000 they add none. But Oregon's limit on the federal
+  // tax you can subtract steps down with AGI ($8,750 under $125,000, then $1,750 less for
+  // each $5,000 to nothing at $145,000, single; tax-data-2026.json .federalTaxSubtraction
+  // .capByAgi), and the deduction does not lower AGI, so tips that carry AGI across a step
+  // cut the subtraction and the Oregon tax still rises. Measured only where the whole tips amount is deducted, so the rise is the
+  // step and nothing else. renderTipsBlock() says so under the figure.
+  const fts = stateData && stateData.tax && stateData.tax.federalTaxSubtraction;
+  const agiTop = Math.max(0, W - preTaxIncome);
+  const subtractionStep = stateDed > 0 && d.deduction >= t
+    ? subtractionStepCrossed(fts, filing, Math.max(0, base - preTaxIncome), agiTop)
+    : 0;
+  // "past $135,000" when AGI goes over the step, "to $135,000" when it lands on it: the
+  // limit already drops AT the step (it is the cap for AGI under it).
+  const subtractionStepWord = subtractionStep > 0 && agiTop > subtractionStep ? 'past' : 'to';
 
   return {
     tips: t, inside, deduction: d, conformity, stateDed, returnDeductions,
-    fedWithheld, fedFiled, fica, state: stateTax, stateSaving, stateKnockOn,
+    fedWithheld, fedFiled, fica, state: stateTax, stateSaving, stateKnockOn, subtractionStep, subtractionStepWord,
     // What the pay's own take-home has to gain, per view. The yearly answer is
     // the filing truth, the per-paycheck answer is the withholding truth, and
     // they differ by exactly the deduction's benefit — which is why the
@@ -766,6 +791,19 @@ function tipsSlice(input, r) {
     keepFiled: t - fedFiled - fica - stateTax,
     keepWithheld: t - fedWithheld - fica - stateTax
   };
+}
+
+// The AGI step a federal-tax subtraction's limit drops at between two incomes
+// (Oregon's capByAgi rows, read the way the engine's rowForAgi reads them), or 0
+// when the limit is the same at both.
+function subtractionStepCrossed(cfg, filing, agiBase, agiTop) {
+  const rows = cfg && cfg.capByAgi ? (cfg.capByAgi[filing] || cfg.capByAgi.single) : null;
+  if (!Array.isArray(rows) || !rows.length) return 0;
+  const rowAt = (agi) => rows.find((row) => (row.agiUpTo != null ? agi <= row.agiUpTo
+    : (row.agiUnder != null ? agi < row.agiUnder : true))) || rows[rows.length - 1];
+  const from = rowAt(agiBase);
+  if (!(rowAt(agiTop).cap < from.cap)) return 0;
+  return from.agiUnder ?? from.agiUpTo ?? 0;
 }
 
 // Why a tips or overtime deduction came out under the amount entered, as the
@@ -894,10 +932,17 @@ function stateReturnRows(kind, input, ret, before, federalAmount, stateAmount, p
   const s = stateAtFiling(input, ret, before, federalAmount, stateAmount);
   if (!s) return [];
   const name = stateData.name;
+  const w = placeWords();
   const saveR = Math.round(s.stateSaving);
   const knockR = Math.round(s.federalKnockOn);
   const net = saveR - knockR;
-  const savingLabel = `${name} ${k.deduction}`;
+  // THE LABEL SAYS WHOSE DEDUCTION IT IS. A state's own rule (Alabama's Act 2026-604,
+  // Georgia's HB 463) is the state's break and carries its name. A state that follows
+  // the federal deduction is taking the FEDERAL deduction on its own return, and
+  // "Colorado senior deduction" read like Colorado's own 65-and-over break, which is a
+  // different thing (its pension and annuity subtraction), so that row says so.
+  const savingLabel = ownRule ? `${name} ${k.deduction}` : `Federal ${k.deduction} on your ${w.ret} return`;
+  const savingRef = ownRule ? savingLabel : `federal ${k.deduction} on your ${w.ret} return`;
   const out = [];
   if (saveR > 0) {
     let note;
@@ -925,7 +970,7 @@ function stateReturnRows(kind, input, ret, before, federalAmount, stateAmount, p
             `on a joint return.`;
       }
     } else {
-      note = `${name} follows the federal ${k.deduction}, so the same ${usd(stateAmount)} comes off your ${name} ` +
+      note = `${w.Who} follows the federal ${k.deduction}, so the same ${usd(stateAmount)} comes off your ${w.ret} ` +
         `return too and saves you ${usd(saveR)}.`;
     }
     // No knock-on to show although the federal tax fell: the subtraction did not
@@ -955,9 +1000,9 @@ function stateReturnRows(kind, input, ret, before, federalAmount, stateAmount, p
     let note = `${name} lets you subtract ${subtractWhat(t.federalTaxSubtraction)}, and the federal ${k.deduction} ` +
       `lowers that tax, so you have less to subtract and your ${name} tax goes up by ${usd(knockR)}.`;
     if (saveR > 0) {
-      if (net > 0) note += ` Taken with the ${savingLabel}, your ${name} tax comes out ${usd(net)} lower.`;
-      else if (net < 0) note += ` Taken with the ${savingLabel}, your ${name} tax comes out ${usd(-net)} higher, and the total counts that.`;
-      else note += ` Taken with the ${savingLabel}, the two cancel out.`;
+      if (net > 0) note += ` Taken with the ${savingRef}, your ${name} tax comes out ${usd(net)} lower.`;
+      else if (net < 0) note += ` Taken with the ${savingRef}, your ${name} tax comes out ${usd(-net)} higher, and the total counts that.`;
+      else note += ` Taken with the ${savingRef}, the two cancel out.`;
     }
     out.push({
       label: k.knockLabel(name),
@@ -1467,10 +1512,10 @@ function renderAtFiling(input, r, mergeTips) {
   if (stateToo.length && !fedOnly.length) {
     const plural = stateToo.length > 1;
     incomeTaxes = `the ${plural ? 'deductions' : 'deduction'} ${verbOf(stateToo, plural)} only your federal and ` +
-      `${escLbl(stateName)} income tax.`;
+      `${escLbl(placeWords().ret)} income tax.`;
   } else if (stateToo.length) {
     incomeTaxes = `the ${kindsOf(stateToo)} deduction ${verbOf(stateToo, false)} only your federal and ` +
-      `${escLbl(stateName)} income tax, and the ${kindsOf(fedOnly)} deduction lowers federal income tax only.`;
+      `${escLbl(placeWords().ret)} income tax, and the ${kindsOf(fedOnly)} deduction lowers federal income tax only.`;
   } else {
     incomeTaxes = `the ${fedOnly.length > 1 ? 'deductions lower' : 'deduction lowers'} federal income tax only.`;
   }
@@ -1542,7 +1587,15 @@ function renderTipsBlock(input, r, tips, annualView) {
   // repeated float rounding can, because the four rows have to visibly sum on
   // screen: 38.46 − 8.46 − 2.96 − 1.92 = 25.12 is arithmetic a reader can
   // check, which four independently dollar-rounded lines never promised.
-  const toCents = (v) => Math.round(v * 100);
+  // HALF A CENT ROUNDS UP. v * 100 is not exact in binary: Georgia's $162.175 of tax on
+  // $3,250 of tips arrives as 162.17499999999995 and Math.round alone printed $162.17.
+  // Twelve significant digits clear that float noise first, then half a cent rounds away
+  // from zero. (Adding Number.EPSILON, the pattern some engines here use, is too small
+  // to move a value over 100, so it would not fix this one.)
+  const toCents = (v) => {
+    const c = +(v * 100).toPrecision(12);
+    return Math.sign(c) * Math.round(Math.abs(c));
+  };
   const money = (c) => usd2(c / 100);
   const grossC = toCents(per(tips.tips));
   const fedRaw = filed ? tips.fedFiled : tips.fedWithheld;
@@ -1646,11 +1699,20 @@ function renderTipsBlock(input, r, tips, annualView) {
       `deduction lowers that tax, so you have less to subtract and your ${nm} tax on these tips goes up by ` +
       `${money(knockC)}.</p>`;
   }
+  // Tips that carry AGI across a step of the state's limit on the federal tax you can
+  // subtract (Oregon, $125,000 to $145,000 single): the state tax above is that step.
+  if (hasStateTax && tips.subtractionStep > 0 && stateC - knockC > 0) {
+    const nm = escLbl(stateName);
+    stateWithholdingNote += `<p class="otw-note">Your tips take your income ${tips.subtractionStepWord} ` +
+      `${usd(tips.subtractionStep)}, ` +
+      `where ${nm}'s limit on the federal tax you can subtract steps down, so your ${nm} tax still rises by ` +
+      `${money(stateC - knockC)}.</p>`;
+  }
   const stateSavingC = hasStateTax ? toCents(per(tips.stateSaving || 0)) : 0;
   if (!annualView && stateSavingC > 0) {
     const nm = escLbl(stateName);
     const what = tips.conformity === 'partial' ? `${nm}'s own tips break` : 'the tips deduction';
-    stateWithholdingNote += `<p class="otw-note">${nm} tax above is figured the way your ${nm} return will ` +
+    stateWithholdingNote += `<p class="otw-note">${nm} tax above is figured the way your ${escLbl(placeWords().ret)} return will ` +
       `figure it, with ${what} taken off. Your employer's ${nm} withholding may not take it off, ` +
       `so up to ${money(stateSavingC)} more a paycheck can be withheld, and it comes back when you file.</p>`;
   }
