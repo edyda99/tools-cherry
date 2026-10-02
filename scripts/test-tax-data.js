@@ -6,7 +6,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { computePaycheck, stateIncomeTax, phaseOutStandardDeduction, federalTaxSubtraction, stateTaxOnSlice } from '../src/engine/paycheck-engine.js';
+import { computePaycheck, stateIncomeTax, phaseOutStandardDeduction, federalTaxSubtraction, stateTaxOnSlice,
+  stateTaxableIncome, stateOvertimeDeduction, stateOvertimeAtFiling } from '../src/engine/paycheck-engine.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const tax = JSON.parse(await readFile(join(__dirname, '..', 'src', 'data', 'tax-data-2026.json'), 'utf8'));
@@ -901,6 +902,154 @@ t('Massachusetts, $2,000 of tips on $20,000: the FICA deduction moves with the t
   //   slice 92.35 (the old tips block passed no FICA and printed 5% x 2,000 = 100.00)
   approx(stateTaxOnSlice({ base: 20000, top: 22000, filingStatus: 'single',
     stateData: tax.states.massachusetts, fed: tax.federal, federalDeduction: 2000 }), 92.35, 0.005);
+});
+
+// --- ALABAMA OVERTIME PREMIUM DEDUCTION (added 2026-10-02) ------------------------------------
+// Act 2026-604 (HB527, 2026 RS) adds Ala. Code 40-18-15(a)(29): for tax years 2026 through 2028,
+// "qualified overtime compensation received during the taxable year, not to exceed one thousand
+// dollars ($1,000) per taxpayer", defined by 26 U.S.C. 225, so the premium above the regular rate
+// only. ADOR: "the lesser of the actual overtime premium or a maximum annual amount of $1,000 per
+// taxpayer", no income limit, and the W-2 box 12 code TT entry "will not change wages,
+// withholdings, or taxes", so it is claimed at filing and is not in the withholding figure.
+// It is a subsection (a) deduction, taken AFTER AGI, so the standard-deduction chart is read at
+// the AGI before it. Alabama's top band is 5% above $3,000 of taxable income (single), so there
+// the tax is 5% x T - 40, and every dollar of deduction is worth 5 cents.
+const AL = tax.states.alabama;
+t('overtimePremiumDeduction is Alabama only: $1,000, 2026 to 2028, not in withholding', () => {
+  const users = Object.entries(tax.states).filter(([, s]) => s.tax && s.tax.overtimePremiumDeduction).map(([k]) => k);
+  assert.deepEqual(users, ['alabama']);
+  const cfg = AL.tax.overtimePremiumDeduction;
+  assert.equal(cfg.cap, 1000);
+  assert.equal(cfg.firstTaxYear, 2026);
+  assert.equal(cfg.lastTaxYear, 2028);
+  assert.equal(cfg.inWithholdingFormula, false);
+  assert.ok(cfg.firstTaxYear <= tax.taxYear && tax.taxYear <= cfg.lastTaxYear, 'the data year must be inside the act window');
+  assert.match(cfg._source, /HB527-enr\.pdf/);
+  assert.match(cfg._source, /overtime-premium-deduction-act-2026-604/);
+});
+t('stateOvertimeDeduction: the premium, never above the $1,000 cap, zero without a rule', () => {
+  const cfg = AL.tax.overtimePremiumDeduction;
+  assert.deepEqual([0, 600, 999.99, 1000, 3333.33, 25000, -50].map((p) => stateOvertimeDeduction(p, cfg)),
+    [0, 600, 999.99, 1000, 1000, 1000, 0]);
+  assert.equal(stateOvertimeDeduction(5000, undefined), 0);
+  assert.equal(stateOvertimeDeduction(5000, tax.states.georgia.tax.overtimePremiumDeduction), 0);
+});
+t('Alabama single $70k: the paycheck figure is unchanged, the deduction is not in withholding', () =>
+  // fed: 70,000 - 16,100 = 53,900 -> 1,240 + 4,560 + 22% x 3,500 = 6,570
+  // AL: 70,000 - 2,500 - 6,570 = 60,930 -> 5% x 60,930 - 40 = 3,006.50 (same as before the act)
+  approx(stateTax('alabama', 70000), 3006.50, 0.005));
+t('Alabama single $70k, $600 of premium: all 600 comes off, $30.00 less tax', () => {
+  // 70,000 - 2,500 - 6,570 - 600 = 60,330 -> 5% x 60,330 - 40 = 2,976.50
+  approx(stateIncomeTax(70000, 'single', AL, 0, 0, 6570, 600), 2976.50, 0.005);
+  approx(stateIncomeTax(70000, 'single', AL, 0, 0, 6570, 0) - stateIncomeTax(70000, 'single', AL, 0, 0, 6570, 600), 30, 0.005);
+});
+t('Alabama: the deduction is taken after AGI, so the standard-deduction chart does not move', () => {
+  // Single $30,000: AGI 30,000 -> chart $2,775 (3,000 - 25 x 9 whole $500 steps over 25,500);
+  // fed 30,000 - 16,100 = 13,900 -> 1,240 + 12% x 1,500 = 1,420.
+  //   30,000 - 2,775 - 1,420 - 1,000 = 24,805 -> 5% x 24,805 - 40 = 1,200.25
+  // Had it lowered AGI to 29,000 the chart would give 2,825 and the tax 1,197.75.
+  const r = stateTaxableIncome(30000, 'single', AL, 0, 0, 1420, 1000);
+  assert.equal(r.agi, 30000);
+  assert.equal(r.standardDeduction, 2775);
+  assert.equal(r.overtimeDeduction, 1000);
+  assert.equal(r.taxable, 24805);
+  approx(stateIncomeTax(30000, 'single', AL, 0, 0, 1420, 1000), 1200.25, 0.005);
+});
+t('Other states ignore an overtime premium (no rule, no deduction)', () => {
+  for (const slug of ['georgia', 'missouri', 'oregon', 'california', 'new-york']) {
+    const s = tax.states[slug];
+    assert.equal(stateIncomeTax(70000, 'single', s, 0, 5355, 6570, 3000), stateIncomeTax(70000, 'single', s, 0, 5355, 6570, 0), slug);
+    assert.equal(stateOvertimeAtFiling({ income: 70000, filingStatus: 'single', stateData: s, fed: tax.federal, premium: 3000 }), null, slug);
+  }
+});
+t('Alabama at filing, single $70k with $10,000 of time-and-a-half overtime: $13.33 net', () => {
+  // $10,000 of overtime pay at 1.5x the normal rate: the premium is a third of it, 3,333.33,
+  // under the $12,500 federal cap with MAGI far under $150,000, so the federal deduction is
+  // all 3,333.33. Fed after it: 53,900 - 3,333.33 = 50,566.67 -> 5,800 + 22% x 166.67 = 5,836.67,
+  // a federal saving of 733.33 (22% of 3,333.33).
+  //   before:        70,000 - 2,500 - 6,570.00          = 60,930.00 -> 3,006.50
+  //   federal only:  70,000 - 2,500 - 5,836.67          = 61,663.33 -> 3,043.17 (knock-on +36.67)
+  //   both:          70,000 - 2,500 - 5,836.67 - 1,000  = 60,663.33 -> 2,993.17 (AL deduction -50.00)
+  //   net 3,006.50 - 2,993.17 = 13.33 less Alabama tax
+  const prem = 10000 / 3;
+  const r = stateOvertimeAtFiling({ income: 70000, filingStatus: 'single', stateData: AL, fed: tax.federal,
+    federalOvertimeDeduction: prem, premium: prem });
+  assert.equal(r.deduction, 1000);
+  assert.equal(r.cap, 1000);
+  approx(r.before, 3006.50, 0.005);
+  approx(r.before, stateTax('alabama', 70000), 1e-9);
+  approx(r.federalKnockOn, 36.67, 0.005);
+  approx(r.stateSaving, 50, 0.005);
+  approx(r.net, 13.33, 0.005);
+  approx(r.after, 2993.17, 0.005);
+});
+t('Alabama at filing, single $50k, $600 of premium under the cap: $26.40 net', () => {
+  // fed 3,820; after the 600 federal deduction 33,300 -> 1,240 + 12% x 20,900 = 3,748, saving 72.
+  //   knock-on 5% x 72 = 3.60; Alabama deduction 5% x 600 = 30.00; net 26.40
+  //   before 2,144.00 (pinned above) -> after 2,117.60
+  const r = stateOvertimeAtFiling({ income: 50000, filingStatus: 'single', stateData: AL, fed: tax.federal,
+    federalOvertimeDeduction: 600, premium: 600 });
+  assert.equal(r.deduction, 600);
+  approx(r.federalKnockOn, 3.60, 0.005);
+  approx(r.stateSaving, 30, 0.005);
+  approx(r.net, 26.40, 0.005);
+  approx(r.after, 2117.60, 0.005);
+});
+t('Alabama at filing, single $90k with a $10,000 premium: the knock-on wins, $60.00 MORE tax', () => {
+  // fed 90,000 - 16,100 = 73,900 -> 5,800 + 22% x 23,500 = 10,970; after the 10,000 deduction
+  // 63,900 -> 5,800 + 22% x 13,500 = 8,770, saving 2,200.
+  //   before 90,000 - 2,500 - 10,970 = 76,530 -> 3,786.50
+  //   knock-on 5% x 2,200 = +110.00; Alabama deduction capped at 1,000 -> -50.00; net -60.00
+  const r = stateOvertimeAtFiling({ income: 90000, filingStatus: 'single', stateData: AL, fed: tax.federal,
+    federalOvertimeDeduction: 10000, premium: 10000 });
+  approx(r.before, 3786.50, 0.005);
+  approx(r.federalKnockOn, 110, 0.005);
+  approx(r.stateSaving, 50, 0.005);
+  approx(r.net, -60, 0.005);
+  approx(r.after, 3846.50, 0.005);
+});
+t('Alabama at filing, single $300k: federal deduction phased out, Alabama has no income limit', () => {
+  // The federal $12,500 is gone at MAGI $300,000 (100 x 150 = 15,000 off), so no knock-on.
+  // fed 300,000 - 16,100 = 283,900 -> 17,966 + 24% x 96,075 + 32% x 54,450 + 35% x 27,675 = 68,134.25
+  //   before 300,000 - 2,500 - 68,134.25 = 229,365.75 -> 5% x 229,365.75 - 40 = 11,428.2875
+  //   Alabama deduction 1,000 -> -50.00, net 50.00
+  const r = stateOvertimeAtFiling({ income: 300000, filingStatus: 'single', stateData: AL, fed: tax.federal,
+    federalOvertimeDeduction: 0, premium: 5000 });
+  approx(r.before, 11428.2875, 0.005);
+  approx(r.federalKnockOn, 0, 1e-9);
+  approx(r.net, 50, 0.005);
+});
+t('Alabama at filing, MFJ $100k, one earner with a $2,000 premium: capped at $1,000, $38.00 net', () => {
+  // MFJ fed 7,640 (above); after 2,000: taxable 65,800 -> 2,480 + 12% x 41,000 = 7,400, saving 240.
+  //   before 4,288.00 (pinned above); knock-on 5% x 240 = 12.00; deduction 1,000 -> 50.00; net 38.00
+  const r = stateOvertimeAtFiling({ income: 100000, filingStatus: 'married', stateData: AL, fed: tax.federal,
+    federalOvertimeDeduction: 2000, premium: 2000 });
+  assert.equal(r.deduction, 1000);
+  approx(r.before, 4288, 0.005);
+  approx(r.federalKnockOn, 12, 0.005);
+  approx(r.net, 38, 0.005);
+});
+t('Alabama at filing: a tips deduction ahead in the chain is the starting point, not counted again', () => {
+  // Single $50k with $5,000 of tips already deducted federally: fed 28,900 -> 3,220 (the tips
+  // block's figure above). The $600 overtime deduction on top: 28,300 -> 1,240 + 12% x 15,900 =
+  // 3,148, saving 72.
+  //   before 50,000 - 2,500 - 3,220 = 44,280 -> 2,174.00 (the tips test's "with them, filed")
+  //   knock-on 3.60, deduction 30.00, net 26.40, after 2,147.60
+  const r = stateOvertimeAtFiling({ income: 50000, filingStatus: 'single', stateData: AL, fed: tax.federal,
+    federalDeductionBefore: 5000, federalOvertimeDeduction: 600, premium: 600 });
+  approx(r.before, 2174, 0.005);
+  approx(r.federalKnockOn, 3.60, 0.005);
+  approx(r.net, 26.40, 0.005);
+  approx(r.after, 2147.60, 0.005);
+});
+t('Alabama at filing: W-4 credits and pre-tax money are fed exactly as computePaycheck feeds them', () => {
+  // Same pay as computePaycheck with a 401(k), a Section 125 premium and $2,000 of W-4 credits:
+  // with nothing deducted the `before` term is that page's own state figure to the cent.
+  const adv = { retirement401k: 3000, cafeteria125: 1200, dependentsCredit: 2000, extraWithholding: 500 };
+  const r = stateOvertimeAtFiling({ income: 70000, filingStatus: 'single', stateData: AL, fed: tax.federal,
+    preTaxIncome: 4200, preTaxFica: 1200, dependentsCredit: 2000, federalOvertimeDeduction: 0, premium: 0 });
+  approx(r.before, cpState('alabama', 70000, 'single', adv), 1e-9);
+  approx(r.net, 0, 1e-9);
 });
 
 console.log(`\n${pass} passing`);

@@ -3086,12 +3086,17 @@ function obbbaConformityBlock(state, obbba, year) {
   // Verdict-keyed heading: the query stays, and the state's actual 2026
   // treatment (from the sourced conformity data) is answered in the heading.
   const otV = e.overtime && e.overtime.y2026, tipV = e.tips && e.tips.y2026;
+  // A state whose own overtime deduction the paycheck engine models (Alabama's
+  // $1,000 premium deduction, tax-data-2026.json .tax.overtimePremiumDeduction)
+  // is named with its figure instead of the generic "smaller capped break".
+  const otCap = state.tax && state.tax.overtimePremiumDeduction && state.tax.overtimePremiumDeduction.cap;
   let verdictTail;
   if (!e.hasWageTax) verdictTail = `Federally yes — no ${state.name} wage tax anyway`;
   else if (otV === 'yes' && tipV === 'yes') verdictTail = `Federally yes, and on the ${state.name} return too`;
   else if (otV === 'no' && tipV === 'no') verdictTail = `Federally yes, but ${state.name} still taxes both`;
   else if (otV === 'partial' && tipV === 'partial') verdictTail = `Federally yes; ${state.name} allows a smaller capped break`;
   else if (otV === 'unclear' && tipV === 'unclear') verdictTail = `Federally yes; ${state.name}'s rules aren't confirmed yet`;
+  else if (otV === 'partial' && tipV === 'no' && otCap > 0) verdictTail = `Federally yes; ${state.name} lets you deduct up to ${usd0(otCap)} of overtime, not tips`;
   else verdictTail = `Federally yes; ${state.name}'s state treatment is mixed`;
   const h2 = `Is overtime and tips tax-free in ${state.name}? ${verdictTail}`;
 
@@ -3107,8 +3112,13 @@ function obbbaConformityBlock(state, obbba, year) {
     unclear: `not yet confirmed for ${state.name}`,
     partial: `a smaller capped ${state.name} break`
   }[v] || v);
-  const row = (label, d) =>
-    `<li><strong>${label}:</strong> 2025 — ${verdict(d.y2025)}; 2026–2028 — ${verdict(d.y2026)}.</li>`;
+  // The overtime row says the figure when it is modeled: Alabama's 2025 verdict is
+  // "no" and only the 2026-2028 one is "partial", so the label is keyed to that cell.
+  const otVerdict = (v) => (v === 'partial' && otCap > 0
+    ? `${state.name}'s own deduction of up to ${usd0(otCap)} of the overtime premium`
+    : verdict(v));
+  const row = (label, d, say = verdict) =>
+    `<li><strong>${label}:</strong> 2025 — ${say(d.y2025)}; 2026–2028 — ${say(d.y2026)}.</li>`;
   const srcHost = (() => { try { return new URL(e.source).hostname.replace(/^www\./, ''); } catch (_) { return ''; } })();
   const srcLink = e.source && srcHost
     ? ` <span class="muted-small">(source: <a href="${escHtml(e.source)}" rel="noopener" target="_blank">${escHtml(srcHost)}</a>)</span>`
@@ -3116,7 +3126,7 @@ function obbbaConformityBlock(state, obbba, year) {
 
   return `<section class="prose"><h2>${h2}</h2>${fed}` +
     `<p><strong>${state.name} state income tax:</strong> ${escHtml(e.note)}${srcLink}</p>` +
-    `<ul class="facts">${row('Overtime', e.overtime)}${row('Tips', e.tips)}</ul>` +
+    `<ul class="facts">${row('Overtime', e.overtime, otVerdict)}${row('Tips', e.tips)}</ul>` +
     `<p>${calcLinks}</p></section>`;
 }
 
