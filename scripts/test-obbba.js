@@ -703,6 +703,34 @@ eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single'
   is('$162.174 stays $162.17', toCents(162.174), 16217);
   is('a negative half cent rounds away from zero', toCents(-0.005), -1);
   is('whole cents are untouched', toCents(1746.5), 174650);
+
+  // GEORGIA'S TIPS LIMIT, said as the statute says it: (a)(17) counts only tips from a
+  // Treasury-listed tipped occupation and, unlike (a)(16) for overtime, has no
+  // per-employee wording, so a married view is told the $1,750 may be one per return.
+  const gaTips = taxData.states.georgia.tax.cashTipsDeduction;
+  is('GA tips rule is limited to Treasury-listed tipped occupations', gaTips.tippedOccupationsOnly, true);
+  is('GA tips rule carries no per-employee claim', gaTips.capPer, undefined);
+  is('GA overtime rule stays per employee', taxData.states.georgia.tax.overtimePremiumDeduction.capPer, 'employee');
+  is('tips note names the tipped-occupation list', app.includes("list of tipped occupations."), true);
+  is('married tips note says the limit may be shared',
+    /input\.filingStatus === 'married' && rule\.capPer !== 'employee'/.test(app) &&
+      app.includes('for the two of you together.'), true);
+
+  // SOURCE LINKS NAME THE LAW, not a revenue office's home page (refute pass 2026-10-02).
+  const srcOf = (slug) => taxData.states[slug]._source;
+  is('TN cites the Hall income tax page', srcOf('tennessee').endsWith('https://www.tn.gov/revenue/taxes/hall-income-tax.html'), true);
+  is('NV cites its constitution', /Article 10, Section 1\(9\).*NvConst\.html$/.test(srcOf('nevada')), true);
+  is('TX cites Art. VIII sec. 24-a', /Section 24-a.*CN\.8\.24-a\.htm$/.test(srcOf('texas')), true);
+  is('IN notice is labelled with its revision',
+    taxData.states.indiana._sourceTitles['https://www.in.gov/dor/files/dn01.pdf'],
+    'Indiana Department of Revenue: Departmental Notice #1 (rev. Oct. 1, 2026)');
+  is('AZ says the statute sets the amounts', /43-1041 sets these amounts itself/.test(srcOf('arizona'))
+    && !/Although A\.R\.S\. 43-1041/.test(srcOf('arizona')), true);
+  is('OH names the worksheet ladder as HB 96\'s 2025-only one', srcOf('ohio').includes("HB 96's 2025-only ladder"), true);
+  for (const k of ['senior', 'carLoan']) {
+    is(`DC ${k} note says 2026 forms are not out yet`,
+      obbba.states['district-of-columbia'][k].note.endsWith("DC's tax office has not yet published 2026 forms that show this deduction."), true);
+  }
   for (const f of ['tips-tax-calculator.js', 'overtime-tax-calculator.js']) {
     const src = readFileSync(join(__dirname, '../src/assets', f), 'utf8');
     is(`${f} FICA note reads the state verdict`, src.includes('the deduction lowers ${whichIncomeTax('), true);

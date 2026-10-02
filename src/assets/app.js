@@ -1733,12 +1733,25 @@ function renderTipsBlock(input, r, tips, annualView) {
     if (tips.conformity === 'partial') {
       const rule = stateOwnRule('tips');
       const nm = escLbl(stateName);
+      // Georgia's tips paragraph (O.C.G.A. 48-7-27(a)(17)) counts only tips from an
+      // occupation with a Treasury Tipped Occupation Code, and unlike its overtime
+      // paragraph ("received by a full-time employee") it says nothing per person, so
+      // on a joint return the cap may be one per return. The figure above is one
+      // earner's tips either way; a married filer is told the limit may be shared.
+      const otRule = stateOwnRule('overtime');
+      const occupation = rule && rule.tippedOccupationsOnly
+        ? ` It counts only tips from a job on the U.S. Treasury's list of tipped occupations.` : '';
+      const shared = rule && input.filingStatus === 'married' && rule.capPer !== 'employee'
+        ? ` ${nm}'s law does not say the ${usd(rule.cap)} tips limit is per person` +
+          (otRule && otRule.capPer === 'employee' ? `, as it does for overtime` : '') +
+          `, so on a joint return it may be ${usd(rule.cap)} for the two of you together.`
+        : '';
       partialNote = rule && tips.stateDed > 0
         ? ` ${nm}'s break takes up to ${usd(rule.cap)} of tips a year off your ${nm} income, so ` +
           (tips.stateDed < tips.tips
             ? `${usd(tips.stateDed)} of your ${usd(tips.tips)} comes off there`
             : `all ${usd(tips.stateDed)} of your tips comes off there`) +
-          `, and the ${nm} tax above already counts it.`
+          `, and the ${nm} tax above already counts it.${occupation}${shared}`
         : ` The state tax above does not take that smaller break off: ${nm} sets its own cap, and ` +
           `the state's own return is where it is claimed.`;
     }

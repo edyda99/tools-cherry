@@ -1047,9 +1047,9 @@
       "tax": {
         "type": "none"
       },
-      "_source": "Texas has no state individual income tax (Texas Comptroller). https://comptroller.texas.gov/taxes/",
+      "_source": "Texas has no individual income tax. Article VIII, Section 24-a of the Texas Constitution bars the legislature from taxing the net incomes of individuals. https://statutes.capitol.texas.gov/Docs/CN/htm/CN.8/CN.8.24-a.htm",
       "_sourceTitles": {
-        "https://comptroller.texas.gov/taxes/": "Texas Comptroller of Public Accounts: Texas taxes"
+        "https://statutes.capitol.texas.gov/Docs/CN/htm/CN.8/CN.8.24-a.htm": "Texas Constitution, Article VIII, Section 24-a"
       },
       "_noTaxBasis": {
         "heading": "Why Texas cannot introduce an income tax without amending its constitution",
@@ -1141,9 +1141,9 @@
       "tax": {
         "type": "none"
       },
-      "_source": "Nevada levies no state individual income tax (Nevada Dept. of Taxation). https://tax.nv.gov/",
+      "_source": "Nevada has no individual income tax. Article 10, Section 1(9) of the Nevada Constitution says no income tax shall be levied on the wages or personal income of natural persons. https://www.leg.state.nv.us/Const/NvConst.html",
       "_sourceTitles": {
-        "https://tax.nv.gov/": "Nevada Department of Taxation"
+        "https://www.leg.state.nv.us/Const/NvConst.html": "Nevada Constitution, Article 10, Section 1(9)"
       },
       "_noTaxBasis": {
         "heading": "Nevada has a payroll tax, and it never reaches your pay stub",
@@ -1169,9 +1169,9 @@
       "tax": {
         "type": "none"
       },
-      "_source": "Tennessee has no wage income tax; the Hall tax on interest/dividends was fully repealed effective 2021 (TN Dept. of Revenue). https://www.tn.gov/revenue",
+      "_source": "Tennessee has no tax on wages. The Hall income tax, which taxed only interest and dividends, was repealed for tax periods beginning on or after January 1, 2021 (Tennessee Department of Revenue). https://www.tn.gov/revenue/taxes/hall-income-tax.html",
       "_sourceTitles": {
-        "https://www.tn.gov/revenue": "Tennessee Department of Revenue"
+        "https://www.tn.gov/revenue/taxes/hall-income-tax.html": "Tennessee Department of Revenue: Hall income tax"
       },
       "_noTaxBasis": {
         "heading": "Tennessee taxed investment income until 2021, and never taxed wages",
@@ -1390,10 +1390,11 @@
           "head_of_household": 23625
         }
       },
-      "_source": "Arizona taxes income at a flat 2.5% (A.R.S. 43-1011). The standard deduction shown is Arizona's published tax year 2025 amount: $15,750 for a single filer or a married person filing separately, $31,500 for a married couple filing jointly, and $23,625 for head of household, read from the Arizona Department of Revenue's 2025 Form 140 instructions. Although A.R.S. 43-1041 states Arizona's own base amounts and indexes them by the federal method, the amounts the Department actually publishes have matched the federal standard deduction, and these three figures are the federal 2025 amounts. Arizona had not published a 2026 standard deduction as of 30 July 2026. Sources: Arizona Department of Revenue 2025 Form 140 instructions, https://azdor.gov/sites/default/files/document/FORMS_INDIVIDUAL_2025_140i.pdf , and A.R.S. 43-1041, https://www.azleg.gov/ars/43/01041.htm",
+      "_source": "Arizona taxes income at a flat 2.5% (A.R.S. 43-1011). The standard deduction shown is Arizona's published tax year 2025 amount: $15,750 for a single filer or a married person filing separately, $31,500 for a married couple filing jointly, and $23,625 for head of household, as printed in the Arizona Department of Revenue's 2025 Form 140 instructions. A.R.S. 43-1041 sets these amounts itself: House Bill 4168 (Laws 2026, chapter 140, signed June 13, 2026) wrote them into the statute for tax years from 2025 on, and they equal the federal 2025 standard deduction. The same section has the Department adjust them for inflation each year the way the federal amount is adjusted, but the Department had not published its 2026 amounts as of 2 October 2026, and its 2026 estimated-payment worksheet still points filers to the 2025 standard deduction. Sources: Arizona Department of Revenue 2025 Form 140 instructions, https://azdor.gov/sites/default/files/document/FORMS_INDIVIDUAL_2025_140i.pdf , A.R.S. 43-1041, https://www.azleg.gov/ars/43/01041.htm , and Laws 2026, chapter 140, https://www.azleg.gov/legtext/57leg/2R/laws/0140.htm",
       "_sourceTitles": {
         "https://azdor.gov/sites/default/files/document/FORMS_INDIVIDUAL_2025_140i.pdf": "Arizona Department of Revenue: 2025 Form 140 instructions, standard deduction",
-        "https://www.azleg.gov/ars/43/01041.htm": "Arizona Revised Statutes 43-1041: the standard deduction"
+        "https://www.azleg.gov/ars/43/01041.htm": "Arizona Revised Statutes 43-1041: the standard deduction",
+        "https://www.azleg.gov/legtext/57leg/2R/laws/0140.htm": "Arizona Laws 2026, chapter 140 (House Bill 4168)"
       },
       "disclaimer": [
         "The standard deduction used here is Arizona's published 2025 amount. Arizona releases each year's amount alongside that year's Form 140, and the 2026 amount had not been published as of 30 July 2026.",
@@ -1449,9 +1450,9 @@
           "head_of_household": 1000
         }
       },
-      "_source": "IN state rate 2.95% for 2026 (DOR Departmental Notice #1, eff. Jan 1 2026). Personal exemption $1,000; no standard deduction. https://www.in.gov/dor/files/dn01.pdf",
+      "_source": "Indiana's state rate is 2.95% for 2026, with a $1,000 personal exemption and no standard deduction (Indiana Department of Revenue, Departmental Notice #1, revised for withholding from Oct. 1, 2026). https://www.in.gov/dor/files/dn01.pdf",
       "_sourceTitles": {
-        "https://www.in.gov/dor/files/dn01.pdf": "Indiana Department of Revenue: Departmental Notice #1, effective January 1, 2026"
+        "https://www.in.gov/dor/files/dn01.pdf": "Indiana Department of Revenue: Departmental Notice #1 (rev. Oct. 1, 2026)"
       },
       "disclaimer": [
         "Estimate assumes a $1,000 personal exemption (single/HoH) / $2,000 (MFJ); dependent exemptions not modeled.",
@@ -1568,6 +1569,7 @@
         "cashTipsDeduction": {
           "label": "Cash tips exclusion",
           "cap": 1750,
+          "tippedOccupationsOnly": true,
           "firstTaxYear": 2026,
           "lastTaxYear": 2028,
           "inWithholdingFormula": false,
@@ -1957,7 +1959,7 @@
           ]
         }
       },
-      "_source": "Ohio 2026 nonbusiness-income tax schedule per the statute as amended by HB 96 (signed June 30, 2025), ORC 5747.02(A)(3): for taxable years beginning in 2026 and thereafter the tax is $332.00 plus 2.75% of the amount in excess of $26,050, i.e. one rate on every taxable dollar above the 0% band. The 3.125% band over $100,000 that HB 96 created was a 2025-only step and does not apply to 2026. Same schedule for all filing statuses. Modeled as marginal brackets (the engine reproduces marginal tax, not Ohio's small base-amount rounding offset). Note the 2026 IT 1040 ES worksheet PDF still prints the superseded pre-HB 96 ladder ($2,394.32 + 3.125% over $100,000); the statute governs. https://codes.ohio.gov/ohio-revised-code/section-5747.02",
+      "_source": "Ohio 2026 nonbusiness-income tax schedule per the statute as amended by HB 96 (signed June 30, 2025), ORC 5747.02(A)(3): for taxable years beginning in 2026 and thereafter the tax is $332.00 plus 2.75% of the amount in excess of $26,050, i.e. one rate on every taxable dollar above the 0% band. The 3.125% band over $100,000 that HB 96 created was a 2025-only step and does not apply to 2026. Same schedule for all filing statuses. Modeled as marginal brackets (the engine reproduces marginal tax, not Ohio's small base-amount rounding offset). Note the 2026 IT 1040 ES worksheet PDF still prints HB 96's 2025-only ladder ($2,394.32 + 3.125% over $100,000); the statute governs. https://codes.ohio.gov/ohio-revised-code/section-5747.02",
       "_sourceTitles": {
         "https://codes.ohio.gov/ohio-revised-code/section-5747.02": "Ohio Revised Code 5747.02: income tax rates"
       },
