@@ -691,7 +691,7 @@ t('legal-status watches: well-formed, none expired', () => {
       'DC verdict cards should carry their own 2 October 2026 check date');
   });
 
-  // The federal senior card carries a state-return line for each state whose
+  // The federal senior and car loan cards carry a state-return line for each state whose
   // row has a sourced verdict for that deduction, gated to that state, inside that card.
   const cardWith = (h4) => {
     const at = wam.FEDERAL_CARDS.indexOf(h4);
@@ -718,6 +718,12 @@ t('legal-status watches: well-formed, none expired', () => {
   t('what-applies-to-me: the senior card names each checked state, gated to it', () => {
     const n = stateLinesIn(cardWith('<h4>The federal deduction for people 65 and older</h4>'), 'senior');
     assert.ok(n >= 8, `expected the eight checked senior rows, found ${n}`);
+  });
+  t('what-applies-to-me: the car loan card names Oregon and DC, gated to each', () => {
+    const card = cardWith('<h4>Interest on a new car loan</h4>');
+    const n = stateLinesIn(card, 'carLoan');
+    assert.ok(n >= 2, `expected the Oregon and DC car loan rows, found ${n}`);
+    assert.ok(card.includes('data-st="oregon"') && card.includes('data-st="district-of-columbia"'));
   });
 }
 

@@ -519,5 +519,28 @@ eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single'
     ageLine('vermont').includes('brackets still apply to the same wages'), true);
 }
 
+// --- Car loan interest (163(h)(4)) on the state return, the two rows that track it ----------
+// Oregon SB 1507 sec. 2 adds it back to federal taxable income for tax years from 2026 (sec.
+// 10(1)); OR-17 subtraction code 392 allowed it for 2025. D.C. Act 26-416, new D.C. Code
+// 47-1803.04(d)(8) disallows it before 2026 and (e)(5) allows it after 2025.
+{
+  const or = obbba.states.oregon.carLoan || {};
+  const dc = obbba.states['district-of-columbia'].carLoan || {};
+  is('OR car loan 2025 is yes', or.y2025, 'yes');
+  is('OR car loan 2026 is no', or.y2026, 'no');
+  is('DC car loan 2025 is no', dc.y2025, 'no');
+  is('DC car loan 2026 is yes', dc.y2026, 'yes');
+  is('OR car loan source is the enrolled SB 1507', or.source,
+    'https://olis.oregonlegislature.gov/liz/2026R1/Downloads/MeasureDocument/SB1507/Enrolled');
+  is('DC car loan source is the signed Act 26-416', /B26-0724-Signed_Act\.pdf/.test(dc.source || ''), true);
+  for (const [nm, r] of [['OR', or], ['DC', dc]]) {
+    is(`${nm} car loan note has no em or en dash`, /[\u2013\u2014]/.test(r.note || ''), false);
+    is(`${nm} car loan has a citation title`, typeof r.sourceTitle === 'string' && r.sourceTitle.length > 5, true);
+    is(`${nm} car loan checkedOn is a date`, /^\d{4}-\d{2}-\d{2}$/.test(r.checkedOn || ''), true);
+  }
+  is('OR car loan note says 2026 is added back', /From 2026 it does not/.test(or.note || ''), true);
+  is('DC car loan note says 2026 is allowed', /From 2026 it does\./.test(dc.note || ''), true);
+}
+
 console.log(`\nOBBBA engine: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -298,8 +298,9 @@ function renderResult({ state: s, result: r }) {
   const payment = r.monthlyPayment > 0 ? ` Your ${usd(r.monthlyPayment)}-a-month car payment does not change either.` : '';
   const plain = benefits
     ? `<div class="otw-plain">Skipping federal tax on ${usd(r.deduction)} of car-loan interest puts about ${usd(r.taxSaved)} back in ` +
-      `your pocket, as a bigger refund (or a smaller bill) when you file your ${s.year} return. It lowers federal income tax only: ` +
-      `Social Security and Medicare still come out of your pay exactly as before, and your paycheck during the year does not change.${payment}</div>`
+      `your pocket, as a bigger refund (or a smaller bill) when you file your ${s.year} return. That figure is federal income tax only. ` +
+      `Social Security and Medicare still come out of your pay exactly as before, and your paycheck during the year does not change.${payment} ` +
+      `Some states also allow the deduction on the state return: see "Does it lower my state income tax too?" below.</div>`
     : `<div class="otw-plain">${zeroNote(s, r)}</div>`;
 
   return warnBox + head + lead + rows + capFlag + plain;

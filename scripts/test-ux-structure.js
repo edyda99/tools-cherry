@@ -1073,6 +1073,31 @@ const PAGES = [
     ],
   },
   {
+    // Car loan interest on the state return (163(h)(4)): Oregon SB 1507 adds it back from
+    // 2026; D.C. Act 26-416 allows it from 2026. Both print under the conformity block.
+    file: 'oregon-paycheck-calculator/index.html',
+    pins: [
+      ['car-loan-line', contains('<strong>Car loan interest:</strong> Oregon allows the federal car loan interest deduction on your 2025 Oregon return. From 2026 it does not:')],
+      ['car-loan-source-named', contains('>Oregon SB 1507 (2026), sections 2 and 10</a>')],
+    ],
+  },
+  {
+    file: 'district-of-columbia-paycheck-calculator/index.html',
+    pins: [
+      ['car-loan-line', contains('<strong>Car loan interest:</strong> DC does not allow the federal car loan interest deduction on your 2025 DC return. From 2026 it does.')],
+      ['car-loan-source-named', contains('>D.C. Act 26-416, D.C. Code 47-1803.04(d)(8) and (e)(5)</a>')],
+    ],
+  },
+  {
+    file: 'car-loan-interest-calculator/index.html',
+    pins: [
+      ['state-question-answered', contains('<strong>Does it lower my state income tax too?</strong>')],
+      ['state-answer-names-dc', contains('<li><strong>District of Columbia:</strong> DC does not allow')],
+      ['state-answer-names-oregon', contains('<li><strong>Oregon:</strong> Oregon allows')],
+      ['no-unfilled-placeholder', absent('{{CAR_LOAN_STATES}}')],
+    ],
+  },
+  {
     // Turning 65 in a state that starts from federal taxable income: Colorado lets the
     // senior deduction through, Oregon does not (OR-17, page 7).
     file: 'colorado-paycheck-calculator/index.html',

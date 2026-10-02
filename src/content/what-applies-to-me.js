@@ -517,7 +517,7 @@ export function buildWamParts(deps) {
 
   // A FEDERAL CARD'S STATE-RETURN ANSWER, for the few states whose row in
   // obbba-deductions-2026.json carries a sourced verdict for that deduction
-  // (states[slug].senior). Gated to the reader's state, so nobody reads
+  // (states[slug].senior and .carLoan). Gated to the reader's state, so nobody reads
   // another state's rule; a state without the field prints nothing, which is
   // what the "What this does not cover" list says.
   const stateReturnLines = (field) => Object.entries(obbba.states || {})
@@ -664,6 +664,7 @@ export function buildWamParts(deps) {
     + `<p>New vehicle, first owner. Final assembly in the United States. Loan taken after 31 December 2024, secured by a first lien on the vehicle, not a lease, not from a relative. Personal use, under 14,000 lbs. The VIN goes on the return.</p>`
     + `<p>${usd0(car.interestCap)} of interest per tax return, not per vehicle. Full amount up to ${usd0(car.phaseoutStartMagi.single)} on your own, or ${usd0(car.phaseoutStartMagi.married)} married filing together. It shrinks by $${car.phaseoutReductionPer1000} for every $1,000 over that, and is gone at ${usd0(car.fullPhaseoutMagi.single)} or ${usd0(car.fullPhaseoutMagi.married)}. It works on a separate return.</p>`
     + `<p>This comes off after your income total is worked out, so it does not change that total.</p>`
+    + stateReturnLines('carLoan')
     + bandLine(car.phaseoutStartMagi.single, car.phaseoutStartMagi.married, car.fullPhaseoutMagi.single, car.fullPhaseoutMagi.married)
     + asOf(OB_DATE) + src(car.sources && car.sources[0] ? car.sources[0].url : '', 'Source')
     + btn('/car-loan-interest-calculator/', 'Do the math')
