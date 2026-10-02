@@ -62,6 +62,13 @@ ok('TT copy says premium-only (the "half"), not the whole overtime paycheck',
   /half|premium/i.test(BOX12_INFO.TT.plain));
 ok('TP carries the FICA-still-applies caveat', /FICA|Social Security/i.test(BOX12_INFO.TP.ficaNote));
 ok('TT carries the FICA-still-applies caveat', /FICA|Social Security/i.test(BOX12_INFO.TT.ficaNote));
+// The deduction is not "federal income tax only": a state that allows it (Oregon, Colorado for
+// tips, ...) lowers its own income tax too. The decoder has no state picker, so it says so generically.
+for (const c of ['TP', 'TT']) {
+  ok(`${c} FICA note no longer says the deduction is federal income tax only`, !/federal income tax only/.test(BOX12_INFO[c].ficaNote));
+  ok(`${c} FICA note says some states allow it too`, /state income tax only if your state allows it/.test(BOX12_INFO[c].ficaNote));
+  ok(`${c} FICA note has no em or en dash`, !/[\u2013\u2014]/.test(BOX12_INFO[c].ficaNote));
+}
 ok('unknown Box 12 code is flagged known:false, never guessed',
   decodeBox12([{ code: 'D', amount: 5000 }])[0].known === false);
 

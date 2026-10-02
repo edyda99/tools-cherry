@@ -1155,6 +1155,16 @@ const PAGES = [
     ],
   },
   {
+    // The tips and overtime deductions are not "federal income tax only": states such as Oregon
+    // allow them too. The decoder has no state picker, so the copy says it generically.
+    file: 'w2-box-decoder/index.html',
+    pins: [
+      ['fica-line-says-states-may-allow-it', contains('The deduction lowers your federal income tax, and your state income tax only if your state allows it')],
+      ['faq-says-states-may-allow-it', contains('your federal income tax, and your state income tax if your state allows it.')],
+      ['no-federal-only-claim', absent('the deduction is federal income tax only')],
+    ],
+  },
+  {
     // Oregon tips and overtime: the conformity note in plain words, SB 1507 named.
     file: 'oregon-paycheck-calculator/index.html',
     pins: [
