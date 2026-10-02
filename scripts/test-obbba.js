@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { buildStateApplies } from '../src/content/state-applies.js';
+import { stateDeductionAtFiling } from '../src/engine/paycheck-engine.js';
 import { allowedDeduction, federalTaxSaved, overtimePremium, estimate, seniorDeduction, estimateSenior, saltCap, saltComparison, carLoanFirstYearInterest, carLoanDeduction, estimateCarLoan } from '../src/engine/obbba-deduction.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -645,6 +646,28 @@ eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single'
   is('paycheck state deduction reads the state verdict',
     /return stateVerdict\(kind\) === 'yes' \? Math\.max\(0, federalAmount \|\| 0\) : 0;/.test(app), true);
   is('paycheck has one verdict helper', /function conformityVerdict\(/.test(app), false);
+
+  // THE SENTENCE NAMES A STATE ONLY WHERE ITS TAX MOVES. North Dakota allows the overtime
+  // deduction but taxes nothing below $49,575 of taxable income, so at $50,000 single a
+  // $3,000 premium saves $0 there (50,000 - 16,100 = 33,900, and 30,900 after) and the plain
+  // box must say "federal income tax only". At $90,000: 73,900 -> 1.95% x 24,325 = 474.34,
+  // after 70,900 -> 415.84, a $58.50 saving, so North Dakota is named. Oregon at $50,000
+  // subtracts federal tax under its limit, so the federal deduction raises Oregon tax
+  // (12% x 3,000 = 360 less to subtract, 8.75% = $31.50): "change". stateMoveOf() is lifted
+  // out of app.js and run on the engine's own figures.
+  const moveSrc = /function stateMoveOf\(s\) \{[\s\S]*?\n\}/.exec(app);
+  is('stateMoveOf is in app.js', !!moveSrc, true);
+  const stateMoveOf = new Function(`${moveSrc[0]}; return stateMoveOf;`)();
+  const atf = (slug, income, ded) => stateDeductionAtFiling({ income, filingStatus: 'single',
+    stateData: taxData.states[slug], fed, federalDeduction: ded, stateDeduction: ded });
+  is('ND $50k overtime: no state move', stateMoveOf(atf('north-dakota', 50000, 3000)), '');
+  is('ND $90k overtime: lowers ND tax', stateMoveOf(atf('north-dakota', 90000, 3000)), 'lower');
+  is('ND $90k saving', Math.round(atf('north-dakota', 90000, 3000).stateSaving * 100) / 100, 58.5);
+  is('OR $50k overtime: changes OR tax', stateMoveOf(stateDeductionAtFiling({ income: 50000, filingStatus: 'single',
+    stateData: taxData.states.oregon, fed, federalDeduction: 3000, stateDeduction: 3000 })), 'change');
+  is('no figures, no move', stateMoveOf(null), '');
+  is('overtime row no longer counts an unsaved state amount as a move',
+    /stateRows\.some\(\(row\) => row\.saved > 0\) \? 'lower' : ''/.test(app) && !/\|\| stateAmount > 0 \? 'lower'/.test(app), true);
   for (const f of ['tips-tax-calculator.js', 'overtime-tax-calculator.js']) {
     const src = readFileSync(join(__dirname, '../src/assets', f), 'utf8');
     is(`${f} FICA note reads the state verdict`, src.includes('the deduction lowers ${whichIncomeTax('), true);

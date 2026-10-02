@@ -875,12 +875,14 @@ function stateAtFiling(input, ret, before, federalAmount, stateAmount) {
 
 // Which way a deduction moves the state's income tax, for the plain box's "which
 // income tax" sentence: 'change' when the federal deduction raises it through the
-// subtraction (it may still come out lower overall), 'lower' when only the state's
-// own deduction moves it, '' when it does not move. Read in whole dollars, the
-// figures the rows print.
-function stateMoveOf(s, stateAmount) {
+// subtraction (it may still come out lower overall), 'lower' when the state's own
+// deduction saves something, '' when it does not move. Read in whole dollars, the
+// figures the rows print. A state that allows the deduction but taxes nothing at
+// this income (North Dakota below its first taxed band) saves nothing, so the
+// sentence says federal income tax only rather than naming a tax that is $0.
+function stateMoveOf(s) {
   if (s && Math.round(s.federalKnockOn) > 0) return 'change';
-  return stateAmount > 0 ? 'lower' : '';
+  return s && Math.round(s.stateSaving) > 0 ? 'lower' : '';
 }
 
 function stateReturnRows(kind, input, ret, before, federalAmount, stateAmount, premium) {
@@ -1039,7 +1041,7 @@ function filingRows(input, magi, mergeTips, ret) {
     // the row still says which way they move the state tax, for the plain box.
     const tipsState = stateOwnDeduction('tips', d.deduction, rules.tips, input.wage && input.wage.type);
     rows[rows.length - 1].stateMove = stateMoveOf(
-      stateAtFiling(input, ret, { federal: 0, state: 0 }, d.deduction, tipsState), tipsState);
+      stateAtFiling(input, ret, { federal: 0, state: 0 }, d.deduction, tipsState));
     stateRunning += tipsState;
   }
 
@@ -1126,7 +1128,7 @@ function filingRows(input, magi, mergeTips, ret) {
       const stateRows = stateReturnRows('overtime', input, ret, before, d.deduction, stateAmount, premium);
       rows.push(...stateRows);
       otRow.stateMove = stateRows.some((row) => row.saved < 0) ? 'change'
-        : (stateRows.some((row) => row.saved > 0) || stateAmount > 0 ? 'lower' : '');
+        : (stateRows.some((row) => row.saved > 0) ? 'lower' : '');
       stateRunning += stateAmount;
     }
   }
@@ -1445,12 +1447,14 @@ function renderAtFiling(input, r, mergeTips) {
   const ficaItems = [...new Set(shown.map((row) => row.fica).filter(Boolean))];
   // WHICH INCOME TAX, PER DEDUCTION. Each wage row carries how it moves the
   // state's income tax (stateMove, set in filingRows from the same engine figures
-  // the rows print): 'lower' where the state takes its own deduction (a 2026
+  // the rows print): 'lower' where the state's own deduction saves something (a 2026
   // "yes", or its own capped rule such as Georgia's HB 463 exclusions), 'change'
   // where the federal deduction also shrinks the federal tax the state lets you
   // subtract (Alabama, Missouri, Oregon), so the state tax can go up, '' where the
-  // state tax does not move. Each row is judged on its own, because a state can
-  // allow one and not the other (Colorado 2026: tips yes, overtime no), and a
+  // state tax does not move, which includes a state that allows the deduction but
+  // taxes nothing at this income (North Dakota at $50,000). Each row is judged on
+  // its own, because a state can allow one and not the other (Colorado 2026: tips
+  // yes, overtime no), and a
   // senior row is not a wage row, so it never decides what this sentence says
   // about tips or overtime.
   const wageRows = shown.filter((row) => row.fica);
