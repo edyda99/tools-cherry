@@ -1113,6 +1113,17 @@ const PAGES = [
     ],
   },
   {
+    // Arizona: HB 4168 subtracts the federal senior deduction (A.R.S. 43-1022(35)) from 2025 and the
+    // car loan interest deduction (43-1022(36)) for 2025 only.
+    file: 'arizona-paycheck-calculator/index.html',
+    pins: [
+      ['senior-line-says-arizona-allows-it', contains('and Arizona allows it on your Arizona return too')],
+      ['senior-line-no-longer-says-same-wages', absent('Arizona still applies its flat')],
+      ['car-loan-line-says-2025-only', contains('The subtraction stops after 2025')],
+      ['car-loan-source-label', contains('Arizona Revised Statutes 43-1022, paragraph 36')],
+    ],
+  },
+  {
     // Oregon tips and overtime: the conformity note in plain words, SB 1507 named.
     file: 'oregon-paycheck-calculator/index.html',
     pins: [

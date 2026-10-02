@@ -542,6 +542,35 @@ eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single'
   is('DC car loan note says 2026 is allowed', /From 2026 it does\./.test(dc.note || ''), true);
 }
 
+// --- Arizona: HB 4168 (Laws 2026, ch. 140, signed 2026-06-13) ---------------------------------
+// Arizona starts from federal AGI (A.R.S. 43-1001(2)), so a deduction taken after AGI reaches the
+// Arizona return only through a subtraction. HB 4168 added two to A.R.S. 43-1022: (35) the 151(d)(5)(C)
+// senior deduction for tax years from 2025, and (36) 163(h)(4) car loan interest for 2025 only. The
+// Turning 65 line used to say "Arizona still applies its flat 2.5% to the same wages".
+{
+  const az = obbba.states.arizona;
+  const html = buildStateApplies({ state: taxData.states.arizona, obbbaEntry: az,
+    suppEntry: null, notaxAngle: '', pickFrame: (_s, _salt, arr) => arr[0] });
+  const m = html.match(/data-line="age"><strong>Turning 65:<\/strong> ([^<]*)</);
+  const age = m ? m[1] : '';
+  is('AZ senior 2025 is yes', az.senior && az.senior.y2025, 'yes');
+  is('AZ senior 2026 is yes', az.senior && az.senior.y2026, 'yes');
+  is('AZ Turning 65 line says Arizona allows it', age.includes('and Arizona allows it on your Arizona return too'), true);
+  is('AZ Turning 65 line no longer says the same wages are taxed', age.includes('to the same wages'), false);
+  is('AZ car loan 2025 is yes', az.carLoan && az.carLoan.y2025, 'yes');
+  is('AZ car loan 2026 is no', az.carLoan && az.carLoan.y2026, 'no');
+  for (const [nm, r] of [['senior', az.senior || {}], ['car loan', az.carLoan || {}]]) {
+    is(`AZ ${nm} cites A.R.S. 43-1022 on azleg.gov`, r.source, 'https://www.azleg.gov/ars/43/01022.htm');
+    is(`AZ ${nm} note has no em or en dash`, /[–—]/.test(r.note || ''), false);
+    is(`AZ ${nm} checkedOn is a date`, /^\d{4}-\d{2}-\d{2}$/.test(r.checkedOn || ''), true);
+  }
+  is('AZ senior title names paragraph 35', /paragraph 35/.test(az.senior.sourceTitle), true);
+  is('AZ car loan title names paragraph 36', /paragraph 36/.test(az.carLoan.sourceTitle), true);
+  is('AZ note no longer claims "full OBBBA conformity"', /full OBBBA conformity/.test(az.note), false);
+  is('AZ note cites the chaptered law, not a blog', az.source, 'https://www.azleg.gov/legtext/57leg/2R/laws/0140.htm');
+  is('AZ note has no em or en dash', /[–—]/.test(az.note), false);
+}
+
 // --- Oregon tips and overtime: the note says what the law does, in plain words -------------
 // SB 1507 makes three additions to federal taxable income (car loan interest, 1202 stock, 168(k))
 // and none for 224 tips or 225 overtime, so both stay "yes" for 2026. The paycheck page used to

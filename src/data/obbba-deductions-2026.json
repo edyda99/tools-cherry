@@ -847,8 +847,28 @@
         "y2025": "yes",
         "y2026": "yes"
       },
-      "note": "Arizona adopted full OBBBA conformity in HB 4168, signed June 13, 2026 as part of the FY2026 budget deal. It creates a mandatory individual income-tax subtraction for qualified overtime and tips under A.R.S. §43-1022, retroactive to tax year 2025 and applying to 2026 and forward. (Earlier standalone conformity bills were vetoed in early 2026; the budget resolved it.)",
-      "source": "https://www.currentfederaltaxdevelopments.com/blog/2026/6/14/arizona-hb-4168-title-43-income-tax-overhaul-aligned-with-the-one-big-beautiful-bill-act-obbba"
+      "senior": {
+        "y2025": "yes",
+        "y2026": "yes",
+        "note": "Arizona starts from your federal adjusted gross income, a figure worked out before the $6,000 senior deduction comes off. Arizona's 2026 tax law, HB 4168 (signed June 13, 2026), adds its own rule: you subtract the federal senior deduction on your Arizona return too, for 2025 and later. For 2025, Arizona residents claim it on Form 140, not Form 140A or 140EZ, and part-year residents and nonresidents cannot take it.",
+        "checkedOn": "2026-10-02",
+        "source": "https://www.azleg.gov/ars/43/01022.htm",
+        "sourceTitle": "Arizona Revised Statutes 43-1022, paragraph 35, added by HB 4168 (2026)",
+        "_sourceNote": "A.R.S. 43-1022(35), added by HB 4168 (Laws 2026, ch. 140, approved by the Governor June 13, 2026, https://www.azleg.gov/legtext/57leg/2R/laws/0140.htm): 'For taxable years beginning from and after December 31, 2024, to the extent not already excluded from Arizona gross income under the internal revenue code, the amount deducted for a qualified individual under section 151(d)(5)(C) of the internal revenue code.' Ch. 140 sec. 35(A): 43-1022 as amended applies retroactively to taxable years beginning from and after December 31, 2024. A.R.S. 43-1001(2): Arizona gross income is federal adjusted gross income. Arizona Department of Revenue, 2025 Middle Class Tax Cuts Package worksheet (https://azdor.gov/sites/default/files/document/FORMS_INDIVIDUAL_2025_MCTCP.pdf), line 5 'Enhanced deduction for seniors' goes on Other Adjustments; 'these deductions are not available on the Arizona Form 140A or Arizona Form 140EZ'; 'For 140PY and 140NR filers ONLY qualified tips and overtime compensation included in Arizona gross income may be subtracted.'"
+      },
+      "carLoan": {
+        "y2025": "yes",
+        "y2026": "no",
+        "note": "Arizona lets you subtract the federal car loan interest deduction on your 2025 Arizona return (residents claim it on Form 140, not Form 140A or 140EZ). The subtraction stops after 2025: Arizona's 2026 tax law, HB 4168, allows it for 2025 only.",
+        "checkedOn": "2026-10-02",
+        "source": "https://www.azleg.gov/ars/43/01022.htm",
+        "sourceTitle": "Arizona Revised Statutes 43-1022, paragraph 36, added by HB 4168 (2026)",
+        "_sourceNote": "A.R.S. 43-1022(36), added by HB 4168 (Laws 2026, ch. 140, https://www.azleg.gov/legtext/57leg/2R/laws/0140.htm): 'For taxable years beginning from and after December 31, 2024 through December 31, 2025, to the extent not already excluded from Arizona gross income under the internal revenue code, the amount deducted for qualified passenger vehicle loan interest under section 163(h)(4) of the internal revenue code.' A tax year beginning January 1, 2026 begins after December 31, 2025, so it is outside the window. Arizona Department of Revenue 2025 MCTCP worksheet line 4 (https://azdor.gov/sites/default/files/document/FORMS_INDIVIDUAL_2025_MCTCP.pdf): Form 140 only for residents; 140PY and 140NR filers may subtract only tips and overtime."
+      },
+      "note": "Arizona starts from your federal adjusted gross income, a figure worked out before the federal tips and overtime deductions come off. Arizona's 2026 tax law, HB 4168 (signed June 13, 2026), lets you subtract both deductions on your Arizona return too, for 2025 and later. For 2025, residents claim them on Form 140, not Form 140A or 140EZ.",
+      "checkedOn": "2026-10-02",
+      "source": "https://www.azleg.gov/legtext/57leg/2R/laws/0140.htm",
+      "_sourceNote": "Rewritten 2026-10-02 (the old note called HB 4168 'full OBBBA conformity' and part of 'the FY2026 budget deal', and cited a blog). A.R.S. 43-1022(31) and (32), as amended by HB 4168 (Laws 2026, ch. 140, approved by the Governor June 13, 2026): 'For taxable years beginning from and after December 31, 2024, to the extent not already excluded from Arizona gross income under the internal revenue code, the amount of qualified tips received during the taxable year that is deducted under section 224' (31) and the same for 'qualified overtime compensation ... deducted under section 225' (32); ch. 140 sec. 35(A) makes 43-1022 retroactive to taxable years beginning after December 31, 2024. Current text: https://www.azleg.gov/ars/43/01022.htm. Arizona Department of Revenue 2025 MCTCP worksheet (https://azdor.gov/sites/default/files/document/FORMS_INDIVIDUAL_2025_MCTCP.pdf): residents must file Form 140 to claim them; 140PY and 140NR filers may subtract tips and overtime included in Arizona gross income."
     },
     "colorado": {
       "name": "Colorado",
