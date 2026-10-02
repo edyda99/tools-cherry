@@ -1486,11 +1486,11 @@ const reencodeText = (s) => s
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // Title → ≤60 decoded chars. Peels the trailing clause after the rightmost
-// separator (em/en dash, hyphen or colon) while the surviving lead stays a
+// separator (em/en dash, hyphen, colon or a ' | ' brand bar) while the surviving lead stays a
 // meaningful ≥24 chars — this keeps the front-loaded primary keyword and only
 // sheds the marketing hook that SERPs truncate away anyway. Word-boundary
 // fallback for the rare title with no droppable clause.
-const TITLE_SEPS = [' — ', ' – ', ' - ', ': '];
+const TITLE_SEPS = [' — ', ' – ', ' - ', ': ', ' | '];
 // A hard word-boundary cut can strand an incomplete trailing fragment. Only two
 // shapes are UNAMBIGUOUSLY broken and safe to trim for any title:
 //   1. an unclosed "(" clause  ("...with Alarm (Pomodoro"  → "...with Alarm")
@@ -2055,11 +2055,11 @@ function stateMetaDesc(state, year) {
   }
   if (TARGET_STATES.has(state.slug)) {
     const fig = stateRateFigure(state);
-    if (fig) return `${state.name} income tax rate ${year}: ${fig.desc}. Free ${state.name} paycheck and take-home pay calculator — enter your salary or hourly wage to see your ${year} take-home after federal tax, FICA and ${state.name} state income tax.`;
+    if (fig) return `${state.name} income tax rate ${year}: ${fig.desc}. Free ${state.name} paycheck and take-home pay calculator: enter your salary or hourly wage to see your ${year} take-home after federal tax, FICA and ${state.name} state income tax.`;
   }
   const taxPhrase = wp.hasIncomeTax ? `, and ${state.name} state income tax` : '';
   const metaTaxNote = wp.hasIncomeTax
-    ? ` — also works as a ${state.name} income tax calculator`
+    ? `. It also works as ${/^[AEIOU]/.test(state.name) ? 'an' : 'a'} ${state.name} income tax calculator`
     : noTaxMetaNote(state);
   return `Free ${year} ${state.name} (${state.abbr}) paycheck and payroll calculator. Enter your salary or hourly wage to see your take-home pay after federal tax, Social Security, Medicare${taxPhrase}${metaTaxNote}. Supports weekly, biweekly, monthly and more.`;
 }
@@ -8552,9 +8552,9 @@ async function main() {
           META_DESC: metaDesc,
           OG_DESC: ladderSlugKey === 'california'
             // legacy CA wording
-            ? `Computed ${year} take-home pay on ${S} in California — ${usd0(r.a.net)} a year, ` +
+            ? `Computed ${year} take-home pay on ${S} in California: ${usd0(r.a.net)} a year, ` +
               `${usd0(r.a.net / 12)} a month, with the federal and California brackets worked out line by line.`
-            : `Computed ${year} take-home pay on ${S} in ${NAME} — ${usd0(r.a.net)} a year, ` +
+            : `Computed ${year} take-home pay on ${S} in ${NAME}: ${usd0(r.a.net)} a year, ` +
               `${usd0(r.a.net / 12)} a month, with every withholding line worked out.`,
           H1: `Take-home pay on a ${S} salary in ${NAME}`,
           SALARY: S,
@@ -9415,7 +9415,7 @@ async function main() {
       fillTool(dftHubTpl, {
         SITE_NAME: SITE.name,
         SITE_URL: SITE.url,
-        TITLE: 'Days From Today — 30, 60, 90, 180 Days and More',
+        TITLE: 'Days From Today: 30, 60, 90, 180 Days and More',
         DESC: 'Ready-made answers for the intervals people count: 30, 60, 90 and 180 days from today, weeks from today, business days from today, and dates in the past. Each page works the date out in your browser.',
         APP_LD: JSON.stringify({
           '@context': 'https://schema.org',

@@ -98,7 +98,7 @@ from your use of, or reliance on, the site or its tools.</p>
   {
     slug: 'about',
     title: 'About',
-    desc: 'About {{SITE_NAME}} — free, fast, browser-based calculators and tools.',
+    desc: 'About {{SITE_NAME}}: free, fast, browser-based calculators and tools.',
     robots: 'index, follow',
     body: `
 <p>{{SITE_NAME}} builds free, fast online tools that run entirely in your browser — no signup, no
@@ -159,7 +159,7 @@ the source you're comparing against — it helps us verify and fix quickly.</p>
   {
     slug: 'tax-glossary',
     title: 'Tax Glossary: Plain-English Definitions',
-    desc: 'Plain-English definitions of common US tax terms — itemizing, standard deduction, MAGI, FICA, W-2, withholding, filing status, marginal rate, AGI, tax bracket, deduction vs. credit and more. No background assumed.',
+    desc: 'Plain-English definitions of common US tax terms: itemizing, standard deduction, MAGI, FICA, W-2, withholding, filing status, marginal rate, AGI, tax bracket, deduction vs. credit and more. No background assumed.',
     robots: 'index, follow',
     body: `
 <p class="lede">Plain-English definitions of the tax terms our calculators use — <strong>no background assumed</strong>. If a word on one of our tax pages is unfamiliar, it's probably explained here. These are general explanations for US federal taxes, not tax advice; for your own situation, check the <a href="https://www.irs.gov/">IRS</a> or a tax professional.</p>
