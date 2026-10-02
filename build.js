@@ -3193,8 +3193,16 @@ function obbbaConformityBlock(state, obbba, year) {
   }[v] || v);
   // The overtime row says the figure when it is modeled: Alabama's 2025 verdict is
   // "no" and only the 2026-2028 one is "partial", so the label is keyed to that cell.
+  // Georgia's (HB 463) is for full-time hourly employees only, and its cash-tips
+  // exclusion (.tax.cashTipsDeduction) is modeled too, so the tips row names its cap.
+  const otRule = state.tax && state.tax.overtimePremiumDeduction;
+  const tipCap = state.tax && state.tax.cashTipsDeduction && state.tax.cashTipsDeduction.cap;
   const otVerdict = (v) => (v === 'partial' && otCap > 0
-    ? `${state.name}'s own deduction of up to ${usd0(otCap)} of the overtime premium`
+    ? `${state.name}'s own deduction of up to ${usd0(otCap)} of the overtime premium` +
+      (otRule.hourlyOnly ? `, for full-time employees paid by the hour` : '')
+    : verdict(v));
+  const tipVerdict = (v) => (v === 'partial' && tipCap > 0
+    ? `${state.name}'s own deduction of up to ${usd0(tipCap)} of tips`
     : verdict(v));
   const row = (label, d, say = verdict) =>
     `<li><strong>${label}:</strong> 2025 — ${say(d.y2025)}; 2026–2028 — ${say(d.y2026)}.</li>`;
@@ -3205,7 +3213,7 @@ function obbbaConformityBlock(state, obbba, year) {
 
   return `<section class="prose"><h2>${h2}</h2>${fed}` +
     `<p><strong>${state.name} state income tax:</strong> ${escHtml(e.note)}${srcLink}</p>` +
-    `<ul class="facts">${row('Overtime', e.overtime, otVerdict)}${row('Tips', e.tips)}</ul>` +
+    `<ul class="facts">${row('Overtime', e.overtime, otVerdict)}${row('Tips', e.tips, tipVerdict)}</ul>` +
     stateCarLoanLine(e) +
     `<p>${calcLinks}</p></section>`;
 }

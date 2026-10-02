@@ -1002,9 +1002,9 @@ t('Massachusetts, $2,000 of tips on $20,000: the FICA deduction moves with the t
 // the AGI before it. Alabama's top band is 5% above $3,000 of taxable income (single), so there
 // the tax is 5% x T - 40, and every dollar of deduction is worth 5 cents.
 const AL = tax.states.alabama;
-t('overtimePremiumDeduction is Alabama only: $1,000, 2026 to 2028, not in withholding', () => {
+t('overtimePremiumDeduction: Alabama $1,000, 2026 to 2028, not in withholding (Georgia is the only other)', () => {
   const users = Object.entries(tax.states).filter(([, s]) => s.tax && s.tax.overtimePremiumDeduction).map(([k]) => k);
-  assert.deepEqual(users, ['alabama']);
+  assert.deepEqual(users.sort(), ['alabama', 'georgia']);
   const cfg = AL.tax.overtimePremiumDeduction;
   assert.equal(cfg.cap, 1000);
   assert.equal(cfg.firstTaxYear, 2026);
@@ -1019,7 +1019,7 @@ t('stateOvertimeDeduction: the premium, never above the $1,000 cap, zero without
   assert.deepEqual([0, 600, 999.99, 1000, 3333.33, 25000, -50].map((p) => stateOvertimeDeduction(p, cfg)),
     [0, 600, 999.99, 1000, 1000, 1000, 0]);
   assert.equal(stateOvertimeDeduction(5000, undefined), 0);
-  assert.equal(stateOvertimeDeduction(5000, tax.states.georgia.tax.overtimePremiumDeduction), 0);
+  assert.equal(stateOvertimeDeduction(5000, tax.states.california.tax.overtimePremiumDeduction), 0);
 });
 t('Alabama single $70k: the paycheck figure is unchanged, the deduction is not in withholding', () =>
   // fed: 70,000 - 16,100 = 53,900 -> 1,240 + 4,560 + 22% x 3,500 = 6,570
@@ -1043,7 +1043,7 @@ t('Alabama: the deduction is taken after AGI, so the standard-deduction chart do
   approx(stateIncomeTax(30000, 'single', AL, 0, 0, 1420, 1000), 1200.25, 0.005);
 });
 t('Other states ignore an overtime premium (no rule, no deduction)', () => {
-  for (const slug of ['georgia', 'missouri', 'oregon', 'california', 'new-york']) {
+  for (const slug of ['missouri', 'oregon', 'california', 'new-york']) {
     const s = tax.states[slug];
     assert.equal(stateIncomeTax(70000, 'single', s, 0, 5355, 6570, 3000), stateIncomeTax(70000, 'single', s, 0, 5355, 6570, 0), slug);
     assert.equal(stateOvertimeAtFiling({ income: 70000, filingStatus: 'single', stateData: s, fed: tax.federal, premium: 3000 }), null, slug);
@@ -1234,6 +1234,51 @@ t('a state that follows the overtime deduction prices its own saving, with no kn
   approx(dc.before, 1900, 0.005);
   approx(dc.stateSaving, 180, 0.005);
   approx(atFiling(tax.states['north-dakota'], 50000, 3000, 3000).stateSaving, 0, 1e-9);
+});
+// Georgia, HB 463 (2026, signed May 11, 2026; https://www.legis.ga.gov/api/legislation/document/20252026/249080),
+// adds two subtractions from federal AGI to O.C.G.A. 48-7-27(a): (16) "any amount of qualified overtime
+// compensation, as such term is defined in Section 225 of the Internal Revenue Code, up to $1,750.00
+// received by a full-time employee paid by an hourly wage", tax years 2026 to 2028, and (17) "any amount
+// up to $1,750.00 received in cash tips", from 2026, repealed December 31, 2028. Neither has an income
+// limit, and Georgia subtracts no federal tax, so there is no knock-on. Georgia 2026: 4.99% flat,
+// standard deduction $15,000 single.
+const GA = tax.states.georgia;
+t('Georgia carries its HB 463 overtime and cash-tips exclusions: $1,750 each, 2026 to 2028, cited', () => {
+  const ot = GA.tax.overtimePremiumDeduction;
+  assert.equal(ot.cap, 1750);
+  assert.equal(ot.hourlyOnly, true);
+  assert.equal(ot.capPer, 'employee');
+  assert.equal(ot.firstTaxYear, 2026);
+  assert.equal(ot.lastTaxYear, 2028);
+  assert.equal(ot.inWithholdingFormula, false);
+  assert.match(ot._statute, /48-7-27\(a\)\(16\)/);
+  assert.match(ot._source, /legis\.ga\.gov\/api\/legislation\/document\/20252026\/249080/);
+  const tp = GA.tax.cashTipsDeduction;
+  assert.equal(tp.cap, 1750);
+  assert.equal(tp.hourlyOnly, undefined);
+  assert.equal(tp.firstTaxYear, 2026);
+  assert.equal(tp.lastTaxYear, 2028);
+  assert.equal(tp.inWithholdingFormula, false);
+  assert.match(tp._statute, /48-7-27\(a\)\(17\)/);
+  assert.match(tp._source, /legis\.ga\.gov\/api\/legislation\/document\/20252026\/249080/);
+  assert.ok(ot.firstTaxYear <= tax.taxYear && tax.taxYear <= ot.lastTaxYear, 'the data year must be inside the act window');
+  const users = Object.entries(tax.states).filter(([, s]) => s.tax && s.tax.cashTipsDeduction).map(([k]) => k);
+  assert.deepEqual(users, ['georgia']);
+});
+t('Georgia at filing, single $50,000: its $1,750 cap is worth $87.33, with no knock-on', () => {
+  // The amount is the premium (or the tips) up to the cap: 3,000 -> 1,750, 1,000 -> 1,000.
+  //   before  50,000 - 15,000         = 35,000 -> 4.99% = 1,746.50
+  //   after   50,000 - 15,000 - 1,750 = 33,250 -> 4.99% = 1,659.175, saving 87.325
+  assert.equal(stateOvertimeDeduction(3000, GA.tax.overtimePremiumDeduction), 1750);
+  assert.equal(stateOvertimeDeduction(1000, GA.tax.overtimePremiumDeduction), 1000);
+  assert.equal(stateOvertimeDeduction(5000, GA.tax.cashTipsDeduction), 1750);
+  const r = atFiling(GA, 50000, 3000, 1750);
+  approx(r.before, 1746.5, 0.005);
+  approx(r.stateSaving, 87.325, 0.005);
+  approx(r.federalKnockOn, 0, 1e-9);
+  approx(r.net, 87.325, 0.005);
+  // No income limit: at $400,000 the federal tips deduction is gone, and Georgia's $1,750 still comes off.
+  approx(atFiling(GA, 400000, 0, 1750).stateSaving, 87.325, 0.005);
 });
 t('knock-on, Oregon at $150,000: the limit is $0, so no knock-on', () => {
   // AGI 150,000 is past the last step ($145,000), so Oregon subtracts nothing before or after.

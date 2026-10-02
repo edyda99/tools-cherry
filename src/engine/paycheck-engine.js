@@ -450,12 +450,20 @@ export function stateTaxableIncome(grossAnnual, filingStatus, stateData, preTax 
 
 /**
  * A state's own deduction for the overtime premium: the premium, never more than the
- * state's yearly cap. Opt-in and data-driven: with no `cfg` (every state but Alabama) it is
- * zero. Alabama, Ala. Code 40-18-15(a)(29) (Act 2026-604): "qualified overtime compensation
- * received during the taxable year, not to exceed one thousand dollars ($1,000) per
- * taxpayer", qualified overtime compensation defined by 26 U.S.C. 225, so the premium only.
- * There is no income limit: the Department of Revenue puts it as "the lesser of the actual
- * overtime premium or a maximum annual amount of $1,000 per taxpayer".
+ * state's yearly cap. Opt-in and data-driven: with no `cfg` (every state but Alabama and
+ * Georgia) it is zero. Alabama, Ala. Code 40-18-15(a)(29) (Act 2026-604): "qualified
+ * overtime compensation received during the taxable year, not to exceed one thousand
+ * dollars ($1,000) per taxpayer", qualified overtime compensation defined by 26 U.S.C. 225,
+ * so the premium only. There is no income limit: the Department of Revenue puts it as "the
+ * lesser of the actual overtime premium or a maximum annual amount of $1,000 per taxpayer".
+ * Georgia, O.C.G.A. 48-7-27(a)(16) (HB 463, 2026): the same 225 premium up to $1,750, but
+ * only for "a full-time employee paid by an hourly wage" (`cfg.hourlyOnly`). This engine is
+ * not told the pay type, so the caller decides that and passes no premium (or no cfg) for
+ * a salaried filer, as the paycheck page does in stateOwnDeduction().
+ *
+ * Nothing here is specific to overtime: it is a capped amount, so the paycheck page runs
+ * Georgia's cash-tips exclusion (48-7-27(a)(17), up to $1,750, `tax.cashTipsDeduction`)
+ * through it too.
  *
  * @param {number} premium - the year's qualified overtime premium (annual USD)
  * @param {{cap:number}} [cfg] - the state's `tax.overtimePremiumDeduction`

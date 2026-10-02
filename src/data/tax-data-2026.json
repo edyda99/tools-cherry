@@ -1553,6 +1553,26 @@
           "single": 15000,
           "married": 30000,
           "head_of_household": 15000
+        },
+        "overtimePremiumDeduction": {
+          "label": "Overtime exclusion",
+          "cap": 1750,
+          "capPer": "employee",
+          "hourlyOnly": true,
+          "firstTaxYear": 2026,
+          "lastTaxYear": 2028,
+          "inWithholdingFormula": false,
+          "_statute": "O.C.G.A. 48-7-27(a)(16), added by HB 463 (2026)",
+          "_source": "HB 463 (2026, as passed House and Senate, HB 463/AP; signed May 11, 2026), section 2-4, adds O.C.G.A. 48-7-27(a)(16): 'For all taxable years beginning on or after January 1, 2026, and ending on December 31, 2028, any amount of qualified overtime compensation, as such term is defined in Section 225 of the Internal Revenue Code, up to $1,750.00 received by a full-time employee paid by an hourly wage.' It is one of the amounts subtracted from federal adjusted gross income to reach Georgia taxable net income (48-7-27(a): 'the taxpayer's federal adjusted gross income ... less'). 26 U.S.C. 225 counts only the overtime pay in excess of the regular rate, so only the premium counts, and it has no income limit of its own. Employers report the amounts to the Department (48-7-27(a)(16)(C)); nothing in the act changes withholding, so it is left out of withholding here. The cap reads per employee, so on a joint return each spouse's own overtime counts toward that spouse's $1,750. Salaried employees do not qualify, whatever their overtime. https://www.legis.ga.gov/api/legislation/document/20252026/249080"
+        },
+        "cashTipsDeduction": {
+          "label": "Cash tips exclusion",
+          "cap": 1750,
+          "firstTaxYear": 2026,
+          "lastTaxYear": 2028,
+          "inWithholdingFormula": false,
+          "_statute": "O.C.G.A. 48-7-27(a)(17), added by HB 463 (2026)",
+          "_source": "HB 463 (2026, as passed House and Senate, HB 463/AP; signed May 11, 2026), section 2-4, adds O.C.G.A. 48-7-27(a)(17): 'For all taxable years beginning on or after January 1, 2026, any amount up to $1,750.00 received in cash tips.' 'Cash tips' means cash received by an individual in an occupation that customarily and regularly receives tips, including tips paid in cash or charged and tips received under a tip-sharing arrangement, if paid voluntarily, not negotiated and set by the payor; the occupation must have a Treasury Tipped Occupation Code, and occupations excluded under IRC 63 are excluded here too ((17)(D)). The paragraph is repealed December 31, 2028 ((17)(E)). It has no income limit and is not tied to the federal deduction, so it is the tips themselves up to $1,750, even where the federal deduction phases out. https://www.legis.ga.gov/api/legislation/document/20252026/249080"
         }
       },
       "_source": "GA flat 4.99% for 2026 (HB 463, signed May 2026, accelerated from 5.19%); standard deduction $15,000 single / $30,000 MFJ. GA Dept. of Revenue. https://dor.georgia.gov/taxes/important-tax-updates",

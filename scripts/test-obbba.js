@@ -457,8 +457,9 @@ eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single'
   is('AL disclaimer no longer says "not modeled" for overtime',
     taxData.states.alabama.disclaimer.some((d) => /overtime/i.test(d) && /not modeled/i.test(d)), false);
 
-  // The state page's "which rules apply" overtime line names the modeled figure for
-  // Alabama, and Georgia (prose-only caps) keeps the generic wording.
+  // The state page's "which rules apply" lines name the modeled figure: Alabama's
+  // overtime cap, and Georgia's HB 463 overtime and cash-tips caps (tax-data-2026.json),
+  // with Georgia's overtime one said to be for full-time hourly workers only.
   const { buildStateApplies } = await import('../src/content/state-applies.js');
   const pickFrame = (slug, salt, arr) => arr[0];
   const line = (slug) => {
@@ -467,9 +468,20 @@ eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single'
     const m = /data-line="ot"><strong>Overtime:<\/strong> ([^<]*)\./.exec(html);
     return m ? m[1] : '';
   };
+  const tipLine = (slug) => {
+    const html = buildStateApplies({ state: taxData.states[slug], obbbaEntry: obbba.states[slug], suppEntry: null,
+      notaxAngle: '', pickFrame });
+    const m = /data-line="tips"><strong>Tips:<\/strong> ([^<]*)\./.exec(html);
+    return m ? m[1] : '';
+  };
   is('AL applies line', line('alabama'),
     'federally deductible, and Alabama lets you deduct up to $1,000 of the overtime premium on your Alabama return too');
-  is('GA applies line stays generic', line('georgia'), 'federally deductible, with a smaller capped Georgia break on top');
+  is('GA applies line names its own overtime cap', line('georgia'),
+    'federally deductible, and Georgia lets you deduct up to $1,750 of the overtime premium on your Georgia return too, ' +
+    'if you work full time and are paid by the hour');
+  is('GA applies tips line names its own cap', tipLine('georgia'),
+    'federally deductible, and Georgia lets you deduct up to $1,750 of tips on your Georgia return too');
+  is('AL tips line stays "no"', tipLine('alabama'), 'federally deductible, but Alabama still taxes tips in full');
 }
 
 // --- Turning 65 in the states that start from FEDERAL TAXABLE INCOME (checked 2026-10-02) -----
@@ -625,8 +637,14 @@ eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single'
   is('OR note has no em or en dash', /[\u2013\u2014]/.test(or.note), false);
   is('OR checkedOn', or.checkedOn, '2026-10-02');
   const app = readFileSync(join(__dirname, '../src/assets/app.js'), 'utf8');
-  is('paycheck plain box reads the state verdict for its income-tax sentence',
-    /stateVerdict\(row\.kind\) === 'yes'/.test(app), true);
+  // One verdict reader: the plain box judges each wage row by how it moves the state
+  // tax (row.stateMove, from stateOwnDeduction), and stateOwnDeduction prices a "yes"
+  // from stateVerdict, so a "yes" state is still named.
+  is('paycheck plain box judges each deduction by how it moves the state tax',
+    /const stateToo = wageRows\.filter\(\(row\) => row\.stateMove\)/.test(app), true);
+  is('paycheck state deduction reads the state verdict',
+    /return stateVerdict\(kind\) === 'yes' \? Math\.max\(0, federalAmount \|\| 0\) : 0;/.test(app), true);
+  is('paycheck has one verdict helper', /function conformityVerdict\(/.test(app), false);
   for (const f of ['tips-tax-calculator.js', 'overtime-tax-calculator.js']) {
     const src = readFileSync(join(__dirname, '../src/assets', f), 'utf8');
     is(`${f} FICA note reads the state verdict`, src.includes('the deduction lowers ${whichIncomeTax('), true);

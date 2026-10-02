@@ -56,9 +56,11 @@ const CHIPS = [
 // share one long identical run (they are already the closest raw pairs on the site).
 //
 // A 'partial' verdict names the state's own figure when the paycheck engine
-// models one (`ownCap`, Alabama's $1,000 overtime premium deduction from
-// tax-data-2026.json), rather than the generic "smaller capped break".
-function conformityLine(name, verdict, what, angle, ownCap) {
+// models one (`own`, from tax-data-2026.json: Alabama's $1,000 overtime premium
+// deduction, Georgia's $1,750 overtime and cash-tips exclusions), rather than the
+// generic "smaller capped break". `own.of` is what the cap is a cap on, and a rule
+// for hourly workers only (Georgia's overtime, `hourlyOnly`) says so.
+function conformityLine(name, verdict, what, angle, own) {
   if (verdict === 'n/a') {
     return angle
       ? `federally deductible, and ${name} runs on ${angle} rather than a wage tax, so nothing more is claimed at state level`
@@ -66,9 +68,10 @@ function conformityLine(name, verdict, what, angle, ownCap) {
   }
   if (verdict === 'yes') return `federally deductible, and deductible on your ${name} return too`;
   if (verdict === 'no') return `federally deductible, but ${name} still taxes ${what} in full`;
-  if (verdict === 'partial' && ownCap > 0) {
-    return `federally deductible, and ${name} lets you deduct up to $${Math.round(ownCap).toLocaleString('en-US')} ` +
-      `of the overtime premium on your ${name} return too`;
+  if (verdict === 'partial' && own && own.cap > 0) {
+    return `federally deductible, and ${name} lets you deduct up to $${Math.round(own.cap).toLocaleString('en-US')} ` +
+      `of ${own.of} on your ${name} return too` +
+      (own.hourlyOnly ? `, if you work full time and are paid by the hour` : '');
   }
   if (verdict === 'partial') return `federally deductible, with a smaller capped ${name} break on top`;
   if (verdict === 'unclear') return `federally deductible; ${name} has not confirmed its own treatment yet`;
@@ -200,7 +203,9 @@ export function buildStateApplies({ state, obbbaEntry, suppEntry, notaxAngle, pi
   const name = esc(state.name);
   const otV = obbbaEntry && obbbaEntry.overtime && obbbaEntry.overtime.y2026;
   const tipV = obbbaEntry && obbbaEntry.tips && obbbaEntry.tips.y2026;
-  const otCap = state.tax && state.tax.overtimePremiumDeduction && state.tax.overtimePremiumDeduction.cap;
+  const ownRule = (rule, of) => (rule ? { cap: rule.cap, hourlyOnly: !!rule.hourlyOnly, of } : null);
+  const otOwn = ownRule(state.tax && state.tax.overtimePremiumDeduction, 'the overtime premium');
+  const tipOwn = ownRule(state.tax && state.tax.cashTipsDeduction, 'tips');
 
   const h2 = pickFrame(state.slug, 'appliesh2', [
     `Which 2026 rules apply to your ${name} paycheck?`,
@@ -221,9 +226,9 @@ export function buildStateApplies({ state, obbbaEntry, suppEntry, notaxAngle, pi
   // overtime line would put the same words back on all nine no-tax pages.
   const angle = esc(notaxAngle || '');
   const lines = [
-    `<p class="applies-line" data-line="tips"><strong>Tips:</strong> ${conformityLine(name, tipV, 'tips', angle)}. ` +
+    `<p class="applies-line" data-line="tips"><strong>Tips:</strong> ${conformityLine(name, tipV, 'tips', angle, tipOwn)}. ` +
       `<a href="/tips-tax-calculator/">Work out the tip deduction</a></p>`,
-    `<p class="applies-line" data-line="ot"><strong>Overtime:</strong> ${conformityLine(name, otV, 'overtime premium pay', '', otCap)}. ` +
+    `<p class="applies-line" data-line="ot"><strong>Overtime:</strong> ${conformityLine(name, otV, 'overtime premium pay', '', otOwn)}. ` +
       `<a href="/overtime-tax-calculator/">Work out the overtime deduction</a></p>`,
     `<p class="applies-line" data-line="bonus"><strong>Bonuses:</strong> ${bonusLine(name, suppEntry, state.slug, pickFrame, wp)}. ` +
       `<a href="/${state.slug}-bonus-tax-calculator/">Estimate the tax on a bonus in ${name}</a></p>`,
