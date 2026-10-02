@@ -1112,6 +1112,14 @@ const PAGES = [
       ['senior-line-says-oregon-does-not', contains('comes off your federal return only: Oregon does not allow it on your Oregon return')],
     ],
   },
+  {
+    // Oregon tips and overtime: the conformity note in plain words, SB 1507 named.
+    file: 'oregon-paycheck-calculator/index.html',
+    pins: [
+      ['tips-overtime-note-plain', contains('Oregon follows federal tax law as it changes, so the federal tips and overtime deductions also come off the income Oregon taxes.')],
+      ['old-jargon-note-gone', absent('Oregon conforms (rolling conformity)')],
+    ],
+  },
 ];
 
 let passed = 0;

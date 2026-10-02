@@ -542,5 +542,29 @@ eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single'
   is('DC car loan note says 2026 is allowed', /From 2026 it does\./.test(dc.note || ''), true);
 }
 
+// --- Oregon tips and overtime: the note says what the law does, in plain words -------------
+// SB 1507 makes three additions to federal taxable income (car loan interest, 1202 stock, 168(k))
+// and none for 224 tips or 225 overtime, so both stay "yes" for 2026. The paycheck page used to
+// print "It is deductible on your Oregon return too." above "the deduction lowers federal income
+// tax only."; renderAtFiling now names the state for a "yes" verdict.
+{
+  const or = obbba.states.oregon;
+  is('OR tips 2026 still yes', or.tips.y2026, 'yes');
+  is('OR overtime 2026 still yes', or.overtime.y2026, 'yes');
+  is('OR note no longer says "conforms (rolling conformity)"', /rolling conformity/.test(or.note), false);
+  is('OR note names SB 1507', or.note.includes('SB 1507'), true);
+  is('OR note has no em or en dash', /[\u2013\u2014]/.test(or.note), false);
+  is('OR checkedOn', or.checkedOn, '2026-10-02');
+  const app = readFileSync(join(__dirname, '../src/assets/app.js'), 'utf8');
+  is('paycheck plain box reads the state verdict for its income-tax sentence',
+    /stateVerdict\(row\.kind\) === 'yes'/.test(app), true);
+  for (const f of ['tips-tax-calculator.js', 'overtime-tax-calculator.js']) {
+    const src = readFileSync(join(__dirname, '../src/assets', f), 'utf8');
+    is(`${f} FICA note reads the state verdict`, src.includes('the deduction lowers ${whichIncomeTax('), true);
+    is(`${f} no longer hard-codes "lowers federal income tax only"`,
+      src.includes('the deduction lowers federal income tax only, claimed'), false);
+  }
+}
+
 console.log(`\nOBBBA engine: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
