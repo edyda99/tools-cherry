@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { computePaycheck, stateTaxableIncome, federalIncomeTax, ficaTax } from '../src/engine/paycheck-engine.js';
 import { LADDER_SALARIES } from '../backend/mcp-server/tools.js';
+import { carLoanDeduction } from '../src/engine/obbba-deduction.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const read = (p) => JSON.parse(readFileSync(join(__dirname, p), 'utf8'));
@@ -203,6 +204,106 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
     ficaTax(salary, 'single', taxData.federal).total, federalIncomeTax(salary, 'single', taxData.federal)).taxable;
   eq('oregon taxable at $133,160 sits on the 9.9% edge', orTaxable(133160), 125000);
   eq('oregon taxable at $133,161 is one dollar into it', orTaxable(133161), 125001);
+}
+
+// --- 8. THE RAISE TO THE NEXT BAND WHERE THE DEDUCTION SHRINKS (added 2026-10-02). Wisconsin
+// and South Carolina take their standard deduction down as income rises, so a raise adds to
+// taxable income twice (once as pay, again as the deduction it removes) and the raise that
+// reaches the next band is SMALLER than the gap in taxable income. The pages used to print the
+// gap as the raise. Each deduction is written out by hand from its statute.
+{
+  const taxableAt = (slug, salary) => stateTaxableIncome(salary, 'single', taxData.states[slug], 0,
+    ficaTax(salary, 'single', taxData.federal).total, federalIncomeTax(salary, 'single', taxData.federal)).taxable;
+  // Wisconsin, Wis. Stat. 71.05(22)(dp): 13,960 less 12% of income over 20,120, whole dollars.
+  // The $50,000 page: deduction 13,960 - 3,585 = 10,375, taxable 39,625, so the 5.3% band at
+  // 51,950 is 12,325 of taxable income away. The engine leaves out the $700 personal exemption
+  // (Wis. Stat. 71.05(23)(b)), so the filer's real taxable income is the engine's less 700 and
+  // clears 51,950 only once the engine's figure clears 52,650. The page says $11,630 gets there:
+  //   at 61,629: 12% x 41,509 = 4,981.08 -> 4,981 off, deduction 8,979, taxable 52,650, real 51,950 (on the edge)
+  //   at 61,630: 12% x 41,510 = 4,981.20 -> 4,981 off, deduction 8,979, taxable 52,651, real 51,951 (one dollar in)
+  // Without the exemption it would be $11,005 (61,005: 4,906 off, taxable 51,951), $625 early.
+  eq('wisconsin $50k taxable', taxableAt('wisconsin', 50000), 39625);
+  eq('wisconsin taxable at $61,629 sits $700 above the 5.3% edge', taxableAt('wisconsin', 61629), 52650);
+  eq('wisconsin taxable at $61,630 is one dollar past edge plus exemption', taxableAt('wisconsin', 61630), 52651);
+  eq('wisconsin taxable at $61,005 is one dollar into the edge before the exemption', taxableAt('wisconsin', 61005), 51951);
+  // South Carolina, S.C. Code 12-6-1140(15): 15,000 less 15,000 x (income over 40,000) / 55,000,
+  // the reduction rounded down to $10. The $40,000 page: taxable 25,000, the 5.21% band at 30,000
+  // is 5,000 away, and the page says a raise of $3,931 gets there:
+  //   at 43,930: 15,000 x 3,930 / 55,000 = 1,071.8 -> 1,070 off, taxable 30,000 (on the edge)
+  //   at 43,931: 15,000 x 3,931 / 55,000 = 1,072.1 -> 1,070 off, taxable 30,001 (one dollar in)
+  // The $30,000 page needs $10,000 more to reach $40,000 first, so its raise is $13,931.
+  eq('south carolina $40k taxable', taxableAt('south-carolina', 40000), 25000);
+  eq('south carolina taxable at $43,930 sits on the 5.21% edge', taxableAt('south-carolina', 43930), 30000);
+  eq('south carolina taxable at $43,931 is one dollar into it', taxableAt('south-carolina', 43931), 30001);
+  // And the built pages print those raises, not the gaps.
+  const page = (slug, amount) => {
+    try { return readFileSync(join(__dirname, '..', 'dist', `${slug}-take-home-pay-${amount}`, 'index.html'), 'utf8'); }
+    catch { return null; }
+  };
+  const wi50 = page('wisconsin', 50000), sc40 = page('south-carolina', 40000), sc30 = page('south-carolina', 30000);
+  if (wi50 && sc40 && sc30) {
+    is('wisconsin $50k page prints the $11,630 raise', wi50.includes('a raise of about $11,630 gets you there'), true);
+    is('wisconsin $50k page no longer prints the raise without the exemption', wi50.includes('$11,005'), false);
+    is('wisconsin $50k page says the raise counts the $700 exemption',
+      wi50.includes('counts the $700 personal exemption Wisconsin gives a single filer'), true);
+    is('wisconsin $50k page no longer prints the gap as the raise', wi50.includes('A raise of $12,325'), false);
+    const wi100 = page('wisconsin', 100000);
+    if (wi100) is('wisconsin $100k page prints the $233,421 raise', wi100.includes('a raise of about $233,421 gets you there'), true);
+    is('south carolina $40k page prints the $3,931 raise', sc40.includes('a raise of about $3,931 gets you there'), true);
+    is('south carolina $30k page prints the $13,931 raise', sc30.includes('a raise of about $13,931 gets you there'), true);
+  }
+}
+
+// --- 9. THE CAR-LOAN INTEREST PHASE-OUT ROUNDS UP. IRC 163(h)(4)(C)(ii)(I) cuts the $10,000
+// allowance "by $200 for each $1,000 (or portion thereof)" of modified AGI over $100,000, so a part
+// of a $1,000 counts as a whole one. The ladder used to round the steps DOWN with Math.floor; it
+// now prints what the engine computes. The rungs all sit on round thousands, where the two agree,
+// so the case that tells them apart is a non-round salary, worked by hand:
+//   $120,500: 20,500 over -> 21 steps (the last $500 counts) -> 21 x 200 = 4,200 off -> 5,800 left
+//   (rounding down would have counted 20 steps and left 6,000)
+{
+  const CL = obbba.federal.carLoan;
+  const allow = (magi) => carLoanDeduction({ year: Number(taxData.taxYear), filingStatus: 'single', magi,
+    interest: CL.interestCap, params: CL });
+  eq('car loan $120,500 keeps $5,800 (21 steps, the part step counts)', allow(120500).deduction, 5800, 0);
+  is('car loan $120,500 is not the round-down $6,000', allow(120500).deduction === 6000, false);
+  // $100,000 is the line itself: nothing over it, nothing cut, so not yet "partially phased out".
+  eq('car loan $100,000 keeps the full $10,000', allow(100000).deduction, 10000, 0);
+  is('car loan $100,000 is not phased out at all', allow(100000).phasedOut, false);
+  // One dollar over is a whole step: 10,000 - 200 = 9,800.
+  eq('car loan $100,001 already loses a $200 step', allow(100001).deduction, 9800, 0);
+  // $149,001: 49,001 over -> 50 steps -> 10,000 off, so it is gone before $150,000.
+  eq('car loan $149,001 is already gone', allow(149001).deduction, 0, 0);
+  is('car loan $149,001 is fully phased out', allow(149001).fullyPhasedOut, true);
+  eq('car loan $120,000 rung keeps $6,000', allow(120000).deduction, 6000, 0);
+  // $149,000: 49,000 over -> 49 steps -> 9,800 off -> 200 left, so the last single MAGI with any
+  // allowance is $149,000 and the page says "up to $149,000", not "below $150,000". Joint is the
+  // same shape from $200,000: $249,000 keeps $200, $249,001 keeps nothing.
+  eq('car loan $149,000 still keeps $200', allow(149000).deduction, 200, 0);
+  const allowJ = (magi) => carLoanDeduction({ year: Number(taxData.taxYear), filingStatus: 'married', magi,
+    interest: CL.interestCap, params: CL });
+  eq('car loan joint $249,000 still keeps $200', allowJ(249000).deduction, 200, 0);
+  eq('car loan joint $249,001 is already gone', allowJ(249001).deduction, 0, 0);
+
+  const page = (amount) => {
+    try { return readFileSync(join(__dirname, '..', 'dist', `texas-take-home-pay-${amount}`, 'index.html'), 'utf8'); }
+    catch { return null; }
+  };
+  const p100 = page(100000), p120 = page(120000), p150 = page(150000);
+  if (p100 && p120 && p150) {
+    is('$120,000 page prints the engine allowance', p120.includes('roughly $6,000 of the allowance survives'), true);
+    is('$120,000 page says a part of $1,000 counts', p120.includes('counting any part of $1,000 as a whole one'), true);
+    is('$120,000 page lists the loan deduction as partly phased out',
+      p120.includes('the partially phased-out new-vehicle loan interest deduction'), true);
+    is('$100,000 page no longer calls it partly phased out',
+      p100.includes('the partially phased-out new-vehicle loan interest deduction'), false);
+    is('$100,000 FAQ says the full allowance survives', p100.includes('Yes, the full $10,000 allowance.'), true);
+    is('$100,000 FAQ no longer says "all of it"', p100.includes('Yes, all of it.'), false);
+    is('$150,000 FAQ says none of it is left', p150.includes('none of it is left at $150,000'), true);
+    is('$150,000 page says the deduction runs up to $149,000',
+      p150.includes('but only up to $149,000 of modified AGI for a single filer'), true);
+    is('$150,000 page no longer says only below $150,000', p150.includes('only below $150,000'), false);
+  }
 }
 
 console.log(`\nSalary-ladder rungs: ${pass} passed, ${fail} failed`);

@@ -30,6 +30,9 @@ import {
   stateTaxableIncome, federalTaxSubtraction, federalIncomeTax, ficaTax, stateIncomeTax,
 } from './src/engine/paycheck-engine.js';
 import { computeBonus } from './src/engine/bonus-tax.js';
+// The car-loan interest deduction (IRC 163(h)(4)), so the salary pages print the allowance the
+// calculator computes rather than a second, hand-rolled phase-out.
+import { carLoanDeduction } from './src/engine/obbba-deduction.js';
 // The 2027 seasonal pages. `assertComplete` is the one that matters: it is the
 // build-time refusal that stops a projected dollar figure being rendered while
 // any month of the statutory window is still unpublished.
@@ -1433,7 +1436,22 @@ function injectSeo(html) {
 // Still deliberately NOT included:
 //  - sameAs: omitted until real owned profile URLs (X/GitHub/Reddit) are supplied —
 //    inventing links would mislead entity resolution.
-function injectEntitySchema(html) {
+// THE BREADCRUMB MARK. A <title> written "Lead ~: Tail" renders as "Lead: Tail", and its
+// breadcrumb name is "Lead". The mark sits on the titles whose separator used to be an em
+// dash, which the breadcrumb split below cut at, so those pages keep the short breadcrumb
+// name they always had. A title with a plain colon is untouched: its breadcrumb stays the
+// whole title, as it always has been. Taken out before anything else reads the title. The
+// lead is shortened the way compactTitle would have shortened it, because a lead over 60
+// characters was cut down before the old split ever saw it.
+const CRUMB_MARK = ' ~: ';
+function takeCrumbMark(html) {
+  const m = html.match(/<title>([\s\S]*?)<\/title>/i);
+  if (!m || !m[1].includes(CRUMB_MARK)) return { html, crumb: null };
+  const crumb = compactTitleStr(m[1].slice(0, m[1].indexOf(CRUMB_MARK)).trim());
+  return { html: html.replace(m[0], () => `<title>${m[1].split(CRUMB_MARK).join(': ')}</title>`), crumb };
+}
+
+function injectEntitySchema(html, crumb = null) {
   if (!html.includes('</head>')) return html;
   const orgId = `${SITE.url}/#organization`;
   if (html.includes(`"@id":"${orgId}"`)) return html; // already injected
@@ -1448,8 +1466,9 @@ function injectEntitySchema(html) {
     .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'");
   const rawTitle = decodeHtml(titleMatch ? titleMatch[1].trim() : SITE.name);
-  // Clean breadcrumb leaf label: drop any " — tagline" / " | brand" suffix.
-  const pageName = rawTitle.split(/\s[—|]\s/)[0].trim();
+  // Clean breadcrumb leaf label: drop any " — tagline" / " | brand" suffix, or the tail
+  // after a breadcrumb mark (see takeCrumbMark).
+  const pageName = crumb != null ? decodeHtml(crumb) : rawTitle.split(/\s[—|]\s/)[0].trim();
   const isHome = url === `${SITE.url}/` || url === SITE.url;
   const siteId = `${SITE.url}/#website`;
 
@@ -1519,11 +1538,11 @@ const reencodeText = (s) => s
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // Title → ≤60 decoded chars. Peels the trailing clause after the rightmost
-// separator (em/en dash, hyphen or colon) while the surviving lead stays a
+// separator (em/en dash, hyphen, colon or a ' | ' brand bar) while the surviving lead stays a
 // meaningful ≥24 chars — this keeps the front-loaded primary keyword and only
 // sheds the marketing hook that SERPs truncate away anyway. Word-boundary
 // fallback for the rare title with no droppable clause.
-const TITLE_SEPS = [' — ', ' – ', ' - ', ': '];
+const TITLE_SEPS = [' — ', ' – ', ' - ', ': ', ' | '];
 // A hard word-boundary cut can strand an incomplete trailing fragment. Only two
 // shapes are UNAMBIGUOUSLY broken and safe to trim for any title:
 //   1. an unclosed "(" clause  ("...with Alarm (Pomodoro"  → "...with Alarm")
@@ -1566,15 +1585,23 @@ function compactTitle(html) {
 }
 
 // Meta description → ≤~155 decoded chars. Prefers a natural stop: a sentence end
-// in the 80-157 window, else a clause boundary (comma / dash / semicolon) in the
+// in the 70-157 window, else a clause boundary (comma / dash / semicolon) in the
 // 100-157 window, else a plain word-boundary cut. The meta description is not a
 // ranking factor and its tail is never shown, so trimming it is SERP-safe.
+// ONLY THE SENTENCE-END CUT IS SAFE. The other two leave the description stopping
+// mid-phrase ("...after federal tax, Social Security"), and on 2026-10-02 148 built pages
+// ended that way: their source copy was longer than 157 characters with no sentence
+// end inside the window. Adding ": " as a break point would only move the cut to another
+// mid-sentence spot, so the fix is in the copy: every such source was rewritten to fit,
+// the window opens at 70 so the twenty "Computed ... from $30,000 to $200,000." ladder
+// hubs keep their whole first sentence, and verify-dist now fails any description,
+// og:description or twitter:description that does not end on a full stop.
 function compactDescStr(raw) {
   const d = decodeEntities(raw.trim());
   if (d.length <= 157) return raw.trim();
   let best = -1, m;
   const re = /[.!?](\s|$)/g;
-  while ((m = re.exec(d))) { const end = m.index + 1; if (end >= 80 && end <= 157) best = end; }
+  while ((m = re.exec(d))) { const end = m.index + 1; if (end >= 70 && end <= 157) best = end; }
   let cut;
   if (best > 0) {
     cut = d.slice(0, best).trim();
@@ -1618,12 +1645,14 @@ function fill(tpl, map) {
   // Trim over-long <title>/<meta description> to SERP-compliant lengths BEFORE
   // injectSeo, so the derived og:/twitter: title+description inherit the compact
   // values (no-op on fragments and on already-compliant tags).
+  const marked = takeCrumbMark(out);
+  out = marked.html;
   out = compactTitle(out);
   out = compactDesc(out);
   // Normalize/complete per-page SEO social tags (no-op on fragments).
   out = injectSeo(out);
   // Inject the site-wide entity @graph (Organization/WebSite/WebPage/Breadcrumb).
-  out = injectEntitySchema(out);
+  out = injectEntitySchema(out, marked.crumb);
   // Inject the site-wide search trigger + Cmd/Ctrl+K command palette (no-op on
   // header-less pages like embeds).
   out = injectSearch(out);
@@ -2088,13 +2117,27 @@ function stateMetaDesc(state, year) {
   }
   if (TARGET_STATES.has(state.slug)) {
     const fig = stateRateFigure(state);
-    if (fig) return `${state.name} income tax rate ${year}: ${fig.desc}. Free ${state.name} paycheck and take-home pay calculator — enter your salary or hourly wage to see your ${year} take-home after federal tax, FICA and ${state.name} state income tax.`;
+    if (fig) return `${state.name} income tax rate ${year}: ${fig.desc}. Free ${state.name} paycheck and take-home pay calculator. Enter your salary or hourly wage to see your ${year} take-home after federal tax, FICA and ${state.name} state income tax.`;
   }
-  const taxPhrase = wp.hasIncomeTax ? `, and ${state.name} state income tax` : '';
   const metaTaxNote = wp.hasIncomeTax
-    ? ` — also works as a ${state.name} income tax calculator`
+    // anFor, not /^[AEIOU]/: that test wrote "an Utah", and Utah opens on a consonant sound.
+    ? `. It also works as ${anFor(state.name)} ${state.name} income tax calculator`
     : noTaxMetaNote(state);
-  return `Free ${year} ${state.name} (${state.abbr}) paycheck and payroll calculator. Enter your salary or hourly wage to see your take-home pay after federal tax, Social Security, Medicare${taxPhrase}${metaTaxNote}. Supports weekly, biweekly, monthly and more.`;
+  // The second sentence has to END inside the 157-character budget, or compactDescStr
+  // can only cut it mid-phrase. The full wording fits a short state name; a long one
+  // ("District of Columbia (DC)") gets the shorter one rather than a fragment.
+  const lead = `Free ${year} ${state.name} (${state.abbr}) paycheck and payroll calculator.`;
+  const body = firstThatFits(
+    `${lead} Enter your salary or hourly wage to see your take-home pay after federal tax, FICA` +
+      `${wp.hasIncomeTax ? ` and ${state.name} income tax` : ''}.`,
+    `${lead} Enter a salary or hourly wage to see take-home pay after federal, FICA` +
+      `${wp.hasIncomeTax ? ` and ${state.abbr} taxes` : ' taxes'}.`,
+  );
+  return `${body} ${metaTaxNote.replace(/^\.\s*/, '')}. Supports weekly, biweekly, monthly and more.`;
+}
+// The first wording that fits the meta-description budget compactDescStr trims to.
+function firstThatFits(...cands) {
+  return cands.find((c) => decodeEntities(c).length <= 157) || cands[cands.length - 1];
 }
 
 // Spell small counts out as words ("nine-bracket ladder") — headings and ledes
@@ -3524,15 +3567,19 @@ function bonusTitle(state, supp, year) {
   return `${state.name} Bonus Tax Calculator ${year} (${a}) — Withholding vs. Real Tax`;
 }
 
+// The withholding breakdown ("flat 22% federal + Rhode Island's 5.99% supplemental rate +
+// FICA") used to sit inside the second sentence, which pushed that sentence past the
+// 157-character budget on every state, so all 51 descriptions were cut mid-phrase. The
+// rates are in each page's title and body; the description now says what the tool does
+// in sentences that end inside the budget.
 function bonusMetaDesc(state, supp, year) {
-  let mid;
-  if (supp.method === 'none') mid = `flat 22% federal + $0 ${state.name} state tax + FICA`;
-  else if (supp.method === 'flat') mid = `flat 22% federal + ${state.name}'s ${pctStr(supp.rate)} supplemental rate + FICA`;
-  else if (supp.special === 'ca_dual') mid = `flat 22% federal + California's 10.23% bonus rate + FICA`;
-  else if (supp.special === 'pct_of_federal') mid = `flat 22% federal + Vermont's 30%-of-federal state rate + FICA`;
-  else if (supp.special === 'wi_banded') mid = `flat 22% federal + Wisconsin's graduated state rate + FICA`;
-  else mid = `flat 22% federal + ${state.name} state withholding + FICA`;
-  return `Free ${year} ${state.name} bonus tax calculator. See what's withheld from your bonus now (${mid}) versus what it will really cost at tax time, with the refund or amount owed. Runs in your browser.`;
+  const lead = `Free ${year} ${state.name} bonus tax calculator.`;
+  const body = firstThatFits(
+    `${lead} See what's withheld from your bonus now versus what it will really cost at tax time, ` +
+      `with the refund or amount owed.`,
+    `${lead} See what's withheld from your bonus now versus what it really costs at tax time.`,
+  );
+  return `${body} Runs in your browser.`;
 }
 
 // Short data phrase describing a state's bonus method — used in headings/tables.
@@ -4342,6 +4389,28 @@ const usdCents = (n) => '$' + n.toLocaleString('en-US', { minimumFractionDigits:
 const pct1 = (n) => (n * 100).toFixed(1) + '%';
 const pct2 = (n) => (n * 100).toFixed(2) + '%';
 
+// THE CAR-LOAN INTEREST ALLOWANCE AT A SINGLE FILER'S SALARY, from the engine the
+// /car-loan-interest-calculator/ runs. IRC 163(h)(4)(C)(ii)(I) cuts the deduction "by $200 for
+// each $1,000 (or portion thereof)" of modified AGI over $100,000, so a part of a $1,000 counts
+// as a whole one and the steps round UP. The ladder used to round them down: harmless on its
+// round-thousand rungs, but $120,500 would have kept $6,000 of the $10,000 where the statute
+// leaves $5,800. Measured on a full $10,000 of interest, so it is the most anyone can deduct.
+function carLoanAllowanceAt(amount, obbba, taxYear) {
+  const cl = obbba.federal.carLoan;
+  return carLoanDeduction({ year: Number(taxYear), filingStatus: 'single', magi: amount,
+    interest: cl.interestCap, params: cl });
+}
+
+// THE HIGHEST MODIFIED AGI THAT STILL LEAVES SOME OF THE ALLOWANCE. The steps round up, so
+// $149,001 single already counts fifty $1,000 steps and loses all $10,000, while $149,000
+// counts forty-nine and keeps $200. "Only below $150,000" was therefore $1,000 too generous.
+// Joint: $249,000 keeps $200 and $249,001 keeps nothing. test-ladder-rungs.js checks both
+// against the engine.
+function carLoanLastMagi(cl, status) {
+  return cl.phaseoutStartMagi[status] +
+    (Math.ceil(cl.interestCap / cl.phaseoutReductionPer1000) - 1) * 1000;
+}
+
 // Which of the three shapes a state is, read from the data and nowhere else.
 function ladderKind(st) {
   if (!st || !st.hasIncomeTax || !st.tax || st.tax.type === 'none') return 'none';
@@ -4844,10 +4913,24 @@ function stateNoDeductionReason(r) {
     : `${r.state.name} subtracts nothing before its own rate applies`;
 }
 
+// A PERSONAL EXEMPTION THE ENGINE DOES NOT MODEL, counted only in the raise the ladder prints
+// for reaching the next band. Wisconsin takes a $700 personal exemption off a single filer's
+// income on top of its sliding standard deduction (Wis. Stat. 71.05(23)(b)). The engine leaves
+// it out, and the Wisconsin disclaimer says so, so every Wisconsin taxable figure on these pages
+// is $700 above the filer's real one, and a raise sized off those figures reaches the next band
+// too early: by about $625 while the deduction is still shrinking (each raise dollar adds $1.12
+// of taxable income there) and by $700 once it is gone. No state in tax-data-2026.json carries a
+// personal-exemption field, and folding $700 into Wisconsin's standard deduction would phase it
+// out with the deduction, which the statute does not do, so the engine and the take-home
+// figures stay as they are and only the raise sentence counts it. South Carolina has no
+// personal exemption for the filer and is not listed.
+const LADDER_UNMODELED_EXEMPTION = { WI: 700 };
+
 // The smallest whole-dollar raise that lifts this rung's state taxable income above `edge`,
 // computed by the engine at every candidate salary: its own FICA, its own federal income tax,
 // its own stateTaxableIncome(). Single filer, no pre-tax money, exactly as caRung() runs it.
-// Used only where the state subtracts federal tax, see raiseToEdge in caProseBlocks.
+// Used only where the state subtracts federal tax or phases its standard deduction down with
+// income, see raiseToEdge in caProseBlocks.
 function salaryRaiseToTaxable(r, edge, taxData) {
   const fed = taxData.federal;
   const taxableAt = (salary) => stateTaxableIncome(salary, 'single', r.state, 0,
@@ -4870,10 +4953,28 @@ function salaryRaiseToTaxable(r, edge, taxData) {
 // $125,000, and every Oregon rung reaches its next band edge past that point, so from $70,000
 // up the subtraction at the edge is SMALLER than today's and the raise is smaller than the gap.
 // Missouri's share falls in steps the same way. The step that did it is named from the data.
+//
+// WISCONSIN AND SOUTH CAROLINA HAVE THE SAME GAP FOR THE OPPOSITE REASON. Neither subtracts
+// federal tax, but each one's standard deduction shrinks as income rises (Wis. Stat.
+// 71.05(22)(dp); S.C. Code 12-6-1140(15)), so a raise adds to taxable income twice, once as
+// pay and again as the deduction it takes away, and the raise that reaches the next edge is
+// SMALLER than the gap. Their pages used to print the gap as the raise ("a raise of roughly
+// that size", "a raise of $12,325 or more" on Wisconsin $50,000, where $11,005 does it).
+// Read off the same engine: the deduction at this salary and at the raised one.
 function raiseGapFacts(r, raise, taxData) {
   const cfg = r.state.tax.federalTaxSubtraction;
   const fed = taxData.federal;
   const at = r.amount + raise;
+  if (!cfg) {
+    const ph = (r.state.tax.standardDeductionPhaseout && r.state.tax.standardDeductionPhaseout.single) || {};
+    const sdAt = stateTaxableIncome(at, 'single', r.state, 0, ficaTax(at, 'single', fed).total,
+      federalIncomeTax(at, 'single', fed)).standardDeduction;
+    return {
+      kind: 'sdphase', at, sdNow: r.stDedAfterPhaseout, sdAt,
+      over: ph.over != null ? ph.over : null,
+      goneAt: (ph.over != null && ph.denominator != null) ? ph.over + ph.denominator : null,
+    };
+  }
   const subAt = stateTaxableIncome(at, 'single', r.state, 0, ficaTax(at, 'single', fed).total,
     federalIncomeTax(at, 'single', fed)).federalTaxSubtraction;
   const subNow = r.stFedSub;
@@ -4897,7 +4998,25 @@ function raiseGapFacts(r, raise, taxData) {
 
 // The two wordings of that reason: a full sentence for the paragraph that walks the
 // schedule, and a short clause for the "near the top of the band" note.
-function raiseGapSentence(g, NAME, S, raise) {
+// How the shrinking deduction reads at this salary: already shrinking, or about to start.
+function sdPhasePhrase(g, NAME, amount) {
+  if (g.over == null) return `${NAME}'s standard deduction shrinks as income rises`;
+  return amount >= g.over
+    ? `${NAME}'s standard deduction shrinks as income rises past ${usd0(g.over)}` +
+      (g.goneAt != null ? ` until it is gone at ${usd0(g.goneAt)}` : '')
+    : `${NAME}'s standard deduction starts to shrink once income passes ${usd0(g.over)}`;
+}
+function raiseGapSentence(g, NAME, S, raise, amount) {
+  if (g.kind === 'sdphase') {
+    return `but a raise of about ${usd0(raise)} gets you there. ${sdPhasePhrase(g, NAME, amount)}, so ` +
+      `a raise adds to your ${NAME} taxable income twice: once as pay, and again as the deduction it ` +
+      `takes away. The deduction is ${usd0(g.sdNow)} at ${S} and ${usd0(Math.max(0, g.sdAt))} at ` +
+      `${usd0(g.at)} of pay.` +
+      (g.exemption
+        ? ` That raise also counts the ${usd0(g.exemption)} personal exemption ${NAME} gives a single ` +
+          `filer, which the taxable income figures on this page leave out.`
+        : '');
+  }
   if (g.kind === 'limit') {
     return `but a raise of about ${usd0(raise)} gets you there. At ${usd0(g.at)} of pay your income is past ` +
       `${usd0(g.f.capStepsFrom)}, where ${NAME}'s limit on the federal tax you can subtract starts to step ` +
@@ -4918,6 +5037,14 @@ function raiseGapSentence(g, NAME, S, raise) {
     `you subtract is ${usd0(g.subAt)} at ${usd0(g.at)} of pay against ${usd0(g.subNow)} at ${S}.`;
 }
 function raiseGapClause(g, NAME) {
+  if (g.kind === 'sdphase') {
+    return `because ${NAME}'s standard deduction shrinks as your pay rises, so each dollar of a raise ` +
+      `adds more than a dollar to your ${NAME} taxable income` +
+      (g.exemption
+        ? ` (the raise also counts the ${usd0(g.exemption)} personal exemption ${NAME} gives you, which ` +
+          `the taxable income figures on this page leave out)`
+        : '');
+  }
   if (g.kind === 'limit') {
     return `because past ${usd0(g.f.capStepsFrom)} of income ${NAME}'s limit on the federal tax you can ` +
       `subtract steps down`;
@@ -5100,12 +5227,21 @@ function caProseBlocks(r, rungs, ctx) {
     // the taxable-income gap it has always printed. The REASON printed beside it is measured
     // too (raiseGapFacts): which way the subtraction moved between here and the edge, and
     // which step moved it.
-    // (Wisconsin's and South Carolina's phase-downs have the same gap and are not changed here.)
-    const raiseToEdge = (nextEdge == null || !st.tax.federalTaxSubtraction)
+    // Wisconsin's and South Carolina's standard deductions shrink with income, which opens the
+    // same gap from the other side (see raiseGapFacts), so they are measured the same way, but
+    // only while there is still a deduction left to shrink: once it is gone (Wisconsin from
+    // $136,453, South Carolina from $95,000) a raise moves taxable income dollar for dollar.
+    const deductionStillShrinks = !!st.tax.standardDeductionPhaseout && r.stDedAfterPhaseout > 0;
+    // The exemption the engine leaves out (see LADDER_UNMODELED_EXEMPTION) moves the edge in
+    // engine terms: real taxable income clears it only once the engine's figure clears it by
+    // the exemption too.
+    const exemption = LADDER_UNMODELED_EXEMPTION[st.abbr] || 0;
+    const raiseToEdge = (nextEdge == null ||
+      !(st.tax.federalTaxSubtraction || deductionStillShrinks))
       ? distance
-      : salaryRaiseToTaxable(r, nextEdge, taxData);
+      : salaryRaiseToTaxable(r, nextEdge + exemption, taxData);
     const raiseDiffers = distance != null && Math.abs(raiseToEdge - distance) >= 1;
-    const raiseGap = raiseDiffers ? raiseGapFacts(r, raiseToEdge, taxData) : null;
+    const raiseGap = raiseDiffers ? { ...raiseGapFacts(r, raiseToEdge, taxData), exemption } : null;
     // A BAND EDGE IS NOT ALWAYS A RATE CHANGE. Nebraska publishes four bands and its third
     // and fourth carry the SAME 4.55% rate (Neb. Rev. Stat. 77-2715.03(2)(c)(v) brought the
     // top rate down to meet the one below it), so on the rung that tops out in the third
@@ -5281,6 +5417,15 @@ function caProseBlocks(r, rungs, ctx) {
       density = `The band ${S} tops out in is only ${usd0(bandWidth)} wide, so a raise of that size alone ` +
         `carries you out of it. Narrow bands at this end of the schedule look punishing and are not: only ` +
         `the slice of income inside each one is charged at its rate.`;
+    } else if (intoBand > 0.66) {
+      // A WIDE BAND IS NOT A LONG WAY TO GO WHEN YOU ARE NEAR ITS TOP. "A raise has to be
+      // substantial" sat beside "a raise of about $3,931 gets you there" on South Carolina
+      // $40,000 and beside $11,630 on Wisconsin $50,000, and the paragraph after this one
+      // calls the next step close. The width is still true; the distance is what a reader
+      // acts on, so it is the figure the band paragraph prints (the measured raise where
+      // the state's deduction or federal subtraction moves with pay, the gap elsewhere).
+      density = `The band ${S} tops out in runs ${usd0(bandWidth)} from edge to edge, but ${S} sits near ` +
+        `its top, so a raise of about ${usd0(raiseToEdge)} is enough to reach the next ${NAME} rate.`;
     } else {
       density = `The band ${S} tops out in runs ${usd0(bandWidth)} from edge to edge, so it governs a long ` +
         `stretch of income. A raise has to be substantial before any of it is charged at a higher ` +
@@ -5333,9 +5478,11 @@ function caProseBlocks(r, rungs, ctx) {
               `it is charged at the same ${pctStr(stTop.rate)}, so crossing it changes nothing. `)
           : nextRateHigher
           ? (raiseDiffers
-            ? `The next band up begins ${usd0(distance)} of taxable income further on, ` +
-              `${raiseGapSentence(raiseGap, NAME, S, raiseToEdge)} That is where your ${NAME} rate next ` +
-              `moves. `
+            // The rate step is named in the opening clause, not after the explanation: a
+            // closing "That is where your rate next moves" followed the deduction or
+            // subtraction sentence, so "That" pointed at the deduction, not the band.
+            ? `The next band up, where your ${NAME} rate next moves, begins ${usd0(distance)} of taxable ` +
+              `income further on, ${raiseGapSentence(raiseGap, NAME, S, raiseToEdge, r.amount)} `
             : `The next band up begins ${usd0(distance)} further on, so a raise of roughly that size is where ` +
               `your ${NAME} rate next moves. `)
           : `The next band up begins ${usd0(distance)} further on and is charged at the same ` +
@@ -5801,22 +5948,30 @@ function caProseBlocks(r, rungs, ctx) {
     const start = cl.phaseoutStartMagi.single;
     const gone = cl.fullPhaseoutMagi.single;
     const cap = cl.interestCap;
-    if (r.amount >= gone) {
+    const allow = carLoanAllowanceAt(r.amount, obbba, taxData.taxYear);
+    if (r.amount >= gone || allow.fullyPhasedOut) {
       push('carloan',
         `<h3>New-car loan interest is no longer deductible at ${S}</h3>` +
         `<p>OBBBA made interest on a qualifying new-vehicle loan deductible up to ${usd0(cap)} a year, ` +
-        `even without itemizing — but only below ${usd0(gone)} of modified AGI for a single filer. The ` +
-        `deduction falls by ${usd0(cl.phaseoutReductionPer1000)} for every ${usd0(1000)} above ` +
-        `${usd0(start)} and is gone by ${usd0(gone)}, which ${S} is at or above. Worth knowing before ` +
-        `a dealer quotes it as a reason to finance.</p>`);
+        `even without itemizing, but only up to ${usd0(carLoanLastMagi(cl, 'single'))} of modified AGI ` +
+        `for a single filer. The ` +
+        `deduction falls by ${usd0(cl.phaseoutReductionPer1000)} for every ${usd0(1000)}, or part of ` +
+        `${usd0(1000)}, above ${usd0(start)} and is gone by ${usd0(gone)}, so nothing of it is left at ` +
+        `${S}. Worth knowing before a dealer quotes it as a reason to finance.</p>`);
     } else if (r.amount >= start) {
-      const left = Math.max(0, cap - Math.floor((r.amount - start) / 1000) * cl.phaseoutReductionPer1000);
+      const left = allow.deduction;
+      // Right on the line nothing is cut yet, but the first dollar over it costs a whole step.
+      const where = allow.phasedOut
+        ? `At ${S} you are ${usd0(r.amount - start)} past that line, so roughly ${usd0(left)} of the ` +
+          `allowance survives, and it is gone by ${usd0(gone)}.`
+        : `${S} is right on that line, so the full ${usd0(left)} is still there, but even a ${usd0(1)} ` +
+          `raise would cut it by ${usd0(cl.phaseoutReductionPer1000)}, and it is gone by ${usd0(gone)}.`;
       push('carloan',
-        `<h3>${S} is inside the car-loan interest phase-out</h3>` +
+        `<h3>${S} is ${allow.phasedOut ? 'inside' : 'where'} the car-loan interest phase-out` +
+        `${allow.phasedOut ? '' : ' starts'}</h3>` +
         `<p>The OBBBA deduction for interest on a qualifying new-vehicle loan is capped at ${usd0(cap)} ` +
-        `and shrinks by ${usd0(cl.phaseoutReductionPer1000)} per ${usd0(1000)} of modified AGI above ` +
-        `${usd0(start)}. At ${S} you are ${usd0(r.amount - start)} past that line, so roughly ` +
-        `${usd0(left)} of the allowance survives, and it reaches zero at ${usd0(gone)}. This is a ` +
+        `and shrinks by ${usd0(cl.phaseoutReductionPer1000)} for every ${usd0(1000)} of modified AGI ` +
+        `above ${usd0(start)}, counting any part of ${usd0(1000)} as a whole one. ${where} This is a ` +
         `deduction, not a credit, so what it is actually worth to you is that figure times your federal ` +
         `marginal rate.</p>`);
       // STRICTLY GREATER THAN, not >=. Every variant below tells the reader the
@@ -6719,8 +6874,10 @@ function caPageCopy(r, rungs, ctx) {
   if (r.amount > sen.phaseoutStartMagi.single && r.amount < sen.fullPhaseoutMagi.single) {
     live.push(`the partially phased-out senior deduction (if you are 65 or over)`);
   }
-  const cl = obbba.federal.carLoan;
-  if (r.amount >= cl.phaseoutStartMagi.single && r.amount < cl.fullPhaseoutMagi.single) {
+  // Partly phased out means some of it is gone and some is left, the engine's two flags. At
+  // exactly $100,000 nothing is gone yet: the cut is per $1,000 by which income EXCEEDS it.
+  const clAllow = carLoanAllowanceAt(r.amount, obbba, ctx.taxData.taxYear);
+  if (clAllow.phasedOut && !clAllow.fullyPhasedOut) {
     live.push(`the partially phased-out new-vehicle loan interest deduction`);
   }
   const mipP = obbba.federal.mip.phaseout;
@@ -6835,17 +6992,24 @@ function caLadderFaq(r, rungs, taxData, payrollState, obbba, secure2) {
   {
     const cl = obbba.federal.carLoan;
     if (r.amount >= cl.phaseoutStartMagi.single) {
+      const clAllow = carLoanAllowanceAt(r.amount, obbba, taxData.taxYear);
       faq.push({
         q: `Can I still deduct new-car loan interest on ${S}?`,
-        a: r.amount >= cl.fullPhaseoutMagi.single
+        a: (r.amount >= cl.fullPhaseoutMagi.single || clAllow.fullyPhasedOut)
           ? `No. The OBBBA deduction of up to ${usd0(cl.interestCap)} on qualifying new-vehicle loan ` +
             `interest phases out between ${usd0(cl.phaseoutStartMagi.single)} and ` +
-            `${usd0(cl.fullPhaseoutMagi.single)} of modified AGI for a single filer, and ${S} is at or ` +
-            `above the end of that range.`
-          : `Partly. The ${usd0(cl.interestCap)} allowance drops by ` +
-            `${usd0(cl.phaseoutReductionPer1000)} per ${usd0(1000)} of modified AGI above ` +
-            `${usd0(cl.phaseoutStartMagi.single)}, so at ${S} some of it survives and it reaches zero at ` +
-            `${usd0(cl.fullPhaseoutMagi.single)}.`,
+            `${usd0(cl.fullPhaseoutMagi.single)} of modified AGI for a single filer, and none of it is ` +
+            `left at ${S}.`
+          : clAllow.phasedOut
+            ? `Partly. The ${usd0(cl.interestCap)} allowance drops by ` +
+              `${usd0(cl.phaseoutReductionPer1000)} for every ${usd0(1000)}, or part of ${usd0(1000)}, of ` +
+              `modified AGI above ${usd0(cl.phaseoutStartMagi.single)}, so at ${S} up to ` +
+              `${usd0(clAllow.deduction)} of it survives, and it is gone by ` +
+              `${usd0(cl.fullPhaseoutMagi.single)}.`
+            : `Yes, the full ${usd0(cl.interestCap)} allowance. It only shrinks above ` +
+              `${usd0(cl.phaseoutStartMagi.single)} of modified AGI: by ` +
+              `${usd0(cl.phaseoutReductionPer1000)} for every ${usd0(1000)} over that line, counting any ` +
+              `part of ${usd0(1000)} as a whole one, and it is gone by ${usd0(cl.fullPhaseoutMagi.single)}.`,
       });
     }
   }
@@ -8539,9 +8703,9 @@ async function main() {
           META_DESC: metaDesc,
           OG_DESC: ladderSlugKey === 'california'
             // legacy CA wording
-            ? `Computed ${year} take-home pay on ${S} in California — ${usd0(r.a.net)} a year, ` +
+            ? `Computed ${year} take-home pay on ${S} in California: ${usd0(r.a.net)} a year, ` +
               `${usd0(r.a.net / 12)} a month, with the federal and California brackets worked out line by line.`
-            : `Computed ${year} take-home pay on ${S} in ${NAME} — ${usd0(r.a.net)} a year, ` +
+            : `Computed ${year} take-home pay on ${S} in ${NAME}: ${usd0(r.a.net)} a year, ` +
               `${usd0(r.a.net / 12)} a month, with every withholding line worked out.`,
           H1: `Take-home pay on a ${S} salary in ${NAME}`,
           SALARY: S,
@@ -9402,7 +9566,7 @@ async function main() {
       fillTool(dftHubTpl, {
         SITE_NAME: SITE.name,
         SITE_URL: SITE.url,
-        TITLE: 'Days From Today — 30, 60, 90, 180 Days and More',
+        TITLE: 'Days From Today ~: 30, 60, 90, 180 Days and More',
         DESC: 'Ready-made answers for the intervals people count: 30, 60, 90 and 180 days from today, weeks from today, business days from today, and dates in the past. Each page works the date out in your browser.',
         APP_LD: JSON.stringify({
           '@context': 'https://schema.org',
@@ -10631,10 +10795,10 @@ async function main() {
         'Social Security Administration&rsquo;s; the dollar amounts are our arithmetic on it. Check ssa.gov or ' +
         'your own benefit letter for anything that matters.',
     } : {
-      PAGE_TITLE: '2027 Social Security COLA (ESTIMATE) — Running Tracker and Benefit Calculator',
+      PAGE_TITLE: '2027 Social Security COLA (ESTIMATE) ~: Running Tracker and Benefit Calculator',
       META_DESC: 'ESTIMATE, not official. See what any cost-of-living increase does to your monthly Social ' +
         'Security benefit, and track the months the real figure needs.',
-      OG_TITLE: '2027 Social Security COLA — estimate tracker and benefit calculator',
+      OG_TITLE: '2027 Social Security COLA: estimate tracker and benefit calculator',
       OG_DESC: 'Type your benefit and any COLA percentage to see the new monthly amount. Plus: which of the three ' +
         'CPI-W months the official figure needs are published, and when the rest land.',
       H1: '2027 Social Security COLA estimate',

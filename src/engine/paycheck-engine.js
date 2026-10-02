@@ -537,27 +537,43 @@ export function stateIncomeTax(grossAnnual, filingStatus, stateData, preTax = 0,
  * and Oregon subtract it). So the BASE term is computePaycheck's own state figure at `base`
  * to the cent, and with both deductions below at zero so is the TOP term at `top`.
  *
- * THE TOP TERM PARTS FROM computePaycheck IN TWO INPUTS, ON PURPOSE. Both are earned by the
- * slice itself, and computePaycheck has no tips input, so it cannot see either:
+ * THE TOP TERM TAKES TWO MORE INPUTS, both earned by the slice itself:
  *   federalDeduction  a federal deduction only the slice earns (no tax on tips). The three
  *                     states subtract the federal tax OWED on the return, which is after
  *                     that deduction, so the liability at the top is taken after it. That
- *                     is the engine's annual-return basis, and it counts the deduction's
- *                     knock-on on the state exactly once, here: the at-filing block prices
- *                     the federal saving only. Pricing the state on the pre-deduction
- *                     liability would credit a filer with federal tax the return never shows.
+ *                     is the engine's annual-return basis: the at-filing block prices the
+ *                     federal saving only. Pricing the state on the pre-deduction liability
+ *                     would credit a filer with federal tax the return never shows.
  *   stateDeduction    the state's own matching deduction, where the state follows it.
+ * computePaycheck takes the same two as `returnDeductions`. With the tips on top of the pay
+ * the page's own figure has no tips in it, so it is the BASE term and gets neither. With the
+ * tips INSIDE the pay the page's figure IS the top term, so the paycheck page passes both
+ * there too, and the page's state line less the base term is this slice to the cent.
  *
  * @returns {number} annual state income tax on the slice, never below zero
  */
 export function stateTaxOnSlice({ base, top, filingStatus, stateData, fed, preTaxIncome = 0,
   preTaxFica = 0, dependentsCredit = 0, federalDeduction = 0, stateDeduction = 0 }) {
   const credit = Math.max(0, dependentsCredit || 0);
-  const at = (income, fedDed, stDed) => stateIncomeTax(income, filingStatus, stateData,
-    preTaxIncome + stDed,
-    ficaTax(income, filingStatus, fed, preTaxFica).total,
-    Math.max(0, federalIncomeTax(income, filingStatus, fed, preTaxIncome + fedDed) - credit));
+  const at = (income, fedDed, stDed) => stateTaxAt(income, filingStatus, stateData, fed,
+    preTaxIncome, preTaxFica, credit, fedDed, stDed);
   return Math.max(0, at(top, federalDeduction, stateDeduction) - at(base, 0, 0));
+}
+
+/**
+ * The state income tax at ONE income, fed what the return at that income shows the state: the
+ * pre-tax money plus any state deduction, the FICA paid there (Massachusetts deducts it), and
+ * the federal income tax liability there, bracket tax after any federal deduction and less the
+ * W-4 credits (Alabama, Missouri and Oregon subtract it). computePaycheck() and both terms of
+ * stateTaxOnSlice() call this one function, so the page's state figure and the tips block's
+ * state figure are the same arithmetic and cannot drift apart.
+ */
+function stateTaxAt(income, filingStatus, stateData, fed, preTaxIncome, preTaxFica, credit,
+  federalDeduction, stateDeduction) {
+  return stateIncomeTax(income, filingStatus, stateData,
+    preTaxIncome + stateDeduction,
+    ficaTax(income, filingStatus, fed, preTaxFica).total,
+    Math.max(0, federalIncomeTax(income, filingStatus, fed, preTaxIncome + federalDeduction) - credit));
 }
 
 /**
@@ -685,10 +701,19 @@ const ZERO_ADV = { retirement401k: 0, cafeteria125: 0, dependentsCredit: 0, extr
  * @param {keyof PAY_PERIODS} input.payFrequency
  * @param {string} input.stateSlug
  * @param {AdvancedInputs} [input.adv] - optional advanced-mode inputs (default all 0)
+ * @param {{federal?:number, state?:number}} [input.returnDeductions] - deductions the filer
+ *   takes on the return that the inputs above cannot see, today only the no-tax-on-tips
+ *   deduction when the tips are already inside the pay. They reach the STATE figure and
+ *   nothing else: `state` comes off the state's taxable income (pass it only where the state
+ *   follows the deduction), and `federal` comes off the federal liability that Alabama,
+ *   Missouri and Oregon subtract, because those states subtract the federal tax owed on the
+ *   return. The federal row itself stays the tax before the deduction, which is what is
+ *   withheld; the paycheck page prices the federal saving in its at-filing block. Both default
+ *   to 0, which reproduces every other caller's figures exactly.
  * @param {object} taxData - parsed tax-data-2026.json
  * @returns {object} annual + per-period breakdown
  */
-export function computePaycheck({ wage, filingStatus, payFrequency, stateSlug, adv }, taxData) {
+export function computePaycheck({ wage, filingStatus, payFrequency, stateSlug, adv, returnDeductions }, taxData) {
   const fed = taxData.federal;
   const grossAnnual = annualizeGross(wage);
   const stateData = taxData.states ? taxData.states[stateSlug] : null;
@@ -718,8 +743,14 @@ export function computePaycheck({ wage, filingStatus, payFrequency, stateSlug, a
   // FICA they paid (capped at $2,000). Passing the figure the engine just computed keeps
   // the two lines of the same paycheck consistent; every other state ignores it. The
   // federal liability goes over for the same reason, for the three states that let a filer
-  // subtract federal income tax; every other state ignores it too.
-  const state = stateIncomeTax(grossAnnual, filingStatus, stateData, preTaxIncome, fica.total, fedLiability);
+  // subtract federal income tax; every other state ignores it too. Both go through
+  // stateTaxAt(), the helper the tips block's stateTaxOnSlice() uses, and with no return
+  // deductions it hands stateIncomeTax exactly fica.total and fedLiability.
+  const rd = returnDeductions || {};
+  const fedDedOnReturn = Math.max(0, Number(rd.federal) || 0);
+  const stateDedOnReturn = Math.max(0, Number(rd.state) || 0);
+  const state = stateTaxAt(grossAnnual, filingStatus, stateData, fed, preTaxIncome, preTaxFica,
+    dependentsCredit, fedDedOnReturn, stateDedOnReturn);
 
   // State disability / paid-leave employee contributions: post-tax, on gross
   // wages, kept OUT of totalTax and out of annual.state (so tax-only rates and

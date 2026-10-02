@@ -70,18 +70,20 @@ const dftUnitPhraseTitle = (p) =>
 
 const crossLabel = (p) => (p.unit === 'business' ? 'On the calendar' : 'Weekdays vs weekend days');
 
+// " ~: " renders as ": " and keeps the breadcrumb name to the part before it (build.js
+// takeCrumbMark), as the em dash it replaced did.
 function title(p) {
   const iv = dftUnitPhraseTitle(p);
   if (p.dir === 'back') {
     return frame(p.slug, 'title', [
       `What Date Was ${iv} Ago?`,
-      `${iv} Ago From Today — The Exact Date`,
+      `${iv} Ago From Today ~: The Exact Date`,
       `What Was the Date ${iv} Ago?`,
     ]);
   }
   return frame(p.slug, 'title', [
     `What Date Is ${iv} From Today?`,
-    `${iv} From Today — What Date Is That?`,
+    `${iv} From Today ~: What Date Is That?`,
     `${iv} From Today: Exact Date and Weekday`,
     `When Is ${iv} From Today?`,
   ]);
@@ -99,7 +101,7 @@ function desc(p) {
   }
   return frame(p.slug, 'desc', [
     `The exact date ${iv} from today, with the weekday and the working-day split, ${skips}. Recalculated in your browser each visit.`,
-    `Find out what date falls ${iv} from today — day of the week included, ${skips}, and nothing to fill in.`,
+    `Find out what date falls ${iv} from today, day of the week included, ${skips}, and nothing to fill in.`,
     `${iv} from today, worked out on your device from today's date: the full date, its weekday, and how the span divides into working days.`,
     `See the date ${iv} ahead of today, ${skips}, with the weekday and calendar span beside it. Free, private, no sign-up.`,
   ]);

@@ -705,19 +705,37 @@ function tipsSlice(input, r) {
   // term with the tips in it also takes the federal tips deduction off the federal
   // liability, because Alabama, Missouri and Oregon subtract the federal tax owed on the
   // return, and that is true whether the tips sit on top of the pay or inside it.
-  // computePaycheck has no tips input, so with tips inside the pay its state figure uses
-  // the liability before that deduction; the difference is the deduction's knock-on on
-  // the state, counted here and nowhere else (the at-filing block prices federal only).
-  const stateTax = stateTaxOnSlice({
+  //
+  // WITH THE TIPS INSIDE THE PAY, the term with the tips in it is the page's own pay, so
+  // the page's state line has to be that same term or the two disagree. They used to: an
+  // Oregon filer on $50,000 with $5,000 of tips inside it read "Oregon tax −$0.00" in this
+  // block (Oregon follows the deduction, its 2026 verdict in obbba-deductions-2026.json,
+  // and the tips add no federal tax once deducted) while the state line above still
+  // charged the full $3,467.13, which counts $385 of Oregon tax on those tips. Oregon's
+  // return takes the deduction, so the block was right and the line was wrong. The same
+  // held in every state that follows the deduction, and in Alabama and Missouri through
+  // the federal tax they subtract. render() therefore re-runs computePaycheck with
+  // `returnDeductions` below, and the state line becomes $3,082.13, the block's base term
+  // plus this slice. The federal line is not touched: it stays what is withheld, and the
+  // at-filing block prices the federal saving.
+  const returnDeductions = { federal: d.deduction, state: stateDed };
+  const sliceArgs = {
     base, top: W, filingStatus: filing, stateData, fed,
     preTaxIncome, preTaxFica,
-    dependentsCredit: (input.adv && input.adv.dependentsCredit) || 0,
-    federalDeduction: d.deduction, stateDeduction: stateDed
-  });
+    dependentsCredit: (input.adv && input.adv.dependentsCredit) || 0
+  };
+  const stateTax = stateTaxOnSlice({ ...sliceArgs, federalDeduction: d.deduction, stateDeduction: stateDed });
+  // THE SAME SLICE WITHOUT EITHER DEDUCTION, which is how an employer's state withholding
+  // tables see it: they know the wages, not the tips deduction on the return. The gap is
+  // the state's tips saving. It is above zero where the state follows the deduction (in
+  // Oregon net of the smaller federal tax it subtracts) and below zero in Alabama and
+  // Missouri, where only that knock-on applies and the return charges MORE than the
+  // withholding. renderTipsBlock() discloses it per paycheck only when it is a saving.
+  const stateSaving = stateTaxOnSlice({ ...sliceArgs, federalDeduction: 0, stateDeduction: 0 }) - stateTax;
 
   return {
-    tips: t, inside, deduction: d, conformity, stateDed,
-    fedWithheld, fedFiled, fica, state: stateTax,
+    tips: t, inside, deduction: d, conformity, stateDed, returnDeductions,
+    fedWithheld, fedFiled, fica, state: stateTax, stateSaving,
     // What the pay's own take-home has to gain, per view. The yearly answer is
     // the filing truth, the per-paycheck answer is the withholding truth, and
     // they differ by exactly the deduction's benefit — which is why the
@@ -1424,6 +1442,19 @@ function renderTipsBlock(input, r, tips, annualView) {
       `the <b>${usd(backR)}</b> of withheld federal tax you get back when you file, which together are the ` +
       `<b>${usd(yKeep)}</b> the Annual view shows.</div>`;
   }
+  // THE STATE FIGURE IS THE RETURN'S, NOT THE WITHHOLDING'S. The state row in this block,
+  // and with the tips inside the pay the page's state line too, take the tips deduction off
+  // the way the state's return will. Per paycheck that can overstate what is left after
+  // withholding, so the gap is said out loud, in this view only and only where it is a
+  // saving. Kept out of the fold below: it qualifies a figure, it is not background.
+  let stateWithholdingNote = '';
+  const stateSavingC = hasStateTax ? toCents(per(tips.stateSaving || 0)) : 0;
+  if (!annualView && stateSavingC > 0) {
+    const nm = escLbl(stateName);
+    stateWithholdingNote = `<p class="otw-note">${nm} tax above is figured the way your ${nm} return will ` +
+      `figure it, with the tips deduction taken off. Your employer's ${nm} withholding may not take it off, ` +
+      `so up to ${money(stateSavingC)} more a paycheck can be withheld, and it comes back when you file.</p>`;
+  }
   if (tips.inside) {
     notes.push(`<p class="otw-note">These tips are already inside every figure above, so nothing here is added ` +
       `to your take-home: this is the part of it your tips account for. What the no-tax-on-tips deduction is ` +
@@ -1460,7 +1491,8 @@ function renderTipsBlock(input, r, tips, annualView) {
   const kick = tips.inside
     ? 'Of that pay, your tips'
     : (annualView ? 'Your tips, on top of that, over a year' : `Your tips, on top of that, ${PERIOD_LABEL[r.payFrequency] || PERIOD_LABEL.biweekly}`);
-  box.innerHTML = `<p class="otw-kick">${kick}</p><ul class="otw-story">${rows.join('')}</ul>${reconciliation}${notesFold}`;
+  box.innerHTML = `<p class="otw-kick">${kick}</p><ul class="otw-story">${rows.join('')}</ul>${reconciliation}` +
+    `${stateWithholdingNote}${notesFold}`;
 }
 
 // --- zero state -------------------------------------------------------------
@@ -1551,9 +1583,8 @@ function render() {
   syncOtRate();
 
   const input = readForm();
-  const r = computePaycheck(input, taxData);
+  let r = computePaycheck(input, taxData);
   const annualView = currentView() === 'annual';
-  const p = annualView ? r.annual : r.perPaycheck;
 
   // TIPS, WORKED OUT ONCE FOR THE WHOLE RENDER. The headline, its caption, its
   // sub-line, the running echo, the bar and the tips block all read this one
@@ -1563,6 +1594,13 @@ function render() {
   // here rather than three calls later so the wait is as short as it can be.
   if (input.rules.tips > 0) ensureRuleData();
   const tips = tipsSlice(input, r);
+  // Tips inside the pay are already in every figure on the page, so the state line has to
+  // be the state's return WITH them: the state's own tips deduction where it follows the
+  // federal one, and the federal liability after the deduction where the state subtracts
+  // it. tipsSlice says how much; computePaycheck applies it to the state figure only. The
+  // gross, the federal line and FICA come out identical, so tipsSlice's answer stands.
+  if (tips && tips.inside) r = computePaycheck({ ...input, returnDeductions: tips.returnDeductions }, taxData);
+  const p = annualView ? r.annual : r.perPaycheck;
   // What the pay's own take-home gains, in the truth of the view on screen: the
   // year is the return (after the deduction), a paycheck is withholding (before
   // it). Zero in every case the page shipped with, which is why the pre-rendered
