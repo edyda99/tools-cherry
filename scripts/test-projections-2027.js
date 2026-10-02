@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 import {
   monthKeys, monthValue, windowStatus, average, partialAverage,
   assertComplete, colaPercent, applyCola, roundIncrease,
-  thirdPartyProblems, thirdPartyBlockProblems, TP_RATES,
+  thirdPartyProblems, thirdPartyBlockProblems, TP_RATES, figureValues,
 } from '../src/engine/projections-2027.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -196,12 +196,15 @@ for (const i of tpBlock.items) {
     for (let r = 0; r < 5; r++)
       ok(i.brackets.married[r].upTo === 2 * i.brackets.single[r].upTo,
         `${i.publisher}: married-joint ${TP_RATES[r] * 100}% threshold is twice the single one`);
-  if (i.standardDeduction && i.standardDeduction.single && i.standardDeduction.married)
+  if (i.standardDeduction && Number.isFinite(i.standardDeduction.single) && Number.isFinite(i.standardDeduction.married))
     ok(i.standardDeduction.married === 2 * i.standardDeduction.single,
       `${i.publisher}: married-joint standard deduction is twice the single one`);
 }
 
-const goodTp = () => JSON.parse(JSON.stringify(tpBlock.items.find((i) => i.via && i.asPrinted) || tpBlock.items[0]));
+// The fixture is the item with the most optional parts (a two-number figure and
+// a full-report link), so every branch of the validator is exercised.
+const goodTp = () => JSON.parse(JSON.stringify(tpBlock.items.find((i) => i.fullReport
+  && Object.values(i.standardDeduction || {}).some((f) => f && typeof f === 'object')) || tpBlock.items[0]));
 const tpBroken = (label, mutate, re) => {
   const item = goodTp();
   mutate(item);
@@ -228,12 +231,27 @@ tpBroken('a wrong rate', (i) => { i.brackets.single[2].rate = 0.21; }, /rate is 
 tpBroken('thresholds out of order ("$105,7000")', (i) => { i.brackets.single[2].upTo = 1057000; },
   /does not rise above the bracket below it/);
 tpBroken('top bracket capped', (i) => { i.brackets.married[6].upTo = 900000; }, /top bracket must have upTo null/);
-tpBroken('asPrinted that does not contain the shown figure',
-  (i) => { i.asPrinted = { 'standardDeduction.head_of_household': '$24,925' }; }, /does not contain the figure shown/);
-tpBroken('asPrinted pointing at nothing', (i) => { i.asPrinted = { 'standardDeduction.nobody': '$1,000' }; },
-  /does not point at a figure/);
-tpBroken('secondary report without a link', (i) => { i.via = { publisher: 'Accounting Today', title: 't', asOf: '2026-09-11' }; },
-  /via\.sourceUrl/);
+// A line the publisher printed as two numbers, e.g. "$24,925 ($24,950)".
+const twoKey = (i) => Object.keys(i.standardDeduction).find((k) => i.standardDeduction[k] && typeof i.standardDeduction[k] === 'object');
+ok(!!twoKey(goodTp()), 'the fixture carries a figure printed as two numbers');
+tpBroken('two-number figure whose printed text disagrees with its values',
+  (i) => { i.standardDeduction[twoKey(i)].printed = '$24,925 ($24,900)'; }, /printed is not exactly/);
+tpBroken('two-number figure collapsed to one value', (i) => { i.standardDeduction[twoKey(i)].values = [24950]; },
+  /values is not a pair/);
+tpBroken('two-number figure with the printed text reworded',
+  (i) => { const f = i.standardDeduction[twoKey(i)]; f.printed = `${f.printed} (estimate)`; }, /printed is not exactly/);
+tpBroken('two-number figure that does not say whether the publisher explained it',
+  (i) => { delete i.standardDeduction[twoKey(i)].explanation; }, /explanation must be/);
+tpBroken('two-number figure with an extra zero', (i) => { i.standardDeduction[twoKey(i)].values = [249250, 24950]; },
+  /values is not a pair/);
+tpBroken('full report without a link', (i) => { i.fullReport.sourceUrl = 'pro.bloombergtax.com/?p=17932'; },
+  /fullReport\.sourceUrl/);
+tpBroken('full report without a label', (i) => { delete i.fullReport.label; }, /fullReport\.label/);
+{
+  const two = goodTp().standardDeduction[twoKey(goodTp())];
+  ok(figureValues(two).length === 2 && figureValues(16600).join() === '16600',
+    'figureValues returns both numbers of a two-number figure and the one number of a plain one');
+}
 tpBroken('em dash in rendered note', (i) => { i.note = 'Figures \u2014 as reported.'; }, /em dash/);
 {
   const twice = { checkedDate: tpBlock.checkedDate, items: [goodTp(), goodTp()] };

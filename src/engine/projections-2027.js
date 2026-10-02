@@ -206,6 +206,39 @@ const isText = (s, min = 1) => typeof s === 'string' && s.trim().length >= min;
 // reads from.
 const plausibleAmount = (v, max) => Number.isInteger(v) && v >= 1000 && v <= max;
 
+const usdText = (v) => '$' + v.toLocaleString('en-US');
+
+/**
+ * A figure the publisher printed as two numbers for one line, e.g. "$24,925
+ * ($24,950)". Kept as printed rather than resolved into one number, because
+ * choosing between them is exactly the call the page says it does not make.
+ * `values` must be the two numbers in the order printed, and `printed` must be
+ * nothing but those two numbers in the "$A ($B)" form.
+ * @returns {string[]} problems, prefixed with `where`
+ */
+function twoNumberProblems(f, where, max) {
+  const p = [];
+  if (!Array.isArray(f.values) || f.values.length !== 2 || !f.values.every((v) => plausibleAmount(v, max))) {
+    p.push(`${where}.values is not a pair of whole-dollar amounts from $1,000 to $${max.toLocaleString('en-US')}`);
+  } else if (typeof f.printed !== 'string' || f.printed !== `${usdText(f.values[0])} (${usdText(f.values[1])})`) {
+    p.push(`${where}.printed is not exactly "${usdText(f.values[0])} (${usdText(f.values[1])})"`);
+  }
+  if (!('explanation' in f) || !(f.explanation === null || (isText(f.explanation) && !f.explanation.includes('\u2014'))))
+    p.push(`${where}.explanation must be the publisher's own account of the second number, or null when it gives none`);
+  return p;
+}
+
+/**
+ * Every number a stored figure stands for: one for a plain amount, two for a
+ * figure printed as two numbers.
+ * @param {number|{values:number[]}} f
+ * @returns {number[]}
+ */
+export function figureValues(f) {
+  if (Number.isFinite(f)) return [f];
+  return f && Array.isArray(f.values) ? f.values.filter(Number.isFinite) : [];
+}
+
 /**
  * Every way one third-party projection item is malformed, as readable strings.
  * An empty array means the item is fit to render.
@@ -241,6 +274,7 @@ export function thirdPartyProblems(item, checkedDate) {
       if (!keys.length) p.push('standardDeduction is empty');
       for (const k of keys) {
         if (!TP_STATUSES.includes(k)) p.push(`standardDeduction has unknown filing status "${k}"`);
+        else if (sd[k] && typeof sd[k] === 'object') p.push(...twoNumberProblems(sd[k], `standardDeduction.${k}`, 100000));
         else if (!plausibleAmount(sd[k], 100000)) p.push(`standardDeduction.${k} (${sd[k]}) is not a whole-dollar amount from $1,000 to $100,000`);
       }
     }
@@ -271,29 +305,15 @@ export function thirdPartyProblems(item, checkedDate) {
     }
   }
 
-  // Where a publisher printed a figure in a form the table does not reproduce
-  // (an amount with a second amount beside it), the printed text is kept, and it
-  // must actually contain the figure the table shows.
-  if (item.asPrinted !== undefined) {
-    if (!item.asPrinted || typeof item.asPrinted !== 'object') p.push('asPrinted is not an object');
-    else for (const [path, printed] of Object.entries(item.asPrinted)) {
-      const v = path.split('.').reduce((o, seg) => (o && typeof o === 'object' ? o[seg] : undefined), item);
-      if (!Number.isFinite(v)) p.push(`asPrinted key "${path}" does not point at a figure in this item`);
-      else if (typeof printed !== 'string' || !printed.includes('$' + v.toLocaleString('en-US')))
-        p.push(`asPrinted "${path}" does not contain the figure shown, $${v.toLocaleString('en-US')}`);
-    }
-  }
-
-  // A secondary report the figures were read from, when the publisher's own
-  // document is not publicly readable. It is a citation, so it needs all of one.
-  if (item.via !== undefined) {
-    const v = item.via;
-    if (!v || typeof v !== 'object') p.push('via is not an object');
+  // A fuller document from the same publisher that is not freely readable (a
+  // report behind a sign-up form). Optional, and labelled on the page as such.
+  if (item.fullReport !== undefined) {
+    const f = item.fullReport;
+    if (!f || typeof f !== 'object') p.push('fullReport is not an object');
     else {
-      if (!isText(v.publisher, 4)) p.push('via.publisher is missing');
-      if (!isText(v.title)) p.push('via.title is missing');
-      if (!ISO_DATE.test(v.asOf || '')) p.push('via.asOf is not an ISO date');
-      if (!isHttps(v.sourceUrl)) p.push('via.sourceUrl is not an https URL');
+      if (!isText(f.label) || f.label.includes('\u2014')) p.push('fullReport.label is missing or contains an em dash');
+      if (!isText(f.title)) p.push('fullReport.title is missing');
+      if (!isHttps(f.sourceUrl)) p.push('fullReport.sourceUrl is not an https URL');
     }
   }
 

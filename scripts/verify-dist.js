@@ -261,11 +261,13 @@ async function verifySeasonal2027(DIST, ROOT) {
     if (!others) fails.push(`/${PROJECTED_PAGE}/: the #others section (other publishers' projections) is missing.`);
     const attributed = new Set();
     for (const i of tpItems) {
-      for (const v of Object.values(i.standardDeduction || {})) if (Number.isFinite(v)) attributed.add(v);
+      // A standard deduction is one amount, or a figure printed as two ({values}).
+      for (const f of Object.values(i.standardDeduction || {})) {
+        if (Number.isFinite(f)) attributed.add(f);
+        else if (f && Array.isArray(f.values)) f.values.filter(Number.isFinite).forEach((v) => attributed.add(v));
+      }
       for (const rows of Object.values(i.brackets || {}))
         if (Array.isArray(rows)) for (const r of rows) if (r && Number.isFinite(r.upTo)) attributed.add(r.upTo);
-      for (const printed of Object.values(i.asPrinted || {}))
-        for (const m of String(printed).match(DOLLAR_FIGURE) || []) attributed.add(Number(m.replace(/[$,\s]/g, '')));
     }
     const othersFigures = [...new Set(others.match(DOLLAR_FIGURE) || [])]
       .filter((s) => Number(s.replace(/[$,\s]/g, '')) >= PROJECTION_FLOOR);
@@ -278,10 +280,14 @@ async function verifySeasonal2027(DIST, ROOT) {
     if (othersFigures.length && !/not IRS figures/i.test(others))
       fails.push(`/${PROJECTED_PAGE}/: other publishers' 2027 figures are shown without saying they are not IRS figures.`);
     for (const i of tpItems) {
+      for (const f of Object.values(i.standardDeduction || {}))
+        if (f && typeof f === 'object' && typeof f.printed === 'string' && !others.includes(`>${f.printed}<`))
+          fails.push(`/${PROJECTED_PAGE}/: ${i.publisher} printed a figure as "${f.printed}" but the page ` +
+            'does not show it that way. A two-number figure must not be shown as one of its numbers.');
       // Somebody else's figures must always carry their name and a way to check them.
       if (!others.includes(i.publisher))
         fails.push(`/${PROJECTED_PAGE}/: ${i.publisher}'s projections are listed without their name.`);
-      for (const u of [i.sourceUrl, i.via && i.via.sourceUrl].filter(Boolean))
+      for (const u of [i.sourceUrl, i.fullReport && i.fullReport.sourceUrl].filter(Boolean))
         if (!others.includes(`href="${u.replace(/&/g, '&amp;')}"`))
           fails.push(`/${PROJECTED_PAGE}/: no link to ${u} for ${i.publisher}'s projections.`);
     }

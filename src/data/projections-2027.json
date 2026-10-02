@@ -235,8 +235,8 @@
     }
   },
   "thirdPartyProjections": {
-    "_note": "Projected tax-year-2027 federal figures published by a named, checkable publisher of professional tax research, rendered under that publisher's name and never as ours or the IRS's. All three publishers this page watches (Bloomberg Tax, Thomson Reuters, Wolters Kluwer) published in September 2026, after the August 2026 CPI release on 2026-09-11, and all three say they averaged the 11 published C-CPI-U months and left out October 2025, which BLS never published. The IRS has not said how it will treat that month, so these are three estimates built on the same unconfirmed choice, not confirmations of each other. They agree on every figure stored here except the head-of-household standard deduction (Thomson Reuters $24,900; Wolters Kluwer and Bloomberg Tax $24,950). The page shows each publisher's own figure and does not pick one or explain the gap, because none of the three says how it rounded that line. Machine-generated calculator sites with 2027 figures are deliberately not listed, because none of them state a window, a month list, or a source. REPLACE this whole block with the official figures when the IRS Revenue Procedure for tax year 2027 lands.",
-    "_shape": "Each item: publisher (full name; the page strips a trailing parenthetical for column headers, as the cpiw.thirdPartyEstimates chips do), title (the publisher's own headline), asOf (the publication date the source itself states), sourceUrl, monthsUsed + skipped (how the publisher handled the statutory 12-month window), standardDeduction and/or brackets keyed by the filing-status keys tax-data-2026.json uses (single, married, head_of_household; brackets rows are {rate, upTo} with the top row upTo null, the same shape as tax-data-2026.json), optional via (the secondary report the figures were read from, when the publisher's own document is not publicly readable), optional asPrinted (the exact printed text of a figure the table shows in simplified form), note (renders on the page). _methodQuote is the publisher's or reporter's sentence on the missing month, verbatim, for audit; it does not render. Validated by thirdPartyProblems() in src/engine/projections-2027.js; build.js refuses to render a malformed item.",
+    "_note": "Projected tax-year-2027 federal figures published by a named, checkable publisher of professional tax research, rendered under that publisher's name and never as ours or the IRS's. All three publishers this page watches (Bloomberg Tax, Thomson Reuters, Wolters Kluwer) published in September 2026, after the August 2026 CPI release on 2026-09-11, and all three say they averaged the 11 published C-CPI-U months and left out October 2025, which BLS never published. The IRS has not said how it will treat that month, so these are three estimates built on the same unconfirmed choice and the same published data, not confirmations of each other. They agree on every figure stored here except the head-of-household standard deduction: Thomson Reuters $24,900, Wolters Kluwer $24,950, and Bloomberg Tax prints \"$24,925 ($24,950)\" without saying what the second figure means. The page shows each publisher's own figure as printed and does not pick one or explain the gap, because none of the three says how it rounded that line. Machine-generated calculator sites with 2027 figures are deliberately not listed, because none of them state a window, a month list, or a source. REPLACE this whole block with the official figures when the IRS Revenue Procedure for tax year 2027 lands.",
+    "_shape": "Each item: publisher (full name; the page strips a trailing parenthetical for column headers, as the cpiw.thirdPartyEstimates chips do), title (the publisher's own headline), asOf (the publication date the source itself states), sourceUrl (a public page carrying the figures), monthsUsed + skipped (how the publisher handled the statutory 12-month window), standardDeduction and/or brackets keyed by the filing-status keys tax-data-2026.json uses (single, married, head_of_household; brackets rows are {rate, upTo} with the top row upTo null, the same shape as tax-data-2026.json), optional fullReport {label, title, sourceUrl} for a fuller document that is not freely readable, note (renders on the page). A standard deduction is a whole-dollar integer, or, where the publisher printed two numbers for one line, {printed, values, explanation}: printed is the exact text in the form \"$A ($B)\", values is [A, B], explanation is the publisher's own account of the second number or null when it gives none; the page renders printed verbatim and never chooses between A and B. _methodQuote is the publisher's own sentence on the missing month, verbatim, for audit; it does not render. Validated by thirdPartyProblems() in src/engine/projections-2027.js; build.js refuses to render a malformed item.",
     "checkedDate": "2026-10-02",
     "items": [
       {
@@ -330,26 +330,26 @@
       },
       {
         "publisher": "Bloomberg Tax",
-        "title": "Special Report: 2027 Projected Tax Rates",
+        "title": "Bloomberg Tax Releases 2027 Projected U.S. Tax Rates",
         "asOf": "2026-09-11",
-        "sourceUrl": "https://pro.bloombergtax.com/?p=17932",
-        "via": {
-          "publisher": "Accounting Today",
-          "title": "Bloomberg projects tax rates for 2027",
-          "asOf": "2026-09-11",
-          "sourceUrl": "https://www.accountingtoday.com/news/bloomberg-projects-tax-rates-for-2027"
+        "sourceUrl": "https://pro.bloombergtax.com/?p=18030",
+        "fullReport": {
+          "label": "Full report, behind a sign-up form",
+          "title": "Special Report: 2027 Projected Tax Rates",
+          "sourceUrl": "https://pro.bloombergtax.com/?p=17932"
         },
         "monthsUsed": 11,
         "skipped": ["2025-10"],
-        "_methodQuote": "The projections were calculated using an 11-month C-CPI-U average because the Bureau of Labor Statistics did not report data from October 2025, making the predictions more difficult.",
-        "_methodQuoteBy": "Accounting Today (Michael Cohn), reporting Bloomberg Tax's report; not Bloomberg's own words.",
+        "_methodQuote": "In an unprecedented event, the Bureau of Labor Statistics did not report the data from October of 2025. Thus, the C-CPI-U has been computed on an 11-month average.",
         "standardDeduction": {
           "single": 16600,
           "married": 33200,
-          "head_of_household": 24950
-        },
-        "asPrinted": {
-          "standardDeduction.head_of_household": "$24,925 ($24,950)"
+          "head_of_household": {
+            "printed": "$24,925 ($24,950)",
+            "values": [24925, 24950],
+            "explanation": null,
+            "_explanationNote": "Checked 2026-10-02: the public release prints both numbers in its projected-2027 column and says nothing about the one in parentheses. Do not resolve it into one figure; show it as printed."
+          }
         },
         "brackets": {
           "single": [
@@ -371,8 +371,9 @@
             { "rate": 0.37, "upTo": null }
           ]
         },
-        "note": "Bloomberg Tax's full report is behind a sign-up form, so the figures here are the ones Accounting Today published from it, credited to Bloomberg Tax. Accounting Today prints the head-of-household standard deduction as \"$24,925 ($24,950)\"; the table shows the amount in parentheses. Its report does not include Bloomberg Tax's head-of-household tax brackets.",
-        "_viaCaution": "Use ONLY Accounting Today's projected-2027 column. Its \"2026\" comparison column is wrong: it shows the 2025 standard deduction amounts ($31,500 / $23,625 / $15,750) and has typos (\"$15,7500\", \"$105,7000\", \"$640,6000\"). Bloomberg Tax's own page (published 2026-09-11) confirms the report and its 3.2% inflation factor but shows no figures without the lead form; the 11-month C-CPI-U method is stated by Accounting Today, not on Bloomberg's public page."
+        "note": "The public release does not include head-of-household tax brackets.",
+        "_correction": "The release carries a correction dated September 22, 2026, 11:00 AM, which fixed its 2026 comparison column for the standard deduction. Only the projected 2027 column is stored here. Its single-filer table also prints two 2026 typos (\"$105,7000\", \"$640,6000\"); the 2027 column is clean and matches Wolters Kluwer and Thomson Reuters to the dollar.",
+        "_retrieval": "Release text retrieved 2026-10-02 via r.jina.ai (pro.bloombergtax.com answers automated fetches with HTTP 403). Accounting Today's 2026-09-11 report of the same figures (https://www.accountingtoday.com/news/bloomberg-projects-tax-rates-for-2027) adds nothing the release lacks and is not cited."
       }
     ]
   }

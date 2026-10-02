@@ -9804,9 +9804,13 @@ async function main() {
         }
         if (!groups.size) continue;
         const gs = [...groups.values()];
-        for (const g of gs)
-          brCols.push({ label: brLabel[k] + (gs.length > 1 ? ` (${andList(g.who)})` : ''), rows: g.rows });
         const absent = tpItems.filter((i) => !(i.brackets && i.brackets[k])).map(tpShort);
+        // A column that not every publisher stands behind says whose it is.
+        for (const g of gs)
+          brCols.push({
+            label: brLabel[k] + (gs.length > 1 || absent.length ? ` (${andList(g.who)}${gs.length > 1 ? '' : ' only'})` : ''),
+            rows: g.rows,
+          });
         if (gs.length > 1) {
           brNotes.push(`For ${nounFor[k]} the publishers disagree, so each version has its own column.`);
         } else if (!absent.length) {
@@ -9819,6 +9823,11 @@ async function main() {
       const brSentences = (brAgreeAll.length && tpItems.length > 1
         ? [`For ${andList(brAgreeAll)}, ${tpItems.length === 2 ? 'both' : `all ${numWord(tpItems.length)}`} publishers project exactly the same brackets.`]
         : []).concat(brNotes);
+      // Agreement between publishers who averaged the same published months is
+      // what the arithmetic predicts, not a second opinion. Say so once.
+      if (tpAllSkipCanceled && tpItems.length > 1)
+        brSentences.push('Matching figures are not independent confirmation: the publishers all worked from ' +
+          'the same published price data.');
       const band = (rows, r) => {
         const from = r === 0 ? 0 : rows[r - 1].upTo;
         return rows[r].upTo === null ? `${usd0(from)} and above` : `${usd0(from)} &ndash; ${usd0(rows[r].upTo)}`;
@@ -9833,35 +9842,53 @@ async function main() {
           brCols[0].rows.map((row, r) => `<tr><th scope="row">${pctStr(row.rate)}</th>` +
             brCols.map((c) => `<td class="num">${band(c.rows, r)}</td>`).join('') + '</tr>').join('') +
           '</tbody></table></div>' +
-          '<p class="muted-small">Each band is taxable income, meaning income after the standard deduction or ' +
-          'itemized deductions. Only the part of your income inside a band is taxed at that band’s rate.</p>'
+          '<p class="muted-small">Each band is taxable income, meaning your income after deductions. Only the ' +
+          'part of your income inside a band is taxed at that band’s rate.</p>'
         : '';
 
       // ---- standard deduction: one column per publisher, always.
       const sdItems = tpItems.filter((i) => i.standardDeduction);
       const sdStatuses = P27_TP_STATUSES.filter((k) => sdItems.some((i) => k in i.standardDeduction));
+      // A figure is a whole-dollar amount, or one the publisher printed as two
+      // numbers ("$A ($B)"). The second kind is shown exactly as printed and is
+      // never resolved into one of its numbers: that would be picking.
+      const sdCell = (f) => (Number.isFinite(f) ? usd0(f) : escHtml(f.printed));
       const sdSplits = sdStatuses.map((k) => {
-        const byValue = new Map();
+        const groups = new Map();
         for (const i of sdItems) {
           if (!(k in i.standardDeduction)) continue;
-          const v = i.standardDeduction[k];
-          if (!byValue.has(v)) byValue.set(v, []);
-          byValue.get(v).push(tpShort(i));
+          const f = i.standardDeduction[k];
+          const key = Number.isFinite(f) ? `n${f}` : `p${f.printed}`;
+          if (!groups.has(key)) groups.set(key, { f, who: [] });
+          groups.get(key).who.push(tpShort(i));
         }
-        return { k, byValue };
-      }).filter((x) => x.byValue.size > 1);
-      const splitPhrase = (x) => [...x.byValue.entries()].sort((a, b) => a[0] - b[0])
-        .map(([v, who]) => `${andList(who)} ${who.length > 1 ? 'project' : 'projects'} ${usd0(v)}`).join(', while ');
+        return { k, groups: [...groups.values()] };
+      }).filter((x) => x.groups.length > 1);
+      const splitPhrase = (x) => {
+        const plain = x.groups.filter((g) => Number.isFinite(g.f)).sort((a, b) => a.f - b.f)
+          .map((g) => `${andList(g.who)} ${g.who.length > 1 ? 'project' : 'projects'} ${usd0(g.f)}`);
+        const two = x.groups.filter((g) => !Number.isFinite(g.f)).map((g) => {
+          const many = g.who.length > 1;
+          return `${andList(g.who)} ${many ? 'print' : 'prints'} ${usd0(g.f.values[0])} with ` +
+            `${usd0(g.f.values[1])} in parentheses ` + (g.f.explanation === null
+            ? `and ${many ? 'do' : 'does'} not say what the second figure means`
+            : `and ${many ? 'say' : 'says'} of the second figure: ${g.f.explanation}`);
+        });
+        return two.length ? [plain.join(' and '), ...two].filter(Boolean).join(', while ') : plain.join(', while ');
+      };
+      const replaceAll = 'We do not pick between them. The official IRS figures will replace ' +
+        `${tpItems.length === 1 ? 'this projection' : `all ${numWord(tpItems.length)} projections`}, ` +
+        'and may not match any of them.';
       let sdSentence = '';
       if (sdItems.length > 1 && !sdSplits.length) {
         sdSentence = `${sdItems.length === 2 ? 'Both' : `All ${numWord(sdItems.length)}`} publishers project the same standard deduction for every filing status shown.`;
       } else if (sdSplits.length === 1) {
         sdSentence = `The publishers disagree on one line, ${sdLabel[sdSplits[0].k].toLowerCase()}: ` +
-          `${splitPhrase(sdSplits[0])}. We do not pick between them; the IRS figure will settle it.`;
+          `${splitPhrase(sdSplits[0])}. ${replaceAll}`;
       } else if (sdSplits.length > 1) {
         sdSentence = `The publishers disagree on ${numWord(sdSplits.length)} lines: ` +
           sdSplits.map((x) => `${sdLabel[x.k].toLowerCase()}, where ${splitPhrase(x)}`).join('; ') +
-          '. We do not pick between them; the IRS figures will settle it.';
+          `. ${replaceAll}`;
       }
       const sdTable = sdItems.length
         ? '<h3>Projected 2027 standard deduction</h3>' +
@@ -9870,7 +9897,7 @@ async function main() {
           '<th scope="col">Filing status</th>' +
           sdItems.map((i) => `<th scope="col">${escHtml(tpShort(i))}</th>`).join('') + '</tr></thead><tbody>' +
           sdStatuses.map((k) => `<tr><th scope="row">${escHtml(sdLabel[k])}</th>` +
-            sdItems.map((i) => `<td class="num">${k in i.standardDeduction ? usd0(i.standardDeduction[k]) : 'not published'}</td>`).join('') +
+            sdItems.map((i) => `<td class="num">${k in i.standardDeduction ? sdCell(i.standardDeduction[k]) : 'not published'}</td>`).join('') +
             '</tr>').join('') +
           '</tbody></table></div>' +
           (sdSentence ? `<p>${escHtml(sdSentence)}</p>` : '')
@@ -9880,8 +9907,7 @@ async function main() {
       const monthsText = (i) => `${i.monthsUsed} of 12` +
         (i.skipped.length ? `, leaving out ${andList(i.skipped.map(monthHuman))}` : '');
       const sourceCell = (i) => srcLink(i.sourceUrl, i.title) +
-        (i.via ? `<br>Figures as reported by ${escHtml(i.via.publisher)}, ${escHtml(humanDate(i.via.asOf))}: ` +
-          srcLink(i.via.sourceUrl, i.via.title) : '');
+        (i.fullReport ? `<br>${escHtml(i.fullReport.label)}: ${srcLink(i.fullReport.sourceUrl, i.fullReport.title)}` : '');
       const whoTable = '<h3>Where these figures come from</h3>' +
         '<div class="p27-wrap"><table class="p27-inputs"><caption class="sr-only">Publishers of the projected ' +
         '2027 figures above, with publication dates, months used, and sources</caption><thead><tr>' +
