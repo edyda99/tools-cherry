@@ -5406,6 +5406,15 @@ function caProseBlocks(r, rungs, ctx) {
       density = `The band ${S} tops out in is only ${usd0(bandWidth)} wide, so a raise of that size alone ` +
         `carries you out of it. Narrow bands at this end of the schedule look punishing and are not: only ` +
         `the slice of income inside each one is charged at its rate.`;
+    } else if (intoBand > 0.66) {
+      // A WIDE BAND IS NOT A LONG WAY TO GO WHEN YOU ARE NEAR ITS TOP. "A raise has to be
+      // substantial" sat beside "a raise of about $3,931 gets you there" on South Carolina
+      // $40,000 and beside $11,630 on Wisconsin $50,000, and the paragraph after this one
+      // calls the next step close. The width is still true; the distance is what a reader
+      // acts on, so it is the figure the band paragraph prints (the measured raise where
+      // the state's deduction or federal subtraction moves with pay, the gap elsewhere).
+      density = `The band ${S} tops out in runs ${usd0(bandWidth)} from edge to edge, but ${S} sits near ` +
+        `its top, so a raise of about ${usd0(raiseToEdge)} is enough to reach the next ${NAME} rate.`;
     } else {
       density = `The band ${S} tops out in runs ${usd0(bandWidth)} from edge to edge, so it governs a long ` +
         `stretch of income. A raise has to be substantial before any of it is charged at a higher ` +
@@ -5458,9 +5467,11 @@ function caProseBlocks(r, rungs, ctx) {
               `it is charged at the same ${pctStr(stTop.rate)}, so crossing it changes nothing. `)
           : nextRateHigher
           ? (raiseDiffers
-            ? `The next band up begins ${usd0(distance)} of taxable income further on, ` +
-              `${raiseGapSentence(raiseGap, NAME, S, raiseToEdge, r.amount)} That is where your ${NAME} rate next ` +
-              `moves. `
+            // The rate step is named in the opening clause, not after the explanation: a
+            // closing "That is where your rate next moves" followed the deduction or
+            // subtraction sentence, so "That" pointed at the deduction, not the band.
+            ? `The next band up, where your ${NAME} rate next moves, begins ${usd0(distance)} of taxable ` +
+              `income further on, ${raiseGapSentence(raiseGap, NAME, S, raiseToEdge, r.amount)} `
             : `The next band up begins ${usd0(distance)} further on, so a raise of roughly that size is where ` +
               `your ${NAME} rate next moves. `)
           : `The next band up begins ${usd0(distance)} further on and is charged at the same ` +
