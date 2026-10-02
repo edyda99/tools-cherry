@@ -14,7 +14,8 @@
 //    broken, or simply untouched, a crawler and a screen reader see all four.
 // 2. Nothing is invented. Tips and overtime verdicts come from the OBBBA
 //    conformity data, the bonus line from the state supplemental data, and the
-//    turning-65 line from the state's own income-tax structure.
+//    turning-65 line from the state's own income-tax structure, or from the same
+//    conformity data where a state has a senior verdict of its own (DC for 2026).
 // 2b. Any claim about what a paycheck loses comes from withholdingProfile(state)
 //    in ./withholding-profile.js, the same helper build.js uses. This file is the
 //    one that got missed the last time that claim was corrected, and the result
@@ -118,9 +119,18 @@ function bonusLine(name, supp, slug, pickFrame, wp) {
 }
 
 // Turning 65: the federal deduction is the same everywhere, so this line is keyed
-// to what the state does to the same wages.
-function seniorLine(state, pickFrame, wp) {
+// to what the state does to the same wages. A state whose own law lets the
+// deduction onto its return carries a senior verdict in the OBBBA conformity data,
+// and that verdict wins over the bracket line, which would otherwise tell a DC
+// filer the District taxes the same wages in full. DC: D.C. Act 26-416, sec.
+// 7112(e), new D.C. Code 47-1803.04(e)(6) allows the 151(d)(5)(C) senior deduction
+// for tax years beginning after December 31, 2025.
+function seniorLine(state, pickFrame, wp, obbbaEntry) {
   const t = state.tax;
+  const seniorV = obbbaEntry && obbbaEntry.senior && obbbaEntry.senior.y2026;
+  if (wp.hasIncomeTax && seniorV === 'yes') {
+    return `the $6,000 federal senior deduction comes off your federal return, and is deductible on your ${state.name} return too`;
+  }
   if (!wp.hasIncomeTax) {
     // "The whole story" and "all there is to claim" are exclusivity claims about
     // the deduction side of the check, so they are for federal-only states. A
@@ -185,7 +195,7 @@ export function buildStateApplies({ state, obbbaEntry, suppEntry, notaxAngle, pi
       `<a href="/overtime-tax-calculator/">Work out the overtime deduction</a></p>`,
     `<p class="applies-line" data-line="bonus"><strong>Bonuses:</strong> ${bonusLine(name, suppEntry, state.slug, pickFrame, wp)}. ` +
       `<a href="/${state.slug}-bonus-tax-calculator/">Estimate the tax on a bonus in ${name}</a></p>`,
-    `<p class="applies-line" data-line="age"><strong>Turning 65:</strong> ${seniorLine(state, pickFrame, wp)}. ` +
+    `<p class="applies-line" data-line="age"><strong>Turning 65:</strong> ${seniorLine(state, pickFrame, wp, obbbaEntry)}. ` +
       `<a href="/senior-deduction-calculator/">Check the senior deduction</a></p>`
   ].join('\n        ');
 

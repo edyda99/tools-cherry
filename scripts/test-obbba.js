@@ -3,6 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { buildStateApplies } from '../src/content/state-applies.js';
 import { allowedDeduction, federalTaxSaved, overtimePremium, estimate, seniorDeduction, estimateSenior, saltCap, saltComparison, carLoanFirstYearInterest, carLoanDeduction, estimateCarLoan } from '../src/engine/obbba-deduction.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -400,6 +401,31 @@ eq('CL F15 exact bracket-diff taxSaved', clSaved.taxSaved, 2393.96 * clSaved.mar
 is('CL F15 marginal 22% band', clSaved.marginalRate > 0.21 && clSaved.marginalRate < 0.23, true);
 // Ineligible end-to-end -> deduction 0 -> saved 0
 eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single', magi: 90000, interest: 2500, eligible: false, federal: obbba.federal, fed }).taxSaved, 0);
+
+// --- The paycheck page's "Turning 65" line follows the state's senior verdict. DC's Act 26-416,
+// sec. 7112(e), new D.C. Code 47-1803.04(e)(6), allows the 151(d)(5)(C) senior deduction for tax
+// years beginning after December 31, 2025, and (d)(9) disallows it before then. The line used to
+// say the District's brackets "still apply to the same wages", as if DC ignored the deduction.
+{
+  const ageLine = (slug) => {
+    const html = buildStateApplies({ state: taxData.states[slug], obbbaEntry: obbba.states[slug],
+      suppEntry: null, notaxAngle: '', pickFrame: (_s, _salt, arr) => arr[0] });
+    const m = html.match(/data-line="age"><strong>Turning 65:<\/strong> ([^<]*)</);
+    return m ? m[1] : '';
+  };
+  const dc = obbba.states['district-of-columbia'];
+  is('DC senior verdict 2025 is no', dc.senior && dc.senior.y2025, 'no');
+  is('DC senior verdict 2026 is yes', dc.senior && dc.senior.y2026, 'yes');
+  is('DC Turning 65 line says the DC return allows it',
+    ageLine('district-of-columbia').includes('deductible on your District of Columbia return too'), true);
+  is('DC Turning 65 line no longer says the brackets still apply',
+    ageLine('district-of-columbia').includes('still apply to the same wages'), false);
+  // States with no senior verdict keep the line keyed to their own tax structure.
+  is('New York Turning 65 line unchanged', ageLine('new-york').includes("New York's") &&
+    ageLine('new-york').includes('brackets still apply to the same wages'), true);
+  is('Illinois Turning 65 line unchanged', ageLine('illinois').includes('still applies its flat'), true);
+  is('Texas Turning 65 line unchanged', ageLine('texas').includes('Texas'), true);
+}
 
 console.log(`\nOBBBA engine: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
