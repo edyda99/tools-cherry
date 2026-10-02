@@ -626,6 +626,13 @@ function conformityClause(kind) {
   return say ? say(name) : '';
 }
 
+// The same 2026 verdict, bare, for the plain box's "which income tax" sentence
+// in renderAtFiling. '' when the state taxes no wages or has no data.
+function stateVerdict(kind) {
+  const e = ruleData && ruleData.obbba.states && ruleData.obbba.states[stateSlug];
+  return e && e.hasWageTax && e[kind] ? (e[kind].y2026 || '') : '';
+}
+
 // --- tips, inside the take-home summary --------------------------------------
 // ONE FUNCTION, TWO MODES, THREE ENGINE DIFFERENCES. Everything the tips block,
 // the headline, the caption and the bar say about tips comes from here, so those
@@ -974,6 +981,7 @@ function filingRows(input, magi, mergeTips, ret) {
       // leaves this empty and is left out of that sentence: there is no dollar
       // of a $6,000 age allowance for Social Security to reach.
       fica: 'your tips',
+      kind: 'tips',
       // Both numbers, always, the moment the cap or the phase-out binds: "your
       // tips" and "the deductible amount" are the same figure only until it does.
       note: d.deduction < rules.tips
@@ -1052,6 +1060,7 @@ function filingRows(input, magi, mergeTips, ret) {
       saved: chain(d.deduction),
       pending,
       fica: paidExtra > 0 ? 'that overtime pay' : '',
+      kind: 'overtime',
       note,
       extra: conformityClause('overtime')
     });
@@ -1378,9 +1387,28 @@ function renderAtFiling(input, r, mergeTips) {
   // tax too, and not always down (see stateReturnRows), so the sentence says
   // they CHANGE it rather than lower it; the point of the sentence (not Social
   // Security or Medicare) survives either way.
-  const incomeTaxes = shown.some((row) => row.state)
-    ? `the deductions change only your federal and ${escLbl(stateName)} income tax.`
-    : `the deduction lowers federal income tax only.`;
+  //
+  // Without a state row, a state whose return allows the deduction (verdict
+  // "yes") is named too: the note above already says "It is deductible on your
+  // <State> return too", and "federal income tax only" under it said the
+  // opposite. Each wage row is judged on its own verdict, because a state can
+  // allow one and not the other (Colorado 2026: tips yes, overtime no).
+  const wageRows = shown.filter((row) => row.fica);
+  const stateToo = wageRows.filter((row) => stateVerdict(row.kind) === 'yes');
+  const fedOnly = wageRows.filter((row) => stateVerdict(row.kind) !== 'yes');
+  const kindsOf = (list) => list.map((row) => row.kind).join(' and ');
+  let incomeTaxes;
+  if (shown.some((row) => row.state)) {
+    incomeTaxes = `the deductions change only your federal and ${escLbl(stateName)} income tax.`;
+  } else if (stateToo.length && !fedOnly.length) {
+    incomeTaxes = `the ${stateToo.length > 1 ? 'deductions lower' : 'deduction lowers'} only your federal and ` +
+      `${escLbl(stateName)} income tax.`;
+  } else if (stateToo.length) {
+    incomeTaxes = `the ${kindsOf(stateToo)} deduction lowers only your federal and ${escLbl(stateName)} income tax, ` +
+      `and the ${kindsOf(fedOnly)} deduction lowers federal income tax only.`;
+  } else {
+    incomeTaxes = `the deduction lowers federal income tax only.`;
+  }
   let plain = '';
   if (shown.length) {
     plain = `<div class="otw-plain">This is money back when you file next year, as a bigger refund or a smaller ` +

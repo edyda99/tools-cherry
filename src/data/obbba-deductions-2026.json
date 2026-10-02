@@ -482,6 +482,24 @@
         "y2025": "yes",
         "y2026": "yes"
       },
+      "senior": {
+        "y2025": "yes",
+        "y2026": "yes",
+        "note": "North Dakota starts from your federal taxable income and follows federal changes automatically, so the $6,000 federal senior deduction lowers your North Dakota tax too, for 2025 and 2026.",
+        "checkedOn": "2026-10-02",
+        "source": "https://www.tax.nd.gov/sites/www/files/documents/forms/individual/2025-iit/2025-individual-income-tax-booklet.pdf",
+        "sourceTitle": "North Dakota 2025 individual income tax booklet",
+        "_sourceNote": "2025 booklet: 'The starting point for computing North Dakota taxable income perpetually conforms to the computation of federal taxable income. As a result, the federal changes to income and deductions that impact the computation of federal taxable income are by default included in the starting point for computing North Dakota taxable income for all years.' It then lists 'an additional $6,000 for some seniors'. N.D.C.C. 57-38-30.3(2): 'North Dakota taxable income' means the federal taxable income of an individual 'as computed under the Internal Revenue Code of 1986, as amended' (https://ndlegis.gov/cencode/t57c38.pdf). Schedule ND-1SA has no add-back for it. No regular session in 2026; the January and September 2026 special sessions passed nothing touching chapter 57-38."
+      },
+      "carLoan": {
+        "y2025": "yes",
+        "y2026": "yes",
+        "note": "North Dakota starts from your federal taxable income and follows federal changes automatically, so the federal car loan interest deduction lowers your North Dakota tax too, for 2025 and 2026.",
+        "checkedOn": "2026-10-02",
+        "source": "https://www.tax.nd.gov/sites/www/files/documents/forms/individual/2025-iit/2025-individual-income-tax-booklet.pdf",
+        "sourceTitle": "North Dakota 2025 individual income tax booklet",
+        "_sourceNote": "2025 booklet: 'The starting point for computing North Dakota taxable income perpetually conforms to the computation of federal taxable income. As a result, the federal changes to income and deductions that impact the computation of federal taxable income are by default included in the starting point for computing North Dakota taxable income for all years.' N.D.C.C. 57-38-30.3(2) (IRC 'as amended'). Office of State Tax Commissioner, OBBBA impacts presentation to the interim committee (https://ndlegis.gov/sites/default/files/pdf/committees/69-2025/27.5038.02000presentation1300.pdf): 'e. Deduction for certain auto loan interest up to $10,000 2025-2028' with an estimated cost to North Dakota collections of $3 million in each of FY26 and FY27. Schedule ND-1SA has no add-back for it; the 2026 special sessions passed nothing touching chapter 57-38."
+      },
       "note": "North Dakota is a rolling-conformity state that starts from federal taxable income, so it automatically incorporates the federal overtime and tips deductions for tax years 2025–2028. No decoupling legislation has been enacted.",
       "source": "https://tax.thomsonreuters.com/blog/state-decoupling-from-federal-tax-provisions/"
     },
@@ -498,7 +516,21 @@
       },
       "senior": {
         "y2025": "no",
-        "y2026": "yes"
+        "y2026": "yes",
+        "note": "DC does not allow the $6,000 federal senior deduction on your 2025 DC return. From 2026 it does, under the same DC laws as the tips and overtime rule: D.C. Act 26-416, in effect until November 11, 2026, and D.C. Act 26-418, expected to take effect around November 20, 2026.",
+        "checkedOn": "2026-10-02",
+        "source": "https://lims.dccouncil.gov/downloads/LIMS/62240/Signed_Act/B26-0724-Signed_Act.pdf?Id=244265",
+        "sourceTitle": "D.C. Act 26-416, D.C. Code 47-1803.04(d)(9) and (e)(6)",
+        "_sourceNote": "Quoted in this row's _sourceNote: 47-1803.04(d)(9) disallows the 151(d)(5)(C) senior deduction for taxable years beginning before January 1, 2026, and (e)(6) allows it for taxable years beginning after December 31, 2025 (Act PDF page 192)."
+      },
+      "carLoan": {
+        "y2025": "no",
+        "y2026": "yes",
+        "note": "DC does not allow the federal car loan interest deduction on your 2025 DC return. From 2026 it does. The rule is in D.C. Act 26-416, an emergency law in effect until November 11, 2026; the permanent law with the same rule, D.C. Act 26-418, is expected to take effect around November 20, 2026.",
+        "checkedOn": "2026-10-02",
+        "source": "https://lims.dccouncil.gov/downloads/LIMS/62240/Signed_Act/B26-0724-Signed_Act.pdf?Id=244265",
+        "sourceTitle": "D.C. Act 26-416, D.C. Code 47-1803.04(d)(8) and (e)(5)",
+        "_sourceNote": "D.C. Act 26-416 (B26-0724), sec. 7112(e), adds D.C. Code 47-1803.04. Page 191, subsection (d) 'Deductions not allowed': '(8) Personal car loan interest. Any deduction for personal car loan interest allowed under § 163(h)(4) of the Internal Revenue Code of 1986 for taxable years beginning before January 1, 2026'. Page 192, subsection (e) 'Additional deductions allowed': '(5) Personal car loan interest. Any deduction for personal car loan interest allowed under § 163(h)(4) of the Internal Revenue Code of 1986 for taxable years beginning after December 31, 2025'. D.C. Act 26-418 (B26-0661) carries the identical text (https://lims.dccouncil.gov/downloads/LIMS/61627/Signed_Act/B26-0661-Signed_Act.pdf?Id=244269). The row's _watch covers the emergency act's expiry."
       },
       "note": "Under the DC law in effect now, you can take the federal tips and overtime deductions on your DC return starting with tax year 2026. For 2025 you cannot, so for that year they lower your federal tax only. The law in effect now is an emergency DC law (D.C. Act 26-416) that lasts until November 11, 2026. The District's 2027 budget law (D.C. Act 26-418) has the same rule; Congress is reviewing it, and it is expected to take effect around November 20, 2026. DC's tax office has not yet published 2026 forms that show these deductions.",
       "checkedOn": "2026-10-02",
@@ -506,7 +538,7 @@
       "_sourceNote": "Swapped 2026-10-02 off Kiplinger ('Emergency Tax Bill Ends... Tip, Overtime Tax Breaks in D.C.'), which described the December 2025 decoupling (D.C. Act 26-214, then temporary D.C. Law 26-89, effective 2026-02-12, disapproved by Congress in Pub. L. 119-78, expired 2026-09-25). That law disallowed IRC 224 and 225 with no year limit, so it was the basis for the old 2026 'no'. It is superseded. Subtitle VII-I ('Tax Code Conformity and Clarification Emergency Amendment Act of 2026') of the Fiscal Year 2027 Budget Support Emergency Act of 2026, D.C. Act 26-416 (B26-0724, enacted 2026-08-13, 73 DCR 11509, expires 2026-11-11), sec. 7112(e), adds D.C. Code 47-1803.04. Its subsection (d) 'Deductions not allowed' reads: '(6) Qualified tips. Any deduction allowed for qualified tips under § 224 of the Internal Revenue Code of 1986 for taxable years beginning before January 1, 2026; (7) Qualified overtime compensation. A deduction allowed for qualified overtime compensation under § 225 of the Internal Revenue Code of 1986 for taxable years beginning before January 1, 2026'. Its subsection (e) 'Additional deductions allowed' reads: '(3) Qualified tips. Any deduction allowed for qualified tips under § 224 of the Internal Revenue Code of 1986 for taxable years beginning after December 31, 2025; (4) Qualified overtime compensation. A deduction allowed for qualified overtime compensation under § 225 of the Internal Revenue Code of 1986 for taxable years beginning after December 31, 2025'. Sec. 7113: the subtitle applies as of January 1, 2025. The same subsection adds the senior deduction: (d) '(9) Senior deduction. Any deduction for an enhanced senior deduction allowed under § 151(d)(5)(C) of the Internal Revenue Code of 1986 for taxable years beginning before January 1, 2026' and (e) '(6) Senior deduction. Any deduction for an enhanced senior deduction allowed under § 151(d)(5)(C) of the Internal Revenue Code of 1986 for taxable years beginning after December 31, 2025', which is the basis for the senior verdict (2025 'no', 2026 'yes'); the paycheck page's Turning 65 line prints it. (e)(5) likewise allows personal car loan interest under § 163(h)(4) for 2026. Act PDF: https://lims.dccouncil.gov/downloads/LIMS/62240/Signed_Act/B26-0724-Signed_Act.pdf?Id=244265 (pages 191-193; the senior and car-loan items are on page 192). The permanent Fiscal Year 2027 Budget Support Act of 2026, D.C. Act 26-418 (B26-0661, 73 DCR 11735, transmitted to Congress 2026-08-20, LIMS projected law date 2026-11-20), carries the identical text in its subtitle VII-I (pages 189-191 of https://lims.dccouncil.gov/downloads/LIMS/61627/Signed_Act/B26-0661-Signed_Act.pdf?Id=244269). The OCFO fiscal impact statement for the bill (2026-07-07, page 105) says: 'Beginning in tax year 2026, the subtitle couples with certain deductions that were allowed at the federal level under OBBBA by allowing District taxpayers to take deductions for qualified tips, overtime earnings, personal car loan interest, and an enhanced senior deduction of $6,000. These were not authorized deductions in tax year 2025.' 2026 is 'yes' in every branch: if Act 26-418 never became law, the District's rolling conformity (D.C. Code 47-1801.04(28): IRC provisions 'shall apply on the same dates that they are effective for federal tax purposes'; 47-1803.03(b): individual deductions 'the same (and to the same extent) as the deductions allowed by the Internal Revenue Code', with no 224/225 exclusion) would also allow them. Only the 2025 'no' depends on Act 26-418 becoming law. OTR status as of 2026-10-02: no 2026 D-40 or notice lists these deductions yet (its tax notices page has none; the 2025 D-40 booklet says the District does not allow them for 2025). checkedOn is this row's own last-checked date; /what-applies-to-me/ prints it in place of _meta.lastSourced.",
       "_watch": {
         "until": "2026-11-11",
-        "what": "DC's tips/overtime treatment cites emergency D.C. Act 26-416 (B26-0724), which expires 2026-11-11. Its permanent twin, D.C. Act 26-418 (B26-0661), has the same text and a LIMS projected law date of 2026-11-20. Re-verify on https://lims.dccouncil.gov/Legislation/B26-0661 and congress.gov: (1) Act 26-418 became a D.C. Law: point source at it, cite the law number in the note, update checkedOn, clear this watch. (2) Congress enacted a joint resolution disapproving the Fiscal Year 2027 Budget Support Act of 2026: y2026 stays 'yes' (rolling conformity, see _sourceNote) but y2025 likely becomes 'yes' and the note changes. (3) Neither yet: check whether a congressional review emergency act covers the gap after 2026-11-11, cite it, and move until to the new projected law date."
+        "what": "DC's tips/overtime, senior and car loan treatment cites emergency D.C. Act 26-416 (B26-0724), which expires 2026-11-11. Its permanent twin, D.C. Act 26-418 (B26-0661), has the same text and a LIMS projected law date of 2026-11-20. Re-verify on https://lims.dccouncil.gov/Legislation/B26-0661 and congress.gov: (1) Act 26-418 became a D.C. Law: point source at it, cite the law number in the note, update checkedOn, clear this watch. (2) Congress enacted a joint resolution disapproving the Fiscal Year 2027 Budget Support Act of 2026: y2026 stays 'yes' (rolling conformity, see _sourceNote) but y2025 likely becomes 'yes' and the note changes. (3) Neither yet: check whether a congressional review emergency act covers the gap after 2026-11-11, cite it, and move until to the new projected law date."
       }
     },
     "new-mexico": {
@@ -561,6 +593,24 @@
       "tips": {
         "y2025": "yes",
         "y2026": "yes"
+      },
+      "senior": {
+        "y2025": "yes",
+        "y2026": "yes",
+        "note": "Montana's return counts the federal Schedule 1-A deductions, including the $6,000 senior deduction, when it works out your Montana taxable income, so it lowers your Montana tax too. No 2026 law has changed that.",
+        "checkedOn": "2026-10-02",
+        "source": "https://revenuefiles.mt.gov/files/Forms/Montana-Individual-Income-Tax-Return-Form-2-Instructions/2025_Montana_Individual_Income_Tax_Return_Form_2_Instructions.pdf",
+        "sourceTitle": "Montana 2025 Form 2 instructions, page 7",
+        "_sourceNote": "2025 Form 2 instructions, page 7: 'The additional deductions found on Form 1040, Schedule 1-A for qualified tips, qualified overtime compensation, qualified passenger vehicle loan interest, and the enhanced deduction for seniors, are included in the calculation of Montana taxable income.' MCA 15-30-2101(22): 'Montana taxable income' means federal taxable income as determined for federal income tax purposes and adjusted as provided in 15-30-2120; (14) defines the Internal Revenue Code as amended (rolling). The legislature did not meet in 2026 (no regular or special session); the 2027 session starts January 4, 2027, and the 2026 Form 2 is not yet published."
+      },
+      "carLoan": {
+        "y2025": "yes",
+        "y2026": "yes",
+        "note": "Montana's return counts the federal Schedule 1-A deductions, including car loan interest, when it works out your Montana taxable income, so the federal car loan interest deduction lowers your Montana tax too. No 2026 law has changed that.",
+        "checkedOn": "2026-10-02",
+        "source": "https://revenuefiles.mt.gov/files/Forms/Montana-Individual-Income-Tax-Return-Form-2-Instructions/2025_Montana_Individual_Income_Tax_Return_Form_2_Instructions.pdf",
+        "sourceTitle": "Montana 2025 Form 2 instructions, page 7",
+        "_sourceNote": "2025 Form 2 instructions, page 7: 'The additional deductions found on Form 1040, Schedule 1-A for qualified tips, qualified overtime compensation, qualified passenger vehicle loan interest, and the enhanced deduction for seniors, are included in the calculation of Montana taxable income.' MCA 15-30-2101(22) (Montana taxable income is federal taxable income, adjusted) and (14) (rolling IRC). Legislative Fiscal Division, H.R. 1 memo of September 8, 2025, estimates the 'Car Loan Interest Deduction' at ($6.6) million a year of Montana income tax. The legislature did not meet in 2026; the 2027 session starts January 4, 2027."
       },
       "note": "Montana conforms; its 2025 forms allow the tips and overtime deductions.",
       "source": "https://revenuefiles.mt.gov/files/Forms/Montana-Individual-Income-Tax-Return-Form-2-Instructions/2025_Montana_Individual_Income_Tax_Return_Form_2_Instructions.pdf"
@@ -815,8 +865,28 @@
         "y2025": "yes",
         "y2026": "yes"
       },
-      "note": "Arizona adopted full OBBBA conformity in HB 4168, signed June 13, 2026 as part of the FY2026 budget deal. It creates a mandatory individual income-tax subtraction for qualified overtime and tips under A.R.S. §43-1022, retroactive to tax year 2025 and applying to 2026 and forward. (Earlier standalone conformity bills were vetoed in early 2026; the budget resolved it.)",
-      "source": "https://www.currentfederaltaxdevelopments.com/blog/2026/6/14/arizona-hb-4168-title-43-income-tax-overhaul-aligned-with-the-one-big-beautiful-bill-act-obbba"
+      "senior": {
+        "y2025": "yes",
+        "y2026": "yes",
+        "note": "Arizona starts from your federal adjusted gross income, a figure worked out before the $6,000 senior deduction comes off. Arizona's 2026 tax law, HB 4168 (signed June 13, 2026), adds its own rule: you subtract the federal senior deduction on your Arizona return too, for 2025 and later. For 2025, Arizona residents claim it on Form 140, not Form 140A or 140EZ, and part-year residents and nonresidents cannot take it.",
+        "checkedOn": "2026-10-02",
+        "source": "https://www.azleg.gov/ars/43/01022.htm",
+        "sourceTitle": "Arizona Revised Statutes 43-1022, paragraph 35, added by HB 4168 (2026)",
+        "_sourceNote": "A.R.S. 43-1022(35), added by HB 4168 (Laws 2026, ch. 140, approved by the Governor June 13, 2026, https://www.azleg.gov/legtext/57leg/2R/laws/0140.htm): 'For taxable years beginning from and after December 31, 2024, to the extent not already excluded from Arizona gross income under the internal revenue code, the amount deducted for a qualified individual under section 151(d)(5)(C) of the internal revenue code.' Ch. 140 sec. 35(A): 43-1022 as amended applies retroactively to taxable years beginning from and after December 31, 2024. A.R.S. 43-1001(2): Arizona gross income is federal adjusted gross income. Arizona Department of Revenue, 2025 Middle Class Tax Cuts Package worksheet (https://azdor.gov/sites/default/files/document/FORMS_INDIVIDUAL_2025_MCTCP.pdf), line 5 'Enhanced deduction for seniors' goes on Other Adjustments; 'these deductions are not available on the Arizona Form 140A or Arizona Form 140EZ'; 'For 140PY and 140NR filers ONLY qualified tips and overtime compensation included in Arizona gross income may be subtracted.'"
+      },
+      "carLoan": {
+        "y2025": "yes",
+        "y2026": "no",
+        "note": "Arizona lets you subtract the federal car loan interest deduction on your 2025 Arizona return (residents claim it on Form 140, not Form 140A or 140EZ). The subtraction stops after 2025: Arizona's 2026 tax law, HB 4168, allows it for 2025 only.",
+        "checkedOn": "2026-10-02",
+        "source": "https://www.azleg.gov/ars/43/01022.htm",
+        "sourceTitle": "Arizona Revised Statutes 43-1022, paragraph 36, added by HB 4168 (2026)",
+        "_sourceNote": "A.R.S. 43-1022(36), added by HB 4168 (Laws 2026, ch. 140, https://www.azleg.gov/legtext/57leg/2R/laws/0140.htm): 'For taxable years beginning from and after December 31, 2024 through December 31, 2025, to the extent not already excluded from Arizona gross income under the internal revenue code, the amount deducted for qualified passenger vehicle loan interest under section 163(h)(4) of the internal revenue code.' A tax year beginning January 1, 2026 begins after December 31, 2025, so it is outside the window. Arizona Department of Revenue 2025 MCTCP worksheet line 4 (https://azdor.gov/sites/default/files/document/FORMS_INDIVIDUAL_2025_MCTCP.pdf): Form 140 only for residents; 140PY and 140NR filers may subtract only tips and overtime."
+      },
+      "note": "Arizona starts from your federal adjusted gross income, a figure worked out before the federal tips and overtime deductions come off. Arizona's 2026 tax law, HB 4168 (signed June 13, 2026), lets you subtract both deductions on your Arizona return too, for 2025 and later. For 2025, residents claim them on Form 140, not Form 140A or 140EZ.",
+      "checkedOn": "2026-10-02",
+      "source": "https://www.azleg.gov/legtext/57leg/2R/laws/0140.htm",
+      "_sourceNote": "Rewritten 2026-10-02 (the old note called HB 4168 'full OBBBA conformity' and part of 'the FY2026 budget deal', and cited a blog). A.R.S. 43-1022(31) and (32), as amended by HB 4168 (Laws 2026, ch. 140, approved by the Governor June 13, 2026): 'For taxable years beginning from and after December 31, 2024, to the extent not already excluded from Arizona gross income under the internal revenue code, the amount of qualified tips received during the taxable year that is deducted under section 224' (31) and the same for 'qualified overtime compensation ... deducted under section 225' (32); ch. 140 sec. 35(A) makes 43-1022 retroactive to taxable years beginning after December 31, 2024. Current text: https://www.azleg.gov/ars/43/01022.htm. Arizona Department of Revenue 2025 MCTCP worksheet (https://azdor.gov/sites/default/files/document/FORMS_INDIVIDUAL_2025_MCTCP.pdf): residents must file Form 140 to claim them; 140PY and 140NR filers may subtract tips and overtime included in Arizona gross income."
     },
     "colorado": {
       "name": "Colorado",
@@ -828,6 +898,24 @@
       "tips": {
         "y2025": "yes",
         "y2026": "yes"
+      },
+      "senior": {
+        "y2025": "yes",
+        "y2026": "yes",
+        "note": "Colorado starts from your federal taxable income and does not add this deduction back, so the $6,000 federal senior deduction lowers your Colorado tax too, for 2025 and 2026.",
+        "checkedOn": "2026-10-02",
+        "source": "https://content.leg.colorado.gov/sites/default/files/2026-te5-report-federal-tax-law-provisions-and-changes-impact-colorado-accessible.pdf",
+        "sourceTitle": "Colorado State Auditor, report 2026-TE5 (June 29, 2026)",
+        "_sourceNote": "Office of the State Auditor, 'Report on Federal Tax Law Provisions and Changes that Impact the Colorado Tax Base' (2026-TE5, June 29, 2026, after the 2026 session ended): 'Since Colorado starts with federal taxable income for state tax purposes, the new bonus deduction for seniors will automatically apply to Colorado taxable income.' 2025 Colorado Individual Income Tax Guide (Book104_2025), DR 0104 line 1: 'Enter your federal taxable income from your federal income tax form 1040, 1040 SR, or 1040 SP, line 15.' C.R.S. 39-22-103(5.3) defines the Internal Revenue Code as amended from time to time (rolling). The 2026 additions list in C.R.S. 39-22-104(3), as amended through HB26-1289 (2026 Sess. Laws ch. 364), has no senior add-back; its only OBBBA add-back for individuals is overtime (39-22-104(3)(u), HB25-1296). Open edge, not shown on the page: Proposition MM caps the standard or itemized deduction for incomes of $300,000 or more from 2026; its text reaches the deductions under IRC 63(c)/(d), and the senior deduction is under 151(d)(5)(C), so it should not be caught. Re-check against the 2026 DR 0104 when it is published."
+      },
+      "carLoan": {
+        "y2025": "yes",
+        "y2026": "yes",
+        "note": "Colorado starts from your federal taxable income and does not add this deduction back, so the federal car loan interest deduction lowers your Colorado tax too, for 2025 and 2026.",
+        "checkedOn": "2026-10-02",
+        "source": "https://content.leg.colorado.gov/sites/default/files/2026-te5-report-federal-tax-law-provisions-and-changes-impact-colorado-accessible.pdf",
+        "sourceTitle": "Colorado State Auditor, report 2026-TE5 (June 29, 2026)",
+        "_sourceNote": "Office of the State Auditor, report 2026-TE5, 'New: Auto Loan Interest Deduction', Potential State Impact: 'This provision reduces federal taxable income and flows through to Colorado taxable income; therefore, it will reduce Colorado taxable income and state revenue. The Office of State Planning and Budgeting estimated that this provision would reduce state revenues by $25 million to $40 million in FY 2026 and by $30 million to $40 million in FY 2027.' DR 0104 line 1 starts from federal taxable income; C.R.S. 39-22-103(5.3) rolling conformity. The additions in C.R.S. 39-22-104(3), as amended through HB26-1289 (2026 Sess. Laws ch. 364), have no add-back for 163(h)(4) interest; HB25-1296's overtime add-back is the only OBBBA add-back for individuals."
       },
       "note": "Colorado allows the tips deduction both years. The overtime deduction flows through for 2025 but is added back from 2026 (HB25-1296), which is under a pending legal challenge.",
       "source": "https://leg.colorado.gov/bills/hb25-1296"
@@ -914,6 +1002,24 @@
         "y2025": "yes",
         "y2026": "yes"
       },
+      "senior": {
+        "y2025": "yes",
+        "y2026": "yes",
+        "note": "Iowa starts from your federal taxable income, and Iowa's Department of Revenue says Iowa follows the new federal senior deduction, so it lowers your Iowa tax too, for 2025 and 2026.",
+        "checkedOn": "2026-10-02",
+        "source": "https://revenue.iowa.gov/taxes/tax-guidance/withholding-tax/impact-one-big-beautiful-bill-act-employee-withholding",
+        "sourceTitle": "Iowa Department of Revenue, impact of the One Big Beautiful Bill Act on employee withholding",
+        "_sourceNote": "Iowa Department of Revenue: 'Iowa will conform with the federal tax provisions related to no tax on tips, no tax on overtime, no tax on car loan interest, and the new enhanced deduction for senior citizens.' Iowa Code 422.7: 'net income' means 'the taxable income as properly computed for federal income tax purposes under section 63 of the Internal Revenue Code' (https://www.legis.iowa.gov/docs/code/422.7.pdf); 422.3(5)(b) ties tax years from 2020 to the Internal Revenue Code as amended (rolling). 2025 IA 1040 line 2 is 'Federal taxable income from federal 1040, line 15', and the expanded instructions (What's New, line 1f) say the deduction is 'already included in your federal taxable income' (https://revenue.iowa.gov/taxes/tax-guidance/individual-income-tax/1040-expanded-instructions/whats-new). No 2026 Iowa act amends 422.3 or adds a senior add-back to 422.7."
+      },
+      "carLoan": {
+        "y2025": "yes",
+        "y2026": "yes",
+        "note": "Iowa starts from your federal taxable income, and Iowa's Department of Revenue says Iowa follows the federal car loan interest deduction, so it lowers your Iowa tax too, for 2025 and 2026.",
+        "checkedOn": "2026-10-02",
+        "source": "https://revenue.iowa.gov/taxes/tax-guidance/withholding-tax/impact-one-big-beautiful-bill-act-employee-withholding",
+        "sourceTitle": "Iowa Department of Revenue, impact of the One Big Beautiful Bill Act on employee withholding",
+        "_sourceNote": "Iowa Department of Revenue: 'The starting point for Iowa taxable income is federal taxable income. ... Iowa will conform with the federal tax provisions related to no tax on tips, no tax on overtime, no tax on car loan interest, and the new enhanced deduction for senior citizens.' On 2026: 'Similar to tax year 2025, Iowa taxpayers will not be taxed on the qualified portion of tip income, overtime pay, and will be able to benefit from the no tax on car loan interest allowed for federal purposes.' Iowa Code 422.7 (net income is federal taxable income under IRC 63) and 422.3(5)(b) (rolling IRC). The 2026 acts that amend 422.7 (HF 2770, SF 2465, SF 2472) add unrelated subtractions and no car loan add-back."
+      },
       "note": "Iowa conforms (federal-taxable-income base); the deductions flow through to the state return.",
       "source": "https://revenue.iowa.gov/taxes/tax-guidance/withholding-tax/impact-one-big-beautiful-bill-act-employee-withholding"
     },
@@ -927,6 +1033,24 @@
       "tips": {
         "y2025": "yes",
         "y2026": "yes"
+      },
+      "senior": {
+        "y2025": "yes",
+        "y2026": "yes",
+        "note": "Idaho follows the federal tax code as it stood on January 1, 2026, back to 2025, and Idaho's return subtracts the federal Schedule 1-A deductions, so the $6,000 federal senior deduction lowers your Idaho tax too, for 2025 and 2026.",
+        "checkedOn": "2026-10-02",
+        "source": "https://legislature.idaho.gov/wp-content/uploads/sessioninfo/2026/legislation/H0559.pdf",
+        "sourceTitle": "Idaho HB 559 (2026), Internal Revenue Code conformity",
+        "_sourceNote": "HB 559 (2026 Sess. Laws ch. 1), amending Idaho Code 63-3004: the Internal Revenue Code 'as amended and in effect on the first day of January 2026', effective 'retroactively to January 1, 2025'; its only exceptions are IRC 85 and research and experimental costs. Idaho Code 63-3011B: 'taxable income' means federal taxable income as determined under the Internal Revenue Code. 2025 Form 40 instructions (EIN00046, rev. 03-02-2026), 'Line 18 Qualified Business Income and Federal Schedule 1-A Deductions. Add lines 13a and 13b from federal Form 1040 or 1040-SR and enter the total on this line.' (https://tax.idaho.gov/document-manager/forms_EIN00046). Idaho Code 63-3022 has no senior add-back. The 2027 conformity bill, usually retroactive to January 1 of the prior year, is the next point it could change."
+      },
+      "carLoan": {
+        "y2025": "yes",
+        "y2026": "yes",
+        "note": "Idaho follows the federal tax code as it stood on January 1, 2026, back to 2025, and Idaho's return subtracts the federal Schedule 1-A deductions, so the federal car loan interest deduction lowers your Idaho tax too, for 2025 and 2026.",
+        "checkedOn": "2026-10-02",
+        "source": "https://legislature.idaho.gov/wp-content/uploads/sessioninfo/2026/legislation/H0559.pdf",
+        "sourceTitle": "Idaho HB 559 (2026), Internal Revenue Code conformity",
+        "_sourceNote": "HB 559 (2026 Sess. Laws ch. 1), amending Idaho Code 63-3004 to the Internal Revenue Code 'as amended and in effect on the first day of January 2026', 'retroactively to January 1, 2025'. Idaho State Tax Commission, 'Update on filing 2025 Idaho income taxes now that conformity is law' (https://tax.idaho.gov/pressrelease/update-on-filing-2025-idaho-income-taxes-now-that-conformity-is-law/): 'House Bill 559 conforms to most of the provisions in the federal One Big Beautiful Bill Act. This includes the larger standard deduction amounts, the enhanced senior deduction, and the deductions for qualified tips from wages, car loan interest, and overtime compensation.' 2025 Form 40 instructions, line 18 'Qualified Business Income and Federal Schedule 1-A Deductions. Add lines 13a and 13b from federal Form 1040'. Idaho Code 63-3022 has no add-back for it."
       },
       "note": "Idaho starts from federal taxable income and conformed via HB559 (2026), retroactive to 2025 — the deductions flow through.",
       "source": "https://rsmus.com/insights/tax-alerts/2026/idaho-conforms-one-big-beautiful-bill.html"
@@ -1040,8 +1164,28 @@
         "y2025": "yes",
         "y2026": "yes"
       },
-      "note": "Oregon conforms (rolling conformity); the deductions flow through to the state return.",
-      "source": "https://olis.oregonlegislature.gov/liz/2026R1/Measures/Overview/SB1507"
+      "senior": {
+        "y2025": "no",
+        "y2026": "no",
+        "note": "Oregon does not allow the $6,000 federal senior deduction on your Oregon return, in 2025 or 2026. Oregon's tax guide lists the federal deduction for people 65 and older among the federal rules Oregon does not follow, and Oregon's 2026 tax law, SB 1507, did not change that.",
+        "checkedOn": "2026-10-02",
+        "source": "https://www.oregon.gov/dor/forms/FormsPubs/publication-or-17_101-431_2025.pdf",
+        "sourceTitle": "Oregon Publication OR-17 (2025), page 7",
+        "_sourceNote": "Publication OR-17 (150-101-431, Rev. 01-29-26), page 7, 'Oregon exceptions to federal tax law: ... IRC Section 151 deduction for personal exemptions. This includes the deduction for taxpayers who are age 65 or older at the end of the year.' The senior deduction is IRC 151(d)(5)(C). Legislative Revenue Office, Report #2-25 (August 2025), page 2: 'An earlier version of H.R. 1 changed federal law in such a way as to cause Oregon to be automatically connected to the deduction. Ultimately, however, the enacted federal language does not result in an automatic connection.' (https://www.oregonlegislature.gov/lro/Documents/HR%201%20Title%20VII%20Revenue%20Impact%20Estimates%20RR2_25.pdf). SB 1507 (2026 Laws ch. 142) contains no reference to IRC 151. Oregon's own extra standard deduction for age 65 ($1,200 per box for 2025, OR-17) is separate and unaffected. 2026 Oregon forms are not yet published."
+      },
+      "carLoan": {
+        "y2025": "yes",
+        "y2026": "no",
+        "note": "Oregon allows the federal car loan interest deduction on your 2025 Oregon return. From 2026 it does not: Oregon's 2026 tax law, SB 1507, adds the interest back, so it no longer lowers your Oregon tax.",
+        "checkedOn": "2026-10-02",
+        "source": "https://olis.oregonlegislature.gov/liz/2026R1/Downloads/MeasureDocument/SB1507/Enrolled",
+        "sourceTitle": "Oregon SB 1507 (2026), sections 2 and 10",
+        "_sourceNote": "2026 on: SB 1507 (2026 Laws ch. 142) sec. 2, added to ORS chapter 316: 'There shall be added to federal taxable income an amount equal to qualified passenger vehicle loan interest paid by the taxpayer and deducted on the taxpayer's federal income tax return in the tax year, as provided in section 163(h)(4) of the Internal Revenue Code.' Sec. 10(1): 'Sections 2 and 5 of this 2026 Act ... apply to tax years beginning on or after January 1, 2026.' 2025: Publication OR-17 (150-101-431, Rev. 01-29-26), page 69, 'Federal deduction for passenger vehicle interest paid (ORS 316.048) [Subtraction code 392] ... Oregon allows the same deduction for interest paid on a qualifying passenger vehicle loan that is allowed on your federal return' (https://www.oregon.gov/dor/forms/FormsPubs/publication-or-17_101-431_2025.pdf)."
+      },
+      "note": "Oregon follows federal tax law as it changes, so the federal tips and overtime deductions also come off the income Oregon taxes. Oregon's 2026 tax law, SB 1507, does not add them back (it does add back the car loan interest deduction, from 2026).",
+      "checkedOn": "2026-10-02",
+      "source": "https://olis.oregonlegislature.gov/liz/2026R1/Measures/Overview/SB1507",
+      "_sourceNote": "Rewritten 2026-10-02 (the old note was 'Oregon conforms (rolling conformity); the deductions flow through to the state return'). ORS 316.048 makes federal taxable income the Oregon base, and ORS 316.012(2), as amended by SB 1507 sec. 38, ties the definition of taxable income to the Internal Revenue Code as it changes. 2025: Publication OR-17 (150-101-431, Rev. 01-29-26), page 69, 'Federal deduction for tip income (ORS 316.048) [Subtraction code 390] ... Oregon allows the same deduction for tip income that is allowed on your federal return' and 'Federal deduction for overtime wages (ORS 316.048) [Subtraction code 391] ... Oregon allows the same deduction for overtime wages that is allowed on your federal return' (https://www.oregon.gov/dor/forms/FormsPubs/publication-or-17_101-431_2025.pdf). 2026: SB 1507 (2026 Laws ch. 142) makes three additions to federal taxable income for the personal income tax: qualified passenger vehicle loan interest under 163(h)(4) (sec. 2), the 1202 small business stock exclusion (sec. 5) and 168(k) bonus depreciation (sec. 7). It adds nothing back for 224 tips or 225 overtime. Enrolled text: https://olis.oregonlegislature.gov/liz/2026R1/Downloads/MeasureDocument/SB1507/Enrolled. checkedOn is this row's own last-checked date; /what-applies-to-me/ prints it in place of _meta.lastSourced."
     },
     "california": {
       "name": "California",
@@ -1154,8 +1298,19 @@
         "y2025": "no",
         "y2026": "no"
       },
-      "note": "South Carolina's IRC conformity date (December 31, 2024) pre-dates the federal OBBBA, and the 2026 conformity bill (H3368) was not enacted, so the tips (§224) and overtime (§225) deductions must be added back on the South Carolina return — they reduce your federal tax only.",
-      "source": "https://dor.sc.gov/income-tax-south-carolina-internal-revenue-code-conformity-update"
+      "senior": {
+        "y2025": "no",
+        "y2026": "no",
+        "note": "South Carolina does not allow the $6,000 federal senior deduction. For 2025 it follows federal tax law only as it stood at the end of 2024, so you add the deduction back on your South Carolina return. From 2026, South Carolina starts from federal adjusted gross income and uses its own deduction in place of the federal ones.",
+        "checkedOn": "2026-10-02",
+        "source": "https://dor.sc.gov/sites/dor/files/policies/IL26-20.pdf",
+        "sourceTitle": "South Carolina Department of Revenue, Information Letter #26-20",
+        "_sourceNote": "2025: S.C. Code 12-6-40(A)(1)(a), 'Internal Revenue Code' means the Internal Revenue Code of 1986 'as amended through December 31, 2024'; SC Information Letter #26-4 (Revised, January 30, 2026): 'until the South Carolina Legislature addresses conformity, South Carolina taxpayers will need to adjust their return if the following 2025 federal provisions are claimed', item '2. Senior Deduction' (https://dor.sc.gov/income-tax-south-carolina-internal-revenue-code-conformity-update). The 2026 conformity bill H.3368 failed second reading in the Senate on 2026-03-31. 2026: Act 110 (H.4216, signed 2026-03-30) sec. 2 adds IRC 63(b) through (g) to the sections not adopted (12-6-50(21)), first applying to tax years beginning after 2025; Information Letter #26-20 lists the decoupled deductions as '3. Senior deduction; 4. Qualified tip deduction; 5. Overtime deduction; 6. Car loan interest deduction' and says 'the calculation for South Carolina taxable income will begin with federal AGI instead of federal taxable income for tax years beginning after 2025'. South Carolina's own age-65 deduction is separate."
+      },
+      "note": "South Carolina does not allow the federal tips and overtime deductions on your South Carolina return. For 2025 it follows federal tax law only as it stood at the end of 2024, so you add them back. From 2026, South Carolina starts from your federal adjusted gross income, a figure worked out before these deductions come off, so they never reach the South Carolina return.",
+      "checkedOn": "2026-10-02",
+      "source": "https://dor.sc.gov/sites/dor/files/policies/IL26-20.pdf",
+      "_sourceNote": "Rewritten 2026-10-02 (the old note said the deductions 'must be added back' for 2026 as well; from 2026 there is nothing to add back, because the starting point moved to federal AGI). 2025: S.C. Code 12-6-40(A)(1)(a), IRC 'as amended through December 31, 2024'; SC Information Letter #26-4 (Revised, January 30, 2026), 'until the South Carolina Legislature addresses conformity, South Carolina taxpayers will need to adjust their return if the following 2025 federal provisions are claimed', items '3. Tips' and '4. Overtime' (https://dor.sc.gov/income-tax-south-carolina-internal-revenue-code-conformity-update). The conformity bills H.3368, H.5167 and H.5178 were not enacted. 2026: Act 110 of 2026 (H.4216, signed March 30, 2026) adds IRC 63(b) through (g) to the sections South Carolina does not adopt (12-6-50); SC Information Letter #26-20 (August 31, 2026): the decoupled deductions include '4. Qualified tip deduction; 5. Overtime deduction', and 'the calculation for South Carolina taxable income will begin with federal AGI instead of federal taxable income for tax years beginning after 2025'."
     },
     "maine": {
       "name": "Maine",

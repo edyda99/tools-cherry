@@ -472,5 +472,168 @@ eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single'
   is('GA applies line stays generic', line('georgia'), 'federally deductible, with a smaller capped Georgia break on top');
 }
 
+// --- Turning 65 in the states that start from FEDERAL TAXABLE INCOME (checked 2026-10-02) -----
+// The senior deduction (151(d)(5)(C)) comes off before federal taxable income, so a state that
+// starts there gets it unless it adds it back. Colorado, Idaho, Iowa, Montana and North Dakota
+// let it through in 2025 and 2026; Oregon (OR-17: no IRC 151, "includes the deduction for
+// taxpayers who are age 65 or older") and South Carolina (IRC frozen at 2024-12-31, then Act 110
+// drops 63(b)-(g) and starts from AGI) do not. The line used to print the state's flat rate or
+// brackets "to the same wages" for all seven. Minnesota and Vermont start from federal AGI, so the
+// deduction never reaches them and their bracket line was already right.
+{
+  const ageLine = (slug) => {
+    const html = buildStateApplies({ state: taxData.states[slug], obbbaEntry: obbba.states[slug],
+      suppEntry: null, notaxAngle: '', pickFrame: (_s, _salt, arr) => arr[0] });
+    const m = html.match(/data-line="age"><strong>Turning 65:<\/strong> ([^<]*)</);
+    return m ? m[1] : '';
+  };
+  const YES = ['colorado', 'idaho', 'iowa', 'montana', 'north-dakota'];
+  const NO = ['oregon', 'south-carolina'];
+  for (const slug of [...YES, ...NO, 'district-of-columbia']) {
+    const sen = obbba.states[slug].senior || {};
+    is(`${slug} senior row has a plain note`, typeof sen.note === 'string' && sen.note.length > 40, true);
+    is(`${slug} senior note has no em or en dash`, /[\u2013\u2014]/.test(sen.note || ''), false);
+    is(`${slug} senior source is an https URL`, /^https:\/\//.test(sen.source || ''), true);
+    is(`${slug} senior source has a citation title`, typeof sen.sourceTitle === 'string' && sen.sourceTitle.length > 5, true);
+    is(`${slug} senior checkedOn is a date`, /^\d{4}-\d{2}-\d{2}$/.test(sen.checkedOn || ''), true);
+  }
+  for (const slug of YES) {
+    const name = taxData.states[slug].name;
+    is(`${slug} senior 2025`, obbba.states[slug].senior.y2025, 'yes');
+    is(`${slug} senior 2026`, obbba.states[slug].senior.y2026, 'yes');
+    is(`${slug} Turning 65 line says ${name} allows it`,
+      ageLine(slug).includes(`and ${name} allows it on your ${name} return too`), true);
+    is(`${slug} Turning 65 line has no "from 2026" (allowed in 2025 too)`, ageLine(slug).includes('from 2026'), false);
+    is(`${slug} Turning 65 line no longer says the same wages are taxed`, ageLine(slug).includes('to the same wages'), false);
+  }
+  for (const slug of NO) {
+    const name = taxData.states[slug].name;
+    is(`${slug} senior 2025`, obbba.states[slug].senior.y2025, 'no');
+    is(`${slug} senior 2026`, obbba.states[slug].senior.y2026, 'no');
+    is(`${slug} Turning 65 line says ${name} does not allow it`,
+      ageLine(slug).includes(`comes off your federal return only: ${name} does not allow it on your ${name} return`), true);
+  }
+  is('Minnesota (starts from AGI) keeps the bracket line', ageLine('minnesota').includes("Minnesota's") &&
+    ageLine('minnesota').includes('brackets still apply to the same wages'), true);
+  is('Vermont (starts from AGI) keeps the bracket line', ageLine('vermont').includes("Vermont's") &&
+    ageLine('vermont').includes('brackets still apply to the same wages'), true);
+}
+
+// --- Car loan interest (163(h)(4)) on the state return, the two rows that track it ----------
+// Oregon SB 1507 sec. 2 adds it back to federal taxable income for tax years from 2026 (sec.
+// 10(1)); OR-17 subtraction code 392 allowed it for 2025. D.C. Act 26-416, new D.C. Code
+// 47-1803.04(d)(8) disallows it before 2026 and (e)(5) allows it after 2025.
+{
+  const or = obbba.states.oregon.carLoan || {};
+  const dc = obbba.states['district-of-columbia'].carLoan || {};
+  is('OR car loan 2025 is yes', or.y2025, 'yes');
+  is('OR car loan 2026 is no', or.y2026, 'no');
+  is('DC car loan 2025 is no', dc.y2025, 'no');
+  is('DC car loan 2026 is yes', dc.y2026, 'yes');
+  is('OR car loan source is the enrolled SB 1507', or.source,
+    'https://olis.oregonlegislature.gov/liz/2026R1/Downloads/MeasureDocument/SB1507/Enrolled');
+  is('DC car loan source is the signed Act 26-416', /B26-0724-Signed_Act\.pdf/.test(dc.source || ''), true);
+  for (const [nm, r] of [['OR', or], ['DC', dc]]) {
+    is(`${nm} car loan note has no em or en dash`, /[\u2013\u2014]/.test(r.note || ''), false);
+    is(`${nm} car loan has a citation title`, typeof r.sourceTitle === 'string' && r.sourceTitle.length > 5, true);
+    is(`${nm} car loan checkedOn is a date`, /^\d{4}-\d{2}-\d{2}$/.test(r.checkedOn || ''), true);
+  }
+  is('OR car loan note says 2026 is added back', /From 2026 it does not/.test(or.note || ''), true);
+  is('DC car loan note says 2026 is allowed', /From 2026 it does\./.test(dc.note || ''), true);
+}
+
+// --- Car loan interest in the states that start from FEDERAL TAXABLE INCOME (checked 2026-10-02) ---
+// 163(h)(4) comes off before federal taxable income (Schedule 1-A), so these five pick it up for
+// 2025 and 2026 unless they add it back, and none does: Colorado (State Auditor 2026-TE5), Iowa
+// (IDR: "no tax on car loan interest"), Montana (2025 Form 2 instructions p.7), North Dakota
+// (booklet: perpetual conformity; Tax Commissioner OBBBA impacts item e) and Idaho (HB 559).
+// Every other state without a row prints nothing, not a guess.
+{
+  for (const slug of ['colorado', 'iowa', 'montana', 'north-dakota', 'idaho']) {
+    const r = obbba.states[slug].carLoan || {};
+    is(`${slug} car loan 2025 is yes`, r.y2025, 'yes');
+    is(`${slug} car loan 2026 is yes`, r.y2026, 'yes');
+    is(`${slug} car loan source is an https URL`, /^https:\/\//.test(r.source || ''), true);
+    is(`${slug} car loan has a citation title`, typeof r.sourceTitle === 'string' && r.sourceTitle.length > 5, true);
+    is(`${slug} car loan checkedOn`, r.checkedOn, '2026-10-02');
+    is(`${slug} car loan note has no em or en dash`, /[–—]/.test(r.note || ''), false);
+    is(`${slug} car loan note names the state`, (r.note || '').includes(obbba.states[slug].name), true);
+  }
+  is('car loan rows exist for exactly the eight checked states',
+    Object.entries(obbba.states).filter(([, e]) => e && e.carLoan).map(([s]) => s).sort().join(','),
+    ['arizona', 'colorado', 'district-of-columbia', 'idaho', 'iowa', 'montana', 'north-dakota', 'oregon'].join(','));
+}
+
+// --- Arizona: HB 4168 (Laws 2026, ch. 140, signed 2026-06-13) ---------------------------------
+// Arizona starts from federal AGI (A.R.S. 43-1001(2)), so a deduction taken after AGI reaches the
+// Arizona return only through a subtraction. HB 4168 added two to A.R.S. 43-1022: (35) the 151(d)(5)(C)
+// senior deduction for tax years from 2025, and (36) 163(h)(4) car loan interest for 2025 only. The
+// Turning 65 line used to say "Arizona still applies its flat 2.5% to the same wages".
+{
+  const az = obbba.states.arizona;
+  const html = buildStateApplies({ state: taxData.states.arizona, obbbaEntry: az,
+    suppEntry: null, notaxAngle: '', pickFrame: (_s, _salt, arr) => arr[0] });
+  const m = html.match(/data-line="age"><strong>Turning 65:<\/strong> ([^<]*)</);
+  const age = m ? m[1] : '';
+  is('AZ senior 2025 is yes', az.senior && az.senior.y2025, 'yes');
+  is('AZ senior 2026 is yes', az.senior && az.senior.y2026, 'yes');
+  is('AZ Turning 65 line says Arizona allows it', age.includes('and Arizona allows it on your Arizona return too'), true);
+  is('AZ Turning 65 line no longer says the same wages are taxed', age.includes('to the same wages'), false);
+  is('AZ car loan 2025 is yes', az.carLoan && az.carLoan.y2025, 'yes');
+  is('AZ car loan 2026 is no', az.carLoan && az.carLoan.y2026, 'no');
+  for (const [nm, r] of [['senior', az.senior || {}], ['car loan', az.carLoan || {}]]) {
+    is(`AZ ${nm} cites A.R.S. 43-1022 on azleg.gov`, r.source, 'https://www.azleg.gov/ars/43/01022.htm');
+    is(`AZ ${nm} note has no em or en dash`, /[–—]/.test(r.note || ''), false);
+    is(`AZ ${nm} checkedOn is a date`, /^\d{4}-\d{2}-\d{2}$/.test(r.checkedOn || ''), true);
+  }
+  is('AZ senior title names paragraph 35', /paragraph 35/.test(az.senior.sourceTitle), true);
+  is('AZ car loan title names paragraph 36', /paragraph 36/.test(az.carLoan.sourceTitle), true);
+  is('AZ note no longer claims "full OBBBA conformity"', /full OBBBA conformity/.test(az.note), false);
+  is('AZ note cites the chaptered law, not a blog', az.source, 'https://www.azleg.gov/legtext/57leg/2R/laws/0140.htm');
+  is('AZ note has no em or en dash', /[–—]/.test(az.note), false);
+}
+
+// --- South Carolina tips and overtime: 2025 add-back, 2026 AGI start ------------------------------
+// 2025: IRC frozen at 2024-12-31 (12-6-40), so the deductions are added back (IL #26-4 Revised).
+// 2026: Act 110 decouples from IRC 63(b)-(g) and starts from federal AGI (IL #26-20, 2026-08-31),
+// so nothing is added back; the deductions never reach the return. The old note said "must be added
+// back" with no year split. The verdicts stay "no", and so does the senior row (IL #26-20 item 3).
+{
+  const sc = obbba.states['south-carolina'];
+  is('SC tips 2026 stays no', sc.tips.y2026, 'no');
+  is('SC overtime 2026 stays no', sc.overtime.y2026, 'no');
+  is('SC senior 2026 stays no under the AGI start', sc.senior.y2026, 'no');
+  is('SC note splits 2025 (add back) from 2026 (AGI start)',
+    /For 2025 .* add them back/.test(sc.note) && /From 2026, South Carolina starts from your federal adjusted gross income/.test(sc.note), true);
+  is('SC note no longer cites the failed H3368 as the reason', /H3368/.test(sc.note), false);
+  is('SC note has no em or en dash', /[–—]/.test(sc.note), false);
+  is('SC source is Information Letter #26-20', sc.source, 'https://dor.sc.gov/sites/dor/files/policies/IL26-20.pdf');
+  is('SC checkedOn', sc.checkedOn, '2026-10-02');
+}
+
+// --- Oregon tips and overtime: the note says what the law does, in plain words -------------
+// SB 1507 makes three additions to federal taxable income (car loan interest, 1202 stock, 168(k))
+// and none for 224 tips or 225 overtime, so both stay "yes" for 2026. The paycheck page used to
+// print "It is deductible on your Oregon return too." above "the deduction lowers federal income
+// tax only."; renderAtFiling now names the state for a "yes" verdict.
+{
+  const or = obbba.states.oregon;
+  is('OR tips 2026 still yes', or.tips.y2026, 'yes');
+  is('OR overtime 2026 still yes', or.overtime.y2026, 'yes');
+  is('OR note no longer says "conforms (rolling conformity)"', /rolling conformity/.test(or.note), false);
+  is('OR note names SB 1507', or.note.includes('SB 1507'), true);
+  is('OR note has no em or en dash', /[\u2013\u2014]/.test(or.note), false);
+  is('OR checkedOn', or.checkedOn, '2026-10-02');
+  const app = readFileSync(join(__dirname, '../src/assets/app.js'), 'utf8');
+  is('paycheck plain box reads the state verdict for its income-tax sentence',
+    /stateVerdict\(row\.kind\) === 'yes'/.test(app), true);
+  for (const f of ['tips-tax-calculator.js', 'overtime-tax-calculator.js']) {
+    const src = readFileSync(join(__dirname, '../src/assets', f), 'utf8');
+    is(`${f} FICA note reads the state verdict`, src.includes('the deduction lowers ${whichIncomeTax('), true);
+    is(`${f} no longer hard-codes "lowers federal income tax only"`,
+      src.includes('the deduction lowers federal income tax only, claimed'), false);
+  }
+}
+
 console.log(`\nOBBBA engine: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

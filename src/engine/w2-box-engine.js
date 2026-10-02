@@ -46,7 +46,7 @@ export const BOX12_INFO = {
     excludedFromBox1: false,
     box1Note: 'Fully included in Box 1 — your wages were withheld and taxed on this amount as usual. TP does not lower your Box 1; it flags how much of your Box 1 you may deduct later.',
     purpose: 'Flags the dollar amount eligible for the "no tax on tips" deduction (up to $25,000, IRC §224), claimed separately on Schedule 1-A when you file. If TP is present, your employer must also list an occupation code in Box 14b.',
-    ficaNote: 'Social Security and Medicare (FICA) still apply to every tip dollar — the deduction is federal income tax only.',
+    ficaNote: 'Social Security and Medicare (FICA) still apply to every tip dollar. The deduction lowers your federal income tax, and your state income tax only if your state allows it.',
     schedule1A: true,
     requiresBox14b: true
   },
@@ -57,7 +57,7 @@ export const BOX12_INFO = {
     excludedFromBox1: false,
     box1Note: 'Fully included in Box 1 — your wages were withheld and taxed on this amount as usual. TT does not lower your Box 1; it flags how much of your Box 1 you may deduct later.',
     purpose: 'Flags the dollar amount eligible for the "no tax on overtime" deduction (IRC §225), claimed separately on Schedule 1-A when you file. Only the FLSA premium portion is reported — e.g. only the "half" of time-and-a-half.',
-    ficaNote: 'Social Security and Medicare (FICA) still apply to every overtime dollar — the deduction is federal income tax only.',
+    ficaNote: 'Social Security and Medicare (FICA) still apply to every overtime dollar. The deduction lowers your federal income tax, and your state income tax only if your state allows it.',
     schedule1A: true
   }
 };

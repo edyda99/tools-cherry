@@ -3206,7 +3206,44 @@ function obbbaConformityBlock(state, obbba, year) {
   return `<section class="prose"><h2>${h2}</h2>${fed}` +
     `<p><strong>${state.name} state income tax:</strong> ${escHtml(e.note)}${srcLink}</p>` +
     `<ul class="facts">${row('Overtime', e.overtime, otVerdict)}${row('Tips', e.tips)}</ul>` +
+    stateCarLoanLine(e) +
     `<p>${calcLinks}</p></section>`;
+}
+
+// THE CAR-LOAN INTEREST DEDUCTION ON THE STATE RETURN, for the rows that carry a
+// sourced `carLoan` verdict (obbba-deductions-2026.json). Only a handful do: the
+// file does not track car-loan conformity for every state, so a state without
+// the field prints nothing rather than a guess. Shared by the state page's
+// conformity block and the /car-loan-interest-calculator/ answer, so the two say
+// the same thing in the same words.
+function carLoanSourceLink(cl) {
+  if (!cl || !cl.source) return '';
+  let label = cl.sourceTitle || '';
+  if (!label) { try { label = new URL(cl.source).hostname.replace(/^www\./, ''); } catch (_) { return ''; } }
+  return `<a href="${escHtml(cl.source)}" rel="noopener" target="_blank">${escHtml(label)}</a>`;
+}
+function stateCarLoanLine(e) {
+  const cl = e && e.carLoan;
+  if (!cl || !cl.note) return '';
+  const link = carLoanSourceLink(cl);
+  return `<p><strong>Car loan interest:</strong> ${escHtml(cl.note)}` +
+    (link ? ` <span class="muted-small">(source: ${link})</span>` : '') + `</p>`;
+}
+function carLoanStateAnswer(obbba) {
+  const rows = Object.entries((obbba && obbba.states) || {})
+    .filter(([slug, e]) => slug !== '_note' && e && e.carLoan && e.carLoan.note)
+    .sort((a, b) => a[1].name.localeCompare(b[1].name));
+  const named = rows.map(([, e]) => {
+    const link = carLoanSourceLink(e.carLoan);
+    return `<strong>${escHtml(e.name)}:</strong> ${escHtml(e.carLoan.note)}${link ? ` (${link})` : ''}`;
+  });
+  return `<p><strong>Does it lower my state income tax too?</strong> It depends on your state. A state that starts ` +
+    `from your federal taxable income picks it up unless it adds it back. A state that starts ` +
+    `from your federal adjusted gross income does not pick it up on its own, because this deduction comes off ` +
+    `after that figure. A state can still choose to allow it.` +
+    (named.length ? ` The places we have checked:</p><ul>${named.map((n) => `<li>${n}</li>`).join('')}</ul>` +
+      `<p>We have not checked the other states one by one, so if yours is not listed, ask its tax department.</p>`
+      : ` We have not checked the states one by one, so ask your state's tax department.</p>`);
 }
 
 function sourcesBlock(state, p, meta) {
@@ -10132,7 +10169,7 @@ async function main() {
   await mkdir(join(DIST, 'car-loan-interest-calculator'), { recursive: true });
   await writeFile(
     join(DIST, 'car-loan-interest-calculator', 'index.html'),
-    fillTool(carLoanTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON }, '/car-loan-interest-calculator/')
+    fillTool(carLoanTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, CAR_LOAN_STATES: carLoanStateAnswer(obbba) }, '/car-loan-interest-calculator/')
   );
   urls.push(`${SITE.url}/car-loan-interest-calculator/`);
 

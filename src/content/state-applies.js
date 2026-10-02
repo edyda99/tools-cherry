@@ -133,20 +133,34 @@ function bonusLine(name, supp, slug, pickFrame, wp) {
 // filer the District taxes the same wages in full. DC: D.C. Act 26-416, sec.
 // 7112(e), new D.C. Code 47-1803.04(e)(6) allows the 151(d)(5)(C) senior deduction
 // for tax years beginning after December 31, 2025.
+//
+// The states that start from FEDERAL TAXABLE INCOME are the ones the bracket line
+// got wrong: the deduction is already out of the figure they start from, so
+// Colorado, Idaho, Iowa, Montana and North Dakota let it through, and their line
+// used to say the state still applies its flat rate or its brackets "to the same wages". Each now
+// carries a sourced senior verdict. A state that starts there and still refuses it
+// (Oregon, South Carolina) carries a "no", and says so in words, because a reader
+// who knows the state starts from federal taxable income would assume the opposite.
 function seniorLine(state, pickFrame, wp, obbbaEntry) {
   const t = state.tax;
-  const seniorV = obbbaEntry && obbbaEntry.senior && obbbaEntry.senior.y2026;
+  const sen = obbbaEntry && obbbaEntry.senior;
+  const seniorV = sen && sen.y2026;
+  // Said as the jurisdiction allowing it, not "the deduction ... is deductible". The
+  // District is "the District" and its return the "DC return", as the District writes
+  // them.
+  const isDC = state.slug === 'district-of-columbia';
+  const who = isDC ? 'the District' : state.name;
+  const ret = isDC ? state.abbr : state.name;
   if (wp.hasIncomeTax && seniorV === 'yes') {
-    // Said as the jurisdiction allowing it, not "the deduction ... is deductible". The
-    // District is "the District" and its return the "DC return", as the District writes
-    // them; the year it started is read from the 2025 verdict, so a state that already
+    // The year it started is read from the 2025 verdict, so a state that already
     // allowed it in 2025 gets no "from 2026".
-    const isDC = state.slug === 'district-of-columbia';
-    const who = isDC ? 'the District' : state.name;
-    const ret = isDC ? state.abbr : state.name;
-    const since = obbbaEntry.senior.y2025 === 'yes' ? '' : ', from 2026';
+    const since = sen.y2025 === 'yes' ? '' : ', from 2026';
     return `the $6,000 federal senior deduction comes off your federal return, and ${who} allows it on ` +
       `your ${ret} return too${since}`;
+  }
+  if (wp.hasIncomeTax && seniorV === 'no' && sen.y2025 === 'no') {
+    return `the $6,000 federal senior deduction comes off your federal return only: ${who} does not allow it on ` +
+      `your ${ret} return`;
   }
   if (!wp.hasIncomeTax) {
     // "The whole story" and "all there is to claim" are exclusivity claims about

@@ -1072,6 +1072,106 @@ const PAGES = [
       ['applies-line-names-the-premium', contains('Alabama lets you deduct up to $1,000 of the overtime premium on your Alabama return too')],
     ],
   },
+  {
+    // Car loan interest on the state return (163(h)(4)): Oregon SB 1507 adds it back from
+    // 2026; D.C. Act 26-416 allows it from 2026. Both print under the conformity block.
+    file: 'oregon-paycheck-calculator/index.html',
+    pins: [
+      ['car-loan-line', contains('<strong>Car loan interest:</strong> Oregon allows the federal car loan interest deduction on your 2025 Oregon return. From 2026 it does not:')],
+      ['car-loan-source-named', contains('>Oregon SB 1507 (2026), sections 2 and 10</a>')],
+    ],
+  },
+  {
+    file: 'district-of-columbia-paycheck-calculator/index.html',
+    pins: [
+      ['car-loan-line', contains('<strong>Car loan interest:</strong> DC does not allow the federal car loan interest deduction on your 2025 DC return. From 2026 it does.')],
+      ['car-loan-source-named', contains('>D.C. Act 26-416, D.C. Code 47-1803.04(d)(8) and (e)(5)</a>')],
+    ],
+  },
+  {
+    file: 'car-loan-interest-calculator/index.html',
+    pins: [
+      ['state-question-answered', contains('<strong>Does it lower my state income tax too?</strong>')],
+      ['state-answer-names-dc', contains('<li><strong>District of Columbia:</strong> DC does not allow')],
+      ['state-answer-names-oregon', contains('<li><strong>Oregon:</strong> Oregon allows')],
+      ['state-answer-names-arizona', contains('<li><strong>Arizona:</strong> Arizona lets you subtract')],
+      ['state-answer-names-colorado', contains('<li><strong>Colorado:</strong> Colorado starts from your federal taxable income')],
+      ['state-answer-names-idaho', contains('<li><strong>Idaho:</strong> Idaho follows the federal tax code')],
+      ['state-answer-names-iowa', contains('<li><strong>Iowa:</strong> Iowa starts from your federal taxable income')],
+      ['state-answer-names-montana', contains('<li><strong>Montana:</strong> Montana')],
+      ['state-answer-names-north-dakota', contains('<li><strong>North Dakota:</strong> North Dakota starts from your federal taxable income')],
+      ['taxable-income-start-explained', contains('A state that starts from your federal taxable income picks it up unless it adds it back.')],
+      ['unchecked-states-told-to-ask', contains('We have not checked the other states one by one, so if yours is not listed, ask its tax department.')],
+      ['no-unfilled-placeholder', absent('{{CAR_LOAN_STATES}}')],
+    ],
+  },
+  {
+    // Car loan interest in a state that starts from federal taxable income (State Auditor 2026-TE5).
+    file: 'colorado-paycheck-calculator/index.html',
+    pins: [
+      ['car-loan-line', contains('<strong>Car loan interest:</strong> Colorado starts from your federal taxable income and does not add this deduction back')],
+      ['car-loan-source-named', contains('>Colorado State Auditor, report 2026-TE5 (June 29, 2026)</a>')],
+    ],
+  },
+  {
+    // A state the data does not track for car loan prints no car loan line at all.
+    file: 'michigan-paycheck-calculator/index.html',
+    pins: [
+      ['no-car-loan-line-for-an-unchecked-state', absent('<strong>Car loan interest:</strong>')],
+    ],
+  },
+  {
+    // Turning 65 in a state that starts from federal taxable income: Colorado lets the
+    // senior deduction through, Oregon does not (OR-17, page 7).
+    file: 'colorado-paycheck-calculator/index.html',
+    pins: [
+      ['senior-line-says-colorado-allows-it', contains('and Colorado allows it on your Colorado return too')],
+      ['senior-line-no-longer-says-same-wages', absent('Colorado still applies its flat')],
+    ],
+  },
+  {
+    file: 'oregon-paycheck-calculator/index.html',
+    pins: [
+      ['senior-line-says-oregon-does-not', contains('comes off your federal return only: Oregon does not allow it on your Oregon return')],
+    ],
+  },
+  {
+    // Arizona: HB 4168 subtracts the federal senior deduction (A.R.S. 43-1022(35)) from 2025 and the
+    // car loan interest deduction (43-1022(36)) for 2025 only.
+    file: 'arizona-paycheck-calculator/index.html',
+    pins: [
+      ['senior-line-says-arizona-allows-it', contains('and Arizona allows it on your Arizona return too')],
+      ['senior-line-no-longer-says-same-wages', absent('Arizona still applies its flat')],
+      ['car-loan-line-says-2025-only', contains('The subtraction stops after 2025')],
+      ['car-loan-source-label', contains('Arizona Revised Statutes 43-1022, paragraph 36')],
+    ],
+  },
+  {
+    // South Carolina: 2025 adds the deductions back, 2026 starts from federal AGI (Act 110, IL #26-20).
+    file: 'south-carolina-paycheck-calculator/index.html',
+    pins: [
+      ['sc-note-2026-agi-start', contains('From 2026, South Carolina starts from your federal adjusted gross income')],
+      ['sc-old-note-gone', absent('the 2026 conformity bill (H3368) was not enacted')],
+    ],
+  },
+  {
+    // The tips and overtime deductions are not "federal income tax only": states such as Oregon
+    // allow them too. The decoder has no state picker, so the copy says it generically.
+    file: 'w2-box-decoder/index.html',
+    pins: [
+      ['fica-line-says-states-may-allow-it', contains('The deduction lowers your federal income tax, and your state income tax only if your state allows it')],
+      ['faq-says-states-may-allow-it', contains('your federal income tax, and your state income tax if your state allows it.')],
+      ['no-federal-only-claim', absent('the deduction is federal income tax only')],
+    ],
+  },
+  {
+    // Oregon tips and overtime: the conformity note in plain words, SB 1507 named.
+    file: 'oregon-paycheck-calculator/index.html',
+    pins: [
+      ['tips-overtime-note-plain', contains('Oregon follows federal tax law as it changes, so the federal tips and overtime deductions also come off the income Oregon taxes.')],
+      ['old-jargon-note-gone', absent('Oregon conforms (rolling conformity)')],
+    ],
+  },
 ];
 
 let passed = 0;
