@@ -5434,7 +5434,7 @@ function caProseBlocks(r, rungs, ctx) {
         `income does not move again however much more you earn. ${belowClause} the effective rate on the ` +
         `whole salary — ${pct1(effHere)} — ${gapText}.`;
     } else if (!nextRateHigher) {
-      density = `The band ${S} tops out in runs ${usd0(bandWidth)} from edge to edge, and the band above ` +
+      density = `The band holding the top slice of your income runs ${usd0(bandWidth)} from edge to edge, and the band above ` +
         `it is charged at the same ${pctStr(stTop.rate)}, so there is no rate step left anywhere in ` +
         `${NAME}'s schedule above this salary. A raise is charged at this rate whatever its size.`;
     } else if (atEdge) {
@@ -5443,13 +5443,13 @@ function caProseBlocks(r, rungs, ctx) {
       // knows one thing that one does not — how wide the band is, and how many rungs of the
       // ladder end where a band does — so it says only that.
       density = atEdgeCount > 1
-        ? `The band ${S} tops out in runs ${usd0(bandWidth)} from edge to edge, and it is not the only ` +
+        ? `The band holding the top slice of your income runs ${usd0(bandWidth)} from edge to edge, and it is not the only ` +
           `${NAME} band this ladder walks straight out of: ${numWord(atEdgeCount)} of its ` +
           `${numWord(rungs.length)} rungs stop exactly where a band does.`
-        : `The band ${S} tops out in runs ${usd0(bandWidth)} from edge to edge, and this is the one rung ` +
+        : `The band holding the top slice of your income runs ${usd0(bandWidth)} from edge to edge, and this is the one rung ` +
           `of ${numWord(rungs.length)} on this ladder that stops exactly where a ${NAME} band does.`;
     } else if (bandWidth < 10000) {
-      density = `The band ${S} tops out in is only ${usd0(bandWidth)} wide, so a raise of that size alone ` +
+      density = `The band holding the top slice of your income is only ${usd0(bandWidth)} wide, so a raise of that size alone ` +
         `carries you out of it. Narrow bands at this end of the schedule look punishing and are not: only ` +
         `the slice of income inside each one is charged at its rate.`;
     } else if (intoBand > 0.66) {
@@ -5459,10 +5459,10 @@ function caProseBlocks(r, rungs, ctx) {
       // calls the next step close. The width is still true; the distance is what a reader
       // acts on, so it is the figure the band paragraph prints (the measured raise where
       // the state's deduction or federal subtraction moves with pay, the gap elsewhere).
-      density = `The band ${S} tops out in runs ${usd0(bandWidth)} from edge to edge, but ${S} sits near ` +
+      density = `The band holding the top slice of your income runs ${usd0(bandWidth)} from edge to edge, but ${S} sits near ` +
         `its top, so a raise of about ${usd0(raiseToEdge)} is enough to reach the next ${NAME} rate.`;
     } else {
-      density = `The band ${S} tops out in runs ${usd0(bandWidth)} from edge to edge, so it governs a long ` +
+      density = `The band holding the top slice of your income runs ${usd0(bandWidth)} from edge to edge, so it governs a long ` +
         `stretch of income. A raise has to be substantial before any of it is charged at a higher ` +
         `${NAME} rate.`;
     }
@@ -5498,7 +5498,7 @@ function caProseBlocks(r, rungs, ctx) {
     push('caband',
       `<h3>${frame('cah', [
         `How far up ${NAME}'s ladder ${S} reaches`,
-        `Which of ${NAME}'s bands ${S} tops out in`,
+        `Where ${S} lands in ${NAME}'s bands`,
         `${S} against ${NAME}'s own schedule`,
       ])}</h3>` +
       `<p>${NAME} taxes a single filer through ${numWord(caBandsTotal)} bands. ${S} reaches the ` +
