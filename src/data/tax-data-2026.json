@@ -2353,6 +2353,89 @@
       "figureYear": 2026,
       "tax": {
         "type": "bracket",
+        "federalTaxSubtraction": {
+          "label": "Federal income tax subtraction",
+          "inWithholdingFormula": true,
+          "capByAgi": {
+            "single": [
+              {
+                "agiUnder": 125000,
+                "cap": 8750
+              },
+              {
+                "agiUnder": 130000,
+                "cap": 7000
+              },
+              {
+                "agiUnder": 135000,
+                "cap": 5250
+              },
+              {
+                "agiUnder": 140000,
+                "cap": 3500
+              },
+              {
+                "agiUnder": 145000,
+                "cap": 1750
+              },
+              {
+                "cap": 0
+              }
+            ],
+            "married": [
+              {
+                "agiUnder": 250000,
+                "cap": 8750
+              },
+              {
+                "agiUnder": 260000,
+                "cap": 7000
+              },
+              {
+                "agiUnder": 270000,
+                "cap": 5250
+              },
+              {
+                "agiUnder": 280000,
+                "cap": 3500
+              },
+              {
+                "agiUnder": 290000,
+                "cap": 1750
+              },
+              {
+                "cap": 0
+              }
+            ],
+            "head_of_household": [
+              {
+                "agiUnder": 250000,
+                "cap": 8750
+              },
+              {
+                "agiUnder": 260000,
+                "cap": 7000
+              },
+              {
+                "agiUnder": 270000,
+                "cap": 5250
+              },
+              {
+                "agiUnder": 280000,
+                "cap": 3500
+              },
+              {
+                "agiUnder": 290000,
+                "cap": 1750
+              },
+              {
+                "cap": 0
+              }
+            ]
+          },
+          "_statute": "ORS 316.680(1)(b) and ORS 316.695(3)",
+          "_source": "ORS 316.680(1)(b) lets an Oregon filer subtract 'The amount of any federal income taxes accrued by the taxpayer during the taxable year as described in ORS 316.685'. ORS 316.695(3) limits it to '$5,500, if the federal adjusted gross income of the taxpayer for the tax year is less than $125,000, or, if reported on a joint return, less than $250,000', with lower limits in $5,000 steps ($10,000 on a joint return) until, at $145,000 or more ($290,000 or more on a joint return), 'the limit is zero'. ORS 316.695(3)(e) adds that 'the limits applicable to a joint return shall apply to a head of household or a surviving spouse'. The limits are indexed for inflation, and for 2026 the Oregon Withholding Tax Formulas (150-206-436, Rev. 12-31-25) print them as $8,750 below $125,000 ($250,000 joint), then $7,000, $5,250, $3,500 and $1,750 in each following step, and $0 from $145,000 ($290,000 joint). The 2025 Form OR-40 instructions define the amount as 'your federal income tax after all credits other than the earned income tax credit (EITC)', starting from Form 1040 line 22. https://www.oregonlegislature.gov/bills_laws/ors/ors316.html ; https://www.oregon.gov/dor/forms/FormsPubs/withholding-tax-formulas_206-436_2026.pdf ; https://www.oregon.gov/dor/forms/FormsPubs/form-or-40-inst_101-040-1_2025.pdf"
+        },
         "standardDeduction": {
           "single": 2910,
           "married": 5820,
@@ -2415,15 +2498,15 @@
           ]
         }
       },
-      "_source": "Oregon tax year 2026 individual income tax rate charts and standard deduction per the OFFICIAL Oregon Dept. of Revenue 2026 Publication OR-ESTIMATE (150-101-026) and the 2026 Oregon Withholding Tax Formulas (150-206-436, Rev. 12-31-25). Oregon is inflation-indexed for the lower brackets (the two top breakpoints $125,000/$250,000 are statutory). Four statutory rates 4.75%/6.75%/8.75%/9.9%. Chart S (Single / Married filing separately): 4.75% to $4,550, 6.75% to $11,400, 8.75% to $125,000, 9.9% above. Chart J (Married filing jointly / Head of household / Qualifying surviving spouse): 4.75% to $9,100, 6.75% to $22,800, 8.75% to $250,000, 9.9% above. STANDARD DEDUCTION, corrected 2026-08-02. Publication OR-ESTIMATE prints its numbers under the heading 'Estimated Oregon indexed figures for tax year 2026' and lists $2,900 single/MFS, $4,650 head of household, $5,800 MFJ/QSS. The later Oregon Withholding Tax Formulas 150-206-436 (Rev. 12-31-25), titled 'Oregon Withholding Tax Formulas, Effective January 1, 2026' and stating that it 'reflects changes to the inflation adjusted amounts (such as exemption credit, standard deduction, and federal tax subtractions)', prints the final figures: FAQ 2, 'What standard deduction amount should be entered for the Oregon formula? For employees claiming single or head of household status, use $2,910 divided by the number of pay periods. For employees claiming married status, use $5,820 divided by the number of pay periods.' Its formulas repeat 'standard deduction ($2,910[S])' and '($5,820[M])'. So single is $2,910 and married is $5,820 here. HEAD OF HOUSEHOLD stays at $4,650: 150-206-436 gives head-of-household filers the single figure because that is a withholding convention, not the annual return amount, and Oregon's own head-of-household standard deduction is larger; $4,650 is the only 2026 head-of-household figure Oregon has published, so it stands until the 2026 Form OR-40 instructions appear. Some secondary sources (e.g. ustax.tools) still list stale prior-year breakpoints ($4,050/$10,200 single, $8,100/$20,400 joint) under a 2026 label; the official DOR 2026 charts override them. Modeled state-only. https://www.oregon.gov/dor/forms/FormsPubs/publication-or-estimate_101-026_2026.pdf ; https://www.oregon.gov/dor/forms/FormsPubs/withholding-tax-formulas_206-436_2026.pdf",
+      "_source": "Oregon tax year 2026 individual income tax rate charts and standard deduction per the OFFICIAL Oregon Dept. of Revenue 2026 Publication OR-ESTIMATE (150-101-026) and the 2026 Oregon Withholding Tax Formulas (150-206-436, Rev. 12-31-25). Oregon is inflation-indexed for the lower brackets (the two top breakpoints $125,000/$250,000 are statutory). Four statutory rates 4.75%/6.75%/8.75%/9.9%. Chart S (Single / Married filing separately): 4.75% to $4,550, 6.75% to $11,400, 8.75% to $125,000, 9.9% above. Chart J (Married filing jointly / Head of household / Qualifying surviving spouse): 4.75% to $9,100, 6.75% to $22,800, 8.75% to $250,000, 9.9% above. STANDARD DEDUCTION, corrected 2026-08-02. Publication OR-ESTIMATE prints its numbers under the heading 'Estimated Oregon indexed figures for tax year 2026' and lists $2,900 single/MFS, $4,650 head of household, $5,800 MFJ/QSS. The later Oregon Withholding Tax Formulas 150-206-436 (Rev. 12-31-25), titled 'Oregon Withholding Tax Formulas, Effective January 1, 2026' and stating that it 'reflects changes to the inflation adjusted amounts (such as exemption credit, standard deduction, and federal tax subtractions)', prints the final figures: FAQ 2, 'What standard deduction amount should be entered for the Oregon formula? For employees claiming single or head of household status, use $2,910 divided by the number of pay periods. For employees claiming married status, use $5,820 divided by the number of pay periods.' Its formulas repeat 'standard deduction ($2,910[S])' and '($5,820[M])'. So single is $2,910 and married is $5,820 here. HEAD OF HOUSEHOLD stays at $4,650: 150-206-436 gives head-of-household filers the single figure because that is a withholding convention, not the annual return amount, and Oregon's own head-of-household standard deduction is larger; $4,650 is the only 2026 head-of-household figure Oregon has published, so it stands until the 2026 Form OR-40 instructions appear. Some secondary sources (e.g. ustax.tools) still list stale prior-year breakpoints ($4,050/$10,200 single, $8,100/$20,400 joint) under a 2026 label; the official DOR 2026 charts override them. FEDERAL TAX SUBTRACTION, added 2026-10-02: Oregon's subtraction for federal income tax (ORS 316.680(1)(b), limited by ORS 316.695(3)) is applied, with the 2026 limits this same withholding document prints. Modeled state-only. https://www.oregon.gov/dor/forms/FormsPubs/publication-or-estimate_101-026_2026.pdf ; https://www.oregon.gov/dor/forms/FormsPubs/withholding-tax-formulas_206-436_2026.pdf",
       "disclaimer": [
         "Local income taxes are not included. Oregon localities (e.g. Portland Metro Supportive Housing Services tax and Multnomah County Preschool For All tax) levy SEPARATE local personal income taxes that are not modeled here.",
-        "Oregon allows a subtraction for federal income tax paid (up to $8,750 for 2026, phased out at higher incomes). This subtraction is NOT modeled, so estimates for filers who claim it will run HIGHER than the actual Oregon tax.",
+        "Oregon lets you subtract the federal income tax you owe from the income it taxes, up to $8,750 for 2026, and this estimate applies it. It uses the federal income tax this estimate works out from your pay, so other income or credits on your real return would change it. The limit steps down once federal adjusted gross income reaches $125,000 ($250,000 for married filing jointly and head of household) and is zero from $145,000 ($290,000). Married filing separately gets half the limit, which this estimate does not apply.",
         "Head of household uses Oregon's Chart J brackets (same as married filing jointly) but its own $4,650 standard deduction, per the DOR rate charts.",
         "Oregon's Statewide Transit Tax is now included. It is one-tenth of 1% of your wages, comes out of your pay, and has no wage cap, so on $75,000 it is $75 a year.",
         "Oregon's personal exemption credit ($260/exemption for 2026), Earned Income Credit, and other credits/subtractions are not modeled."
       ],
-      "notes": "Progressive 4.75%-9.9% (4 brackets, official 2026 inflation-indexed/statutory charts). Federal-tax subtraction and separate Portland/Multnomah local income taxes not modeled."
+      "notes": "Progressive 4.75%-9.9% (4 brackets, official 2026 inflation-indexed/statutory charts). Federal income tax subtraction included (up to $8,750, phased out from $125,000 single or $250,000 joint). Separate Portland/Multnomah local income taxes not modeled."
     },
     "california": {
       "name": "California",
@@ -2585,6 +2668,50 @@
       },
       "tax": {
         "type": "bracket",
+        "federalTaxSubtraction": {
+          "label": "Federal income tax deduction",
+          "inWithholdingFormula": false,
+          "shareByAgi": [
+            {
+              "agiUpTo": 25000,
+              "share": 0.35
+            },
+            {
+              "agiUpTo": 50000,
+              "share": 0.25
+            },
+            {
+              "agiUpTo": 100000,
+              "share": 0.15
+            },
+            {
+              "agiUpTo": 125000,
+              "share": 0.05
+            },
+            {
+              "share": 0
+            }
+          ],
+          "capByAgi": {
+            "single": [
+              {
+                "cap": 5000
+              }
+            ],
+            "married": [
+              {
+                "cap": 10000
+              }
+            ],
+            "head_of_household": [
+              {
+                "cap": 5000
+              }
+            ]
+          },
+          "_statute": "RSMo 143.171.2",
+          "_source": "Section 143.171 RSMo allows 'a deduction equal to a percentage of his or her federal income tax liability under Chapter 1 of the Internal Revenue Code for the same taxable year for which the Missouri return is being filed, not to exceed five thousand dollars on a single taxpayer's return or ten thousand dollars on a combined return, after reduction for all credits thereon'. The percentage is 35 percent at '$25,000 or less', 25 percent 'From $25,001 to $50,000', 15 percent 'From $50,001 to $100,000', 5 percent 'From $100,001 to $125,000' and 0 percent at '$125,001 or more'. The 2025 Form MO-1040 instructions apply the percentage first and the cap second ('Multiply Line 11 by the percentage on Line 12. Enter this amount not to exceed $5,000 for an individual or $10,000 for combined filers') and start the federal figure from Form 1040 line 22. Missouri's 2026 withholding formula does not include this deduction. https://revisor.mo.gov/main/OneSection.aspx?section=143.171 ; https://dor.mo.gov/forms/MO-1040%20Instructions_2025.pdf ; https://dor.mo.gov/forms/Withholding%20Formula_2026.pdf"
+        },
         "standardDeduction": {
           "single": 16100,
           "married": 32200,
@@ -2695,13 +2822,13 @@
           ]
         }
       },
-      "_source": "Tax year 2026 Missouri brackets and standard deduction come from the Missouri Department of Revenue's 2026 Missouri Withholding Tax Formula and are confirmed by the tax rate chart on the 2026 Form MO-1040ES. Missouri applies one graduated schedule to every filing status: no tax on the first $1,348 of Missouri taxable income, then 2.0%, 2.5%, 3.0%, 3.5%, 4.0% and 4.5% in $1,348 steps, with the top rate of 4.7% on income over $9,436. Only the standard deduction changes with filing status, and for 2026 it matches the federal amounts: $16,100 single or married filing separate, $32,200 married when the spouse does not work, and $24,150 head of household. Separately from withholding, Section 143.171 RSMo still allows Missouri filers to deduct part of their federal income tax on the annual return. The deduction is a percentage of federal income tax liability set by Missouri adjusted gross income (35% at $25,000 or less, 25% from $25,001 to $50,000, 15% from $50,001 to $100,000, 5% from $100,001 to $125,000, 0% at $125,001 or more), capped at $5,000 per return or $10,000 on a married filing combined return, and it is claimed on Form MO-1040. Missouri's withholding formula does not apply it, so it does not affect your paycheck, and this paycheck estimate follows the withholding formula. Sources: https://dor.mo.gov/forms/Withholding%20Formula_2026.pdf , https://dor.mo.gov/forms/MO-1040ES_2026.pdf , https://revisor.mo.gov/main/OneSection.aspx?section=143.171",
+      "_source": "Tax year 2026 Missouri brackets and standard deduction come from the Missouri Department of Revenue's 2026 Missouri Withholding Tax Formula and are confirmed by the tax rate chart on the 2026 Form MO-1040ES. Missouri applies one graduated schedule to every filing status: no tax on the first $1,348 of Missouri taxable income, then 2.0%, 2.5%, 3.0%, 3.5%, 4.0% and 4.5% in $1,348 steps, with the top rate of 4.7% on income over $9,436. Only the standard deduction changes with filing status, and for 2026 it matches the federal amounts: $16,100 single or married filing separate, $32,200 married when the spouse does not work, and $24,150 head of household. Separately from withholding, Section 143.171 RSMo still allows Missouri filers to deduct part of their federal income tax on the annual return. The deduction is a percentage of federal income tax liability set by Missouri adjusted gross income (35% at $25,000 or less, 25% from $25,001 to $50,000, 15% from $50,001 to $100,000, 5% from $100,001 to $125,000, 0% at $125,001 or more), capped at $5,000 per return or $10,000 on a married filing combined return, and it is claimed on Form MO-1040. Missouri's withholding formula does not apply it, so it does not change what your employer withholds. This estimate models the annual return, so it applies the deduction (added 2026-10-02). Sources: https://dor.mo.gov/forms/Withholding%20Formula_2026.pdf , https://dor.mo.gov/forms/MO-1040ES_2026.pdf , https://revisor.mo.gov/main/OneSection.aspx?section=143.171",
       "disclaimer": [
         "Local income taxes are not included. Missouri cities of Kansas City and St. Louis levy a separate 1% local earnings tax on wages, which is not included in this estimate.",
         "Missouri's standard deduction conforms to the federal standard deduction. Not modeled here: the additional standard deduction for taxpayers age 65 or older or blind, the $1,400 additional exemption Missouri gives head of household and qualifying widow(er) filers on the annual return, and Missouri tax credits.",
-        "Missouri still lets you deduct part of your federal income tax when you file your annual return, under Section 143.171 RSMo. The deduction is a percentage of your federal income tax liability set by your Missouri adjusted gross income: 35% at $25,000 or less, 25% from $25,001 to $50,000, 15% from $50,001 to $100,000, 5% from $100,001 to $125,000, and 0% at $125,001 or more. It is capped at $5,000 per return, or $10,000 on a married filing combined return. Missouri's withholding formula does not apply this deduction, so it does not change your paycheck and this estimate leaves it out. Claim it on Form MO-1040 when you file."
+        "Missouri lets you deduct part of your federal income tax on your annual return, under Section 143.171 RSMo, and this estimate applies it. It uses the federal income tax this estimate works out from your pay, so other income or credits on your real return would change it. The share depends on your Missouri adjusted gross income: 35% at $25,000 or less, 25% from $25,001 to $50,000, 15% from $50,001 to $100,000, 5% from $100,001 to $125,000, and 0% at $125,001 or more. It is capped at $5,000 per return, or $10,000 on a married filing combined return. Missouri's withholding formula leaves this deduction out, so your employer will usually withhold a little more Missouri tax than this estimate shows, and you get the difference back when you file Form MO-1040."
       ],
-      "notes": "Progressive 0%-4.70% (official 2026 inflation-indexed brackets, top band over $9,436 of taxable income). Federal-conformed standard deduction. Separate 1% local earnings tax in Kansas City and St. Louis not included."
+      "notes": "Progressive 0%-4.70% (official 2026 inflation-indexed brackets, top band over $9,436 of taxable income). Federal-conformed standard deduction. Partial federal income tax deduction (Section 143.171 RSMo) applied. Separate 1% local earnings tax in Kansas City and St. Louis not included."
     },
     "kansas": {
       "name": "Kansas",
@@ -3010,6 +3137,33 @@
       "figureYear": 2026,
       "tax": {
         "type": "bracket",
+        "standardDeductionPhaseout": {
+          "_statute": "Ala. Code 40-18-15(b)(4), tax years beginning after December 31, 2021",
+          "single": {
+            "over": 25500,
+            "per": 500,
+            "reduceBy": 25,
+            "minimum": 2500
+          },
+          "married": {
+            "over": 25500,
+            "per": 500,
+            "reduceBy": 175,
+            "minimum": 5000
+          },
+          "head_of_household": {
+            "over": 25500,
+            "per": 500,
+            "reduceBy": 135,
+            "minimum": 2500
+          }
+        },
+        "federalTaxSubtraction": {
+          "label": "Federal income tax deduction",
+          "inWithholdingFormula": true,
+          "_statute": "Ala. Code 40-18-15(c); Constitution of Alabama 2022, section 211.04",
+          "_source": "Ala. Code 40-18-15(c): 'A deduction is allowable for the amount of federal income tax paid or accrued within the taxable year.' Section 211.04 of the Constitution of Alabama requires it: 'a resident individual taxpayer shall be allowed to deduct from his gross income the amount of federal income tax paid or accrued within the taxable year.' Neither sets a cap. ADOR rule 810-3-15-.20 defines the accrued amount as the federal 'Tax' amount 'less all credits which reduce the amount of the taxpayer's federal income tax liability'. The same rule lets the filer's method decide which amount is deducted: 'A cash basis taxpayer may allocate his federal income tax deduction on the cash basis or accrual basis', while 'An accrual basis taxpayer must allocate his federal income tax deduction using the accrual basis.' (It also records that, under its power to select the method, 'the Department chooses the accrual basis'.) This estimate uses the accrued amount, the year's own federal liability, which is what the 2025 Form 40 Federal Income Tax Deduction Worksheet computes starting from Form 1040 line 22; a cash-basis filer deducting what was paid in the year would get a different figure. Alabama's 2026 withholding formula also subtracts the employee's annual federal withholding. https://alison.legislature.state.al.us/code-of-alabama?section=40-18-15 ; https://admincode.legislature.state.al.us/administrative-code/810-3-15-.20 ; https://www.revenue.alabama.gov/wp-content/uploads/2026/01/25f40bk.pdf"
+        },
         "standardDeduction": {
           "single": 3000,
           "married": 8500,
@@ -3060,14 +3214,14 @@
           ]
         }
       },
-      "_source": "Alabama individual income tax — statutory three-bracket schedule 2%/4%/5% under Ala. Code § 40-18-5, unchanged for 2026 (no rate change enacted; the 2%/4%/5% structure is long-standing and is the valid 2026 schedule), so figureYear=2026. Single/MFS/HoH thresholds: 2% to $500, 4% to $3,000, 5% above. Married-filing-jointly thresholds (exactly 2x single): 2% to $1,000, 4% to $6,000, 5% above. Confirmed across Tax Foundation 2026, halfpricesoft 2026, icalculator 2026, and AARP 2026 (identical brackets). Standard deduction modeled at the MAXIMUM amounts (single $3,000, MFJ $8,500, HoH $5,200, MFS $4,250), consensus across efile/halfpricesoft/icalculator/nationaltaxreports; the engine uses the max because Alabama's standard deduction is unusual — it is INCOME-PHASED (Standard Deduction Chart, Form 40), declining as Alabama AGI rises toward a lower floor that the engine cannot model. Validated rates vs Tax Foundation 2026 + halfpricesoft 2026 withholding tables. Hand-verified single $75k -> $3,560.00 exact (taxable = 75000-3000 = 72000; = 2%x500 + 4%x2500 + 5%x(72000-3000)). https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/ ; https://www.revenue.alabama.gov/forms/standard-deduction-chart-40-3/",
+      "_source": "Alabama individual income tax: statutory three-bracket schedule 2%/4%/5% under Ala. Code § 40-18-5, unchanged for 2026, so figureYear=2026. Single/MFS/HoH thresholds: 2% to $500, 4% to $3,000, 5% above. Married-filing-jointly thresholds (exactly 2x single): 2% to $1,000, 4% to $6,000, 5% above. Confirmed across Tax Foundation 2026, halfpricesoft 2026, icalculator 2026, and AARP 2026 (identical brackets). STANDARD DEDUCTION, income-phased since 2026-10-02 per Ala. Code § 40-18-15(b)(4) and the ADOR Standard Deduction Chart (Form 40 booklet, page 9): below $25,500 of Alabama AGI it is $3,000 single, $8,500 married filing jointly and $5,200 head of family; each full $500 of AGI over $25,500 takes off $25 single, $175 married or $135 head of family; and it never falls below $2,500 single, $5,000 married or $2,500 head of family, which every status reaches at $35,500. FEDERAL INCOME TAX DEDUCTION, applied since 2026-10-02 per Ala. Code § 40-18-15(c), in full with no cap. Hand-verified single $75,000: standard deduction $2,500 (at its floor), federal income tax $7,670, taxable 75,000 - 2,500 - 7,670 = 64,830, tax = 2% x 500 + 4% x 2,500 + 5% x 61,830 = $3,201.50. https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/ ; https://www.revenue.alabama.gov/forms/standard-deduction-chart-40-3/ ; https://alison.legislature.state.al.us/code-of-alabama?section=40-18-15",
       "disclaimer": [
-        "Alabama's standard deduction is income-based and PHASES DOWN as your Alabama AGI rises (from the maximums shown toward a lower floor); this estimate applies the maximum standard deduction, so for higher incomes the actual tax can be slightly HIGHER than shown.",
+        "Alabama's standard deduction shrinks as income rises, and this estimate follows Alabama's own chart: a single filer gets $3,000, reduced by $25 for each full $500 of Alabama adjusted gross income over $25,500, and $2,500 from $35,500 up. Married filing jointly goes from $8,500 down to $5,000, and head of family from $5,200 down to $2,500, over the same income range.",
         "Alabama's personal exemption ($1,500 single / $3,000 married / and $1,000 per dependent) and the dependent exemption are not modeled, so estimates run slightly high on that account.",
         "Local income taxes are not included. Many Alabama municipalities/counties levy a separate LOCAL occupational (wage) tax (e.g. ~1% in Birmingham, Gadsden, Macon County) that is not included in this estimate.",
-        "The federal income tax deduction Alabama allows, and the 2026 overtime-pay subtraction (up to $1,000), are not modeled."
+        "Alabama lets you deduct all of the federal income tax you owe, with no cap, and this estimate applies it. It uses the federal income tax this estimate works out from your pay, so other income or credits on your real return would change it. The 2026 overtime-pay deduction (up to $1,000 of overtime premium) is not modeled."
       ],
-      "notes": "Progressive 2%-5% (statutory, Ala. Code § 40-18-5), top 5% rate begins at just $3,000 taxable income (single) / $6,000 (married). Standard deduction is income-phased; max amounts modeled. Separate local occupational taxes apply in some cities."
+      "notes": "Progressive 2%-5% (statutory, Ala. Code § 40-18-5), top 5% rate begins at just $3,000 taxable income (single) / $6,000 (married). Standard deduction phases down with income per the ADOR chart, and the full federal income tax deduction is applied. Separate local occupational taxes apply in some cities."
     },
     "south-carolina": {
       "name": "South Carolina",
