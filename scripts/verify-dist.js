@@ -412,7 +412,14 @@ async function verifySeasonal2027(DIST, ROOT) {
         fails.push(`/${COLA_PAGE}/: the calculator starts on ${prefill}% instead of the official ${offCola.percent}%.`);
       if (/not putting a figure of our own|Nobody knows the 2027 increase/i.test(cola))
         fails.push(`/${COLA_PAGE}/: the page still says the 2027 figure is unknown after SSA announced it.`);
-    } else if (!/ESTIMATE/.test(cola)) fails.push(`/${COLA_PAGE}/: the ESTIMATE banner is gone.`);
+    } else {
+      if (!/ESTIMATE/.test(cola)) fails.push(`/${COLA_PAGE}/: the ESTIMATE banner is gone.`);
+      // All three 2026 months in but no announcement yet: the figure is settled
+      // arithmetic, so the page must not still call it unknowable.
+      const q3Done = ['2026-07', '2026-08', '2026-09'].every((k) => proj.cpiw.q3_2026[k] != null);
+      if (q3Done && /Nobody knows the 2027 increase|still unpublished|still outstanding|not putting a figure of our own/i.test(cola))
+        fails.push(`/${COLA_PAGE}/: all three CPI-W months are published but the page still says the 2027 figure is unknown.`);
+    }
     if (!/id="benefit"/.test(cola) || !/id="colaPct"/.test(cola))
       fails.push(`/${COLA_PAGE}/: the benefit calculator inputs are missing — that calculator is the ` +
         'only part of this page that works before the data exists, so without it the page is a stub.');

@@ -10567,6 +10567,10 @@ async function main() {
     // are derived from the data now, so they cannot go stale as months land.
     const q3Out = q3CurStatus.present.length;
     const q3Left = q3CurStatus.missing.length;
+    // All three 2026 months published but SSA has not announced yet (BLS can land
+    // first, or the day-of run is waiting on SSA): the figure is then arithmetic on
+    // published data, so the "nobody knows" estimate wording would be false.
+    const calcPct = !colaOff && q3ComputedPct !== null ? `${q3ComputedPct.toFixed(1)}%` : '';
     const colaCopy = colaOff ? {
       // Under 60 characters, or compactTitle cuts it at a separator and drops the figure.
       PAGE_TITLE: `2027 Social Security COLA Is ${offPct} (OFFICIAL)`,
@@ -10614,18 +10618,27 @@ async function main() {
       BANNER: '<strong class="cola-tag">ESTIMATE</strong> <strong>Not official.</strong> The Social Security ' +
         'Administration announces the real 2027 cost-of-living increase in mid-October 2026, and it takes effect ' +
         'with January 2027 payments.',
-      LEDE: `Nobody knows the 2027 increase yet, including us — the government has not ${q3Out ? 'yet published ' +
+      LEDE: calcPct
+        ? `All three months the 2027 increase is computed from are now published, and the arithmetic gives ` +
+          `${calcPct}. The Social Security Administration has not announced it yet, so until it does this is our ` +
+          'calculation, not the official figure. Put your current monthly benefit in below to see what the increase ' +
+          `would mean for your payment. The box starts on ${calcPct}, and you can type any other percentage.`
+        : `Nobody knows the 2027 increase yet, including us — the government has not ${q3Out ? 'yet published ' +
         'the last of' : 'published'} the numbers it is computed from. What you <em>can</em> do today is see what ` +
         'any given increase would mean for your own payment. Put your current monthly benefit in below and try a ' +
         'percentage. The estimates people are quoting in the news are loaded as one-tap buttons, with the name of ' +
         'whoever published each one, so you can see whose number you are trying.',
       CALC_H2: 'What would an increase do to your payment?',
-      PCT_NOTE: 'Type any percentage you want to test. There is no official 2027 figure to fill in yet, so this ' +
+      PCT_NOTE: calcPct
+        ? `Filled in with ${calcPct}, our arithmetic on the three published CPI-W months. It is not the Social ` +
+          'Security Administration&rsquo;s announcement. Type any other percentage to compare.'
+        : 'Type any percentage you want to test. There is no official 2027 figure to fill in yet, so this ' +
         'box starts on a published outside estimate, named below — it is somebody else\'s forecast, not ours and ' +
         'not the government\'s.',
       CALC_NOTE: 'General information only, not financial or benefits advice. The figures above are arithmetic on ' +
         'the percentage you typed, not a forecast of what your 2027 payment will be.',
-      TRACKER_H2: 'The three months the official figure is waiting on',
+      TRACKER_H2: calcPct ? 'The three months the figure is computed from'
+        : 'The three months the official figure is waiting on',
       TRACKER_INTRO: 'The increase is not a judgement call, it is a division. Take the average of the price index ' +
         'called <strong>CPI-W</strong> for July, August and September <strong>2026</strong>, divide it by the ' +
         'average for the same three months of <strong>2025</strong>, and that percentage is the COLA. ' +
@@ -10640,7 +10653,7 @@ async function main() {
         'the number.',
       ESTIMATES_FOOT: 'If you see a figure quoted without a date beside it, treat it as stale until proven ' +
         'otherwise. One of the estimates above moved by a full percentage point in a single month.',
-      DISAGREE_SECTION: '<section class="prose" id="disagree">\n      <h2>Why the estimates disagree with each ' +
+      DISAGREE_SECTION: calcPct ? '' : '<section class="prose" id="disagree">\n      <h2>Why the estimates disagree with each ' +
         'other</h2>\n      <p>None of the outside forecasters have more data than anyone else — the published ' +
         'price index is the same for everybody. What differs is the assumption each one makes about the months ' +
         'that are not out yet. Some carry recent monthly changes forward, some model them. That assumption is the ' +
@@ -10692,7 +10705,8 @@ async function main() {
       // The percentage box is pre-filled from the OFFICIAL figure once SSA has
       // announced it, and before that from a PUBLISHED third-party estimate,
       // never from a figure of ours; the chips name whose it is.
-      COLA_CFG: JSON.stringify({ prefill: colaOff ? colaOff.percent : (est.length ? est[0].figure : 0),
+      COLA_CFG: JSON.stringify({ prefill: colaOff ? colaOff.percent
+        : calcPct ? q3ComputedPct : (est.length ? est[0].figure : 0),
         official: !!colaOff }),
     }, '/2027-social-security-cola/'));
     urls.push(`${SITE.url}/2027-social-security-cola/`);
