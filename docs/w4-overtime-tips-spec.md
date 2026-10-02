@@ -110,7 +110,7 @@ Mirror the existing overtime tool: accept **regular hourly rate + annual overtim
    - "Step 4(b) Deductions Worksheet, **line 1a (Qualified tips): $D_tips**"
    - "line **1b (Qualified overtime): $D_ot**"
    - "These add **$D_total** to your Step 4(b) total (line 15)."
-   (If income is over the cliff but under full phase-out, show the gradual-phase-out figure and the §1.2 note that you can enter it directly on Step 4(b).)
+   (If income is at or over the cliff, $150,000 or more ($300,000 MFJ, the worksheet's "less than" line), but under full phase-out, show the gradual-phase-out figure and the §1.2 note that you can enter it directly on Step 4(b). The note keys on the worksheet's own line, `worksheetCliff`, not on the phase-out, which takes nothing off until the first full $1,000 over, so from $150,000 to $150,999.99 the full deduction shows WITH the note.)
 3. **Annual federal withholding reduction** ≈ `federalTaxSaved(income, status, D_total)`.
 4. **Extra take-home per paycheck** ≈ annual reduction ÷ pay periods (÷ remaining periods if `monthsRemaining` < 12).
 5. **Caveats row**: FICA still withheld; state unaffected unless conforming; estimate not a guarantee.

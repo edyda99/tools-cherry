@@ -142,5 +142,41 @@ for (const [id, status, income, freq, tipsIn, otIn, eDt, eDo, eDtot, eAnn, ePer]
   eq('F11 OT deduction (line 21)', f11.dOt, 16000);
 }
 
+// --- W-4 worksheet cutoff, independent of the Schedule 1-A phase-out ---------
+// 2026 Form W-4, Step 4(b) Deductions Worksheet lines 1a/1b: "If your total
+// income is less than $150,000 ($300,000 if married filing jointly), enter an
+// estimate ...". So worksheetCliff is income >= $150,000 / $300,000, while the
+// phase-out (Schedule 1-A line 11 rounds down) takes nothing off until $151,000
+// / $301,000. From $150,000 to $150,999.99 the full deduction must show WITH the
+// "enter the accurate figure on Step 4(b)" note.
+{
+  const w = (income, filingStatus) => run({ income, filingStatus, tips: 20000, overtimePremium: 5000, payFrequency: 'biweekly' });
+  const c149 = w(149999, 'single');
+  is('W4 cliff single $149,999 off', c149.worksheetCliff, false);
+  const c150 = w(150000, 'single');
+  is('W4 cliff single $150,000 on', c150.worksheetCliff, true);
+  is('W4 cliff single $150,000 nothing phased out', c150.anyPhasedOut, false);
+  eq('W4 cliff single $150,000 full tips (Sch 1-A line 13 = line 7)', c150.dTips, 20000);
+  eq('W4 cliff single $150,000 full OT (Sch 1-A line 21 = line 15)', c150.dOt, 5000);
+  is('W4 cliff single $150,000 limit', c150.worksheetIncomeLimit, 150000);
+  const c1505 = w(150500, 'single');
+  is('W4 cliff single $150,500 on', c1505.worksheetCliff, true);
+  is('W4 cliff single $150,500 nothing phased out (line 11 = 0)', c1505.anyPhasedOut, false);
+  eq('W4 cliff single $150,500 full D_total', c1505.dTotal, 25000);
+  const c151 = w(151000, 'single');
+  is('W4 cliff single $151,000 on', c151.worksheetCliff, true);
+  is('W4 cliff single $151,000 phase-out starts (line 11 = 1)', c151.anyPhasedOut, true);
+  eq('W4 cliff single $151,000 tips (line 13 = 20,000 - 100)', c151.dTips, 19900);
+  is('W4 cliff HoH $150,000 on (form prints no HoH figure)', w(150000, 'head_of_household').worksheetCliff, true);
+  is('W4 cliff MFJ $299,999 off', w(299999, 'married').worksheetCliff, false);
+  const m300 = w(300000, 'married');
+  is('W4 cliff MFJ $300,000 on', m300.worksheetCliff, true);
+  is('W4 cliff MFJ $300,000 nothing phased out', m300.anyPhasedOut, false);
+  is('W4 cliff MFJ $300,000 limit', m300.worksheetIncomeLimit, 300000);
+  const m3005 = w(300500, 'married');
+  is('W4 cliff MFJ $300,500 on', m3005.worksheetCliff, true);
+  eq('W4 cliff MFJ $300,500 full D_total (line 11 = 0)', m3005.dTotal, 25000);
+}
+
 console.log(`\nW-4 overtime/tips helper: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

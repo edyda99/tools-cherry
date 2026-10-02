@@ -901,6 +901,18 @@ export function mipComparison({
 // helper offers; MFS-ineligible tips/overtime never use 'annual').
 export const W4_PAY_PERIODS = { weekly: 52, biweekly: 26, semimonthly: 24, monthly: 12 };
 
+// The 2026 Form W-4's OWN income line for worksheet lines 1a and 1b, kept apart
+// from the Schedule 1-A phase-out on purpose. The worksheet (page 4, Step 4(b)
+// Deductions Worksheet) reads: "Qualified tips. If your total income is less
+// than $150,000 ($300,000 if married filing jointly), enter an estimate of your
+// qualified tips up to $25,000", and line 1b says the same for overtime. So the
+// printed form is a cliff: at $150,000 ($300,000 joint) or MORE it gives no
+// line to fill in, while the filing-time deduction only starts losing $100s at
+// the first full $1,000 over (Schedule 1-A line 11 rounds down), i.e. $151,000.
+// Only married filing jointly gets the $300,000 line; head of household uses
+// the $150,000 one, as the form prints no separate figure for it.
+export const W4_WORKSHEET_INCOME_LIMIT = { single: 150000, married: 300000, head_of_household: 150000 };
+
 /**
  * Estimate the 2026 W-4 Step 4(b) adjustment for tips + overtime.
  * Computes the allowed tips deduction (worksheet line 1a) and the allowed
@@ -922,7 +934,8 @@ export const W4_PAY_PERIODS = { weekly: 52, biweekly: 26, semimonthly: 24, month
  * @param {object}  a.fed              taxData.federal (brackets + standardDeduction)
  * @returns {{tips:object, overtime:object, dTips:number, dOt:number, dTotal:number,
  *   tipsCapBound:boolean, otCapBound:boolean, tipsPhasedOut:boolean, otPhasedOut:boolean,
- *   anyPhasedOut:boolean, annualReduction:number, marginalRate:number,
+ *   anyPhasedOut:boolean, worksheetIncomeLimit:number, worksheetCliff:boolean,
+ *   annualReduction:number, marginalRate:number,
  *   periodsPerYear:number, remainingPeriods:number, fullYear:boolean,
  *   perPaycheck:number, perPaycheckRemaining:number, ficaStillApplies:boolean}}
  */
@@ -960,6 +973,12 @@ export function estimateW4Adjustment({ income, filingStatus, tips, overtimePremi
     tipsPhasedOut: tipsRes.phasedOut,
     otPhasedOut: otRes.phasedOut,
     anyPhasedOut: tipsRes.phasedOut || otRes.phasedOut,
+    // Income at or above the W-4 worksheet's own line, where the printed form
+    // stops offering lines 1a/1b. Independent of the phase-out: from $150,000
+    // to $150,999.99 nothing is phased out yet, but the worksheet already says
+    // nothing, so the "enter the accurate figure on Step 4(b)" note must show.
+    worksheetIncomeLimit: pick(W4_WORKSHEET_INCOME_LIMIT, filingStatus),
+    worksheetCliff: magi >= pick(W4_WORKSHEET_INCOME_LIMIT, filingStatus),
     annualReduction: saved.taxSaved,
     marginalRate: saved.marginalRate,
     periodsPerYear,

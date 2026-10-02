@@ -36,16 +36,21 @@ function premiumInput() {
   return overtimePremium(moneyValue($('otrate')), num('othours'));
 }
 
-// One phase-out/cliff note per side (spec §1.2): if income is over the
-// $150k/$300k line but the deduction is still positive, the W-4 worksheet's
-// simple cliff would wrongly say $0 — tell the user to enter the accurate
-// gradual figure directly on Step 4(b).
+// One worksheet-cutoff note (spec §1.2). The 2026 W-4 worksheet only offers
+// lines 1a/1b when total income is LESS than $150,000 ($300,000 joint), so at
+// that line or above the printed form would leave a worker at $0 even though
+// the filing-time deduction shrinks gradually and may be whole or partly left.
+// Keyed on r.worksheetCliff (the form's own line), not on the phase-out, so it
+// also shows from $150,000 to $150,999.99 where nothing has been phased out yet.
 function phaseoutNote(r) {
-  if (!r.anyPhasedOut) return '';
+  if (!r.worksheetCliff) return '';
   if (r.dTotal <= 0) {
     return `<div class="obbba-note empty-flag">Your income is high enough that the tips/overtime deduction is fully phased out, so there's nothing to add to your W-4 this year.</div>`;
   }
-  return `<div class="obbba-note phaseout-flag">Your income is above the $150,000 ($300,000 joint) line, so the deduction is partly phased out. The W-4 worksheet uses a simple cutoff that would wrongly tell you to enter $0 — enter the accurate ${usd(r.dTotal)} figure directly on Step 4(b) instead (the worksheet is "keep for your records"; your employer only sees the Step 4(b) number).</div>`;
+  const state = r.anyPhasedOut
+    ? 'at your income only part of it has come off'
+    : 'at your income none of it has come off yet';
+  return `<div class="obbba-note phaseout-flag">Your income is $150,000 ($300,000 joint) or more. The W-4 worksheet only lets you fill in lines 1a and 1b below that line, a simple cutoff that would wrongly leave you at $0. The real deduction shrinks gradually, and ${state}. Enter the accurate ${usd(r.dTotal)} figure directly on Step 4(b) instead (the worksheet is "keep for your records"; your employer only sees the Step 4(b) number).</div>`;
 }
 
 // Why a line came out smaller than what was entered, naming each cut in the
@@ -115,8 +120,8 @@ function render() {
   }
 
   // --- One headline caveat (partial phase-down), shown OUTSIDE the details.
-  // Only reached here when dTotal > 0, so phaseoutNote(r) (if anyPhasedOut)
-  // is always the "partly phased out, use the accurate figure" variant.
+  // Only reached here when dTotal > 0, so phaseoutNote(r) (if worksheetCliff)
+  // is always the "use the accurate figure on Step 4(b)" variant.
   const headlineCaveat = phaseoutNote(r);
 
   // --- Estimated 2026 deduction (worksheet line 1a / 1b breakout) ---

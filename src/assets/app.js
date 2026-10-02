@@ -985,8 +985,10 @@ function renderAtFiling(input, r, mergeTips) {
   // retirement plan, $5,000 of tips printed "+$1,100" against a real saving of
   // $600, because the bracket difference was taken at $75,000 rather than at the
   // $55,000 that is actually taxed. Single, $300,000 gross with $23,500 deferred
-  // showed a $10,000 tips deduction where the phase-out at $276,500 allows
-  // $12,300. renderBrackets() eleven lines below already derives the identical
+  // and $25,000 of tips inside that gross showed a $10,000 tips deduction where
+  // the phase-out at $276,500 allows $12,400 (the $25,000 limit less $100 for
+  // each of the 126 full $1,000s over $150,000, Schedule 1-A lines 7 to 13).
+  // renderBrackets() eleven lines below already derives the identical
   // preTax figure from the identical input, so the card was printing two taxable
   // bases and saying so nowhere.
   const preTax = input.adv ? (input.adv.retirement401k || 0) + (input.adv.cafeteria125 || 0) : 0;

@@ -241,15 +241,20 @@ function renderResult({ state: s, result: r }) {
       `, and your employer keeps withholding on the rest as usual.</p>`;
   }
 
-  // The one thing this tool knows that the W-4 itself gets wrong, kept verbatim
-  // in substance from the old result panel: the printed worksheet uses a simple
-  // income cutoff and would tell a partly-phased-out worker to enter $0, when
-  // the real deduction phases out gradually and is still worth something.
-  const cliffFlag = (r.anyPhasedOut && totalR > 0)
-    ? `<p class="otw-flag">Your income is above the $150,000 ($300,000 filing jointly) line, so these deductions are ` +
-      `partly phased out. The printed worksheet uses a simple cutoff that would wrongly tell you to enter $0 — put the ` +
-      `${usd(totalR)} figure above straight on Step 4(b) instead. The worksheet is yours to keep; your employer only ` +
-      `sees the Step 4(b) number.</p>`
+  // The one thing this tool knows that the W-4 itself gets wrong, kept in
+  // substance from the old result panel: the printed worksheet only offers the
+  // tips and overtime lines when total income is LESS than $150,000 ($300,000
+  // joint), a simple cutoff that would leave a worker at or above that line at
+  // $0, when the real deduction phases out gradually and is still worth
+  // something. Keyed on the form's own line (r.worksheetCliff), not on the
+  // phase-out, so it shows from $150,000 even before any $100 has come off.
+  const cliffFlag = (r.worksheetCliff && totalR > 0)
+    ? `<p class="otw-flag">Your income is $150,000 ($300,000 filing jointly) or more. The printed worksheet only ` +
+      `lets you fill in the tips and overtime lines below that, a simple cutoff that would wrongly leave you at $0. ` +
+      `The real deduction shrinks gradually, and ` +
+      (r.anyPhasedOut ? 'at your income only part of it has come off' : 'at your income none of it has come off yet') +
+      `. Put the ${usd(totalR)} figure above straight on Step 4(b) instead. The worksheet is yours to keep; your ` +
+      `employer only sees the Step 4(b) number.</p>`
     : '';
 
   // ---- The plain-terms box ---------------------------------------------------

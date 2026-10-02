@@ -5576,11 +5576,20 @@ function caProseBlocks(r, rungs, ctx) {
         `premium (up to ${usd0(ot.cap.single)}) both start phasing out at ${usd0(start)} of modified AGI ` +
         `for a single filer, at ${usd0(ot.phaseoutReductionPer1000)} per full ${usd0(1000)} over. ` +
         (cut > 0
-          ? `At ${S} that takes ${usd0(cut)} off each one, so a full ${usd0(tp.cap.single)} of tips is worth ` +
-            `${usd0(tpLeft)} and a full ${usd0(ot.cap.single)} overtime premium is worth ${usd0(otLeft)}. A smaller ` +
-            `amount loses the same ${usd0(cut)}, so it can be gone entirely. `
-          : `${S} is not a full ${usd0(1000)} over yet, so nothing comes off; the first ` +
-            `${usd0(ot.phaseoutReductionPer1000)} goes at ${usd0(start + 1000)}. `) +
+          ? `At ${S} that takes ${usd0(cut)} off each one. ` +
+            // These are DEDUCTION amounts (what comes off taxable income), not
+            // tax saved, so the sentence says "deduct", never "worth".
+            (tpLeft > 0
+              ? `With a full ${usd0(tp.cap.single)} of tips you can deduct ${usd0(tpLeft)} of it`
+              : `Even a full ${usd0(tp.cap.single)} of tips is no longer deductible`) +
+            (otLeft > 0
+              ? `, and with a full ${usd0(ot.cap.single)} overtime premium you can deduct ${usd0(otLeft)} of it. `
+              : `, and even a full ${usd0(ot.cap.single)} overtime premium is no longer deductible. `) +
+            ((tpLeft > 0 || otLeft > 0)
+              ? `A smaller amount loses the same ${usd0(cut)}, so it can be gone entirely. `
+              : '')
+          : `${S} is not over that line, so nothing is taken off. The first ` +
+            `${usd0(ot.phaseoutReductionPer1000)} comes off at ${usd0(start + 1000)}. `) +
         `Neither touches FICA either way: Social Security and Medicare are still charged on tips and ` +
         `overtime in full.</p>`);
     } else if (next && next.amount >= start) {

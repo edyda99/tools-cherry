@@ -139,9 +139,11 @@ function renderResult({ state: s, result: r }) {
   // still lose the whole income reduction, and either cut, or both, can bite.
   const capBinds = r.eligibleAmount > 0 && r.eligibleAmount > r.deduction;
   const { overCap, phaseOff } = limitCuts(r);
-  const limitWord = (overCap && phaseOff > 0)
-    ? `the ${usd(r.statutoryCap)} yearly limit or cut by the income phase-out`
-    : (overCap ? `the ${usd(r.statutoryCap)} yearly limit` : 'what the income phase-out allows');
+  // Why the "taxed as usual" row exists, in the order the form takes the cuts:
+  // the yearly limit first, then the income phase-out off what the limit left.
+  const restWhy = (overCap && phaseOff > 0)
+    ? `over the ${usd(r.statutoryCap)} limit or ruled out by your income`
+    : (overCap ? `over the ${usd(r.statutoryCap)} limit` : 'ruled out by your income');
 
   // ---- The story ------------------------------------------------------------
   // ROUNDED ONCE. The labels invite the reader to add the lower rows up to the
@@ -162,7 +164,7 @@ function renderResult({ state: s, result: r }) {
       `<li><span>Taken off the income you are taxed on${dedR > 0 ? ' — the government skips tax on this' : ''}</span>` +
         `<span class="otw-amt${dedR > 0 ? ' otw-free' : ''}">${usd(dedR)}</span></li>` +
       (taxedR > 0
-        ? `<li><span>The rest, above ${limitWord} — taxed as usual</span><span class="otw-amt otw-taxed">${usd(taxedR)}</span></li>`
+        ? `<li><span>The rest, ${restWhy}, taxed as usual</span><span class="otw-amt otw-taxed">${usd(taxedR)}</span></li>`
         : '') +
       // Not part of the split above, so it carries the heavier rule that stops a
       // reader adding it in: the first rows are the tips themselves, this one is
