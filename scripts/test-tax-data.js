@@ -640,6 +640,53 @@ t('legal-status watches: well-formed, none expired', () => {
         `${slug} tips/overtime legal-status watch EXPIRED on ${s._watch.until}. ${s._watch.what}`);
     }
   });
+
+  // /what-applies-to-me/ prints a row's own checkedOn date when it has one, and
+  // the file-wide _meta.lastSourced otherwise.
+  const { buildWamParts } = await import('../src/content/what-applies-to-me.js');
+  const readData = async (f) => JSON.parse(await readFile(join(__dirname, '..', 'src', 'data', f), 'utf8'));
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const wamRoster = await readData('states.json');
+  const wam = buildWamParts({
+    states: wamRoster,
+    obbba,
+    taxData: await readData('tax-data-2026.json'),
+    payroll: await readData('state-payroll-2026.json'),
+    supplemental: await readData('state-supplemental-2026.json'),
+    esc,
+  });
+  const humanDay = (iso) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    return `${d} ${new Date(Date.UTC(y, m - 1, d)).toLocaleString('en-GB', { month: 'long', timeZone: 'UTC' })} ${y}`;
+  };
+  const verdictBlock = (slug) => {
+    const start = wam.VERDICT_BLOCKS.indexOf(`<div class="g" data-st="${slug}">`);
+    assert.ok(start >= 0, `no verdict block for ${slug}`);
+    const next = wam.VERDICT_BLOCKS.indexOf('<div class="g" data-st="', start + 1);
+    return wam.VERDICT_BLOCKS.slice(start, next < 0 ? undefined : next);
+  };
+  t('what-applies-to-me: tips/overtime verdicts date each row by its own checkedOn', () => {
+    const globalLine = `We last checked this on ${humanDay(obbba._meta.lastSourced)}.`;
+    let withOwnDate = 0;
+    for (const { slug } of wamRoster) {
+      const s = obbba.states[slug] || {};
+      const block = verdictBlock(slug);
+      if (s.checkedOn) {
+        withOwnDate++;
+        assert.match(s.checkedOn, /^\d{4}-\d{2}-\d{2}$/, `${slug} checkedOn must be YYYY-MM-DD`);
+        const own = `We last checked this on ${humanDay(s.checkedOn)}.`;
+        assert.equal(block.split(own).length - 1, 2, `${slug}: both verdict cards should print "${own}"`);
+        if (s.checkedOn !== obbba._meta.lastSourced) {
+          assert.ok(!block.includes(globalLine), `${slug}: verdict cards still print the file-wide "${globalLine}"`);
+        }
+      } else {
+        assert.ok(block.includes(globalLine), `${slug}: verdict cards should print "${globalLine}"`);
+      }
+    }
+    assert.ok(withOwnDate >= 1, 'expected at least one row (DC) with its own checkedOn');
+    assert.ok(verdictBlock('district-of-columbia').includes('We last checked this on 2 October 2026.'),
+      'DC verdict cards should carry their own 2 October 2026 check date');
+  });
 }
 
 console.log(`\n${pass} passing`);

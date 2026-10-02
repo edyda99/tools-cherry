@@ -3065,7 +3065,7 @@ function obbbaConformityBlock(state, obbba, year) {
   const otV = e.overtime && e.overtime.y2026, tipV = e.tips && e.tips.y2026;
   let verdictTail;
   if (!e.hasWageTax) verdictTail = `Federally yes — no ${state.name} wage tax anyway`;
-  else if (otV === 'yes' && tipV === 'yes') verdictTail = `Federally yes — and on the ${state.name} return too`;
+  else if (otV === 'yes' && tipV === 'yes') verdictTail = `Federally yes, and on the ${state.name} return too`;
   else if (otV === 'no' && tipV === 'no') verdictTail = `Federally yes, but ${state.name} still taxes both`;
   else if (otV === 'partial' && tipV === 'partial') verdictTail = `Federally yes; ${state.name} allows a smaller capped break`;
   else if (otV === 'unclear' && tipV === 'unclear') verdictTail = `Federally yes; ${state.name}'s rules aren't confirmed yet`;
@@ -10366,10 +10366,10 @@ async function main() {
     const cntOther = cnt.partial + cnt.unclear;
     const jn = (arr) => arr.join(', ');
     const movers = [];
-    if (newlyFree.length) movers.push(`${jn(newlyFree)} — overtime newly tax-free for 2026`);
-    if (newlyTaxed.length) movers.push(`${jn(newlyTaxed)} — overtime taxed again in 2026 (subject to change)`);
-    if (partialList.length) movers.push(`${jn(partialList)} — only a partial state exclusion`);
-    if (unclearList.length) movers.push(`${jn(unclearList)} — still unsettled for 2026`);
+    if (newlyFree.length) movers.push(`${jn(newlyFree)}: overtime newly tax-free for 2026`);
+    if (newlyTaxed.length) movers.push(`${jn(newlyTaxed)}: overtime taxed again in 2026 (subject to change)`);
+    if (partialList.length) movers.push(`${jn(partialList)}: only a partial state exclusion`);
+    if (unclearList.length) movers.push(`${jn(unclearList)}: still unsettled for 2026`);
     const calloutMovers = movers.length ? movers.join('; ') + '.' : '';
 
     const articleLd = JSON.stringify({
@@ -10490,10 +10490,10 @@ async function main() {
     const cntOther = cnt.partial + cnt.unclear;
     const jn = (arr) => arr.join(', ');
     const movers = [];
-    if (newlyFree.length) movers.push(`${jn(newlyFree)} — tips newly tax-free for 2026`);
-    if (newlyTaxed.length) movers.push(`${jn(newlyTaxed)} — tips taxed again in 2026 (subject to change)`);
-    if (partialList.length) movers.push(`${jn(partialList)} — only a partial state exclusion`);
-    if (unclearList.length) movers.push(`${jn(unclearList)} — still unsettled for 2026`);
+    if (newlyFree.length) movers.push(`${jn(newlyFree)}: tips newly tax-free for 2026`);
+    if (newlyTaxed.length) movers.push(`${jn(newlyTaxed)}: tips taxed again in 2026 (subject to change)`);
+    if (partialList.length) movers.push(`${jn(partialList)}: only a partial state exclusion`);
+    if (unclearList.length) movers.push(`${jn(unclearList)}: still unsettled for 2026`);
     const calloutMovers = movers.length ? movers.join('; ') + '.' : '';
 
     const articleLd = JSON.stringify({
