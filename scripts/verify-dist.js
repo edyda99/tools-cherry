@@ -251,19 +251,57 @@ async function verifySeasonal2027(DIST, ROOT) {
     if (!ldTypes.includes('Article'))
       fails.push(`/${PROJECTED_PAGE}/: no Article JSON-LD node; the page must describe itself as an article, ` +
         'not as authoritative tax data.');
+    // Other publishers' projections live in ONE region, the #others section, and
+    // only there. Inside it every dollar figure must be a figure the data file
+    // attributes to a named publisher, and every publisher must be named and
+    // linked; outside it the no-dollar rule below applies unchanged.
+    const tpItems = (proj.thirdPartyProjections && proj.thirdPartyProjections.items) || [];
+    const othersRe = /<section class="prose" id="others">[\s\S]*?<\/section>/;
+    const others = (othersRe.exec(p27) || [''])[0];
+    if (!others) fails.push(`/${PROJECTED_PAGE}/: the #others section (other publishers' projections) is missing.`);
+    const attributed = new Set();
+    for (const i of tpItems) {
+      for (const v of Object.values(i.standardDeduction || {})) if (Number.isFinite(v)) attributed.add(v);
+      for (const rows of Object.values(i.brackets || {}))
+        if (Array.isArray(rows)) for (const r of rows) if (r && Number.isFinite(r.upTo)) attributed.add(r.upTo);
+      for (const printed of Object.values(i.asPrinted || {}))
+        for (const m of String(printed).match(DOLLAR_FIGURE) || []) attributed.add(Number(m.replace(/[$,\s]/g, '')));
+    }
+    const othersFigures = [...new Set(others.match(DOLLAR_FIGURE) || [])]
+      .filter((s) => Number(s.replace(/[$,\s]/g, '')) >= PROJECTION_FLOOR);
+    const unattributed = othersFigures.filter((s) => !attributed.has(Number(s.replace(/[$,\s]/g, ''))));
+    if (unattributed.length)
+      fails.push(`/${PROJECTED_PAGE}/: the third-party section shows ${unattributed.length} dollar figure(s) ` +
+        `that no publisher in projections-2027.json is credited with: ${list(unattributed)}`);
+    if (othersFigures.length && !/PROJECTED/.test(others))
+      fails.push(`/${PROJECTED_PAGE}/: other publishers' 2027 figures are shown without a PROJECTED label.`);
+    if (othersFigures.length && !/not IRS figures/i.test(others))
+      fails.push(`/${PROJECTED_PAGE}/: other publishers' 2027 figures are shown without saying they are not IRS figures.`);
+    for (const i of tpItems) {
+      // Somebody else's figures must always carry their name and a way to check them.
+      if (!others.includes(i.publisher))
+        fails.push(`/${PROJECTED_PAGE}/: ${i.publisher}'s projections are listed without their name.`);
+      for (const u of [i.sourceUrl, i.via && i.via.sourceUrl].filter(Boolean))
+        if (!others.includes(`href="${u.replace(/&/g, '&amp;')}"`))
+          fails.push(`/${PROJECTED_PAGE}/: no link to ${u} for ${i.publisher}'s projections.`);
+    }
+
     if (!windowComplete) {
       // The load-bearing check. Everything above the sources/related/footer
-      // furniture is the page's own body; no dollar amount may appear in it.
-      const body = p27.split('<section class="sources">')[0].split('<footer class="site">')[0];
+      // furniture, minus the attributed third-party section checked above, is
+      // the page's own body; no dollar amount may appear in it.
+      const body = p27.replace(othersRe, '').split('<section class="sources">')[0].split('<footer class="site">')[0];
       const found = [...new Set(body.match(DOLLAR_FIGURE) || [])]
         .filter((s) => Number(s.replace(/[$,\s]/g, '')) >= PROJECTION_FLOOR);
       if (found.length)
         fails.push(`/${PROJECTED_PAGE}/ shows ${found.length} dollar figure(s) while ${missing.length} of ` +
           `${keys.length} required month(s) are unpublished (${missing.join(', ')}): ` +
           list(found) + '\n    A dollar amount on this page right now can only have come from a guess.');
-      if (!/not publishing projected dollar figures yet/i.test(p27))
+      // "yet" while a month is still due; "of our own" once every missing month
+      // is one BLS will never publish, because "yet" would promise a figure.
+      if (!/not publishing projected dollar figures (?:yet|of our own)/i.test(p27))
         fails.push(`/${PROJECTED_PAGE}/: partial-data mode is active but the page does not say so in ` +
-          'the words a reader would recognise ("not publishing projected dollar figures yet").');
+          'the words a reader would recognise ("not publishing projected dollar figures yet / of our own").');
       for (const k of missing)
         if (!p27.includes(k.slice(0, 4)))
           fails.push(`/${PROJECTED_PAGE}/: unpublished month ${k} is not named on the page.`);

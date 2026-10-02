@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import {
   monthKeys, monthValue, windowStatus, average, partialAverage,
   assertComplete, colaPercent, applyCola, roundIncrease,
+  thirdPartyProblems, thirdPartyBlockProblems, TP_RATES,
 } from '../src/engine/projections-2027.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -169,6 +170,78 @@ ok(!q('roundingBrackets').includes('68(b)(2), or'),
 for (const [k, s] of Object.entries(data.statute)) {
   if (k.startsWith('_')) continue;
   ok(!/^[a-z]/.test(s.quote), `statute.${k}: a quote starting mid-sentence needs a bracket or ellipsis`);
+}
+
+// --- third-party projections ----------------------------------------------
+// Somebody else's 2027 figures, shown under their name. They are the only dollar
+// amounts the projected page carries while the window is incomplete, so every
+// way an item can be malformed is pinned here with a deliberately broken copy.
+const tpBlock = data.thirdPartyProjections;
+ok(/^\d{4}-\d{2}-\d{2}$/.test(tpBlock.checkedDate || ''), 'thirdPartyProjections has an ISO checkedDate');
+ok(Array.isArray(tpBlock.items), 'thirdPartyProjections.items is an array');
+{
+  const live = thirdPartyBlockProblems(tpBlock);
+  ok(live.length === 0, `the live thirdPartyProjections block validates cleanly: ${live.join(' | ')}`);
+}
+ok(!/\bnone had published\b|\bEmpty as of\b/i.test(tpBlock._note || '') || tpBlock.items.length === 0,
+  'the _note no longer says nobody has published once items exist');
+for (const i of tpBlock.items) {
+  ok(i.asOf <= tpBlock.checkedDate, `${i.publisher}: published on or before the date we last checked`);
+  ok(typeof i._methodQuote === 'string' && i._methodQuote.length > 40,
+    `${i.publisher}: carries the source's own sentence on the missing month, for audit`);
+  // The 37% bracket starts where the 35% one ends, so a bracket table is six
+  // thresholds; the married-joint ones are twice the single ones up to 32% in
+  // every recent year, which catches a digit dropped from either table.
+  if (i.brackets && i.brackets.single && i.brackets.married)
+    for (let r = 0; r < 5; r++)
+      ok(i.brackets.married[r].upTo === 2 * i.brackets.single[r].upTo,
+        `${i.publisher}: married-joint ${TP_RATES[r] * 100}% threshold is twice the single one`);
+  if (i.standardDeduction && i.standardDeduction.single && i.standardDeduction.married)
+    ok(i.standardDeduction.married === 2 * i.standardDeduction.single,
+      `${i.publisher}: married-joint standard deduction is twice the single one`);
+}
+
+const goodTp = () => JSON.parse(JSON.stringify(tpBlock.items.find((i) => i.via && i.asPrinted) || tpBlock.items[0]));
+const tpBroken = (label, mutate, re) => {
+  const item = goodTp();
+  mutate(item);
+  const probs = thirdPartyProblems(item, tpBlock.checkedDate);
+  ok(probs.some((m) => re.test(m)), `malformed item is rejected (${label}); problems were: ${probs.join(' | ') || 'none'}`);
+};
+ok(thirdPartyProblems(goodTp(), tpBlock.checkedDate).length === 0, 'the fixture item itself is valid');
+ok(thirdPartyProblems(null).length > 0, 'a null item is rejected');
+tpBroken('no publisher', (i) => { delete i.publisher; }, /publisher is missing/);
+tpBroken('no title', (i) => { i.title = ' '; }, /title is missing/);
+tpBroken('http source', (i) => { i.sourceUrl = 'http://example.com/x'; }, /sourceUrl is not an https URL/);
+tpBroken('US-style date', (i) => { i.asOf = '09/11/2026'; }, /asOf is not an ISO date/);
+tpBroken('dated after the check', (i) => { i.asOf = '2099-01-01'; }, /after checkedDate/);
+tpBroken('no window statement', (i) => { delete i.monthsUsed; }, /monthsUsed/);
+tpBroken('months do not add to 12', (i) => { i.monthsUsed = 12; }, /is not 12/);
+tpBroken('bad skipped key', (i) => { i.skipped = ['2025-13']; }, /skipped is not a list/);
+tpBroken('no figures at all', (i) => { delete i.standardDeduction; delete i.brackets; }, /carries no figures/);
+tpBroken('extra zero typed into a deduction ("$15,7500")', (i) => { i.standardDeduction.single = 157500; },
+  /standardDeduction\.single .* is not a whole-dollar amount/);
+tpBroken('deduction as a string', (i) => { i.standardDeduction.married = '33,200'; }, /standardDeduction\.married/);
+tpBroken('unknown filing status', (i) => { i.standardDeduction.mfs = 16600; }, /unknown filing status "mfs"/);
+tpBroken('a bracket row missing', (i) => { i.brackets.single.pop(); }, /does not have 7 rows/);
+tpBroken('a wrong rate', (i) => { i.brackets.single[2].rate = 0.21; }, /rate is not 0\.22/);
+tpBroken('thresholds out of order ("$105,7000")', (i) => { i.brackets.single[2].upTo = 1057000; },
+  /does not rise above the bracket below it/);
+tpBroken('top bracket capped', (i) => { i.brackets.married[6].upTo = 900000; }, /top bracket must have upTo null/);
+tpBroken('asPrinted that does not contain the shown figure',
+  (i) => { i.asPrinted = { 'standardDeduction.head_of_household': '$24,925' }; }, /does not contain the figure shown/);
+tpBroken('asPrinted pointing at nothing', (i) => { i.asPrinted = { 'standardDeduction.nobody': '$1,000' }; },
+  /does not point at a figure/);
+tpBroken('secondary report without a link', (i) => { i.via = { publisher: 'Accounting Today', title: 't', asOf: '2026-09-11' }; },
+  /via\.sourceUrl/);
+tpBroken('em dash in rendered note', (i) => { i.note = 'Figures \u2014 as reported.'; }, /em dash/);
+{
+  const twice = { checkedDate: tpBlock.checkedDate, items: [goodTp(), goodTp()] };
+  ok(thirdPartyBlockProblems(twice).some((m) => /listed twice/.test(m)), 'the same publisher listed twice is rejected');
+  ok(thirdPartyBlockProblems({ checkedDate: 'soon', items: [] }).some((m) => /checkedDate/.test(m)),
+    'a block without an ISO checkedDate is rejected');
+  ok(thirdPartyBlockProblems({ checkedDate: '2026-10-02', items: [] }).length === 0,
+    'an empty items list is valid: nobody has published is a legitimate state');
 }
 
 // The whole reason the projected-brackets page ships without dollar figures.

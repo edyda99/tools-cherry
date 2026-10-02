@@ -180,3 +180,146 @@ export function roundIncrease(baseAmount, increase, mfs = false) {
   if (!Number.isFinite(baseAmount) || !Number.isFinite(increase)) return NaN;
   return baseAmount + Math.floor(increase / step) * step;
 }
+
+// ---------------------------------------------------------------------------
+// Third-party projections (projections-2027.json -> thirdPartyProjections).
+//
+// Somebody else's figures, shown under their name. They are the only 2027 dollar
+// amounts the projected-brackets page carries while the C-CPI-U window is
+// incomplete, so a typo here is a wrong tax figure on a live page with a
+// respected publisher's name next to it. thirdPartyProblems() is the shape
+// check build.js refuses to render without and the unit tests exercise with
+// deliberately broken items.
+
+/** Filing-status keys, the same ones tax-data-2026.json's federal block uses. */
+export const TP_STATUSES = ['single', 'married', 'head_of_household'];
+/** The seven federal income tax rates, lowest first. */
+export const TP_RATES = [0.10, 0.12, 0.22, 0.24, 0.32, 0.35, 0.37];
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const MONTH_KEY = /^\d{4}-(0[1-9]|1[0-2])$/;
+const isHttps = (u) => typeof u === 'string' && /^https:\/\/[^\s]+$/.test(u);
+const isText = (s, min = 1) => typeof s === 'string' && s.trim().length >= min;
+// A standard deduction or bracket threshold is a whole-dollar amount in the
+// thousands. The ceiling catches the classic transcription slip of an extra
+// zero ("$15,7500"), which is a real error in one of the sources this file
+// reads from.
+const plausibleAmount = (v, max) => Number.isInteger(v) && v >= 1000 && v <= max;
+
+/**
+ * Every way one third-party projection item is malformed, as readable strings.
+ * An empty array means the item is fit to render.
+ * @param {*} item one entry of thirdPartyProjections.items
+ * @param {string} [checkedDate] the block's checkedDate; an item cannot be dated after it
+ * @returns {string[]}
+ */
+export function thirdPartyProblems(item, checkedDate) {
+  const p = [];
+  if (!item || typeof item !== 'object' || Array.isArray(item)) return ['item is not an object'];
+  if (!isText(item.publisher, 4)) p.push('publisher is missing');
+  if (!isText(item.title)) p.push('title is missing');
+  if (!ISO_DATE.test(item.asOf || '')) p.push('asOf is not an ISO date');
+  else if (checkedDate && item.asOf > checkedDate) p.push(`asOf ${item.asOf} is after checkedDate ${checkedDate}`);
+  if (!isHttps(item.sourceUrl)) p.push('sourceUrl is not an https URL');
+
+  // How the publisher dealt with the window. A projection that does not say
+  // which months it used is the thing this page exists to warn about.
+  if (!Number.isInteger(item.monthsUsed) || item.monthsUsed < 1 || item.monthsUsed > 12)
+    p.push('monthsUsed is not a whole number of months from 1 to 12');
+  if (!Array.isArray(item.skipped) || !item.skipped.every((k) => MONTH_KEY.test(k)))
+    p.push('skipped is not a list of YYYY-MM month keys');
+  else if (Number.isInteger(item.monthsUsed) && item.monthsUsed + item.skipped.length !== 12)
+    p.push(`monthsUsed (${item.monthsUsed}) plus skipped months (${item.skipped.length}) is not 12`);
+
+  const sd = item.standardDeduction;
+  const br = item.brackets;
+  if (sd === undefined && br === undefined) p.push('carries no figures (neither standardDeduction nor brackets)');
+  if (sd !== undefined) {
+    if (!sd || typeof sd !== 'object' || Array.isArray(sd)) p.push('standardDeduction is not an object');
+    else {
+      const keys = Object.keys(sd).filter((k) => !k.startsWith('_'));
+      if (!keys.length) p.push('standardDeduction is empty');
+      for (const k of keys) {
+        if (!TP_STATUSES.includes(k)) p.push(`standardDeduction has unknown filing status "${k}"`);
+        else if (!plausibleAmount(sd[k], 100000)) p.push(`standardDeduction.${k} (${sd[k]}) is not a whole-dollar amount from $1,000 to $100,000`);
+      }
+    }
+  }
+  if (br !== undefined) {
+    if (!br || typeof br !== 'object' || Array.isArray(br)) p.push('brackets is not an object');
+    else {
+      const keys = Object.keys(br).filter((k) => !k.startsWith('_'));
+      if (!keys.length) p.push('brackets is empty');
+      for (const k of keys) {
+        const rows = br[k];
+        if (!TP_STATUSES.includes(k)) { p.push(`brackets has unknown filing status "${k}"`); continue; }
+        if (!Array.isArray(rows) || rows.length !== TP_RATES.length) {
+          p.push(`brackets.${k} does not have ${TP_RATES.length} rows`); continue;
+        }
+        rows.forEach((r, i) => {
+          if (!r || r.rate !== TP_RATES[i]) p.push(`brackets.${k}[${i}] rate is not ${TP_RATES[i]}`);
+          const last = i === rows.length - 1;
+          if (last) {
+            if (r && r.upTo !== null) p.push(`brackets.${k}: the top bracket must have upTo null`);
+          } else if (!r || !plausibleAmount(r.upTo, 5000000)) {
+            p.push(`brackets.${k}[${i}].upTo is not a whole-dollar threshold`);
+          } else if (i > 0 && rows[i - 1] && !(r.upTo > rows[i - 1].upTo)) {
+            p.push(`brackets.${k}[${i}].upTo (${r.upTo}) does not rise above the bracket below it`);
+          }
+        });
+      }
+    }
+  }
+
+  // Where a publisher printed a figure in a form the table does not reproduce
+  // (an amount with a second amount beside it), the printed text is kept, and it
+  // must actually contain the figure the table shows.
+  if (item.asPrinted !== undefined) {
+    if (!item.asPrinted || typeof item.asPrinted !== 'object') p.push('asPrinted is not an object');
+    else for (const [path, printed] of Object.entries(item.asPrinted)) {
+      const v = path.split('.').reduce((o, seg) => (o && typeof o === 'object' ? o[seg] : undefined), item);
+      if (!Number.isFinite(v)) p.push(`asPrinted key "${path}" does not point at a figure in this item`);
+      else if (typeof printed !== 'string' || !printed.includes('$' + v.toLocaleString('en-US')))
+        p.push(`asPrinted "${path}" does not contain the figure shown, $${v.toLocaleString('en-US')}`);
+    }
+  }
+
+  // A secondary report the figures were read from, when the publisher's own
+  // document is not publicly readable. It is a citation, so it needs all of one.
+  if (item.via !== undefined) {
+    const v = item.via;
+    if (!v || typeof v !== 'object') p.push('via is not an object');
+    else {
+      if (!isText(v.publisher, 4)) p.push('via.publisher is missing');
+      if (!isText(v.title)) p.push('via.title is missing');
+      if (!ISO_DATE.test(v.asOf || '')) p.push('via.asOf is not an ISO date');
+      if (!isHttps(v.sourceUrl)) p.push('via.sourceUrl is not an https URL');
+    }
+  }
+
+  // `note` renders on the page. House style for page copy: no em dashes.
+  if (item.note !== undefined && (!isText(item.note) || item.note.includes('—')))
+    p.push('note is empty or contains an em dash');
+  return p;
+}
+
+/**
+ * Problems with the whole thirdPartyProjections block, each prefixed with the
+ * item it belongs to. Empty means the block is fit to render.
+ * @param {*} block projections-2027.json -> thirdPartyProjections
+ * @returns {string[]}
+ */
+export function thirdPartyBlockProblems(block) {
+  if (!block || typeof block !== 'object') return ['thirdPartyProjections is missing'];
+  const p = [];
+  if (!ISO_DATE.test(block.checkedDate || '')) p.push('checkedDate is not an ISO date');
+  if (!Array.isArray(block.items)) return [...p, 'items is not an array'];
+  const seen = new Set();
+  block.items.forEach((it, i) => {
+    const who = (it && it.publisher) || `items[${i}]`;
+    if (seen.has(who)) p.push(`${who}: listed twice`);
+    seen.add(who);
+    for (const msg of thirdPartyProblems(it, block.checkedDate)) p.push(`${who}: ${msg}`);
+  });
+  return p;
+}
