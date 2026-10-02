@@ -1585,15 +1585,23 @@ function compactTitle(html) {
 }
 
 // Meta description → ≤~155 decoded chars. Prefers a natural stop: a sentence end
-// in the 80-157 window, else a clause boundary (comma / dash / semicolon) in the
+// in the 70-157 window, else a clause boundary (comma / dash / semicolon) in the
 // 100-157 window, else a plain word-boundary cut. The meta description is not a
 // ranking factor and its tail is never shown, so trimming it is SERP-safe.
+// ONLY THE SENTENCE-END CUT IS SAFE. The other two leave the description stopping
+// mid-phrase ("...after federal tax, Social Security"), and on 2026-10-02 148 built pages
+// ended that way: their source copy was longer than 157 characters with no sentence
+// end inside the window. Adding ": " as a break point would only move the cut to another
+// mid-sentence spot, so the fix is in the copy: every such source was rewritten to fit,
+// the window opens at 70 so the twenty "Computed ... from $30,000 to $200,000." ladder
+// hubs keep their whole first sentence, and verify-dist now fails any description,
+// og:description or twitter:description that does not end on a full stop.
 function compactDescStr(raw) {
   const d = decodeEntities(raw.trim());
   if (d.length <= 157) return raw.trim();
   let best = -1, m;
   const re = /[.!?](\s|$)/g;
-  while ((m = re.exec(d))) { const end = m.index + 1; if (end >= 80 && end <= 157) best = end; }
+  while ((m = re.exec(d))) { const end = m.index + 1; if (end >= 70 && end <= 157) best = end; }
   let cut;
   if (best > 0) {
     cut = d.slice(0, best).trim();
@@ -2109,13 +2117,26 @@ function stateMetaDesc(state, year) {
   }
   if (TARGET_STATES.has(state.slug)) {
     const fig = stateRateFigure(state);
-    if (fig) return `${state.name} income tax rate ${year}: ${fig.desc}. Free ${state.name} paycheck and take-home pay calculator: enter your salary or hourly wage to see your ${year} take-home after federal tax, FICA and ${state.name} state income tax.`;
+    if (fig) return `${state.name} income tax rate ${year}: ${fig.desc}. Free ${state.name} paycheck and take-home pay calculator. Enter your salary or hourly wage to see your ${year} take-home after federal tax, FICA and ${state.name} state income tax.`;
   }
-  const taxPhrase = wp.hasIncomeTax ? `, and ${state.name} state income tax` : '';
   const metaTaxNote = wp.hasIncomeTax
     ? `. It also works as ${/^[AEIOU]/.test(state.name) ? 'an' : 'a'} ${state.name} income tax calculator`
     : noTaxMetaNote(state);
-  return `Free ${year} ${state.name} (${state.abbr}) paycheck and payroll calculator. Enter your salary or hourly wage to see your take-home pay after federal tax, Social Security, Medicare${taxPhrase}${metaTaxNote}. Supports weekly, biweekly, monthly and more.`;
+  // The second sentence has to END inside the 157-character budget, or compactDescStr
+  // can only cut it mid-phrase. The full wording fits a short state name; a long one
+  // ("District of Columbia (DC)") gets the shorter one rather than a fragment.
+  const lead = `Free ${year} ${state.name} (${state.abbr}) paycheck and payroll calculator.`;
+  const body = firstThatFits(
+    `${lead} Enter your salary or hourly wage to see your take-home pay after federal tax, FICA` +
+      `${wp.hasIncomeTax ? ` and ${state.name} income tax` : ''}.`,
+    `${lead} Enter a salary or hourly wage to see take-home pay after federal, FICA` +
+      `${wp.hasIncomeTax ? ` and ${state.abbr} taxes` : ' taxes'}.`,
+  );
+  return `${body} ${metaTaxNote.replace(/^\.\s*/, '')}. Supports weekly, biweekly, monthly and more.`;
+}
+// The first wording that fits the meta-description budget compactDescStr trims to.
+function firstThatFits(...cands) {
+  return cands.find((c) => decodeEntities(c).length <= 157) || cands[cands.length - 1];
 }
 
 // Spell small counts out as words ("nine-bracket ladder") — headings and ledes
@@ -3545,15 +3566,19 @@ function bonusTitle(state, supp, year) {
   return `${state.name} Bonus Tax Calculator ${year} (${a}) — Withholding vs. Real Tax`;
 }
 
+// The withholding breakdown ("flat 22% federal + Rhode Island's 5.99% supplemental rate +
+// FICA") used to sit inside the second sentence, which pushed that sentence past the
+// 157-character budget on every state, so all 51 descriptions were cut mid-phrase. The
+// rates are in each page's title and body; the description now says what the tool does
+// in sentences that end inside the budget.
 function bonusMetaDesc(state, supp, year) {
-  let mid;
-  if (supp.method === 'none') mid = `flat 22% federal + $0 ${state.name} state tax + FICA`;
-  else if (supp.method === 'flat') mid = `flat 22% federal + ${state.name}'s ${pctStr(supp.rate)} supplemental rate + FICA`;
-  else if (supp.special === 'ca_dual') mid = `flat 22% federal + California's 10.23% bonus rate + FICA`;
-  else if (supp.special === 'pct_of_federal') mid = `flat 22% federal + Vermont's 30%-of-federal state rate + FICA`;
-  else if (supp.special === 'wi_banded') mid = `flat 22% federal + Wisconsin's graduated state rate + FICA`;
-  else mid = `flat 22% federal + ${state.name} state withholding + FICA`;
-  return `Free ${year} ${state.name} bonus tax calculator. See what's withheld from your bonus now (${mid}) versus what it will really cost at tax time, with the refund or amount owed. Runs in your browser.`;
+  const lead = `Free ${year} ${state.name} bonus tax calculator.`;
+  const body = firstThatFits(
+    `${lead} See what's withheld from your bonus now versus what it will really cost at tax time, ` +
+      `with the refund or amount owed.`,
+    `${lead} See what's withheld from your bonus now versus what it really costs at tax time.`,
+  );
+  return `${body} Runs in your browser.`;
 }
 
 // Short data phrase describing a state's bonus method — used in headings/tables.

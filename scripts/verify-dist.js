@@ -45,6 +45,9 @@ const MANUAL_AD = /<ins[^>]*class="[^"]*\badsbygoogle\b/;
 // things: the element exists, it is not an unsubstituted {{ANSWER}} placeholder, and
 // it is long enough and ends in a full stop, i.e. it is a real sentence rather than a
 // stub. It must also carry a digit — the whole point is that it answers with a figure.
+const DESC_META = /<meta\s+(?:name|property)=["'](description|og:description|twitter:description)["']\s+content="([^"]*)"/gi;
+const decodeDesc = (s) => s.replace(/&quot;/g, '"').replace(/&#39;|&#x27;|&apos;/g, "'")
+  .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');
 const ANSWER_EL = /<p class="answer-first">([\s\S]*?)<\/p>/;
 // The sections /llms.txt must carry. The blockquote summary is part of the llms.txt
 // convention; the other three are the site's actual substance.
@@ -903,6 +906,7 @@ export async function verifyDist(distPath) {
   const embedWithLoader = [];
   const manualAds = [];
   const crumbMarks = [];
+  const cutDescs = [];
   const tiny = [];
   // asset path -> the pages that reference it, so a missing asset can name a victim.
   const assetRefs = new Map();
@@ -931,6 +935,15 @@ export async function verifyDist(distPath) {
     if (MANUAL_AD.test(html)) manualAds.push(rel);
     // build.js takeCrumbMark turns a title's " ~: " into ": "; one that survives renders as-is.
     if (/<title>[^<]*~: /.test(html)) crumbMarks.push(rel);
+    // build.js compactDescStr trims a description to 157 characters, and where the source has
+    // no sentence end inside that budget the cut lands mid-phrase ("...after federal tax,
+    // Social Security"). Every description, og:description and twitter:description must end
+    // on a full stop, question mark or exclamation mark (a closing quote or bracket may follow).
+    const head = html.split('</head>')[0];
+    for (const m of head.matchAll(DESC_META)) {
+      const v = decodeDesc(m[2]).trim();
+      if (!/[.!?]["'\u201d\u2019)\]]*$/.test(v)) cutDescs.push(`${rel} ${m[1]}: ...${v.slice(-50)}`);
+    }
 
     // The quotable answer sentence, on the /data/ reference pages only (parts[0] is
     // 'data' and it is a page, not the CSV/JSON siblings). Their /embed/data/ twins
@@ -997,6 +1010,8 @@ export async function verifyDist(distPath) {
     failures.push(`${missingLoader.length} non-embed page(s) are missing the AdSense loader:` + list(missingLoader));
   if (embedWithLoader.length)
     failures.push(`${embedWithLoader.length} iframe widget page(s) under dist/embed/ carry the AdSense loader and must not:` + list(embedWithLoader));
+  if (cutDescs.length)
+    failures.push(`${cutDescs.length} meta description(s) stop mid-phrase (no closing full stop):` + list(cutDescs));
   if (crumbMarks.length)
     failures.push(`${crumbMarks.length} page(s) show the breadcrumb mark " ~: " in their <title>:` + list(crumbMarks));
   if (manualAds.length)
