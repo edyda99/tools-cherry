@@ -198,7 +198,8 @@ export const TP_RATES = [0.10, 0.12, 0.22, 0.24, 0.32, 0.35, 0.37];
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH_KEY = /^\d{4}-(0[1-9]|1[0-2])$/;
-const isHttps = (u) => typeof u === 'string' && /^https:\/\/[^\s]+$/.test(u);
+// No whitespace, quotes or angle brackets: these URLs land inside href="..." attributes.
+const isHttps = (u) => typeof u === 'string' && /^https:\/\/[^\s"'<>]+$/.test(u);
 const isText = (s, min = 1) => typeof s === 'string' && s.trim().length >= min;
 // A standard deduction or bracket threshold is a whole-dollar amount in the
 // thousands. The ceiling catches the classic transcription slip of an extra

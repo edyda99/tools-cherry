@@ -281,6 +281,7 @@ colaBroken('percent typed as a fraction of one', (o) => { o.percent = 0.028; }, 
 colaBroken('two decimals', (o) => { o.percent = 2.85; }, /not rounded to one decimal/);
 colaBroken('no date', (o) => { delete o.announcedDate; }, /announcedDate/);
 colaBroken('http source', (o) => { o.sourceUrl = 'http://www.ssa.gov/'; }, /sourceUrl/);
+colaBroken('quote in source URL', (o) => { o.sourceUrl = 'https://www.ssa.gov/" onclick="x'; }, /sourceUrl/);
 colaBroken('em dash in title', (o) => { o.title = 'COLA \u2014 2027'; }, /em dash/);
 ok(officialColaProblems(null).length > 0, 'a null officialCola is rejected');
 
