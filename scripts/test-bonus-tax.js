@@ -477,5 +477,38 @@ const run = (input) => computeBonus(input, taxData, suppData);
   eq('MA2 and matches the withheld column', hi.withheld.state, 500);
 }
 
+// --- ALABAMA / MISSOURI / OREGON: the federal-tax subtraction reaches the bonus tool ---------
+// Added 2026-10-02. These three states subtract (some of) the federal income tax from the
+// income they tax, so a bonus that raises the federal tax also raises the state subtraction.
+// trueTaxOnBonus now hands each state term the federal tax at its own income level.
+//
+// HAND DERIVATION, single, own pay 75,000, bonus 5,000 (2026 federal: standard deduction
+// 16,100; 10% to 12,400, 12% to 50,400, 22% to 105,700):
+//   federal tax at 75,000: taxable 58,900 -> 1,240 + 4,560 + 22% x 8,500 = 7,670.00
+//   federal tax at 80,000: taxable 63,900 -> 1,240 + 4,560 + 22% x 13,500 = 8,770.00
+//
+// ALABAMA (all of it, no cap; standard deduction already at its 2,500 floor at both
+// incomes; 5% band at both): taxable rises by 5,000 - (8,770 - 7,670) = 3,900,
+//   true state tax = 5% x 3,900 = 195.00 (it was 250.00 with no subtraction).
+// MISSOURI (15% share at both incomes, AGI 50,001 to 100,000; 4.7% band at both): the
+//   subtraction rises by 15% x 1,100 = 165, taxable by 4,835, true tax = 4.7% x 4,835 = 227.245.
+// OREGON, aggregate withholding column (Oregon's withholding formula subtracts federal tax,
+//   inWithholdingFormula = true). Single standard deduction 2,910; 8.75% band at both.
+//   At 75,000: 7,670 is under the 8,750 limit, all of it comes off, taxable 64,420.
+//   At 80,000: 8,770 is over it, so 8,750 comes off, taxable 68,340.
+//   Withheld = 8.75% x (68,340 - 64,420) = 8.75% x 3,920 = 343.00.
+// MISSOURI, aggregate withholding column: its withholding formula has no federal deduction
+//   (inWithholdingFormula = false), so it stays 4.7% x 5,000 = 235.00.
+{
+  const al = run({ bonus: 5000, regIncome: 75000, filingStatus: 'single', stateSlug: 'alabama' });
+  eq('AL1 true state tax on the bonus nets the federal deduction', al.trueLiability.state, 195.00);
+  const mo = run({ bonus: 5000, regIncome: 75000, filingStatus: 'single', stateSlug: 'missouri' });
+  eq('MO1 true state tax on the bonus nets 15% of the extra federal tax', mo.trueLiability.state, 227.245);
+  const orAgg = run({ bonus: 5000, regIncome: 75000, filingStatus: 'single', stateSlug: 'oregon', method: 'aggregate' });
+  eq('OR1 aggregate withholding applies the capped federal subtraction', orAgg.withheld.state, 343.00);
+  const moAgg = run({ bonus: 5000, regIncome: 75000, filingStatus: 'single', stateSlug: 'missouri', method: 'aggregate' });
+  eq('MO2 aggregate withholding leaves the return-only deduction out', moAgg.withheld.state, 235.00);
+}
+
 console.log(`\nbonus-tax: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

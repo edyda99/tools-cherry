@@ -100,6 +100,14 @@ export function ficaTax(grossAnnual, filingStatus, fed, preTaxFica = 0) {
 /**
  * State income tax (annual). Data-driven so adding a state = adding JSON.
  * Supported tax.type: "none" | "flat" | "bracket".
+ *
+ * WHAT IT MODELS: the tax owed on the ANNUAL RETURN, spread evenly over the year's pay,
+ * not any one state's withholding formula. Where the two differ the statute wins, and the
+ * places that matters are written down: Connecticut's add-back follows 12-700(a)(10) rather
+ * than the rounded withholding table, Arkansas follows Act 1 of 2026 rather than its
+ * withholding booklet's old rate, Oregon's head-of-household deduction is the return
+ * figure rather than the withholding formula's single one, and Missouri's federal-tax
+ * deduction is applied although its withholding formula leaves it out.
  * @param {number} preTax - pre-tax amounts that reduce state taxable income
  *                          (most states conform to 401(k) + cafeteria pre-tax treatment).
  */
@@ -107,7 +115,22 @@ export function ficaTax(grossAnnual, filingStatus, fed, preTaxFica = 0) {
  * Optional income-tested reduction of a state's standard deduction. Opt-in: a state
  * without `tax.standardDeductionPhaseout` is untouched.
  *
- * Two users: South Carolina and (since 2026-08-02) Wisconsin.
+ * Three users: South Carolina, Wisconsin (since 2026-08-02) and Alabama (since 2026-10-02).
+ *
+ * TWO ROW SHAPES. South Carolina and Wisconsin draw a straight line to zero
+ * (`over` + `denominator`, below). Alabama steps down by a fixed dollar amount and then
+ * stops at a floor, so its rows carry `over`, `per`, `reduceBy` and `minimum` instead:
+ * Ala. Code 40-18-15(b)(4)d, "For single taxpayers, the standard deduction shall be
+ * reduced further by twenty-five dollars ($25) for each five hundred dollars ($500) of
+ * adjusted gross income in excess of twenty-five thousand five hundred dollars ($25,500).
+ * Notwithstanding the preceding sentence, the standard deduction shall not be less than
+ * two thousand five hundred dollars ($2,500) for single taxpayers." Only WHOLE steps
+ * count: ADOR's Standard Deduction Chart (Form 40 booklet page 9) prints
+ * "$ 0 – $25,999 $3,000" then "$26,000 – $26,499 $2,975", so AGI 25,999 (excess 499)
+ * keeps the full amount and 26,000 (excess 500) is the first reduced dollar. That is
+ * floor(excess / per) steps, in integer arithmetic, with no fraction to round. Every
+ * Alabama status reaches its floor at AGI $35,500 (20 steps), so above that the
+ * deduction is a flat $2,500 single, $5,000 married, $2,500 head of household.
  *
  * WISCONSIN. Wis. Stat. 71.05(22)(dp), printed as the "2026 Standard Deduction" schedules in
  * WI DOR Form 1-ES instructions (D-101A, R. 1-26): the deduction starts at a maximum and slides
@@ -153,6 +176,11 @@ export function ficaTax(grossAnnual, filingStatus, fed, preTaxFica = 0) {
  */
 export function phaseOutStandardDeduction(base, agi, filingStatus, cfg) {
   const row = cfg[filingStatus] ?? cfg.single;
+  if (row && row.per > 0 && row.reduceBy > 0) {
+    // Alabama's stepped shape, see above: whole steps only, never below the floor.
+    const steps = Math.floor(Math.max(0, agi - (row.over || 0)) / row.per);
+    return Math.max(Math.min(base, row.minimum || 0), base - steps * row.reduceBy);
+  }
   if (!row || !row.denominator) return base;
   const excess = Math.max(0, agi - row.over);
   if (excess >= row.denominator) return 0;
@@ -294,6 +322,110 @@ export function steppedRecapture(agi, filingStatus, ladder) {
 }
 
 /**
+ * Pick the row of an income-tested table that applies at this AGI. Rows are in ascending
+ * order and say how their upper edge is drawn, because the statutes draw it both ways:
+ *   agiUpTo   the row applies while AGI is AT MOST this figure. Missouri, RSMo 143.171.2,
+ *             prints its bands as "$25,000 or less", "From $25,001 to $50,000", ...
+ *   agiUnder  the row applies while AGI is LESS THAN this figure. Oregon prints its
+ *             phase-out as "less than $125,000", "$125,000 to $129,999", ...
+ * A row with neither is open-ended and closes the table. Exactly one row applies.
+ */
+function rowForAgi(rows, agi) {
+  for (const row of rows) {
+    if (row.agiUpTo != null) { if (agi <= row.agiUpTo) return row; continue; }
+    if (row.agiUnder != null) { if (agi < row.agiUnder) return row; continue; }
+    return row;
+  }
+  return rows[rows.length - 1];
+}
+
+/**
+ * Optional subtraction for the FEDERAL income tax the filer owes. Opt-in and data-driven:
+ * a state without `tax.federalTaxSubtraction` is untouched.
+ *
+ * Three users, one shape: subtraction = min(cap, share x federal tax), where
+ *   shareByAgi  the fraction of the federal tax that counts, by AGI band. Missouri only
+ *               (RSMo 143.171.2: 35% at $25,000 or less, falling to 0% above $125,000).
+ *               Absent means the whole of it counts (Alabama, Oregon).
+ *   capByAgi    per filing status, a ceiling in dollars by AGI band. Oregon's ceiling
+ *               shrinks in steps as AGI rises and reaches zero (ORS 316.685 and DOR's
+ *               published 2026 table); Missouri's is a flat $5,000, or $10,000 on a
+ *               married return. Absent means no ceiling (Alabama).
+ * Every figure lives in tax-data-2026.json with its own citation; nothing is coded here.
+ *
+ * THE FEDERAL FIGURE. The statutes key on the federal income tax LIABILITY for the year,
+ * not on what was withheld: tax on taxable income after the standard deduction, less the
+ * credits the filer claims. computePaycheck() passes exactly that, its bracket tax minus
+ * the W-4 dependent credit, floored at zero. It does NOT pass the extra W-4 4(c)
+ * withholding, which is a prepayment and not tax. This engine sees wages only, so a filer
+ * with other income, other credits or a refundable credit has a different federal
+ * liability on the real return, and the state figure moves with it; the three states'
+ * disclaimers say so.
+ *
+ * THE AGI. Both income tests read federal adjusted gross income (Missouri's reads Missouri
+ * AGI, which starts from it). We pass `grossAnnual - preTax`, the engine's wages-only AGI
+ * proxy, the same figure the South Carolina and Wisconsin phase-downs and Connecticut's
+ * add-back read.
+ *
+ * EXPORTED so the salary-ladder pages can print the amount subtracted at each rung and
+ * reconcile their band tables to the engine's total, rather than keeping a second copy.
+ *
+ * @param {number} federalTax - federal income tax liability for the year (annual USD)
+ * @param {number} agi - the engine's AGI proxy
+ * @param {string} filingStatus
+ * @param {{shareByAgi?:Array, capByAgi?:Object}} cfg
+ */
+export function federalTaxSubtraction(federalTax, agi, filingStatus, cfg) {
+  if (!cfg) return 0;
+  const owed = Math.max(0, Number(federalTax) || 0);
+  if (!(owed > 0)) return 0;
+  const share = Array.isArray(cfg.shareByAgi) && cfg.shareByAgi.length
+    ? rowForAgi(cfg.shareByAgi, agi).share
+    : 1;
+  const capRows = cfg.capByAgi ? (cfg.capByAgi[filingStatus] ?? cfg.capByAgi.single) : null;
+  const cap = Array.isArray(capRows) && capRows.length
+    ? rowForAgi(capRows, agi).cap
+    : Infinity;
+  return Math.max(0, Math.min(cap, owed * share));
+}
+
+/**
+ * Every subtraction between a state's AGI and its taxable income, in the order the engine
+ * applies them, plus the taxable income that results. stateIncomeTax() runs on this, and
+ * the salary-ladder pages print it, so the two can never describe different arithmetic.
+ *
+ * Order: the standard deduction (after any income test), then the FICA-paid deduction
+ * (Massachusetts), then the federal income tax subtraction (Alabama, Missouri, Oregon).
+ * Each one is reported as the amount the rule allows, and taxable income is floored at
+ * zero after each, which is what a state return does with a deduction larger than the
+ * income left to take it from.
+ *
+ * @returns {{agi:number, standardDeduction:number, ficaDeduction:number,
+ *            federalTaxSubtraction:number, taxable:number}}
+ */
+export function stateTaxableIncome(grossAnnual, filingStatus, stateData, preTax = 0, ficaPaid = 0, federalTax = 0) {
+  const t = (stateData && stateData.tax) || {};
+  // grossAnnual - preTax is this engine's federal AGI: federalIncomeTax() above derives
+  // federal TAXABLE income as exactly that minus the federal standard deduction, so the
+  // quantity before the deduction is AGI. That is the input SCIAD's phase-down needs,
+  // the input Connecticut's 2% ladder needs, and the input the federal-tax subtraction's
+  // income tests need.
+  const agi = Math.max(0, grossAnnual - preTax);
+  let standardDeduction = (t.standardDeduction && (t.standardDeduction[filingStatus] ?? t.standardDeduction.single)) || 0;
+  if (t.standardDeductionPhaseout) {
+    standardDeduction = phaseOutStandardDeduction(standardDeduction, agi, filingStatus, t.standardDeductionPhaseout);
+  }
+  let taxable = Math.max(0, grossAnnual - preTax - standardDeduction);
+  const ficaDeduction = t.ficaPaidDeduction ? ficaPaidDeduction(ficaPaid, t.ficaPaidDeduction) : 0;
+  taxable = Math.max(0, taxable - ficaDeduction);
+  const fedSub = t.federalTaxSubtraction
+    ? federalTaxSubtraction(federalTax, agi, filingStatus, t.federalTaxSubtraction)
+    : 0;
+  taxable = Math.max(0, taxable - fedSub);
+  return { agi, standardDeduction, ficaDeduction, federalTaxSubtraction: fedSub, taxable };
+}
+
+/**
  * @param {number} ficaPaid - employee-side FICA already computed for these wages. Only
  *   states carrying `tax.ficaPaidDeduction` (Massachusetts) read it; every other state
  *   ignores it entirely.
@@ -316,25 +448,23 @@ export function steppedRecapture(agi, filingStatus, ladder) {
  *
  *   It still defaults to 0, which is the right default for a state that has no such
  *   deduction and the honest "not known" for any caller that has no FICA figure to give.
+ *
+ * @param {number} federalTax - the federal income tax liability for these wages. Only states
+ *   carrying `tax.federalTaxSubtraction` (Alabama, Missouri, Oregon) read it. Same rule as
+ *   ficaPaid: it does NOT cancel out of a marginal difference, because more income means
+ *   more federal tax and so a bigger subtraction, so a caller differencing two incomes must
+ *   pass each term its own federal figure. computePaycheck() passes its bracket tax less
+ *   the W-4 dependent credit (see federalTaxSubtraction for why that figure); bonus-tax.js
+ *   and the tips block in app.js pass the federal tax at each of their two income levels.
+ *   Defaults to 0, which subtracts nothing.
  */
-export function stateIncomeTax(grossAnnual, filingStatus, stateData, preTax = 0, ficaPaid = 0) {
+export function stateIncomeTax(grossAnnual, filingStatus, stateData, preTax = 0, ficaPaid = 0, federalTax = 0) {
   if (!stateData || !stateData.hasIncomeTax || !stateData.tax) return 0;
   const t = stateData.tax;
   if (t.type === 'none') return 0;
 
-  let stdDed = (t.standardDeduction && (t.standardDeduction[filingStatus] ?? t.standardDeduction.single)) || 0;
-  // grossAnnual - preTax is this engine's federal AGI: federalIncomeTax() above derives
-  // federal TAXABLE income as exactly that minus the federal standard deduction, so the
-  // quantity before the deduction is AGI. That is the input SCIAD's phase-down needs,
-  // and the input Connecticut's 2% ladder needs.
-  const agi = Math.max(0, grossAnnual - preTax);
-  if (t.standardDeductionPhaseout) {
-    stdDed = phaseOutStandardDeduction(stdDed, agi, filingStatus, t.standardDeductionPhaseout);
-  }
-  let taxable = Math.max(0, grossAnnual - preTax - stdDed);
-  if (t.ficaPaidDeduction) {
-    taxable = Math.max(0, taxable - ficaPaidDeduction(ficaPaid, t.ficaPaidDeduction));
-  }
+  const { agi, taxable } =
+    stateTaxableIncome(grossAnnual, filingStatus, stateData, preTax, ficaPaid, federalTax);
 
   let tax;
   if (t.type === 'flat') {
@@ -441,13 +571,20 @@ export function computePaycheck({ wage, filingStatus, payFrequency, stateSlug, a
 
   // federal: bracket tax on adjusted income, then credits, then extra withholding
   const fedBracket = federalIncomeTax(grossAnnual, filingStatus, fed, preTaxIncome);
-  const federal = Math.max(0, fedBracket - dependentsCredit) + extraWithholding;
+  // The federal income tax LIABILITY: tax after the credits, before the extra 4(c)
+  // withholding, which is a prepayment rather than tax. This is the figure Alabama,
+  // Missouri and Oregon let a filer subtract (each within its own limits), so it is the one
+  // handed to the state side below.
+  const fedLiability = Math.max(0, fedBracket - dependentsCredit);
+  const federal = fedLiability + extraWithholding;
 
   const fica = ficaTax(grossAnnual, filingStatus, fed, preTaxFica);
   // fica.total is handed to the state side because Massachusetts lets a filer deduct the
   // FICA they paid (capped at $2,000). Passing the figure the engine just computed keeps
-  // the two lines of the same paycheck consistent; every other state ignores it.
-  const state = stateIncomeTax(grossAnnual, filingStatus, stateData, preTaxIncome, fica.total);
+  // the two lines of the same paycheck consistent; every other state ignores it. The
+  // federal liability goes over for the same reason, for the three states that let a filer
+  // subtract federal income tax; every other state ignores it too.
+  const state = stateIncomeTax(grossAnnual, filingStatus, stateData, preTaxIncome, fica.total, fedLiability);
 
   // State disability / paid-leave employee contributions: post-tax, on gross
   // wages, kept OUT of totalTax and out of annual.state (so tax-only rates and

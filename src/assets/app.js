@@ -699,9 +699,17 @@ function tipsSlice(input, r) {
   const conformity = (ruleData.obbba.states && ruleData.obbba.states[stateSlug]
     && ruleData.obbba.states[stateSlug].tips && ruleData.obbba.states[stateSlug].tips.y2026) || '';
   const stateDed = conformity === 'yes' ? d.deduction : 0;
+  // Alabama, Missouri and Oregon subtract (some of) the federal income tax on the return
+  // from the income they tax, so each state term gets the federal tax at its own income:
+  // the filed figure (after the tips deduction, which is what the federal return shows)
+  // less the W-4 credits, exactly the figure computePaycheck hands the state. Every other
+  // state ignores the argument.
+  const dc = Math.max(0, (input.adv && input.adv.dependentsCredit) || 0);
+  const fedOwedW = Math.max(0, federalIncomeTax(W, filing, fed, preTaxIncome + d.deduction) - dc);
+  const fedOwedBase = Math.max(0, fedBase - dc);
   const stateTax = Math.max(0,
-    stateIncomeTax(W, filing, stateData, preTaxIncome + stateDed) -
-    stateIncomeTax(base, filing, stateData, preTaxIncome));
+    stateIncomeTax(W, filing, stateData, preTaxIncome + stateDed, 0, fedOwedW) -
+    stateIncomeTax(base, filing, stateData, preTaxIncome, 0, fedOwedBase));
 
   return {
     tips: t, inside, deduction: d, conformity, stateDed,
