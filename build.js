@@ -31,6 +31,7 @@ import { computeBonus } from './src/engine/bonus-tax.js';
 import {
   monthKeys as p27MonthKeys, windowStatus as p27WindowStatus, average as p27Average,
   assertComplete as p27AssertComplete, colaPercent as p27ColaPercent,
+  thirdPartyBlockProblems as p27ThirdPartyBlockProblems, TP_STATUSES as P27_TP_STATUSES,
 } from './src/engine/projections-2027.js';
 import { verifyDist, reportFailures } from './scripts/verify-dist.js';
 import { DFT_PAGES, DFT_GROUPS } from './src/content/days-from-today.js';
@@ -764,7 +765,7 @@ const TOOL_DESCRIPTIONS = {
   '/1099-threshold-checker/': 'See whether you\'ll get a 1099-K, 1099-NEC, or 1099-MISC under the 2025/2026 rules: payment apps at $20,000 and 200 transactions, card processors like Stripe/Square with no minimum at all, or a business paying you directly at $2,000 (2026) / $600 (2025) — plus the myth-bust that a 1099 is paperwork, not a tax.',
   '/w2-box-1-vs-box-3-vs-box-5/': 'Reconcile the three wage boxes on a W-2 and see line by line where each difference came from — a traditional 401(k) deferral lowers Box 1 only, Section 125 health and FSA amounts lower all three, and Box 3 stops at the Social Security wage base while Box 5 does not. Covers the current and prior tax year, because a W-2 is read in January for the year that just ended.',
   '/2026-tax-brackets/': 'The official 2026 federal income tax brackets and standard deduction from IRS Rev. Proc. 2025-32, rendered from the same dataset this site\'s paycheck engine computes with, plus a worked example of what a marginal rate actually costs.',
-  '/2027-tax-brackets/': 'PROJECTED, not official. Shows the statutory method the 2027 brackets will be indexed by, every monthly C-CPI-U value the calculation needs with its source and publication date, and which months remain unpublished — including October 2025, which was never collected and never will be. Publishes no projected dollar figures while any month is missing.',
+  '/2027-tax-brackets/': 'PROJECTED, not official. Shows the statutory method the 2027 brackets will be indexed by, every monthly C-CPI-U value the calculation needs with its source and publication date, and which months remain unpublished, including October 2025, which was never collected and never will be. Publishes no projected dollar figures of its own while any month is missing; lists the 2027 projections tax publishers have released, each credited to its publisher.',
   '/2027-social-security-cola/': 'ESTIMATE, not official. Type your monthly benefit and any cost-of-living percentage to see the new payment, the monthly increase and the annual increase. Plus a tracker of the three CPI-W months the official 2027 COLA is computed from, with their release dates, and published third-party estimates attributed to whoever made them.',
   '/w2-box-decoder/': 'Decode the three new 2026 W-2 Box 12 codes — TA (Trump account, excluded from Box 1), TP (reported tips) and TT (overtime premium, both still fully taxed inside Box 1, flagging the Schedule 1-A deduction) — plus a searchable lookup of all 71 Treasury Tipped Occupation Codes for Box 14b, including what code 000 means.',
   '/overtime-tax-calculator/': 'See how much of your overtime is deductible under the 2025 "no tax on overtime" law and what it saves you.',
@@ -9644,6 +9645,29 @@ async function main() {
       && (cc.schedule || {})[k] && cc.schedule[k].status === 'canceled');
     const pendingKeys = ccKeys.filter((k) => cc.months[k] === null && !canceledKeys.includes(k));
 
+    // Third-party projections: somebody else's figures, under their name. While
+    // the window is incomplete they are the only 2027 dollar amounts this page
+    // carries, so a malformed item is a build refusal rather than a warning.
+    const tp = proj2027.thirdPartyProjections;
+    {
+      const bad = p27ThirdPartyBlockProblems(tp);
+      if (bad.length)
+        throw new Error('projections-2027.json: thirdPartyProjections is malformed, refusing to render ' +
+          `other publishers' figures:\n  ${bad.join('\n  ')}`);
+    }
+    const tpItems = tp.items;
+    // "Wolters Kluwer (CCH AnswerConnect)" -> "Wolters Kluwer", as the COLA chips do.
+    const tpShort = (i) => i.publisher.replace(/\s*\(.*\)$/, '');
+    const andList = (xs) => (xs.length <= 2 ? xs.join(' and ')
+      : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+    const numWord = (n) => ['no', 'one', 'two', 'three', 'four', 'five', 'six'][n] || String(n);
+    // True when every listed publisher left out exactly the months BLS never
+    // published and averaged the rest, which is what lets the copy say "each
+    // averaged the N months that exist" as a derived fact rather than a typed one.
+    const tpAllSkipCanceled = tpItems.length > 0 && canceledKeys.length > 0 && tpItems.every((i) =>
+      i.monthsUsed === ccStatus.present.length && i.skipped.length === canceledKeys.length
+      && canceledKeys.every((k) => i.skipped.includes(k)));
+
     // The status sentence, and the body. Both are derived from ccStatus, so the
     // page cannot claim one thing in the banner and another in the body.
     let statusLine27;
@@ -9662,6 +9686,45 @@ async function main() {
         'throughout; they remain our calculation and not an IRS figure until the Revenue Procedure lands.</p></div>';
       mathBlock = `<p class="p27-quote">Average C-CPI-U over ${escHtml(windowHuman)}: ` +
         `<strong>${avg.toFixed(4)}</strong>, from the ${ccStatus.total} published monthly values in the table above.</p>`;
+    } else if (!pendingKeys.length) {
+      // Every month that will ever be published is in; what is still missing was
+      // never collected. "Yet" would promise a figure of ours that is not coming,
+      // so this branch says "of our own" and points at the attributed figures.
+      const goneHuman = andList(canceledKeys.map(monthHuman));
+      const oneGone = canceledKeys.length === 1;
+      statusLine27 = 'We are not publishing projected dollar figures of our own: ' +
+        `${escHtml(goneHuman)}, ${oneGone ? 'one' : numWord(canceledKeys.length)} of the ${ccStatus.total} ` +
+        `months the law’s formula needs, ${oneGone ? 'was' : 'were'} never published.` +
+        (tpItems.length
+          ? ` The 2027 figures further down are ${tpItems.length === 1 ? 'a tax publisher’s projection' : `${numWord(tpItems.length)} tax publishers’ projections`}, ` +
+            'each shown under its publisher’s name.'
+          : '');
+      projectionBody =
+        '<div class="p27-hold">' +
+        '<h2>Why there is no 2027 table of our own on this page</h2>' +
+        `<p><strong>${escHtml(String(ccStatus.present.length))} of ${ccStatus.total}</strong> of the monthly ` +
+        `index values the calculation needs have been published, and ${oneGone ? 'the remaining one' : 'the rest'} never will be: ${escHtml(goneHuman)} ` +
+        `${oneGone ? 'was' : 'were'} never collected. The law asks for a twelve-month average, so any 2027 figure ` +
+        'today, ours or anyone else’s, rests on a choice about the missing month, and the IRS has not said ' +
+        'which choice it will make.</p>' +
+        (tpItems.length
+          ? `<p>${tpItems.length === 1 ? 'One tax research publisher has' : `${escHtml(numWord(tpItems.length).replace(/^./, (c) => c.toUpperCase()))} tax research publishers have`} ` +
+            (tpAllSkipCanceled
+              ? `made that choice in the open: ${tpItems.length === 1 ? 'it' : 'each'} averaged the ` +
+                `${ccStatus.present.length} months that exist. `
+              : 'published 2027 projections and say how they handled that month. ') +
+            `Their projections are <a href="#others">listed further down</a>, with links so you can check ` +
+            'them. They are projections, not IRS figures. We are not adding a figure of our own on top: it ' +
+            'would rest on the same unconfirmed choice, and a guess reads like a fact once it is in a table.</p>'
+          : '<p>What is on this page instead: the exact statutory method, and every input with its source ' +
+            'and date.</p>') +
+        '</div>';
+      mathBlock = '<p class="p27-quote">We can show you the arithmetic but not an answer of our own: ' +
+        `the first step is the average of the ${ccStatus.total} monthly values over ${escHtml(windowHuman)}, ` +
+        `and ${escHtml(goneHuman)} ${oneGone ? 'does' : 'do'} not exist, so the twelve-month average the law ` +
+        'describes cannot be taken. Everything downstream of it, the factor, the thresholds and the standard ' +
+        'deduction, is blocked on the same step. The build for this site refuses to render a projected dollar ' +
+        'amount of its own while any month is missing; that refusal is a test, not a policy.</p>';
     } else {
       const n = ccStatus.missing.length;
       statusLine27 = `We are not publishing projected dollar figures yet &mdash; ` +
@@ -9697,34 +9760,185 @@ async function main() {
     }
 
     const gapSection = canceledKeys.length
-      ? '<section class="prose" id="gap"><h2>The missing month nobody else mentions</h2>' +
+      ? '<section class="prose" id="gap"><h2>The month that was never measured</h2>' +
         canceledKeys.map((k) => {
           const s = cc.schedule[k];
           return `<p><strong>${escHtml(monthHuman(k))} does not exist.</strong> ${escHtml(s.note)}</p>`;
         }).join('') +
         '<p>This matters more than a footnote. The law describes the value for a year as the average of the ' +
-        'index &ldquo;as of the close of the 12-month period ending on August 31&rdquo; &mdash; and one of ' +
+        'index &ldquo;as of the close of the 12-month period ending on August 31&rdquo;, and one of ' +
         'those twelve months was never measured. Whatever the IRS does about it, and it has not said, an ' +
-        'eleven-month average is not the twelve-month average the statute describes. Any site publishing ' +
-        'confident 2027 figures today has silently made a decision about this month, and none of them tell ' +
-        'you which decision they made.</p>' +
+        'eleven-month average is not the twelve-month average the statute describes.</p>' +
+        (tpAllSkipCanceled
+          ? `<p>The tax publishers listed further down say what they did: ${tpItems.length === 1 ? 'it' : 'each'} ` +
+            `averaged the ${ccStatus.present.length} months that exist. That is their choice, not an IRS ruling. ` +
+            'A 2027 figure that does not say how it handled this month has still made a choice; it just has ' +
+            'not told you which.</p>'
+          : '<p>Any 2027 figure published today has made a decision about this month. Look for one that ' +
+            'tells you which decision it made.</p>') +
         '<p>We will update this page when the IRS or BLS says something on the record about it, and not before.</p>' +
         '</section>'
       : '';
 
-    const tp = proj2027.thirdPartyProjections;
-    const thirdPartyBlock = (tp.items && tp.items.length)
-      ? '<div class="p27-wrap"><table class="p27-inputs"><caption class="sr-only">Published 2027 bracket ' +
-        'projections by other publishers (PROJECTED, not official)</caption><thead><tr><th scope="col">Publisher</th>' +
-        '<th scope="col">Figure</th><th scope="col">Published</th><th scope="col">Source</th></tr></thead><tbody>' +
-        tp.items.map((i) => `<tr><th scope="row">${escHtml(i.publisher)}</th><td>${escHtml(i.figure)}</td>` +
-          `<td>${escHtml(humanDate(i.publishedDate))}</td><td>${srcLink(i.sourceUrl, 'source')}</td></tr>`).join('') +
-        '</tbody></table></div>'
-      : `<p>As of ${escHtml(humanDate(tp.checkedDate))}, the publishers whose 2027 projections are worth ` +
+    // The attributed figures. Each publisher keeps its own column and its own
+    // number; agreement and disagreement sentences are derived from the data, so
+    // the page cannot say "they all agree" about figures that do not.
+    let thirdPartyBlock;
+    if (tpItems.length) {
+      const nounFor = { single: 'single filers', married: 'married couples filing jointly',
+        head_of_household: 'heads of household' };
+      const brLabel = { single: 'Single', married: 'Married filing jointly', head_of_household: 'Head of household' };
+      // All three publishers apply one standard deduction to single filers and to
+      // married people filing separately ("all other taxpayers"), so the row says so.
+      const sdLabel = { single: 'Single, or married filing separately', married: 'Married filing jointly',
+        head_of_household: 'Head of household' };
+      const allNames = tpItems.map(tpShort);
+      const possessive = (n) => (n.endsWith('s') ? `${n}’` : `${n}’s`);
+
+      // ---- brackets: one column per filing status, split further only where
+      // publishers disagree on that status.
+      const brCols = [];
+      const brAgreeAll = [];
+      const brNotes = [];
+      for (const k of P27_TP_STATUSES) {
+        const groups = new Map();
+        for (const i of tpItems) {
+          const rows = i.brackets && i.brackets[k];
+          if (!rows) continue;
+          const key = JSON.stringify(rows);
+          if (!groups.has(key)) groups.set(key, { rows, who: [] });
+          groups.get(key).who.push(tpShort(i));
+        }
+        if (!groups.size) continue;
+        const gs = [...groups.values()];
+        const absent = tpItems.filter((i) => !(i.brackets && i.brackets[k])).map(tpShort);
+        // A column that not every publisher stands behind says whose it is.
+        for (const g of gs)
+          brCols.push({
+            label: brLabel[k] + (gs.length > 1 || absent.length ? ` (${andList(g.who)}${gs.length > 1 ? '' : ' only'})` : ''),
+            rows: g.rows,
+          });
+        if (gs.length > 1) {
+          brNotes.push(`For ${nounFor[k]} the publishers disagree, so each version has its own column.`);
+        } else if (!absent.length) {
+          brAgreeAll.push(nounFor[k]);
+        } else {
+          brNotes.push(`For ${nounFor[k]}, ${andList(gs[0].who)} ${gs[0].who.length > 1 ? 'project the same brackets' : 'is the only source'}; ` +
+            `${andList(absent.map(possessive))} are not in the public material we could check.`);
+        }
+      }
+      const brSentences = (brAgreeAll.length && tpItems.length > 1
+        ? [`For ${andList(brAgreeAll)}, ${tpItems.length === 2 ? 'both' : `all ${numWord(tpItems.length)}`} publishers project exactly the same brackets.`]
+        : []).concat(brNotes);
+      // Agreement between publishers who averaged the same published months is
+      // what the arithmetic predicts, not a second opinion. Say so once.
+      if (tpAllSkipCanceled && tpItems.length > 1)
+        brSentences.push('Matching figures are not independent confirmation: the publishers all worked from ' +
+          'the same published price data.');
+      const band = (rows, r) => {
+        const from = r === 0 ? 0 : rows[r - 1].upTo;
+        return rows[r].upTo === null ? `${usd0(from)} and above` : `${usd0(from)} &ndash; ${usd0(rows[r].upTo)}`;
+      };
+      const brTable = brCols.length
+        ? '<h3>Projected 2027 income tax brackets</h3>' +
+          (brSentences.length ? `<p>${escHtml(brSentences.join(' '))}</p>` : '') +
+          '<div class="p27-wrap"><table class="p27-inputs"><caption class="sr-only">Projected 2027 federal ' +
+          'income tax brackets by filing status, as published by the tax publishers named on this page ' +
+          '(PROJECTED, not official IRS figures)</caption><thead><tr><th scope="col">Tax rate</th>' +
+          brCols.map((c) => `<th scope="col">${escHtml(c.label)}</th>`).join('') + '</tr></thead><tbody>' +
+          brCols[0].rows.map((row, r) => `<tr><th scope="row">${pctStr(row.rate)}</th>` +
+            brCols.map((c) => `<td class="num">${band(c.rows, r)}</td>`).join('') + '</tr>').join('') +
+          '</tbody></table></div>' +
+          '<p class="muted-small">Each band is taxable income, meaning your income after deductions. Only the ' +
+          'part of your income inside a band is taxed at that band’s rate.</p>'
+        : '';
+
+      // ---- standard deduction: one column per publisher, always.
+      const sdItems = tpItems.filter((i) => i.standardDeduction);
+      const sdStatuses = P27_TP_STATUSES.filter((k) => sdItems.some((i) => k in i.standardDeduction));
+      // A figure is a whole-dollar amount, or one the publisher printed as two
+      // numbers ("$A ($B)"). The second kind is shown exactly as printed and is
+      // never resolved into one of its numbers: that would be picking.
+      const sdCell = (f) => (Number.isFinite(f) ? usd0(f) : escHtml(f.printed));
+      const sdSplits = sdStatuses.map((k) => {
+        const groups = new Map();
+        for (const i of sdItems) {
+          if (!(k in i.standardDeduction)) continue;
+          const f = i.standardDeduction[k];
+          const key = Number.isFinite(f) ? `n${f}` : `p${f.printed}`;
+          if (!groups.has(key)) groups.set(key, { f, who: [] });
+          groups.get(key).who.push(tpShort(i));
+        }
+        return { k, groups: [...groups.values()] };
+      }).filter((x) => x.groups.length > 1);
+      const splitPhrase = (x) => {
+        const plain = x.groups.filter((g) => Number.isFinite(g.f)).sort((a, b) => a.f - b.f)
+          .map((g) => `${andList(g.who)} ${g.who.length > 1 ? 'project' : 'projects'} ${usd0(g.f)}`);
+        const two = x.groups.filter((g) => !Number.isFinite(g.f)).map((g) => {
+          const many = g.who.length > 1;
+          return `${andList(g.who)} ${many ? 'print' : 'prints'} ${usd0(g.f.values[0])} with ` +
+            `${usd0(g.f.values[1])} in parentheses ` + (g.f.explanation === null
+            ? `and ${many ? 'do' : 'does'} not say what the second figure means`
+            : `and ${many ? 'say' : 'says'} of the second figure: ${g.f.explanation}`);
+        });
+        return two.length ? [plain.join(' and '), ...two].filter(Boolean).join(', while ') : plain.join(', while ');
+      };
+      const replaceAll = 'We do not pick between them. The official IRS figures will replace ' +
+        `${tpItems.length === 1 ? 'this projection' : `all ${numWord(tpItems.length)} projections`}, ` +
+        'and may not match any of them.';
+      let sdSentence = '';
+      if (sdItems.length > 1 && !sdSplits.length) {
+        sdSentence = `${sdItems.length === 2 ? 'Both' : `All ${numWord(sdItems.length)}`} publishers project the same standard deduction for every filing status shown.`;
+      } else if (sdSplits.length === 1) {
+        sdSentence = `The publishers disagree on one line, ${sdLabel[sdSplits[0].k].toLowerCase()}: ` +
+          `${splitPhrase(sdSplits[0])}. ${replaceAll}`;
+      } else if (sdSplits.length > 1) {
+        sdSentence = `The publishers disagree on ${numWord(sdSplits.length)} lines: ` +
+          sdSplits.map((x) => `${sdLabel[x.k].toLowerCase()}, where ${splitPhrase(x)}`).join('; ') +
+          `. ${replaceAll}`;
+      }
+      const sdTable = sdItems.length
+        ? '<h3>Projected 2027 standard deduction</h3>' +
+          '<div class="p27-wrap"><table class="p27-inputs"><caption class="sr-only">Projected 2027 standard ' +
+          'deduction by filing status and publisher (PROJECTED, not official IRS figures)</caption><thead><tr>' +
+          '<th scope="col">Filing status</th>' +
+          sdItems.map((i) => `<th scope="col">${escHtml(tpShort(i))}</th>`).join('') + '</tr></thead><tbody>' +
+          sdStatuses.map((k) => `<tr><th scope="row">${escHtml(sdLabel[k])}</th>` +
+            sdItems.map((i) => `<td class="num">${k in i.standardDeduction ? sdCell(i.standardDeduction[k]) : 'not published'}</td>`).join('') +
+            '</tr>').join('') +
+          '</tbody></table></div>' +
+          (sdSentence ? `<p>${escHtml(sdSentence)}</p>` : '')
+        : '';
+
+      // ---- who, when, how they handled the window, and where to check.
+      const monthsText = (i) => `${i.monthsUsed} of 12` +
+        (i.skipped.length ? `, leaving out ${andList(i.skipped.map(monthHuman))}` : '');
+      const sourceCell = (i) => srcLink(i.sourceUrl, i.title) +
+        (i.fullReport ? `<br>${escHtml(i.fullReport.label)}: ${srcLink(i.fullReport.sourceUrl, i.fullReport.title)}` : '');
+      const whoTable = '<h3>Where these figures come from</h3>' +
+        '<div class="p27-wrap"><table class="p27-inputs"><caption class="sr-only">Publishers of the projected ' +
+        '2027 figures above, with publication dates, months used, and sources</caption><thead><tr>' +
+        '<th scope="col">Publisher</th><th scope="col">Published</th><th scope="col">Months averaged</th>' +
+        '<th scope="col">Source</th></tr></thead><tbody>' +
+        tpItems.map((i) => `<tr><th scope="row">${escHtml(i.publisher)}</th>` +
+          `<td>${escHtml(humanDate(i.asOf))}</td><td>${escHtml(monthsText(i))}</td><td>${sourceCell(i)}</td></tr>` +
+          (i.note ? `<tr><td colspan="4" class="p27-tp-note">${escHtml(i.note)}</td></tr>` : '')).join('') +
+        '</tbody></table></div>' +
+        `<p class="muted-small">Last checked for new or revised projections on ${escHtml(humanDate(tp.checkedDate))}.</p>`;
+
+      thirdPartyBlock =
+        '<div class="p27-banner"><p><strong class="p27-tag">PROJECTED</strong> <strong>These are not IRS ' +
+        `figures.</strong> They are estimates published by ${tpItems.length === 1 ? 'a tax research publisher' : `${numWord(tpItems.length)} tax research publishers`}, ` +
+        `${escHtml(andList(allNames))}, each shown under its own name. The IRS publishes the official 2027 ` +
+        `amounts in a Revenue Procedure ${escHtml(nextRpTiming)}, and they may not match any figure below.</p></div>` +
+        brTable + sdTable + whoTable;
+    } else {
+      thirdPartyBlock = `<p>As of ${escHtml(humanDate(tp.checkedDate))}, the publishers whose 2027 projections are worth ` +
         'comparing against &mdash; Bloomberg Tax, Thomson Reuters, Wolters Kluwer &mdash; have not published ' +
         'theirs. That is not an oversight on their part: they wait for the last month of the statutory window, ' +
         'which is the same thing this page is waiting for. When theirs appear, they will be listed here with ' +
         'their figures and their dates, including where they disagree with us.</p>';
+    }
 
     const ld27 = JSON.stringify({
       '@context': 'https://schema.org',
@@ -9732,7 +9946,8 @@ async function main() {
       headline: 'Projected 2027 federal tax brackets: method, inputs, and what is still pending',
       description: 'A projected-2027-brackets page that publishes its inputs: the statutory 12-month ' +
         'C-CPI-U window, every published monthly index value with its source and publication date, and ' +
-        'the months that remain unpublished. Not official IRS figures.',
+        'the months that remain unpublished, alongside the 2027 projections named tax publishers have ' +
+        'released, each credited to its publisher. Not official IRS figures.',
       mainEntityOfPage: `${SITE.url}/2027-tax-brackets/`,
       publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
       isAccessibleForFree: true,

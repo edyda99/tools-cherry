@@ -93,7 +93,10 @@ t('Texas has no state income tax', () => assert.equal(stateTax('texas', 75000), 
 // $3,350/$6,700 stay, and what was actually wrong was the label: they are the TY2025 figures and
 // the record claimed figureYear 2026. Maryland's cost-of-living adjustment first applies to tax
 // years after 2025 and the 2026 amount has not been announced.
-const EXPECTED_FALLBACKS = ['arizona', 'california', 'district-of-columbia', 'idaho', 'maryland', 'vermont'];
+// district-of-columbia LEFT 2026-10-02: the FY2027 Budget Support Acts (D.C. Act 26-416 in force,
+// 26-418 pending) set the 2025-2029 basic standard deduction with a cost-of-living base year of
+// 2025, so the 2026 amount is the same $15,000 / $30,000 / $22,500 by law, not a prior-year floor.
+const EXPECTED_FALLBACKS = ['arizona', 'california', 'idaho', 'maryland', 'vermont'];
 
 t('every prior-year state is expected AND discloses it to the reader', () => {
   for (const s of ['nebraska', 'oklahoma']) {

@@ -235,8 +235,146 @@
     }
   },
   "thirdPartyProjections": {
-    "_note": "Projected 2027 federal bracket figures published by a named, checkable publisher. Empty as of 2026-08-11: Bloomberg Tax, Thomson Reuters and Wolters Kluwer all publish their first-look projections in September, after the August CPI release completes the statutory window, and none had published for tax year 2027 when this file was written. Machine-generated calculator sites are already ranking with 2027 figures; they are deliberately not listed, because none of them state a window, a month list, or a source.",
-    "checkedDate": "2026-08-11",
-    "items": []
+    "_note": "Projected tax-year-2027 federal figures published by a named, checkable publisher of professional tax research, rendered under that publisher's name and never as ours or the IRS's. All three publishers this page watches (Bloomberg Tax, Thomson Reuters, Wolters Kluwer) published in September 2026, after the August 2026 CPI release on 2026-09-11, and all three say they averaged the 11 published C-CPI-U months and left out October 2025, which BLS never published. The IRS has not said how it will treat that month, so these are three estimates built on the same unconfirmed choice and the same published data, not confirmations of each other. They agree on every figure stored here except the head-of-household standard deduction: Thomson Reuters $24,900, Wolters Kluwer $24,950, and Bloomberg Tax prints \"$24,925 ($24,950)\" without saying what the second figure means. The page shows each publisher's own figure as printed and does not pick one or explain the gap, because none of the three says how it rounded that line. Machine-generated calculator sites with 2027 figures are deliberately not listed, because none of them state a window, a month list, or a source. REPLACE this whole block with the official figures when the IRS Revenue Procedure for tax year 2027 lands.",
+    "_shape": "Each item: publisher (full name; the page strips a trailing parenthetical for column headers, as the cpiw.thirdPartyEstimates chips do), title (the publisher's own headline), asOf (the publication date the source itself states), sourceUrl (a public page carrying the figures), monthsUsed + skipped (how the publisher handled the statutory 12-month window), standardDeduction and/or brackets keyed by the filing-status keys tax-data-2026.json uses (single, married, head_of_household; brackets rows are {rate, upTo} with the top row upTo null, the same shape as tax-data-2026.json), optional fullReport {label, title, sourceUrl} for a fuller document that is not freely readable, note (renders on the page). A standard deduction is a whole-dollar integer, or, where the publisher printed two numbers for one line, {printed, values, explanation}: printed is the exact text in the form \"$A ($B)\", values is [A, B], explanation is the publisher's own account of the second number or null when it gives none; the page renders printed verbatim and never chooses between A and B. _methodQuote is the publisher's own sentence on the missing month, verbatim, for audit; it does not render. Validated by thirdPartyProblems() in src/engine/projections-2027.js; build.js refuses to render a malformed item.",
+    "checkedDate": "2026-10-02",
+    "items": [
+      {
+        "publisher": "Wolters Kluwer (CCH AnswerConnect)",
+        "title": "Projected 2027 federal tax brackets and other inflation-adjusted amounts",
+        "asOf": "2026-09-18",
+        "sourceUrl": "https://www.wolterskluwer.com/en/expert-insights/projected-2027-federal-tax-brackets",
+        "monthsUsed": 11,
+        "skipped": ["2025-10"],
+        "_methodQuote": "The Wolters Kluwer 2027 projections, therefore, are relying on an 11-month average for September 2025 through August 2026, skipping October 2025.",
+        "standardDeduction": {
+          "single": 16600,
+          "married": 33200,
+          "head_of_household": 24950
+        },
+        "brackets": {
+          "single": [
+            { "rate": 0.1, "upTo": 12800 },
+            { "rate": 0.12, "upTo": 52025 },
+            { "rate": 0.22, "upTo": 109125 },
+            { "rate": 0.24, "upTo": 208325 },
+            { "rate": 0.32, "upTo": 264550 },
+            { "rate": 0.35, "upTo": 661375 },
+            { "rate": 0.37, "upTo": null }
+          ],
+          "married": [
+            { "rate": 0.1, "upTo": 25600 },
+            { "rate": 0.12, "upTo": 104050 },
+            { "rate": 0.22, "upTo": 218250 },
+            { "rate": 0.24, "upTo": 416650 },
+            { "rate": 0.32, "upTo": 529100 },
+            { "rate": 0.35, "upTo": 793650 },
+            { "rate": 0.37, "upTo": null }
+          ],
+          "head_of_household": [
+            { "rate": 0.1, "upTo": 18250 },
+            { "rate": 0.12, "upTo": 69650 },
+            { "rate": 0.22, "upTo": 109100 },
+            { "rate": 0.24, "upTo": 208300 },
+            { "rate": 0.32, "upTo": 264550 },
+            { "rate": 0.35, "upTo": 661350 },
+            { "rate": 0.37, "upTo": null }
+          ]
+        },
+        "note": "Written by CCH AnswerConnect Editorial. The article says it is not clear how the IRS will handle the missing month, so the official amounts may differ.",
+        "_retrieval": "Article text retrieved for the 2026-10-02 update, and the standard deduction figures re-read in a real browser; wolterskluwer.com answers automated fetches with HTTP 403."
+      },
+      {
+        "publisher": "Thomson Reuters (Checkpoint)",
+        "title": "Key 2027 figures calculated by Thomson Reuters Checkpoint based on inflation data now available",
+        "asOf": "2026-09-11",
+        "sourceUrl": "https://tax.thomsonreuters.com/news/key-2027-figures-calculated-by-thomson-reuters-checkpoint-based-on-inflation-data-now-available/",
+        "monthsUsed": 11,
+        "skipped": ["2025-10"],
+        "_methodQuote": "Based on TR’s interpretation of IRC § 1(f), we estimated these 2027 numbers using the 11 months of published BLS CPI numbers from September 2025 through August 2026.",
+        "standardDeduction": {
+          "single": 16600,
+          "married": 33200,
+          "head_of_household": 24900
+        },
+        "brackets": {
+          "single": [
+            { "rate": 0.1, "upTo": 12800 },
+            { "rate": 0.12, "upTo": 52025 },
+            { "rate": 0.22, "upTo": 109125 },
+            { "rate": 0.24, "upTo": 208325 },
+            { "rate": 0.32, "upTo": 264550 },
+            { "rate": 0.35, "upTo": 661375 },
+            { "rate": 0.37, "upTo": null }
+          ],
+          "married": [
+            { "rate": 0.1, "upTo": 25600 },
+            { "rate": 0.12, "upTo": 104050 },
+            { "rate": 0.22, "upTo": 218250 },
+            { "rate": 0.24, "upTo": 416650 },
+            { "rate": 0.32, "upTo": 529100 },
+            { "rate": 0.35, "upTo": 793650 },
+            { "rate": 0.37, "upTo": null }
+          ],
+          "head_of_household": [
+            { "rate": 0.1, "upTo": 18250 },
+            { "rate": 0.12, "upTo": 69650 },
+            { "rate": 0.22, "upTo": 109100 },
+            { "rate": 0.24, "upTo": 208300 },
+            { "rate": 0.32, "upTo": 264550 },
+            { "rate": 0.35, "upTo": 661350 },
+            { "rate": 0.37, "upTo": null }
+          ]
+        },
+        "note": "Thomson Reuters calls these its own estimates and says the method is based on its reading of the tax code. The IRS will publish the official figures."
+      },
+      {
+        "publisher": "Bloomberg Tax",
+        "title": "Bloomberg Tax Releases 2027 Projected U.S. Tax Rates",
+        "asOf": "2026-09-11",
+        "sourceUrl": "https://pro.bloombergtax.com/?p=18030",
+        "fullReport": {
+          "label": "Full report, behind a sign-up form",
+          "title": "Special Report: 2027 Projected Tax Rates",
+          "sourceUrl": "https://pro.bloombergtax.com/?p=17932"
+        },
+        "monthsUsed": 11,
+        "skipped": ["2025-10"],
+        "_methodQuote": "In an unprecedented event, the Bureau of Labor Statistics did not report the data from October of 2025. Thus, the C-CPI-U has been computed on an 11-month average.",
+        "standardDeduction": {
+          "single": 16600,
+          "married": 33200,
+          "head_of_household": {
+            "printed": "$24,925 ($24,950)",
+            "values": [24925, 24950],
+            "explanation": null,
+            "_explanationNote": "Checked 2026-10-02: the public release prints both numbers in its projected-2027 column and says nothing about the one in parentheses. Do not resolve it into one figure; show it as printed."
+          }
+        },
+        "brackets": {
+          "single": [
+            { "rate": 0.1, "upTo": 12800 },
+            { "rate": 0.12, "upTo": 52025 },
+            { "rate": 0.22, "upTo": 109125 },
+            { "rate": 0.24, "upTo": 208325 },
+            { "rate": 0.32, "upTo": 264550 },
+            { "rate": 0.35, "upTo": 661375 },
+            { "rate": 0.37, "upTo": null }
+          ],
+          "married": [
+            { "rate": 0.1, "upTo": 25600 },
+            { "rate": 0.12, "upTo": 104050 },
+            { "rate": 0.22, "upTo": 218250 },
+            { "rate": 0.24, "upTo": 416650 },
+            { "rate": 0.32, "upTo": 529100 },
+            { "rate": 0.35, "upTo": 793650 },
+            { "rate": 0.37, "upTo": null }
+          ]
+        },
+        "note": "The public release does not include head-of-household tax brackets.",
+        "_correction": "The release carries a correction dated September 22, 2026, 11:00 AM, which fixed its 2026 comparison column for the standard deduction. Only the projected 2027 column is stored here. Its single-filer table also prints two 2026 typos (\"$105,7000\", \"$640,6000\"); the 2027 column is clean and matches Wolters Kluwer and Thomson Reuters to the dollar.",
+        "_retrieval": "Release text retrieved 2026-10-02 via r.jina.ai (pro.bloombergtax.com answers automated fetches with HTTP 403). Accounting Today's 2026-09-11 report of the same figures (https://www.accountingtoday.com/news/bloomberg-projects-tax-rates-for-2027) adds nothing the release lacks and is not cited."
+      }
+    ]
   }
 }
