@@ -3231,27 +3231,27 @@ function minWageBlock(state, p, year) {
   return `<section class="prose"><h2>${h2}</h2><p>${intro}${note}</p></section>`;
 }
 
-// Ancillary context (sales + property) — one compact paragraph so the page stays
+// Ancillary context (the statewide sales tax rate): one compact table so the page stays
 // paycheck-focused (relevance cap: ancillary stays a minority of net-new prose).
+// 2026-10-03: the "average combined" local sales rate and the effective property-tax
+// rate were dropped. Both were Tax Foundation estimates with no official source behind
+// them. The statewide rate is set in law and cited to the state; it is the minimum charged
+// everywhere, so for California (7.25%), Virginia (5.3%) and Utah (6.1%) it includes a
+// local share that applies statewide.
 function otherTaxesBlock(state, p) {
   if (!p) return '';
-  const st = p.salesTax, pt = p.propertyTax;
-  const parts = [];
-  if (st && typeof st.stateBaseRatePct === 'number') {
-    const combined = (typeof st.combinedAvgRatePct === 'number') ? ` (≈${st.combinedAvgRatePct}% with local)` : '';
-    parts.push(`<tr><td>Sales tax</td><td>${st.stateBaseRatePct}%${combined}</td></tr>`);
-  }
-  if (pt && typeof pt.effectiveRatePct === 'number') {
-    parts.push(`<tr><td>Property tax</td><td>≈${pt.effectiveRatePct}%${pt.rankNote ? ` — ${escHtml(pt.rankNote)}` : ''}</td></tr>`);
-  }
-  if (!parts.length) return '';
+  const st = p.salesTax;
+  if (!(st && typeof st.stateBaseRatePct === 'number')) return '';
+  const rate = st.stateBaseRatePct;
+  const parts = [`<tr><td>Statewide sales tax</td><td>${rate}%</td></tr>`];
   // Data-keyed heading: embed the sales-tax rate and (for no-income-tax states)
-  // the fact that these taxes stand in for a wage tax. Table body, not prose —
+  // the fact that this tax stands in for a wage tax. Table body, not prose:
   // the numbers ARE the content.
-  const ratePart = (st && typeof st.stateBaseRatePct === 'number') ? `${st.stateBaseRatePct}% sales tax` : 'sales tax';
-  const h2 = state.hasIncomeTax
-    ? `Beyond the paycheck: ${state.name}'s ${ratePart} and property tax`
-    : `What ${state.name} levies instead: ${ratePart} and property tax`;
+  const h2 = rate > 0
+    ? (state.hasIncomeTax
+      ? `Beyond the paycheck: ${state.name}'s ${rate}% statewide sales tax`
+      : `What ${state.name} levies instead: a ${rate}% statewide sales tax`)
+    : `${state.name} has no statewide sales tax`;
   return `<section class="prose"><h2>${h2}</h2>` +
     `<table class="data-table"><tbody>${parts.join('')}</tbody></table></section>`;
 }
@@ -12379,16 +12379,17 @@ async function main() {
     const analysisBlocks = blocks.join('\n      ');
 
     // --- Cost-of-living context table: the tied leaders plus the bottom three, next
-    // to the taxes a paycheck calculator structurally cannot see. Figures come from
-    // the already-sourced state-payroll-2026.json the state pages use.
+    // to the statewide sales tax a paycheck calculator structurally cannot see. Figures come
+    // from the already-sourced state-payroll-2026.json the state pages use. (The average
+    // combined local rate and the effective property-tax rate were dropped 2026-10-03:
+    // both were Tax Foundation estimates with no official source.)
     const colPick = [...topTied, ...thpRows.slice(-3).filter((r) => r.rank !== 1)];
     const colSeen = new Set();
     const colRows = colPick.filter((r) => (colSeen.has(r.slug) ? false : colSeen.add(r.slug)))
       .map((r) => {
         const p = payroll[r.slug] || {};
         const h = high.bySlug.get(r.slug);
-        const sales = p.salesTax && typeof p.salesTax.combinedAvgRatePct === 'number' ? p.salesTax.combinedAvgRatePct : null;
-        const prop = p.propertyTax && typeof p.propertyTax.effectiveRatePct === 'number' ? p.propertyTax.effectiveRatePct : null;
+        const sales = p.salesTax && typeof p.salesTax.stateBaseRatePct === 'number' ? p.salesTax.stateBaseRatePct : null;
         const mhi = p.medianHouseholdIncome && p.medianHouseholdIncome.amountUsd;
         const cell = (v, suffix) => (v == null
           ? '<td class="num zero" data-val="">n/a</td>'
@@ -12396,7 +12397,7 @@ async function main() {
         return `<tr><td><a href="/${r.slug}-paycheck-calculator/">${esc(r.name)}</a></td>` +
           `<td class="num net" data-val="${Math.round(r.net)}">${usd0(r.net)}</td>` +
           `<td class="num net" data-val="${Math.round(h.net)}">${usd0(h.net)}</td>` +
-          cell(sales, '%') + cell(prop, '%') +
+          cell(sales, '%') +
           (mhi ? `<td class="num" data-val="${mhi}">${usd0(mhi)}</td>` : '<td class="num zero" data-val="">n/a</td>') +
           `</tr>`;
       }).join('\n');
@@ -12404,13 +12405,13 @@ async function main() {
     // lowest-take-home state, so the caveat is backed by numbers rather than assertion.
     const salesOf = (r) => {
       const p = payroll[r.slug];
-      return p && p.salesTax && typeof p.salesTax.combinedAvgRatePct === 'number' ? p.salesTax.combinedAvgRatePct : null;
+      return p && p.salesTax && typeof p.salesTax.stateBaseRatePct === 'number' ? p.salesTax.stateBaseRatePct : null;
     };
     const salesLeader = topTied.filter((r) => salesOf(r) != null).sort((a, b) => salesOf(b) - salesOf(a))[0];
     const worstSales = salesOf(worst);
     const colContrast = (salesLeader && worstSales != null)
       ? `${esc(salesLeader.name)} ${topTied.length > 1 ? 'ties for' : 'takes'} the most take-home pay ` +
-        `and also charges an average ${salesOf(salesLeader)}% combined sales tax, while ` +
+        `and also charges a ${salesOf(salesLeader)}% statewide sales tax, while ` +
         `${esc(worst.name)}, last on take-home pay, charges ${worstSales}%.`
       : '';
 

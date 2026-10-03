@@ -12,7 +12,6 @@
       "payrollContributions": [],
       "salesTax": {
         "stateBaseRatePct": 5,
-        "combinedAvgRatePct": 6.89,
         "year": "2026",
         "source": "https://taxfoundation.org/location/north-dakota/"
       },
@@ -25,11 +24,6 @@
         "amountUsd": 77871,
         "year": "2024 (ACS, via FRED MEHOINUSNDA646N)",
         "source": "https://fred.stlouisfed.org/series/MEHOINUSNDA646N"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.92,
-        "rankNote": "Below the ~1.0% national average; mid-pack among states. Tax Foundation lists 0.92% effective on owner-occupied housing.",
-        "source": "https://taxfoundation.org/location/north-dakota/"
       },
       "distinctiveFacts": [
         {
@@ -52,7 +46,6 @@
       },
       "salesTax": {
         "stateBaseRatePct": 6,
-        "combinedAvgRatePct": 6,
         "year": "2026 (rises to 7.0% on Oct 1, 2026)",
         "source": "https://taxfoundation.org/location/the-district-of-columbia/"
       },
@@ -62,14 +55,9 @@
         "source": "https://does.dc.gov/sites/default/files/dc/sites/does/publication/attachments/2026%20Minimum%20Wage%20Increase%20Notice_0.pdf"
       },
       "medianHouseholdIncome": {
-        "amountUsd": 109870,
+        "amountUsd": 109707,
         "year": "2024 (ACS 1-year)",
-        "source": "https://taxfoundation.org/location/the-district-of-columbia/"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.6,
-        "rankNote": "Among the lowest effective property-tax rates in the nation (0.60% on owner-occupied housing), reflecting high home values rather than low levies.",
-        "source": "https://taxfoundation.org/location/the-district-of-columbia/"
+        "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
       },
       "distinctiveFacts": [
         {
@@ -100,7 +88,6 @@
       ],
       "salesTax": {
         "stateBaseRatePct": 4.875,
-        "combinedAvgRatePct": 7.67,
         "year": "2026",
         "source": "https://www.tax.newmexico.gov/all-nm-taxes/current-historic-tax-rates-overview/gross-receipts-tax-rates/"
       },
@@ -113,11 +100,6 @@
         "amountUsd": 64140,
         "year": "2024 (ACS, via FRED MEHOINUSNMA646N)",
         "source": "https://fred.stlouisfed.org/series/MEHOINUSNMA646N"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.63,
-        "rankNote": "One of the lower effective property-tax rates in the country (0.63% on owner-occupied housing), well below the ~1.0% national average.",
-        "source": "https://taxfoundation.org/location/new-mexico/"
       },
       "distinctiveFacts": [
         {
@@ -148,7 +130,6 @@
       ],
       "salesTax": {
         "stateBaseRatePct": 6,
-        "combinedAvgRatePct": 6.39,
         "year": "2026",
         "source": "https://taxfoundation.org/location/vermont/"
       },
@@ -161,11 +142,6 @@
         "amountUsd": 81203,
         "year": "2024 (ACS 1-year)",
         "source": "https://fred.stlouisfed.org/series/MEHOINUSVTA646N"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 1.51,
-        "rankNote": "Among the highest effective property-tax rates in the nation — Tax Foundation lists 1.51% on owner-occupied housing, placing Vermont in the top tier nationally (other methodologies rank it ~5th highest).",
-        "source": "https://taxfoundation.org/location/vermont/"
       },
       "distinctiveFacts": [
         {
@@ -189,7 +165,6 @@
       "payrollContributions": [],
       "salesTax": {
         "stateBaseRatePct": 6,
-        "combinedAvgRatePct": 6.59,
         "year": "2026",
         "source": "https://taxfoundation.org/location/west-virginia/"
       },
@@ -202,11 +177,6 @@
         "amountUsd": 60798,
         "year": "2024 (ACS 1-year; ranked 50th/lowest of the states)",
         "source": "https://www.census.gov/quickfacts/fact/table/WV/PST045224"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.51,
-        "rankNote": "One of the lowest effective property-tax rates in the nation (0.51% on owner-occupied housing), roughly 11th-lowest among states.",
-        "source": "https://taxfoundation.org/location/west-virginia/"
       },
       "distinctiveFacts": [
         {
@@ -230,7 +200,6 @@
       "payrollContributions": [],
       "salesTax": {
         "stateBaseRatePct": 0,
-        "combinedAvgRatePct": 0,
         "year": "2026 (no general state or local sales tax; resort communities may levy a local resort tax up to ~4%)",
         "source": "https://taxfoundation.org/location/montana/"
       },
@@ -243,11 +212,6 @@
         "amountUsd": 72509,
         "year": "2024 (ACS 1-year)",
         "source": "https://fred.stlouisfed.org/series/MEHOINUSMTA646N"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.61,
-        "rankNote": "Below the national average (0.61% effective on owner-occupied housing), roughly tied for 19th. Property tax funds about a third of Montana's state-and-local revenue given the absence of a sales tax.",
-        "source": "https://taxfoundation.org/location/montana/"
       },
       "distinctiveFacts": [
         {
@@ -265,7 +229,6 @@
       "name": "Delaware",
       "salesTax": {
         "stateBaseRatePct": 0,
-        "combinedAvgRatePct": 0,
         "year": "2026",
         "source": "https://taxfoundation.org/data/all/state/sales-tax-rates/"
       },
@@ -288,14 +251,9 @@
         "source": "https://www.minimum-wage.org/delaware"
       },
       "medianHouseholdIncome": {
-        "amountUsd": 87500,
-        "year": "2024",
-        "source": "https://datausa.io/profile/geo/delaware"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.47,
-        "rankNote": "Among the lowest effective property-tax rates in the U.S. (bottom tier). County rates: New Castle 0.68%, Kent 0.42%, Sussex 0.32%.",
-        "source": "https://www.fool.com/research/property-tax-rates-by-state/"
+        "amountUsd": 87534,
+        "year": "2024 (ACS 1-year)",
+        "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
       },
       "distinctiveFacts": [
         {
@@ -313,7 +271,6 @@
       "name": "New York",
       "salesTax": {
         "stateBaseRatePct": 4,
-        "combinedAvgRatePct": 8.54,
         "year": "2026",
         "source": "https://taxfoundation.org/location/new-york/"
       },
@@ -346,11 +303,6 @@
         "year": "2024",
         "source": "https://data.census.gov/table/ACSST1Y2024.S1903?q=New+York+Income+and+Poverty&g=040XX00US36"
       },
-      "propertyTax": {
-        "effectiveRatePct": 1.3,
-        "rankNote": "One of the higher effective property-tax rates nationally (~9th-highest by Tax Foundation, ~1.26–1.30%). Wide variation: ~0.56% in Brooklyn/Kings Co. to >2% in some upstate counties.",
-        "source": "https://taxfoundation.org/location/new-york/"
-      },
       "distinctiveFacts": [
         {
           "fact": "New York is one of the few states where employees pay BOTH a Paid Family Leave deduction (0.432%, up to $411.91/yr in 2026) and a State Disability deduction (0.5%, capped at just $0.60/week) — two separate line items on the paycheck.",
@@ -367,7 +319,6 @@
       "name": "Virginia",
       "salesTax": {
         "stateBaseRatePct": 5.3,
-        "combinedAvgRatePct": 5.77,
         "year": "2026",
         "source": "https://taxfoundation.org/location/virginia/"
       },
@@ -383,14 +334,9 @@
         "source": "https://doli.virginia.gov/2025/07/29/virginia-minimum-wage-rate-increasing-effective-january-1-2026/"
       },
       "medianHouseholdIncome": {
-        "amountUsd": 89393,
-        "year": "2024",
-        "source": "https://taxfoundation.org/location/virginia/"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.73,
-        "rankNote": "Roughly mid-to-low nationally (~#31 of 50), about 21% below the national average; median homeowner pays ~$2,790/yr.",
-        "source": "https://propertytaxbystate.com/virginia"
+        "amountUsd": 92090,
+        "year": "2024 (ACS 1-year)",
+        "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
       },
       "distinctiveFacts": [
         {
@@ -408,7 +354,6 @@
       "name": "Texas",
       "salesTax": {
         "stateBaseRatePct": 6.25,
-        "combinedAvgRatePct": 8.2,
         "year": "2026",
         "source": "https://taxfoundation.org/location/texas/"
       },
@@ -425,13 +370,8 @@
       },
       "medianHouseholdIncome": {
         "amountUsd": 79721,
-        "year": "2024",
-        "source": "https://www.texastribune.org/2025/09/11/texas-census-housing-costs/"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 1.47,
-        "rankNote": "Among the highest effective property-tax rates in the U.S. (top ~7th-10th); Texas relies heavily on property tax in lieu of an income tax. Tax Foundation cites ~1.47% effective rate.",
-        "source": "https://taxfoundation.org/location/texas/"
+        "year": "2024 (ACS 1-year)",
+        "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
       },
       "distinctiveFacts": [
         {
@@ -449,7 +389,6 @@
       "name": "Florida",
       "salesTax": {
         "stateBaseRatePct": 6,
-        "combinedAvgRatePct": 7.02,
         "year": "2026",
         "source": "https://taxfoundation.org/location/florida/"
       },
@@ -469,11 +408,6 @@
         "year": "2024",
         "source": "https://data.census.gov/profile/Florida?g=040XX00US12"
       },
-      "propertyTax": {
-        "effectiveRatePct": 0.78,
-        "rankNote": "Below the national average (~mid-pack to lower tier); Florida leans on sales tax and tourism revenue rather than income tax.",
-        "source": "https://taxfoundation.org/location/florida/"
-      },
       "distinctiveFacts": [
         {
           "fact": "Florida has no state income tax, so paychecks carry only federal withholdings — and the state has no employee-side SDI/PFML deductions either.",
@@ -490,7 +424,6 @@
       "name": "Washington",
       "salesTax": {
         "stateBaseRatePct": 6.5,
-        "combinedAvgRatePct": 9.51,
         "year": "2026",
         "source": "https://taxfoundation.org/location/washington/"
       },
@@ -526,13 +459,8 @@
       },
       "medianHouseholdIncome": {
         "amountUsd": 99389,
-        "year": "2024",
-        "source": "https://taxfoundation.org/location/washington/"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.75,
-        "rankNote": "Below the national average effective rate; Washington relies on sales tax (highest combined avg here at 9.51%) and lacks an income tax.",
-        "source": "https://taxfoundation.org/location/washington/"
+        "year": "2024 (ACS 1-year)",
+        "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
       },
       "distinctiveFacts": [
         {
@@ -556,7 +484,6 @@
       "payrollContributions": [],
       "salesTax": {
         "stateBaseRatePct": 6.85,
-        "combinedAvgRatePct": 8.24,
         "year": "2026",
         "source": "https://taxfoundation.org/location/nevada/"
       },
@@ -569,11 +496,6 @@
         "amountUsd": 81134,
         "year": "2024",
         "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.5,
-        "rankNote": "Among the lower effective property-tax rates nationally (Tax Foundation 2026, owner-occupied housing value).",
-        "source": "https://taxfoundation.org/location/nevada/"
       },
       "distinctiveFacts": [
         {
@@ -597,7 +519,6 @@
       "payrollContributions": [],
       "salesTax": {
         "stateBaseRatePct": 7,
-        "combinedAvgRatePct": 9.61,
         "year": "2026",
         "source": "https://taxfoundation.org/location/tennessee/"
       },
@@ -610,11 +531,6 @@
         "amountUsd": 71997,
         "year": "2024",
         "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.52,
-        "rankNote": "Among the lower effective property-tax rates nationally (Tax Foundation 2026, owner-occupied housing value).",
-        "source": "https://taxfoundation.org/location/tennessee/"
       },
       "distinctiveFacts": [
         {
@@ -638,7 +554,6 @@
       "payrollContributions": [],
       "salesTax": {
         "stateBaseRatePct": 4.2,
-        "combinedAvgRatePct": 6.11,
         "year": "2026",
         "source": "https://taxfoundation.org/location/south-dakota/"
       },
@@ -651,11 +566,6 @@
         "amountUsd": 76881,
         "year": "2024",
         "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 1,
-        "rankNote": "Mid-to-higher effective property-tax rate among the no-income-tax states (Tax Foundation 2026, owner-occupied housing value).",
-        "source": "https://taxfoundation.org/location/south-dakota/"
       },
       "distinctiveFacts": [
         {
@@ -679,7 +589,6 @@
       "payrollContributions": [],
       "salesTax": {
         "stateBaseRatePct": 4,
-        "combinedAvgRatePct": 5.36,
         "year": "2026",
         "source": "https://taxfoundation.org/location/wyoming/"
       },
@@ -692,11 +601,6 @@
         "amountUsd": 75532,
         "year": "2024",
         "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.53,
-        "rankNote": "Among the lower effective property-tax rates nationally (Tax Foundation 2026, owner-occupied housing value).",
-        "source": "https://taxfoundation.org/location/wyoming/"
       },
       "distinctiveFacts": [
         {
@@ -727,7 +631,6 @@
       ],
       "salesTax": {
         "stateBaseRatePct": 0,
-        "combinedAvgRatePct": 1.82,
         "year": "2026",
         "source": "https://taxfoundation.org/location/alaska/"
       },
@@ -740,11 +643,6 @@
         "amountUsd": 95665,
         "year": "2024",
         "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.94,
-        "rankNote": "Mid-range effective property-tax rate (Tax Foundation 2026, owner-occupied housing value); many Alaska boroughs levy no property tax at all.",
-        "source": "https://taxfoundation.org/location/alaska/"
       },
       "distinctiveFacts": [
         {
@@ -768,7 +666,6 @@
       "payrollContributions": [],
       "salesTax": {
         "stateBaseRatePct": 0,
-        "combinedAvgRatePct": 0,
         "year": "2026",
         "source": "https://taxfoundation.org/location/new-hampshire/"
       },
@@ -781,11 +678,6 @@
         "amountUsd": 99782,
         "year": "2024",
         "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 1.5,
-        "rankNote": "Among the highest effective property-tax rates in the nation (top ~3-5); New Hampshire's location-page rate is 1.50% on owner-occupied housing value, and it relies on property tax in lieu of sales/wage taxes (Tax Foundation 2026).",
-        "source": "https://taxfoundation.org/location/new-hampshire/"
       },
       "distinctiveFacts": [
         {
@@ -816,7 +708,6 @@
       ],
       "salesTax": {
         "stateBaseRatePct": 6,
-        "combinedAvgRatePct": 6.34,
         "year": "2026",
         "source": "https://taxfoundation.org/location/pennsylvania/"
       },
@@ -829,11 +720,6 @@
         "amountUsd": 77545,
         "year": "2024 (ACS 1-year)",
         "source": "https://fred.stlouisfed.org/series/MEHOINUSPAA646N"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 1.26,
-        "rankNote": "Above the national median; PA's effective rate on owner-occupied housing is among the higher half of states.",
-        "source": "https://taxfoundation.org/location/pennsylvania/"
       },
       "distinctiveFacts": [
         {
@@ -857,7 +743,6 @@
       "payrollContributions": [],
       "salesTax": {
         "stateBaseRatePct": 6.25,
-        "combinedAvgRatePct": 8.96,
         "year": "2026",
         "source": "https://taxfoundation.org/location/illinois/"
       },
@@ -869,12 +754,7 @@
       "medianHouseholdIncome": {
         "amountUsd": 83211,
         "year": "2024 (ACS 1-year)",
-        "source": "https://www.neilsberg.com/insights/illinois-median-household-income/"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 1.88,
-        "rankNote": "Among the highest effective property-tax rates in the nation — typically ranked 2nd-highest, behind only New Jersey.",
-        "source": "https://taxfoundation.org/location/illinois/"
+        "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
       },
       "distinctiveFacts": [
         {
@@ -898,7 +778,6 @@
       "payrollContributions": [],
       "salesTax": {
         "stateBaseRatePct": 4.75,
-        "combinedAvgRatePct": 6.99,
         "year": "2026",
         "notes": "This combined average predates Mecklenburg County's additional 1.00% local sales and use tax, effective July 1, 2026, which takes Mecklenburg's own combined rate to 8.25%. NCDOR publishes no statewide combined-average rate, so the average here cannot be re-verified against an official source and is carried forward pending recalculation.",
         "source": "https://www.ncdor.gov/news/press-releases/2026/06/24/mecklenburg-county-impose-additional-one-percent-sales-tax-beginning-july-1"
@@ -911,12 +790,7 @@
       "medianHouseholdIncome": {
         "amountUsd": 73958,
         "year": "2024 (ACS 1-year)",
-        "source": "https://www.carolinajournal.com/nc-median-household-income-reaches-74k-in-2024-according-to-census/"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.66,
-        "rankNote": "Below the national median — one of the lower effective property-tax rates among states.",
-        "source": "https://taxfoundation.org/location/north-carolina/"
+        "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
       },
       "distinctiveFacts": [
         {
@@ -940,7 +814,6 @@
       "payrollContributions": [],
       "salesTax": {
         "stateBaseRatePct": 6.1,
-        "combinedAvgRatePct": 7.19,
         "year": "2026",
         "source": "https://taxfoundation.org/location/utah/"
       },
@@ -950,14 +823,9 @@
         "source": "https://www.minimum-wage.org/utah"
       },
       "medianHouseholdIncome": {
-        "amountUsd": 95166,
-        "year": "2024 (ACS 1-year, inflation-adjusted dollars)",
-        "source": "https://datausa.io/profile/geo/utah"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.48,
-        "rankNote": "Among the lowest effective property-tax rates in the nation.",
-        "source": "https://taxfoundation.org/location/utah/"
+        "amountUsd": 96658,
+        "year": "2024 (ACS 1-year)",
+        "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
       },
       "distinctiveFacts": [
         {
@@ -981,7 +849,6 @@
       "payrollContributions": [],
       "salesTax": {
         "stateBaseRatePct": 6,
-        "combinedAvgRatePct": 6,
         "year": "2026",
         "source": "https://taxfoundation.org/location/michigan/"
       },
@@ -994,11 +861,6 @@
         "amountUsd": 72389,
         "year": "2024 (ACS 1-year)",
         "source": "https://www.michigan.gov/mcda/population/michigan-population-analysis/2025/09/12/2025-acs-1yr"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 1.19,
-        "rankNote": "Above the national median effective property-tax rate.",
-        "source": "https://taxfoundation.org/location/michigan/"
       },
       "distinctiveFacts": [
         {
@@ -1030,7 +892,6 @@
       "payrollContributions": [],
       "salesTax": {
         "stateBaseRatePct": 5.6,
-        "combinedAvgRatePct": 8.52,
         "year": "2026",
         "source": "https://taxfoundation.org/location/arizona/"
       },
@@ -1040,14 +901,9 @@
         "source": "https://www.azica.gov/sites/default/files/2025-10/2026%20Minimum%20Wage.pdf"
       },
       "medianHouseholdIncome": {
-        "amountUsd": 79964,
+        "amountUsd": 81486,
         "year": "2024 (ACS 1-year)",
-        "source": "https://www.neilsberg.com/insights/topic/arizona-income/"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.48,
-        "rankNote": "Among the lowest effective property-tax rates in the nation.",
-        "source": "https://taxfoundation.org/location/arizona/"
+        "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
       },
       "distinctiveFacts": [
         {
@@ -1070,7 +926,6 @@
       },
       "salesTax": {
         "stateBaseRatePct": 2.9,
-        "combinedAvgRatePct": 7.89,
         "year": "2026",
         "source": "https://taxfoundation.org/location/colorado/"
       },
@@ -1091,11 +946,6 @@
         "amountUsd": 97113,
         "year": "2024 (ACS 1-year estimate)",
         "source": "https://www.census.gov/quickfacts/fact/table/CO/PST040224"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.5,
-        "rankNote": "0.50% effective rate on owner-occupied housing — among the lowest in the nation (roughly 3rd-lowest of the 50 states).",
-        "source": "https://taxfoundation.org/location/colorado/"
       },
       "distinctiveFacts": [
         {
@@ -1118,7 +968,6 @@
       },
       "salesTax": {
         "stateBaseRatePct": 7,
-        "combinedAvgRatePct": 7,
         "year": "2026",
         "source": "https://taxfoundation.org/location/indiana/"
       },
@@ -1132,11 +981,6 @@
         "amountUsd": 71959,
         "year": "2024 (ACS 1-year estimate)",
         "source": "https://www.census.gov/quickfacts/fact/table/IN/INC110224"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.76,
-        "rankNote": "0.76% effective rate on owner-occupied housing — below the national average, around the middle-to-lower third of states.",
-        "source": "https://taxfoundation.org/location/indiana/"
       },
       "distinctiveFacts": [
         {
@@ -1159,7 +1003,6 @@
       },
       "salesTax": {
         "stateBaseRatePct": 6,
-        "combinedAvgRatePct": 6,
         "year": "2026",
         "source": "https://taxfoundation.org/location/kentucky/"
       },
@@ -1173,11 +1016,6 @@
         "amountUsd": 64526,
         "year": "2024 (ACS 1-year estimate)",
         "source": "https://www.census.gov/quickfacts/fact/table/KY/INC110223"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.74,
-        "rankNote": "0.74% effective rate on owner-occupied housing — below the national average, mid-range nationally.",
-        "source": "https://taxfoundation.org/location/kentucky/"
       },
       "distinctiveFacts": [
         {
@@ -1201,7 +1039,6 @@
       },
       "salesTax": {
         "stateBaseRatePct": 7,
-        "combinedAvgRatePct": 7.06,
         "year": "2026",
         "source": "https://taxfoundation.org/location/mississippi/"
       },
@@ -1215,11 +1052,6 @@
         "amountUsd": 56447,
         "year": "2024 (ACS, in 2024 inflation-adjusted dollars)",
         "source": "https://www.census.gov/quickfacts/fact/table/MS/BZA115223"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.58,
-        "rankNote": "0.58% effective rate on owner-occupied housing — among the lowest in the nation (bottom ~10 states).",
-        "source": "https://taxfoundation.org/location/mississippi/"
       },
       "distinctiveFacts": [
         {
@@ -1242,7 +1074,6 @@
       },
       "salesTax": {
         "stateBaseRatePct": 4,
-        "combinedAvgRatePct": 7.4,
         "year": "2026",
         "source": "https://taxfoundation.org/location/georgia/"
       },
@@ -1256,11 +1087,6 @@
         "amountUsd": 77353,
         "year": "2024 (ACS, in 2024 inflation-adjusted dollars)",
         "source": "https://www.census.gov/quickfacts/fact/table/GA/INC110224"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.79,
-        "rankNote": "0.79% effective rate on owner-occupied housing — slightly below the national average, mid-range nationally.",
-        "source": "https://taxfoundation.org/location/georgia/"
       },
       "distinctiveFacts": [
         {
@@ -1283,7 +1109,6 @@
       },
       "salesTax": {
         "stateBaseRatePct": 5,
-        "combinedAvgRatePct": 10.11,
         "year": "2026",
         "source": "https://taxfoundation.org/location/louisiana/"
       },
@@ -1297,11 +1122,6 @@
         "amountUsd": 60986,
         "year": "2024 (ACS 1-year estimate)",
         "source": "https://data.census.gov/profile/Louisiana?g=0400000US22"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.55,
-        "rankNote": "0.55% effective rate on owner-occupied housing — among the lowest in the nation (bottom ~5 states), partly due to Louisiana's large homestead exemption.",
-        "source": "https://taxfoundation.org/location/louisiana/"
       },
       "distinctiveFacts": [
         {
@@ -1319,7 +1139,6 @@
       "name": "Iowa",
       "salesTax": {
         "stateBaseRatePct": 6,
-        "combinedAvgRatePct": 6.94,
         "year": "2026",
         "source": "https://taxfoundation.org/location/iowa/"
       },
@@ -1339,11 +1158,6 @@
         "year": "2024 (ACS 1-Year)",
         "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
       },
-      "propertyTax": {
-        "effectiveRatePct": 1.33,
-        "rankNote": "Among the higher-burden states; Tax Foundation property tax rankings place Iowa near 10th-highest in the nation.",
-        "source": "https://taxfoundation.org/location/iowa/"
-      },
       "distinctiveFacts": [
         {
           "fact": "Iowa completed its move to a single flat individual income tax rate of 3.8% effective January 1, 2025, so all taxable income in 2026 is taxed at 3.8% with no brackets.",
@@ -1360,7 +1174,6 @@
       "name": "Idaho",
       "salesTax": {
         "stateBaseRatePct": 6,
-        "combinedAvgRatePct": 6.03,
         "year": "2026",
         "source": "https://taxfoundation.org/location/idaho/"
       },
@@ -1380,11 +1193,6 @@
         "year": "2024 (ACS 1-Year)",
         "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
       },
-      "propertyTax": {
-        "effectiveRatePct": 0.43,
-        "rankNote": "One of the lowest effective property tax rates in the nation, well below the U.S. median.",
-        "source": "https://taxfoundation.org/location/idaho/"
-      },
       "distinctiveFacts": [
         {
           "fact": "Idaho retroactively cut its flat individual income tax rate to 5.3% (from 5.695%) via House Bill 40 enacted March 2025, so 2026 wages are taxed at a single 5.3% rate.",
@@ -1401,7 +1209,6 @@
       "name": "Massachusetts",
       "salesTax": {
         "stateBaseRatePct": 6.25,
-        "combinedAvgRatePct": 6.25,
         "year": "2026",
         "source": "https://www.mass.gov/guides/sales-and-use-tax"
       },
@@ -1428,11 +1235,6 @@
         "year": "2024 (ACS 1-Year)",
         "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
       },
-      "propertyTax": {
-        "effectiveRatePct": 1,
-        "rankNote": "Roughly mid-pack nationally; near or slightly above the U.S. average effective rate.",
-        "source": "https://taxfoundation.org/location/massachusetts/"
-      },
       "distinctiveFacts": [
         {
           "fact": "A 4% 'millionaire' surtax applies on top of the 5% flat rate to all income above $1,107,750 for tax year 2026 (threshold indexed annually for inflation), making the top marginal rate 9% on income over that level.",
@@ -1449,7 +1251,6 @@
       "name": "New Jersey",
       "salesTax": {
         "stateBaseRatePct": 6.625,
-        "combinedAvgRatePct": 6.6,
         "year": "2026",
         "source": "https://taxfoundation.org/location/new-jersey/"
       },
@@ -1494,11 +1295,6 @@
         "year": "2024 (ACS 1-Year)",
         "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
       },
-      "propertyTax": {
-        "effectiveRatePct": 2.23,
-        "rankNote": "Highest effective property tax rate in the nation; median annual bill near $9,500 vs. a national median around $2,800.",
-        "source": "https://taxfoundation.org/data/all/state/property-taxes-by-state-county/"
-      },
       "distinctiveFacts": [
         {
           "fact": "New Jersey has the nation's 4th-highest top marginal income tax rate at 10.75% on income over $1,000,000 (behind only California, Hawaii, and New York).",
@@ -1515,7 +1311,6 @@
       "name": "Ohio",
       "salesTax": {
         "stateBaseRatePct": 5.75,
-        "combinedAvgRatePct": 7.29,
         "year": "2026",
         "source": "https://taxfoundation.org/location/ohio/"
       },
@@ -1535,11 +1330,6 @@
         "year": "2024 (ACS 1-Year)",
         "source": "https://www.census.gov/quickfacts/fact/table/OH/INC110224"
       },
-      "propertyTax": {
-        "effectiveRatePct": 1.36,
-        "rankNote": "Among the top ~10 highest effective property tax rates nationally.",
-        "source": "https://taxfoundation.org/location/ohio/"
-      },
       "distinctiveFacts": [
         {
           "fact": "Under HB 96, Ohio dropped to a single rate in 2026: no tax on the first $26,050 of nonbusiness income, then a flat $332 plus 2.75% of the amount above $26,050, with the 3.125% band over $100,000 applying to 2025 only.",
@@ -1556,7 +1346,6 @@
       "name": "Maryland",
       "salesTax": {
         "stateBaseRatePct": 6,
-        "combinedAvgRatePct": 6,
         "year": "2026",
         "source": "https://taxfoundation.org/location/maryland/"
       },
@@ -1575,11 +1364,6 @@
         "amountUsd": 102905,
         "year": "2024 (ACS 1-Year)",
         "source": "https://www2.census.gov/library/publications/2025/demo/acsbr-025.pdf"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.9,
-        "rankNote": "Near the U.S. median effective property tax rate.",
-        "source": "https://taxfoundation.org/location/maryland/"
       },
       "distinctiveFacts": [
         {
@@ -1610,7 +1394,6 @@
       ],
       "salesTax": {
         "stateBaseRatePct": 6.875,
-        "combinedAvgRatePct": 8.14,
         "year": "2026",
         "source": "https://taxfoundation.org/location/minnesota/"
       },
@@ -1623,11 +1406,6 @@
         "amountUsd": 87117,
         "year": "2024 (ACS 1-Year)",
         "source": "https://www.census.gov/quickfacts/fact/table/MN/INC110223"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 1,
-        "rankNote": "Roughly middle of the pack nationally; ~1.00% effective rate on owner-occupied homes per Tax Foundation 2026.",
-        "source": "https://taxfoundation.org/location/minnesota/"
       },
       "distinctiveFacts": [
         {
@@ -1651,7 +1429,6 @@
       "payrollContributions": [],
       "salesTax": {
         "stateBaseRatePct": 5,
-        "combinedAvgRatePct": 5.72,
         "year": "2026",
         "source": "https://taxfoundation.org/location/wisconsin/"
       },
@@ -1664,11 +1441,6 @@
         "amountUsd": 77485,
         "year": "2024 (ACS 1-Year)",
         "source": "https://www.census.gov/quickfacts/WI"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 1.32,
-        "rankNote": "Among the top ~10 highest in the nation; ~1.32% effective rate on owner-occupied homes per Tax Foundation 2026. Wisconsin relies heavily on local property tax for school funding.",
-        "source": "https://taxfoundation.org/location/wisconsin/"
       },
       "distinctiveFacts": [
         {
@@ -1699,7 +1471,6 @@
       ],
       "salesTax": {
         "stateBaseRatePct": 6.35,
-        "combinedAvgRatePct": 6.35,
         "year": "2026",
         "source": "https://taxfoundation.org/location/connecticut/"
       },
@@ -1712,11 +1483,6 @@
         "amountUsd": 95781,
         "year": "2024 (ACS 1-Year)",
         "source": "https://www.census.gov/quickfacts/fact/table/CT/INC110224"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 1.54,
-        "rankNote": "Third-highest effective property tax rate in the nation (trailing only New Jersey and Illinois) per Tax Foundation 2026.",
-        "source": "https://taxfoundation.org/location/connecticut/"
       },
       "distinctiveFacts": [
         {
@@ -1753,7 +1519,6 @@
       ],
       "salesTax": {
         "stateBaseRatePct": 0,
-        "combinedAvgRatePct": 0,
         "year": "2026",
         "source": "https://taxfoundation.org/location/oregon/"
       },
@@ -1766,11 +1531,6 @@
         "amountUsd": 85220,
         "year": "2024 (ACS 1-Year)",
         "source": "https://www.census.gov/quickfacts/fact/table/OR/INC110223"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.81,
-        "rankNote": "Below the national average; ~0.81% effective rate on owner-occupied homes per Tax Foundation 2026.",
-        "source": "https://taxfoundation.org/location/oregon/"
       },
       "distinctiveFacts": [
         {
@@ -1801,7 +1561,6 @@
       ],
       "salesTax": {
         "stateBaseRatePct": 7.25,
-        "combinedAvgRatePct": 8.99,
         "year": "2026",
         "source": "https://taxfoundation.org/location/california/"
       },
@@ -1814,11 +1573,6 @@
         "amountUsd": 102900,
         "year": "2024 (ACS 1-Year)",
         "source": "https://www.census.gov/library/publications/2025/acs/acsbr-025.html"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.7,
-        "rankNote": "Well below the national average (~0.70% effective rate per Tax Foundation 2026) thanks to Proposition 13's 1% cap and 2% annual assessment-growth limit; ranks in the lower third of states.",
-        "source": "https://taxfoundation.org/location/california/"
       },
       "distinctiveFacts": [
         {
@@ -1842,7 +1596,6 @@
       "payrollContributions": [],
       "salesTax": {
         "stateBaseRatePct": 4.225,
-        "combinedAvgRatePct": 8.44,
         "year": "2026",
         "source": "https://taxfoundation.org/location/missouri/"
       },
@@ -1855,11 +1608,6 @@
         "amountUsd": 70702,
         "year": "2024 (ACS 1-Year)",
         "source": "https://www.census.gov/quickfacts/fact/table/MO/PST045224"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.89,
-        "rankNote": "Below the national average (~0.89% effective rate per Tax Foundation 2026); county rates range from 0.34% (Wright) to 1.14% (St. Louis County).",
-        "source": "https://taxfoundation.org/location/missouri/"
       },
       "distinctiveFacts": [
         {
@@ -1877,7 +1625,6 @@
       "name": "Kansas",
       "salesTax": {
         "stateBaseRatePct": 6.5,
-        "combinedAvgRatePct": 8.69,
         "year": "2026",
         "source": "https://taxfoundation.org/location/kansas/"
       },
@@ -1897,11 +1644,6 @@
         "year": "2024",
         "source": "https://www.census.gov/library/publications/2025/acs/acsbr-025.html"
       },
-      "propertyTax": {
-        "effectiveRatePct": 1.21,
-        "rankNote": "1.21% effective rate on owner-occupied housing value — above the national average; Kansas property taxes are among the higher in the region.",
-        "source": "https://taxfoundation.org/location/kansas/"
-      },
       "distinctiveFacts": [
         {
           "fact": "Kansas individual income tax is a two-bracket system for 2026, with rates ranging from 5.20% to 5.58% — a relatively high entry rate compared with neighboring states.",
@@ -1918,7 +1660,6 @@
       "name": "Nebraska",
       "salesTax": {
         "stateBaseRatePct": 5.5,
-        "combinedAvgRatePct": 6.98,
         "year": "2026",
         "source": "https://taxfoundation.org/location/nebraska/"
       },
@@ -1938,11 +1679,6 @@
         "year": "2024",
         "source": "https://www.census.gov/library/publications/2025/acs/acsbr-025.html"
       },
-      "propertyTax": {
-        "effectiveRatePct": 1.44,
-        "rankNote": "1.44% effective rate on owner-occupied housing value — one of the higher property tax burdens in the country, a key offset to Nebraska's relatively low sales tax.",
-        "source": "https://taxfoundation.org/location/nebraska/"
-      },
       "distinctiveFacts": [
         {
           "fact": "Nebraska's top marginal income tax rate dropped from 5.20% to 4.55% on Jan 1, 2026, part of a phasedown toward 3.99% by 2027.",
@@ -1959,7 +1695,6 @@
       "name": "Oklahoma",
       "salesTax": {
         "stateBaseRatePct": 4.5,
-        "combinedAvgRatePct": 8.99,
         "year": "2026",
         "source": "https://taxfoundation.org/location/oklahoma/"
       },
@@ -1979,11 +1714,6 @@
         "year": "2024",
         "source": "https://www.census.gov/library/publications/2025/acs/acsbr-025.html"
       },
-      "propertyTax": {
-        "effectiveRatePct": 0.79,
-        "rankNote": "0.79% effective rate on owner-occupied housing value — below the national average and the lowest among this group's income-tax states except the Deep South.",
-        "source": "https://taxfoundation.org/location/oklahoma/"
-      },
       "distinctiveFacts": [
         {
           "fact": "Effective Jan 1 2026, HB2764 replaced Oklahoma's six income tax brackets with four bands, taxed at 0%, 2.5%, 3.5% and 4.5%. The top rate fell from 4.75%, so withholding drops for most filers.",
@@ -2000,7 +1730,6 @@
       "name": "Arkansas",
       "salesTax": {
         "stateBaseRatePct": 6.5,
-        "combinedAvgRatePct": 9.48,
         "year": "2026",
         "source": "https://taxfoundation.org/location/arkansas/"
       },
@@ -2020,11 +1749,6 @@
         "year": "2024",
         "source": "https://www.census.gov/library/publications/2025/acs/acsbr-025.html"
       },
-      "propertyTax": {
-        "effectiveRatePct": 0.56,
-        "rankNote": "0.56% effective rate on owner-occupied housing value — one of the lowest property tax rates nationally.",
-        "source": "https://taxfoundation.org/location/arkansas/"
-      },
       "distinctiveFacts": [
         {
           "fact": "Arkansas cut its top individual income tax rate to 3.7% retroactive to Jan 1, 2026 (down from 3.9%) — its fourth income tax cut in four years.",
@@ -2041,7 +1765,6 @@
       "name": "Alabama",
       "salesTax": {
         "stateBaseRatePct": 4,
-        "combinedAvgRatePct": 9.46,
         "year": "2026",
         "source": "https://taxfoundation.org/location/alabama/"
       },
@@ -2061,11 +1784,6 @@
         "year": "2024",
         "source": "https://www.census.gov/library/publications/2025/acs/acsbr-025.html"
       },
-      "propertyTax": {
-        "effectiveRatePct": 0.37,
-        "rankNote": "0.37% effective rate on owner-occupied housing value — the lowest among these six states and among the lowest in the entire nation.",
-        "source": "https://taxfoundation.org/location/alabama/"
-      },
       "distinctiveFacts": [
         {
           "fact": "Alabama lets taxpayers deduct their full federal income tax liability before computing state tax (a 1965 constitutional provision) — one of the very few states still allowing a full federal income tax deduction, which meaningfully lowers effective state withholding.",
@@ -2082,7 +1800,6 @@
       "name": "South Carolina",
       "salesTax": {
         "stateBaseRatePct": 6,
-        "combinedAvgRatePct": 7.49,
         "year": "2026",
         "source": "https://taxfoundation.org/location/south-carolina/"
       },
@@ -2101,11 +1818,6 @@
         "amountUsd": 72350,
         "year": "2024",
         "source": "https://www.census.gov/library/publications/2025/acs/acsbr-025.html"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.49,
-        "rankNote": "0.49% effective rate on owner-occupied housing value — among the lowest property tax rates in the nation, aided by the owner-occupied (4% assessment) classification.",
-        "source": "https://taxfoundation.org/location/south-carolina/"
       },
       "distinctiveFacts": [
         {
@@ -2136,7 +1848,6 @@
       ],
       "salesTax": {
         "stateBaseRatePct": 5.5,
-        "combinedAvgRatePct": 5.5,
         "year": "2026",
         "source": "https://taxfoundation.org/location/maine/"
       },
@@ -2149,11 +1860,6 @@
         "amountUsd": 74733,
         "year": "2024 (ACS 5-year)",
         "source": "https://www.census.gov/quickfacts/fact/table/ME"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.98,
-        "rankNote": "Roughly mid-to-upper among states; Maine's property tax structure is considered among the least competitive in the nation (it pairs high property taxes with no local sales taxes).",
-        "source": "https://taxfoundation.org/location/maine/"
       },
       "distinctiveFacts": [
         {
@@ -2184,7 +1890,6 @@
       ],
       "salesTax": {
         "stateBaseRatePct": 4,
-        "combinedAvgRatePct": 4.5,
         "year": "2026",
         "source": "https://taxfoundation.org/location/hawaii/"
       },
@@ -2197,11 +1902,6 @@
         "amountUsd": 100700,
         "year": "2024 (ACS 1-year)",
         "source": "https://files.hawaii.gov/dbedt/census/acs/acs2024/1yr/acs2024_1-yr_highlights_2025-09-11.pdf"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 0.29,
-        "rankNote": "Lowest effective property tax rate of any U.S. state. Low rates are offset by the nation's highest median home values, so dollar bills are not as low as the rate implies.",
-        "source": "https://taxfoundation.org/location/hawaii/"
       },
       "distinctiveFacts": [
         {
@@ -2232,7 +1932,6 @@
       ],
       "salesTax": {
         "stateBaseRatePct": 7,
-        "combinedAvgRatePct": 7,
         "year": "2026",
         "source": "https://taxfoundation.org/location/rhode-island/"
       },
@@ -2245,11 +1944,6 @@
         "amountUsd": 87796,
         "year": "2024 (ACS, inflation-adjusted)",
         "source": "https://www.census.gov/quickfacts/fact/table/RI"
-      },
-      "propertyTax": {
-        "effectiveRatePct": 1.19,
-        "rankNote": "Among the higher-tax states; effective rate well above the national average. Rates vary widely by municipality (roughly 0.86% in Newport County to ~1.37% in Kent County).",
-        "source": "https://taxfoundation.org/location/rhode-island/"
       },
       "distinctiveFacts": [
         {
