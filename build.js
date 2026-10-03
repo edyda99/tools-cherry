@@ -914,6 +914,21 @@ function conformityAnswer(subject, total, cnt) {
 // Hand-picked related links for pages that aren't in TOOLS (data studies, the
 // embed gallery). Keyed by currentPath.
 const RELATED_OVERRIDES = {
+  // Driving-cost pair: the trip planner and the MPG calculator answer the two
+  // halves of one question, so each always links the other first.
+  '/gas-cost-calculator/': [
+    { name: 'Fuel Economy Calculator (MPG, L/100km)', path: '/fuel-economy-calculator/' },
+    { name: 'Auto Loan Calculator', path: '/auto-loan-calculator/' },
+    { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
+    { name: 'Unit Converter', path: '/unit-converter/' },
+    { name: 'Tip & Bill Split', path: '/tip-calculator/' }
+  ],
+  '/fuel-economy-calculator/': [
+    { name: 'Gas Cost Calculator', path: '/gas-cost-calculator/' },
+    { name: 'Auto Loan Calculator', path: '/auto-loan-calculator/' },
+    { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
+    { name: 'Unit Converter', path: '/unit-converter/' }
+  ],
   // PDF cluster: explicit cross-links to every sibling PDF tool + the hub page,
   // instead of the cat-based random pick (which would dilute in with the 5
   // non-PDF image tools sharing cat:'image').
