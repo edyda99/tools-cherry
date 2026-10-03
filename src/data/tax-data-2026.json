@@ -468,6 +468,8 @@
       "abbr": "VT",
       "slug": "vermont",
       "_sourceTitles": {
+        "https://legislature.vermont.gov/statutes/section/32/246/10553": "Vermont Statutes, 32 V.S.A. 10553: child care contribution",
+        "https://tax.vermont.gov/business/child-care-contribution": "Vermont Department of Taxes: Child Care Contribution",
         "https://ljfo.vermont.gov/assets/Publications/2026-Fiscal-Facts-Booklet/Fiscal-Facts-2026.pdf": "Vermont Joint Fiscal Office: 2026 Fiscal Facts, personal income tax rates and brackets",
         "https://tax.vermont.gov/sites/tax/files/documents/IN-114-Instr-2026.pdf": "Vermont Department of Taxes: 2026 Form IN-114 instructions, preliminary tax rates",
         "https://tax.vermont.gov/sites/tax/files/documents/Income-Booklet-2025.pdf": "Vermont Department of Taxes: 2025 income tax return booklet, the standard deduction",
@@ -3725,6 +3727,8 @@
       "abbr": "ME",
       "slug": "maine",
       "_sourceTitles": {
+        "https://www.maine.gov/revenue/sites/maine.gov.revenue/files/inline-files/26_item_stand_%20ded_phaseout_wksht_0.pdf": "Maine Revenue Services: 2026 standard deduction phase-out worksheet",
+        "https://www.maine.gov/revenue/sites/maine.gov.revenue/files/inline-files/26_1040es_pers_exempt_phaseout_wksht.pdf": "Maine Revenue Services: 2026 personal exemption phase-out worksheet (estimated tax)",
         "https://www.maine.gov/revenue/sites/maine.gov.revenue/files/2026-05/ind_tax_rate_sched_2026_rev.pdf": "Maine Revenue Services: 2026 individual income tax rate schedules"
       },
       "employeePrograms": [
@@ -3857,7 +3861,9 @@
       "slug": "hawaii",
       "_sourceTitles": {
         "https://tax.hawaii.gov/forms/d_25table-on/d_25table-on_p13/": "Hawaii Department of Taxation: tax rate schedules for taxable years beginning after December 31, 2024",
-        "https://files.hawaii.gov/tax/news/announce/ann25-07.pdf": "Hawaii Department of Taxation: Announcement No. 2025-07, the 2026 standard deduction"
+        "https://files.hawaii.gov/tax/news/announce/ann25-07.pdf": "Hawaii Department of Taxation: Announcement No. 2025-07, the 2026 standard deduction",
+        "https://www.capitol.hawaii.gov/hrscurrent/Vol04_Ch0201-0257/HRS0235/HRS_0235-0054.htm": "Hawaii Revised Statutes 235-54: personal exemptions",
+        "https://files.hawaii.gov/tax/forms/2025/n11_i.pdf": "Hawaii Department of Taxation: 2025 Form N-11 instructions"
       },
       "_watch": {
         "until": "2027-07-31",
@@ -4049,6 +4055,8 @@
       "abbr": "RI",
       "slug": "rhode-island",
       "_sourceTitles": {
+        "https://tax.ri.gov/sites/g/files/xkgbur541/files/2025-11/ADV_2025_22_Inflation_Adjustments.pdf": "Rhode Island Division of Taxation: Advisory 2025-22, inflation adjustments for tax year 2026",
+        "https://webserver.rilegislature.gov/Statutes/TITLE44/44-30/44-I/44-30-2.6.htm": "Rhode Island General Laws 44-30-2.6: Rhode Island taxable income",
         "https://news.bloombergtax.com/daily-tax-report-state/rhode-island-tax-division-announces-2026-inflation-adjusted-personal-income-tax-amounts": "Bloomberg Tax: Rhode Island announces its 2026 inflation-adjusted personal income tax amounts",
         "https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/": "Tax Foundation: 2026 state income tax rates and brackets"
       },
