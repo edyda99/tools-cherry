@@ -292,6 +292,14 @@ const fedGroups = CFG.federalStatuses.map((st) => ({
 }));
 
 const salaries = CFG.takeHomeSalaries;
+// What a prior-year state is behind on, in the words its own pages use: a state whose data names
+// its deduction (an exemption folded in, or Ohio's exemption alone) is not said to use a "standard
+// deduction", and Arkansas's 2026 rates are current while its thresholds and deduction are 2025's.
+function priorYearWhat(scope, t) {
+  if (scope === 'standardDeduction') return (t && t.deductionName) || 'standard deduction';
+  if (scope === 'thresholdsAndDeduction') return 'bracket thresholds and standard deduction';
+  return 'brackets';
+}
 const expiredSet = new Set(expiredWatch.map((w) => w.slug));
 const thRows = roster.filter((s) => taxData.states[s.slug]).map((s) => {
   const st = taxData.states[s.slug];
@@ -302,7 +310,8 @@ const thRows = roster.filter((s) => taxData.states[s.slug]).map((s) => {
       stateTax: a.state, programs: a.statePrograms };
   });
   const priorYear = Number(st.figureYear) && Number(st.figureYear) !== Number(YEAR)
-    ? { year: Number(st.figureYear), scope: st.figureYearScope || 'brackets' } : null;
+    ? { year: Number(st.figureYear), scope: st.figureYearScope || 'brackets',
+      what: priorYearWhat(st.figureYearScope, st.tax) } : null;
   return { slug: s.slug, name: st.name, abbr: st.abbr, per, priorYear, underReview: expiredSet.has(s.slug) };
 });
 need(thRows.length === 51, `expected 51 jurisdictions, got ${thRows.length}`);
@@ -377,11 +386,21 @@ const priorBy = (scope) => thRows.filter((r) => r.priorYear && r.priorYear.scope
 const priorNotes = [];
 {
   const sd = priorBy('standardDeduction');
-  const br = thRows.filter((r) => r.priorYear && r.priorYear.scope !== 'standardDeduction').sort(byName);
+  const td = priorBy('thresholdsAndDeduction');
+  const br = thRows.filter((r) => r.priorYear && !['standardDeduction', 'thresholdsAndDeduction']
+    .includes(r.priorYear.scope)).sort(byName);
   const bits = [];
-  if (sd.length) bits.push(`the ${sd[0].priorYear.year} standard deduction for ${listAnd(sd.map((r) => r.name))}`);
+  if (sd.length) {
+    const named = sd.some((r) => r.priorYear.what !== 'standard deduction');
+    bits.push(`the ${sd[0].priorYear.year} standard deduction${named ? ' or personal exemption' : ''} for ` +
+      `${listAnd(sd.map((r) => r.name))}`);
+  }
+  if (td.length) bits.push(`the ${td[0].priorYear.year} bracket thresholds and standard deduction for ` +
+    `${listAnd(td.map((r) => r.name))}`);
   if (br.length) bits.push(`${br[0].priorYear.year} income tax brackets for ${listAnd(br.map((r) => r.name))}`);
-  if (bits.length) priorNotes.push(`* Uses ${bits.join(', and ')}, because the ${YEAR} amounts were not yet published.`);
+  // Each part already has an "and" inside it, so three parts are separated with semicolons.
+  const joined = bits.length > 2 ? `${bits.slice(0, -1).join('; ')}; and ${bits[bits.length - 1]}` : bits.join(', and ');
+  if (bits.length) priorNotes.push(`* Uses ${joined}, because the ${YEAR} amounts were not yet published.`);
 }
 if (expiredWatch.length) {
   priorNotes.push(`† Under review: the legal basis for ${listAnd(expiredWatch.map((w) => w.name))}'s figures was due for ` +
@@ -488,7 +507,7 @@ for (const g of CFG.federalStatuses) {
 }
 const thSrc = `Tools Berry paycheck engine; IRS ${rp26.name}; each state's published ${YEAR} income tax and payroll rules`;
 for (const r of [...thRows].sort((a, b) => a.name.localeCompare(b.name))) {
-  const note = [r.priorYear ? `uses ${r.priorYear.year} ${r.priorYear.scope === 'standardDeduction' ? 'standard deduction' : 'brackets'}` : '',
+  const note = [r.priorYear ? `uses ${r.priorYear.year} ${r.priorYear.what}` : '',
     r.underReview ? 'under review' : ''].filter(Boolean).join('; ');
   for (const p of r.per) {
     for (const [measure, v] of [['annual take-home pay', p.net], ['federal income tax', p.federal],

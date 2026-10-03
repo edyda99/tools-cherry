@@ -1793,10 +1793,18 @@ const FIGURE_YEAR_SCOPE = {
       `those brackets use its ${fy} ones.`,
   },
   standardDeduction: {
-    label: (fy) => `${fy} standard deduction`,
+    label: (fy, ded) => `${fy} ${ded}`,
+    body: (name, fy, yr, ded) =>
+      `${name}'s tax rates for ${yr} are current, but it has not published its ${yr} ${ded} ` +
+      `yet, so this page subtracts its ${fy} amount.`,
+  },
+  // Arkansas: the 2026 rates are law, but the bracket edges and the standard deduction are indexed
+  // each year and the state has published only its 2025 ones.
+  thresholdsAndDeduction: {
+    label: (fy) => `${fy} bracket thresholds and standard deduction`,
     body: (name, fy, yr) =>
-      `${name}'s tax rates for ${yr} are current, but it has not published its ${yr} standard ` +
-      `deduction yet, so this page subtracts its ${fy} amount.`,
+      `${name}'s tax rates for ${yr} are current, but it has not published its ${yr} bracket ` +
+      `thresholds or standard deduction yet, so this page uses its ${fy} ones.`,
   },
 };
 
@@ -1805,9 +1813,10 @@ function figureYearBanner(state, year) {
   const yr = Number(year);
   if (!fy || fy === yr) return '';
   const scope = FIGURE_YEAR_SCOPE[state.figureYearScope] || FIGURE_YEAR_SCOPE.brackets;
+  const ded = sdName(state.tax);
   return `<p class="year-fallback" role="note">` +
-    `<strong>${scope.label(fy)} (${yr} pending).</strong> ` +
-    `${scope.body(state.name, fy, yr)} We update this page when the state publishes.` +
+    `<strong>${scope.label(fy, ded)} (${yr} pending).</strong> ` +
+    `${scope.body(state.name, fy, yr, ded)} We update this page when the state publishes.` +
     `</p>`;
 }
 
@@ -1919,6 +1928,12 @@ function effectiveFlatFacts(t) {
 // the data only — it invents no figure for the states that have none.
 const hasStateDeduction = (t) => !!(t && t.standardDeduction);
 
+// What visible copy calls `tax.standardDeduction`. Where a state's personal exemption is folded
+// into that figure (Kansas, Maine and others), or the figure is an exemption or a credit rather
+// than a standard deduction (Ohio, Utah), the data names it in `deductionName`, so no page calls
+// an exemption a standard deduction. States without the field read exactly as before.
+const sdName = (t) => (t && t.deductionName) || 'standard deduction';
+
 // Genuinely state-specific tax facts derived from the (already-sourced) data:
 // bracket count, rate range, top rate + threshold, standard deduction, and a
 // worked $60k example. Distinct per state — clears scaled/duplicate-content risk.
@@ -1930,13 +1945,20 @@ function stateTaxFacts(state, year, taxData) {
   // reconcile. Only the stepped shape carries `minimum`; Wisconsin and South Carolina keep
   // the sentence they ship.
   const sdStep = t.standardDeductionPhaseout && t.standardDeductionPhaseout.single;
+  // A `roundUp` row (Ohio, Rhode Island) takes its next step on the first dollar over a band
+  // edge, so its floor is reached just above `over + (steps - 1) * per`, not at `over + steps * per`.
+  const sdFloorSteps = sdStep && sdStep.reduceBy > 0 ? Math.ceil((sd ? sd.single - sdStep.minimum : 0) / sdStep.reduceBy) : 0;
   const sdFloor = (sd && sdStep && sdStep.minimum != null && sdStep.per > 0 && sdStep.reduceBy > 0)
     ? `, shrinking as income rises to ${usd0(sdStep.minimum)} and ` +
-      `${usd0((t.standardDeductionPhaseout.married || sdStep).minimum)} from ` +
-      `${usd0(sdStep.over + Math.ceil((sd.single - sdStep.minimum) / sdStep.reduceBy) * sdStep.per)} of income`
+      `${usd0((t.standardDeductionPhaseout.married || sdStep).minimum)} ` +
+      (sdStep.roundUp
+        ? `above ${usd0(sdStep.over + (sdFloorSteps - 1) * sdStep.per)} of income`
+        : `from ${usd0(sdStep.over + sdFloorSteps * sdStep.per)} of income`) +
+      // Ohio's exemption is not allowed at all from $500,000 of income (ORC 5747.025).
+      (sdStep.noneFrom != null ? `, and to nothing from ${usd0(sdStep.noneFrom)}` : '')
     : '';
   const sdText = sd
-    ? `For ${year}, ${state.name}'s state standard deduction is ${usd0(sd.single)} for single filers and ${usd0(sd.married)} for married couples filing jointly${sdFloor}`
+    ? `For ${year}, ${state.name}'s state ${sdName(t)} is ${usd0(sd.single)} for single filers and ${usd0(sd.married)} for married couples filing jointly${sdFloor}`
     : `${state.name} does not provide a state standard deduction`;
   // The federal income tax the state lets you subtract (Alabama, Missouri, Oregon), stated
   // from the data so the $60,000 example that follows can be reproduced.
@@ -3336,7 +3358,7 @@ function flatBandRider(state, fact) {
   // is gated anyway so a deduction-less state can never inherit a deduction it
   // does not have. No output changes for Idaho.
   const order = hasStateDeduction(t)
-    ? `the state standard deduction comes off first, a 0% band takes the next slice, and the rate `
+    ? `the state ${sdName(t)} comes off first, a 0% band takes the next slice, and the rate `
     : `there is no state standard deduction, a 0% band takes the first slice, and the rate `;
   return ` In practice the ${pctStr(f.rate)} lands on taxable income rather than on gross wages: ` +
     order + `reaches only what is left.`;
@@ -3373,7 +3395,7 @@ function stateFaqEntries(state, p, year) {
     // the calculator on the same page applies.
     if (f.base) {
       const ded = hasStateDeduction(t)
-        ? `${usd0(f.zeroUpTo)} of taxable income, that is pay left after the state standard deduction`
+        ? `${usd0(f.zeroUpTo)} of taxable income, that is pay left after the state ${sdName(t)}`
         : `${usd0(f.zeroUpTo)} of ${state.name} taxable income (${state.name} provides no state standard deduction)`;
       a1 = `Yes, and it is not a plain flat rate: it has a fixed dollar step in it. ` +
         `For ${year} a single filer owes nothing on the first ${ded}, and above that the tax is ` +
@@ -3383,7 +3405,7 @@ function stateFaqEntries(state, p, year) {
       a1 = hasStateDeduction(t)
         ? `Yes — though it behaves like a flat ${pctStr(f.rate)} rather than a ladder of rising rates. ` +
           `For ${year}, a single filer's first ${usd0(f.zeroUpTo)} of taxable income — that is pay left after ` +
-          `the state standard deduction — is taxed at 0%, and every dollar above it at ${pctStr(f.rate)}, ` +
+          `the state ${sdName(t)} — is taxed at 0%, and every dollar above it at ${pctStr(f.rate)}, ` +
           `on top of federal tax and FICA.`
         : `Yes — though it behaves like a flat ${pctStr(f.rate)} rather than a ladder of rising rates. ` +
           `${state.name} does not provide a state standard deduction, so for ${year} a single filer's first ` +
@@ -5018,6 +5040,7 @@ function raiseGapFacts(r, raise, taxData) {
       kind: 'sdphase', at, sdNow: r.stDedAfterPhaseout, sdAt,
       over: ph.over != null ? ph.over : null,
       goneAt: (ph.over != null && ph.denominator != null) ? ph.over + ph.denominator : null,
+      sdName: sdName(r.state.tax),
     };
   }
   const subAt = stateTaxableIncome(at, 'single', r.state, 0, ficaTax(at, 'single', fed).total,
@@ -5045,11 +5068,12 @@ function raiseGapFacts(r, raise, taxData) {
 // schedule, and a short clause for the "near the top of the band" note.
 // How the shrinking deduction reads at this salary: already shrinking, or about to start.
 function sdPhasePhrase(g, NAME, amount) {
-  if (g.over == null) return `${NAME}'s standard deduction shrinks as income rises`;
+  const name = g.sdName || 'standard deduction';
+  if (g.over == null) return `${NAME}'s ${name} shrinks as income rises`;
   return amount >= g.over
-    ? `${NAME}'s standard deduction shrinks as income rises past ${usd0(g.over)}` +
+    ? `${NAME}'s ${name} shrinks as income rises past ${usd0(g.over)}` +
       (g.goneAt != null ? ` until it is gone at ${usd0(g.goneAt)}` : '')
-    : `${NAME}'s standard deduction starts to shrink once income passes ${usd0(g.over)}`;
+    : `${NAME}'s ${name} starts to shrink once income passes ${usd0(g.over)}`;
 }
 function raiseGapSentence(g, NAME, S, raise, amount) {
   if (g.kind === 'sdphase') {
@@ -5083,7 +5107,7 @@ function raiseGapSentence(g, NAME, S, raise, amount) {
 }
 function raiseGapClause(g, NAME) {
   if (g.kind === 'sdphase') {
-    return `because ${NAME}'s standard deduction shrinks as your pay rises, so each dollar of a raise ` +
+    return `because ${NAME}'s ${g.sdName || 'standard deduction'} shrinks as your pay rises, so each dollar of a raise ` +
       `adds more than a dollar to your ${NAME} taxable income` +
       (g.exemption
         ? ` (the raise also counts the ${usd0(g.exemption)} personal exemption ${NAME} gives you, which ` +
@@ -5675,6 +5699,9 @@ function caProseBlocks(r, rungs, ctx) {
     const cfg = st.tax.standardDeductionPhaseout.single || {};
     const goneAt = (cfg.over != null && cfg.denominator != null) ? cfg.over + cfg.denominator : null;
     const lost = r.stDedPublished - r.stDedAfterPhaseout;
+    // A state whose data names the figure (an exemption folded in, or Utah's credit) is not
+    // said to "publish a standard deduction" of the combined amount, which it does not.
+    const dedNamed = !!st.tax.deductionName;
     const bottom = rungs[0];
     // A state that also subtracts federal tax (Alabama) cannot be described by the shrinking
     // deduction alone: over the same raise the subtraction grows, and by more. Both are
@@ -5711,9 +5738,11 @@ function caProseBlocks(r, rungs, ctx) {
       `<h3>${frame('sdedH', [
         `${NAME}'s deduction is smaller at ${S} than the table says`,
         `Why the ${NAME} deduction on this page is not the published figure`,
-        `What ${S} does to the ${NAME} standard deduction`,
+        `What ${S} does to the ${NAME} ${sdName(st.tax)}`,
       ])}</h3>` +
-      `<p>${NAME} publishes a standard deduction of ${usd0(r.stDedPublished)} for a single filer, but it ` +
+      (dedNamed
+        ? `<p>${NAME}'s ${sdName(st.tax)} starts at ${usd0(r.stDedPublished)} for a single filer, but it `
+        : `<p>${NAME} publishes a standard deduction of ${usd0(r.stDedPublished)} for a single filer, but it `) +
       `is income-tested rather than fixed: it comes down as income rises` +
       (cfg.over != null ? ` from ${usd0(cfg.over)}` : '') +
       (goneAt != null ? ` and is gone entirely at ${usd0(goneAt)}` : '') +
@@ -5814,14 +5843,14 @@ function caProseBlocks(r, rungs, ctx) {
       const up = next ? stateRaiseFacts(r, next) : (prev ? stateRaiseFacts(prev, r) : null);
       const raiseWhat = !up ? '' : (next
         ? ` On the raise to ${usd0(next.amount)} it grows by ${usd0(up.subGrew)}` +
-          (up.sdLost > 0.5 ? `, while ${NAME}'s standard deduction falls by ${usd0(up.sdLost)}` : '') +
+          (up.sdLost > 0.5 ? `, while ${NAME}'s ${sdName(st.tax)} falls by ${usd0(up.sdLost)}` : '') +
           `, so ${NAME} taxes ${usd0(up.taxable)} of the ${usd0(up.pay)} raise and takes ` +
           `${usdCents(up.tax)} of it` +
           (up.rate != null
             ? `, not the ${usdCents(up.rate * up.pay)} its ${pctStr(up.rate)} rate on the whole raise would be.`
             : '.')
         : ` On the raise from ${usd0(prev.amount)} to ${S} it grew by ${usd0(up.subGrew)}` +
-          (up.sdLost > 0.5 ? `, while ${NAME}'s standard deduction fell by ${usd0(up.sdLost)}` : '') +
+          (up.sdLost > 0.5 ? `, while ${NAME}'s ${sdName(st.tax)} fell by ${usd0(up.sdLost)}` : '') +
           `, so ${NAME} taxed ${usd0(up.taxable)} of the ${usd0(up.pay)} raise and took ` +
           `${usdCents(up.tax)} of it` +
           (up.rate != null
@@ -6756,7 +6785,7 @@ function caPageCopy(r, rungs, ctx) {
           // Massachusetts subtracts two things. Naming only the standard deduction would
           // leave the taxable figure in the next clause unreachable from this one.
           // Alabama, Missouri and Oregon also subtract federal income tax, named the same way.
-          const dedParts = [`${usd0(r.stDedAfterPhaseout)} of standard deduction`];
+          const dedParts = [`${usd0(r.stDedAfterPhaseout)} of ${sdName(r.state.tax).replace(' plus ', ' and ')}`];
           if (r.stFicaDed > 0) dedParts.push(`${usd0(r.stFicaDed)} for the FICA already withheld from this salary`);
           if (r.stFedSub > 0) dedParts.push(`${usd0(r.stFedSub)} for federal income tax`);
           const dedDesc = dedParts.length > 1
@@ -6781,7 +6810,7 @@ function caPageCopy(r, rungs, ctx) {
       // Ohio subtracts nothing at any income and keeps the sentence it already ships;
       // Wisconsin and South Carolina reach zero only because the income test took it.
       : `${(r.stDedPhases && r.stDedPublished > 0)
-          ? `${NAME}'s ${usd0(r.stDedPublished)} standard deduction is income-tested and has phased out ` +
+          ? `${NAME}'s ${usd0(r.stDedPublished)} ${sdName(r.state.tax)} is income-tested and has phased out ` +
             `completely by this salary`
           : `${NAME} subtracts nothing before its own schedule applies`}, so its taxable figure is ` +
         `the whole ${usd0(r.st.taxable)} — ${usd0(r.st.taxable - r.fed.taxable)} more than the federal one, which ` +
@@ -9127,7 +9156,7 @@ async function main() {
         // on top, so both of those get a description rather than a single number.
         const fedSubWords = fedSubRule(state);
         const dedClause = (low.stDedPhases
-          ? `after a standard deduction that is income-tested down as the ladder climbs, from ` +
+          ? `after a ${sdName(state.tax)} that is income-tested down as the ladder climbs, from ` +
             `${usd0(low.stDedAfterPhaseout)} at ${usd0(low.amount)} to ${usd0(high.stDedAfterPhaseout)} at ` +
             `${usd0(high.amount)}`
           : (low.stFicaDed > 0
