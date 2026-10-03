@@ -219,6 +219,9 @@
         }
       },
       "_source": "North Dakota Office of State Tax Commissioner, 2026 Form ND-1ES (SFN 28709, revised 12-2025), '2026 Forms ND-1 and ND-EZ Tax Rate Schedules': no tax on North Dakota taxable income up to $49,575 single, $82,800 married filing jointly, $66,400 head of household, then 1.95%, then 2.50% above $250,400 single, $304,850 married filing jointly, $277,600 head of household. North Dakota starts from federal taxable income, so the deduction is the 2026 federal standard deduction of $16,100 single, $32,200 married filing jointly, $24,150 head of household (IRS Revenue Procedure 2025-32). https://www.tax.nd.gov/sites/www/files/documents/forms/individual/2025-iit/28709-form-nd-1es-2026.pdf",
+      "_sourceTitles": {
+        "https://www.tax.nd.gov/sites/www/files/documents/forms/individual/2025-iit/28709-form-nd-1es-2026.pdf": "North Dakota Office of State Tax Commissioner: 2026 Form ND-1ES, tax rate schedules"
+      },
       "disclaimer": [
         "Local income taxes are not included."
       ],
@@ -337,6 +340,14 @@
         }
       },
       "_source": "Rates are the District's schedule of seven brackets, 4% to 10.75%, with the same thresholds for every filing status, set by D.C. Code 47-1806.03(a)(11). The District does not use the federal standard deduction. It sets its own basic standard deduction: $15,000 for a single filer or married filing separately, $22,500 for head of household, and $30,000 for a married couple filing jointly, at D.C. Code 47-1801.04(3A). Those amounts apply to tax years 2025 and 2026. The law adds a yearly cost-of-living adjustment measured from a 2025 base year, so the first increase can come in 2027. Filers aged 65 or older or blind may claim an additional standard deduction, which this calculator does not include. LEGAL STATUS, as of 2026-10-02: these amounts were first enacted by the D.C. Income and Franchise Tax Conformity and Revision Emergency Amendment Act of 2025 (D.C. Act 26-214, December 3, 2025) and then by the D.C. Income and Franchise Tax Conformity and Revision Temporary Amendment Act of 2025 (D.C. Law 26-89, effective 2026-02-12), which Congress disapproved by H.J. Res. 142, signed 2026-02-18 as Public Law 119-78, and which expired on 2026-09-25. The D.C. Code, current through Sept. 26, 2026, no longer carries paragraph (3A), so its codified text points to the federal section 63(c) amount. The same paragraph (3A), for tax years 2025 through 2029, is re-enacted by Subtitle VII-I, the Tax Code Conformity and Clarification Amendment Act of 2026, in two acts: the Fiscal Year 2027 Budget Support Emergency Act of 2026 (D.C. Act 26-416, effective 2026-08-13, expires 2026-11-11) and the permanent Fiscal Year 2027 Budget Support Act of 2026 (D.C. Act 26-418, transmitted to Congress 2026-08-20, projected law date 2026-11-20). Public Law 119-78 names only the 2025 temporary act, and no resolution disapproving D.C. Act 26-418 had been introduced as of 2026-10-02. The Office of Tax and Revenue's 2026 Form D-40ES, revised March 2026 before either act, lists the federal amounts of $16,100, $24,150 and $32,200. Sources: https://code.dccouncil.gov/us/dc/council/code/sections/47-1801.04 https://code.dccouncil.gov/us/dc/council/code/sections/47-1806.03 https://lims.dccouncil.gov/Legislation/B26-0724 https://lims.dccouncil.gov/Legislation/B26-0661 https://www.govinfo.gov/content/pkg/PLAW-119publ78/html/PLAW-119publ78.htm https://otr.cfo.dc.gov/sites/default/files/dc/sites/otr/publication/attachments/2026_D40ES_Book_wLinks04012026.pdf",
+      "_sourceTitles": {
+        "https://code.dccouncil.gov/us/dc/council/code/sections/47-1801.04": "D.C. Code 47-1801.04: definitions, including the standard deduction",
+        "https://code.dccouncil.gov/us/dc/council/code/sections/47-1806.03": "D.C. Code 47-1806.03: income tax rates",
+        "https://lims.dccouncil.gov/Legislation/B26-0724": "D.C. Council B26-0724: Fiscal Year 2027 Budget Support Emergency Act of 2026",
+        "https://lims.dccouncil.gov/Legislation/B26-0661": "D.C. Council B26-0661: Fiscal Year 2027 Budget Support Act of 2026",
+        "https://www.govinfo.gov/content/pkg/PLAW-119publ78/html/PLAW-119publ78.htm": "Public Law 119-78 (H.J. Res. 142): Congress disapproves the District's 2025 temporary tax conformity act",
+        "https://otr.cfo.dc.gov/sites/default/files/dc/sites/otr/publication/attachments/2026_D40ES_Book_wLinks04012026.pdf": "D.C. Office of Tax and Revenue: 2026 Form D-40ES"
+      },
       "disclaimer": [
         "District income tax. DC uses the same bracket thresholds for all filing statuses.",
         "The District sets its own standard deduction and does not follow the federal amount. For 2026 it is $15,000 single, $30,000 married filing jointly and $22,500 head of household, the same as 2025, because DC's yearly inflation increase does not start until 2027.",
@@ -454,6 +465,12 @@
       "name": "Vermont",
       "abbr": "VT",
       "slug": "vermont",
+      "_sourceTitles": {
+        "https://ljfo.vermont.gov/assets/Publications/2026-Fiscal-Facts-Booklet/Fiscal-Facts-2026.pdf": "Vermont Joint Fiscal Office: 2026 Fiscal Facts, personal income tax rates and brackets",
+        "https://tax.vermont.gov/sites/tax/files/documents/IN-114-Instr-2026.pdf": "Vermont Department of Taxes: 2026 Form IN-114 instructions, preliminary tax rates",
+        "https://tax.vermont.gov/sites/tax/files/documents/Income-Booklet-2025.pdf": "Vermont Department of Taxes: 2025 income tax return booklet, the standard deduction",
+        "https://tax.vermont.gov/individuals/personal-income-tax/rates": "Vermont Department of Taxes: personal income tax rate schedules"
+      },
       "hasIncomeTax": true,
       "figureYear": 2025,
       "figureYearScope": "standardDeduction",
@@ -612,6 +629,9 @@
         }
       },
       "_source": "West Virginia's 2026 schedule is W. Va. Code 11-21-4j(a), added by Enrolled Committee Substitute for Senate Bill 392, passed 14 March 2026 and in effect 90 days from passage. The section is headed 'Rate of tax - Taxable years beginning on and after January 1, 2026' and its table for individuals other than married filing separately, joint filers, heads of household, estates and trusts reads: 'Not over $10,000 - 2.11% of the taxable income; Over $10,000 but not over $25,000 - $211 plus 2.81% of excess over $10,000; Over $25,000 but not over $40,000 - $632.50 plus 3.16% of excess over $25,000; Over $40,000 but not over $60,000 - $1,106.50 plus 4.22% of excess over $40,000; Over $60,000 - $1,950.50 plus 4.58% of excess over $60,000.' Corrected 2026-08-02: this field previously described the superseded tax-year-2025 set (2.22/2.96/3.33/4.44/4.82%) as if it were the 2026 schedule, and cited a think tank rather than the statute. WV has NO standard deduction; the $2,000-per-exemption personal exemption is modeled here as the deduction. https://www.wvlegislature.gov/Bill_Text_HTML/2026_SESSIONS/RS/bills/sb392%20sub1%20enr.pdf",
+      "_sourceTitles": {
+        "https://www.wvlegislature.gov/Bill_Text_HTML/2026_SESSIONS/RS/bills/sb392%20sub1%20enr.pdf": "West Virginia Senate Bill 392 (2026), as enrolled: the 2026 rate schedule"
+      },
       "disclaimer": [
         "Local income taxes are not included. WV municipal service/city fees are not income taxes and are not modeled.",
         "WV has no standard deduction; we model one $2,000 personal exemption ($4,000 MFJ). Each dependent adds another $2,000 not modeled — estimates run slightly high for filers with dependents."
@@ -665,6 +685,9 @@
         }
       },
       "_source": "Montana Department of Revenue, 2026 Montana Publication 1, 2026 Tax Tables: 4.7% on the first $47,500 of ordinary income for single filers, $95,000 for married filing jointly, and $71,250 for head of household, then 5.65% above those amounts. Montana starts from federal taxable income, so the standard deduction is the federal amount; the Montana Employer and Information Agent Guide annual withholding tables show it as $16,100 single, $32,200 married filing jointly, and $24,150 head of household. Statute: MCA 15-30-2103. https://revenuefiles.mt.gov/files/Forms/Publication-1/Publication-1-2026.pdf",
+      "_sourceTitles": {
+        "https://revenuefiles.mt.gov/files/Forms/Publication-1/Publication-1-2026.pdf": "Montana Department of Revenue: 2026 Publication 1, tax tables"
+      },
       "disclaimer": [
         "Local income taxes are not included.",
         "Montana taxes net long-term capital gains at lower rates and has credits not modeled here."
@@ -787,6 +810,9 @@
         }
       },
       "_source": "DE statutory graduated schedule (30 Del. C. ch. 11), unchanged for 2026 — same bracket thresholds for all filing statuses: 0% to $2,000, 2.2% to $5,000, 3.9% to $10,000, 4.8% to $20,000, 5.2% to $25,000, 5.55% to $60,000, 6.6% above $60,000. Standard deduction $3,250 single / $6,500 MFJ (HoH uses single). Confirmed via Tax Foundation 2026 (as of Jan 1 2026) + multiple 2026 aggregators; DE Division of Revenue (revenue.delaware.gov). https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/",
+      "_sourceTitles": {
+        "https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/": "Tax Foundation: 2026 state income tax rates and brackets"
+      },
       "disclaimer": [
         "Local income taxes are not included. The Wilmington local earned-income/wage tax (~1.25%) is NOT included.",
         "Delaware's personal-credit ($110 single / $220 MFJ) and itemized deductions are not modeled — estimates run slightly high.",
@@ -1198,6 +1224,31 @@
         "type": "none"
       },
       "_source": "South Dakota levies no state individual income tax (SD Dept. of Revenue). https://dor.sd.gov/",
+      "_sourceTitles": {
+        "https://dor.sd.gov/": "South Dakota Department of Revenue"
+      },
+      "_noTaxBasis": {
+        "heading": "South Dakota's constitution allows an income tax, then sets a two-thirds bar",
+        "paragraphs": [
+          "South Dakota's constitution does not forbid a tax on wages; it expressly allows one. Article XI, Section 2 provides that \"the Legislature is empowered to impose taxes upon incomes and occupations,\" and that \"taxes upon incomes may be graduated and progressive and reasonable exemptions may be provided.\" The absence of a wage tax in South Dakota is a policy the legislature keeps, not a door the constitution has closed.",
+          "What stands in the way is a vote threshold. Section 14, approved by voters on 5 November 1996, provides that \"no new tax may be imposed by the State of South Dakota unless by consent of the people by exercise of their right of initiative or by two-thirds vote of all the members elect of each branch of the Legislature.\" A tax on wages would be a new tax, so it would need either a statewide initiative or two-thirds of all the elected members of both the House and the Senate.",
+          "An older clause adds a second lock. Section 13, approved on 7 November 1978, applies the same initiative-or-two-thirds rule to any increase in \"the rate of taxation imposed by the state of South Dakota on personal or corporate income or on sales or services.\" So an income tax would meet the bar once to be created and again each time its rate rose. None of this reaches a paycheck today: South Dakota withholds nothing for the state from any salary on this ladder."
+        ],
+        "sources": [
+          {
+            "title": "South Dakota Constitution, Article XI, Section 2",
+            "url": "https://sdlegislature.gov/api/Statutes/Constitution/11-2.html"
+          },
+          {
+            "title": "South Dakota Constitution, Article XI, Section 13",
+            "url": "https://sdlegislature.gov/api/Statutes/Constitution/11-13.html"
+          },
+          {
+            "title": "South Dakota Constitution, Article XI, Section 14",
+            "url": "https://sdlegislature.gov/api/Statutes/Constitution/11-14.html"
+          }
+        ]
+      },
       "notes": "No state income tax."
     },
     "wyoming": {
@@ -1209,6 +1260,23 @@
         "type": "none"
       },
       "_source": "Wyoming levies no state individual income tax (WY Dept. of Revenue). https://revenue.wyo.gov/",
+      "_sourceTitles": {
+        "https://revenue.wyo.gov/": "Wyoming Department of Revenue"
+      },
+      "_noTaxBasis": {
+        "heading": "Wyoming's constitution would make any income tax credit back your sales and property taxes",
+        "paragraphs": [
+          "Wyoming levies no income tax on wages, and its constitution does not ban one outright. It attaches a condition instead. Article 15, Section 18 provides that \"no tax shall be imposed upon income without allowing full credit against such tax liability for all sales, use, and ad valorem taxes paid in the taxable year by the same taxpayer to any taxing authority in Wyoming.\" Voters ratified it at the general election of 5 November 1974.",
+          "That is a credit rather than a prohibition. Any future Wyoming income tax would be reduced, dollar for dollar, by the sales tax, use tax and ad valorem taxes such as property tax that the same person had already paid that year to the state or to any local taxing authority in Wyoming. The legislature keeps the power to enact one; the constitution settles in advance that it could collect only what a household owes beyond the taxes it already pays on its purchases and its property.",
+          "Section 19, first ratified at that same 1974 election, directs the legislature to levy a 1.5% excise tax on the value of coal, petroleum, natural gas, oil shale and other designated minerals extracted in the state, paid into the Permanent Wyoming Mineral Trust Fund. The constitution declares that the fund \"shall remain inviolate\" and sends its investment income to the general fund each year. None of it is taken from wages, so the only deductions on a Wyoming pay stub on this ladder are the federal ones."
+        ],
+        "sources": [
+          {
+            "title": "Wyoming Constitution, Article 15, Sections 18 and 19 (Wyoming Secretary of State)",
+            "url": "https://sos.wyo.gov/Forms/Publications/WYConstitution.pdf"
+          }
+        ]
+      },
       "notes": "No state income tax."
     },
     "alaska": {
@@ -1229,6 +1297,27 @@
         "type": "none"
       },
       "_source": "Alaska levies no state individual income tax (Alaska Dept. of Revenue). https://tax.alaska.gov/",
+      "_sourceTitles": {
+        "https://tax.alaska.gov/": "Alaska Department of Revenue, Tax Division"
+      },
+      "_noTaxBasis": {
+        "heading": "Alaska repealed its income tax in 1980, retroactively, after a court struck down its exemptions",
+        "paragraphs": [
+          "Alaska once withheld income tax from paychecks, and the way it stopped is unusual. Earlier in 1980 the legislature had given most individual taxpayers complete or substantial relief through exemptions based on the number of years each had reported Alaska income. On 4 September 1980 the Alaska Supreme Court ruled that those exemptions violated the equal protection clause of article I, section 1 of the Alaska Constitution. As the legislature put it in its own findings, \"the effect of that decision is to reimpose the full income tax burden on all taxpayers.\"",
+          "The legislature chose to remove the tax rather than repair the exemptions. Chapter 2 of the 1980 Second Special Session Laws of Alaska, approved by the governor on 24 September 1980, repealed \"the Alaska net income tax on individuals and fiduciaries\" retroactive to 1 January 1979, and entitled individuals to a refund of the Alaska income tax paid or withheld for 1979.",
+          "The 1980 act did not repeal the chapter that imposed the tax. AS 43.20 is still in the Alaska Statutes, and the section the act added to it, AS 43.20.012, still provides that \"the tax imposed by this chapter does not apply to\" an individual or a fiduciary."
+        ],
+        "sources": [
+          {
+            "title": "Laws of Alaska 1980, Second Special Session, Chapter 2: repeal of the individual income tax",
+            "url": "https://www.akleg.gov/pdf/11/Bills/Final/CH%202%20SSSLA%201980.pdf"
+          },
+          {
+            "title": "Alaska Statutes 43.20.012: limitation on application of chapter",
+            "url": "https://www.akleg.gov/basis/statutes.asp#43.20.012"
+          }
+        ]
+      },
       "notes": "No state income tax."
     },
     "new-hampshire": {
@@ -1240,6 +1329,27 @@
         "type": "none"
       },
       "_source": "New Hampshire has never taxed wage income; its Interest & Dividends tax was fully repealed effective 2025 (NH Dept. of Revenue Administration). https://www.revenue.nh.gov/",
+      "_sourceTitles": {
+        "https://www.revenue.nh.gov/": "New Hampshire Department of Revenue Administration"
+      },
+      "_noTaxBasis": {
+        "heading": "New Hampshire's interest and dividends tax never reached wages, and it ended with 2024",
+        "paragraphs": [
+          "New Hampshire's income tax, while it lasted, was a tax on investment income rather than on work. The Interest and Dividends Tax sat in RSA chapter 77, titled \"Taxation of Incomes\", and the New Hampshire Department of Revenue Administration describes it as \"a tax assessed on interest and dividend income.\" The Department is explicit about pay: the state \"does not have an income tax on an individual's reported W-2 wages.\"",
+          "That tax is now gone as well. The Department records that it was assessed at 5% for tax periods ending before 31 December 2023, at 4% for periods ending on or after that date, and at 3% for periods ending on or after 31 December 2024, and that it \"was repealed for taxable periods beginning after December 31, 2024.\" The legislature's text of chapter 77 now reads only that the entire chapter was repealed by a 2021 act, effective 1 January 2025.",
+          "For a salaried employee the repeal changed nothing on the pay stub, because wages sat outside the tax throughout. It matters to a resident with savings or a brokerage account, who no longer owes the Interest and Dividends Tax for taxable periods beginning in 2025 or later. On a New Hampshire salary anywhere on this ladder, each dollar withheld goes to federal tax, Social Security or Medicare."
+        ],
+        "sources": [
+          {
+            "title": "New Hampshire Department of Revenue Administration: Interest and Dividends Tax",
+            "url": "https://revenue.nh.gov/taxes-glance/interest-dividends-tax"
+          },
+          {
+            "title": "New Hampshire RSA chapter 77, Taxation of Incomes: repeal note",
+            "url": "https://gc.nh.gov/rsa/html/V/77/77-mrg.htm"
+          }
+        ]
+      },
       "notes": "No state income tax on wages."
     },
     "pennsylvania": {
@@ -1679,6 +1789,10 @@
         }
       },
       "_source": "Idaho taxes income at a flat 5.3%, and only on taxable income above a zero-rate threshold. Idaho Code 63-3024(2) sets that rate and provides that a head of household return is treated as a joint return, so heads of household use the same threshold as married couples filing jointly (https://legislature.idaho.gov/statutesrules/idstat/Title63/T63CH30/SECT63-3024/). The threshold amounts used here, $4,811 for single filers and $9,622 for joint filers and heads of household, are the 2025 indexed amounts published by the Idaho State Tax Commission (https://tax.idaho.gov/taxes/income-tax/individual-income/individual-income-tax-rate-schedule/), which had not yet published a 2026 schedule. Idaho's standard deduction is the federal standard deduction, because Idaho conforms to the Internal Revenue Code as in effect on January 1, 2026 under House Bill 559 of the 2026 session, Session Law Chapter 1.",
+      "_sourceTitles": {
+        "https://legislature.idaho.gov/statutesrules/idstat/Title63/T63CH30/SECT63-3024/": "Idaho Code 63-3024: the income tax rate",
+        "https://tax.idaho.gov/taxes/income-tax/individual-income/individual-income-tax-rate-schedule/": "Idaho State Tax Commission: individual income tax rate schedule"
+      },
       "notes": "Flat 5.3% on taxable income above a zero-rate threshold: $4,811 for a single filer and $9,622 for a married couple filing jointly or a head of household. Idaho treats a head of household return as a joint return, so both use the same threshold.",
       "disclaimer": [
         "Local income taxes are not included.",
@@ -3465,6 +3579,9 @@
       "name": "Maine",
       "abbr": "ME",
       "slug": "maine",
+      "_sourceTitles": {
+        "https://www.maine.gov/revenue/sites/maine.gov.revenue/files/2026-05/ind_tax_rate_sched_2026_rev.pdf": "Maine Revenue Services: 2026 individual income tax rate schedules"
+      },
       "employeePrograms": [
         {
           "label": "ME PFML",
@@ -3553,6 +3670,10 @@
       "name": "Hawaii",
       "abbr": "HI",
       "slug": "hawaii",
+      "_sourceTitles": {
+        "https://tax.hawaii.gov/forms/d_25table-on/d_25table-on_p13/": "Hawaii Department of Taxation: tax rate schedules for taxable years beginning after December 31, 2024",
+        "https://files.hawaii.gov/tax/news/announce/ann25-07.pdf": "Hawaii Department of Taxation: Announcement No. 2025-07, the 2026 standard deduction"
+      },
       "_watch": {
         "until": "2027-07-31",
         "what": "Hawaii re-conformed to the federal code for tax year 2026, and part of that lands on wages this calculator cannot yet see. Department of Taxation Announcement No. 2026-06 (31 July 2026): 'Act 35 (House Bill 2329, H.D.1, S.D.1, C.D.1) amends section 235-2.3(a), HRS, to conform Hawai'i income tax law to the operative sections of subtitle A, chapter 1, of the Internal Revenue Code (IRC), as amended as of December 31, 2025', in response to the One Big Beautiful Bill Act, and it 'became effective on May 26, 2026, and applies to taxable years beginning after December 31, 2025'. Hawaii conforms to 'IRC section 224, which creates a deduction of up to $25,000 for qualified tips' but does NOT conform to 'IRC section 225, which creates a deduction of up to $12,500 for qualified overtime compensation' or to the $10,000 vehicle-loan-interest deduction. The engine has no tips or overtime input, so the tips deduction is unmodelled and Hawaii tax runs high for tipped workers. Re-verify when DOTAX publishes its next annual session-law announcement: did the 2027 legislature change conformity, and does the engine now take tip income? Source: https://files.hawaii.gov/tax/news/announce/ann26-06.pdf",
@@ -3741,6 +3862,10 @@
       "name": "Rhode Island",
       "abbr": "RI",
       "slug": "rhode-island",
+      "_sourceTitles": {
+        "https://news.bloombergtax.com/daily-tax-report-state/rhode-island-tax-division-announces-2026-inflation-adjusted-personal-income-tax-amounts": "Bloomberg Tax: Rhode Island announces its 2026 inflation-adjusted personal income tax amounts",
+        "https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/": "Tax Foundation: 2026 state income tax rates and brackets"
+      },
       "employeePrograms": [
         {
           "label": "RI TDI/TCI",
