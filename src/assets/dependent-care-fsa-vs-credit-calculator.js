@@ -1,5 +1,5 @@
 // dependent-care-fsa-vs-credit-calculator.js — the DCFSA-vs-CDCTC decision under
-// OBBBA §70404 (TY2026): a Dependent Care FSA (§129, $7,500 / $3,750 MFS,
+// OBBBA §70404 FSA limit and §70405 credit rate (TY2026): a Dependent Care FSA (§129, $7,500 / $3,750 MFS,
 // pre-tax → saves income tax AND FICA) vs the Child & Dependent Care Credit
 // (§21, nonrefundable, 50%→20% AGI-tiered, $3,000/$6,000 expense caps). All
 // logic client-side, reusing the paycheck engine's bracket + FICA math.

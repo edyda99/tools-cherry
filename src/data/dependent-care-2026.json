@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "description": "IRC §129 Dependent Care Assistance (DCFSA) exclusion + IRC §21 Child & Dependent Care Credit (CDCTC), as amended by OBBBA (P.L. 119-21, §70404), effective TY2026. Drives /dependent-care-fsa-vs-credit-calculator. Figures are FIXED statutory amounts (not inflation-indexed on the codified text). Federal-only; state conformity out of scope. This is a NEW sibling system to obbba-deductions-2026.json — §21 is a tiered NONREFUNDABLE CREDIT and §129 is an INCOME + FICA EXCLUSION, neither of which is the MAGI-phased above-the-line DEDUCTION shape of that file.",
+    "description": "IRC §129 Dependent Care Assistance (DCFSA) exclusion + IRC §21 Child & Dependent Care Credit (CDCTC), as amended by OBBBA (P.L. 119-21, §70404 for §129 and §70405 for §21), effective TY2026. Drives /dependent-care-fsa-vs-credit-calculator. Figures are FIXED statutory amounts (not inflation-indexed on the codified text). Federal-only; state conformity out of scope. This is a NEW sibling system to obbba-deductions-2026.json — §21 is a tiered NONREFUNDABLE CREDIT and §129 is an INCOME + FICA EXCLUSION, neither of which is the MAGI-phased above-the-line DEDUCTION shape of that file.",
     "lastSourced": "2026-07-12",
     "confidence": "high — §21/§129 statutory text read verbatim; every fixture dollar re-derived vs tax-data-2026.json 2026 brackets/FICA (SS wage base $184,500)."
   },
@@ -20,7 +20,7 @@
     "qualifies": "Pre-tax dependent-care exclusion capped at $7,500 per tax return ($3,750 MFS — exactly half; the historic 2:1 ratio is preserved) for TY2026+. Per RETURN, not per employee/employer: two working spouses filing jointly share ONE $7,500; excess over the cap is taxable wages. Section 125 cafeteria benefit → reduces federal income-tax wages AND FICA wages (~7.65% below the SS wage base). Limited to the lesser spouse's earned income; requires an employer DCAP."
   },
   "cdctc": {
-    "statute": "IRC §21 (OBBBA §70404)",
+    "statute": "IRC §21 (OBBBA §70405)",
     "firstYear": 2026,
     "permanent": true,
     "refundable": false,
@@ -48,10 +48,10 @@
     { "claim": "IRC §129(a)(2): dependent care assistance exclusion $7,500 ($3,750 for a separate return by a married individual); per-return limit; earned-income limited (§129(b)); requires an employer dependent-care assistance program.", "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title26-section129&num=0&edition=prelim" },
     { "claim": "IRC §21(a)(2) applicable percentage: 50% reduced (not below 35%) by 1 pt per $2,000 of AGI over $15,000, then reduced (not below 20%) by 1 pt per $2,000 ($4,000 joint) over $75,000 ($150,000 joint); §21(c) $3,000/$6,000 expense caps reduced by §129 exclusions; §21(d) earned-income limit; §21(e)(2)/(4) joint-return requirement; nonrefundable.", "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title26-section21&num=0&edition=prelim" },
     { "claim": "IRC §21(c) flush language: the $3,000/$6,000 dollar limit shall be reduced by the aggregate amount excludable from gross income under section 129 for the taxable year (the no-double-dip cap reduction).", "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title26-section21&num=0&edition=prelim" },
-    { "claim": "OBBBA (P.L. 119-21) §70404 amended both §129 and §21, effective for taxable years beginning after 2025-12-31; permanent; first dependent-care benefit update in decades.", "url": "https://www.congress.gov/119/plaws/publ21/PLAW-119publ21.pdf" },
-    { "claim": "$7,500 DCFSA + 50% CDCTC top rate, effective 2026, expense caps unchanged, credit nonrefundable, no-double-dip cap reduction — employer-benefits summary.", "url": "https://www.mercer.com/en-us/insights/us-health-news/big-beautiful-bill-permanently-enhances-dependent-care-benefits/" },
-    { "claim": "The CDCTC is nonrefundable, so it gives little or no benefit to low-income families who owe little or no federal income tax — the DCFSA's FICA saving is not liability-limited.", "url": "https://taxpolicycenter.org/taxvox/2025-reconciliation-law-makes-some-modest-changes-child-care-tax-benefits-provides-little" },
-    { "claim": "Maxing the new $7,500 DCFSA can leave $0 of credit-eligible expenses because it exceeds the $6,000 two-child cap (worked reduction example).", "url": "https://www.newfront.com/blog/the-obbb-dependent-care-fsa-increase-could-backfire" },
+    { "claim": "OBBBA (P.L. 119-21) §70404 amended §129 ($7,500 / $3,750) and §70405 amended §21(a)(2) (50% top rate), both effective for taxable years beginning after 2025-12-31, with no sunset.", "url": "https://www.congress.gov/119/plaws/publ21/PLAW-119publ21.pdf" },
+    { "claim": "IRS summary of the law: beginning with tax year 2026 the top credit rate rises from 35% to 50%, while the $3,000 / $6,000 expense limits stay the same.", "url": "https://www.irs.gov/newsroom/one-big-beautiful-bill-provisions" },
+    { "claim": "IRS Publication 15-B: for 2026 the dependent care FSA limit is $7,500 ($3,750 married filing separately), and dependent care assistance is exempt from income tax withholding and from Social Security and Medicare tax up to that limit, so the FSA's FICA saving does not depend on owing income tax.", "url": "https://www.irs.gov/publications/p15b" },
+    { "claim": "IRS Publication 503, Reduced Dollar Limit: excluded dependent care benefits must be subtracted from the $3,000 / $6,000 dollar limit, so maxing the new $7,500 DCFSA leaves $0 of credit-eligible expenses for any family size.", "url": "https://www.irs.gov/publications/p503" },
     { "claim": "IRS Publication 503, Child and Dependent Care Expenses — earned-income limit, the $3,000/$6,000 expense limits, and the coordination with employer-provided dependent care benefits (Form 2441).", "url": "https://www.irs.gov/publications/p503" },
     { "claim": "IRS Topic no. 602, Child and Dependent Care Credit — qualifying-individual rules (under 13 or disabled), joint-return requirement for married filers, nonrefundable credit.", "url": "https://www.irs.gov/taxtopics/tc602" },
     { "claim": "2026 Social Security wage base $184,500 at 6.2%; Medicare 1.45% (no wage cap); Additional Medicare 0.9% over the filing-status threshold — used for the DCFSA's FICA saving.", "url": "https://www.ssa.gov/oact/cola/cbb.html" }

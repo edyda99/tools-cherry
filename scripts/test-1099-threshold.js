@@ -86,7 +86,46 @@ ok('state overlay: IL AND logic — dollars over but txns under -> not triggered
   !stateOverlayNote({ amount: 1200, transactions: 2, state: 'IL', data }).triggered);
 ok('state overlay: IL AND logic — both over -> triggered',
   stateOverlayNote({ amount: 1200, transactions: 5, state: 'IL', data }).triggered);
-is('state overlay: AR carries its withholding condition note', stateOverlayNote({ amount: 3000, state: 'AR', data }).condition, 'when no state tax was withheld');
+// AR: 26 CAR 100-151 has NO withholding condition; it covers payers located in Arkansas.
+ok('state overlay: AR has no withholding condition (26 CAR 100-151)',
+  !/withh/i.test(stateOverlayNote({ amount: 3000, state: 'AR', data }).condition || ''));
+ok('state overlay: AR condition names payers located in Arkansas',
+  /located in Arkansas/.test(stateOverlayNote({ amount: 3000, state: 'AR', data }).condition));
+is('state overlay: AR line is $2,500', stateOverlayNote({ amount: 3000, state: 'AR', data }).threshold, 2500);
+// NC (G.S. 105-251.2(c)) and MO (DOR 1099 handbook) only want copies of what is
+// filed with the IRS, so they never lower the federal test: no overlay, at any amount.
+is('state overlay: NC follows the federal test -> null', stateOverlayNote({ amount: 700, transactions: 10, state: 'NC', data }), null);
+is('state overlay: MO follows the federal test -> null', stateOverlayNote({ amount: 5000, transactions: 10, state: 'MO', data }), null);
+ok('NC row is marked followsFederal', data.stateOverrides1099K.NC.followsFederal === true);
+ok('MO row is marked followsFederal', data.stateOverrides1099K.MO.followsFederal === true);
+is('check1099: NC $700 app payments -> no state overlay', check1099({ taxYear: 2026, payerType: 'network', amount: 700, transactions: 10, state: 'NC', data }).stateOverlay, null);
+is('check1099: MO $1,500 card payments -> no state overlay', check1099({ taxYear: 2026, payerType: 'card', amount: 1500, state: 'MO', data }).stateOverlay, null);
+// MD/VA/VT track the federal 26 U.S.C. 6041(a) line: $600 for 2025, $2,000 for 2026.
+for (const st of ['MD', 'VA', 'VT']) {
+  is(`state overlay: ${st} 2026 line is $2,000`, stateOverlayNote({ amount: 2500, state: st, taxYear: 2026, data }).threshold, 2000);
+  is(`state overlay: ${st} 2025 line is $600`, stateOverlayNote({ amount: 2500, state: st, taxYear: 2025, data }).threshold, 600);
+  is(`state overlay: ${st} no year -> current (2026) $2,000`, stateOverlayNote({ amount: 2500, state: st, data }).threshold, 2000);
+  ok(`state overlay: ${st} $1,500 in 2026 does NOT trigger`, !stateOverlayNote({ amount: 1500, state: st, taxYear: 2026, data }).triggered);
+  ok(`state overlay: ${st} $1,500 in 2025 triggers`, stateOverlayNote({ amount: 1500, state: st, taxYear: 2025, data }).triggered);
+  ok(`state overlay: ${st} exactly $2,000 in 2026 triggers (or more)`, stateOverlayNote({ amount: 2000, state: st, taxYear: 2026, data }).triggered);
+}
+is('check1099: VT $1,500 app payments 2026 -> no state overlay', check1099({ taxYear: 2026, payerType: 'network', amount: 1500, transactions: 10, state: 'VT', data }).stateOverlay, null);
+is('check1099: VT $2,500 app payments 2026 -> overlay at $2,000', check1099({ taxYear: 2026, payerType: 'network', amount: 2500, transactions: 10, state: 'VT', data }).stateOverlay.threshold, 2000);
+is('check1099: MD $700 card payments 2025 -> overlay at $600', check1099({ taxYear: 2025, payerType: 'card', amount: 700, state: 'MD', data }).stateOverlay.threshold, 600);
+// IL: "more than $1,000" (strict) and 4 or more payments.
+ok('state overlay: IL exactly $1,000 with 5 payments does NOT trigger (exceeds $1,000)',
+  !stateOverlayNote({ amount: 1000, transactions: 5, state: 'IL', data }).triggered);
+ok('state overlay: IL $1,000.01 with 4 payments triggers',
+  stateOverlayNote({ amount: 1000.01, transactions: 4, state: 'IL', data }).triggered);
+// The rows that stay put, pinned so a future edit has to mean it.
+is('state overlay: MA line $600', stateOverlayNote({ amount: 700, state: 'MA', data }).threshold, 600);
+is('state overlay: DC line $600', stateOverlayNote({ amount: 700, state: 'DC', data }).threshold, 600);
+is('state overlay: MT line $600', stateOverlayNote({ amount: 700, state: 'MT', data }).threshold, 600);
+is('state overlay: NJ line $1,000', stateOverlayNote({ amount: 1200, state: 'NJ', data }).threshold, 1000);
+ok('state overlay: MA exactly $600 triggers (or more)', stateOverlayNote({ amount: 600, state: 'MA', data }).triggered);
+// MT: MCA 15-30-2616(1)(c) says "in excess of $600", so exactly $600 does not trigger.
+ok('state overlay: MT exactly $600 does NOT trigger (in excess of $600)', !stateOverlayNote({ amount: 600, state: 'MT', data }).triggered);
+ok('state overlay: MT $600.01 triggers', stateOverlayNote({ amount: 600.01, state: 'MT', data }).triggered);
 
 // --- check1099: the 10 spec fixtures (§7) + the bonus assertion ---------------
 function fx(id, inputs, expectedForm) {
