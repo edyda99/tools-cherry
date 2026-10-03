@@ -183,12 +183,12 @@
     "thirdPartyEstimates": [
       {
         "publisher": "The Senior Citizens League (TSCL)",
-        "figure": 3.6,
-        "asOf": "2026-08-12",
-        "title": "COLA Projection Falls to 3.6% With 2 Months Remaining to 2027 Announcement",
-        "sourceUrl": "https://seniorsleague.org/cola-projection-falls-to-3-6-with-2-months-remaining-to-2027-announcement/",
-        "note": "TSCL's monthly model, revised after the July 2026 CPI release. Date is the article's own datePublished. Retrieved 2026-09-11, the day of the August CPI release; TSCL's post-August update had not been published at retrieval time, so this is one release behind the data above.",
-        "_dateNote": "Earlier entry (3.8%, dated 2026-06-10) replaced 2026-09-11 by the newer article; the 3.8% figure was TSCL's June model."
+        "figure": 3.5,
+        "asOf": "2026-09-11",
+        "title": "TSCL Predicts COLA at 3.5% With One Month to Announcement",
+        "sourceUrl": "https://seniorsleague.org/tscl-predicts-cola-at-3-5-with-one-month-to-announcement/",
+        "note": "TSCL's monthly model, revised after the August 2026 CPI release. TSCL calls this its final prediction for the 2027 COLA. Date is the article's publication date.",
+        "_dateNote": "Replaced 2026-10-03 by TSCL's final article (2026-09-11). Superseded TSCL figures: 3.6% (2026-08-12, after the July CPI) and 3.8% (2026-06-10, its June model)."
       },
       {
         "publisher": "Mary Johnson (independent Social Security and Medicare policy analyst)",
