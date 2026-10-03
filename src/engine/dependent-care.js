@@ -1,5 +1,5 @@
 // dependent-care.js — pure, framework-free math for the DCFSA-vs-CDCTC decision
-// under OBBBA (P.L. 119-21, §70404), effective TY2026. Runs client-side (browser
+// under OBBBA (P.L. 119-21, §70404 FSA limit, §70405 credit rate), effective TY2026. Runs client-side (browser
 // ESM) and in Node (build-time tests). All PARAMETERS live in
 // dependent-care-2026.json + tax-data-2026.json; this file is pure logic.
 //

@@ -123,6 +123,9 @@ is('state overlay: DC line $600', stateOverlayNote({ amount: 700, state: 'DC', d
 is('state overlay: MT line $600', stateOverlayNote({ amount: 700, state: 'MT', data }).threshold, 600);
 is('state overlay: NJ line $1,000', stateOverlayNote({ amount: 1200, state: 'NJ', data }).threshold, 1000);
 ok('state overlay: MA exactly $600 triggers (or more)', stateOverlayNote({ amount: 600, state: 'MA', data }).triggered);
+// MT: MCA 15-30-2616(1)(c) says "in excess of $600", so exactly $600 does not trigger.
+ok('state overlay: MT exactly $600 does NOT trigger (in excess of $600)', !stateOverlayNote({ amount: 600, state: 'MT', data }).triggered);
+ok('state overlay: MT $600.01 triggers', stateOverlayNote({ amount: 600.01, state: 'MT', data }).triggered);
 
 // --- check1099: the 10 spec fixtures (§7) + the bonus assertion ---------------
 function fx(id, inputs, expectedForm) {

@@ -1,7 +1,7 @@
 // dependent-care-fsa-vs-credit-wizard.js — the card-by-card flow on
 // /dependent-care-fsa-vs-credit-calculator/.
 //
-// Compares the two 2026 childcare tax breaks under OBBBA §70404: a Dependent
+// Compares the two 2026 childcare tax breaks under OBBBA §70404 (FSA limit) and §70405 (credit rate): a Dependent
 // Care FSA (§129, up to $7,500 / $3,750 on separate returns, pre-tax so it saves
 // income tax AND FICA) against the Child & Dependent Care Credit (§21,
 // nonrefundable, 50%→20% by income, on up to $3,000 / $6,000 of care costs). All
