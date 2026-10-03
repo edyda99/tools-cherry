@@ -788,6 +788,10 @@ export function stateOvertimeAtFiling({ income, filingStatus, stateData, fed, pr
  *   wageBase   annual taxable-wage ceiling in USD; rate stops applying above it
  *   annualMax  hard annual contribution cap in USD (e.g. NY PFL $411.91)
  *   weeklyMax  per-WEEK contribution cap in USD (e.g. HI TDI $7.50, NY DBL $0.60)
+ *   afterPreTax  true where the program's legal base is income-tax withholding wages, which
+ *              leave out 401(k) deferrals and Section 125 money: Vermont's Child Care
+ *              Contribution (26 U.S.C. 3401 wages) and Oregon's statewide transit tax
+ *              (ORS 316.162 wages, W-2 box 16). Those are charged on gross less `preTaxIncome`.
  *
  * Cap math, honest across pay frequencies: the annual contribution is
  * rate × min(gross, wageBase), then clamped to an annual dollar ceiling.
@@ -798,12 +802,15 @@ export function stateOvertimeAtFiling({ income, filingStatus, stateData, fed, pr
  * approximation is introduced.
  * @param {number} grossAnnual
  * @param {object} stateData - the single-state entry from tax-data
+ * @param {number} [preTaxIncome=0] - 401(k) + Section 125 money, used only by `afterPreTax` programs
  * @returns {Array<{label:string, rate:number, annual:number}>}
  */
-export function stateEmployeePrograms(grossAnnual, stateData) {
+export function stateEmployeePrograms(grossAnnual, stateData, preTaxIncome = 0) {
   const list = stateData && Array.isArray(stateData.employeePrograms) ? stateData.employeePrograms : [];
-  const g = Math.max(0, grossAnnual);
+  const gross = Math.max(0, grossAnnual);
+  const afterPreTax = Math.max(0, gross - Math.max(0, preTaxIncome || 0));
   return list.map((pr) => {
+    const g = pr.afterPreTax ? afterPreTax : gross;
     const base = pr.wageBase != null ? Math.min(g, pr.wageBase) : g;
     let annual = base * (pr.rate || 0);
     const annualCap = pr.annualMax != null
@@ -887,8 +894,10 @@ export function computePaycheck({ wage, filingStatus, payFrequency, stateSlug, a
 
   // State disability / paid-leave employee contributions: post-tax, on gross
   // wages, kept OUT of totalTax and out of annual.state (so tax-only rates and
-  // the pinned state-tax regression tests are unaffected).
-  const programs = stateEmployeePrograms(grossAnnual, stateData);
+  // the pinned state-tax regression tests are unaffected). The two charged on
+  // withholding wages (Vermont's child care contribution, Oregon's transit tax)
+  // are charged after the 401(k) and Section 125 money.
+  const programs = stateEmployeePrograms(grossAnnual, stateData, preTaxIncome);
   const statePrograms = programs.reduce((s, p) => s + p.annual, 0);
 
   const totalTax = federal + fica.total + state;

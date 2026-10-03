@@ -142,7 +142,7 @@
         {
           "name": "Child Care Contribution, employee share",
           "employeeRate2026": "Up to 0.11% of wages (employers pay 0.44% and may take up to a quarter of it from pay)",
-          "wageBaseOrCap": "No wage cap",
+          "wageBaseOrCap": "No wage cap; charged on wages after 401(k) and Section 125 money",
           "source": "https://tax.vermont.gov/business/child-care-contribution"
         }
       ],
@@ -1747,7 +1747,7 @@
         {
           "name": "Oregon Statewide Transit Tax, paid by the employee",
           "employeeRate2026": "0.1% of wages ($1 per $1,000)",
-          "wageBaseOrCap": "Charged on all wages, withheld by the employer",
+          "wageBaseOrCap": "No wage cap; charged on wages after 401(k) and Section 125 money, withheld by the employer",
           "source": "https://www.oregon.gov/dor/programs/businesses/pages/statewide-transit-tax.aspx"
         }
       ],

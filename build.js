@@ -7354,7 +7354,8 @@ function caLadderSources(taxData, state) {
   // claim on the page with nothing behind it.
   (state._noTaxBasis && state._noTaxBasis.sources || []).forEach((src) => add(src.title, src.url));
   (state.employeePrograms || []).forEach((p) => add(
-    isCA ? 'California EDD: SDI rates and withholding' : `${programLabel(state, p)}: rate and withholding`,
+    isCA ? 'California EDD: SDI rates and withholding'
+      : (p._sourceTitle || `${programLabel(state, p)}: rate and withholding`),
     p._source));
   const SOURCE_TITLES = {
     federal_brackets: `IRS: ${taxData.taxYear} inflation-adjusted tax brackets`,

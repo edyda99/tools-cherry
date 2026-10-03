@@ -537,7 +537,10 @@
           "label": "VT Child Care Contribution",
           "rate": 0.0011,
           "_fullName": "Child Care Contribution, employee share: employers pay 0.44% of wages and may withhold up to 0.11% from the employee, with no wage cap",
-          "_source": "https://tax.vermont.gov/business/child-care-contribution"
+          "afterPreTax": true,
+          "_afterPreTax": "Vermont Department of Taxes: 'Wages means payments that are included in the definition of wages in 26 U.S.C. 3401' and 'In general, wages that are subject to federal income tax withholding are also subject to the CCC.' Federal withholding wages leave out 401(k) elective deferrals and Section 125 cafeteria-plan money.",
+          "_source": "https://tax.vermont.gov/business/child-care-contribution",
+          "_sourceTitle": "Vermont Department of Taxes: Child Care Contribution"
         }
       ]
     },
@@ -693,7 +696,9 @@
           "rate": 0.004,
           "wageBase": 184500,
           "_fullName": "Delaware Paid Leave employee share, the most an employer may take out of your pay. Delaware charges 0.80% of wages in total for 2026 (0.4% medical + 0.32% parental + 0.08% family caregiving) and lets the employer deduct up to half of it from you, so 0.40% is the employee ceiling. Many employers pay some or all of your half, and employers with an approved private plan are outside the state fund, so what you actually see may be less.",
-          "_source": "19 Del. C. 3705(b)(1)a., (b)(2)a. and (b)(3)a.: 'For 2025 and 2026, the contribution rate for medical leave benefits as a percentage of wages is 0.4%' / 'for family caregiving leave benefits as a percentage of wages is 0.08%' / 'for parental leave benefits as a percentage of wages is 0.32%', a 0.80% total. 19 Del. C. 3705(d), (e) and (f) each read 'an employer shall deduct not greater than 50% of the contribution required for the employee. However, an employer may elect to pay all or any portion of the employee's share', which caps the employee at 0.40%. The wage cap follows 19 Del. C. 3701(24): 'Wages means remuneration for employment as determined for purposes of old-age, survivors, and disability insurance for employees and employers under the Federal Insurance Contribution Act, 26 U.S.C. Chapter 21', and the 2026 OASDI ceiling is $184,500 (SSA, Contribution and Benefit Base: 'For earnings in 2026, this base is $184,500'; ssa.gov refuses programmatic fetch, so this was read from the Wayback capture of that same page, web.archive.org/web/20260707030358/https://www.ssa.gov/oact/cola/cbb.html). https://delcode.delaware.gov/title19/c037/index.html"
+          "_source": "https://delcode.delaware.gov/title19/c037/index.html",
+          "_sourceTitle": "Delaware Code, Title 19, Chapter 37: Family and Medical Leave Insurance Program",
+          "_sourceQuote": "19 Del. C. 3705(b)(1)a., (b)(2)a. and (b)(3)a.: 'For 2025 and 2026, the contribution rate for medical leave benefits as a percentage of wages is 0.4%' / 'for family caregiving leave benefits as a percentage of wages is 0.08%' / 'for parental leave benefits as a percentage of wages is 0.32%', a 0.80% total. 19 Del. C. 3705(d), (e) and (f) each read 'an employer shall deduct not greater than 50% of the contribution required for the employee. However, an employer may elect to pay all or any portion of the employee's share', which caps the employee at 0.40%. The wage cap follows 19 Del. C. 3701(24): 'Wages means remuneration for employment as determined for purposes of old-age, survivors, and disability insurance for employees and employers under the Federal Insurance Contribution Act, 26 U.S.C. Chapter 21', and the 2026 OASDI ceiling is $184,500 (SSA, Contribution and Benefit Base: 'For earnings in 2026, this base is $184,500'; ssa.gov refuses programmatic fetch, so this was read from the Wayback capture of that same page, web.archive.org/web/20260707030358/https://www.ssa.gov/oact/cola/cbb.html)."
         }
       ],
       "hasIncomeTax": true,
@@ -2568,7 +2573,11 @@
           "label": "OR Transit Tax",
           "rate": 0.001,
           "_fullName": "Statewide Transit Tax, one-tenth of 1% of your wages, paid by you and withheld by your employer. There is no wage cap, so it applies to every dollar.",
-          "_source": "Oregon Department of Revenue, Statewide Transit Tax: 'The Statewide Transit Tax was enacted by the Oregon Legislature in House Bill 2017 (2017) and codified in Oregon Revised Statutes (ORS 320.550). On July 1, 2018, employers began withholding the tax (one-tenth of 1 percent or .001) from: Wages of Oregon residents (regardless of where the work is performed). Wages of nonresidents who perform services in Oregon.' The same page adds that Measure 120 did not pass in the May 19, 2026 primary, so employers 'continue to withhold at the rate of one-tenth of 1 percent or .001', and that 'The Statewide Transit Tax is imposed on the wages of each employee, but the employer is responsible for withholding, reporting, and remitting'. https://www.oregon.gov/dor/programs/businesses/pages/statewide-transit-tax.aspx"
+          "afterPreTax": true,
+          "_afterPreTax": "Charged on wages as defined in ORS 316.162, which leaves out amounts paid to employees' trusts exempt under the Internal Revenue Code (401(k) deferrals) and pay exempt from Oregon income tax (Section 125 money). OAR 150-320-0520 computes it from W-2 box 16, Oregon wages.",
+          "_source": "https://www.oregon.gov/dor/programs/businesses/pages/statewide-transit-tax.aspx",
+          "_sourceTitle": "Oregon Department of Revenue: statewide transit tax",
+          "_sourceQuote": "Oregon Department of Revenue, Statewide Transit Tax: 'The Statewide Transit Tax was enacted by the Oregon Legislature in House Bill 2017 (2017) and codified in Oregon Revised Statutes (ORS 320.550). On July 1, 2018, employers began withholding the tax (one-tenth of 1 percent or .001) from: Wages of Oregon residents (regardless of where the work is performed). Wages of nonresidents who perform services in Oregon.' The same page adds that Measure 120 did not pass in the May 19, 2026 primary, so employers 'continue to withhold at the rate of one-tenth of 1 percent or .001', and that 'The Statewide Transit Tax is imposed on the wages of each employee, but the employer is responsible for withholding, reporting, and remitting'."
         }
       ],
       "hasIncomeTax": true,
