@@ -90,7 +90,14 @@
         "notes": "No local/municipal income taxes. New Mexico has only a statewide graduated individual income tax (1.50% to 5.90% for 2026). Note: New Mexico's 'sales tax' is technically a Gross Receipts Tax (GRT) imposed on the seller, with local add-ons.",
         "source": "https://taxfoundation.org/location/new-mexico/"
       },
-      "payrollContributions": [],
+      "payrollContributions": [
+        {
+          "name": "Workers' compensation fee, employee share",
+          "employeeRate2026": "$2.25 a quarter ($9 a year) for each covered worker, a flat fee rather than a percentage",
+          "wageBaseOrCap": "Flat fee, does not change with pay",
+          "source": "https://www.tax.newmexico.gov/businesses/withholding-tax-and-workers-compensation/"
+        }
+      ],
       "salesTax": {
         "stateBaseRatePct": 4.875,
         "combinedAvgRatePct": 7.67,
@@ -131,6 +138,14 @@
         "notes": "No municipal or county income taxes. Vermont has only a statewide graduated individual income tax (3.35% to 8.75% for 2026).",
         "source": "https://taxfoundation.org/location/vermont/"
       },
+      "payrollContributions": [
+        {
+          "name": "Child Care Contribution, employee share",
+          "employeeRate2026": "Up to 0.11% of wages (employers pay 0.44% and may take up to a quarter of it from pay)",
+          "wageBaseOrCap": "No wage cap",
+          "source": "https://tax.vermont.gov/business/child-care-contribution"
+        }
+      ],
       "salesTax": {
         "stateBaseRatePct": 6,
         "combinedAvgRatePct": 6.39,
@@ -154,7 +169,7 @@
       },
       "distinctiveFacts": [
         {
-          "fact": "Vermont's paid family and medical leave (VT-FMLI) is a voluntary insurance program, not a mandatory payroll tax — so unlike most New England states there is no required statewide PFML deduction on a Vermont paycheck.",
+          "fact": "Vermont's paid family and medical leave (VT-FMLI) is a voluntary insurance program, not a mandatory payroll tax, so unlike most New England states there is no required statewide PFML deduction on a Vermont paycheck. The state payroll deduction a Vermont paycheck can carry is the Child Care Contribution: employers pay 0.44% of wages and may take up to 0.11% from your pay.",
           "source": "https://governor.vermont.gov/vtfmli"
         },
         {
@@ -496,6 +511,12 @@
           "employeeRate2026": "0.58% of gross wages",
           "wageBaseOrCap": "No wage cap (applies to all wages)",
           "source": "https://paidleave.wa.gov/employer-roles-responsibilities/"
+        },
+        {
+          "name": "Workers' compensation (Labor & Industries), employee share",
+          "employeeRate2026": "A set amount for each hour worked, by job risk class (for example $0.10070 an hour for clerical office work, class 4904)",
+          "wageBaseOrCap": "Charged per hour worked, not on wages",
+          "source": "https://lni.wa.gov/insurance/_docs/2026RatesByClassCodeFund.pdf"
         }
       ],
       "minWage2026": {
@@ -515,7 +536,7 @@
       },
       "distinctiveFacts": [
         {
-          "fact": "Despite having no income tax, Washington has TWO mandatory employee payroll deductions in 2026: PFML (~0.807% of wages, employee share) and the WA Cares long-term-care premium (0.58% of ALL wages, with no cap) — the latter is paid entirely by the worker.",
+          "fact": "Despite having no income tax, Washington has three state payroll deductions in 2026: PFML (about 0.807% of wages, employee share), the WA Cares long-term-care premium (0.58% of all wages, with no cap, paid entirely by the worker), and the worker's share of the workers' compensation premium, charged for each hour worked.",
           "source": "https://esd.wa.gov/about-us/news-release/2025/paid-family-medical-leave-premium-rate-increases-113-2026"
         },
         {
@@ -1722,6 +1743,12 @@
           "employeeRate2026": "0.6% (employees pay 60% of the 1.0% total contribution)",
           "wageBaseOrCap": "Wages up to $184,500 (2026 Social Security wage base)",
           "source": "https://paidleave.oregon.gov/employers/contributions-calculator.html"
+        },
+        {
+          "name": "Oregon Statewide Transit Tax, paid by the employee",
+          "employeeRate2026": "0.1% of wages ($1 per $1,000)",
+          "wageBaseOrCap": "Charged on all wages, withheld by the employer",
+          "source": "https://www.oregon.gov/dor/programs/businesses/pages/statewide-transit-tax.aspx"
         }
       ],
       "salesTax": {
