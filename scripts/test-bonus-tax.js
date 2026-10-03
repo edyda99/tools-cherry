@@ -480,16 +480,26 @@ const run = (input) => computeBonus(input, taxData, suppData);
   const hi = run({ bonus: 10000, regIncome: 90000, filingStatus: 'single', stateSlug: 'massachusetts' });
   eq('MA2 above the crossover the deduction cancels', hi.trueLiability.state, 500);
   eq('MA2 and matches the withheld column', hi.withheld.state, 500);
-  // Circular M section G's own example: $948,000 a year plus a $350,000 bonus. Its step 4
-  // subtracts $2,000 of retirement contributions and the $4,400 exemption, which this tool
-  // does not see, so the engine's excess is 1,298,000 - 1,107,750 = 190,250 rather than
-  // Circular M's 183,850: 0.09 x 190,250 + 0.05 x 159,750 = 17,122.50 + 7,987.50 = 25,110.
-  // (Circular M's own answer with its deductions is $24,854.)
+  // Circular M section G's own worked example (2026): $948,000 a year paid monthly, one
+  // exemption, a $350,000 bonus, no earlier bonuses. Step 4 = 350,000 + (948,000 - 2,000 of
+  // FICA, the capped deduction - 4,400 exemption) + 0 = 1,291,600; the part over $1,107,750
+  // is 183,850, so 0.09 x 183,850 + 0.05 x 166,150 = 16,546.50 + 8,307.50 = 24,854.
   const ma = suppData.states.massachusetts;
   eq('MA3 Circular M upper rate 9%', ma.rateAbove, 0.09);
   eq('MA3 Circular M threshold $1,107,750', ma.rateAboveOver, 1107750);
+  eq('MA3 Circular M FICA deduction cap $2,000', ma.rateAboveFicaCap, 2000);
+  eq('MA3 Circular M one-exemption factor $4,400', ma.rateAboveExemption, 4400);
   const big = run({ bonus: 350000, regIncome: 948000, filingStatus: 'single', stateSlug: 'massachusetts' });
-  eq('MA3 9% on the part above $1,107,750, 5% on the rest', big.withheld.state, 25110);
+  eq('MA3 matches DOR\'s worked example, $24,854', big.withheld.state, 24854);
+  // Earlier bonuses count toward step 4. $900,000 of pay, $300,000 of earlier bonuses and a
+  // $100,000 bonus: 100,000 + (900,000 - 2,000 - 4,400) + 300,000 = 1,293,600, which is
+  // 193,600 over the line, more than the whole bonus, so all of it is withheld at 9%: 9,000.
+  // Without the earlier bonuses the same pay and bonus total 993,600 and stay at 5%: 5,000.
+  const withEarlier = run({ bonus: 100000, regIncome: 900000, ytdSupp: 300000, filingStatus: 'single', stateSlug: 'massachusetts' });
+  eq('MA3 earlier bonuses push the whole bonus to 9%', withEarlier.withheld.state, 9000);
+  const noEarlier = run({ bonus: 100000, regIncome: 900000, filingStatus: 'single', stateSlug: 'massachusetts' });
+  eq('MA3 the same bonus without earlier bonuses stays at 5%', noEarlier.withheld.state, 5000);
+  // Step 4 here: 10,000 + (1,000,000 - 2,000 - 4,400) = 1,003,600, under the line.
   const under = run({ bonus: 10000, regIncome: 1000000, filingStatus: 'single', stateSlug: 'massachusetts' });
   eq('MA3 all 5% while the year stays under the threshold', under.withheld.state, 500);
 }

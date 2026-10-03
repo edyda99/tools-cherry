@@ -45,7 +45,8 @@ export function wisconsinBandedRate(annualGross, bands) {
  * state returns null so the caller routes it to the aggregate path.
  * @param {number} bonus
  * @param {object} supp - the state's entry from state-supplemental-2026.json
- * @param {{annualGross:number, federalWithheld:number, paymentType:string}} ctx
+ * @param {{annualGross:number, regIncome:number, regFica:number, ytdSupp:number,
+ *   federalWithheld:number, paymentType:string}} ctx
  * @returns {number|null} withholding, or null for the regular/aggregate path
  */
 export function supplementalStateWithholding(bonus, supp, ctx = {}) {
@@ -56,11 +57,17 @@ export function supplementalStateWithholding(bonus, supp, ctx = {}) {
       return 0;
     case 'flat':
       // Massachusetts (Circular M, section G): the flat rate, except that the part of the
-      // payment that lifts the year's wages from this employer (regular plus supplemental)
-      // over `rateAboveOver` is withheld at `rateAbove` instead (5%, and 9% over $1,107,750
-      // for 2026).
+      // payment that lifts its step-4 total over `rateAboveOver` is withheld at `rateAbove`
+      // instead (5%, and 9% over $1,107,750 for 2026). Step 4 = this payment + the year's
+      // regular wages from the employer, less the FICA/retirement deduction (capped at
+      // `rateAboveFicaCap`) and the exemption factor (`rateAboveExemption`, one exemption as
+      // in DOR's worked example), + earlier supplemental payments this year (`ytdSupp`).
       if (supp.rateAbove != null && supp.rateAboveOver != null) {
-        const above = Math.min(b, Math.max(0, (ctx.annualGross ?? b) - supp.rateAboveOver));
+        const reg = Math.max(0, ctx.regIncome ?? ((ctx.annualGross ?? b) - b));
+        const ficaOff = Math.min(supp.rateAboveFicaCap ?? 0, Math.max(0, ctx.regFica ?? 0));
+        const regNet = Math.max(0, reg - ficaOff - (supp.rateAboveExemption ?? 0));
+        const step4 = b + regNet + Math.max(0, ctx.ytdSupp || 0);
+        const above = Math.min(b, Math.max(0, step4 - supp.rateAboveOver));
         return above * supp.rateAbove + (b - above) * supp.rate;
       }
       return b * supp.rate;
@@ -254,8 +261,12 @@ export function computeBonus(input, taxData, suppData) {
     : federalSupplementalWithholding(bonus, ytdSupp, fedSupp);
 
   const annualGross = regIncome + bonus;
+  // Employee Social Security + Medicare on the regular wages, for Massachusetts' step-4
+  // deduction (it is capped at $2,000, which this passes from about $26,000 of pay).
+  const regFica = Math.min(regIncome, fed.fica.socialSecurity.wageBase) * fed.fica.socialSecurity.rate +
+    regIncome * fed.fica.medicare.rate;
   let stateWithheld = supplementalStateWithholding(bonus, supp, {
-    annualGross, federalWithheld, paymentType
+    annualGross, regIncome, regFica, ytdSupp, federalWithheld, paymentType
   });
   let stateWithholdingMethod = supp ? supp.method : 'none';
   // regular-method states (or the aggregate override) -> paycheck-engine aggregate delta
