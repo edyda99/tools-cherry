@@ -5095,8 +5095,29 @@ function stateMarginalRate(r) {
     const top = r.st.bands.filter((b) => b.amount > 0).slice(-1)[0];
     return top ? top.rate : null;
   }
-  if (r.kind === 'flat') return r.st.rate;
+  if (r.kind === 'flat') {
+    // Utah: while the taxpayer tax credit is shrinking, the next dollar of pay costs the flat
+    // rate PLUS the credit it takes away (4.45% + 1.3 cents = 5.75%), and a dollar kept out of
+    // income (a 401(k) deferral, a deductible tip) saves the same. Worked from the data.
+    const ct = creditShrinkAt(r);
+    return ct ? r.st.rate + ct.cents / 100 : r.st.rate;
+  }
   return null;
+}
+
+// The credit terms when a credit state's credit is still shrinking at this rung, else null.
+function creditShrinkAt(r) {
+  if (!(r.kind === 'flat' && r.st && r.st.credit != null && r.st.credit > 0.005)) return null;
+  const ct = creditTerms(r.state.tax, 'single');
+  return (ct.cents != null && ct.over != null && r.amount > ct.over) ? ct : null;
+}
+
+// Why a credit state's marginal rate is above its headline rate, in words; '' elsewhere.
+function creditMarginalWhy(r) {
+  const ct = creditShrinkAt(r);
+  return ct
+    ? ` (the ${pctStr(r.st.rate)} rate plus the ${ct.cents} cents of ${creditName(r.state.tax)} each dollar of income takes away)`
+    : '';
 }
 
 // How much the state subtracts before its own rate applies, in words. The data
@@ -6565,8 +6586,8 @@ function caProseBlocks(r, rungs, ctx) {
     const yr = secure2.rothCatchUp.byYear[String(taxData.taxYear)];
     if (yr && yr.deferral) {
       const share = yr.deferral / r.amount;
-      const stateRateClause = stMarginal == null ? '' : ` plus ${pctStr(stMarginal)} in ${NAME}`;
-      const stateRateClause2 = stMarginal == null ? '' : ` and ${pctStr(stMarginal)} in ${NAME}`;
+      const stateRateClause = stMarginal == null ? '' : ` plus ${pctStr(stMarginal)} in ${NAME}${creditMarginalWhy(r)}`;
+      const stateRateClause2 = stMarginal == null ? '' : ` and ${pctStr(stMarginal)} in ${NAME}${creditMarginalWhy(r)}`;
       if (share >= 0.4) {
         push('deferral',
           `<h3>Maxing a 401(k) is not realistic at ${S}</h3>` +
@@ -6760,7 +6781,8 @@ function caProseBlocks(r, rungs, ctx) {
         if (otY !== 'yes') notFollowed.push('overtime premium');
         const stateBite = (stMarginal == null || !notFollowed.length) ? ''
           : ` Where it does not, a dollar of qualified ${caList(notFollowed)} that escapes ` +
-            `${pctStr(fedTop.rate)} of federal tax at ${S} is still charged ${pctStr(stMarginal)} by ${NAME}.`;
+            `${pctStr(fedTop.rate)} of federal tax at ${S} is still charged ${pctStr(stMarginal)} by ${NAME}` +
+            `${creditMarginalWhy(r)}.`;
         push('obbbastate',
           `<h3>${frame('obH', [
             `Does ${NAME} follow the tips and overtime deductions?`,
@@ -7397,7 +7419,7 @@ function caLadderFaq(r, rungs, taxData, payrollState, obbba, secure2) {
       ? (r.st.credit != null
         // Utah's rate does reach every dollar; what comes off afterwards is a credit.
         ? `Federally you are in the ${pctStr(fedTop.rate)} bracket, which applies only to the top slice ` +
-          `of your income; ${NAME}'s single ${pctStr(stMarginal)} rate applies to all of it` +
+          `of your income; ${NAME}'s single ${pctStr(r.st.rate)} rate applies to all of it` +
           (r.st.credit > 0.005
             ? `, less its ${creditName(r.state.tax)} of ${usd0(r.st.credit)} at this salary.`
             : `, and its ${creditName(r.state.tax)} has run out by this salary.`)
