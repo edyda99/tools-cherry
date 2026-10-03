@@ -59,7 +59,7 @@ t('every state: slug matches key, valid bracket shape, decimal rates', () => {
 t('New York $75k single ≈ $3,453', () => approx(stateTax('new-york', 75000), 3453, 1));
 t('Delaware $75k single = $3,719.00', () => approx(stateTax('delaware', 75000), 3719.0));
 t('New Mexico $75k single = $2,359.30', () => approx(stateTax('new-mexico', 75000), 2359.30, 0.05));
-t('Utah $75k single = $2,621.05 (flat 4.45%)', () => approx(stateTax('utah', 75000), 2621.05, 0.05));
+t('Utah $75k single = $3,109.73 (4.45% less the phased taxpayer credit)', () => approx(stateTax('utah', 75000), 3109.73, 0.05));
 t('Texas has no state income tax', () => assert.equal(stateTax('texas', 75000), 0));
 
 // --- prior-year fallback states are labeled (figureYear 2025, not 2026) ------
@@ -97,7 +97,10 @@ t('Texas has no state income tax', () => assert.equal(stateTax('texas', 75000), 
 // district-of-columbia LEFT 2026-10-02: the FY2027 Budget Support Acts (D.C. Act 26-416 in force,
 // 26-418 pending) set the 2025-2029 basic standard deduction with a cost-of-living base year of
 // 2025, so the 2026 amount is the same $15,000 / $30,000 / $22,500 by law, not a prior-year floor.
-const EXPECTED_FALLBACKS = ['arizona', 'california', 'idaho', 'maryland', 'vermont'];
+// california LEFT 2026-10-03: the FTB published its 2026 indexed brackets and standard deduction.
+// arkansas and ohio joined 2026-10-03: Arkansas has not published its TY2026 indexed thresholds and
+// deduction (rates are current), and Ohio has not published its TY2026 personal exemption amounts.
+const EXPECTED_FALLBACKS = ['arizona', 'arkansas', 'idaho', 'maryland', 'ohio', 'vermont'];
 
 t('every prior-year state is expected AND discloses it to the reader', () => {
   for (const s of ['nebraska', 'oklahoma']) {
@@ -122,7 +125,7 @@ t('every prior-year state is expected AND discloses it to the reader', () => {
     // (their rates are current, only the standard deduction lags). A fallback state with no
     // scope therefore publishes a false statement, so require it explicitly.
     assert.ok(
-      ['brackets', 'standardDeduction'].includes(st.figureYearScope),
+      ['brackets', 'standardDeduction', 'thresholdsAndDeduction'].includes(st.figureYearScope),
       `${slug} is on ${year} figures but has no valid figureYearScope. The banner would then ` +
       'claim its brackets are prior-year, which may be false. Set "brackets" or "standardDeduction".',
     );
@@ -252,12 +255,15 @@ t('South Carolina SCIAD phases down, rounding the reduction not the deduction', 
   // is that no THIRD state acquires a phase-down by accident.
   // 2026-10-02: Alabama joined, with the stepped-to-a-floor row shape (Ala. Code 40-18-15(b)(4));
   // its parameters are pinned in the federal-tax-subtraction block at the end of this file.
+  // 2026-10-03: Maine, Ohio, Rhode Island and Utah joined when their personal exemptions (Utah: the
+  // taxpayer tax credit) were folded into the deduction with their statutory phase-outs; their
+  // parameters are pinned in the personal-exemption block at the end of this file.
   const users = Object.entries(tax.states)
     .filter(([, s]) => s.tax && s.tax.standardDeductionPhaseout)
     .map(([slug]) => slug)
     .sort();
-  assert.deepEqual(users, ['alabama', 'south-carolina', 'wisconsin'],
-    'standardDeductionPhaseout is Alabama + South Carolina + Wisconsin only');
+  assert.deepEqual(users, ['alabama', 'maine', 'ohio', 'rhode-island', 'south-carolina', 'utah', 'wisconsin'],
+    'standardDeductionPhaseout is Alabama, Maine, Ohio, Rhode Island, South Carolina, Utah and Wisconsin only');
   const cfg = tax.states['south-carolina'].tax.standardDeductionPhaseout;
   assert.equal(cfg.roundReductionDownTo, 10, 'statute rounds to ten dollars');
   assert.deepEqual(cfg.single, { over: 40000, denominator: 55000 });
@@ -418,9 +424,9 @@ t('every baseAmount is well formed and sits on a bracket state', () => {
 });
 
 t('Ohio steps at the threshold, strictly above it', () => {
-  assert.equal(stateTax('ohio', 26050), 0);
-  approx(stateTax('ohio', 26051), 332.03, 0.01);
-  approx(stateTax('ohio', 75000), 1678.13, 0.01);
+  assert.equal(stateTax('ohio', 28450), 0);
+  approx(stateTax('ohio', 28451), 332.03, 0.01);
+  approx(stateTax('ohio', 75000), 1619.00, 0.01);
 });
 
 // --- steppedRecapture: the opt-in stepped add-back, Connecticut only ----------
@@ -811,51 +817,56 @@ t('Oregon HoH $130k: joint bands keep the full 8,750 limit a single filer has lo
 // ALABAMA (single and head of family 2% to 500, 4% to 3,000, 5% above, so 10 + 100 = 110 below
 // the top band; MFJ 2% to 1,000, 4% to 6,000, so 20 + 200 = 220). Standard deduction per
 // Ala. Code 40-18-15(b)(4): $25 / $175 / $135 off per whole $500 of AGI over $25,500, floors
-// 2,500 / 5,000 / 2,500, reached at $35,500. Federal income tax deduction in full, no cap.
+// 2,500 / 5,000 / 2,500, reached at $35,500. The Ala. Code 40-18-19 personal exemption ($1,500
+// single, $3,000 joint or head of family) does not phase out, so it sits on top of the chart:
+// 4,500 / 11,500 / 8,200 at the start, floors 4,000 / 8,000 / 5,500. Federal income tax deduction
+// in full, no cap.
 t('Alabama standard deduction steps match the ADOR chart', () => {
   const cfg = tax.states.alabama.tax.standardDeductionPhaseout;
-  assert.deepEqual(cfg.single, { over: 25500, per: 500, reduceBy: 25, minimum: 2500 });
-  assert.deepEqual(cfg.married, { over: 25500, per: 500, reduceBy: 175, minimum: 5000 });
-  assert.deepEqual(cfg.head_of_household, { over: 25500, per: 500, reduceBy: 135, minimum: 2500 });
+  assert.deepEqual(cfg.single, { over: 25500, per: 500, reduceBy: 25, minimum: 4000 });
+  assert.deepEqual(cfg.married, { over: 25500, per: 500, reduceBy: 175, minimum: 8000 });
+  assert.deepEqual(cfg.head_of_household, { over: 25500, per: 500, reduceBy: 135, minimum: 5500 });
+  assert.deepEqual(tax.states.alabama.tax.standardDeduction, { single: 4500, married: 11500, head_of_household: 8200 });
   // Chart rows: "$ 0 – $25,999 $3,000", "$26,000 – $26,499 $2,975", "$30,000 – $30,499 $2,775",
   // "$35,500 and above $2,500"; MFJ "$30,000 – $30,499 $6,925", HoH "$30,000 – $30,499 $3,985".
+  // Each chart row plus the exemption: 1,500 single, 3,000 joint and head of family.
   const sd = (base, agi, fs) => phaseOutStandardDeduction(base, agi, fs, cfg);
-  assert.deepEqual([25999, 26000, 26499, 30000, 35499, 35500, 90000].map((a) => sd(3000, a, 'single')),
-    [3000, 2975, 2975, 2775, 2525, 2500, 2500]);
-  assert.equal(sd(8500, 30000, 'married'), 6925);
-  assert.equal(sd(8500, 35500, 'married'), 5000);
-  assert.equal(sd(5200, 30000, 'head_of_household'), 3985);
-  assert.equal(sd(5200, 35500, 'head_of_household'), 2500);
+  assert.deepEqual([25999, 26000, 26499, 30000, 35499, 35500, 90000].map((a) => sd(4500, a, 'single')),
+    [4500, 4475, 4475, 4275, 4025, 4000, 4000]);
+  assert.equal(sd(11500, 30000, 'married'), 9925);
+  assert.equal(sd(11500, 35500, 'married'), 8000);
+  assert.equal(sd(8200, 30000, 'head_of_household'), 6985);
+  assert.equal(sd(8200, 35500, 'head_of_household'), 5500);
 });
-t('Alabama single $30k: deduction 2,775 on the chart, federal 1,420 off', () =>
+t('Alabama single $30k: deduction 2,775 on the chart plus the 1,500 exemption, federal 1,420 off', () =>
   // fed: 30,000 - 16,100 = 13,900 -> 1,240 + 12% x 1,500 = 1,420
-  // 30,000 - 2,775 - 1,420 = 25,805 -> 110 + 5% x 22,805 = 1,250.25
-  approx(stateTax('alabama', 30000), 1250.25, 0.01));
+  // 30,000 - 4,275 - 1,420 = 24,305 -> 110 + 5% x 21,305 = 1,175.25
+  approx(stateTax('alabama', 30000), 1175.25, 0.01));
 t('Alabama single $50k: all 3,820 of federal tax off', () =>
-  // 50,000 - 2,500 - 3,820 = 43,680 -> 110 + 5% x 40,680 = 2,144.00
-  approx(stateTax('alabama', 50000), 2144.00, 0.01));
+  // 50,000 - 4,000 - 3,820 = 42,180 -> 110 + 5% x 39,180 = 2,069.00
+  approx(stateTax('alabama', 50000), 2069.00, 0.01));
 t('Alabama single $75k: all 7,670 of federal tax off', () =>
-  // 75,000 - 2,500 - 7,670 = 64,830 -> 110 + 5% x 61,830 = 3,201.50 (was 3,560.00)
-  approx(stateTax('alabama', 75000), 3201.50, 0.01));
+  // 75,000 - 4,000 - 7,670 = 63,330 -> 110 + 5% x 60,330 = 3,126.50
+  approx(stateTax('alabama', 75000), 3126.50, 0.01));
 t('Alabama single $100k: all 13,170 of federal tax off', () =>
-  // 100,000 - 2,500 - 13,170 = 84,330 -> 110 + 5% x 81,330 = 4,176.50 (was 4,810.00)
-  approx(stateTax('alabama', 100000), 4176.50, 0.01));
+  // 100,000 - 4,000 - 13,170 = 82,830 -> 110 + 5% x 79,830 = 4,101.50
+  approx(stateTax('alabama', 100000), 4101.50, 0.01));
 t('Alabama single $150k: all 24,734 of federal tax off, no cap', () =>
-  // 150,000 - 2,500 - 24,734 = 122,766 -> 110 + 5% x 119,766 = 6,098.30
-  approx(stateTax('alabama', 150000), 6098.30, 0.01));
-t('Alabama MFJ $100k: 5,000 floor deduction, 7,640 federal off', () =>
-  // 100,000 - 5,000 - 7,640 = 87,360 -> 220 + 5% x 81,360 = 4,288.00
-  approx(stateTax('alabama', 100000, 'married'), 4288.00, 0.01));
-t('Alabama HoH $75k: head-of-family floor is 2,500, not the joint 5,000', () =>
-  // 75,000 - 2,500 - 5,748 = 66,752 -> 110 + 5% x 63,752 = 3,297.60
-  approx(stateTax('alabama', 75000, 'head_of_household'), 3297.60, 0.01));
+  // 150,000 - 4,000 - 24,734 = 121,266 -> 110 + 5% x 118,266 = 6,023.30
+  approx(stateTax('alabama', 150000), 6023.30, 0.01));
+t('Alabama MFJ $100k: 5,000 floor deduction plus the 3,000 exemption, 7,640 federal off', () =>
+  // 100,000 - 8,000 - 7,640 = 84,360 -> 220 + 5% x 78,360 = 4,138.00
+  approx(stateTax('alabama', 100000, 'married'), 4138.00, 0.01));
+t('Alabama HoH $75k: head-of-family floor is 2,500 plus a 3,000 exemption, not the joint 8,000', () =>
+  // 75,000 - 5,500 - 5,748 = 63,752 -> 110 + 5% x 60,752 = 3,147.60
+  approx(stateTax('alabama', 75000, 'head_of_household'), 3147.60, 0.01));
 t('Alabama: the federal figure is liability after W-4 credits, not extra withholding', () => {
   const run = (adv) => computePaycheck({ wage: { type: 'salary', amount: 75000 }, filingStatus: 'single',
     payFrequency: 'annual', stateSlug: 'alabama', adv }, tax).annual.state;
-  // $2,000 of W-4 credits: federal owed 5,670, so 75,000 - 2,500 - 5,670 = 66,830 -> 110 + 5% x 63,830 = 3,301.50
-  approx(run({ dependentsCredit: 2000 }), 3301.50, 0.01);
-  // $1,000 of extra withholding is a prepayment, not tax: Alabama tax stays 3,201.50
-  approx(run({ extraWithholding: 1000 }), 3201.50, 0.01);
+  // $2,000 of W-4 credits: federal owed 5,670, so 75,000 - 4,000 - 5,670 = 65,330 -> 110 + 5% x 62,330 = 3,226.50
+  approx(run({ dependentsCredit: 2000 }), 3226.50, 0.01);
+  // $1,000 of extra withholding is a prepayment, not tax: Alabama tax stays 3,126.50
+  approx(run({ extraWithholding: 1000 }), 3126.50, 0.01);
 });
 
 // MISSOURI (single 16,100 / MFJ 32,200 / HoH 24,150 standard deduction; one schedule: 0% to
@@ -915,28 +926,29 @@ t('Alabama, $5,000 of tips inside $50,000 of pay: the tips deduction reaches the
   // Federal 2026 single: at 45,000 (the pay without the tips) taxable 28,900 -> 1,240 + 12% x 16,500
   // = 3,220. At 50,000 before the tips deduction taxable 33,900 -> 3,820; after the full $5,000
   // deduction (under the $25,000 cap, MAGI far under the $150,000 phase-out) taxable 28,900 -> 3,220.
-  // Alabama: standard deduction $2,500 at both incomes (the floor from $35,500), and above $3,000
-  // of taxable income the tax is 2% x 500 + 4% x 2,500 + 5% x (T - 3,000) = 5% x T - 40.
-  //   without the tips: 45,000 - 2,500 - 3,220 = 39,280 -> 1,964 - 40 = 1,924.00
-  //   with them, filed: 50,000 - 2,500 - 3,220 = 44,280 -> 2,214 - 40 = 2,174.00
-  //   slice 2,174 - 1,924 = 250.00, which is 5% of all $5,000: once deducted the tips add no
+  // Alabama: standard deduction $2,500 at both incomes (the floor from $35,500) plus the $1,500
+  // personal exemption, $4,000, and above $3,000 of taxable income the tax is 2% x 500 + 4% x
+  // 2,500 + 5% x (T - 3,000) = 5% x T - 40.
+  //   without the tips: 45,000 - 4,000 - 3,220 = 37,780 -> 1,889 - 40 = 1,849.00
+  //   with them, filed: 50,000 - 4,000 - 3,220 = 42,780 -> 2,139 - 40 = 2,099.00
+  //   slice 2,099 - 1,849 = 250.00, which is 5% of all $5,000: once deducted the tips add no
   //   federal tax, so they add nothing to Alabama's federal subtraction either.
   const slice = stateTaxOnSlice({ base: 45000, top: 50000, filingStatus: 'single',
     stateData: tax.states.alabama, fed: tax.federal, federalDeduction: 5000 });
   approx(slice, 250, 0.005);
   // The pay without the tips is computePaycheck's own figure.
-  approx(cpState('alabama', 45000, 'single'), 1924, 0.005);
+  approx(cpState('alabama', 45000, 'single'), 1849, 0.005);
   // computePaycheck at 50,000 with no tips input subtracts the pre-deduction 3,820:
-  // 50,000 - 2,500 - 3,820 = 43,680 -> 2,144.00. The slice is $30.00 more, which is exactly
+  // 50,000 - 4,000 - 3,820 = 42,180 -> 2,069.00. The slice is $30.00 more, which is exactly
   // Alabama's 5% on the $600 of federal tax (3,820 - 3,220) the return never shows.
-  approx(cpState('alabama', 50000, 'single'), 2144, 0.005);
+  approx(cpState('alabama', 50000, 'single'), 2069, 0.005);
   approx(slice - (cpState('alabama', 50000, 'single') - cpState('alabama', 45000, 'single')), 30, 0.005);
   // So the paycheck page, with the tips inside the pay, hands computePaycheck the deduction
-  // (returnDeductions) and its state line is the 2,174.00 the return shows, which is the
+  // (returnDeductions) and its state line is the 2,099.00 the return shows, which is the
   // slice on top of the pay without the tips.
   const withTips = computePaycheck({ wage: { type: 'salary', amount: 50000 }, filingStatus: 'single',
     payFrequency: 'annual', stateSlug: 'alabama', returnDeductions: { federal: 5000, state: 0 } }, tax).annual;
-  approx(withTips.state, 2174, 0.005);
+  approx(withTips.state, 2099, 0.005);
   approx(withTips.state - cpState('alabama', 45000, 'single'), slice, 1e-6);
 });
 
@@ -1023,24 +1035,24 @@ t('stateOvertimeDeduction: the premium, never above the $1,000 cap, zero without
 });
 t('Alabama single $70k: the paycheck figure is unchanged, the deduction is not in withholding', () =>
   // fed: 70,000 - 16,100 = 53,900 -> 1,240 + 4,560 + 22% x 3,500 = 6,570
-  // AL: 70,000 - 2,500 - 6,570 = 60,930 -> 5% x 60,930 - 40 = 3,006.50 (same as before the act)
-  approx(stateTax('alabama', 70000), 3006.50, 0.005));
+  // AL: 70,000 - 4,000 - 6,570 = 59,430 -> 5% x 59,430 - 40 = 2,931.50 (same as before the act)
+  approx(stateTax('alabama', 70000), 2931.50, 0.005));
 t('Alabama single $70k, $600 of premium: all 600 comes off, $30.00 less tax', () => {
-  // 70,000 - 2,500 - 6,570 - 600 = 60,330 -> 5% x 60,330 - 40 = 2,976.50
-  approx(stateIncomeTax(70000, 'single', AL, 0, 0, 6570, 600), 2976.50, 0.005);
+  // 70,000 - 4,000 - 6,570 - 600 = 58,830 -> 5% x 58,830 - 40 = 2,901.50
+  approx(stateIncomeTax(70000, 'single', AL, 0, 0, 6570, 600), 2901.50, 0.005);
   approx(stateIncomeTax(70000, 'single', AL, 0, 0, 6570, 0) - stateIncomeTax(70000, 'single', AL, 0, 0, 6570, 600), 30, 0.005);
 });
 t('Alabama: the deduction is taken after AGI, so the standard-deduction chart does not move', () => {
-  // Single $30,000: AGI 30,000 -> chart $2,775 (3,000 - 25 x 9 whole $500 steps over 25,500);
-  // fed 30,000 - 16,100 = 13,900 -> 1,240 + 12% x 1,500 = 1,420.
-  //   30,000 - 2,775 - 1,420 - 1,000 = 24,805 -> 5% x 24,805 - 40 = 1,200.25
-  // Had it lowered AGI to 29,000 the chart would give 2,825 and the tax 1,197.75.
+  // Single $30,000: AGI 30,000 -> chart $2,775 (3,000 - 25 x 9 whole $500 steps over 25,500)
+  // plus the $1,500 exemption, 4,275; fed 30,000 - 16,100 = 13,900 -> 1,240 + 12% x 1,500 = 1,420.
+  //   30,000 - 4,275 - 1,420 - 1,000 = 23,305 -> 5% x 23,305 - 40 = 1,125.25
+  // Had it lowered AGI to 29,000 the chart would give 4,325 and the tax 1,122.75.
   const r = stateTaxableIncome(30000, 'single', AL, 0, 0, 1420, 1000);
   assert.equal(r.agi, 30000);
-  assert.equal(r.standardDeduction, 2775);
+  assert.equal(r.standardDeduction, 4275);
   assert.equal(r.overtimeDeduction, 1000);
-  assert.equal(r.taxable, 24805);
-  approx(stateIncomeTax(30000, 'single', AL, 0, 0, 1420, 1000), 1200.25, 0.005);
+  assert.equal(r.taxable, 23305);
+  approx(stateIncomeTax(30000, 'single', AL, 0, 0, 1420, 1000), 1125.25, 0.005);
 });
 t('Other states ignore an overtime premium (no rule, no deduction)', () => {
   for (const slug of ['missouri', 'oregon', 'california', 'new-york']) {
@@ -1054,65 +1066,65 @@ t('Alabama at filing, single $70k with $10,000 of time-and-a-half overtime: $13.
   // under the $12,500 federal cap with MAGI far under $150,000, so the federal deduction is
   // all 3,333.33. Fed after it: 53,900 - 3,333.33 = 50,566.67 -> 5,800 + 22% x 166.67 = 5,836.67,
   // a federal saving of 733.33 (22% of 3,333.33).
-  //   before:        70,000 - 2,500 - 6,570.00          = 60,930.00 -> 3,006.50
-  //   federal only:  70,000 - 2,500 - 5,836.67          = 61,663.33 -> 3,043.17 (knock-on +36.67)
-  //   both:          70,000 - 2,500 - 5,836.67 - 1,000  = 60,663.33 -> 2,993.17 (AL deduction -50.00)
-  //   net 3,006.50 - 2,993.17 = 13.33 less Alabama tax
+  //   before:        70,000 - 4,000 - 6,570.00          = 59,430.00 -> 2,931.50
+  //   federal only:  70,000 - 4,000 - 5,836.67          = 60,163.33 -> 2,968.17 (knock-on +36.67)
+  //   both:          70,000 - 4,000 - 5,836.67 - 1,000  = 59,163.33 -> 2,918.17 (AL deduction -50.00)
+  //   net 2,931.50 - 2,918.17 = 13.33 less Alabama tax
   const prem = 10000 / 3;
   const r = stateOvertimeAtFiling({ income: 70000, filingStatus: 'single', stateData: AL, fed: tax.federal,
     federalOvertimeDeduction: prem, premium: prem });
   assert.equal(r.deduction, 1000);
   assert.equal(r.cap, 1000);
-  approx(r.before, 3006.50, 0.005);
+  approx(r.before, 2931.50, 0.005);
   approx(r.before, stateTax('alabama', 70000), 1e-9);
   approx(r.federalKnockOn, 36.67, 0.005);
   approx(r.stateSaving, 50, 0.005);
   approx(r.net, 13.33, 0.005);
-  approx(r.after, 2993.17, 0.005);
+  approx(r.after, 2918.17, 0.005);
 });
 t('Alabama at filing, single $50k, $600 of premium under the cap: $26.40 net', () => {
   // fed 3,820; after the 600 federal deduction 33,300 -> 1,240 + 12% x 20,900 = 3,748, saving 72.
   //   knock-on 5% x 72 = 3.60; Alabama deduction 5% x 600 = 30.00; net 26.40
-  //   before 2,144.00 (pinned above) -> after 2,117.60
+  //   before 2,069.00 (pinned above) -> after 2,042.60
   const r = stateOvertimeAtFiling({ income: 50000, filingStatus: 'single', stateData: AL, fed: tax.federal,
     federalOvertimeDeduction: 600, premium: 600 });
   assert.equal(r.deduction, 600);
   approx(r.federalKnockOn, 3.60, 0.005);
   approx(r.stateSaving, 30, 0.005);
   approx(r.net, 26.40, 0.005);
-  approx(r.after, 2117.60, 0.005);
+  approx(r.after, 2042.60, 0.005);
 });
 t('Alabama at filing, single $90k with a $10,000 premium: the knock-on wins, $60.00 MORE tax', () => {
   // fed 90,000 - 16,100 = 73,900 -> 5,800 + 22% x 23,500 = 10,970; after the 10,000 deduction
   // 63,900 -> 5,800 + 22% x 13,500 = 8,770, saving 2,200.
-  //   before 90,000 - 2,500 - 10,970 = 76,530 -> 3,786.50
+  //   before 90,000 - 4,000 - 10,970 = 75,030 -> 3,711.50
   //   knock-on 5% x 2,200 = +110.00; Alabama deduction capped at 1,000 -> -50.00; net -60.00
   const r = stateOvertimeAtFiling({ income: 90000, filingStatus: 'single', stateData: AL, fed: tax.federal,
     federalOvertimeDeduction: 10000, premium: 10000 });
-  approx(r.before, 3786.50, 0.005);
+  approx(r.before, 3711.50, 0.005);
   approx(r.federalKnockOn, 110, 0.005);
   approx(r.stateSaving, 50, 0.005);
   approx(r.net, -60, 0.005);
-  approx(r.after, 3846.50, 0.005);
+  approx(r.after, 3771.50, 0.005);
 });
 t('Alabama at filing, single $300k: federal deduction phased out, Alabama has no income limit', () => {
   // The federal $12,500 is gone at MAGI $300,000 (100 x 150 = 15,000 off), so no knock-on.
   // fed 300,000 - 16,100 = 283,900 -> 17,966 + 24% x 96,075 + 32% x 54,450 + 35% x 27,675 = 68,134.25
-  //   before 300,000 - 2,500 - 68,134.25 = 229,365.75 -> 5% x 229,365.75 - 40 = 11,428.2875
+  //   before 300,000 - 4,000 - 68,134.25 = 227,865.75 -> 5% x 227,865.75 - 40 = 11,353.2875
   //   Alabama deduction 1,000 -> -50.00, net 50.00
   const r = stateOvertimeAtFiling({ income: 300000, filingStatus: 'single', stateData: AL, fed: tax.federal,
     federalOvertimeDeduction: 0, premium: 5000 });
-  approx(r.before, 11428.2875, 0.005);
+  approx(r.before, 11353.2875, 0.005);
   approx(r.federalKnockOn, 0, 1e-9);
   approx(r.net, 50, 0.005);
 });
 t('Alabama at filing, MFJ $100k, one earner with a $2,000 premium: capped at $1,000, $38.00 net', () => {
   // MFJ fed 7,640 (above); after 2,000: taxable 65,800 -> 2,480 + 12% x 41,000 = 7,400, saving 240.
-  //   before 4,288.00 (pinned above); knock-on 5% x 240 = 12.00; deduction 1,000 -> 50.00; net 38.00
+  //   before 4,138.00 (pinned above); knock-on 5% x 240 = 12.00; deduction 1,000 -> 50.00; net 38.00
   const r = stateOvertimeAtFiling({ income: 100000, filingStatus: 'married', stateData: AL, fed: tax.federal,
     federalOvertimeDeduction: 2000, premium: 2000 });
   assert.equal(r.deduction, 1000);
-  approx(r.before, 4288, 0.005);
+  approx(r.before, 4138, 0.005);
   approx(r.federalKnockOn, 12, 0.005);
   approx(r.net, 38, 0.005);
 });
@@ -1120,14 +1132,14 @@ t('Alabama at filing: a tips deduction ahead in the chain is the starting point,
   // Single $50k with $5,000 of tips already deducted federally: fed 28,900 -> 3,220 (the tips
   // block's figure above). The $600 overtime deduction on top: 28,300 -> 1,240 + 12% x 15,900 =
   // 3,148, saving 72.
-  //   before 50,000 - 2,500 - 3,220 = 44,280 -> 2,174.00 (the tips test's "with them, filed")
-  //   knock-on 3.60, deduction 30.00, net 26.40, after 2,147.60
+  //   before 50,000 - 4,000 - 3,220 = 42,780 -> 2,099.00 (the tips test's "with them, filed")
+  //   knock-on 3.60, deduction 30.00, net 26.40, after 2,072.60
   const r = stateOvertimeAtFiling({ income: 50000, filingStatus: 'single', stateData: AL, fed: tax.federal,
     federalDeductionBefore: 5000, federalOvertimeDeduction: 600, premium: 600 });
-  approx(r.before, 2174, 0.005);
+  approx(r.before, 2099, 0.005);
   approx(r.federalKnockOn, 3.60, 0.005);
   approx(r.net, 26.40, 0.005);
-  approx(r.after, 2147.60, 0.005);
+  approx(r.after, 2072.60, 0.005);
 });
 t('Alabama at filing: W-4 credits and pre-tax money are fed exactly as computePaycheck feeds them', () => {
   // Same pay as computePaycheck with a 401(k), a Section 125 premium and $2,000 of W-4 credits:
@@ -1152,17 +1164,18 @@ const atFiling = (stateData, income, fedDed, stDed = 0, extra = {}) => stateDedu
   filingStatus: 'single', stateData, fed: tax.federal, federalDeduction: fedDed, stateDeduction: stDed, ...extra });
 t('knock-on, Alabama tips on top: $5,000 on $50,000 costs $30.00 of Alabama tax, inside the $250.00', () => {
   // At 55,000 (pay plus tips): fed 38,900 -> 1,240 + 12% x 26,500 = 4,420; after the $5,000
-  // deduction 33,900 -> 3,820, a $600 saving. Alabama standard deduction $2,500 (the floor).
-  //   before        55,000 - 2,500 - 4,420 = 48,080 -> 5% x 48,080 - 40 = 2,364.00
-  //   federal only  55,000 - 2,500 - 3,820 = 48,680 -> 5% x 48,680 - 40 = 2,394.00, knock-on 30.00
+  // deduction 33,900 -> 3,820, a $600 saving. Alabama standard deduction $2,500 (the floor) plus
+  // the $1,500 personal exemption, $4,000.
+  //   before        55,000 - 4,000 - 4,420 = 46,580 -> 5% x 46,580 - 40 = 2,289.00
+  //   federal only  55,000 - 4,000 - 3,820 = 47,180 -> 5% x 47,180 - 40 = 2,319.00, knock-on 30.00
   // Alabama has no tips deduction of its own, so nothing comes back.
   const r = atFiling(AL, 55000, 5000);
-  approx(r.before, 2364, 0.005);
+  approx(r.before, 2289, 0.005);
   approx(r.federalKnockOn, 30, 0.005);
   approx(r.stateSaving, 0, 1e-9);
   approx(r.net, -30, 0.005);
   approx(r.federalTaxBefore - r.federalTaxAfter, 600, 0.005);
-  // The tips block's state figure is 2,394.00 - 2,144.00 (Alabama at the pay alone) = 250.00:
+  // The tips block's state figure is 2,319.00 - 2,069.00 (Alabama at the pay alone) = 250.00:
   // 220.00 of Alabama tax on the tips and this 30.00 knock-on, which it now prints on its own row.
   const slice = stateTaxOnSlice({ base: 50000, top: 55000, filingStatus: 'single', stateData: AL,
     fed: tax.federal, federalDeduction: 5000 });
@@ -1335,7 +1348,7 @@ t('chained: a deduction ahead in the chain is the starting point on both sides',
   // Alabama $50,000, $5,000 of tips ahead, then the $6,000 senior deduction: fed 28,900 -> 3,220,
   // then 22,900 -> 1,240 + 12% x 10,500 = 2,500, $720 again; knock-on 36.00 on top of the tips.
   const r = atFiling(AL, 50000, 6000, 0, { federalDeductionBefore: 5000 });
-  approx(r.before, 2174, 0.005);
+  approx(r.before, 2099, 0.005);
   approx(r.federalKnockOn, 36, 0.005);
   // Oregon follows the tips: a $5,000 state deduction ahead lowers taxable income, not the knock-on rate.
   const o = atFiling(OR, 50000, 6000, 0, { federalDeductionBefore: 5000, stateDeductionBefore: 5000 });
@@ -1364,6 +1377,81 @@ t('a state deduction is taken below AGI: Oregon $128,000 keeps the $7,000 limit 
   const line = computePaycheck({ wage: { type: 'salary', amount: 128000 }, filingStatus: 'single',
     payFrequency: 'annual', stateSlug: 'oregon', returnDeductions: { federal: 5000, state: 5000 } }, tax).annual;
   approx(line.state, 9576.375, 0.005);
+});
+
+// --- PERSONAL EXEMPTIONS FOLDED INTO THE DEDUCTION (added 2026-10-03) ---------------------------
+// Kansas, Oklahoma, Virginia, Hawaii, Alabama, Maine, Rhode Island and Vermont subtract a personal
+// exemption from income on top of the standard deduction, and Ohio's only subtraction is one. Each
+// is now added to `standardDeduction`, and the four that phase it out carry the statute's shape.
+// Utah's taxpayer tax credit is carried as the deduction that is worth the same at the 4.45% rate.
+t('phaseOutStandardDeduction: a stepped row can count a part step as whole and stop at a cliff', () => {
+  const cfg = { single: { over: 40000, per: 40000, reduceBy: 250, minimum: 1900, roundUp: true, noneFrom: 500000 } };
+  assert.deepEqual([40000, 40001, 80000, 80001, 499999, 500000, 900000].map((a) => phaseOutStandardDeduction(2400, a, 'single', cfg)),
+    [2400, 2150, 2150, 1900, 1900, 0, 0]);
+  const whole = { single: { over: 40000, per: 40000, reduceBy: 250, minimum: 1900 } };
+  assert.deepEqual([40001, 79999, 80000].map((a) => phaseOutStandardDeduction(2400, a, 'single', whole)), [2400, 2400, 2150]);
+});
+t('phaseOutStandardDeduction: an array row phases each piece over its own range', () => {
+  const cfg = { single: [{ over: 100000, denominator: 50000, amount: 10000 }, { over: 300000, denominator: 100000, amount: 4000 }] };
+  assert.deepEqual([100000, 125000, 150000, 299999, 350000, 400000, 999999].map((a) => phaseOutStandardDeduction(14000, a, 'single', cfg)),
+    [14000, 9000, 4000, 4000, 2000, 0, 0]);
+});
+t('Kansas, Oklahoma, Virginia, Hawaii and Vermont $60k single: the exemption comes off', () => {
+  // KS 60,000 - 3,605 - 9,160 = 47,235 -> 5.2% x 23,000 + 5.58% x 24,235 = 2,548.31
+  approx(stateTax('kansas', 60000), 2548.31, 0.01);
+  // OK 60,000 - 6,350 - 1,000 = 52,650 -> 2.5% x 1,150 + 3.5% x 2,300 + 4.5% x 45,450 = 2,154.50
+  approx(stateTax('oklahoma', 60000), 2154.50, 0.01);
+  // VA 60,000 - 8,750 - 930 = 50,320 -> 720 + 5.75% x 33,320 = 2,635.90
+  approx(stateTax('virginia', 60000), 2635.90, 0.01);
+  // HI 60,000 - 8,000 - 1,144 = 50,856 -> 2,539.20 + 7.6% x 2,856 = 2,756.26
+  approx(stateTax('hawaii', 60000), 2756.26, 0.01);
+  // VT 60,000 - 7,650 - 5,300 = 47,050 -> 3.35% x 47,050 = 1,576.18
+  approx(stateTax('vermont', 60000), 1576.18, 0.01);
+  assert.deepEqual(tax.states.kansas.tax.standardDeduction, { single: 12765, married: 26560, head_of_household: 17660 });
+  assert.deepEqual(tax.states.oklahoma.tax.standardDeduction, { single: 7350, married: 14700, head_of_household: 10350 });
+  assert.deepEqual(tax.states.virginia.tax.standardDeduction, { single: 9680, married: 19360, head_of_household: 9680 });
+  assert.deepEqual(tax.states.hawaii.tax.standardDeduction, { single: 9144, married: 18288, head_of_household: 13144 });
+  assert.deepEqual(tax.states.vermont.tax.standardDeduction, { single: 12950, married: 25900, head_of_household: 16750 });
+});
+t('Maine: the deduction and the exemption phase out over their own ranges', () => {
+  const m = tax.states.maine.tax;
+  assert.deepEqual(m.standardDeduction, { single: 21000, married: 42000, head_of_household: 28850 });
+  // Single: 15,700 over 75,000 from 102,250, then 5,300 over 125,000 from 341,000.
+  const sd = (a, fs = 'single', base = 21000) => phaseOutStandardDeduction(base, a, fs, m.standardDeductionPhaseout);
+  assert.deepEqual([102250, 139750, 177250, 341000, 403500, 466000].map((a) => sd(a)), [21000, 13150, 5300, 5300, 2650, 0]);
+  assert.equal(sd(279550, 'married', 42000), 26300);
+  // 60,000 - 21,000 = 39,000 -> 5.8% x 27,400 + 6.75% x 11,600 = 2,372.20
+  approx(stateTax('maine', 60000), 2372.20, 0.01);
+});
+t('Rhode Island: 20% off for each $7,450 or part of it over $261,000', () => {
+  const r = tax.states['rhode-island'].tax;
+  assert.deepEqual(r.standardDeduction, { single: 16450, married: 32900, head_of_household: 22050 });
+  const sd = (a) => phaseOutStandardDeduction(16450, a, 'single', r.standardDeductionPhaseout);
+  assert.deepEqual([261000, 261001, 268450, 268451, 290800, 298250, 400000].map(sd), [16450, 13160, 13160, 9870, 3290, 0, 0]);
+  // 60,000 - 16,450 = 43,550 -> 3.75% x 43,550 = 1,633.13
+  approx(stateTax('rhode-island', 60000), 1633.13, 0.01);
+});
+t('Ohio: exemption 2,400 / 2,150 / 1,900 per person by income, none from $500,000', () => {
+  const o = tax.states.ohio.tax;
+  assert.deepEqual(o.standardDeduction, { single: 2400, married: 4800, head_of_household: 2400 });
+  const sd = (a, fs = 'single', base = 2400) => phaseOutStandardDeduction(base, a, fs, o.standardDeductionPhaseout);
+  assert.deepEqual([40000, 40001, 80000, 80001, 499999, 500000].map((a) => sd(a)), [2400, 2150, 2150, 1900, 1900, 0]);
+  assert.deepEqual([40000, 40001, 80001, 500000].map((a) => sd(a, 'married', 4800)), [4800, 4300, 3800, 0]);
+  // 60,000 - 2,150 = 57,850 -> 332 + 2.75% x 31,800 = 1,206.50
+  approx(stateTax('ohio', 60000), 1206.50, 0.01);
+  // 100,000 - 1,900 = 98,100 -> 332 + 2.75% x 72,050 = 2,313.38
+  approx(stateTax('ohio', 100000), 2313.38, 0.01);
+});
+t('Utah: 4.45% less the taxpayer tax credit, 6% of the federal deduction less 1.3% over the base', () => {
+  // Single: credit 6% x 16,100 = 966, less 1.3% x (60,000 - 18,213) = 543.23, so 422.77.
+  //   60,000 x 4.45% = 2,670 - 422.77 = 2,247.23
+  approx(stateTax('utah', 60000), 2247.23, 0.05);
+  // At $100,000 the credit is gone: 1.3% x 81,787 = 1,063.23 is more than 966.
+  approx(stateTax('utah', 100000), 4450, 0.005);
+  // Married: 6% x 32,200 = 1,932 less 1.3% x (100,000 - 36,426) = 826.46, so 1,105.54 off 4,450.
+  approx(stateTax('utah', 100000, 'married'), 3344.46, 0.05);
+  // Below the base amount the full credit is more than the tax, and it is not refundable.
+  assert.equal(stateTax('utah', 18213), 0);
 });
 
 console.log(`\n${pass} passing`);
