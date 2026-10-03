@@ -1143,6 +1143,14 @@ const PAGES = [
     ],
   },
   {
+    // North Dakota, like Colorado, starts from federal taxable income (tax.deductionFromFederal).
+    file: 'north-dakota-paycheck-calculator/index.html',
+    pins: [
+      ['no-north-dakota-state-standard-deduction', absent("North Dakota's state standard deduction")],
+      ['says-no-deduction-of-its-own', contains('North Dakota has no standard deduction of its own. It starts from your federal taxable income, so the federal standard deduction carries through')],
+    ],
+  },
+  {
     file: 'oregon-paycheck-calculator/index.html',
     pins: [
       ['senior-line-says-oregon-does-not', contains('comes off your federal return only: Oregon does not allow it on your Oregon return')],
