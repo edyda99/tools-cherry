@@ -1580,6 +1580,17 @@ footer.site a:hover { color: var(--text); }
 .infl-year-table td.num { font-variant-numeric: tabular-nums; }
 .infl-year-table td:first-child { font-weight: 600; }
 
+/* ---- Gas cost calculator --------------------------------------------- */
+/* Scoped to the gas page's own ids and classes, since styles.css serves every
+   page. The unit selects need more room than the shared 70px .combo select,
+   which was sized for a currency code. */
+#gasForm .combo select { flex: 0 0 8.5em; }
+.gas-fill { margin-top: 20px; }
+.gas-fill > h2, .gas-fill > p { grid-column: 1 / -1; margin: 0; }
+.gas-100-table td.num, .gas-100-table thead th:nth-child(n+2) { text-align: right; }
+.gas-100-table td.num { font-variant-numeric: tabular-nums; }
+@media (max-width: 480px) { .gas-100-table th, .gas-100-table td { padding: 8px 6px; } }
+
 /* ---- Percentage calculator ------------------------------------------ */
 .field .inline > span.muted-small { flex: 0 0 auto; align-self: center; white-space: nowrap; margin: 0; min-height: 0; }
 .result-line { margin: 12px 0 0; font-size: 1.15rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }

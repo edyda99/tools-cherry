@@ -46,6 +46,7 @@ import { verifyDist, reportFailures } from './scripts/verify-dist.js';
 import { DFT_PAGES, DFT_GROUPS } from './src/content/days-from-today.js';
 import { dftPageParts, dftHubGroups, dftPath } from './src/content/days-from-today-blocks.js';
 import { inflationBlocks } from './src/content/inflation-blocks.js';
+import { gasCostBlocks } from './src/content/gas-cost-blocks.js';
 import { pressKitParts } from './src/content/press-kit-2027.js';
 import { loadPressKitInputs, inputsFingerprint, PRESS_KIT_CONFIG } from './scripts/press-kit/inputs.js';
 
@@ -838,7 +839,7 @@ const TOOL_DESCRIPTIONS = {
   '/hours-calculator/': 'Add up worked hours from a time card, including breaks and overtime.',
   '/salary-to-hourly/': 'Convert an annual salary to an hourly, weekly, or monthly rate.',
   '/sales-tax-calculator/': 'Add or remove sales tax and find the pre-tax or after-tax price.',
-  '/gas-cost-calculator/': 'Estimate the fuel cost of a trip from distance, MPG, and gas price.',
+  '/gas-cost-calculator/': 'Estimate a trip\'s gas cost, gallons needed, and cost per mile from distance, MPG or L/100km, and gas price.',
   '/fuel-economy-calculator/': 'Calculate fuel economy in MPG or L/100km and compare vehicles.',
   '/qr-code-generator/': 'Create QR codes for links, WiFi, or contacts and download as PNG or SVG.',
   '/password-generator/': 'Generate strong, random passwords with custom length and character sets.',
@@ -913,6 +914,21 @@ function conformityAnswer(subject, total, cnt) {
 // Hand-picked related links for pages that aren't in TOOLS (data studies, the
 // embed gallery). Keyed by currentPath.
 const RELATED_OVERRIDES = {
+  // Driving-cost pair: the trip planner and the MPG calculator answer the two
+  // halves of one question, so each always links the other first.
+  '/gas-cost-calculator/': [
+    { name: 'Fuel Economy Calculator (MPG, L/100km)', path: '/fuel-economy-calculator/' },
+    { name: 'Auto Loan Calculator', path: '/auto-loan-calculator/' },
+    { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
+    { name: 'Unit Converter', path: '/unit-converter/' },
+    { name: 'Tip & Bill Split', path: '/tip-calculator/' }
+  ],
+  '/fuel-economy-calculator/': [
+    { name: 'Gas Cost Calculator', path: '/gas-cost-calculator/' },
+    { name: 'Auto Loan Calculator', path: '/auto-loan-calculator/' },
+    { name: 'Car Loan Interest Deduction Calculator', path: '/car-loan-interest-calculator/' },
+    { name: 'Unit Converter', path: '/unit-converter/' }
+  ],
   // PDF cluster: explicit cross-links to every sibling PDF tool + the hub page,
   // instead of the cat-based random pick (which would dilute in with the 5
   // non-PDF image tools sharing cat:'image').
@@ -9905,11 +9921,16 @@ async function main() {
   );
   urls.push(`${SITE.url}/sales-tax-calculator/`);
 
-  // gas / fuel cost calculator (pure-math tool page, built on the fuel-cost engine)
+  // gas / fuel cost calculator (pure-math tool page, built on the fuel-cost engine).
+  // Every figure in its prose, table and FAQ comes from gasCostBlocks(), which runs
+  // the same engine as the browser; only the GAS_-prefixed keys are placeholders.
+  const gasPlaceholders = Object.fromEntries(
+    Object.entries(gasCostBlocks()).filter(([k]) => k.startsWith('GAS_'))
+  );
   await mkdir(join(DIST, 'gas-cost-calculator'), { recursive: true });
   await writeFile(
     join(DIST, 'gas-cost-calculator', 'index.html'),
-    fillTool(gasCostTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url }, '/gas-cost-calculator/')
+    fillTool(gasCostTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, ...gasPlaceholders }, '/gas-cost-calculator/')
   );
   urls.push(`${SITE.url}/gas-cost-calculator/`);
 
