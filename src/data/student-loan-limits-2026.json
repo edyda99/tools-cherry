@@ -63,7 +63,7 @@
   },
   "coaRule": "No Direct Loan may exceed the cost of attendance minus other financial assistance (34 CFR 685.203(j)(1)); schools may also set lower, consistently-applied program-wide limits (34 CFR 685.203(m)(2)); less-than-full-time annual amounts are prorated by enrollment intensity, rounded to the nearest whole percentage point (20 U.S.C. §1087e(a)(7); 34 CFR 685.203(m)(1)).",
   "sources": [
-    { "claim": "All caps + interim exception, statutory text (20 U.S.C. §1087e(a), as amended by P.L. 119-21 §81001)", "url": "https://www.law.cornell.edu/uscode/text/20/1087e" },
+    { "claim": "All caps + interim exception, statutory text (20 U.S.C. §1087e(a), as amended by P.L. 119-21 §81001)", "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title20-section1087e&num=0&edition=prelim" },
     { "claim": "P.L. 119-21 §81001 (enacted July 4, 2025)", "url": "https://www.congress.gov/119/plaws/publ21/PLAW-119publ21.pdf" },
     { "claim": "RISE final rule regulatory text + counting-method preamble (91 FR 23768, May 1, 2026)", "url": "https://www.govinfo.gov/content/pkg/FR-2026-05-01/pdf/2026-08556.pdf" },
     { "claim": "NSLDS aggregate processing: lifetime-cap composition, per-student Parent PLUS, legacy aggregates (FSA EA Apr 24, 2026, updated May 7, 2026)", "url": "https://fsapartners.ed.gov/knowledge-center/library/electronic-announcements/2026-04-24/one-big-beautiful-bill-act-nslds-eligibility-processing-updates-updated-may-7-2026" },

@@ -249,14 +249,14 @@ the source you're comparing against — it helps us verify and fix quickly.</p>
   <td><a href="/employer-student-loan-repayment-calculator/">Employer Student Loan Repayment Calculator</a></td>
   <td>Mythbust headline credited the employee's full $1,557 total saving to income tax alone: "$1,155 saved."</td>
   <td>$1,155.00 is only the income-tax leg. Add the $401.63 employee FICA saving (7.65% of the $5,250 cap) and the true total is $1,556.63.</td>
-  <td><a href="https://www.law.cornell.edu/uscode/text/26/3121">26 U.S.C. &sect;3121</a></td>
+  <td><a href="https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title26-section3121&num=0&edition=prelim">26 U.S.C. &sect;3121</a></td>
 </tr>
 <tr>
   <td>2026-07-12</td>
   <td><a href="/pmi-deduction-calculator/">PMI Deduction Calculator</a></td>
   <td>Phaseout framed as a round "$100k to $110k" AGI band ($110,000 / $55,000 MFS).</td>
   <td>The deduction is eliminated above $109,000 ($54,500 MFS) &mdash; the statute reduces it 10% per $1,000-or-fraction over $100,000, and the 10th step lands at $109,001, not $110,000.</td>
-  <td><a href="https://www.law.cornell.edu/uscode/text/26/163">IRC &sect;163(h)(3)(E)(ii)</a></td>
+  <td><a href="https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title26-section163&num=0&edition=prelim">IRC &sect;163(h)(3)(E)(ii)</a></td>
 </tr>
 <tr>
   <td>2026-07-12</td>
@@ -312,21 +312,21 @@ the source you're comparing against — it helps us verify and fix quickly.</p>
   <td><a href="/dependent-care-fsa-vs-credit-calculator/">Dependent Care FSA vs. Credit Calculator</a></td>
   <td>Framed as finding an "optimal split" between the Dependent Care FSA and the Child &amp; Dependent Care Credit.</td>
   <td>The credit's expense cap is reduced dollar-for-dollar by the FSA exclusion, so the benefit is linear in the FSA amount. The answer is almost always a corner &mdash; max the FSA, or skip it &mdash; not a smooth split.</td>
-  <td><a href="https://www.law.cornell.edu/uscode/text/26/21">IRC &sect;21(c)</a></td>
+  <td><a href="https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title26-section21&num=0&edition=prelim">IRC &sect;21(c)</a></td>
 </tr>
 <tr>
   <td>2026-07-12</td>
   <td><a href="/dependent-care-fsa-vs-credit-calculator/">Dependent Care FSA vs. Credit Calculator</a></td>
   <td>Assumed the same married-filing-separately treatment applies to both the FSA and the credit.</td>
   <td>MFS filers generally cannot claim the Child &amp; Dependent Care Credit at all &mdash; it requires a joint return. MFS can still use the $3,750 DCFSA, just not the credit.</td>
-  <td><a href="https://www.law.cornell.edu/uscode/text/26/21">IRC &sect;21(e)(2)</a></td>
+  <td><a href="https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title26-section21&num=0&edition=prelim">IRC &sect;21(e)(2)</a></td>
 </tr>
 <tr>
   <td>2026-07-12</td>
   <td><a href="/able-account-calculator/">ABLE Account Contribution Calculator</a></td>
   <td>Eligibility framed around the beneficiary's current age being under 46.</td>
   <td>Eligibility turns on when the disability or blindness began, not the beneficiary's age now. Someone currently 58 whose disability began at 30 qualifies; someone currently 40 whose disability began at 47 does not.</td>
-  <td><a href="https://www.law.cornell.edu/uscode/text/26/529A">26 U.S.C. &sect;529A(e)(1)</a></td>
+  <td><a href="https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title26-section529A&num=0&edition=prelim">26 U.S.C. &sect;529A(e)(1)</a></td>
 </tr>
 <tr>
   <td>2026-07-11</td>

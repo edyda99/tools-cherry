@@ -7659,7 +7659,6 @@ const CA_FTB_TITLES = [
 // "Alabama: source for the state figures on this page" told a reader nothing
 // about which document settles which figure.
 const AL_SOURCE_TITLES = [
-  [/taxfoundation\.org\/.*state-income-tax-rates-2026/, 'Tax Foundation: 2026 state income tax rates and brackets'],
   [/revenue\.alabama\.gov\/forms\/standard-deduction-chart/, 'Alabama Department of Revenue: standard deduction chart'],
   [/code-of-alabama\?section=40-18-15$/, 'Code of Alabama Section 40-18-15: deductions on the Alabama return'],
   [/2026RS\/HB527-enr\.pdf$/, 'Act 2026-604 (HB527): the overtime premium deduction, as enacted'],
