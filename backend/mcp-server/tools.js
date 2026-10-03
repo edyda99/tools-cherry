@@ -151,17 +151,19 @@ export function computeBonusWithholding(args = {}) {
   const bonus = resolveMoney(args.bonusAmount, 'bonusAmount');
   const filingStatus = resolveFilingStatus(args.filingStatus);
   const regIncome = args.salary == null ? 0 : resolveMoney(args.salary, 'salary');
+  const ytdSupp = args.earlierBonuses == null ? 0 : resolveMoney(args.earlierBonuses, 'earlierBonuses');
   const st = taxData.states[slug];
   const supp = suppData.states[slug];
 
-  const r = computeBonus({ bonus, regIncome, filingStatus, stateSlug: slug }, taxData, suppData);
+  const r = computeBonus({ bonus, regIncome, ytdSupp, filingStatus, stateSlug: slug }, taxData, suppData);
   const data = {
     state: st.name,
     stateSlug: slug,
     taxYear: suppData.taxYear ?? taxData.taxYear,
     bonusAmount: bonus,
+    earlierBonuses: ytdSupp,
     federalSupplementalWithholding: r.withheld.federal,
-    federalRuleApplied: bonus > suppData.federal.highThreshold
+    federalRuleApplied: bonus + ytdSupp > suppData.federal.highThreshold
       ? '22% up to $1,000,000 of supplemental wages, 37% above'
       : 'flat 22% (IRS Pub 15 supplemental rate)',
     stateWithholding: r.withheld.state,

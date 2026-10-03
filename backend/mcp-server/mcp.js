@@ -66,6 +66,7 @@ export const TOOLS = [
         state: stateSchema,
         bonusAmount: { ...money, description: 'Gross bonus in US dollars' },
         salary: { ...money, description: 'Optional regular annual salary — improves FICA and aggregate-method accuracy' },
+        earlierBonuses: { ...money, description: 'Optional bonuses already paid earlier this year, in US dollars. They count toward the federal $1,000,000 (37%) threshold and state tests such as Massachusetts\' 9% rate' },
         filingStatus: filingStatusSchema
       },
       required: ['state', 'bonusAmount']
