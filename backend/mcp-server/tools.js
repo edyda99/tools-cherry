@@ -20,7 +20,10 @@ export const LADDER_STATES = new Set([
   'washington', 'arizona', 'massachusetts', 'tennessee', 'indiana', 'missouri',
   'maryland', 'wisconsin', 'colorado', 'minnesota', 'south-carolina', 'alabama',
   'louisiana', 'kentucky', 'oregon', 'oklahoma', 'connecticut', 'utah', 'iowa',
-  'nevada', 'arkansas', 'mississippi', 'kansas', 'new-mexico', 'nebraska'
+  'nevada', 'arkansas', 'mississippi', 'kansas', 'new-mexico', 'nebraska',
+  'idaho', 'west-virginia', 'hawaii', 'new-hampshire', 'maine', 'montana',
+  'rhode-island', 'delaware', 'south-dakota', 'north-dakota', 'alaska', 'vermont',
+  'wyoming', 'district-of-columbia'
 ]);
 export const LADDER_SALARIES = [30000, 40000, 50000, 70000, 75000, 80000, 100000, 120000, 150000, 200000];
 

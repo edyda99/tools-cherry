@@ -191,8 +191,11 @@ t('deep links follow the live URL patterns', () => {
   // ladder-state hub when the salary is off-rung
   assert.equal(deepLink('ohio', 83500), 'https://tools-berry.com/ohio-take-home-pay/');
   assert.equal(deepLink('ohio', null), 'https://tools-berry.com/ohio-take-home-pay/');
-  // non-ladder state falls back to the data study
-  assert.equal(deepLink('vermont', 80000), 'https://tools-berry.com/data/take-home-pay-by-state/');
+  // wave 4 completed the ladder: every jurisdiction, the District included, has a hub
+  assert.equal(deepLink('vermont', 80000), 'https://tools-berry.com/vermont-take-home-pay-80000/');
+  assert.equal(deepLink('district-of-columbia', 83500), 'https://tools-berry.com/district-of-columbia-take-home-pay/');
+  // a slug outside the ladder still falls back to the data study
+  assert.equal(deepLink('puerto-rico', 80000), 'https://tools-berry.com/data/take-home-pay-by-state/');
   for (const s of LADDER_SALARIES) {
     assert.equal(deepLink('california', s), `https://tools-berry.com/california-take-home-pay-${s}/`);
   }
