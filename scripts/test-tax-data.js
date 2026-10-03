@@ -7,7 +7,8 @@ import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { computePaycheck, stateIncomeTax, phaseOutStandardDeduction, federalTaxSubtraction, stateTaxOnSlice,
-  stateTaxableIncome, stateOvertimeDeduction, stateOvertimeAtFiling, stateDeductionAtFiling } from '../src/engine/paycheck-engine.js';
+  stateTaxableIncome, stateOvertimeDeduction, stateOvertimeAtFiling, stateDeductionAtFiling,
+  exemptionCredit } from '../src/engine/paycheck-engine.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const tax = JSON.parse(await readFile(join(__dirname, '..', 'src', 'data', 'tax-data-2026.json'), 'utf8'));
@@ -429,6 +430,72 @@ t('Ohio steps at the threshold, strictly above it', () => {
   assert.equal(stateTax('ohio', 28450), 0);
   approx(stateTax('ohio', 28451), 332.03, 0.01);
   approx(stateTax('ohio', 75000), 1619.00, 0.01);
+});
+
+// --- exemptionCredit: a credit off the TAX, California only -------------------
+// FTB Tax News, October 2026, '2026 Indexing': "Personal exemption credit amount for single,
+// separate, and head of household taxpayers $153 $158" and "Personal and senior exemption
+// credit amount for joint filers or surviving spouses $306 $316" (2025, 2026). 2025 Form 540
+// instructions, line 32 AGI Limitation Worksheet: over $252,203 single, $504,411 joint, $378,310
+// head of household (2025 limits, the newest published), "Divide line c by $2,500 ... round it to
+// the next higher whole number. Multiply line d by $6", times the number of exemptions.
+// Every expected figure below is worked by hand from those two documents, not read off the engine.
+t('California 2026 carries the $158 / $316 / $158 personal exemption credit', () => {
+  const c = tax.states.california.tax.exemptionCredit;
+  assert.ok(c, 'california.tax.exemptionCredit is missing');
+  assert.deepEqual(c.amount, { single: 158, married: 316, head_of_household: 158 });
+  assert.deepEqual(c.exemptions, { single: 1, married: 2, head_of_household: 1 });
+  assert.deepEqual(c.phaseout.over, { single: 252203, married: 504411, head_of_household: 378310 });
+  assert.equal(c.phaseout.per, 2500);
+  assert.equal(c.phaseout.reduceBy, 6);
+});
+
+t('exemptionCredit is opt-in: California is the only state that carries it', () => {
+  const carriers = Object.entries(tax.states)
+    .filter(([, s]) => s.tax && s.tax.exemptionCredit)
+    .map(([slug]) => slug);
+  assert.deepEqual(carriers, ['california']);
+});
+
+t('California $75,000: bands less the credit, by hand, all three statuses', () => {
+  // Single: taxable 75,000 - 5,900 = 69,100; Schedule X 2,054.96 + 8% x (69,100 - 59,498) = 2,823.12.
+  approx(stateTax('california', 75000), 2823.12 - 158, 0.005);
+  // Joint: taxable 75,000 - 11,800 = 63,200; Schedule Y 857.16 + 4% x (63,200 - 54,314) = 1,212.60.
+  approx(stateTax('california', 75000, 'married'), 1212.60 - 316, 0.005);
+  // Head of household: taxable 63,200; Schedule Z 857.05 + 4% x (63,200 - 54,316) = 1,212.41.
+  approx(stateTax('california', 75000, 'head_of_household'), 1212.41 - 158, 0.005);
+});
+
+t('California credit phase-out: $6 per $2,500 or part of it, per exemption, from the line', () => {
+  const c = tax.states.california.tax.exemptionCredit;
+  // "more than" the limit: exactly on it keeps the whole credit, $1 over loses the first $6.
+  assert.equal(exemptionCredit(252203, 'single', c), 158);
+  assert.equal(exemptionCredit(252204, 'single', c), 152);
+  assert.equal(exemptionCredit(254703, 'single', c), 152);
+  assert.equal(exemptionCredit(254704, 'single', c), 146);
+  // 26 steps leave $2; the 27th takes it to nothing, never below.
+  assert.equal(exemptionCredit(252203 + 26 * 2500, 'single', c), 2);
+  assert.equal(exemptionCredit(252203 + 26 * 2500 + 1, 'single', c), 0);
+  assert.equal(exemptionCredit(1000000, 'single', c), 0);
+  // Joint: two exemptions, so $12 a step. 510,000 - 504,411 = 5,589 -> 3 steps -> 316 - 36 = 280.
+  assert.equal(exemptionCredit(510000, 'married', c), 280);
+  assert.equal(exemptionCredit(504411, 'married', c), 316);
+  // Head of household has its own limit and one exemption.
+  assert.equal(exemptionCredit(378310, 'head_of_household', c), 158);
+  assert.equal(exemptionCredit(378311, 'head_of_household', c), 152);
+});
+
+t('California $260,000 single: the shrunken credit comes off the bracket tax', () => {
+  // Credit: 260,000 - 252,203 = 7,797 -> 4 steps -> 158 - 24 = 134.
+  // Tax: taxable 254,100; Schedule X 3,310.88 + 9.3% x (254,100 - 75,197) = 19,948.859.
+  approx(stateTax('california', 260000), 3310.88 + 0.093 * (254100 - 75197) - 134, 0.005);
+});
+
+t('the credit never takes California tax below zero', () => {
+  // $10,000: taxable 4,100 at 1% is $41, less than the $158 credit.
+  assert.equal(stateTax('california', 10000), 0);
+  // $21,700: taxable 15,800 -> 114.56 + 2% x 4,344 = 201.44, so $43.44 is left after the credit.
+  approx(stateTax('california', 21700), 201.44 - 158, 0.005);
 });
 
 // --- steppedRecapture: the opt-in stepped add-back, Connecticut only ----------

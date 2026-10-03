@@ -573,7 +573,49 @@ export function stateIncomeTax(grossAnnual, filingStatus, stateData, preTax = 0,
   if (taxable > 0 && Array.isArray(t.steppedRecapture)) {
     for (const ladder of t.steppedRecapture) tax += steppedRecapture(agi, filingStatus, ladder);
   }
+  // A credit comes off the tax itself, after everything above, and cannot take it below zero.
+  if (t.exemptionCredit) tax = Math.max(0, tax - exemptionCredit(agi, filingStatus, t.exemptionCredit));
   return tax;
+}
+
+/**
+ * Optional personal exemption CREDIT: a dollar amount taken off the state TAX (not off taxable
+ * income), shrinking in whole steps once AGI passes a threshold. Opt-in and data-driven: a state
+ * without `tax.exemptionCredit` is untouched. The credit is nonrefundable, so stateIncomeTax()
+ * floors the tax at zero after taking it.
+ *
+ * One user: CALIFORNIA. Form 540 line 32, "Exemption credits reduce your tax", 2026 amounts from
+ * FTB Tax News, October 2026 ("Personal exemption credit amount for single, separate, and head
+ * of household taxpayers $153 $158"; "Personal and senior exemption credit amount for joint
+ * filers or surviving spouses $306 $316"). The FTB's AGI Limitation Worksheet (2025 Form 540
+ * instructions, line 32) reduces it: "Subtract line b from line a. Divide line c by $2,500
+ * ($1,250 if married/RDP filing separately). If the result is not a whole number, round it to
+ * the next higher whole number. Multiply line d by $6. Add the numbers from the boxes on Form
+ * 540, lines 7, 8, and 9 ... Multiply line e by line f." So the cut is $6 for each $2,500 or
+ * part of $2,500 of AGI over the threshold, PER EXEMPTION: a joint return claims two personal
+ * exemptions and loses $12 a step. That is `exemptions` below. A filer exactly on the threshold
+ * keeps the whole credit ("Is Form 540, line 13 more than").
+ *
+ * Shape: { amount: {status: dollars}, exemptions: {status: count},
+ *          phaseout: { over: {status: AGI}, per, reduceBy } }
+ *
+ * The AGI is the engine's wages-only proxy (`grossAnnual - preTax`), the same figure the other
+ * income tests here read. EXPORTED so the salary-ladder pages print the credit the engine took.
+ *
+ * @returns {number} the credit allowed, before it is limited to the tax it comes off
+ */
+export function exemptionCredit(agi, filingStatus, cfg) {
+  if (!cfg || !cfg.amount) return 0;
+  const base = Math.max(0, Number(cfg.amount[filingStatus] ?? cfg.amount.single) || 0);
+  const ph = cfg.phaseout;
+  if (!(base > 0) || !ph || !(ph.per > 0) || !ph.over) return base;
+  const over = ph.over[filingStatus] ?? ph.over.single;
+  if (over == null) return base;
+  const excess = agi - over;
+  if (!(excess > 0)) return base;
+  const count = (cfg.exemptions && (cfg.exemptions[filingStatus] ?? cfg.exemptions.single)) || 1;
+  const steps = Math.ceil(excess / ph.per);
+  return Math.max(0, base - steps * (ph.reduceBy || 0) * count);
 }
 
 /**

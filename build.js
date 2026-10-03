@@ -28,6 +28,9 @@ import {
   // can name each one; the three tax functions let a page measure what that subtraction is
   // worth and how far a raise has to go, with the engine's own arithmetic.
   stateTaxableIncome, federalTaxSubtraction, federalIncomeTax, ficaTax, stateIncomeTax,
+  // California's personal exemption credit comes off the TAX after the bands, so the band
+  // tables subtract the credit the engine took, from the engine's own function.
+  exemptionCredit,
 } from './src/engine/paycheck-engine.js';
 import { computeBonus } from './src/engine/bonus-tax.js';
 // The car-loan interest deduction (IRC 163(h)(4)), so the salary pages print the allowance the
@@ -1985,6 +1988,31 @@ const creditYearNote = (state, year) => {
     : '';
 };
 
+// A CREDIT OFF THE TAX, after the brackets: California's personal exemption credit
+// (`tax.exemptionCredit`). Unlike Utah's, it is not restated as a deduction, because California's
+// rates are graduated and a credit is not worth a fixed slice of income there. The engine takes it
+// off the bracket tax and floors the result at zero; every figure in these sentences is the data's.
+const taxCreditOf = (t) => (t && t.exemptionCredit && t.exemptionCredit.amount) ? t.exemptionCredit : null;
+const taxCreditName = (t) => (taxCreditOf(t) && taxCreditOf(t).name) || 'personal exemption credit';
+// " After the brackets, California takes ...": '' for every state without the field.
+function taxCreditSentence(state, year) {
+  const c = taxCreditOf(state.tax);
+  if (!c) return '';
+  const amt = c.amount;
+  const over = c.phaseout && c.phaseout.over;
+  const fy = c.phaseoutFigureYear;
+  const yearNote = fy && Number(fy) !== Number(year)
+    ? `, ${state.name}'s ${fy} income limits, used until it publishes its ${year} ones`
+    : '';
+  const shrink = over && over.single != null
+    ? ` It shrinks once income passes ${usd0(over.single)} for a single filer` +
+      (over.married != null ? ` (${usd0(over.married)} for married couples filing jointly)` : '') + `${yearNote}.`
+    : '';
+  return ` After the brackets, ${state.name} takes a ${taxCreditName(state.tax)} off the tax: ` +
+    `${usd0(amt.single)} for single filers and ${usd0(amt.married != null ? amt.married : amt.single)} for married ` +
+    `couples filing jointly.${shrink}`;
+}
+
 // Genuinely state-specific tax facts derived from the (already-sourced) data:
 // bracket count, rate range, top rate + threshold, standard deduction, and a
 // worked $60k example. Distinct per state — clears scaled/duplicate-content risk.
@@ -2165,7 +2193,7 @@ function stateTaxFacts(state, year, taxData) {
   return `<p>${state.name} uses a <strong>graduated income tax with ${n} bracket${n > 1 ? 's' : ''}</strong> for ${year}, ` +
     `with marginal rates ranging from ${low} to a top rate of <strong>${top}</strong>` +
     (topThresh ? ` (which applies to single-filer taxable income above ${usd0(topThresh)})` : '') + `. ` +
-    `${sdText}.${fedSubText}${priorNote}${example}</p>`;
+    `${sdText}.${fedSubText}${taxCreditSentence(state, year)}${priorNote}${example}</p>`;
 }
 
 // Near-page-1 target states (06-28): the 5 with at least one query inside SERP
@@ -3194,7 +3222,10 @@ function bracketTableBlock(state, year) {
   return `<section class="prose"><h2>${state.name}'s ${numWord(b.length)} ${dispYear} brackets, from ${pctStr(b[0].rate)} to ${pctStr(b[b.length - 1].rate)} (single filers)</h2>` +
     `<p>${state.name}'s ${isEffectivelyFlat(t) ? 'single-filer' : 'graduated single-filer'} schedule for ${dispYear}` +
     (hasStateDeduction(t) ? ', applied after the state deduction' : ', with no state standard deduction to subtract first') + `:</p>` +
-    `<table class="data-table"><thead><tr><th>Taxable income</th><th>Marginal rate</th></tr></thead><tbody>${rows}</tbody></table>${baseNote}</section>`;
+    `<table class="data-table"><thead><tr><th>Taxable income</th><th>Marginal rate</th></tr></thead><tbody>${rows}</tbody></table>${baseNote}` +
+    // California's personal exemption credit is not a rate, so the table alone over-states the bill.
+    (taxCreditOf(t) ? `<p class="note">The rates above are not the whole bill.${taxCreditSentence(state, year)}</p>` : '') +
+    `</section>`;
 }
 
 function payrollDeductionsBlock(state, p) {
@@ -4822,6 +4853,9 @@ function caRung(amount, taxData, slug) {
   // Flat dollar charges the bracket arithmetic cannot produce, one entry per ladder in the
   // data. Empty for every state that carries no `tax.steppedRecapture`.
   let stRecapture = [];
+  // A credit off the tax after the bands (California's personal exemption credit), as the
+  // engine took it: never more than the tax it comes off. 0 for every state without one.
+  let stCredit = 0;
   // WHAT THE STATE ACTUALLY SUBTRACTED, not what its table publishes. Three states on
   // this ladder subtract something other than the flat headline figure, and the pages
   // print the taxable income that results — so if these do not match the engine, the
@@ -4874,7 +4908,12 @@ function caRung(amount, taxData, slug) {
       })).filter((x) => x.tax > 0);
     }
     const stRecaptureTotal = stRecapture.reduce((s, x) => s + x.tax, 0);
-    const stSum = st.bands.reduce((s, b) => s + b.tax, 0) + stBase + stRecaptureTotal;
+    const stBeforeCredit = st.bands.reduce((s, b) => s + b.tax, 0) + stBase + stRecaptureTotal;
+    // The engine's own credit at the engine's own AGI, limited to the tax it comes off.
+    if (t.exemptionCredit) {
+      stCredit = Math.min(stBeforeCredit, exemptionCredit(stParts.agi, 'single', t.exemptionCredit));
+    }
+    const stSum = stBeforeCredit - stCredit;
     if (Math.abs(stSum - a.state) > 0.01) {
       throw new Error(
         `${stData.name} band decomposition does not reproduce the engine's state tax on $${amount}: ` +
@@ -4958,6 +4997,8 @@ function caRung(amount, taxData, slug) {
     stBase,
     stRecapture,
     stRecaptureTotal: stRecapture.reduce((s, x) => s + x.tax, 0),
+    stCredit,
+    stCreditName: taxCreditName(t),
     programs,
     progTotal,
     // Retained under its old name because California's SDI prose reads it.
@@ -5022,8 +5063,10 @@ function caBandRows(bd, extra) {
   // data models it as an array, so this takes a list. A single object is still accepted so
   // the Ohio call site did not have to be rewritten into a shape it does not need.
   const extras = (extra == null ? [] : (Array.isArray(extra) ? extra : [extra])).filter(Boolean);
+  // A credit (California's personal exemption credit) arrives as a negative amount and prints
+  // with a minus sign, as the flat-rate working prints Utah's.
   const extraRow = extras.map((x) => `\n<tr><td>${x.label}</td><td class="num">—</td>` +
-    `<td class="num">—</td><td class="num">${usd0(x.tax)}</td></tr>`).join('');
+    `<td class="num">—</td><td class="num">${x.tax < 0 ? `−${usd0(-x.tax)}` : usd0(x.tax)}</td></tr>`).join('');
   return bd.bands.filter((b) => b.amount > 0).map((b) => {
     const range = b.upper === Infinity
       ? `${usd0(b.lower)} and up`
@@ -7147,6 +7190,11 @@ function caPageCopy(r, rungs, ctx) {
         `the whole ${usd0(r.st.taxable)} — ${usd0(r.st.taxable - r.fed.taxable)} more than the federal one, which ` +
         `is what the ${usd0(fedStd)} federal standard deduction takes off. ${S} works through ` +
         `${numWord(stBands.length)} of ${NAME}'s bands, topping out at ${pctStr(r.st.marginalRate)}.`;
+    // California's personal exemption credit comes off the tax after the bands, so the intro
+    // names it or the total printed under the table cannot be reached from it.
+    if (r.stCredit > 0) {
+      CA_INTRO += ` After the bands, ${NAME} takes its ${usd0(r.stCredit)} ${r.stCreditName} off the tax.`;
+    }
   } else if (r.kind === 'flat') {
     // MEASURED AGAINST THE FEDERAL DEDUCTION, the same comparison the bracket branch above
     // makes. A flat state's whole state-side story is the size of its own subtraction, and
@@ -7207,7 +7255,7 @@ function caPageCopy(r, rungs, ctx) {
     ]);
   const FILING_INTRO = r.slug === 'california'
     // legacy CA wording
-    ? `Filing status changes both the standard deduction and the width of every band, and at ${S} it is ` +
+    ? `Filing status changes ${r.stCredit > 0 ? `the standard deduction, the ${r.stCreditName}` : 'both the standard deduction'} and the width of every band, and at ${S} it is ` +
       `worth real money: a joint return on this same salary keeps ${usd0(mfj.net - single.net)} more a ` +
       `year than a single one, and head of household keeps ${usd0(hoh.net - single.net)} more. FICA and ` +
       `California SDI are identical in all three — they take no notice of who you are married to.`
@@ -7285,7 +7333,9 @@ function caPageCopy(r, rungs, ctx) {
   if (r.slug === 'california') {
     // legacy CA wording
     stateMethod = `Its own schedule on ${usd0(r.st.taxable)} after the ${usd0(r.stDed)} state deduction, ` +
-      `through ${numWord(stBands.length)} band${stBands.length === 1 ? '' : 's'} → ${usd0(r.a.state)}. ` +
+      `through ${numWord(stBands.length)} band${stBands.length === 1 ? '' : 's'}` +
+      (r.stCredit > 0 ? `, less the ${usd0(r.stCredit)} ${r.stCreditName}` : '') +
+      ` → ${usd0(r.a.state)}. ` +
       `Plus SDI at ${pct2(st.employeePrograms[0].rate)} of the whole salary, uncapped since SB 951 → ` +
       `${usd0(r.sdi)}.`;
   } else {
@@ -7321,6 +7371,7 @@ function caPageCopy(r, rungs, ctx) {
         (r.stRecaptureTotal > 0
           ? ` plus ${usd0(r.stRecaptureTotal)} of ${caList(r.stRecapture.map((x) => x.label.toLowerCase()))}`
           : '') +
+        (r.stCredit > 0 ? `, less the ${usd0(r.stCredit)} ${r.stCreditName}` : '') +
         ` → ${usd0(r.a.state)}.${progSentence}`;
     } else if (r.kind === 'flat' && r.st.credit != null) {
       stateMethod = `${pctStr(r.st.rate)} on the whole ${S} (${usd0(r.st.taxBeforeCredit)})` +
@@ -7357,7 +7408,8 @@ function caPageCopy(r, rungs, ctx) {
   const generic = [];
   const lt = payrollState && payrollState.localIncomeTax;
   // Utah's taxpayer tax credit IS in the arithmetic, so "credits" are left out except that one.
-  const credits = r.st && r.st.credit != null ? `credits other than ${NAME}'s ${creditName(r.state.tax)}` : 'credits';
+  const credits = r.st && r.st.credit != null ? `credits other than ${NAME}'s ${creditName(r.state.tax)}`
+    : (r.stCredit > 0 ? `credits other than ${NAME}'s ${r.stCreditName}` : 'credits');
   generic.push(bodyFrame('limit1', [
     `<li><strong>Not in the arithmetic.</strong> Pre-tax deductions (401(k), HSA, FSA, ` +
     `premiums), dependents and ${credits}, itemizing, non-wage income, and the employer's half of FICA` +
@@ -7652,7 +7704,8 @@ const CA_FTB_TITLES = [
   [/tax-rate-schedules/, 'California FTB: Form 540 tax rate schedules'],
   [/540-booklet/, 'California FTB: Form 540 booklet, standard deduction chart'],
   [/540-es-instructions/, 'California FTB: Form 540-ES instructions, which year’s tables apply'],
-  [/tax-news/, 'California FTB: annual inflation indexing of the standard deduction'],
+  [/2025-540-instructions/, 'California FTB: 2025 Form 540 instructions, exemption credits and their income limit'],
+  [/tax-news/, 'California FTB: annual inflation indexing of the brackets, standard deduction and exemption credits'],
 ];
 
 // Alabama's state-level URLs, titled for the same reason: five links all captioned
@@ -7783,6 +7836,8 @@ function ladderStateSection(r, copyIntro, S) {
         label: `${x.label}${x.row && x.row.over != null ? ` (income over ${usd0(x.row.over)})` : ''}`,
         tax: x.tax,
       })),
+      // California's personal exemption credit comes off the tax after the bands.
+      ...(r.stCredit > 0 ? [{ label: `Less the ${r.stCreditName}`, tax: -r.stCredit }] : []),
     ];
     const progNote = r.programs.length
       ? ` ${caList(r.programs.map((p) => p.label))} ${r.programs.length === 1 ? 'is' : 'are'} charged ` +
@@ -7790,7 +7845,8 @@ function ladderStateSection(r, copyIntro, S) {
       : '';
     const note = r.slug === 'california'
       // legacy CA wording
-      ? `California income tax on ${S} totals ${usd0(r.a.state)}, ` +
+      ? `California income tax on ${S} totals ${usd0(r.a.state)}` +
+        (r.stCredit > 0 ? ` after the ${usd0(r.stCredit)} ${r.stCreditName}` : '') + `, ` +
         `${pct1(r.a.state / r.amount)} of gross pay. California SDI is charged separately, on the full ` +
         `salary and not on taxable income, so it is not in this table.`
       : `${NAME} income tax on ${S} totals ${usd0(r.a.state)}, ${pct1(r.a.state / r.amount)} of gross ` +
@@ -9375,7 +9431,8 @@ async function main() {
         if (ladderSlugKey === 'california') {
           // legacy CA wording
           hubStateBlock = `<h3>What California adds on top of the federal bill</h3>` +
-            `<p>California takes two bites from a paycheck, not one: graduated income tax, and State ` +
+            `<p>California takes two bites from a paycheck, not one: graduated income tax` +
+            (low.stCredit > 0 ? ` less a ${usd0(low.stCredit)} ${low.stCreditName}` : '') + `, and State ` +
             `Disability Insurance at ${pct2(progs[0].rate)} of wages with no ceiling since SB 951. On ` +
             `${usd0(low.amount)} that pair costs ${usd0(lowState)} a year; on ` +
             `${usd0(high.amount)} it costs ${usd0(highState)}. SDI is the part people forget, ` +
@@ -9442,7 +9499,8 @@ async function main() {
                 ? `, plus ${caList(recap.map((x) => `${x.label.toLowerCase()} of up to ` +
                     `${usd0((x.row && x.row.max) || x.tax)} on incomes over ` +
                     `${usd0((x.row && x.row.over) || 0)}`))}`
-                : '');
+                : '') +
+              (low.stCredit > 0 ? `, less a ${usd0(low.stCredit)} ${low.stCreditName}` : '');
           const both = progs.length
             ? `${NAME} takes two kinds of deduction from a paycheck, not one: income tax on ${structure}, ` +
               `and ${caList(progLabels)}. On ${usd0(low.amount)} that pair costs ${usd0(lowState)} a year; ` +
@@ -9558,7 +9616,8 @@ async function main() {
                 : low.stDed > 0 ? `what is left ${dedClause}` : `the whole salary`)
             : (ladderSlugKey === 'california'
               // legacy CA wording
-              ? `California income tax uses its own schedule after its ${stDedText} single standard deduction`
+              ? `California income tax uses its own schedule after its ${stDedText} single standard deduction` +
+                (low.stCredit > 0 ? `, less its ${usd0(low.stCredit)} ${low.stCreditName}` : '')
               : `${NAME} income tax uses its own schedule of ${numWord(state.tax.brackets.single.length)} bands` +
                 (low.stDed > 0 ? ` ${dedClause}` : ` on the whole salary`)));
         const methodProgClause = progs.length
