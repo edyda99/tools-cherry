@@ -1132,6 +1132,17 @@ const PAGES = [
     ],
   },
   {
+    // Colorado has no standard deduction of its own: it taxes federal taxable income, so the
+    // federal deduction carries through (tax.deductionFromFederal). The page used to call
+    // the $16,100 "Colorado's state standard deduction".
+    file: 'colorado-paycheck-calculator/index.html',
+    pins: [
+      ['no-colorado-state-standard-deduction', absent("Colorado's state standard deduction")],
+      ['says-no-deduction-of-its-own', contains('Colorado has no standard deduction of its own. It starts from your federal taxable income, so the federal standard deduction carries through')],
+      ['how-line-says-federal-taxable-income', contains('Colorado levies a <strong>flat 4.4% state income tax</strong> for 2026, applied to your federal taxable income.')],
+    ],
+  },
+  {
     file: 'oregon-paycheck-calculator/index.html',
     pins: [
       ['senior-line-says-oregon-does-not', contains('comes off your federal return only: Oregon does not allow it on your Oregon return')],

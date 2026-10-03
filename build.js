@@ -2066,7 +2066,13 @@ function stateTaxFacts(state, year, taxData) {
       ? `${state.name} has not published its ${year} ${sdName(t)} yet, so this page uses its ${priorYear} ` +
         `amounts until it does: ${usd0(sd.single)} for single filers and ${usd0(sd.married)} for married couples ` +
         `filing jointly${sdFloor}`
-      : `For ${year}, ${state.name}'s state ${sdName(t)} is ${usd0(sd.single)} for single filers and ${usd0(sd.married)} for married couples filing jointly${sdFloor}`)
+      : t.deductionFromFederal
+        // Colorado: no deduction of its own. It taxes federal taxable income, so the
+        // federal standard deduction carries through (tax.deductionFromFederal).
+        ? `${state.name} has no standard deduction of its own. It starts from your federal taxable ` +
+          `income, so the federal standard deduction carries through: for ${year}, ${usd0(sd.single)} for ` +
+          `single filers and ${usd0(sd.married)} for married couples filing jointly${sdFloor}`
+        : `For ${year}, ${state.name}'s state ${sdName(t)} is ${usd0(sd.single)} for single filers and ${usd0(sd.married)} for married couples filing jointly${sdFloor}`)
     : `${state.name} does not provide a state standard deduction`;
   // And a state on last year's rate schedule (Idaho) or thresholds (Arkansas) says that too.
   const priorNote = !priorYear ? ''
@@ -3024,6 +3030,8 @@ function stateBody(state, year, taxData) {
     how = `${state.name} levies a <strong>flat ${pctStr(t.rate)} state income tax</strong> for ${year}`;
     how += isCreditState(t)
       ? ` on every dollar of income, less a ${creditName(t)} that shrinks as income rises.`
+      : t.deductionFromFederal
+      ? `, applied to your federal taxable income.`
       : t.standardDeduction
       ? `, applied after the state allowance/deduction for your filing status.`
       : ` on your wages, with no state standard deduction.`;

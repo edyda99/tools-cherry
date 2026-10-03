@@ -1618,6 +1618,8 @@
           "married": 32200,
           "head_of_household": 24150
         },
+        "deductionFromFederal": true,
+        "_deductionFromFederal": "Colorado has no standard deduction of its own. Its tax is on modified federal taxable income (Colorado Department of Revenue, Individual Income Tax Guide, January 2026, Part 2: 'Colorado imposes an income tax on the modified federal taxable income of each individual'; https://tax.colorado.gov/sites/tax/files/documents/Individual_Income_Tax_Guide_January_2026.pdf), so the federal standard deduction carries through. standardDeduction above therefore mirrors the federal amounts, and pages must not call it a state deduction.",
         "standardDeductionPhaseout": {
           "_statute": "C.R.S. 39-22-104(3)(p), as amended by Proposition MM (HB25-1274): for tax years 2026 and later, a filer whose federal adjusted gross income exceeds $300,000 adds back the federal standard or itemized deduction above $1,000 (single, head of household, married filing separately) or $2,000 (joint). Expressed as a cliff: one step of more than the whole deduction the first dollar past $300,000, floored at the limit.",
           "single": { "over": 300000, "per": 1, "reduceBy": 10000000, "minimum": 1000, "roundUp": true },
