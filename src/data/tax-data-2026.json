@@ -1428,6 +1428,11 @@
       "slug": "illinois",
       "hasIncomeTax": true,
       "figureYear": 2026,
+      "_watch": {
+        "until": "2028-12-31",
+        "what": "The cost-of-living-indexed Illinois exemption in 35 ILCS 5/204(b) is written for tax years ending on or before December 31, 2028. Re-verify: was it extended, or does the basic amount fall back to the section's $1,000 from tax year 2029?",
+        "decided": "Audit 2026-10-03: no effect on tax year 2026."
+      },
       "tax": {
         "type": "flat",
         "rate": 0.0495,
@@ -1436,14 +1441,21 @@
           "married": 5850,
           "head_of_household": 2925
         },
+        "standardDeductionPhaseout": {
+          "_statute": "35 ILCS 5/204: no exemption allowance when federal adjusted gross income is more than $500,000 on a joint return or $250,000 on any other return. The 2025 Form IL-1040 instructions: 'If your federal filing status is single, head of household, married filing separately, or widowed and your federal AGI is greater than $250,000, you are not entitled to an exemption allowance'. Expressed as a cliff: one step of the whole exemption the first dollar past the limit.",
+          "single": { "over": 250000, "per": 1, "reduceBy": 2925, "minimum": 0, "roundUp": true },
+          "married": { "over": 500000, "per": 1, "reduceBy": 5850, "minimum": 0, "roundUp": true },
+          "head_of_household": { "over": 250000, "per": 1, "reduceBy": 2925, "minimum": 0, "roundUp": true }
+        },
         "deductionName": "personal exemption"
       },
-      "_source": "IL flat 4.95% (IL DOR Bulletin FY 2026-15). No standard deduction; personal exemption allowance $2,925 per allowance (IL-W-4). https://tax.illinois.gov/research/publications/bulletins/fy-2026-15.html",
+      "_source": "IL flat 4.95% (IL DOR Bulletin FY 2026-15). No standard deduction; personal exemption allowance $2,925 per allowance (IL-W-4). https://tax.illinois.gov/research/publications/bulletins/fy-2026-15.html EXEMPTION LIMIT (added 2026-10-03): the 2025 Form IL-1040 instructions say a filer whose federal AGI is greater than $500,000 (married filing jointly) or $250,000 (any other status) is 'not entitled to an exemption allowance'. https://tax.illinois.gov/content/dam/soi/en/web/tax/forms/incometax/documents/currentyear/individual/il-1040-instr.pdf",
       "_sourceTitles": {
-        "https://tax.illinois.gov/research/publications/bulletins/fy-2026-15.html": "Illinois Department of Revenue: Bulletin FY 2026-15"
+        "https://tax.illinois.gov/research/publications/bulletins/fy-2026-15.html": "Illinois Department of Revenue: Bulletin FY 2026-15",
+        "https://tax.illinois.gov/content/dam/soi/en/web/tax/forms/incometax/documents/currentyear/individual/il-1040-instr.pdf": "Illinois Department of Revenue: Form IL-1040 instructions, exemption income limits"
       },
       "disclaimer": [
-        "Estimate assumes 1 personal exemption allowance ($2,925) for single/head of household and 2 for married filing jointly. The exemption fully phases out above $250,000 (single) / $500,000 (MFJ) — not modeled."
+        "Estimate assumes 1 personal exemption allowance ($2,925) for single/head of household and 2 for married filing jointly. Illinois allows no exemption at all once federal adjusted gross income is over $250,000 ($500,000 for married couples filing jointly), and this estimate applies that."
       ],
       "notes": "Flat 4.95% after a $2,925-per-allowance personal exemption."
     },
@@ -1600,14 +1612,23 @@
           "single": 16100,
           "married": 32200,
           "head_of_household": 24150
+        },
+        "standardDeductionPhaseout": {
+          "_statute": "C.R.S. 39-22-104(3)(p), as amended by Proposition MM (HB25-1274): for tax years 2026 and later, a filer whose federal adjusted gross income exceeds $300,000 adds back the federal standard or itemized deduction above $1,000 (single, head of household, married filing separately) or $2,000 (joint). Expressed as a cliff: one step of more than the whole deduction the first dollar past $300,000, floored at the limit.",
+          "single": { "over": 300000, "per": 1, "reduceBy": 10000000, "minimum": 1000, "roundUp": true },
+          "married": { "over": 300000, "per": 1, "reduceBy": 10000000, "minimum": 2000, "roundUp": true },
+          "head_of_household": { "over": 300000, "per": 1, "reduceBy": 10000000, "minimum": 1000, "roundUp": true }
         }
       },
-      "_source": "CO flat 4.40% applied to federal taxable income (after the federal standard deduction). Colorado has no separate state standard deduction. https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/",
+      "_source": "CO flat 4.40% applied to federal taxable income (after the federal standard deduction). Colorado has no separate state standard deduction. https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/ PROPOSITION MM (added 2026-10-03): the Colorado Department of Revenue's Individual Income Tax Guide (Revised January 2026) says the federal deduction addback is required 'for any single or joint filer whose adjusted gross income exceeds $300,000' and lists the limit for '2026 and later' as $1,000 for single filers and $2,000 for joint filers; the 2025 Form 104 booklet applies the single limit to single, married filing separately and head of household filers. https://tax.colorado.gov/sites/tax/files/documents/Individual_Income_Tax_Guide_January_2026.pdf ; https://tax.colorado.gov/sites/tax/files/documents/Book104_2025.pdf",
       "_sourceTitles": {
-        "https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/": "Tax Foundation: 2026 state income tax rates and brackets"
+        "https://taxfoundation.org/data/all/state/state-income-tax-rates-2026/": "Tax Foundation: 2026 state income tax rates and brackets",
+        "https://tax.colorado.gov/sites/tax/files/documents/Individual_Income_Tax_Guide_January_2026.pdf": "Colorado Department of Revenue: Individual Income Tax Guide (January 2026), federal deduction addback",
+        "https://tax.colorado.gov/sites/tax/files/documents/Book104_2025.pdf": "Colorado Department of Revenue: 2025 Form 104 booklet, deduction addback by filing status"
       },
       "disclaimer": [
-        "Rate applies to federal taxable income; base approximated as wages minus the federal standard deduction. The rate can be temporarily reduced below 4.40% in TABOR-refund years — not modeled."
+        "Rate applies to federal taxable income; base approximated as wages minus the federal standard deduction. The rate can be temporarily reduced below 4.40% in TABOR-refund years — not modeled.",
+        "From tax year 2026, Proposition MM limits the federal deduction Colorado lets you keep once your federal adjusted gross income is over $300,000: $1,000, or $2,000 for married couples filing jointly. The rest is added back to your Colorado taxable income. This estimate applies that limit."
       ],
       "notes": "Flat 4.40% on federal taxable income."
     },
@@ -2674,6 +2695,33 @@
             "single": { "over": 56500, "step": 5000, "amountPerStep": 25, "max": 250 },
             "married": { "over": 100500, "step": 5000, "amountPerStep": 50, "max": 500 },
             "head_of_household": { "over": 78500, "step": 4000, "amountPerStep": 40, "max": 400 }
+          },
+          {
+            "label": "First tax recapture band",
+            "_statute": "Conn. Gen. Stat. 12-700(a)(10), subparagraphs (A)(iii) unmarried, (B)(iii) head of household, (C)(iii) married filing jointly, read on cga.ct.gov 2026-10-03. (A)(iii): 'Each taxpayer whose Connecticut adjusted gross income exceeds one hundred five thousand dollars shall pay, in addition to the tax computed under the provisions of subparagraphs (A)(i) and (A)(ii) of this subdivision, an amount equal to twenty-five dollars for each five thousand dollars, or fraction thereof, by which the taxpayer's Connecticut adjusted gross income exceeds one hundred five thousand dollars, up to a maximum payment of two hundred fifty dollars.' (B)(iii): forty dollars for each eight thousand dollars over $168,000, up to $400. (C)(iii): fifty dollars for each ten thousand dollars over $210,000, up to $500.",
+            "_crosscheck": "DRS IP 2026(7) page 9, 'Table D - Tax Recapture': Code A, D or F $25 over $105,000 rising to $250 over $150,000; Code B $40 over $168,000 rising to $400 over $240,000; Code C $50 over $210,000 rising to $500 over $300,000.",
+            "_source": "https://www.cga.ct.gov/current/pub/chap_229.htm ; https://portal.ct.gov/-/media/drs/publications/pubsip/2026/ip-2026-7.pdf",
+            "single": { "over": 105000, "step": 5000, "amountPerStep": 25, "max": 250 },
+            "married": { "over": 210000, "step": 10000, "amountPerStep": 50, "max": 500 },
+            "head_of_household": { "over": 168000, "step": 8000, "amountPerStep": 40, "max": 400 }
+          },
+          {
+            "label": "Second tax recapture band",
+            "_statute": "Conn. Gen. Stat. 12-700(a)(10), subparagraphs (A)(iv) unmarried, (B)(iv) head of household, (C)(iv) married filing jointly, read on cga.ct.gov 2026-10-03. (A)(iv): 'an amount equal to ninety dollars for each five thousand dollars, or fraction thereof, by which the taxpayer's Connecticut adjusted gross income exceeds two hundred thousand dollars, up to a maximum payment of two thousand seven hundred dollars.' (B)(iv): one hundred forty dollars for each eight thousand dollars over $320,000, up to $4,200. (C)(iv): one hundred eighty dollars for each ten thousand dollars over $400,000, up to $5,400.",
+            "_crosscheck": "DRS IP 2026(7) page 9, Table D: Code A, D or F $340 over $200,000 rising to $2,950 over $345,000; Code B $540 over $320,000 rising to $4,600 over $552,000; Code C $680 over $400,000 rising to $5,900 over $690,000 (each figure includes the first band's ceiling).",
+            "_source": "https://www.cga.ct.gov/current/pub/chap_229.htm ; https://portal.ct.gov/-/media/drs/publications/pubsip/2026/ip-2026-7.pdf",
+            "single": { "over": 200000, "step": 5000, "amountPerStep": 90, "max": 2700 },
+            "married": { "over": 400000, "step": 10000, "amountPerStep": 180, "max": 5400 },
+            "head_of_household": { "over": 320000, "step": 8000, "amountPerStep": 140, "max": 4200 }
+          },
+          {
+            "label": "Third tax recapture band",
+            "_statute": "Conn. Gen. Stat. 12-700(a)(10), subparagraphs (A)(v) unmarried, (B)(v) head of household, (C)(v) married filing jointly, read on cga.ct.gov 2026-10-03. (A)(v): 'an amount equal to fifty dollars for each five thousand dollars, or fraction thereof, by which the taxpayer's Connecticut adjusted gross income exceeds five hundred thousand dollars, up to a maximum payment of four hundred fifty dollars.' (B)(v): eighty dollars for each eight thousand dollars over $800,000, up to $720. (C)(v): one hundred dollars for each ten thousand dollars over $1,000,000, up to $900.",
+            "_crosscheck": "DRS IP 2026(7) page 9, Table D: Code A, D or F $3,000 over $500,000 rising to $3,400 over $540,000; Code B $4,680 over $800,000 rising to $5,320 over $864,000; Code C $6,000 over $1,000,000 rising to $6,800 over $1,080,000.",
+            "_source": "https://www.cga.ct.gov/current/pub/chap_229.htm ; https://portal.ct.gov/-/media/drs/publications/pubsip/2026/ip-2026-7.pdf",
+            "single": { "over": 500000, "step": 5000, "amountPerStep": 50, "max": 450 },
+            "married": { "over": 1000000, "step": 10000, "amountPerStep": 100, "max": 900 },
+            "head_of_household": { "over": 800000, "step": 8000, "amountPerStep": 80, "max": 720 }
           }
         ]
       },
@@ -2685,10 +2733,10 @@
       "disclaimer": [
         "Connecticut has no local/municipal income tax.",
         "Connecticut has no standard deduction. It gives a personal exemption instead: up to $15,000 if you are single, $24,000 married filing jointly, $19,000 head of household, and $12,000 married filing separately. The exemption shrinks by $1,000 for every $1,000 of Connecticut income above $30,000 single, $48,000 jointly, $38,000 head of household and $24,000 filing separately, so it runs out entirely a little way above those points. Neither the exemption nor Connecticut's personal tax credits are modeled here, so this estimate runs HIGH for lower incomes.",
-        "Connecticut's 2% tax-rate phase-out (the Table C add-back) IS now included in the figures above, and it is not just a high-earner rule. For a single filer it starts at $56,500 of Connecticut income and adds $25 for every $5,000 above that, up to $250; head of household starts at $78,500 and adds $40 per $4,000, up to $400; married filing jointly starts at $100,500 and adds $50 per $5,000, up to $500. Any amount over the starting point counts as a full step, so a single filer $1 past $56,500 already pays the first $25. We measure it against your wages only, so if you also have interest, dividends or self-employment income, your real Connecticut income is higher and the add-back could be a step or two bigger. The separate high-income tax recapture (Table D) is still not modeled. If you are married but filing separately, Connecticut starts that add-back earlier than the single ladder used here, at $50,250 in $2,500 steps rather than $56,500 in $5,000 steps, so your real Connecticut tax can run somewhat higher than shown, by up to about $150 from the add-back alone; your personal exemption is smaller too, $12,000 rather than the $15,000 above.",
+        "Connecticut's 2% tax-rate phase-out (the Table C add-back) IS now included in the figures above, and it is not just a high-earner rule. For a single filer it starts at $56,500 of Connecticut income and adds $25 for every $5,000 above that, up to $250; head of household starts at $78,500 and adds $40 per $4,000, up to $400; married filing jointly starts at $100,500 and adds $50 per $5,000, up to $500. Any amount over the starting point counts as a full step, so a single filer $1 past $56,500 already pays the first $25. We measure it against your wages only, so if you also have interest, dividends or self-employment income, your real Connecticut income is higher and the add-back could be a step or two bigger. Connecticut's tax recapture (Table D) is included too. A single filer pays $25 for each $5,000 of income over $105,000, up to $250; then $90 for each $5,000 over $200,000, up to $2,700 more; then $50 for each $5,000 over $500,000, up to $450 more. Head of household filers have the same three steps starting at $168,000, $320,000 and $800,000, and married couples filing jointly at $210,000, $400,000 and $1,000,000. If you are married but filing separately, Connecticut starts that add-back earlier than the single ladder used here, at $50,250 in $2,500 steps rather than $56,500 in $5,000 steps, so your real Connecticut tax can run somewhat higher than shown, by up to about $150 from the add-back alone; your personal exemption is smaller too, $12,000 rather than the $15,000 above.",
         "Single bracket key also covers Married Filing Separately (CT Code F uses the same Code A schedule)."
       ],
-      "notes": "Progressive 2%-6.99% (7 brackets, 2026 statutory rates from official DRS IP 2026(7)). No standard deduction; the 2% tax-rate phase-out add-back IS modeled (Conn. Gen. Stat. 12-700(a)(10)(A)(ii)/(B)(ii)/(C)(ii), IP 2026(7) Table C); the personal exemption and the high-income recapture (Table D) are not. No local income tax."
+      "notes": "Progressive 2%-6.99% (7 brackets, 2026 statutory rates from official DRS IP 2026(7)). No standard deduction; the 2% tax-rate phase-out add-back IS modeled (Conn. Gen. Stat. 12-700(a)(10)(A)(ii)/(B)(ii)/(C)(ii), IP 2026(7) Table C); so is the Table D tax recapture (12-700(a)(10)(A)(iii)-(v), (B)(iii)-(v), (C)(iii)-(v)); the personal exemption is not. No local income tax."
     },
     "oregon": {
       "name": "Oregon",
@@ -3034,7 +3082,7 @@
       "figureYear": 2026,
       "_watch": {
         "until": "2026-12-15",
-        "what": "Missouri's top rate falls automatically when revenue clears a bar, so the 4.7% here can drop for 2027. Section 143.011.3 RSMo (as amended by 2022 1st Ex. Sess. S.B. 3 & 5) says the top rate 'may be reduced by fifteen hundredths of a percent' and that 'A reduction in the rate of tax shall only occur if the amount of net general revenue collected in the previous fiscal year exceeds the highest amount of net general revenue collected in any of the three fiscal years prior to such fiscal year by at least one hundred seventy-five million dollars', with subsection 4 allowing up to three further one-tenth-point cuts on a stricter test. Fiscal year 2026 closed 30 June 2026, and section 143.011.5 has the director publishing the next year's tables 'beginning on or after October 1'. Re-verify: did Missouri DOR announce a lower 2027 top rate? If so the 2027 data file needs it. Source: https://revisor.mo.gov/main/OneSection.aspx?section=143.011",
+        "what": "Missouri's top rate falls automatically when revenue clears a bar, so the 4.7% here can drop for 2027. The subsection 3 cut in Section 143.011 RSMo (0.15 of a point, on a $175 million test) was used in 2024, when the top rate fell from 4.95% to 4.8%. What remains is subsection 4: up to three cuts of 0.1 of a point, each needing net general revenue at least $200 million (inflation-adjusted) above the highest of the prior three fiscal years and growth above the five-year inflation-adjusted base. One was used for 2025 (4.7%), so two remain. Fiscal year 2026 closed 30 June 2026, and section 143.011.5 has the director publishing the next year's tables 'beginning on or after October 1'. Re-verify: did Missouri DOR announce a lower 2027 top rate? If so the 2027 data file needs it. Source: https://revisor.mo.gov/main/OneSection.aspx?section=143.011",
         "decided": "Audit 2026-08-02: nothing changes for tax year 2026; this is a tripwire for the 2027 rollover."
       },
       "tax": {
@@ -3086,7 +3134,7 @@
         "standardDeduction": {
           "single": 16100,
           "married": 32200,
-          "head_of_household": 24150
+          "head_of_household": 25550
         },
         "brackets": {
           "single": [
@@ -3193,15 +3241,16 @@
           ]
         }
       },
-      "_source": "Tax year 2026 Missouri brackets and standard deduction come from the Missouri Department of Revenue's 2026 Missouri Withholding Tax Formula and are confirmed by the tax rate chart on the 2026 Form MO-1040ES. Missouri applies one graduated schedule to every filing status: no tax on the first $1,348 of Missouri taxable income, then 2.0%, 2.5%, 3.0%, 3.5%, 4.0% and 4.5% in $1,348 steps, with the top rate of 4.7% on income over $9,436. Only the standard deduction changes with filing status, and for 2026 it matches the federal amounts: $16,100 single or married filing separate, $32,200 married when the spouse does not work, and $24,150 head of household. Separately from withholding, Section 143.171 RSMo still allows Missouri filers to deduct part of their federal income tax on the annual return. The deduction is a percentage of federal income tax liability set by Missouri adjusted gross income (35% at $25,000 or less, 25% from $25,001 to $50,000, 15% from $50,001 to $100,000, 5% from $100,001 to $125,000, 0% at $125,001 or more), capped at $5,000 per return or $10,000 on a married filing combined return, and it is claimed on Form MO-1040. Missouri's withholding formula does not apply it, so it does not change what your employer withholds. This estimate models the annual return, so it applies the deduction (added 2026-10-02). Sources: https://dor.mo.gov/forms/Withholding%20Formula_2026.pdf , https://dor.mo.gov/forms/MO-1040ES_2026.pdf , https://revisor.mo.gov/main/OneSection.aspx?section=143.171",
+      "_source": "Tax year 2026 Missouri brackets and standard deduction come from the Missouri Department of Revenue's 2026 Missouri Withholding Tax Formula and are confirmed by the tax rate chart on the 2026 Form MO-1040ES. Missouri applies one graduated schedule to every filing status: no tax on the first $1,348 of Missouri taxable income, then 2.0%, 2.5%, 3.0%, 3.5%, 4.0% and 4.5% in $1,348 steps, with the top rate of 4.7% on income over $9,436. Only the standard deduction changes with filing status, and for 2026 it matches the federal amounts: $16,100 single or married filing separate, $32,200 married when the spouse does not work, and $24,150 head of household. Separately from withholding, Section 143.171 RSMo still allows Missouri filers to deduct part of their federal income tax on the annual return. The deduction is a percentage of federal income tax liability set by Missouri adjusted gross income (35% at $25,000 or less, 25% from $25,001 to $50,000, 15% from $50,001 to $100,000, 5% from $100,001 to $125,000, 0% at $125,001 or more), capped at $5,000 per return or $10,000 on a married filing combined return, and it is claimed on Form MO-1040. Missouri's withholding formula does not apply it, so it does not change what your employer withholds. This estimate models the annual return, so it applies the deduction (added 2026-10-02). Sources: https://dor.mo.gov/forms/Withholding%20Formula_2026.pdf , https://dor.mo.gov/forms/MO-1040ES_2026.pdf , https://revisor.mo.gov/main/OneSection.aspx?section=143.171 HEAD OF HOUSEHOLD (added 2026-10-03): Section 143.161.2 RSMo says 'a resident who qualifies as an unmarried head of household or as a surviving spouse for federal income tax purposes may deduct an additional one thousand four hundred dollars', so the head-of-household figure here is $24,150 + $1,400 = $25,550. https://revisor.mo.gov/main/OneSection.aspx?section=143.161",
       "_sourceTitles": {
         "https://dor.mo.gov/forms/Withholding%20Formula_2026.pdf": "Missouri Department of Revenue: 2026 withholding tax formula",
         "https://dor.mo.gov/forms/MO-1040ES_2026.pdf": "Missouri Department of Revenue: 2026 Form MO-1040ES, tax rate chart",
-        "https://revisor.mo.gov/main/OneSection.aspx?section=143.171": "Revised Statutes of Missouri 143.171: the federal income tax deduction"
+        "https://revisor.mo.gov/main/OneSection.aspx?section=143.171": "Revised Statutes of Missouri 143.171: the federal income tax deduction",
+        "https://revisor.mo.gov/main/OneSection.aspx?section=143.161": "Revised Statutes of Missouri 143.161: the extra $1,400 for a head of household"
       },
       "disclaimer": [
         "Local income taxes are not included. Missouri cities of Kansas City and St. Louis levy a separate 1% local earnings tax on wages, which is not included in this estimate.",
-        "Missouri's standard deduction conforms to the federal standard deduction. Not modeled here: the additional standard deduction for taxpayers age 65 or older or blind, the $1,400 additional exemption Missouri gives head of household and qualifying widow(er) filers on the annual return, and Missouri tax credits.",
+        "Missouri's standard deduction conforms to the federal standard deduction. For a head of household the figure used here also includes the extra $1,400 Missouri allows on the annual return (Section 143.161 RSMo), so it is $25,550 rather than $24,150. Not modeled here: the additional standard deduction for taxpayers age 65 or older or blind, the same $1,400 for a qualifying surviving spouse, and Missouri tax credits.",
         "Missouri lets you deduct part of your federal income tax on your annual return, under Section 143.171 RSMo, and this estimate applies it. It uses the federal income tax this estimate works out from your pay, so other income or credits on your real return would change it. The share depends on your Missouri adjusted gross income: 35% at $25,000 or less, 25% from $25,001 to $50,000, 15% from $50,001 to $100,000, 5% from $100,001 to $125,000, and 0% at $125,001 or more. It is capped at $5,000 per return, or $10,000 on a married filing combined return. Missouri's withholding formula leaves this deduction out, so your employer will usually withhold a little more Missouri tax than this estimate shows, and you get the difference back when you file Form MO-1040."
       ],
       "notes": "Progressive 0%-4.70% (official 2026 inflation-indexed brackets, top band over $9,436 of taxable income). Federal-conformed standard deduction. Partial federal income tax deduction (Section 143.171 RSMo) applied. Separate 1% local earnings tax in Kansas City and St. Louis not included."

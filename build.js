@@ -2016,7 +2016,19 @@ function stateTaxFacts(state, year, taxData) {
   if (stepped) {
     const lastS = tiersS[tiersS.length - 1];
     const sameEdges = tiersM.length === tiersS.length && tiersM.every((x, i) => x.at === tiersS[i].at);
-    if (tiersS.length && tiersS.length <= 3 && sameEdges) {
+    if (tiersS.length === 1 && tiersM.length === 1) {
+      // A cliff, one step straight to the floor: Colorado's Proposition MM limit ($1,000 and
+      // $2,000 once federal AGI is over $300,000) and Illinois' exemption (none over $250,000,
+      // $500,000 joint).
+      const [s1] = tiersS;
+      const [m1] = tiersM;
+      const mEdge = m1.at === s1.at ? '' : ` ${edge(sdStepM, m1.at)}`;
+      sdFloor = s1.amount > 0 || m1.amount > 0
+        ? `, cut to ${usd0(s1.amount)} ${edge(sdStep, s1.at)} of income (${usd0(m1.amount)} for married couples ` +
+          `filing jointly${mEdge})`
+        : `, with none at all ${edge(sdStep, s1.at)} of income` +
+          (mEdge ? ` (${mEdge.trim()} for married couples filing jointly)` : '');
+    } else if (tiersS.length && tiersS.length <= 3 && sameEdges) {
       // Few enough tiers to name each one (Ohio's $2,150 and $1,900), so the worked example
       // that follows can be traced to the tier it uses.
       sdFloor = `, stepping down to ` +

@@ -144,13 +144,16 @@ t('Connecticut $75,000: single pays exactly $100 of add-back, others pay none', 
 t('Connecticut $200,000: every status is pinned at the top of Table C', () => {
   // The ceiling is the 2% band emptied: single $250, hoh $400, married $500. 200,000 clears
   // all three "and up" rows (single above 101,500, hoh above 114,500, married above 145,500).
-  // single   200 + 1,800 + 50,000@5.5%=2,750 + 100,000@6%=6,000 = 10,750, +250  = 11,000
-  approx(ctTax(200000, 'single'), 11000, 0.01);
-  // married  400 + 80,000@4.5%=3,600 + 100,000@5.5%=5,500 = 9,500, +500         = 10,000
+  // Table D, the tax recapture (added 2026-10-03), adds its first band too: single $250 (over
+  // $105,000, capped from $150,000; 200,000 does not EXCEED the second band's $200,000), hoh
+  // ceil(32,000 / 8,000) = 4 x $40 = $160 (over $168,000), married $0 (starts over $210,000).
+  // single   200 + 1,800 + 50,000@5.5%=2,750 + 100,000@6%=6,000 = 10,750, +250 +250 = 11,250
+  approx(ctTax(200000, 'single'), 11250, 0.01);
+  // married  400 + 80,000@4.5%=3,600 + 100,000@5.5%=5,500 = 9,500, +500            = 10,000
   approx(ctTax(200000, 'married'), 10000, 0.01);
   // hoh      320 + 64,000@4.5%=2,880 + 80,000@5.5%=4,400 + 40,000@6%=2,400
-  //          = 10,000, +400                                                     = 10,400
-  approx(ctTax(200000, 'head_of_household'), 10400, 0.01);
+  //          = 10,000, +400 +160                                                   = 10,560
+  approx(ctTax(200000, 'head_of_household'), 10560, 0.01);
 });
 
 t('Connecticut add-back steps on the first dollar past the threshold', () => {
