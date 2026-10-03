@@ -131,6 +131,17 @@ t('the federal 22%/37% split is what the tool reports', () => {
   assert.match(big.federalRuleApplied, /37%/);
 });
 
+t('earlier bonuses count toward the federal 37% and Massachusetts 9% thresholds', () => {
+  // $600k earlier + $500k now: $400k at 22%, $100k at 37%.
+  const fed = call('compute_bonus_withholding', { state: 'texas', bonusAmount: 500000, earlierBonuses: 600000 }).result.structuredContent;
+  assert.equal(fed.federalSupplementalWithholding, 400000 * 0.22 + 100000 * 0.37);
+  assert.match(fed.federalRuleApplied, /37%/);
+  // Circular M: $900k pay + $300k earlier bonuses + $100k bonus crosses the 9% test; without them it stays 5%.
+  const ma = (extra) => call('compute_bonus_withholding', { state: 'massachusetts', bonusAmount: 100000, salary: 900000, ...extra }).result.structuredContent.stateWithholding;
+  assert.equal(ma({ earlierBonuses: 300000 }), 9000);
+  assert.equal(ma({}), 5000);
+});
+
 // --- compare_states --------------------------------------------------------
 
 t('compare_states ranks by net and matches the engine per row', () => {
