@@ -126,10 +126,13 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
 {
   const ca = net('california', RUNG);
   const caTaxable = 75000 - 5900;
+  // The bands, then the 2026 personal exemption credit off the tax: $158 for a single filer (FTB
+  // Tax News, October 2026, '2026 Indexing'), in full because $75,000 is under the $252,203 limit.
   const caTax = 11456 * 0.01 + (27157 - 11456) * 0.02 + (42861 - 27157) * 0.04
-    + (59498 - 42861) * 0.06 + (caTaxable - 59498) * 0.08;
+    + (59498 - 42861) * 0.06 + (caTaxable - 59498) * 0.08 - 158;
   eq('california income tax', ca.state, caTax);
-  eq('california income tax', ca.state, 2823.12);
+  eq('california income tax', ca.state, 2823.12 - 158);
+  eq('california income tax after the credit', ca.state, 2665.12);
   eq('california SDI is uncapped at this salary', ca.statePrograms, 75000 * 0.013);
   eq('california take-home', ca.net, 75000 - FED_TAX - SS - MED - caTax - 975);
 }

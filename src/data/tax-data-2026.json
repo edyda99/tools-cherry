@@ -648,12 +648,14 @@
           ]
         }
       },
-      "_source": "West Virginia's 2026 schedule is W. Va. Code 11-21-4j(a), added by Enrolled Committee Substitute for Senate Bill 392, passed 14 March 2026 and in effect 90 days from passage. The section is headed 'Rate of tax - Taxable years beginning on and after January 1, 2026' and its table for individuals other than married filing separately, joint filers, heads of household, estates and trusts reads: 'Not over $10,000 - 2.11% of the taxable income; Over $10,000 but not over $25,000 - $211 plus 2.81% of excess over $10,000; Over $25,000 but not over $40,000 - $632.50 plus 3.16% of excess over $25,000; Over $40,000 but not over $60,000 - $1,106.50 plus 4.22% of excess over $40,000; Over $60,000 - $1,950.50 plus 4.58% of excess over $60,000.' Corrected 2026-08-02: this field previously described the superseded tax-year-2025 set (2.22/2.96/3.33/4.44/4.82%) as if it were the 2026 schedule, and cited a think tank rather than the statute. WV has NO standard deduction; the $2,000-per-exemption personal exemption is modeled here as the deduction. https://www.wvlegislature.gov/Bill_Text_HTML/2026_SESSIONS/RS/bills/sb392%20sub1%20enr.pdf",
+      "_source": "West Virginia's 2026 schedule is W. Va. Code 11-21-4j(a), added by Enrolled Committee Substitute for Senate Bill 392, passed 14 March 2026 and in effect 90 days from passage. The section is headed 'Rate of tax - Taxable years beginning on and after January 1, 2026' and its table for individuals other than married filing separately, joint filers, heads of household, estates and trusts reads: 'Not over $10,000 - 2.11% of the taxable income; Over $10,000 but not over $25,000 - $211 plus 2.81% of excess over $10,000; Over $25,000 but not over $40,000 - $632.50 plus 3.16% of excess over $25,000; Over $40,000 but not over $60,000 - $1,106.50 plus 4.22% of excess over $40,000; Over $60,000 - $1,950.50 plus 4.58% of excess over $60,000.' Corrected 2026-08-02: this field previously described the superseded tax-year-2025 set (2.22/2.96/3.33/4.44/4.82%) as if it were the 2026 schedule, and cited a think tank rather than the statute. WV has NO standard deduction; the $2,000-per-exemption personal exemption is modeled here as the deduction. https://www.wvlegislature.gov/Bill_Text_HTML/2026_SESSIONS/RS/bills/sb392%20sub1%20enr.pdf CITY SERVICE FEES, disclosed and not modelled (2026-10-03): they are flat weekly charges set by each city, not income taxes, and this calculator does not know which city you work in. The City of Charleston's City Service Fee Overview (revised 2/2018) says 'The City of Charleston imposes a three dollar ($3.00) per week City Service Fee (\"CSF\") upon all full-time/part-time employees and self-employed individuals who regularly report to work at a physical location or work from home within the City of Charleston. Employers are required to withhold $3.00 per week from their employees' pay.' The City of Huntington's City Service Fee page says 'The City of Huntington imposes a five-dollar ($5.00) per week City Service Fee (CSF) upon all individuals working within the city limits of Huntington.' https://www.charlestonwv.gov/sites/default/files/documents/2018-02/CITY%20SERVICE%20FEE%20OVERVIEW%20revised%202-2018.pdf ; https://www.cityofhuntington.com/business/existing-business/city-service-fee/",
       "_sourceTitles": {
-        "https://www.wvlegislature.gov/Bill_Text_HTML/2026_SESSIONS/RS/bills/sb392%20sub1%20enr.pdf": "West Virginia Senate Bill 392 (2026), as enrolled: the 2026 rate schedule"
+        "https://www.wvlegislature.gov/Bill_Text_HTML/2026_SESSIONS/RS/bills/sb392%20sub1%20enr.pdf": "West Virginia Senate Bill 392 (2026), as enrolled: the 2026 rate schedule",
+        "https://www.charlestonwv.gov/sites/default/files/documents/2018-02/CITY%20SERVICE%20FEE%20OVERVIEW%20revised%202-2018.pdf": "City of Charleston: City Service Fee overview, $3 a week",
+        "https://www.cityofhuntington.com/business/existing-business/city-service-fee/": "City of Huntington: City Service Fee, $5 a week"
       },
       "disclaimer": [
-        "Local income taxes are not included. WV municipal service/city fees are not income taxes and are not modeled.",
+        "West Virginia has no local income tax, but some cities, Charleston among them, take a flat weekly city service fee out of the pay of everyone who works there ($3 a week in Charleston, $5 in Huntington), and this calculator leaves it out.",
         "WV has no standard deduction; we model one $2,000 personal exemption ($4,000 MFJ). Each dependent adds another $2,000 not modeled — estimates run slightly high for filers with dependents."
       ],
       "notes": "Graduated 2.11% to 4.58% for 2026 after the Senate Bill 392 rate cut, with the same brackets for single, joint and head of household filers."
@@ -3077,18 +3079,42 @@
               "upTo": null
             }
           ]
+        },
+        "exemptionCredit": {
+          "name": "personal exemption credit",
+          "amount": {
+            "single": 158,
+            "married": 316,
+            "head_of_household": 158
+          },
+          "exemptions": {
+            "single": 1,
+            "married": 2,
+            "head_of_household": 1
+          },
+          "phaseout": {
+            "over": {
+              "single": 252203,
+              "married": 504411,
+              "head_of_household": 378310
+            },
+            "per": 2500,
+            "reduceBy": 6
+          },
+          "phaseoutFigureYear": 2025
         }
       },
-      "_source": "California 2026 Form 540 tax rate schedules and standard deduction, from the Franchise Tax Board's Tax News, October 2026, article '2026 Indexing' ('Announcing the 2026 tax tier indexed amounts for California taxes'; CCPI June 2025 to June 2026, 3.4%). Nine statutory rates 1/2/4/6/8/9.3/10.3/11.3/12.3%. Schedule X single/MFS thresholds 11,456 / 27,157 / 42,861 / 59,498 / 75,197 / 384,109 / 460,927 / 768,213; Schedule Y MFJ/QSS 22,912 / 54,314 / 85,722 / 118,996 / 150,394 / 768,218 / 921,854 / 1,536,426; Schedule Z head of household 22,927 / 54,316 / 70,018 / 86,654 / 102,356 / 522,385 / 626,864 / 1,044,771. Standard deduction 'for single or married filing separate taxpayers $5,706 $5,900' and 'for joint, surviving spouse, or head of household taxpayers $11,412 $11,800' (2025 then 2026). The article prints Schedule Y's 118,996 to 150,394 row as '4,109.92 + 8.00% of the amount over 118,966'; 118,966 is a typo for 118,996, since 2,113.48 + 6% x (118,996 - 85,722) = 4,109.92, and the engine uses the row edges. The article says 'The complete 2026 tax rates and exemption amounts will be available on FTB's website in late December.' UPDATED 2026-10-03 from the 2025 schedules (figureYear 2025, prior-year fallback) to these 2026 figures. The link is the current Tax News edition; FTB files past editions under tax-news/YYYY/MM.html. Modeled state-only. https://www.ftb.ca.gov/about-ftb/newsroom/tax-news/index.html",
+      "_source": "California 2026 Form 540 tax rate schedules and standard deduction, from the Franchise Tax Board's Tax News, October 2026, article '2026 Indexing' ('Announcing the 2026 tax tier indexed amounts for California taxes'; CCPI June 2025 to June 2026, 3.4%). Nine statutory rates 1/2/4/6/8/9.3/10.3/11.3/12.3%. Schedule X single/MFS thresholds 11,456 / 27,157 / 42,861 / 59,498 / 75,197 / 384,109 / 460,927 / 768,213; Schedule Y MFJ/QSS 22,912 / 54,314 / 85,722 / 118,996 / 150,394 / 768,218 / 921,854 / 1,536,426; Schedule Z head of household 22,927 / 54,316 / 70,018 / 86,654 / 102,356 / 522,385 / 626,864 / 1,044,771. Standard deduction 'for single or married filing separate taxpayers $5,706 $5,900' and 'for joint, surviving spouse, or head of household taxpayers $11,412 $11,800' (2025 then 2026). The article prints Schedule Y's 118,996 to 150,394 row as '4,109.92 + 8.00% of the amount over 118,966'; 118,966 is a typo for 118,996, since 2,113.48 + 6% x (118,996 - 85,722) = 4,109.92, and the engine uses the row edges. The article says 'The complete 2026 tax rates and exemption amounts will be available on FTB's website in late December.' UPDATED 2026-10-03 from the 2025 schedules (figureYear 2025, prior-year fallback) to these 2026 figures. The link is the current Tax News edition; FTB files past editions under tax-news/YYYY/MM.html. Modeled state-only. PERSONAL EXEMPTION CREDIT MODELLED 2026-10-03, from the same Tax News article: 'Personal exemption credit amount for single, separate, and head of household taxpayers $153 $158' and 'Personal and senior exemption credit amount for joint filers or surviving spouses $306 $316' (2025 then 2026). The credit comes off the tax, not off taxable income (2025 Form 540 instructions, line 32: 'Exemption credits reduce your tax'). It shrinks at high incomes per the AGI Limitation Worksheet in the same instructions: 'If your federal AGI on line 13 is more than the amount shown below for your filing status, your credits will be limited', 'Single or married/RDP filing separately $252,203 Married/RDP filing jointly or qualifying surviving spouse/RDP $504,411 Head of household $378,310', then 'Divide line c by $2,500 ($1,250 if married/RDP filing separately). If the result is not a whole number, round it to the next higher whole number. Multiply line d by $6', multiplied by the number of exemptions claimed (one single or head of household, two on a joint return). Those thresholds are tax year 2025 figures: the FTB says its complete 2026 exemption amounts come in late December. Dependent exemption credits ($491 each for 2026, same article) are not modelled. https://www.ftb.ca.gov/about-ftb/newsroom/tax-news/index.html ; https://www.ftb.ca.gov/forms/2025/2025-540-instructions.html",
       "disclaimer": [
         "These are California's 2026 tax brackets and standard deduction as announced by the Franchise Tax Board in October 2026. The board says its complete 2026 tables will be on its website in late December.",
         "The California 1% Behavioral Health Services Tax (formerly Mental Health Services Act) surcharge on taxable income over $1,000,000 — which raises the top effective rate to 13.3% — is NOT modeled here.",
-        "California's personal exemption credits, dependent credits, and itemized deductions are not modeled."
+        "California's personal exemption credit is included: $158 off the tax for a single or head of household filer and $316 for a married couple filing jointly, the 2026 amounts. It shrinks once income passes $252,203 for a single filer ($504,411 married filing jointly, $378,310 head of household), which are California's 2025 limits because its 2026 ones are not out yet.",
+        "Credits for dependents and itemized deductions are not included."
       ],
-      "notes": "Progressive 1%-12.3% (nine brackets, 2026 FTB schedules). +1% surcharge over $1M and personal/dependent credits not modeled.",
+      "notes": "Progressive 1%-12.3% (nine brackets, 2026 FTB schedules), less the personal exemption credit ($158 single, $316 joint for 2026; phase-out thresholds are the 2025 ones). +1% surcharge over $1M and dependent credits not modeled.",
       "_watch": {
         "until": "2026-12-31",
-        "what": "California's 2026 brackets and standard deduction come from FTB Tax News, October 2026 ('2026 Indexing'), cited at the current-edition URL. Once October 2026 moves to https://www.ftb.ca.gov/about-ftb/newsroom/tax-news/2026/10.html, swap the link, and when FTB posts the complete 2026 Form 540 tax rate schedules in late December, confirm they match."
+        "what": "California's 2026 brackets and standard deduction come from FTB Tax News, October 2026 ('2026 Indexing'), cited at the current-edition URL. Once October 2026 moves to https://www.ftb.ca.gov/about-ftb/newsroom/tax-news/2026/10.html, swap the link, and when FTB posts the complete 2026 Form 540 tax rate schedules in late December, confirm they match. The personal exemption credit (tax.exemptionCredit) uses the 2026 amounts from the same article but the tax year 2025 phase-out thresholds (252,203 / 504,411 / 378,310) from the 2025 Form 540 instructions: when FTB publishes the 2026 thresholds (2026 Form 540 instructions, line 32), replace exemptionCredit.phaseout.over, set phaseoutFigureYear to 2026, and update the disclaimer and _source."
       }
     },
     "missouri": {
