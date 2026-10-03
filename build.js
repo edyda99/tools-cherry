@@ -6754,7 +6754,8 @@ function caPageCopy(r, rungs, ctx) {
     `The biggest single line at ${S} is ${biggest[0]} at ${usd0(biggest[1])}; the smallest is ` +
     `${smallest[0]} at ${usd0(smallest[1])}.`,
     `Modelled as a single filer on ${year} rules taking the standard deduction, with no 401(k), no ` +
-    `health premiums and no dependents. ${biggest[0]} is the heaviest line here at ${usd0(biggest[1])}, ` +
+    `health premiums and no dependents. ${biggest[0][0].toUpperCase() + biggest[0].slice(1)} is the heaviest ` +
+    `line here at ${usd0(biggest[1])}, ` +
     `and ${smallest[0]} the lightest at ${usd0(smallest[1])}.`,
     `${year} rules, single filer, standard deduction, nothing pre-tax and nobody to claim. Of the lines ` +
     `below, ${biggest[0]} takes the most at ${usd0(biggest[1])} and ${smallest[0]} the least at ` +
@@ -7401,8 +7402,11 @@ function caLadderSources(taxData, state) {
   // only citation for the `_noTaxBasis` prose, so losing them would leave a sourced
   // claim on the page with nothing behind it.
   (state._noTaxBasis && state._noTaxBasis.sources || []).forEach((src) => add(src.title, src.url));
+  // A program may title its own document (_sourceTitles, keyed by URL, as on the state);
+  // otherwise the page names it by the program and what it settles.
   (state.employeePrograms || []).forEach((p) => add(
-    isCA ? 'California EDD: SDI rates and withholding' : `${programLabel(state, p)}: rate and withholding`,
+    (p._sourceTitles || {})[p._source]
+      || (isCA ? 'California EDD: SDI rates and withholding' : `${programLabel(state, p)}: rate and withholding`),
     p._source));
   const SOURCE_TITLES = {
     federal_brackets: `IRS: ${taxData.taxYear} inflation-adjusted tax brackets`,
@@ -8320,6 +8324,10 @@ async function main() {
   }
 
   const builtSlugs = new Set(Object.keys(taxData.states));
+  // builtSlugs holds the District as well, so its size is the states plus one when DC is built;
+  // printing that size beside "and Washington, D.C." counted the District twice (51 + DC).
+  const llmsPlaces = builtSlugs.has('district-of-columbia')
+    ? `all ${builtSlugs.size - 1} US states and Washington, D.C.` : `all ${builtSlugs.size} US states`;
   const homeLinks = stateLinks(roster, builtSlugs, null);
   // Computed once over the jurisdictions the study actually ranks, then written
   // into all 51 state pages, so no page can claim a coverage the data denies.
@@ -9167,15 +9175,15 @@ async function main() {
             ? {
               q: `Why is my ${NAME} take-home pay lower than the federal bracket table suggests?`,
               a: `Because income tax is only part of it. On ${usd0(midRung.amount)} the federal income tax ` +
-                `is ${usd0(midRung.a.federal)}, but Social Security, Medicare` +
-                `${progs.length ? ` and ${caList(progLabels)}` : ''} take a further ${usd0(midOther)} on ` +
+                `is ${usd0(midRung.a.federal)}, but ${caList(['Social Security', 'Medicare', ...progLabels])} ` +
+                `take a further ${usd0(midOther)} on ` +
                 `the same wages, and none of those appear in a bracket table.`,
             }
             : {
               q: `Why is my ${NAME} take-home pay lower than a bracket table suggests?`,
               a: `Because income tax is only part of it. On ${usd0(midRung.amount)} the ${NAME} income tax ` +
-                `is ${usd0(midRung.a.state)}, but Social Security, Medicare` +
-                `${progs.length ? ` and ${caList(progLabels)}` : ''} take a further ${usd0(midOther)} on ` +
+                `is ${usd0(midRung.a.state)}, but ${caList(['Social Security', 'Medicare', ...progLabels])} ` +
+                `take a further ${usd0(midOther)} on ` +
                 `the same wages, and none of those appear in a bracket table.`,
             }),
           {
@@ -13112,7 +13120,7 @@ async function main() {
     `${llmsDataLines}\n\n` +
     `## Tools\n\n${llmsTools}\n\n` +
     `## State paycheck calculators\n\n` +
-    `Take-home pay (paycheck) calculators for all ${builtSlugs.size} US states and Washington, D.C. ` +
+    `Take-home pay (paycheck) calculators for ${llmsPlaces.replace(/\.?$/, '.')} ` +
     `Each estimates ${year} take-home pay after federal income tax, Social Security, Medicare, and (where applicable) state income tax. ` +
     `Start at the [paycheck calculator hub](${SITE.url}/#paycheck).\n\n` +
     `${builtStateLines}\n` +
@@ -13290,7 +13298,7 @@ async function main() {
     `## Tools\n\n${llmsFullTools}\n\n` +
     `## Datasets\n\n${llmsFullDatasets}\n\n` +
     `## State paycheck calculators\n\n` +
-    `Take-home pay (paycheck) calculators for all ${builtSlugs.size} US states and Washington, D.C. ` +
+    `Take-home pay (paycheck) calculators for ${llmsPlaces.replace(/\.?$/, '.')} ` +
     `Each estimates ${year} take-home pay after federal income tax, Social Security, Medicare, and (where applicable) state income tax. ` +
     `Start at the [paycheck calculator hub](${SITE.url}/#paycheck).\n\n` +
     `${builtStateLines}\n`;

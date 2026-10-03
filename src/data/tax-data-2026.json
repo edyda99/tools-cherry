@@ -704,7 +704,11 @@
           "rate": 0.004,
           "wageBase": 184500,
           "_fullName": "Delaware Paid Leave employee share, the most an employer may take out of your pay. Delaware charges 0.80% of wages in total for 2026 (0.4% medical + 0.32% parental + 0.08% family caregiving) and lets the employer deduct up to half of it from you, so 0.40% is the employee ceiling. Many employers pay some or all of your half, and employers with an approved private plan are outside the state fund, so what you actually see may be less.",
-          "_source": "19 Del. C. 3705(b)(1)a., (b)(2)a. and (b)(3)a.: 'For 2025 and 2026, the contribution rate for medical leave benefits as a percentage of wages is 0.4%' / 'for family caregiving leave benefits as a percentage of wages is 0.08%' / 'for parental leave benefits as a percentage of wages is 0.32%', a 0.80% total. 19 Del. C. 3705(d), (e) and (f) each read 'an employer shall deduct not greater than 50% of the contribution required for the employee. However, an employer may elect to pay all or any portion of the employee's share', which caps the employee at 0.40%. The wage cap follows 19 Del. C. 3701(24): 'Wages means remuneration for employment as determined for purposes of old-age, survivors, and disability insurance for employees and employers under the Federal Insurance Contribution Act, 26 U.S.C. Chapter 21', and the 2026 OASDI ceiling is $184,500 (SSA, Contribution and Benefit Base: 'For earnings in 2026, this base is $184,500'; ssa.gov refuses programmatic fetch, so this was read from the Wayback capture of that same page, web.archive.org/web/20260707030358/https://www.ssa.gov/oact/cola/cbb.html). https://delcode.delaware.gov/title19/c037/index.html"
+          "_source": "https://delcode.delaware.gov/title19/c037/index.html",
+          "_sourceTitles": {
+            "https://delcode.delaware.gov/title19/c037/index.html": "Delaware Code Title 19, Chapter 37: Family and Medical Leave Insurance Program"
+          },
+          "_sourceNote": "19 Del. C. 3705(b)(1)a., (b)(2)a. and (b)(3)a.: 'For 2025 and 2026, the contribution rate for medical leave benefits as a percentage of wages is 0.4%' / 'for family caregiving leave benefits as a percentage of wages is 0.08%' / 'for parental leave benefits as a percentage of wages is 0.32%', a 0.80% total. 19 Del. C. 3705(d), (e) and (f) each read 'an employer shall deduct not greater than 50% of the contribution required for the employee. However, an employer may elect to pay all or any portion of the employee's share', which caps the employee at 0.40%. The wage cap follows 19 Del. C. 3701(24): 'Wages means remuneration for employment as determined for purposes of old-age, survivors, and disability insurance for employees and employers under the Federal Insurance Contribution Act, 26 U.S.C. Chapter 21', and the 2026 OASDI ceiling is $184,500 (SSA, Contribution and Benefit Base: 'For earnings in 2026, this base is $184,500'; ssa.gov refuses programmatic fetch, so this was read from the Wayback capture of that same page, web.archive.org/web/20260707030358/https://www.ssa.gov/oact/cola/cbb.html)."
         }
       ],
       "hasIncomeTax": true,
@@ -1328,16 +1332,17 @@
       "tax": {
         "type": "none"
       },
-      "_source": "New Hampshire has never taxed wage income; its Interest & Dividends tax was fully repealed effective 2025 (NH Dept. of Revenue Administration). https://www.revenue.nh.gov/",
+      "_source": "New Hampshire does not tax wage income: the NH Dept. of Revenue Administration says the state does not have an income tax on an individual's reported W-2 wages, and its Interest and Dividends Tax was repealed for taxable periods beginning after December 31, 2024. Wages were taxed once, only for nonresidents, by the Commuters Income Tax that Austin v. New Hampshire, 420 U.S. 656 (1975), struck down. https://www.revenue.nh.gov/",
       "_sourceTitles": {
         "https://www.revenue.nh.gov/": "New Hampshire Department of Revenue Administration"
       },
       "_noTaxBasis": {
         "heading": "New Hampshire's interest and dividends tax never reached wages, and it ended with 2024",
         "paragraphs": [
-          "New Hampshire's income tax, while it lasted, was a tax on investment income rather than on work. The Interest and Dividends Tax sat in RSA chapter 77, titled \"Taxation of Incomes\", and the New Hampshire Department of Revenue Administration describes it as \"a tax assessed on interest and dividend income.\" The Department is explicit about pay: the state \"does not have an income tax on an individual's reported W-2 wages.\"",
+          "New Hampshire's Interest and Dividends Tax was a tax on investment income rather than on work. It sat in RSA chapter 77, titled \"Taxation of Incomes\", and the New Hampshire Department of Revenue Administration describes it as \"a tax assessed on interest and dividend income.\" The Department is explicit about pay: the state \"does not have an income tax on an individual's reported W-2 wages.\"",
           "That tax is now gone as well. The Department records that it was assessed at 5% for tax periods ending before 31 December 2023, at 4% for periods ending on or after that date, and at 3% for periods ending on or after 31 December 2024, and that it \"was repealed for taxable periods beginning after December 31, 2024.\" The legislature's text of chapter 77 now reads only that the entire chapter was repealed by a 2021 act, effective 1 January 2025.",
-          "For a salaried employee the repeal changed nothing on the pay stub, because wages sat outside the tax throughout. It matters to a resident with savings or a brokerage account, who no longer owes the Interest and Dividends Tax for taxable periods beginning in 2025 or later. On a New Hampshire salary anywhere on this ladder, each dollar withheld goes to federal tax, Social Security or Medicare."
+          "New Hampshire has taxed wages before, but only the wages of people living in other states. The Commuters Income Tax took 4% of a nonresident's New Hampshire-derived income above a $2,000 exemption, and employers had to withhold it. On 19 March 1975, in Austin v. New Hampshire, the U.S. Supreme Court held that the tax violates the Privileges and Immunities Clause, because it fell exclusively on nonresidents' incomes.",
+          "For a salaried employee the 2025 repeal changed nothing on the pay stub, because wages sat outside the tax throughout. It matters to a resident with savings or a brokerage account, who no longer owes the Interest and Dividends Tax for taxable periods beginning in 2025 or later. On a New Hampshire salary anywhere on this ladder, each dollar withheld goes to federal tax, Social Security or Medicare."
         ],
         "sources": [
           {
@@ -1347,6 +1352,10 @@
           {
             "title": "New Hampshire RSA chapter 77, Taxation of Incomes: repeal note",
             "url": "https://gc.nh.gov/rsa/html/V/77/77-mrg.htm"
+          },
+          {
+            "title": "U.S. Supreme Court: Austin v. New Hampshire, 420 U.S. 656 (1975), in the U.S. Reports at the Library of Congress",
+            "url": "https://tile.loc.gov/storage-services/service/ll/usrep/usrep420/usrep420656/usrep420656.pdf"
           }
         ]
       },
