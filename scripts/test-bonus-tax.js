@@ -260,8 +260,13 @@ const run = (input) => computeBonus(input, taxData, suppData);
   // read (michigan.gov returns 403 to automated fetch of older editions, so how far back the same
   // sentence runs is unverified). The entry was simply mis-bucketed here, its source read
   // "repoTaxData" and it carried no source URL.
-  is('flat = 21', count('flat'), 21);
-  is('regular = 18', count('regular'), 18);
+  // 2026-10-03: massachusetts moved regular -> flat 5%, so flat 21->22 and regular 18->17.
+  // Circular M (2026), section G, gives a percentage method for supplemental wages: "If the
+  // result of step 4 is $1,107,750 or less, withhold 5% of the amount determined in step 3",
+  // and 9% on the part of combined annualized wages above $1,107,750. The entry carries that
+  // upper rate as rateAbove / rateAboveOver, tested below.
+  is('flat = 22', count('flat'), 22);
+  is('regular = 17', count('regular'), 17);
   is('special = 3', count('special'), 3);
   is('buckets cover all 51', count('none') + count('flat') + count('regular') + count('special'), 51);
   // every entry has verified + source; flagged ones carry singleSourced
@@ -468,13 +473,25 @@ const run = (input) => computeBonus(input, taxData, suppData);
   // check on payday, and an employer's withholding tables do not carry a Form 1 line
   // 11 deduction the filer claims on the return. So Massachusetts genuinely
   // over-withholds here, and the 23.50 gap is a real refund, not a rounding artifact.
-  eq('MA1 withheld state tax is the plain 5% aggregate delta', r.withheld.state, 500);
+  eq('MA1 withheld state tax is the flat 5% supplemental rate', r.withheld.state, 500);
   eq('MA1 the gap shows up as delta', r.delta - (r.withheld.federal - r.trueLiability.federal), 23.50);
   // Above the crossover the cap binds at BOTH ends and the deduction really does
   // cancel, so a high earner's answer is unchanged by this fix.
   const hi = run({ bonus: 10000, regIncome: 90000, filingStatus: 'single', stateSlug: 'massachusetts' });
   eq('MA2 above the crossover the deduction cancels', hi.trueLiability.state, 500);
   eq('MA2 and matches the withheld column', hi.withheld.state, 500);
+  // Circular M section G's own example: $948,000 a year plus a $350,000 bonus. Its step 4
+  // subtracts $2,000 of retirement contributions and the $4,400 exemption, which this tool
+  // does not see, so the engine's excess is 1,298,000 - 1,107,750 = 190,250 rather than
+  // Circular M's 183,850: 0.09 x 190,250 + 0.05 x 159,750 = 17,122.50 + 7,987.50 = 25,110.
+  // (Circular M's own answer with its deductions is $24,854.)
+  const ma = suppData.states.massachusetts;
+  eq('MA3 Circular M upper rate 9%', ma.rateAbove, 0.09);
+  eq('MA3 Circular M threshold $1,107,750', ma.rateAboveOver, 1107750);
+  const big = run({ bonus: 350000, regIncome: 948000, filingStatus: 'single', stateSlug: 'massachusetts' });
+  eq('MA3 9% on the part above $1,107,750, 5% on the rest', big.withheld.state, 25110);
+  const under = run({ bonus: 10000, regIncome: 1000000, filingStatus: 'single', stateSlug: 'massachusetts' });
+  eq('MA3 all 5% while the year stays under the threshold', under.withheld.state, 500);
 }
 
 // --- ALABAMA / MISSOURI / OREGON: the federal-tax subtraction reaches the bonus tool ---------

@@ -227,10 +227,14 @@
     "massachusetts": {
       "name": "Massachusetts",
       "abbr": "MA",
-      "method": "regular",
+      "method": "flat",
+      "rate": 0.05,
+      "rateAbove": 0.09,
+      "rateAboveOver": 1107750,
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate supplemental rate; aggregate method. Massachusetts is 5% flat, plus a 4% surtax on the part of your income above $1,107,750 for 2026 (the threshold is adjusted every year)."
+      "source": "Massachusetts Department of Revenue, Circular M (withholding tables effective January 1, 2026, Rev. 12/25), section G: withhold 5% of a supplemental wage payment, and 9% on the part of combined annualized wages above $1,107,750.",
+      "_sourceUrl": "https://www.mass.gov/doc/massachusetts-circular-m-income-tax-withholding-tables-at-50-effective-january-1-2026/download",
+      "note": "Massachusetts withholds a flat 5% on a bonus. When the bonus plus your yearly wages from that employer comes to more than $1,107,750 in 2026, the part above that amount is withheld at 9%, and this estimate does the same."
     },
     "michigan": {
       "name": "Michigan",

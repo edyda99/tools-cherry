@@ -55,6 +55,14 @@ export function supplementalStateWithholding(bonus, supp, ctx = {}) {
     case 'none':
       return 0;
     case 'flat':
+      // Massachusetts (Circular M, section G): the flat rate, except that the part of the
+      // payment that lifts the year's wages from this employer (regular plus supplemental)
+      // over `rateAboveOver` is withheld at `rateAbove` instead (5%, and 9% over $1,107,750
+      // for 2026).
+      if (supp.rateAbove != null && supp.rateAboveOver != null) {
+        const above = Math.min(b, Math.max(0, (ctx.annualGross ?? b) - supp.rateAboveOver));
+        return above * supp.rateAbove + (b - above) * supp.rate;
+      }
       return b * supp.rate;
     case 'special':
       if (supp.special === 'ca_dual') {
