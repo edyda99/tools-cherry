@@ -375,6 +375,85 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
   }
 }
 
+// --- 12. UTAH'S CREDIT IS DESCRIBED AS A CREDIT (added 2026-10-03). The engine models Utah's
+// taxpayer tax credit as the deduction worth the same at 4.45% ($21,708 single), a figure Utah
+// never publishes. Pages that printed it implied about $1,704 of tax at $60,000, where Utah charges
+// $2,247. Every Utah page now says: 4.45% on every dollar, less a credit that shrinks. The same
+// section pins the October presentation fixes: prior-year amounts said to be prior-year, Ohio's
+// tiers, Maine's phase-out, and the Oregon transit tax citation.
+{
+  const DIST = join(__dirname, '..', 'dist');
+  const read = (p) => { try { return readFileSync(join(DIST, p, 'index.html'), 'utf8'); } catch { return null; } };
+  const visible = (h) => h.replace(/<script[\s\S]*?<\/script>/g, ' ').replace(/<style[\s\S]*?<\/style>/g, ' ');
+  const utahPages = existsSync(DIST) ? readdirSync(DIST).filter((d) => /^utah-/.test(d)) : [];
+  if (utahPages.length) {
+    const shared = ['bonus-tax-calculator', 'embed/paycheck-calculator', 'embed/bonus-tax-calculator'];
+    const leaks = [];
+    for (const d of [...utahPages, ...shared]) {
+      const h = read(d);
+      if (!h) continue;
+      if (h.includes('credit-equivalent')) leaks.push(`${d}: credit-equivalent`);
+      if (!/^utah-/.test(d)) continue;
+      const v = visible(h);
+      for (const bad of ['21,708', '21,707', '43,416', 'Utah taxable income', 'Utah subtracts', 'subtracts first',
+        'deduction is smaller at', 'not the published figure', 'neither applies to the whole salary']) {
+        if (v.includes(bad)) leaks.push(`${d}: "${bad}"`);
+      }
+    }
+    is('no Utah page prints the modelled deduction or calls the credit a deduction', leaks.slice(0, 6).join(' | '), '');
+    const pc = read('utah-paycheck-calculator');
+    is('Utah paycheck headline: the rate on every dollar, then the credit',
+      pc.includes('taxes every dollar of income at the single flat rate of <strong>4.45%</strong>, then subtracts a ' +
+        'taxpayer tax credit: up to $966 for single filers and $1,932 for married couples filing jointly. The credit ' +
+        'is cut by 1.3 cents for each dollar of income over $18,213 ($36,426 married), so it is gone by about ' +
+        '$92,500 ($185,000 married).'), true);
+    is('Utah paycheck headline: the $60,000 credit and tax, from the engine',
+      pc.includes('a single filer earning $60,000 gets a taxpayer tax credit of about $423, so pays about $2,247 ' +
+        'in Utah income tax'), true);
+    const p50 = read('utah-take-home-pay-50000');
+    const p100 = read('utah-take-home-pay-100000');
+    is('Utah $50k method line', p50.includes('4.45% on the whole $50,000 ($2,225), less the $553 taxpayer tax credit → $1,672.'), true);
+    is('Utah $50k: the raise from the bottom rung costs credit',
+      p50.includes('the same filer keeps $813 of it, so the raise from there to $50,000 costs $260 of credit on top of ' +
+        '4.45% of the extra pay'), true);
+    is('Utah $50k: the next dollar costs the rate plus the credit cut',
+      p50.includes('each extra dollar of pay costs 5.75% in Utah tax, the 4.45% rate plus the 1.3 cents of credit it ' +
+        'takes away'), true);
+    is('Utah $100k method line', p100.includes('4.45% on the whole $100,000 ($4,450), with the taxpayer tax credit run out ' +
+      'at this salary → $4,450.'), true);
+    is('Utah hub method clause',
+      read('utah-take-home-pay').includes('Utah income tax is 4.45% of the whole salary, less a taxpayer tax credit that ' +
+        'shrinks as the ladder climbs, from $813 at $30,000 to $0 at $200,000'), true);
+  }
+  const vt = read('vermont-paycheck-calculator');
+  if (vt) {
+    is('Vermont headline says its deduction is the 2025 amount',
+      vt.includes('Vermont has not published its 2026 standard deduction plus personal exemption yet, so this page ' +
+        'uses its 2025 amounts until it does: $12,950 for single filers'), true);
+    is('Vermont headline no longer calls it the 2026 figure',
+      vt.includes("For 2026, Vermont's state standard deduction plus personal exemption is"), false);
+    const oh = read('ohio-paycheck-calculator');
+    is('Ohio headline: 2025 amounts and each tier, including the $2,150 its $60,000 example uses',
+      oh.includes('Ohio has not published its 2026 personal exemption yet, so this page uses its 2025 amounts until it ' +
+        'does: $2,400 for single filers and $4,800 for married couples filing jointly, stepping down to $2,150 above ' +
+        '$40,000 of income and $1,900 above $80,000 ($4,300 and $3,800 for married couples filing jointly), and to ' +
+        'nothing from $500,000'), true);
+    is('Maine headline says where its deduction starts shrinking',
+      read('maine-paycheck-calculator').includes('shrinking above $102,250 of income for single filers and $204,550 ' +
+        'for married couples filing jointly'), true);
+    is('Rhode Island headline no longer says "to $0 and $0"',
+      read('rhode-island-paycheck-calculator').includes('shrinking above $261,000 of income and gone above $290,800'), true);
+    is('New Jersey calls its subtraction a personal exemption',
+      read('new-jersey-paycheck-calculator').includes("For 2026, New Jersey's state personal exemption is $1,000"), true);
+    const or50 = read('oregon-take-home-pay-50000');
+    if (or50) {
+      is('Oregon ladder cites the transit tax page by name',
+        or50.includes('<a href="https://www.oregon.gov/dor/programs/businesses/pages/statewide-transit-tax.aspx" ' +
+          'rel="noopener" target="_blank">Oregon Department of Revenue: statewide transit tax</a>'), true);
+    }
+  }
+}
+
 // --- 11. EVERY SOURCE LINK SAYS WHAT IT IS (added 2026-10-02). Most states' own URLs were all
 // captioned "<State>: source for the state figures on this page", so Maryland printed that line
 // five times over five different documents. The titles now live beside each URL in

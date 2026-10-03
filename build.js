@@ -1934,6 +1934,41 @@ const hasStateDeduction = (t) => !!(t && t.standardDeduction);
 // an exemption a standard deduction. States without the field read exactly as before.
 const sdName = (t) => (t && t.deductionName) || 'standard deduction';
 
+// A STATE WITH A CREDIT, NOT A DEDUCTION. Utah charges its flat rate on every dollar of income and
+// then subtracts a taxpayer tax credit that is cut by 1.3 cents for each dollar of income over a
+// base amount. The data models that credit as the deduction worth the same at the flat rate
+// (credit / rate, phased out over credit / 1.3%), which gives exactly the same tax and keeps one
+// engine path, but that deduction is a figure Utah never publishes and it misleads a reader: "the
+// first $21,708 is untaxed" implies about $1,704 at $60,000, where Utah charges $2,247. So a state
+// whose data carries `tax.creditAsDeduction` is described in credit terms wherever a page renders
+// it, and every credit figure is worked back from the same data (credit = rate x the modelled
+// deduction) or from the engine's own tax, never typed.
+const isCreditState = (t) => !!(t && t.creditAsDeduction);
+const creditName = (t) => (t && t.creditAsDeduction && t.creditAsDeduction.name) || 'tax credit';
+function creditTerms(t, fs) {
+  const ded = t.standardDeduction && t.standardDeduction[fs];
+  const p = t.standardDeductionPhaseout && t.standardDeductionPhaseout[fs];
+  const max = (ded || 0) * t.rate;
+  return {
+    max,
+    over: p ? p.over : null,
+    // Credit lost per dollar of income over the base amount, in cents: 1.3 for Utah.
+    cents: p && p.denominator > 0 ? Number((max / p.denominator * 100).toFixed(2)) : null,
+    goneAt: p && p.denominator > 0 ? p.over + p.denominator : null,
+  };
+}
+// "gone by about $92,500": the exact point ($92,520.69) is an artefact of the modelling, so it is
+// rounded to the nearest $500 where it is quoted.
+const aboutUsd = (x) => usd0(Math.round(x / 500) * 500);
+// The sentence that says the credit's income levels are an earlier year's, read off the data.
+const creditYearNote = (state, year) => {
+  const t = state.tax;
+  const fy = t && t.creditAsDeduction && t.creditAsDeduction.phaseoutFigureYear;
+  return fy && Number(fy) !== Number(year)
+    ? ` Those income levels are ${state.name}'s ${fy} amounts, used until it publishes its ${year} ones.`
+    : '';
+};
+
 // Genuinely state-specific tax facts derived from the (already-sourced) data:
 // bracket count, rate range, top rate + threshold, standard deduction, and a
 // worked $60k example. Distinct per state — clears scaled/duplicate-content risk.
@@ -1944,22 +1979,74 @@ function stateTaxFacts(state, year, taxData) {
   // figures are maximums and the worked example below uses the floor. Said here so the two
   // reconcile. Only the stepped shape carries `minimum`; Wisconsin and South Carolina keep
   // the sentence they ship.
-  const sdStep = t.standardDeductionPhaseout && t.standardDeductionPhaseout.single;
+  const phase = t.standardDeductionPhaseout || null;
+  const sdStep = phase && phase.single;
+  const sdStepM = phase && (phase.married || phase.single);
   // A `roundUp` row (Ohio, Rhode Island) takes its next step on the first dollar over a band
-  // edge, so its floor is reached just above `over + (steps - 1) * per`, not at `over + steps * per`.
-  const sdFloorSteps = sdStep && sdStep.reduceBy > 0 ? Math.ceil((sd ? sd.single - sdStep.minimum : 0) / sdStep.reduceBy) : 0;
-  const sdFloor = (sd && sdStep && sdStep.minimum != null && sdStep.per > 0 && sdStep.reduceBy > 0)
-    ? `, shrinking as income rises to ${usd0(sdStep.minimum)} and ` +
-      `${usd0((t.standardDeductionPhaseout.married || sdStep).minimum)} ` +
-      (sdStep.roundUp
-        ? `above ${usd0(sdStep.over + (sdFloorSteps - 1) * sdStep.per)} of income`
-        : `from ${usd0(sdStep.over + sdFloorSteps * sdStep.per)} of income`) +
-      // Ohio's exemption is not allowed at all from $500,000 of income (ORC 5747.025).
-      (sdStep.noneFrom != null ? `, and to nothing from ${usd0(sdStep.noneFrom)}` : '')
-    : '';
+  // edge, so step k lands just above `over + (k - 1) * per`; otherwise (Alabama) it lands at
+  // `over + k * per`. Each tier is the amount after that step and the income it starts at.
+  const stepTiers = (base, row) => {
+    const n = Math.ceil((base - row.minimum) / row.reduceBy);
+    return Array.from({ length: Math.max(0, n) }, (_, i) => ({
+      amount: Math.max(row.minimum, base - (i + 1) * row.reduceBy),
+      at: row.roundUp ? row.over + i * row.per : row.over + (i + 1) * row.per,
+    }));
+  };
+  const stepped = !!(sd && sdStep && sdStep.minimum != null && sdStep.per > 0 && sdStep.reduceBy > 0);
+  const tiersS = stepped ? stepTiers(sd.single, sdStep) : [];
+  const tiersM = stepped && sdStepM && sdStepM.per > 0 ? stepTiers(sd.married, sdStepM) : [];
+  const edge = (row, at) => `${row.roundUp ? 'above' : 'from'} ${usd0(at)}`;
+  let sdFloor = '';
+  if (stepped) {
+    const lastS = tiersS[tiersS.length - 1];
+    const sameEdges = tiersM.length === tiersS.length && tiersM.every((x, i) => x.at === tiersS[i].at);
+    if (tiersS.length && tiersS.length <= 3 && sameEdges) {
+      // Few enough tiers to name each one (Ohio's $2,150 and $1,900), so the worked example
+      // that follows can be traced to the tier it uses.
+      sdFloor = `, stepping down to ` +
+        caList(tiersS.map((x, i) => `${usd0(x.amount)} ${edge(sdStep, x.at)}${i === 0 ? ' of income' : ''}`)) +
+        ` (${caList(tiersM.map((x) => usd0(x.amount)))} for married couples filing jointly)`;
+    } else if (sdStep.minimum === 0 && (sdStepM.minimum || 0) === 0) {
+      // Rhode Island reaches nothing; "to $0 and $0" said that badly.
+      sdFloor = `, shrinking above ${usd0(sdStep.over)} of income and gone ${edge(sdStep, lastS.at)}`;
+    } else if (lastS) {
+      sdFloor = `, shrinking as income rises to ${usd0(sdStep.minimum)} and ${usd0(sdStepM.minimum)} ` +
+        `${edge(sdStep, lastS.at)} of income`;
+    }
+    // Ohio's exemption is not allowed at all from $500,000 of income (ORC 5747.025).
+    if (sdStep.noneFrom != null) sdFloor += `, and to nothing from ${usd0(sdStep.noneFrom)}`;
+  } else if (sd && sdStep) {
+    // Straight-line phase-outs (Wisconsin, South Carolina) and Maine's two-piece one: say where
+    // the shrinking starts, per filing status, as the stepped states' sentences do.
+    const startOf = (row) => Array.isArray(row)
+      ? Math.min(...row.map((p) => p.over))
+      : (row && row.denominator ? row.over : null);
+    const s0 = startOf(sdStep);
+    const m0 = startOf(sdStepM);
+    if (s0 != null) {
+      sdFloor = m0 != null && m0 !== s0
+        ? `, shrinking above ${usd0(s0)} of income for single filers and ${usd0(m0)} for married couples filing jointly`
+        : `, shrinking above ${usd0(s0)} of income`;
+    }
+  }
+  // A state still on last year's deduction says so here rather than calling it this year's.
+  const fy = Number(state.figureYear);
+  const priorYear = fy && fy !== Number(year) ? fy : null;
+  const sdPrior = priorYear && ['standardDeduction', 'thresholdsAndDeduction'].includes(state.figureYearScope);
   const sdText = sd
-    ? `For ${year}, ${state.name}'s state ${sdName(t)} is ${usd0(sd.single)} for single filers and ${usd0(sd.married)} for married couples filing jointly${sdFloor}`
+    ? (sdPrior
+      ? `${state.name} has not published its ${year} ${sdName(t)} yet, so this page uses its ${priorYear} ` +
+        `amounts until it does: ${usd0(sd.single)} for single filers and ${usd0(sd.married)} for married couples ` +
+        `filing jointly${sdFloor}`
+      : `For ${year}, ${state.name}'s state ${sdName(t)} is ${usd0(sd.single)} for single filers and ${usd0(sd.married)} for married couples filing jointly${sdFloor}`)
     : `${state.name} does not provide a state standard deduction`;
+  // And a state on last year's rate schedule (Idaho) or thresholds (Arkansas) says that too.
+  const priorNote = !priorYear ? ''
+    : state.figureYearScope === 'thresholdsAndDeduction'
+      ? ` The bracket thresholds are ${state.name}'s ${priorYear} amounts too, used until it publishes its ${year} ones.`
+      : (state.figureYearScope || 'brackets') === 'brackets'
+        ? ` The rates and thresholds are ${state.name}'s ${priorYear} schedule, used until it publishes its ${year} one.`
+        : '';
   // The federal income tax the state lets you subtract (Alabama, Missouri, Oregon), stated
   // from the data so the $60,000 example that follows can be reproduced.
   const fedSubWords = fedSubRule(state);
@@ -1976,13 +2063,45 @@ function stateTaxFacts(state, year, taxData) {
     }
   } catch (_) { /* leave example empty if compute fails */ }
 
+  if (t.type === 'flat' && isCreditState(t)) {
+    // Utah: the rate on every dollar, then the credit, in dollars. The $60,000 credit is the
+    // engine's own: the rate on the whole salary less the tax the engine charged.
+    const cs = creditTerms(t, 'single');
+    const cm = creditTerms(t, 'married');
+    const cn = creditName(t);
+    // The sentence quotes one cut rate for both statuses, so the data must agree with it.
+    if (cm.cents != null && cs.cents != null && cm.cents !== cs.cents) {
+      throw new Error(`${state.name}: the ${cn} is cut at ${cs.cents} cents single but ${cm.cents} married; ` +
+        `the headline quotes one rate. Fix the data or the sentence, do not ship it.`);
+    }
+    let creditExample = '';
+    try {
+      const ann = computePaycheck({ wage: { type: 'salary', amount: 60000 }, filingStatus: 'single', payFrequency: 'annual', stateSlug: state.slug }, taxData).annual;
+      if (Number.isFinite(ann.state)) {
+        const credit60 = 60000 * t.rate - ann.state;
+        creditExample = ` As a worked example, a single filer earning $60,000 gets a ${cn} of about ` +
+          `${usd0(credit60)}, so pays about ${usd0(ann.state)} in ${state.name} income tax (roughly ` +
+          `${(ann.state / 60000 * 100).toFixed(1)}% of gross) before federal tax and FICA.`;
+      }
+    } catch (_) { /* leave the example out if compute fails */ }
+    const cutClause = cs.cents != null
+      ? ` The credit is cut by ${cs.cents} cents for each dollar of income over ${usd0(cs.over)}` +
+        (cm.over != null ? ` (${usd0(cm.over)} married)` : '') +
+        `, so it is gone by about ${aboutUsd(cs.goneAt)}` +
+        (cm.goneAt != null ? ` (${aboutUsd(cm.goneAt)} married)` : '') + `.` + creditYearNote(state, year)
+      : '';
+    return `<p>For ${year}, ${state.name} taxes every dollar of income at the single flat rate of ` +
+      `<strong>${pctStr(t.rate)}</strong>, then subtracts a ${cn}: up to ${usd0(cs.max)} for single filers ` +
+      `and ${usd0(cm.max)} for married couples filing jointly.${cutClause} ${state.name} does not use ` +
+      `graduated brackets for ${year}.${fedSubText}${creditExample}</p>`;
+  }
   if (t.type === 'flat') {
     // "after that, all REMAINING taxable income" only parses when sdText named a
     // deduction to come off first; after "X does not provide a state standard
     // deduction" it pointed at nothing.
     const rest = sd ? 'after that, all remaining taxable income is' : 'all taxable income is';
     return `<p>${sdText}; ${rest} taxed at the single ` +
-      `flat rate of <strong>${pctStr(t.rate)}</strong> — ${state.name} does not use graduated brackets for ${year}.${fedSubText}${example}</p>`;
+      `flat rate of <strong>${pctStr(t.rate)}</strong> — ${state.name} does not use graduated brackets for ${year}.${fedSubText}${priorNote}${example}</p>`;
   }
   if (isEffectivelyFlat(t)) {
     const f = effectiveFlatFacts(t);
@@ -1998,11 +2117,11 @@ function stateTaxFacts(state, year, taxData) {
       return `<p>${sdText}; ${band} taxed at <strong>0%</strong>, and once taxable income passes ` +
         `${usd0(f.zeroUpTo)} the tax is a flat <strong>${usd0(f.base)}</strong> plus ` +
         `<strong>${pctStr(f.rate)}</strong> of the amount above it. ` +
-        `${state.name} does not run a ladder of rising rates for ${year}.${fedSubText}${example}</p>`;
+        `${state.name} does not run a ladder of rising rates for ${year}.${fedSubText}${priorNote}${example}</p>`;
     }
     return `<p>${sdText}; ${band} taxed at ` +
       `<strong>0%</strong> and every dollar above it at the single flat rate of <strong>${pctStr(f.rate)}</strong> — ` +
-      `${state.name} does not run a ladder of rising rates for ${year}.${fedSubText}${example}</p>`;
+      `${state.name} does not run a ladder of rising rates for ${year}.${fedSubText}${priorNote}${example}</p>`;
   }
   const b = t.brackets.single || [];
   const n = b.length;
@@ -2012,7 +2131,7 @@ function stateTaxFacts(state, year, taxData) {
   return `<p>${state.name} uses a <strong>graduated income tax with ${n} bracket${n > 1 ? 's' : ''}</strong> for ${year}, ` +
     `with marginal rates ranging from ${low} to a top rate of <strong>${top}</strong>` +
     (topThresh ? ` (which applies to single-filer taxable income above ${usd0(topThresh)})` : '') + `. ` +
-    `${sdText}.${fedSubText}${example}</p>`;
+    `${sdText}.${fedSubText}${priorNote}${example}</p>`;
 }
 
 // Near-page-1 target states (06-28): the 5 with at least one query inside SERP
@@ -2865,7 +2984,9 @@ function stateBody(state, year, taxData) {
   let how;
   if (t.type === 'flat') {
     how = `${state.name} levies a <strong>flat ${pctStr(t.rate)} state income tax</strong> for ${year}`;
-    how += t.standardDeduction
+    how += isCreditState(t)
+      ? ` on every dollar of income, less a ${creditName(t)} that shrinks as income rises.`
+      : t.standardDeduction
       ? `, applied after the state allowance/deduction for your filing status.`
       : ` on your wages, with no state standard deduction.`;
   } else if (isEffectivelyFlat(t)) {
@@ -4665,6 +4786,20 @@ function caRung(amount, taxData, slug) {
       );
     }
     st = { taxable, tax, rate: t.rate };
+    // Utah's credit, in the terms the page prints it: the rate on the whole salary, less the
+    // credit, equals the tax. The credit is the rate on the modelled deduction that survives
+    // here, and the identity is checked against the engine like the working above.
+    if (isCreditState(t)) {
+      const taxBeforeCredit = amount * t.rate;
+      const credit = Math.min(stDedAfterPhaseout * t.rate, taxBeforeCredit);
+      if (stFicaDed > 0 || stFedSub > 0 || Math.abs(taxBeforeCredit - credit - a.state) > 0.01) {
+        throw new Error(
+          `${stData.name} credit working does not reproduce the engine's state tax on $${amount}: ` +
+          `${taxBeforeCredit} less a ${credit} credit is not the ${a.state} computePaycheck charged. Fix it, do not ship it.`
+        );
+      }
+      Object.assign(st, { taxBeforeCredit, credit, creditMax: creditTerms(t, 'single').max });
+    }
   } else {
     // NO STATE INCOME TAX — and the page says so in prose, drops the state row from the
     // withholding table and tells the reader every dollar withheld is federal. All three of
@@ -5626,6 +5761,41 @@ function caProseBlocks(r, rungs, ctx) {
     const rate = pctStr(r.st.rate);
     const effective = r.amount > 0 ? r.a.state / r.amount : 0;
     const dedShare = r.amount > 0 ? r.stDed / r.amount : 0;
+    if (r.st.credit != null) {
+      // Utah: the rate on every dollar, then the credit. What moves across the rungs is the
+      // credit, which loses its cut rate per dollar while it lasts, so the next dollar of pay
+      // costs the rate PLUS that cut until the credit is gone.
+      const ct = creditTerms(r.state.tax, 'single');
+      const cn = creditName(r.state.tax);
+      const hasCredit = r.st.credit > 0.005;
+      const shrinking = hasCredit && ct.over != null && ct.cents != null && r.amount > ct.over;
+      const creditBody = shrinking
+        ? `<p>The credit is the one thing on the ${NAME} side that changes as you climb this ladder. It ` +
+          `starts at ${usd0(ct.max)} for a single filer and loses ${ct.cents} cents for every dollar of income ` +
+          `over ${usd0(ct.over)}, so it is gone by about ${aboutUsd(ct.goneAt)}. Until then each extra dollar ` +
+          `of pay costs ${pctStr(r.st.rate + ct.cents / 100)} in ${NAME} tax, the ${rate} rate plus the ` +
+          `${ct.cents} cents of credit it takes away, which is why the effective ${NAME} rate here, ` +
+          `${pct1(effective)} of gross, climbs toward the ${rate} headline as pay rises.</p>`
+        : hasCredit
+        ? `<p>At ${S} the credit is still whole, because it only starts to shrink above ${usd0(ct.over)} of ` +
+          `income. Above that it loses ${ct.cents} cents for every dollar and is gone by about ` +
+          `${aboutUsd(ct.goneAt)}.</p>`
+        : `<p>At ${S} the credit no longer counts: it starts at ${usd0(ct.max)} for a single filer, loses ` +
+          `${ct.cents} cents for every dollar of income over ${usd0(ct.over)}, and is gone by about ` +
+          `${aboutUsd(ct.goneAt)}. So the effective ${NAME} rate on this salary is the full ${rate}, and ` +
+          `from here up a raise is charged that rate and nothing more.</p>`;
+      push('caband',
+        `<h3>${frame('cah', [
+          `What ${NAME}'s flat rate costs on ${S}`,
+          `${S} against ${NAME}'s single rate`,
+          `Why ${NAME}'s share of ${S} is easier to work out than the federal share`,
+        ])}</h3>` +
+        `<p>${NAME} has no bracket ladder to climb. One rate, ${rate}, applies to every dollar of the ` +
+        `salary, so unlike the federal schedule above there is no band edge anywhere near ${S} and no step ` +
+        `for a raise to fall over. What comes off afterwards is ${NAME}'s ${cn}` +
+        (hasCredit ? `, ${usd0(r.st.credit)} at this salary.</p>` : `, and at this salary there is none left.</p>`) +
+        creditBody);
+    } else {
     const body = r.stDed > 0
       ? `<p>${NAME} subtracts ${usd0(r.stDed)} before that rate touches anything, which is ` +
         `${pct1(dedShare)} of a ${S} salary. That is the only thing on the state side that changes as you ` +
@@ -5649,6 +5819,7 @@ function caProseBlocks(r, rungs, ctx) {
       `to fall over: the first taxable dollar and the last are charged identically, and the ` +
       `${usd0(r.a.state)} of ${NAME} income tax on this salary is simply ${rate} of ` +
       `${usd0(r.st.taxable)}.</p>${body}`);
+    }
   } else {
     // No state income tax at all. The page must not carry an empty section or a
     // "$0" line that reads like a bug, so this block says what IS true and hands
@@ -5695,7 +5866,33 @@ function caProseBlocks(r, rungs, ctx) {
   // means the figure this page prints is NOT the maximum the state advertises, so the
   // page has to say so. Emitted only where the data carries a phase-out and it has
   // actually bitten at this salary.
-  if (r.stDedPhases && r.stDedPublished > 0 && r.stDedAfterPhaseout < r.stDedPublished - 0.5) {
+  // Utah's shrinking amount is a credit, and the deduction the engine models it with is a figure
+  // Utah never publishes, so its section is about the credit, in dollars.
+  if (r.st && r.st.credit != null) {
+    if (r.st.credit < r.st.creditMax - 0.5) {
+      const cn = creditName(st.tax);
+      const bottom = rungs[0];
+      const lost = r.st.creditMax - r.st.credit;
+      push('statededuction',
+        `<h3>${frame('sdedH', [
+          `${NAME}'s ${cn} is smaller at ${S} than its ${usd0(r.st.creditMax)} maximum`,
+          `How much of ${NAME}'s ${cn} survives at ${S}`,
+          `What ${S} does to ${NAME}'s ${cn}`,
+        ])}</h3>` +
+        `<p>${NAME}'s ${cn} is worth up to ${usd0(r.st.creditMax)} to a single filer, but it is ` +
+        `income-tested rather than fixed. At ${S}, ${usd0(lost)} of it has already been taken away, ` +
+        `leaving ${usd0(r.st.credit)}` +
+        (r.st.credit <= 0.005 ? `, which is to say none of it survives` : '') + `. ` +
+        (bottom.st.credit > r.st.credit + 0.5
+          ? `At the bottom of this ladder, ${usd0(bottom.amount)}, the same filer keeps ` +
+            `${usd0(bottom.st.credit)} of it, so the raise from there to ${S} costs ` +
+            `${usd0(bottom.st.credit - r.st.credit)} of credit on top of ${pctStr(r.st.rate)} of the extra ` +
+            `pay, a cost no rate table shows.`
+          : `That is why the ${NAME} share of this salary rises faster than its ${pctStr(r.st.rate)} rate ` +
+            `alone would suggest.`) +
+        `</p>`);
+    }
+  } else if (r.stDedPhases && r.stDedPublished > 0 && r.stDedAfterPhaseout < r.stDedPublished - 0.5) {
     const cfg = st.tax.standardDeductionPhaseout.single || {};
     const goneAt = (cfg.over != null && cfg.denominator != null) ? cfg.over + cfg.denominator : null;
     const lost = r.stDedPublished - r.stDedAfterPhaseout;
@@ -5781,7 +5978,7 @@ function caProseBlocks(r, rungs, ctx) {
         `The ${NAME} deduction that no bracket table shows`,
         `What ${NAME} does with the Social Security and Medicare taken from ${S}`,
       ])}</h3>` +
-      `<p>On top of its standard deduction, ${NAME} subtracts the Social Security and Medicare you paid ` +
+      `<p>On top of its ${sdName(st.tax)}, ${NAME} subtracts the Social Security and Medicare you paid ` +
       `from the income it taxes, up to ${usd0(cap)} for one taxpayer. ` +
       (binds
         ? `${S} pays ${usd0(ficaPaid)} of employee-side FICA, comfortably over that ceiling, so the ` +
@@ -6839,7 +7036,15 @@ function caPageCopy(r, rungs, ctx) {
             `${usd0(r.st.taxable - r.fed.taxable)} more of this salary than the federal brackets ever reach.`
           : ` The federal standard deduction is only ${usd0(fedStd)}, so ${NAME} charges its rate on ` +
             `${usd0(r.fed.taxable - r.st.taxable)} less of this salary than the federal brackets reach.`));
-    CA_INTRO = r.stDed > 0
+    CA_INTRO = r.st.credit != null
+      // Utah: no deduction to compare with the federal one, only the rate and the credit.
+      ? `${NAME} has one rate, ${pctStr(r.st.rate)}, and no ladder to climb. It charges that rate on the ` +
+        `whole ${S}, which comes to ${usd0(r.st.taxBeforeCredit)}, ` +
+        (r.st.credit > 0.005
+          ? `then subtracts its ${creditName(r.state.tax)}, worth ${usd0(r.st.credit)} at this salary, ` +
+            `leaving ${usd0(r.a.state)}.`
+          : `and its ${creditName(r.state.tax)} has run out by this salary, so nothing comes off that.`)
+      : r.stDed > 0
       ? `${NAME} has one rate, ${pctStr(r.st.rate)}, and no ladder to climb. It subtracts ${usd0(r.stDed)} ` +
         `first, leaving ${usd0(r.st.taxable)} of ${NAME} taxable income, and charges the same rate on ` +
         `every dollar of it.${flatCompare}`
@@ -6983,6 +7188,12 @@ function caPageCopy(r, rungs, ctx) {
           ? ` plus ${usd0(r.stRecaptureTotal)} of ${caList(r.stRecapture.map((x) => x.label.toLowerCase()))}`
           : '') +
         ` → ${usd0(r.a.state)}.${progSentence}`;
+    } else if (r.kind === 'flat' && r.st.credit != null) {
+      stateMethod = `${pctStr(r.st.rate)} on the whole ${S} (${usd0(r.st.taxBeforeCredit)})` +
+        (r.st.credit > 0.005
+          ? `, less the ${usd0(r.st.credit)} ${creditName(r.state.tax)}`
+          : `, with the ${creditName(r.state.tax)} run out at this salary`) +
+        ` → ${usd0(r.a.state)}.${progSentence}`;
     } else if (r.kind === 'flat') {
       stateMethod = `${pctStr(r.st.rate)} on ${usd0(r.st.taxable)}` +
         (r.stDed > 0 ? ` (${S} less the ${usd0(r.stDed)} ${NAME} subtracts first)` : ` (the whole salary)`) +
@@ -7011,18 +7222,20 @@ function caPageCopy(r, rungs, ctx) {
   // Limits: the generic four, plus whatever is actually live at THIS income.
   const generic = [];
   const lt = payrollState && payrollState.localIncomeTax;
+  // Utah's taxpayer tax credit IS in the arithmetic, so "credits" are left out except that one.
+  const credits = r.st && r.st.credit != null ? `credits other than ${NAME}'s ${creditName(r.state.tax)}` : 'credits';
   generic.push(bodyFrame('limit1', [
     `<li><strong>Not in the arithmetic.</strong> Pre-tax deductions (401(k), HSA, FSA, ` +
-    `premiums), dependents and credits, itemizing, non-wage income, and the employer's half of FICA` +
+    `premiums), dependents and ${credits}, itemizing, non-wage income, and the employer's half of FICA` +
     (lt && !lt.exists ? `. ${NAME} has no local wage income tax, so nothing is missing on that line` : '') +
     `.</li>`,
     `<li><strong>Left out of the sums.</strong> Anything taken pre-tax (401(k), HSA, FSA, insurance ` +
-    `premiums), any dependants or credits, itemised deductions, income that is not wages, and the half ` +
+    `premiums), any dependants or ${credits}, itemised deductions, income that is not wages, and the half ` +
     `of FICA your employer pays` +
     (lt && !lt.exists ? `. There is no local wage income tax in ${NAME}, so that line is not missing anything` : '') +
     `.</li>`,
     `<li><strong>What the figures do not touch.</strong> Pre-tax money of any kind — 401(k), HSA, FSA, ` +
-    `health premiums — plus credits, dependants, itemising, non-wage income and the employer's own FICA ` +
+    `health premiums — plus ${credits}, dependants, itemising, non-wage income and the employer's own FICA ` +
     `share` +
     (lt && !lt.exists ? `. ${NAME} levies no local wage income tax, so nothing is absent there` : '') +
     `.</li>`,
@@ -7105,7 +7318,14 @@ function caLadderFaq(r, rungs, taxData, payrollState, obbba, secure2) {
     // Pennsylvania subtracts nothing, so its 3.07% does apply to the whole
     // salary — and the same page says exactly that two paragraphs further down.
     : (r.kind === 'flat'
-      ? (r.stDed > 0
+      ? (r.st.credit != null
+        // Utah's rate does reach every dollar; what comes off afterwards is a credit.
+        ? `Federally you are in the ${pctStr(fedTop.rate)} bracket, which applies only to the top slice ` +
+          `of your income; ${NAME}'s single ${pctStr(stMarginal)} rate applies to all of it` +
+          (r.st.credit > 0.005
+            ? `, less its ${creditName(r.state.tax)} of ${usd0(r.st.credit)} at this salary.`
+            : `, and its ${creditName(r.state.tax)} has run out by this salary.`)
+        : r.stDed > 0
         ? `Federally you are in the ${pctStr(fedTop.rate)} bracket, and ${NAME} charges its single ` +
           `${pctStr(stMarginal)} rate, though neither applies to the whole salary.`
         : `Federally you are in the ${pctStr(fedTop.rate)} bracket, which applies only to the top slice ` +
@@ -7353,6 +7573,8 @@ function caLadderSources(taxData, state) {
   // only citation for the `_noTaxBasis` prose, so losing them would leave a sourced
   // claim on the page with nothing behind it.
   (state._noTaxBasis && state._noTaxBasis.sources || []).forEach((src) => add(src.title, src.url));
+  // A program whose data names its source document cites it by that name (Oregon's transit tax,
+  // Vermont's child care contribution); the rest keep the generic title.
   (state.employeePrograms || []).forEach((p) => add(
     isCA ? 'California EDD: SDI rates and withholding'
       : (p._sourceTitle || `${programLabel(state, p)}: rate and withholding`),
@@ -7449,7 +7671,16 @@ function ladderStateSection(r, copyIntro, S) {
   }
   // Flat: there are no bands, so the table is the working itself — gross, what
   // the state takes off, what is left, the one rate, the tax.
-  const rows = [
+  // Utah's working is rate first, credit second: there is no taxable figure smaller than the salary.
+  const creditCase = r.st.credit != null;
+  const cn = creditCase ? creditName(r.state.tax) : '';
+  const rows = creditCase ? [
+    `<tr><td>Gross salary</td><td class="num">${usd0(r.amount)}</td></tr>`,
+    `<tr><td>${NAME} rate, on every dollar</td><td class="num">${pctStr(r.st.rate)}</td></tr>`,
+    `<tr><td>${NAME} tax before the credit</td><td class="num">${usd0(r.st.taxBeforeCredit)}</td></tr>`,
+    `<tr><td>Less the ${cn}</td><td class="num">${r.st.credit > 0.005 ? '−' : ''}${usd0(r.st.credit)}</td></tr>`,
+    `<tr class="tot"><td>${NAME} income tax</td><td class="num">${usd0(r.a.state)}</td></tr>`,
+  ].join('\n') : [
     `<tr><td>Gross salary</td><td class="num">${usd0(r.amount)}</td></tr>`,
     ...(r.stDed > 0
       ? [`<tr><td>Less what ${NAME} subtracts first</td><td class="num">−${usd0(r.stDed)}</td></tr>`]
@@ -7471,7 +7702,7 @@ function ladderStateSection(r, copyIntro, S) {
         <tbody>${rows}</tbody>
       </table>
     </div>
-    <p class="sal-note">${NAME} income tax on ${S} totals ${usd0(r.a.state)}, ${pct1(r.a.state / r.amount)} of gross pay. ${r.stDed > 0 ? `The only gap between that share and the ${pctStr(r.st.rate)} headline is the ${usd0(r.stDed)} subtracted above.` : `With one rate and nothing subtracted first, that share is the headline rate.`}${progNote}</p>`;
+    <p class="sal-note">${NAME} income tax on ${S} totals ${usd0(r.a.state)}, ${pct1(r.a.state / r.amount)} of gross pay. ${creditCase ? (r.st.credit > 0.005 ? `The only gap between that share and the ${pctStr(r.st.rate)} headline is the ${usd0(r.st.credit)} ${cn} subtracted above.` : `With the ${cn} run out at this salary, that share is the headline rate.`) : r.stDed > 0 ? `The only gap between that share and the ${pctStr(r.st.rate)} headline is the ${usd0(r.stDed)} subtracted above.` : `With one rate and nothing subtracted first, that share is the headline rate.`}${progNote}</p>`;
 }
 
 // --- Content-hashed /assets/*.js pipeline -----------------------------------
@@ -9170,7 +9401,11 @@ async function main() {
           ? `${NAME} levies no income tax on wages, so there is nothing to compute on that line`
           : (kind === 'flat'
             ? `${NAME} income tax is ${pctStr(state.tax.rate)} of ` +
-              (low.stDed > 0 ? `what is left ${dedClause}` : `the whole salary`)
+              (low.st.credit != null
+                // Utah: the whole salary, then the credit, quoted at the two ends of the ladder.
+                ? `the whole salary, less a ${creditName(state.tax)} that shrinks as the ladder climbs, from ` +
+                  `${usd0(low.st.credit)} at ${usd0(low.amount)} to ${usd0(high.st.credit)} at ${usd0(high.amount)}`
+                : low.stDed > 0 ? `what is left ${dedClause}` : `the whole salary`)
             : (ladderSlugKey === 'california'
               // legacy CA wording
               ? `California income tax uses its own schedule after its ${stDedText} single standard deduction`

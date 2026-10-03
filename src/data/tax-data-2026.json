@@ -557,6 +557,7 @@
           "married": 4000,
           "head_of_household": 2000
         },
+        "deductionName": "personal exemption",
         "brackets": {
           "single": [
             {
@@ -1317,7 +1318,8 @@
           "single": 2925,
           "married": 5850,
           "head_of_household": 2925
-        }
+        },
+        "deductionName": "personal exemption"
       },
       "_source": "IL flat 4.95% (IL DOR Bulletin FY 2026-15). No standard deduction; personal exemption allowance $2,925 per allowance (IL-W-4). https://tax.illinois.gov/research/publications/bulletins/fy-2026-15.html",
       "_sourceTitles": {
@@ -1367,7 +1369,11 @@
           "married": 43415.73,
           "head_of_household": 32561.8
         },
-        "deductionName": "credit-equivalent deduction",
+        "creditAsDeduction": {
+          "_model": "Utah has no deduction. standardDeduction and standardDeductionPhaseout here are the taxpayer tax credit restated as the income it leaves untaxed at the flat rate (credit / rate, phased out over credit / 1.3%), which gives exactly the same tax. Pages never print that figure: they describe the credit, worked back as rate x the modelled deduction.",
+          "name": "taxpayer tax credit",
+          "phaseoutFigureYear": 2025
+        },
         "standardDeductionPhaseout": {
           "_statute": "Utah taxpayer tax credit, TC-40 lines 12-20; tax year 2025 base phase-out amounts",
           "single": {
@@ -1392,10 +1398,10 @@
         "https://incometax.utah.gov/credits/taxpayer-tax-credit": "Utah State Tax Commission: taxpayer tax credit"
       },
       "disclaimer": [
-        "Utah has no standard deduction. It gives a taxpayer tax credit instead: 6% of the federal standard deduction, which is $966 for a single filer, reduced by 1.3 cents for each dollar of income over $18,213 ($36,426 married filing jointly, $27,320 head of household). This estimate applies it as the income the credit leaves untaxed at Utah's 4.45% rate, $21,708 for a single filer, which gives the same tax. That figure is what this page calls the credit-equivalent deduction.",
+        "Utah has no standard deduction. It taxes every dollar of income at 4.45% and then subtracts a taxpayer tax credit: 6% of the federal standard deduction, which is $966 for a single filer ($1,932 married filing jointly, $1,449 head of household), cut by 1.3 cents for each dollar of income over $18,213 ($36,426 married filing jointly, $27,320 head of household), so a single filer's credit is gone by about $92,500.",
         "The income levels where the credit starts to shrink are Utah's 2025 amounts, because Utah has not yet published its 2026 ones. The extra credit for each dependent is not included."
       ],
-      "notes": "Flat 4.45% (SB60, TY2026) on Utah taxable income, which starts from federal adjusted gross income. The taxpayer tax credit (6% of the federal standard deduction, reduced by 1.3% of income over Utah's 2025 base amounts) is applied as the deduction that gives the same tax.",
+      "notes": "Flat 4.45% (SB60, TY2026) on Utah taxable income, which starts from federal adjusted gross income, less the taxpayer tax credit (6% of the federal standard deduction, reduced by 1.3% of income over Utah's 2025 base amounts). The engine models the credit as the deduction worth the same at the 4.45% rate; pages describe it as the credit.",
       "_watch": {
         "until": "2027-01-31",
         "what": "Utah's taxpayer tax credit phase-out base amounts here are the tax year 2025 figures (18,213 / 36,426 / 27,320) from the TC-40 line-by-line instructions. When the Utah State Tax Commission publishes the 2026 TC-40 instructions, replace standardDeductionPhaseout.*.over with the 2026 base amounts and update the disclaimer and _source."
@@ -1414,7 +1420,8 @@
           "single": 5900,
           "married": 11800,
           "head_of_household": 5900
-        }
+        },
+        "deductionName": "personal exemption"
       },
       "_source": "MI flat 4.25%; 2026 personal exemption $5,900 per exemption (MI 2026 Withholding Guide, Form 446). https://www.michigan.gov/treasury",
       "_sourceTitles": {
@@ -1500,7 +1507,8 @@
           "single": 1000,
           "married": 2000,
           "head_of_household": 1000
-        }
+        },
+        "deductionName": "personal exemption"
       },
       "_source": "Indiana's state rate is 2.95% for 2026, with a $1,000 personal exemption and no standard deduction (Indiana Department of Revenue, Departmental Notice #1, revised for withholding from Oct. 1, 2026). https://www.in.gov/dor/files/dn01.pdf",
       "_sourceTitles": {
@@ -1549,6 +1557,7 @@
           "married": 16600,
           "head_of_household": 12900
         },
+        "deductionName": "standard deduction plus personal exemption",
         "brackets": {
           "single": [
             {
@@ -1772,6 +1781,7 @@
           "married": 8800,
           "head_of_household": 6800
         },
+        "deductionName": "personal exemption",
         "brackets": {
           "single": [
             {
@@ -1864,6 +1874,7 @@
           "married": 2000,
           "head_of_household": 1000
         },
+        "deductionName": "personal exemption",
         "brackets": {
           "single": [
             {

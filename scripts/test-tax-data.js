@@ -1453,5 +1453,44 @@ t('Utah: 4.45% less the taxpayer tax credit, 6% of the federal deduction less 1.
   // Below the base amount the full credit is more than the tax, and it is not refundable.
   assert.equal(stateTax('utah', 18213), 0);
 });
+t('Utah: the data names its credit, and the disclaimer quotes the credit the data models', () => {
+  // The modelled deduction is internal arithmetic; pages describe the credit, so the record
+  // carries `creditAsDeduction` rather than a deduction name, and the disclaimer's dollar
+  // figures must be the ones the data actually produces.
+  const u = tax.states.utah;
+  assert.equal(u.tax.deductionName, undefined);
+  assert.equal(u.tax.creditAsDeduction.name, 'taxpayer tax credit');
+  assert.equal(u.tax.creditAsDeduction.phaseoutFigureYear, 2025);
+  const usd = (n) => '$' + Math.round(n).toLocaleString('en-US');
+  const text = u.disclaimer.join(' ');
+  for (const fs of ['single', 'married', 'head_of_household']) {
+    const credit = u.tax.standardDeduction[fs] * u.tax.rate;
+    const p = u.tax.standardDeductionPhaseout[fs];
+    assert.ok(text.includes(usd(credit)), `${fs} credit ${usd(credit)} is in the disclaimer`);
+    assert.ok(text.includes(usd(p.over)), `${fs} base amount ${usd(p.over)} is in the disclaimer`);
+    // 1.3 cents of credit per dollar over the base, for every status.
+    approx(credit / p.denominator, 0.013, 1e-6);
+  }
+  // 6% of the 2026 federal standard deduction for each status.
+  approx(u.tax.standardDeduction.single * u.tax.rate, 0.06 * tax.federal.standardDeduction.single, 0.01);
+  approx(u.tax.standardDeduction.married * u.tax.rate, 0.06 * tax.federal.standardDeduction.married, 0.01);
+  approx(u.tax.standardDeduction.head_of_household * u.tax.rate, 0.06 * tax.federal.standardDeduction.head_of_household, 0.01);
+  assert.ok(text.includes('1.3 cents'));
+  assert.ok(text.includes('about $92,500'));
+  assert.ok(!/credit-equivalent|21,70|43,41/.test(text), 'the disclaimer does not print the modelled deduction');
+});
+t('States whose subtraction is an exemption name it on their pages', () => {
+  // None of these has a standard deduction of the size carried; each figure is (or includes)
+  // a personal exemption, so pages must not call it a standard deduction.
+  const named = Object.fromEntries(['new-jersey', 'michigan', 'indiana', 'west-virginia', 'illinois', 'massachusetts', 'mississippi']
+    .map((slug) => [slug, tax.states[slug].tax.deductionName]));
+  assert.deepEqual(named, {
+    'new-jersey': 'personal exemption', michigan: 'personal exemption', indiana: 'personal exemption',
+    'west-virginia': 'personal exemption', illinois: 'personal exemption', massachusetts: 'personal exemption',
+    mississippi: 'standard deduction plus personal exemption',
+  });
+  // Mississippi: standard deduction 2,300 / 4,600 / 3,400 plus exemption 6,000 / 12,000 / 9,500.
+  assert.deepEqual(tax.states.mississippi.tax.standardDeduction, { single: 8300, married: 16600, head_of_household: 12900 });
+});
 
 console.log(`\n${pass} passing`);
