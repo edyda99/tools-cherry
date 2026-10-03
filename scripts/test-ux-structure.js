@@ -1055,7 +1055,9 @@ const PAGES = [
     file: 'alabama-take-home-pay-70000/index.html',
     pins: [
       ['no-repeated-generic-source-title', absent('Alabama: source for the state figures on this page')],
-      ['source-title-tax-foundation', contains('>Tax Foundation: 2026 state income tax rates and brackets</a>')],
+      // 2026-10-03: the Tax Foundation link was replaced by the statute it summarized.
+      ['source-title-40-18-5', contains('>Code of Alabama Section 40-18-5: income tax rates for individuals</a>')],
+      ['no-tax-foundation-source', absent('taxfoundation.org/data/all/state/state-income-tax-rates-2026')],
       ['source-title-std-deduction-chart', contains('>Alabama Department of Revenue: standard deduction chart</a>')],
       ['source-title-40-18-15', contains('>Code of Alabama Section 40-18-15: deductions on the Alabama return</a>')],
       ['source-title-act-2026-604', contains('>Act 2026-604 (HB527): the overtime premium deduction, as enacted</a>')],

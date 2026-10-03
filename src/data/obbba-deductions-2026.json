@@ -471,7 +471,8 @@
         "_sourceNote": "The 2025 booklet never mentions car loan interest; it backs only the general point that ND follows federal taxable income. The row rests on rolling conformity in N.D.C.C. 57-38-30.3(2): 'North Dakota taxable income' means 'the federal taxable income of an individual, estate, or trust as computed under the Internal Revenue Code of 1986, as amended' (https://ndlegis.gov/cencode/t57c38.pdf; host unreachable from our network on 2026-10-02, text read from the 2026-07-08 Wayback copy). The IRC 163(h)(4) deduction is taken in computing federal taxable income, so it carries into ND taxable income unless ND adds it back, and it does not. Office of State Tax Commissioner, OBBBA impacts presentation to the interim committee (https://ndlegis.gov/sites/default/files/pdf/committees/69-2025/27.5038.02000presentation1300.pdf): 'e. Deduction for certain auto loan interest up to $10,000 2025-2028' with an estimated cost to North Dakota collections of $3 million in each of FY26 and FY27. Schedule ND-1SA has no add-back for it; the 2026 special sessions passed nothing touching chapter 57-38."
       },
       "note": "North Dakota is a rolling-conformity state that starts from federal taxable income, so it automatically incorporates the federal overtime and tips deductions for tax years 2025–2028. No decoupling legislation has been enacted.",
-      "source": "https://tax.thomsonreuters.com/blog/state-decoupling-from-federal-tax-provisions/"
+      "source": "https://ndlegis.gov/sites/default/files/pdf/committees/69-2025/27.5038.02000presentation1300.pdf",
+      "sourceTitle": "North Dakota Office of State Tax Commissioner: OBBBA impacts presentation, tips and overtime flow through to ND tax"
     },
     "district-of-columbia": {
       "name": "District of Columbia",
@@ -551,7 +552,9 @@
         "y2026": "no"
       },
       "note": "West Virginia has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
-      "source": "https://taxfoundation.org/oped/west-virginia-income-tax-cut-no-taxes-tips-overtime/"
+      "source": "https://tax.wv.gov/Documents/PIT/2025/it140.PersonalIncomeTaxFormsAndInstructions.2025.pdf",
+      "_sourceNote": "WV starts from federal AGI (IT-140 line 1). The federal tips and overtime deductions (IRC 224, 225) come off after AGI (IRS Notice 2025-69), and the 2025 Schedule M subtractions include neither. SB 400 (2026) conforms WV to the IRC through December 31, 2025 without adding a state subtraction.",
+      "sourceTitle": "West Virginia Tax Division: 2025 Form IT-140 instructions, starting from federal adjusted gross income"
     },
     "montana": {
       "name": "Montana",
@@ -597,7 +600,9 @@
         "y2026": "no"
       },
       "note": "Delaware has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
-      "source": "https://tax.thomsonreuters.com/blog/implementing-obbba-tax-law-changes/"
+      "source": "https://delcode.delaware.gov/title30/c011/sc02/index.html",
+      "_sourceNote": "Delaware starts from federal AGI (30 Del. C. 1105). The federal tips and overtime deductions come off after AGI (IRS Notice 2025-69), and the 1106 modifications (through 85 Del. Laws c. 426, 2026) include none for them.",
+      "sourceTitle": "Delaware Code Title 30, Chapter 11, Subchapter II: Delaware income starts from federal adjusted gross income"
     },
     "new-york": {
       "name": "New York",
@@ -640,7 +645,8 @@
         "y2026": "n/a"
       },
       "note": "Texas has no state income tax on wages, so there is no state return to deduct on — your federal saving is the whole story.",
-      "source": "https://taxfoundation.org/data/all/state/state-income-tax-rates/"
+      "source": "https://statutes.capitol.texas.gov/Docs/CN/htm/CN.8/CN.8.24-a.htm",
+      "sourceTitle": "Texas Constitution, Article VIII, Section 24-a: individual income tax prohibited"
     },
     "florida": {
       "name": "Florida",
@@ -654,7 +660,8 @@
         "y2026": "n/a"
       },
       "note": "Florida has no state income tax on wages, so there is no state return to deduct on — your federal saving is the whole story.",
-      "source": "https://taxfoundation.org/data/all/state/state-income-tax-rates/"
+      "source": "https://www.flsenate.gov/Laws/Constitution#A7S05",
+      "sourceTitle": "Florida Constitution, Article VII, Section 5: no state income tax on individuals"
     },
     "washington": {
       "name": "Washington",
@@ -668,7 +675,8 @@
         "y2026": "n/a"
       },
       "note": "Washington has no state income tax on wages, so there is no state return to deduct on — your federal saving is the whole story.",
-      "source": "https://taxfoundation.org/data/all/state/state-income-tax-rates/"
+      "source": "https://dor.wa.gov/taxes-rates/income-tax",
+      "sourceTitle": "Washington Department of Revenue: income tax, none on wages today"
     },
     "nevada": {
       "name": "Nevada",
@@ -682,7 +690,8 @@
         "y2026": "n/a"
       },
       "note": "Nevada has no state income tax on wages, so there is no state return to deduct on — your federal saving is the whole story.",
-      "source": "https://taxfoundation.org/data/all/state/state-income-tax-rates/"
+      "source": "https://www.leg.state.nv.us/Const/NvConst.html",
+      "sourceTitle": "Nevada Constitution, Article 10, Section 1(9): no income tax on wages"
     },
     "tennessee": {
       "name": "Tennessee",
@@ -696,7 +705,8 @@
         "y2026": "n/a"
       },
       "note": "Tennessee has no state income tax on wages, so there is no state return to deduct on — your federal saving is the whole story.",
-      "source": "https://taxfoundation.org/data/all/state/state-income-tax-rates/"
+      "source": "https://publications.tnsosfiles.com/pub/2023%20TN%20Constitution.pdf",
+      "sourceTitle": "Tennessee Constitution, Article II, Section 28: no state or local tax on payroll or earned personal income"
     },
     "south-dakota": {
       "name": "South Dakota",
@@ -710,7 +720,8 @@
         "y2026": "n/a"
       },
       "note": "South Dakota has no state income tax on wages, so there is no state return to deduct on — your federal saving is the whole story.",
-      "source": "https://taxfoundation.org/data/all/state/state-income-tax-rates/"
+      "source": "https://dor.sd.gov/individuals/taxes/",
+      "sourceTitle": "South Dakota Department of Revenue: South Dakota does not impose a state income tax"
     },
     "wyoming": {
       "name": "Wyoming",
@@ -724,7 +735,8 @@
         "y2026": "n/a"
       },
       "note": "Wyoming has no state income tax on wages, so there is no state return to deduct on — your federal saving is the whole story.",
-      "source": "https://taxfoundation.org/data/all/state/state-income-tax-rates/"
+      "source": "https://wyoleg.gov/statutes/compress/title39.pdf",
+      "sourceTitle": "Wyoming Statutes Title 39: no state income tax, and W.S. 39-12-101 bars local ones"
     },
     "alaska": {
       "name": "Alaska",
@@ -738,7 +750,8 @@
         "y2026": "n/a"
       },
       "note": "Alaska has no state income tax on wages, so there is no state return to deduct on — your federal saving is the whole story.",
-      "source": "https://taxfoundation.org/data/all/state/state-income-tax-rates/"
+      "source": "https://www.akleg.gov/basis/statutes.asp?media=print&secStart=43.20.012&secEnd=43.20.012",
+      "sourceTitle": "Alaska Statutes 43.20.012: the state income tax does not apply to individuals"
     },
     "new-hampshire": {
       "name": "New Hampshire",
@@ -780,7 +793,9 @@
         "y2026": "no"
       },
       "note": "Illinois has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
-      "source": "https://tax.thomsonreuters.com/blog/state-decoupling-from-federal-tax-provisions/"
+      "source": "https://tax.illinois.gov/content/dam/soi/en/web/tax/forms/incometax/documents/currentyear/individual/il-1040-instr.pdf",
+      "_sourceNote": "Illinois starts from federal AGI (IL-1040 line 1). The federal tips and overtime deductions come off after AGI (IRS Notice 2025-69), and the IL-1040 Schedule M instructions and 35 ILCS 5/203 (January 2026 text) list no subtraction for them.",
+      "sourceTitle": "Illinois Department of Revenue: 2025 Form IL-1040 instructions, Illinois starts from federal adjusted gross income"
     },
     "north-carolina": {
       "name": "North Carolina",
@@ -902,8 +917,9 @@
         "y2025": "no",
         "y2026": "yes"
       },
-      "note": "Indiana decouples for 2025. SEA 243 couples for 2026 ONLY and currently sunsets after 2026 — 2027–2028 are not yet conformed.",
-      "source": "https://rsmus.com/insights/tax-alerts/2026/indiana-federal-tax-conformity-bay-latest-tax-bill.html"
+      "note": "Indiana did not allow these deductions for 2025. Senate Enrolled Act 243 adopts them for tax year 2026 only, so 2027 and 2028 are not covered unless Indiana passes another law.",
+      "source": "https://www.in.gov/dor/files/reference/ib128.pdf",
+      "sourceTitle": "Indiana Department of Revenue: Information Bulletin #128, tips and overtime deductions for 2026 only"
     },
     "kentucky": {
       "name": "Kentucky",
@@ -916,9 +932,10 @@
         "y2025": "no",
         "y2026": "no"
       },
-      "note": "Kentucky has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
-      "source": "https://revenue.ky.gov/Forms/740%20Packet%20Instructions.pdf",
-      "_sourceNote": "Swapped 2026-08-02 off a private accounting firm's blog (deandorton.com) onto the state's own return instructions. Kentucky DOR, '2025 Kentucky Individual Income Tax Forms', Form 740 packet 42A740(PKT) (10-25), fetched live from revenue.ky.gov on 2026-08-02. This is the rare case where the state says it in so many words, so nothing here is inferred. What's New, page 1: 'FEDERAL TAX LAW CHANGES: Recent federal income tax changes were enacted after Kentucky's conformity date set forth in KRS 141.010(21). As a result, these federal changes do not apply to Kentucky returns. Items such as qualified tips, overtime income, and car loan interest are not deductible on the Kentucky return.' The same packet's '2025 Federal/Kentucky Individual Income Tax Differences' chart lists rows 30 Qualified Tips, 31 Overtime Income and 32 Car Loan Interest as 'May be Deductible' federally and 'Nondeductible' for Kentucky. On the conformity date itself, the packet says 'HB 775 updated KRS 141.010(21) to change the Internal Revenue Code (IRC) reference date from December 31, 2023, to December 31, 2024', and revenue.ky.gov's Individual Income Tax page repeats 'Kentucky's individual income tax law is based on the Internal Revenue Code in effect as of December 31, 2024'. So the date is 12/31/2024, NOT the 12/31/2023 that older write-ups still quote. The identical language appears in the 740-NP packet at https://revenue.ky.gov/Forms/740-NP%20Packet%20Instructions%20(2025).pdf. UNVERIFIED LEAD, DO NOT PUBLISH WITHOUT CHECKING: a 2026-session bill (reported as HB 757) is said to advance KRS 141.010(21) to December 31, 2025, which is AFTER the federal act, and to add explicit carve-outs at KRS 141.019(2)(k)-(m) naming 26 U.S.C. 224 (tips), 225 (overtime) and 163(h)(4) (vehicle loan interest). If that is right the Kentucky answer is unchanged but the REASON changes from a lagging conformity date to an express statutory exclusion, so do not restate this entry as 'Kentucky's conformity date simply predates the federal change' for tax year 2026. legislature.ky.gov was unreachable from this host on 2026-08-02 (connection timeouts, not a 403), so it could not be confirmed."
+      "note": "Kentucky does not allow the federal tips and overtime deductions on the state return. For 2026, a 2026 state law (House Bill 757) bars them by name. They reduce your federal tax only.",
+      "source": "https://apps.legislature.ky.gov/law/acts/26RS/documents/0161.pdf",
+      "sourceTitle": "2026 Ky. Acts ch. 161 (HB 757), section 7: KRS 141.019(2)(k)-(m) bars the tips, overtime and car loan deductions",
+      "_sourceNote": "Moved 2026-10-03 to the enacted act. 2026 Ky. Acts ch. 161 (HB 757), fetched via a 2026-06-24 Wayback copy of the official PDF (legislature.ky.gov times out from this host). Section 6 amends KRS 141.010(21): 'Internal Revenue Code' means 'for taxable years beginning on or after January 1, 2026, the Internal Revenue Code in effect on December 31, 2025', which is AFTER the federal act. Section 7 amends KRS 141.019(2) so net income is figured with all federal deductions 'except: ... (k) Any deduction allowed by 26 U.S.C. sec. 224 for qualified tips; (l) Any deduction allowed by 26 U.S.C. sec. 225 for qualified overtime compensation; and (m) Any deduction allowed by 26 U.S.C. sec. 163(h)(4) for qualified passenger vehicle loan interest.' So the TY2026 'no' rests on an express statutory exclusion, NOT on a lagging conformity date. Vetoed in part and overridden April 14, 2026; section 7 is not in any special effective-date list. TY2025 'no' stays on the Kentucky DOR Form 740 packet 42A740(PKT) (10-25), What's New: 'Items such as qualified tips, overtime income, and car loan interest are not deductible on the Kentucky return' (https://revenue.ky.gov/Forms/740%20Packet%20Instructions.pdf), when KRS 141.010(21) pointed to the IRC as of December 31, 2024."
     },
     "mississippi": {
       "name": "Mississippi",
@@ -932,7 +949,9 @@
         "y2026": "no"
       },
       "note": "Mississippi has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
-      "source": "https://tax.thomsonreuters.com/blog/implementing-obbba-tax-law-changes/"
+      "source": "https://www.dor.ms.gov/sites/default/files/tax-forms/individual/80100251%202.pdf",
+      "_sourceNote": "The 2025 Form 80-100 instructions count all wages and tips as income with no exclusion for tips or overtime, and the MS DOR 2026 legislation page lists only income tax credits.",
+      "sourceTitle": "Mississippi Department of Revenue: 2025 income tax instructions (tips count as wages, no tips or overtime adjustment)"
     },
     "georgia": {
       "name": "Georgia",
@@ -1024,7 +1043,8 @@
         "_sourceNote": "HB 559 (2026 Sess. Laws ch. 1), amending Idaho Code 63-3004 to the Internal Revenue Code 'as amended and in effect on the first day of January 2026', 'retroactively to January 1, 2025'. Idaho State Tax Commission, 'Update on filing 2025 Idaho income taxes now that conformity is law' (https://tax.idaho.gov/pressrelease/update-on-filing-2025-idaho-income-taxes-now-that-conformity-is-law/): 'House Bill 559 conforms to most of the provisions in the federal One Big Beautiful Bill Act. This includes the larger standard deduction amounts, the enhanced senior deduction, and the deductions for qualified tips from wages, car loan interest, and overtime compensation.' 2025 Form 40 instructions, line 18 'Qualified Business Income and Federal Schedule 1-A Deductions. Add lines 13a and 13b from federal Form 1040'. Idaho Code 63-3022 has no add-back for it."
       },
       "note": "Idaho starts from federal taxable income and conformed via HB559 (2026), retroactive to 2025 — the deductions flow through.",
-      "source": "https://rsmus.com/insights/tax-alerts/2026/idaho-conforms-one-big-beautiful-bill.html"
+      "source": "https://tax.idaho.gov/pressrelease/update-on-filing-2025-idaho-income-taxes-now-that-conformity-is-law/",
+      "sourceTitle": "Idaho State Tax Commission: HB 559 conformity, including the tips and overtime deductions"
     },
     "massachusetts": {
       "name": "Massachusetts",
@@ -1038,7 +1058,8 @@
         "y2026": "no"
       },
       "note": "Massachusetts has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
-      "source": "https://arbcpa.com/state-conformity-to-obbba-tax-provisions-what-businesses-and-taxpayers-in-maine-massachusetts-and-new-hampshire-need-to-know/"
+      "source": "https://www.mass.gov/technical-information-release/tir-26-4-massachusetts-conformity-to-certain-provisions-in-public-law-no-119-21",
+      "sourceTitle": "Massachusetts Department of Revenue: TIR 26-4, no state deduction for tips or overtime"
     },
     "new-jersey": {
       "name": "New Jersey",
@@ -1052,7 +1073,8 @@
         "y2026": "no"
       },
       "note": "New Jersey has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
-      "source": "https://tax.thomsonreuters.com/blog/state-decoupling-from-federal-tax-provisions/"
+      "source": "https://www.nj.gov/treasury/taxation/pdf/current/1040i.pdf",
+      "sourceTitle": "New Jersey Division of Taxation: 2025 NJ-1040 instructions, tips and overtime taxed as wages"
     },
     "ohio": {
       "name": "Ohio",
@@ -1108,7 +1130,9 @@
         "y2026": "no"
       },
       "note": "Wisconsin has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
-      "source": "https://wisconsinexaminer.com/2026/04/03/evers-vetoes-gop-bills-for-no-tax-on-overtime-and-tips-requiring-counties-to-cooperate-with-ice/"
+      "source": "https://docs.legis.wisconsin.gov/2025/proposals/sb36",
+      "_sourceNote": "Overtime: 2025 Assembly Bill 461 (https://docs.legis.wisconsin.gov/2025/proposals/ab461), a state subtraction for overtime pay, was also vetoed on April 3, 2026 and the override failed on May 13, 2026.",
+      "sourceTitle": "Wisconsin Legislature: 2025 Senate Bill 36, tips exemption vetoed April 3, 2026"
     },
     "connecticut": {
       "name": "Connecticut",
@@ -1122,7 +1146,9 @@
         "y2026": "no"
       },
       "note": "Connecticut has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
-      "source": "https://tax.thomsonreuters.com/blog/state-decoupling-from-federal-tax-provisions/"
+      "source": "https://portal.ct.gov/-/media/drs/forms/2025/income/2025-ct-1040-instructions_1225.pdf",
+      "_sourceNote": "CT starts from federal AGI (12-701(a)(19) and (20)). The federal tips and overtime deductions come off after AGI (IRS Notice 2025-69), and neither 12-701 nor its 2026 supplement adds a modification for them.",
+      "sourceTitle": "Connecticut Department of Revenue Services: 2025 Form CT-1040 instructions, Connecticut starts from federal adjusted gross income"
     },
     "oregon": {
       "name": "Oregon",
@@ -1170,7 +1196,8 @@
         "y2026": "no"
       },
       "note": "California has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
-      "source": "https://www.grantthornton.com/insights/alerts/tax/2025/salt/a-e/ca-conformity-date-update-excludes-obbba-10-21"
+      "source": "https://www.ftb.ca.gov/forms/2025/2025-540-ca-instructions.html",
+      "sourceTitle": "Franchise Tax Board: 2025 Schedule CA (540) instructions, California does not conform to the OBBBA"
     },
     "missouri": {
       "name": "Missouri",
@@ -1184,7 +1211,9 @@
         "y2026": "no"
       },
       "note": "Missouri has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
-      "source": "https://extension.missouri.edu/news/new-tax-break-on-overtime-pay-comes-with-limits"
+      "source": "https://revisor.mo.gov/main/OneSection.aspx?section=143.121",
+      "_sourceNote": "Missouri starts from federal AGI (RSMo 143.121.1). The federal tips and overtime deductions come off after AGI (IRS Notice 2025-69), and the 143.121 modifications include no subtraction for them.",
+      "sourceTitle": "Revised Statutes of Missouri 143.121: Missouri income starts from federal adjusted gross income, with no tips or overtime subtraction"
     },
     "kansas": {
       "name": "Kansas",
@@ -1212,7 +1241,9 @@
         "y2026": "no"
       },
       "note": "Nebraska has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
-      "source": "https://www.wowt.com/2025/09/02/report-big-beautiful-bill-could-cost-nebraska-4065-million-tax-revenue/"
+      "source": "https://revenue.nebraska.gov/sites/default/files/doc/tax-forms/2025/f_Individual_Income_Tax_Booklet.pdf",
+      "_sourceNote": "Nebraska starts from federal AGI (77-2714.01). The federal tips and overtime deductions come off after AGI (IRS Notice 2025-69), and 77-2716, including the 2026 LB803 and LB998 amendments, has no adjustment for them.",
+      "sourceTitle": "Nebraska Department of Revenue: 2025 individual income tax booklet, Nebraska starts from federal AGI"
     },
     "oklahoma": {
       "name": "Oklahoma",
@@ -1240,7 +1271,8 @@
         "y2026": "no"
       },
       "note": "Arkansas has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
-      "source": "https://tax.thomsonreuters.com/blog/state-decoupling-from-federal-tax-provisions/"
+      "source": "https://www.dfa.arkansas.gov/wp-content/uploads/2025_AR1000F_and_AR1000NR_Instructions.pdf",
+      "sourceTitle": "Arkansas Department of Finance and Administration: 2025 AR1000F and AR1000NR instructions, no tips or overtime deduction"
     },
     "alabama": {
       "name": "Alabama",
@@ -1324,7 +1356,8 @@
         "y2026": "no"
       },
       "note": "Rhode Island has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
-      "source": "https://tax.thomsonreuters.com/news/rhode-island-decouples-from-federal-tax-changes-employers-must-keep-withholding-on-tips-and-overtime/"
+      "source": "https://tax.ri.gov/sites/g/files/xkgbur541/files/2025-10/ADV_2025_20_H.R._1_RI-Decoupling-Guidance.pdf",
+      "sourceTitle": "Rhode Island Division of Taxation: Advisory 2025-20, no state deduction for federal tips and overtime"
     }
   }
 }

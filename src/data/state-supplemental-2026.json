@@ -264,8 +264,9 @@
       "abbr": "MS",
       "method": "regular",
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate supplemental rate; aggregate method. Mississippi taxes income above an exemption at roughly 4.0%."
+      "source": "Mississippi Department of Revenue, Pub 89-700 withholding guide (revised January 13, 2026), section 9: supplemental wages are withheld as if added to regular wages (aggregate method).",
+      "note": "No separate supplemental rate; aggregate method. For 2026 Mississippi taxes the first $10,000 of taxable income at 0% and the rest at 4%.",
+      "_sourceUrl": "https://www.dor.ms.gov/sites/default/files/tax-forms/business/89700251revised1.13.2026.pdf"
     },
     "missouri": {
       "name": "Missouri",
@@ -341,7 +342,7 @@
       "verified": true,
       "source": "New York NYS-50-T-NYS (1/26)",
       "_sourceUrl": "https://www.tax.ny.gov/pdf/publications/withholding/nys50_t_nys.pdf",
-      "localNote": "New York City adds a 4.25% supplemental rate and Yonkers adds 1.61135% (resident) / 0.5% (non-resident) on top of the 11.7% state rate. Those local rates are not included in the headline figure."
+      "localNote": "New York City adds a 4.25% supplemental rate and Yonkers adds 1.95975% (resident) / 0.5% (non-resident) on top of the 11.7% state rate. Those local rates are not included in the headline figure."
     },
     "north-carolina": {
       "name": "North Carolina",
@@ -490,7 +491,7 @@
       "method": "none",
       "verified": true,
       "source": "repoTaxData",
-      "note": "No tax on wage income (the 7% tax applies only to large long-term capital gains); 0% on a bonus."
+      "note": "No tax on wage income; Washington's capital gains tax (7%, plus 2.9% on gains over $1 million) applies only to large long-term capital gains. 0% on a bonus."
     },
     "west-virginia": {
       "name": "West Virginia",
