@@ -1465,6 +1465,11 @@
       "slug": "north-carolina",
       "hasIncomeTax": true,
       "figureYear": 2026,
+      "_watch": {
+        "until": "2026-11-03",
+        "what": "North Carolina's future rates changed in 2026. Session Law 2026-41 removed the revenue triggers: 3.99% for 2026, 3.49% for 2027 through 2029, 3.24% for 2030 through 2032 and 2.99% after 2032. Separately, S.B. 1080 puts a 3.5% cap on the income tax rate in the state constitution to the voters on November 3, 2026, for tax years beginning on or after January 1, 2027. Re-verify after the vote, then use 3.49% in the 2027 data and check any copy that quotes future rates.",
+        "decided": "Audit 2026-10-03: tax year 2026 (3.99%) is unaffected."
+      },
       "tax": {
         "type": "flat",
         "rate": 0.0399,
@@ -1743,7 +1748,7 @@
       "figureYear": 2026,
       "_watch": {
         "until": "2026-12-15",
-        "what": "Georgia's flat rate is on a downward schedule, so 4.99% may not be the 2027 number. The Georgia Department of Revenue's 2026 Income Tax Changes page states 'The Georgia income tax rate has been reduced to a flat rate of 4.99%. The Georgia standard deduction has been increased to $15,000 for single taxpayers, heads of households, and married taxpayers filing separately, or $30,000 for married taxpayers filing jointly', which is what is encoded here. The Governor's office says HB 463, signed 11 May 2026, 'lowers Georgia's state income tax rate from 5.19% to 4.99%, beginning January 1, 2026' and 'includes provisions for further annual reductions of the state income tax rate'. Re-verify: what rate does GA DOR publish for 2027? Sources: https://dor.georgia.gov/taxes/important-tax-updates ; https://gov.georgia.gov/press-releases/2026-05-11/gov-kemp-signs-legislation-lowering-taxes-and-supporting-economic-growth",
+        "what": "Georgia's flat rate is on a downward schedule, so 4.99% may not be the 2027 number. The Georgia Department of Revenue's 2026 Income Tax Changes page states 'The Georgia income tax rate has been reduced to a flat rate of 4.99%. The Georgia standard deduction has been increased to $15,000 for single taxpayers, heads of households, and married taxpayers filing separately, or $30,000 for married taxpayers filing jointly', which is what is encoded here. Under HB 463 (signed 11 May 2026) the 2027 step is a 0.125-point cut to 4.865%, with the standard deduction up $375 / $750 (to $15,375 / $30,750) and the dependent exemption up $125 (to $5,125), all subject to the O.C.G.A. 48-7-20(a.1) triggers the Office of Planning and Budget must report on by 1 December 2026. Re-verify: what rate, standard deduction and dependent exemption does GA DOR publish for 2027? Sources: https://dor.georgia.gov/taxes/important-tax-updates ; https://www.legis.ga.gov/api/legislation/document/20252026/249080",
         "decided": "Audit 2026-08-02: the 2026 rate and standard deduction match GA DOR exactly; this is a tripwire for the 2027 rollover."
       },
       "tax": {
@@ -1917,6 +1922,11 @@
       ],
       "hasIncomeTax": true,
       "figureYear": 2026,
+      "_watch": {
+        "until": "2027-01-01",
+        "what": "Massachusetts paid family and medical leave changes for 2027. Chapter 101 of the Acts of 2026 lets employers charge employees up to 100% of the medical leave share and 40% of the family leave share, and the Department of Family and Medical Leave sets the 2027 total rate by October 1, 2026. Recompute the employee rate in employeePrograms for 2027; the 0.46% here is the 2026 maximum employee share.",
+        "decided": "Audit 2026-10-03: tax year 2026 is unaffected."
+      },
       "tax": {
         "type": "bracket",
         "standardDeduction": {
@@ -3261,6 +3271,11 @@
       "slug": "kansas",
       "hasIncomeTax": true,
       "figureYear": 2026,
+      "_watch": {
+        "until": "2026-12-31",
+        "what": "Kansas rates can be cut every year by the revenue trigger in K.S.A. 79-32,110c: the August 15 determination takes effect for the next tax year. Re-verify: did the Kansas Department of Revenue publish a notice on the August 15, 2026 determination? Any cut applies to tax year 2027 and changes the rates in the 2027 data.",
+        "decided": "Audit 2026-10-03: tax year 2026 is unaffected; KDOR Notice 25-06 says there is no rate reduction for 2026."
+      },
       "tax": {
         "type": "bracket",
         "standardDeduction": {
@@ -3400,6 +3415,11 @@
       "slug": "oklahoma",
       "hasIncomeTax": true,
       "figureYear": 2026,
+      "_watch": {
+        "until": "2027-02-28",
+        "what": "Oklahoma has a revenue-triggered rate cut in law. The State Board of Equalization makes a preliminary certification in December 2026 and a final one in February 2027 under 62 O.S. 34.103(D) and 68 O.S. 2355(E). If it certifies, every 68 O.S. 2355(D) rate falls by 0.25 of a point from January 1, 2028. Re-verify after the February 2027 meeting.",
+        "decided": "Audit 2026-10-03: tax year 2026 is unaffected."
+      },
       "tax": {
         "type": "bracket",
         "standardDeduction": {
@@ -3791,6 +3811,11 @@
       ],
       "hasIncomeTax": true,
       "figureYear": 2026,
+      "_watch": {
+        "until": "2027-01-01",
+        "what": "Maine's $15,700 standard deduction is a one-year figure: 36 M.R.S. 5124-C, sub-section 1-C, covers tax years beginning before January 1, 2027. From tax year 2027 sub-section 1-D sets it to the federal standard deduction, and the 2% surcharge thresholds start indexing under 36 M.R.S. 5403(12). Rebuild Maine for tax year 2027.",
+        "decided": "Audit 2026-10-03: correct for tax year 2026 (P.L. 2025 c.650, LD 2212, effective 2026-07-29)."
+      },
       "tax": {
         "type": "bracket",
         "standardDeduction": {
@@ -4120,6 +4145,11 @@
       ],
       "hasIncomeTax": true,
       "figureYear": 2026,
+      "_watch": {
+        "until": "2027-01-01",
+        "what": "Rhode Island's FY2027 budget (2026-H 7127 Sub A as amended, June 2026) adds a high-income surtax from tax year 2027: 1% on taxable income over $1,000,000 in 2027, 2% in 2028 and 3% in 2029, so the highest withholding and supplemental rate becomes 6.99% in 2027. It also adds a $330 refundable child tax credit from tax year 2027. Before 2027, also refresh the indexed brackets, standard deduction and exemption from the November 2026 advisory.",
+        "decided": "Audit 2026-10-03: no effect on tax year 2026."
+      },
       "tax": {
         "type": "bracket",
         "standardDeduction": {
