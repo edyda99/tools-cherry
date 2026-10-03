@@ -2,7 +2,7 @@
   "_meta": {
     "description": "IRC §129 Dependent Care Assistance (DCFSA) exclusion + IRC §21 Child & Dependent Care Credit (CDCTC), as amended by OBBBA (P.L. 119-21, §70404), effective TY2026. Drives /dependent-care-fsa-vs-credit-calculator. Figures are FIXED statutory amounts (not inflation-indexed on the codified text). Federal-only; state conformity out of scope. This is a NEW sibling system to obbba-deductions-2026.json — §21 is a tiered NONREFUNDABLE CREDIT and §129 is an INCOME + FICA EXCLUSION, neither of which is the MAGI-phased above-the-line DEDUCTION shape of that file.",
     "lastSourced": "2026-07-12",
-    "confidence": "high — §21/§129 statutory text read verbatim (law.cornell.edu); every fixture dollar re-derived vs tax-data-2026.json 2026 brackets/FICA (SS wage base $184,500)."
+    "confidence": "high — §21/§129 statutory text read verbatim; every fixture dollar re-derived vs tax-data-2026.json 2026 brackets/FICA (SS wage base $184,500)."
   },
   "dcfsa": {
     "statute": "IRC §129(a)(2) (OBBBA §70404)",
@@ -45,9 +45,9 @@
     "agiFeedback": "The FSA is excluded from gross income, so AGI is net of the FSA. Look up applicablePercent at the POST-FSA AGI in the max-FSA scenario (a lower AGI can raise the credit rate)."
   },
   "sources": [
-    { "claim": "IRC §129(a)(2): dependent care assistance exclusion $7,500 ($3,750 for a separate return by a married individual); per-return limit; earned-income limited (§129(b)); requires an employer dependent-care assistance program.", "url": "https://www.law.cornell.edu/uscode/text/26/129" },
-    { "claim": "IRC §21(a)(2) applicable percentage: 50% reduced (not below 35%) by 1 pt per $2,000 of AGI over $15,000, then reduced (not below 20%) by 1 pt per $2,000 ($4,000 joint) over $75,000 ($150,000 joint); §21(c) $3,000/$6,000 expense caps reduced by §129 exclusions; §21(d) earned-income limit; §21(e)(2)/(4) joint-return requirement; nonrefundable.", "url": "https://www.law.cornell.edu/uscode/text/26/21" },
-    { "claim": "IRC §21(c) flush language: the $3,000/$6,000 dollar limit shall be reduced by the aggregate amount excludable from gross income under section 129 for the taxable year (the no-double-dip cap reduction).", "url": "https://www.law.cornell.edu/uscode/text/26/21#c" },
+    { "claim": "IRC §129(a)(2): dependent care assistance exclusion $7,500 ($3,750 for a separate return by a married individual); per-return limit; earned-income limited (§129(b)); requires an employer dependent-care assistance program.", "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title26-section129&num=0&edition=prelim" },
+    { "claim": "IRC §21(a)(2) applicable percentage: 50% reduced (not below 35%) by 1 pt per $2,000 of AGI over $15,000, then reduced (not below 20%) by 1 pt per $2,000 ($4,000 joint) over $75,000 ($150,000 joint); §21(c) $3,000/$6,000 expense caps reduced by §129 exclusions; §21(d) earned-income limit; §21(e)(2)/(4) joint-return requirement; nonrefundable.", "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title26-section21&num=0&edition=prelim" },
+    { "claim": "IRC §21(c) flush language: the $3,000/$6,000 dollar limit shall be reduced by the aggregate amount excludable from gross income under section 129 for the taxable year (the no-double-dip cap reduction).", "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title26-section21&num=0&edition=prelim" },
     { "claim": "OBBBA (P.L. 119-21) §70404 amended both §129 and §21, effective for taxable years beginning after 2025-12-31; permanent; first dependent-care benefit update in decades.", "url": "https://www.congress.gov/119/plaws/publ21/PLAW-119publ21.pdf" },
     { "claim": "$7,500 DCFSA + 50% CDCTC top rate, effective 2026, expense caps unchanged, credit nonrefundable, no-double-dip cap reduction — employer-benefits summary.", "url": "https://www.mercer.com/en-us/insights/us-health-news/big-beautiful-bill-permanently-enhances-dependent-care-benefits/" },
     { "claim": "The CDCTC is nonrefundable, so it gives little or no benefit to low-income families who owe little or no federal income tax — the DCFSA's FICA saving is not liability-limited.", "url": "https://taxpolicycenter.org/taxvox/2025-reconciliation-law-makes-some-modest-changes-child-care-tax-benefits-provides-little" },

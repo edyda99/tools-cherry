@@ -5,8 +5,8 @@
 // FICA rates, the Additional-Medicare thresholds, the indexing rule) comes from
 // src/data/section-127-2026.json — this file is pure §127 arithmetic.
 //
-// THE LAW (all figures verified in the spec against the codified IRC at
-// law.cornell.edu, IRS FS-2026-10, Pub 15-B (2026), and the SSA 2026 COLA):
+// THE LAW (all figures verified in the spec against the codified IRC text
+// of 26 U.S.C. §127, IRS FS-2026-10, Pub 15-B (2026), and the SSA 2026 COLA):
 //   * §127(a)(2): an employer's educational assistance is excluded from the
 //     employee's gross income up to $5,250 PER INDIVIDUAL PER CALENDAR YEAR.
 //   * §127(c)(1)(B) (made PERMANENT by OBBBA §70412, effective for payments

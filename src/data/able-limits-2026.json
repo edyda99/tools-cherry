@@ -59,7 +59,7 @@
   },
   "sources": [
     { "claim": "$20,000 aggregate limitation on contributions to ABLE accounts, TY 2026 (§3.34); $19,000 gift-tax exclusion CY 2026 (§3.42(1))", "url": "https://www.irs.gov/pub/irs-drop/rp-25-32.pdf" },
-    { "claim": "26 U.S.C. §529A current text: (b)(2)(B) lead-in + (i) + (ii), (b)(7)(A), (e)(1); amendment notes for P.L. 117-328 §124 and P.L. 119-21 §70115", "url": "https://www.law.cornell.edu/uscode/text/26/529A" },
+    { "claim": "26 U.S.C. §529A current text: (b)(2)(B) lead-in + (i) + (ii), (b)(7)(A), (e)(1); amendment notes for P.L. 117-328 §124 and P.L. 119-21 §70115", "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title26-section529A&num=0&edition=prelim" },
     { "claim": "SECURE 2.0 §124: onset age 26→46, effective TY beginning after Dec 31, 2025", "url": "https://www.congress.gov/117/plaws/publ328/PLAW-117publ328.pdf" },
     { "claim": "OBBBA §70115 ('1996'-for-'1997' indexing; ABLE-to-Work sunset struck) and §70117 (529→ABLE rollover sunset struck)", "url": "https://www.congress.gov/119/plaws/publ21/PLAW-119publ21.pdf" },
     { "claim": "State-of-residence FPL, longest-residence tie-break, sole responsibility, rollover/transfer exclusions, return of excess (Treas. Reg. §1.529A-2(g), T.D. 9923)", "url": "https://www.ecfr.gov/current/title-26/chapter-I/subchapter-A/part-1/subject-group-ECFR74d9d54a99ee85c/section-1.529A-2" },
@@ -67,7 +67,7 @@
     { "claim": "2026 HHS poverty guidelines (alternate-reading set, not live): $15,960 / $19,950 AK / $18,360 HI", "url": "https://www.federalregister.gov/documents/2026/01/15/2026-00755/annual-update-of-the-hhs-poverty-guidelines" },
     { "claim": "6% excise on excess ABLE contributions, Form 5329 Part VIII; 529-rollover-counts language; one account per beneficiary; cumulative state limit", "url": "https://www.irs.gov/pub/irs-pdf/p907.pdf" },
     { "claim": "Age-46 What's New for 2026 information; 'any contribution … on behalf of the employee' blocker; all-contributors aggregate; Trump-account rollover (box 8) mechanics; removal of printed FPL amounts (DRAFT Instr. 1099-QA/5498-QA, Rev. Dec 2026)", "url": "https://www.irs.gov/pub/irs-dft/i99qa--dft.pdf" },
-    { "claim": "529→ABLE rollover counts against the §529A(b)(2)(B)(i) base limit (flush text); permanence", "url": "https://www.law.cornell.edu/uscode/text/26/529" },
+    { "claim": "529→ABLE rollover counts against the §529A(b)(2)(B)(i) base limit (flush text); permanence", "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title26-section529&num=0&edition=prelim" },
     { "claim": "Industry corroboration only: 2026 = $20,000 + $15,650/$19,550/$17,990 per-beneficiary all-sources framing", "url": "https://www.ablenrc.org/what-is-able/what-are-able-acounts/" }
   ]
 }
