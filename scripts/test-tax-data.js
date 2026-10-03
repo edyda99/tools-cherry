@@ -741,6 +741,19 @@ t('legal-status watches: well-formed, none expired', () => {
     const next = wam.VERDICT_BLOCKS.indexOf('<div class="g" data-st="', start + 1);
     return wam.VERDICT_BLOCKS.slice(start, next < 0 ? undefined : next);
   };
+  // Rev. Proc. 2025-32 sec. 4.14(3): the higher age-65 amount is only for someone "unmarried
+  // and not a surviving spouse". The card once gave it to separate filers and surviving spouses.
+  t('what-applies-to-me: the age-65 card gives the higher amount to single and head of household only', () => {
+    const all = Object.values(wam).filter((v) => typeof v === 'string').join(' ');
+    const asd = obbba.federal.qcd.ageStandardDeductionAddition.byYear['2026'];
+    const usd = (n) => '$' + n.toLocaleString('en-US');
+    assert.ok(all.includes(`it adds ${usd(asd.single)} if you file single or as head of household`),
+      'the age-65 card no longer limits the higher amount to single and head of household');
+    assert.ok(all.includes(`and ${usd(asd.marriedPerSpouse)} if you are married or a qualifying surviving spouse`),
+      'the age-65 card does not give separate filers and surviving spouses the base amount');
+    assert.ok(!/separately, or as a qualifying surviving spouse/.test(all), 'the old wording is back');
+  });
+
   t('what-applies-to-me: tips/overtime verdicts date each row by its own checkedOn', () => {
     const globalLine = `We last checked this on ${humanDay(obbba._meta.lastSourced)}.`;
     let withOwnDate = 0;

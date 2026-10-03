@@ -56,10 +56,20 @@ is('QCD excluded from gross income', QCD.excludedFromGrossIncome, true);
 is('QCD not subject to withholding', QCD.notSubjectToWithholding, true);
 is('2026 age-65+ addition (single/HoH) is $2,050', QCD.ageStandardDeductionAddition.byYear['2026'].single, 2050);
 is('2026 age-65+ addition per MFJ spouse is $1,650', QCD.ageStandardDeductionAddition.byYear['2026'].marriedPerSpouse, 1650);
+// Rev. Proc. 2025-32 sec. 4.14(3) / 2024-40 sec. 3.15(3): the higher amount is only for an
+// individual "unmarried and not a surviving spouse". MFS is married and QSS is a surviving
+// spouse, so both get the base amount. (They were $2,050 / $2,000 until 2026-10-03.)
+is('2026 age-65+ addition MFS is $1,650', QCD.ageStandardDeductionAddition.byYear['2026'].married_separate, 1650);
+is('2026 age-65+ addition QSS is $1,650', QCD.ageStandardDeductionAddition.byYear['2026'].qss, 1650);
+is('2025 age-65+ addition MFS is $1,600', QCD.ageStandardDeductionAddition.byYear['2025'].married_separate, 1600);
+is('2025 age-65+ addition QSS is $1,600', QCD.ageStandardDeductionAddition.byYear['2025'].qss, 1600);
+is('2025 age-65+ addition single is $2,000', QCD.ageStandardDeductionAddition.byYear['2025'].single, 2000);
 
 // --- additionalStdDeduction65 helper -------------------------------------
 eq('sd65 add single', additionalStdDeduction65({ filingStatus: 'single', year: 2026, qcd: QCD }), 2050);
 eq('sd65 add HoH', additionalStdDeduction65({ filingStatus: 'head_of_household', year: 2026, qcd: QCD }), 2050);
+eq('sd65 add MFS', additionalStdDeduction65({ filingStatus: 'married_separate', year: 2026, qcd: QCD }), 1650);
+eq('sd65 add QSS', additionalStdDeduction65({ filingStatus: 'qss', year: 2026, qcd: QCD }), 1650);
 eq('sd65 add MFJ one spouse (default)', additionalStdDeduction65({ filingStatus: 'married', year: 2026, qcd: QCD }), 1650);
 eq('sd65 add MFJ both spouses 65+', additionalStdDeduction65({ filingStatus: 'married', spouseAlsoQualifies: true, year: 2026, qcd: QCD }), 3300);
 

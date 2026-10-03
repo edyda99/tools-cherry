@@ -644,7 +644,14 @@ export function buildWamParts(deps) {
     // AGE 65 STANDARD DEDUCTION ADDITION
     `<article class="wam-card rule g" data-has="age">`
     + `<h4>The extra standard deduction at 65</h4>`
-    + `<p>Separate from the ${usd0(sen.amountPerPerson)} above, and not the same thing. For ${TAX_YEAR} it adds ${usd0(asdY.single)} if you file on your own, as head of household, separately, or as a qualifying surviving spouse, and ${usd0(asdY.marriedPerSpouse)} for each qualifying spouse on a joint return. Do not count it twice with the ${usd0(sen.amountPerPerson)}.</p>`
+    // Rev. Proc. 2025-32 sec. 4.14(3): the higher amount is only for someone "unmarried and
+    // not a surviving spouse", so single and head of household get it; married filing
+    // separately and qualifying surviving spouse get the base amount, as joint filers do.
+    + `<p>Separate from the ${usd0(sen.amountPerPerson)} above, and not the same thing. For ${TAX_YEAR} it adds ${usd0(asdY.single)} if you file single or as head of household`
+    + (asdY.married_separate === asdY.marriedPerSpouse && asdY.qss === asdY.marriedPerSpouse
+      ? `, and ${usd0(asdY.marriedPerSpouse)} if you are married or a qualifying surviving spouse: for each qualifying spouse on a joint return, or for yourself if you file separately.`
+      : `. It adds ${usd0(asdY.married_separate)} if you are married filing separately, ${usd0(asdY.qss)} as a qualifying surviving spouse, and ${usd0(asdY.marriedPerSpouse)} for each qualifying spouse on a joint return.`)
+    + ` Do not count it twice with the ${usd0(sen.amountPerPerson)}.</p>`
     + asOf(OB_DATE) + src(firstUrl(qcd.ageStandardDeductionAddition._source), 'Source')
     + `</article>`,
 
