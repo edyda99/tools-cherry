@@ -4572,10 +4572,69 @@ const LADDER_STATES = [
   // wave 3
   'kentucky', 'oregon', 'oklahoma', 'connecticut', 'utah', 'iowa',
   'nevada', 'arkansas', 'mississippi', 'kansas', 'new-mexico', 'nebraska',
+  // wave 4
+  'idaho', 'west-virginia', 'hawaii', 'new-hampshire', 'maine', 'montana',
+  'rhode-island', 'delaware', 'south-dakota', 'north-dakota', 'alaska', 'vermont',
+  'wyoming', 'district-of-columbia',
 ];
 const LADDER_STATE_SET = new Set(LADDER_STATES);
 const ladderHubSlug = (slug) => `${slug}-take-home-pay`;
 const ladderPath = (slug, amount) => `/${ladderHubSlug(slug)}-${amount}/`;
+
+// WAVE 4 completed the ladder: the last thirteen states and the District. Their shapes were
+// already known, so the arithmetic needed no new code. Four things did:
+//   south-dakota, wyoming, alaska, new-hampshire  the second no-tax cluster. Identical federal
+//                  take-home at every rung, so each carries its own sourced `_noTaxBasis` (South
+//                  Dakota's constitution AUTHORISES an income tax behind a two-thirds bar,
+//                  Wyoming's makes any income tax credit back sales and property taxes, Alaska
+//                  repealed its tax retroactively in 1980, New Hampshire's interest and dividends
+//                  tax ended with 2024). Alaska carries a premium too, so the guard does not demand
+//                  its basis; the premium branch of the hub renders it when present.
+//   district-of-columbia  is not a state, and 244 sentences interpolate NAME as if it were one:
+//                  "in District of Columbia", "District of Columbia charges", "What District of
+//                  Columbia adds". dcLadderProse() rewrites the DC pages after fill, by grammatical
+//                  position, to the copy rule app.js already follows (the District in a sentence,
+//                  D.C. as a modifier). Rewriting at the 244 sites instead would touch most of the
+//                  prose functions for one jurisdiction.
+//   idaho          its 63-3024 URL closes a parenthesised sentence, "…/).", and the full stop rode
+//                  into the link; caLadderSources now strips it.
+// Every wave-4 URL also needed a `_sourceTitles` caption, or test-ladder-rungs fails the page.
+
+// THE DISTRICT IS "THE DISTRICT". Applied to the District's ladder pages only, after fill, to
+// the HTML outside non-JSON-LD scripts and styles (so the FAQ structured data says what the
+// visible FAQ says). Each "District of Columbia" is read by position:
+//   already "the District of Columbia ..."      left alone: grammatical, and keeps the full name
+//   "District of Columbia's"                     the District's
+//   at the start of a label, title or sentence   left alone when it modifies a noun or stands
+//                                                alone (the H1, table headers, link labels)
+//   modifying a noun mid-sentence                D.C. ("D.C. income tax", "a single D.C. earner")
+//   after "in"                                   in the District of Columbia (titles, questions)
+//   any other noun position                      the District / The District at a sentence start
+// URLs are lower-case and hyphenated, so the pattern never reaches one.
+const DC_MODIFIES = /^\s*(?:income|taxable|bands?|rates?|tables|withholding|take-home|salary|earner|minimum|bracket-by-bracket|annual|calculator|paycheck|return|taxes(?!\s+a\b))\b/;
+function dcLadderProse(html) {
+  return html
+    .split(/(<script\b(?![^>]*ld\+json)[\s\S]*?<\/script>|<style\b[\s\S]*?<\/style>)/i)
+    .map((chunk, i) => (i % 2 ? chunk : chunk.replace(
+      /(\b[Tt]he\s+)?District of Columbia(['’]s)?/g,
+      (m, the, poss, off, str) => {
+        if (the) return m;
+        const before = str.slice(Math.max(0, off - 60), off);
+        const after = str.slice(off + m.length);
+        const start = /(?:^|[>"]\s*|[.?!:|]\s+)$/.test(before);
+        const The = start ? 'The' : 'the';
+        if (poss) return `${The} District's`;
+        if (/^\s*(?:[<"]|$)/.test(after) && start) return m;
+        if (/^\s+[A-Z][a-z]/.test(after) && start) return m;
+        if (DC_MODIFIES.test(after)) return start ? m : 'D.C.';
+        if (/\b[Ii]n\s+$/.test(before)) return 'the District of Columbia';
+        return `${The} District`;
+      })))
+    .join('')
+    // The ranking sentence names the whole set and then the subject, which for the District is
+    // the same jurisdiction twice; a comma keeps the two from reading as one list.
+    .replace(/and the District of Columbia and the District comes/g, 'and the District of Columbia, and the District comes');
+}
 
 // A DIFFERENCE OF TWO ENGINE FIGURES, SNAPPED BEFORE IT IS PRINTED. Every cent on the ladder
 // pages goes through usdCents(), which is toLocaleString: half a cent rounds away from zero,
@@ -6921,7 +6980,8 @@ function caPageCopy(r, rungs, ctx) {
     `The biggest single line at ${S} is ${biggest[0]} at ${usd0(biggest[1])}; the smallest is ` +
     `${smallest[0]} at ${usd0(smallest[1])}.`,
     `Modelled as a single filer on ${year} rules taking the standard deduction, with no 401(k), no ` +
-    `health premiums and no dependents. ${biggest[0]} is the heaviest line here at ${usd0(biggest[1])}, ` +
+    `health premiums and no dependents. ${biggest[0][0].toUpperCase() + biggest[0].slice(1)} is the heaviest ` +
+    `line here at ${usd0(biggest[1])}, ` +
     `and ${smallest[0]} the lightest at ${usd0(smallest[1])}.`,
     `${year} rules, single filer, standard deduction, nothing pre-tax and nobody to claim. Of the lines ` +
     `below, ${biggest[0]} takes the most at ${usd0(biggest[1])} and ${smallest[0]} the least at ` +
@@ -7569,7 +7629,9 @@ function caLadderSources(taxData, state) {
   // distinct and true; test-ladder-rungs fails if one reaches a page.
   const dataTitles = state._sourceTitles || {};
   stateUrls.forEach((raw) => {
-    const u = raw.replace(/[;,)]+$/, '');
+    // A URL that closes a parenthesised sentence arrives as "…/)." (Idaho's 63-3024 cite);
+    // the full stop is sentence punctuation, never part of the address.
+    const u = raw.replace(/[;,.)]+$/, '');
     const titles = STATE_SOURCE_TITLES[state.slug];
     const hit = titles ? titles.find(([re]) => re.test(u)) : null;
     add(hit ? hit[1] : (dataTitles[u] || (isCA ? 'California Franchise Tax Board' : u.replace(/^https?:\/\/(www\.)?/, ''))), u);
@@ -7589,11 +7651,12 @@ function caLadderSources(taxData, state) {
   // only citation for the `_noTaxBasis` prose, so losing them would leave a sourced
   // claim on the page with nothing behind it.
   (state._noTaxBasis && state._noTaxBasis.sources || []).forEach((src) => add(src.title, src.url));
-  // A program whose data names its source document cites it by that name (Oregon's transit tax,
-  // Vermont's child care contribution); the rest keep the generic title.
+  // A program may title its own document (_sourceTitles keyed by URL, or a single _sourceTitle,
+  // as Oregon's transit tax and Vermont's child care contribution do); otherwise the page names
+  // it by the program and what it settles.
   (state.employeePrograms || []).forEach((p) => add(
-    isCA ? 'California EDD: SDI rates and withholding'
-      : (p._sourceTitle || `${programLabel(state, p)}: rate and withholding`),
+    (p._sourceTitles || {})[p._source] || p._sourceTitle
+      || (isCA ? 'California EDD: SDI rates and withholding' : `${programLabel(state, p)}: rate and withholding`),
     p._source));
   const SOURCE_TITLES = {
     federal_brackets: `IRS: ${taxData.taxYear} inflation-adjusted tax brackets`,
@@ -8520,6 +8583,10 @@ async function main() {
   }
 
   const builtSlugs = new Set(Object.keys(taxData.states));
+  // builtSlugs holds the District as well, so its size is the states plus one when DC is built;
+  // printing that size beside "and Washington, D.C." counted the District twice (51 + DC).
+  const llmsPlaces = builtSlugs.has('district-of-columbia')
+    ? `all ${builtSlugs.size - 1} US states and Washington, D.C.` : `all ${builtSlugs.size} US states`;
   const homeLinks = stateLinks(roster, builtSlugs, null);
   // Computed once over the jurisdictions the study actually ranks, then written
   // into all 51 state pages, so no page can claim a coverage the data denies.
@@ -9000,6 +9067,8 @@ async function main() {
         continue;
       }
       const NAME = state.name;
+      // The District's pages are rewritten to say "the District" where a sentence needs a noun.
+      const placeProse = ladderSlugKey === 'district-of-columbia' ? dcLadderProse : (h) => h;
       const HUB = ladderHubSlug(ladderSlugKey);
       const payrollState = payroll[ladderSlugKey];
       const kind = ladderKind(state);
@@ -9207,7 +9276,7 @@ async function main() {
 
         const dir = join(DIST, `${HUB}-${r.amount}`);
         await mkdir(dir, { recursive: true });
-        await writeFile(join(dir, 'index.html'), html);
+        await writeFile(join(dir, 'index.html'), placeProse(html));
         urls.push(`${SITE.url}${r.path}`);
       }
 
@@ -9284,7 +9353,14 @@ async function main() {
             `${progs.length === 1 ? 'an insurance premium' : 'insurance premiums'} rather than as tax. ` +
             `On ${usd0(low.amount)} that costs ${usdCents(low.progTotal)} a year and on ` +
             `${usd0(high.amount)} it costs ${usdCents(high.progTotal)}. It appears in no bracket table ` +
-            `anywhere, which is why it is the line people miss when they estimate ${anFor(NAME)} ${NAME} salary.</p>`;
+            `anywhere, which is why it is the line people miss when they estimate ${anFor(NAME)} ${NAME} salary.</p>` +
+            // Alaska is the one premium-only no-tax ladder that also carries a sourced reason
+            // for its zero (a 1980 retroactive repeal); the guard does not require it here, but
+            // when the data has it the hub says it. Washington carries none and is unchanged.
+            (state._noTaxBasis
+              ? `<h3>${esc(state._noTaxBasis.heading)}</h3>` +
+                state._noTaxBasis.paragraphs.map((p) => `<p>${esc(p)}</p>`).join('')
+              : '');
         } else {
           // The structure has to be able to REPRODUCE the dollar figures quoted
           // in the same sentence. Ohio's two bands alone give $108.63 on $30,000,
@@ -9358,15 +9434,15 @@ async function main() {
             ? {
               q: `Why is my ${NAME} take-home pay lower than the federal bracket table suggests?`,
               a: `Because income tax is only part of it. On ${usd0(midRung.amount)} the federal income tax ` +
-                `is ${usd0(midRung.a.federal)}, but Social Security, Medicare` +
-                `${progs.length ? ` and ${caList(progLabels)}` : ''} take a further ${usd0(midOther)} on ` +
+                `is ${usd0(midRung.a.federal)}, but ${caList(['Social Security', 'Medicare', ...progLabels])} ` +
+                `take a further ${usd0(midOther)} on ` +
                 `the same wages, and none of those appear in a bracket table.`,
             }
             : {
               q: `Why is my ${NAME} take-home pay lower than a bracket table suggests?`,
               a: `Because income tax is only part of it. On ${usd0(midRung.amount)} the ${NAME} income tax ` +
-                `is ${usd0(midRung.a.state)}, but Social Security, Medicare` +
-                `${progs.length ? ` and ${caList(progLabels)}` : ''} take a further ${usd0(midOther)} on ` +
+                `is ${usd0(midRung.a.state)}, but ${caList(['Social Security', 'Medicare', ...progLabels])} ` +
+                `take a further ${usd0(midOther)} on ` +
                 `the same wages, and none of those appear in a bracket table.`,
             }),
           {
@@ -9483,7 +9559,7 @@ async function main() {
         // by whitespace, which is the period after the withholding list — no figure
         // in this sentence contains one (usd0 prints no cents).
         ladderHubAnswers[ladderSlugKey] =
-          (hubLede.replace(/<\/?strong>/g, '').match(/^[\s\S]*?\.(?=\s|$)/) || [''])[0];
+          placeProse((hubLede.replace(/<\/?strong>/g, '').match(/^[\s\S]*?\.(?=\s|$)/) || [''])[0]);
         const hubHtml = fill(hubTpl, {
           SITE_NAME: SITE.name, SITE_URL: SITE.url,
           TAX_YEAR: year,
@@ -9545,7 +9621,7 @@ async function main() {
         }).replace('<footer class="site">', `${ladderRelated}\n<footer class="site">`);
         const hubDir = join(DIST, HUB);
         await mkdir(hubDir, { recursive: true });
-        await writeFile(join(hubDir, 'index.html'), hubHtml);
+        await writeFile(join(hubDir, 'index.html'), placeProse(hubHtml));
         urls.push(`${SITE.url}/${HUB}/`);
       }
     }
@@ -13307,14 +13383,18 @@ async function main() {
     `${llmsDataLines}\n\n` +
     `## Tools\n\n${llmsTools}\n\n` +
     `## State paycheck calculators\n\n` +
-    `Take-home pay (paycheck) calculators for all ${builtSlugs.size} US states and Washington, D.C. ` +
+    `Take-home pay (paycheck) calculators for ${llmsPlaces.replace(/\.?$/, '.')} ` +
     `Each estimates ${year} take-home pay after federal income tax, Social Security, Medicare, and (where applicable) state income tax. ` +
     `Start at the [paycheck calculator hub](${SITE.url}/#paycheck).\n\n` +
     `${builtStateLines}\n` +
     (llmsLadderLines
       ? `\n## State take-home pay by salary\n\n` +
         `Hubs that answer "what does a given salary actually pay in this state", with a computed ` +
-        `page per salary level. Currently published for ${llmsLadderLines.split('\n').length} states.\n\n` +
+        `page per salary level. Currently published for ${(() => {
+          const n = llmsLadderLines.split('\n').length;
+          return LADDER_STATE_SET.has('district-of-columbia') && builtSlugs.has('district-of-columbia')
+            ? `${n - 1} states and the District of Columbia` : `${n} states`;
+        })()}.\n\n` +
         `${llmsLadderLines}\n`
       : '');
   await writeFile(join(DIST, 'llms.txt'), llmsTxt);
@@ -13481,7 +13561,7 @@ async function main() {
     `## Tools\n\n${llmsFullTools}\n\n` +
     `## Datasets\n\n${llmsFullDatasets}\n\n` +
     `## State paycheck calculators\n\n` +
-    `Take-home pay (paycheck) calculators for all ${builtSlugs.size} US states and Washington, D.C. ` +
+    `Take-home pay (paycheck) calculators for ${llmsPlaces.replace(/\.?$/, '.')} ` +
     `Each estimates ${year} take-home pay after federal income tax, Social Security, Medicare, and (where applicable) state income tax. ` +
     `Start at the [paycheck calculator hub](${SITE.url}/#paycheck).\n\n` +
     `${builtStateLines}\n`;
