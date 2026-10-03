@@ -262,8 +262,10 @@ t('South Carolina SCIAD phases down, rounding the reduction not the deduction', 
     .filter(([, s]) => s.tax && s.tax.standardDeductionPhaseout)
     .map(([slug]) => slug)
     .sort();
-  assert.deepEqual(users, ['alabama', 'maine', 'ohio', 'rhode-island', 'south-carolina', 'utah', 'wisconsin'],
-    'standardDeductionPhaseout is Alabama, Maine, Ohio, Rhode Island, South Carolina, Utah and Wisconsin only');
+  // 2026-10-03: Colorado (Proposition MM's $1,000 / $2,000 limit over $300,000 of federal AGI) and
+  // Illinois (no exemption over $250,000, $500,000 joint) joined as one-step cliffs; pinned below.
+  assert.deepEqual(users, ['alabama', 'colorado', 'illinois', 'maine', 'ohio', 'rhode-island', 'south-carolina', 'utah', 'wisconsin'],
+    'standardDeductionPhaseout is Alabama, Colorado, Illinois, Maine, Ohio, Rhode Island, South Carolina, Utah and Wisconsin only');
   const cfg = tax.states['south-carolina'].tax.standardDeductionPhaseout;
   assert.equal(cfg.roundReductionDownTo, 10, 'statute rounds to ten dollars');
   assert.deepEqual(cfg.single, { over: 40000, denominator: 55000 });
@@ -487,7 +489,8 @@ const TABLE_C = [
 
 t('Connecticut carries the statutory 2% phase-out ladder for all three statuses', () => {
   const ladders = tax.states.connecticut.tax.steppedRecapture;
-  assert.ok(Array.isArray(ladders) && ladders.length === 1, 'connecticut needs exactly one ladder');
+  // Ladder 0 is Table C; ladders 1-3 are the Table D tax recapture, pinned further down.
+  assert.ok(Array.isArray(ladders) && ladders.length === 4, 'connecticut needs Table C plus the three Table D ladders');
   const l = ladders[0];
   // The data must equal the transcription, field for field, with nothing extra.
   for (const row of TABLE_C) {
@@ -517,7 +520,9 @@ t('Connecticut carries the statutory 2% phase-out ladder for all three statuses'
 // The add-back is isolated by differencing Connecticut against a copy of itself with the
 // ladder removed, so the bracket schedule cancels and only Table C is under test.
 const ctNoLadder = JSON.parse(JSON.stringify(tax.states.connecticut));
-delete ctNoLadder.tax.steppedRecapture;
+// Keep only Table C out: the Table D ladders stay in both copies, so they cancel here and only
+// Table C is under test (every Table C row ends at or below $145,500, but Table D starts at $105,000).
+ctNoLadder.tax.steppedRecapture = ctNoLadder.tax.steppedRecapture.slice(1);
 const addBack = (fs, income) =>
   stateIncomeTax(income, fs, tax.states.connecticut) - stateIncomeTax(income, fs, ctNoLadder);
 const near = (a, b, msg) => assert.ok(Math.abs(a - b) <= 0.001, `${msg}: ${a} !~= ${b}`);
@@ -579,7 +584,69 @@ t('every steppedRecapture ladder is well formed', () => {
       }
     }
   }
-  assert.equal(checked, 3, 'measured nothing, refusing to pass');
+  assert.equal(checked, 12, 'measured nothing, refusing to pass');
+});
+
+// --- Table D, the tax recapture: Conn. Gen. Stat. 12-700(a)(10)(A)(iii)-(v) unmarried,
+// (B)(iii)-(v) head of household, (C)(iii)-(v) married filing jointly. Each sub-paragraph adds a
+// flat amount "for each five thousand dollars [eight, ten], or fraction thereof" of AGI over its
+// threshold, up to a maximum. TRANSCRIBED from DRS IP 2026(7) page 9, "Table D - Tax Recapture"
+// (read 2026-10-03), where each printed amount is the running total of all three bands. Literal
+// numbers only, never read from the data under test.
+const TABLE_D = [
+  // label, status, [income, printed recapture amount] pairs, in the table's own half-open rows:
+  // "More Than" x "Less Than or Equal To" y prints z, so x + 1 and y both print z.
+  { label: 'Code A, D or F, single', fs: 'single', rows: [
+    [105000, 110000, 25], [145000, 150000, 225], [150000, 200000, 250], [200000, 205000, 340],
+    [345000, 500000, 2950], [500000, 505000, 3000], [535000, 540000, 3350], [540000, 5000000, 3400]] },
+  { label: 'Code B, head of household', fs: 'head_of_household', rows: [
+    [168000, 176000, 40], [240000, 320000, 400], [320000, 328000, 540], [552000, 800000, 4600],
+    [800000, 808000, 4680], [864000, 5000000, 5320]] },
+  { label: 'Code C, married filing jointly', fs: 'married', rows: [
+    [210000, 220000, 50], [300000, 400000, 500], [400000, 410000, 680], [690000, 1000000, 5900],
+    [1000000, 1010000, 6000], [1080000, 5000000, 6800]] },
+];
+const ctNoTableD = JSON.parse(JSON.stringify(tax.states.connecticut));
+ctNoTableD.tax.steppedRecapture = ctNoTableD.tax.steppedRecapture.slice(0, 1);
+const recapture = (fs, income) =>
+  stateIncomeTax(income, fs, tax.states.connecticut) - stateIncomeTax(income, fs, ctNoTableD);
+
+t('Connecticut reproduces the printed Table D tax recapture', () => {
+  let checked = 0;
+  for (const { label, fs, rows } of TABLE_D) {
+    near(recapture(fs, rows[0][0]), 0, `${label}: nothing at the first threshold`);
+    checked++;
+    for (const [lo, hi, amount] of rows) {
+      near(recapture(fs, lo + 1), amount, `${label}: row over ${lo}, low end`);
+      near(recapture(fs, hi), amount, `${label}: row up to ${hi}, high end`);
+      checked += 2;
+    }
+  }
+  assert.equal(checked, 43, 'measured the wrong number of Table D rows');
+});
+
+// The rendered disclaimer spells out every filing status's own Table D steps. It once said
+// head of household had "the same three steps" as single at other start points, which hid
+// that the step size ($8,000) and amounts ($40/$140/$80) differ. Each phrase is rebuilt
+// here from the ladder data, so a data change that is not carried into the copy fails.
+t('Connecticut disclaimer gives each filing status its own Table D steps, from the data', () => {
+  const ct = tax.states.connecticut;
+  const text = ct.disclaimer.join(' ');
+  const usd = (n) => '$' + n.toLocaleString('en-US');
+  const bands = ct.tax.steppedRecapture.slice(1);
+  assert.equal(bands.length, 3, 'Table D has three bands');
+  let n = 0;
+  for (const fs of ['single', 'head_of_household', 'married']) {
+    bands.forEach((b, i) => {
+      const x = b[fs];
+      const phrase = `${usd(x.amountPerStep)} for each ${usd(x.step)}` +
+        `${i === 0 && fs === 'single' ? ' of income' : ''} over ${usd(x.over)}, up to ${usd(x.max)}${i ? ' more' : ''}`;
+      assert.ok(text.includes(phrase), `connecticut disclaimer is missing "${phrase}" (${fs}, band ${i + 1})`);
+      n++;
+    });
+  }
+  assert.equal(n, 9);
+  assert.ok(!/same three steps/.test(text), 'the "same three steps" shorthand is back');
 });
 
 // --- ficaPaidDeduction: the opt-in FICA deduction, Massachusetts only ---------
@@ -674,6 +741,19 @@ t('legal-status watches: well-formed, none expired', () => {
     const next = wam.VERDICT_BLOCKS.indexOf('<div class="g" data-st="', start + 1);
     return wam.VERDICT_BLOCKS.slice(start, next < 0 ? undefined : next);
   };
+  // Rev. Proc. 2025-32 sec. 4.14(3): the higher age-65 amount is only for someone "unmarried
+  // and not a surviving spouse". The card once gave it to separate filers and surviving spouses.
+  t('what-applies-to-me: the age-65 card gives the higher amount to single and head of household only', () => {
+    const all = Object.values(wam).filter((v) => typeof v === 'string').join(' ');
+    const asd = obbba.federal.qcd.ageStandardDeductionAddition.byYear['2026'];
+    const usd = (n) => '$' + n.toLocaleString('en-US');
+    assert.ok(all.includes(`it adds ${usd(asd.single)} if you file single or as head of household`),
+      'the age-65 card no longer limits the higher amount to single and head of household');
+    assert.ok(all.includes(`and ${usd(asd.marriedPerSpouse)} if you are married or a qualifying surviving spouse`),
+      'the age-65 card does not give separate filers and surviving spouses the base amount');
+    assert.ok(!/separately, or as a qualifying surviving spouse/.test(all), 'the old wording is back');
+  });
+
   t('what-applies-to-me: tips/overtime verdicts date each row by its own checkedOn', () => {
     const globalLine = `We last checked this on ${humanDay(obbba._meta.lastSourced)}.`;
     let withOwnDate = 0;
@@ -899,8 +979,9 @@ t('Missouri MFJ $100k: 15% of 7,640 = 1,146 off', () =>
   // 100,000 - 32,200 - 1,146 = 66,654 -> 262.86 + 4.7% x 57,218 = 2,952.106
   approx(stateTax('missouri', 100000, 'married'), 2952.106, 0.01));
 t('Missouri HoH $75k: 15% of 5,748 = 862.20 off', () =>
-  // 75,000 - 24,150 - 862.20 = 49,987.80 -> 262.86 + 4.7% x 40,551.80 = 2,168.7946
-  approx(stateTax('missouri', 75000, 'head_of_household'), 2168.7946, 0.01));
+  // Section 143.161.2 RSMo adds $1,400 for a head of household (added 2026-10-03): 24,150 + 1,400.
+  // 75,000 - 25,550 - 862.20 = 48,587.80 -> 262.86 + 4.7% x 39,151.80 = 2,102.9946
+  approx(stateTax('missouri', 75000, 'head_of_household'), 2102.9946, 0.01));
 
 // --- THE TIPS BLOCK'S STATE FIGURE: stateTaxOnSlice() (added 2026-10-02) -----------------------
 // app.js's tipsSlice() prices the state tax on tips as stateTaxOnSlice(): the state tax at the pay

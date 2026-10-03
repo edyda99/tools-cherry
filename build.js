@@ -2016,7 +2016,19 @@ function stateTaxFacts(state, year, taxData) {
   if (stepped) {
     const lastS = tiersS[tiersS.length - 1];
     const sameEdges = tiersM.length === tiersS.length && tiersM.every((x, i) => x.at === tiersS[i].at);
-    if (tiersS.length && tiersS.length <= 3 && sameEdges) {
+    if (tiersS.length === 1 && tiersM.length === 1) {
+      // A cliff, one step straight to the floor: Colorado's Proposition MM limit ($1,000 and
+      // $2,000 once federal AGI is over $300,000) and Illinois' exemption (none over $250,000,
+      // $500,000 joint).
+      const [s1] = tiersS;
+      const [m1] = tiersM;
+      const mEdge = m1.at === s1.at ? '' : ` ${edge(sdStepM, m1.at)}`;
+      sdFloor = s1.amount > 0 || m1.amount > 0
+        ? `, cut to ${usd0(s1.amount)} ${edge(sdStep, s1.at)} of income (${usd0(m1.amount)} for married couples ` +
+          `filing jointly${mEdge})`
+        : `, with none at all ${edge(sdStep, s1.at)} of income` +
+          (mEdge ? ` (${mEdge.trim()} for married couples filing jointly)` : '');
+    } else if (tiersS.length && tiersS.length <= 3 && sameEdges) {
       // Few enough tiers to name each one (Ohio's $2,150 and $1,900), so the worked example
       // that follows can be traced to the tier it uses.
       sdFloor = `, stepping down to ` +
@@ -2054,7 +2066,13 @@ function stateTaxFacts(state, year, taxData) {
       ? `${state.name} has not published its ${year} ${sdName(t)} yet, so this page uses its ${priorYear} ` +
         `amounts until it does: ${usd0(sd.single)} for single filers and ${usd0(sd.married)} for married couples ` +
         `filing jointly${sdFloor}`
-      : `For ${year}, ${state.name}'s state ${sdName(t)} is ${usd0(sd.single)} for single filers and ${usd0(sd.married)} for married couples filing jointly${sdFloor}`)
+      : t.deductionFromFederal
+        // Colorado: no deduction of its own. It taxes federal taxable income, so the
+        // federal standard deduction carries through (tax.deductionFromFederal).
+        ? `${state.name} has no standard deduction of its own. It starts from your federal taxable ` +
+          `income, so the federal standard deduction carries through: for ${year}, ${usd0(sd.single)} for ` +
+          `single filers and ${usd0(sd.married)} for married couples filing jointly${sdFloor}`
+        : `For ${year}, ${state.name}'s state ${sdName(t)} is ${usd0(sd.single)} for single filers and ${usd0(sd.married)} for married couples filing jointly${sdFloor}`)
     : `${state.name} does not provide a state standard deduction`;
   // And a state on last year's rate schedule (Idaho) or thresholds (Arkansas) says that too.
   const priorNote = !priorYear ? ''
@@ -2911,17 +2929,25 @@ function stateNetLabel(state) {
   return `Based on a $75,000 salary in ${state.name}, single filer, paid every 2 weeks`;
 }
 
-// Each no-income-tax state's revenue model in a short phrase — condensed from
-// that state's NOTAX_FACTS / sales- & property-tax data below (same sources),
-// so ledes and FAQ answers differ in words because the funding models differ.
+// Each no-income-tax state's revenue model in a short phrase, so ledes and FAQ answers
+// differ in words because the funding models differ. These render with no citation of
+// their own, so each must restate something an official source already backs, not a
+// ranking. 2026-10-03: the property-tax data and its Tax Foundation rankings were dropped,
+// which left New Hampshire's "some of the nation's highest property taxes" and Texas's
+// "unusually high property taxes" with no source. Texas now restates the Comptroller
+// (6.25% state sales tax, comptroller.texas.gov/taxes/sales/; "Texas has no state property
+// tax ... That's up to local taxing units", comptroller.texas.gov/taxes/property-tax/).
+// New Hampshire restates NH DRA's Meals and Rooms page (8.5%, on restaurant meals, hotel
+// rooms and car rentals, revenue.nh.gov/taxes-glance/meals-rooms-rentals-tax), the same
+// fact the payroll file cites for it.
 const NOTAX_ANGLE = {
   alaska: 'oil revenues and the Permanent Fund',
   florida: 'sales tax and tourism revenue',
   nevada: 'gaming, tourism and sales taxes',
-  'new-hampshire': 'some of the nation\'s highest property taxes',
+  'new-hampshire': 'taxes such as its 8.5% tax on restaurant meals, hotel rooms and car rentals',
   'south-dakota': 'sales and property taxes, with no corporate income tax either',
   tennessee: 'sales taxes',
-  texas: 'unusually high property taxes plus sales tax',
+  texas: 'a 6.25% state sales tax and local property taxes',
   washington: 'sales tax plus a capital-gains excise on high earners',
   wyoming: 'mineral severance taxes and federal mineral royalties'
 };
@@ -2942,7 +2968,9 @@ const NOTAX_FACTS = {
   // requirement conflates the two and understates what it would take to undo.
   // The state's ladder hub already states it this way from _noTaxBasis.
   texas: 'Texas has no personal income tax, and a 2019 constitutional amendment (Article VIII, Section 24-a) prohibits the state from levying one outright, so introducing one would require amending the Texas Constitution again.',
-  washington: 'Washington has no tax on wage income, though since 2022 it applies a 7% excise tax on annual long-term capital gains above an inflation-adjusted threshold (around $270,000) — which does not touch ordinary paychecks.',
+  // RCW 82.87.040: 7% since 2022, plus an additional 2.9% on gains over $1,000,000
+  // "beginning January 1, 2025". The old copy gave only the 7% and an outdated threshold.
+  washington: 'Washington has no tax on wage income. It does tax large long-term capital gains, at 7% plus an extra 2.9% on gains over $1 million, and that tax never comes out of a paycheck.',
   wyoming: 'Wyoming has no individual or corporate income tax, relying on mineral severance taxes and federal mineral royalties to fund state government.'
 };
 
@@ -3002,6 +3030,8 @@ function stateBody(state, year, taxData) {
     how = `${state.name} levies a <strong>flat ${pctStr(t.rate)} state income tax</strong> for ${year}`;
     how += isCreditState(t)
       ? ` on every dollar of income, less a ${creditName(t)} that shrinks as income rises.`
+      : t.deductionFromFederal
+      ? `, applied to your federal taxable income.`
       : t.standardDeduction
       ? `, applied after the state allowance/deduction for your filing status.`
       : ` on your wages, with no state standard deduction.`;
@@ -3231,27 +3261,27 @@ function minWageBlock(state, p, year) {
   return `<section class="prose"><h2>${h2}</h2><p>${intro}${note}</p></section>`;
 }
 
-// Ancillary context (sales + property) — one compact paragraph so the page stays
+// Ancillary context (the statewide sales tax rate): one compact table so the page stays
 // paycheck-focused (relevance cap: ancillary stays a minority of net-new prose).
+// 2026-10-03: the "average combined" local sales rate and the effective property-tax
+// rate were dropped. Both were Tax Foundation estimates with no official source behind
+// them. The statewide rate is set in law and cited to the state; it is the minimum charged
+// everywhere, so for California (7.25%), Virginia (5.3%) and Utah (6.1%) it includes a
+// local share that applies statewide.
 function otherTaxesBlock(state, p) {
   if (!p) return '';
-  const st = p.salesTax, pt = p.propertyTax;
-  const parts = [];
-  if (st && typeof st.stateBaseRatePct === 'number') {
-    const combined = (typeof st.combinedAvgRatePct === 'number') ? ` (≈${st.combinedAvgRatePct}% with local)` : '';
-    parts.push(`<tr><td>Sales tax</td><td>${st.stateBaseRatePct}%${combined}</td></tr>`);
-  }
-  if (pt && typeof pt.effectiveRatePct === 'number') {
-    parts.push(`<tr><td>Property tax</td><td>≈${pt.effectiveRatePct}%${pt.rankNote ? ` — ${escHtml(pt.rankNote)}` : ''}</td></tr>`);
-  }
-  if (!parts.length) return '';
+  const st = p.salesTax;
+  if (!(st && typeof st.stateBaseRatePct === 'number')) return '';
+  const rate = st.stateBaseRatePct;
+  const parts = [`<tr><td>Statewide sales tax</td><td>${rate}%</td></tr>`];
   // Data-keyed heading: embed the sales-tax rate and (for no-income-tax states)
-  // the fact that these taxes stand in for a wage tax. Table body, not prose —
+  // the fact that this tax stands in for a wage tax. Table body, not prose:
   // the numbers ARE the content.
-  const ratePart = (st && typeof st.stateBaseRatePct === 'number') ? `${st.stateBaseRatePct}% sales tax` : 'sales tax';
-  const h2 = state.hasIncomeTax
-    ? `Beyond the paycheck: ${state.name}'s ${ratePart} and property tax`
-    : `What ${state.name} levies instead: ${ratePart} and property tax`;
+  const h2 = rate > 0
+    ? (state.hasIncomeTax
+      ? `Beyond the paycheck: ${state.name}'s ${rate}% statewide sales tax`
+      : `What ${state.name} levies instead: a ${rate}% statewide sales tax`)
+    : `${state.name} has no statewide sales tax`;
   return `<section class="prose"><h2>${h2}</h2>` +
     `<table class="data-table"><tbody>${parts.join('')}</tbody></table></section>`;
 }
@@ -3363,8 +3393,14 @@ function obbbaConformityBlock(state, obbba, year) {
   const tipVerdict = (v) => (v === 'partial' && tipCap > 0
     ? `${state.name}'s own deduction of up to ${usd0(tipCap)} of tips`
     : verdict(v));
-  const row = (label, d, say = verdict) =>
-    `<li><strong>${label}:</strong> 2025 — ${say(d.y2025)}; 2026–2028 — ${say(d.y2026)}.</li>`;
+  // `conformityThrough` marks a state whose law covers only part of 2026-2028 (Indiana adopted
+  // the deductions for tax year 2026 only), so the 2026 verdict is not stretched over 2027-2028.
+  const through = Number(e.conformityThrough) || 2028;
+  const laterYears = through + 1 >= 2028 ? '2028' : `${through + 1} to 2028`;
+  const row = (label, d, say = verdict) => (through >= 2028
+    ? `<li><strong>${label}:</strong> 2025 — ${say(d.y2025)}; 2026–2028 — ${say(d.y2026)}.</li>`
+    : `<li><strong>${label}:</strong> 2025: ${say(d.y2025)}; ${through > 2026 ? `2026 to ${through}` : '2026'}: ` +
+      `${say(d.y2026)}; ${laterYears}: not adopted by ${state.name} so far.</li>`);
   const srcHost = (() => { try { return new URL(e.source).hostname.replace(/^www\./, ''); } catch (_) { return ''; } })();
   const srcLink = e.source && srcHost
     ? ` <span class="muted-small">(source: <a href="${escHtml(e.source)}" rel="noopener" target="_blank">${escHtml(srcHost)}</a>)</span>`
@@ -5095,8 +5131,29 @@ function stateMarginalRate(r) {
     const top = r.st.bands.filter((b) => b.amount > 0).slice(-1)[0];
     return top ? top.rate : null;
   }
-  if (r.kind === 'flat') return r.st.rate;
+  if (r.kind === 'flat') {
+    // Utah: while the taxpayer tax credit is shrinking, the next dollar of pay costs the flat
+    // rate PLUS the credit it takes away (4.45% + 1.3 cents = 5.75%), and a dollar kept out of
+    // income (a 401(k) deferral, a deductible tip) saves the same. Worked from the data.
+    const ct = creditShrinkAt(r);
+    return ct ? r.st.rate + ct.cents / 100 : r.st.rate;
+  }
   return null;
+}
+
+// The credit terms when a credit state's credit is still shrinking at this rung, else null.
+function creditShrinkAt(r) {
+  if (!(r.kind === 'flat' && r.st && r.st.credit != null && r.st.credit > 0.005)) return null;
+  const ct = creditTerms(r.state.tax, 'single');
+  return (ct.cents != null && ct.over != null && r.amount > ct.over) ? ct : null;
+}
+
+// Why a credit state's marginal rate is above its headline rate, in words; '' elsewhere.
+function creditMarginalWhy(r) {
+  const ct = creditShrinkAt(r);
+  return ct
+    ? ` (the ${pctStr(r.st.rate)} rate plus the ${ct.cents} cents of ${creditName(r.state.tax)} each dollar of income takes away)`
+    : '';
 }
 
 // How much the state subtracts before its own rate applies, in words. The data
@@ -6565,8 +6622,8 @@ function caProseBlocks(r, rungs, ctx) {
     const yr = secure2.rothCatchUp.byYear[String(taxData.taxYear)];
     if (yr && yr.deferral) {
       const share = yr.deferral / r.amount;
-      const stateRateClause = stMarginal == null ? '' : ` plus ${pctStr(stMarginal)} in ${NAME}`;
-      const stateRateClause2 = stMarginal == null ? '' : ` and ${pctStr(stMarginal)} in ${NAME}`;
+      const stateRateClause = stMarginal == null ? '' : ` plus ${pctStr(stMarginal)} in ${NAME}${creditMarginalWhy(r)}`;
+      const stateRateClause2 = stMarginal == null ? '' : ` and ${pctStr(stMarginal)} in ${NAME}${creditMarginalWhy(r)}`;
       if (share >= 0.4) {
         push('deferral',
           `<h3>Maxing a 401(k) is not realistic at ${S}</h3>` +
@@ -6760,7 +6817,8 @@ function caProseBlocks(r, rungs, ctx) {
         if (otY !== 'yes') notFollowed.push('overtime premium');
         const stateBite = (stMarginal == null || !notFollowed.length) ? ''
           : ` Where it does not, a dollar of qualified ${caList(notFollowed)} that escapes ` +
-            `${pctStr(fedTop.rate)} of federal tax at ${S} is still charged ${pctStr(stMarginal)} by ${NAME}.`;
+            `${pctStr(fedTop.rate)} of federal tax at ${S} is still charged ${pctStr(stMarginal)} by ${NAME}` +
+            `${creditMarginalWhy(r)}.`;
         push('obbbastate',
           `<h3>${frame('obH', [
             `Does ${NAME} follow the tips and overtime deductions?`,
@@ -7397,7 +7455,7 @@ function caLadderFaq(r, rungs, taxData, payrollState, obbba, secure2) {
       ? (r.st.credit != null
         // Utah's rate does reach every dollar; what comes off afterwards is a credit.
         ? `Federally you are in the ${pctStr(fedTop.rate)} bracket, which applies only to the top slice ` +
-          `of your income; ${NAME}'s single ${pctStr(stMarginal)} rate applies to all of it` +
+          `of your income; ${NAME}'s single ${pctStr(r.st.rate)} rate applies to all of it` +
           (r.st.credit > 0.005
             ? `, less its ${creditName(r.state.tax)} of ${usd0(r.st.credit)} at this salary.`
             : `, and its ${creditName(r.state.tax)} has run out by this salary.`)
@@ -7663,7 +7721,7 @@ function caLadderSources(taxData, state) {
     federal_brackets_hoh: `IRS: Rev. Proc. 2025-32 (${taxData.taxYear} brackets, all statuses)`,
     standard_deduction: `IRS: ${taxData.taxYear} standard deduction`,
     fica: 'Social Security Administration: Contribution and Benefit Base',
-    additional_medicare: 'IRS: Topic no. 751, Additional Medicare Tax',
+    additional_medicare: 'IRS: Questions and answers for the Additional Medicare Tax (thresholds by filing status)',
   };
   Object.entries((taxData._meta && taxData._meta.sources) || {})
     .forEach(([k, u]) => add(SOURCE_TITLES[k] || k.replace(/_/g, ' '), u));
@@ -12357,16 +12415,17 @@ async function main() {
     const analysisBlocks = blocks.join('\n      ');
 
     // --- Cost-of-living context table: the tied leaders plus the bottom three, next
-    // to the taxes a paycheck calculator structurally cannot see. Figures come from
-    // the already-sourced state-payroll-2026.json the state pages use.
+    // to the statewide sales tax a paycheck calculator structurally cannot see. Figures come
+    // from the already-sourced state-payroll-2026.json the state pages use. (The average
+    // combined local rate and the effective property-tax rate were dropped 2026-10-03:
+    // both were Tax Foundation estimates with no official source.)
     const colPick = [...topTied, ...thpRows.slice(-3).filter((r) => r.rank !== 1)];
     const colSeen = new Set();
     const colRows = colPick.filter((r) => (colSeen.has(r.slug) ? false : colSeen.add(r.slug)))
       .map((r) => {
         const p = payroll[r.slug] || {};
         const h = high.bySlug.get(r.slug);
-        const sales = p.salesTax && typeof p.salesTax.combinedAvgRatePct === 'number' ? p.salesTax.combinedAvgRatePct : null;
-        const prop = p.propertyTax && typeof p.propertyTax.effectiveRatePct === 'number' ? p.propertyTax.effectiveRatePct : null;
+        const sales = p.salesTax && typeof p.salesTax.stateBaseRatePct === 'number' ? p.salesTax.stateBaseRatePct : null;
         const mhi = p.medianHouseholdIncome && p.medianHouseholdIncome.amountUsd;
         const cell = (v, suffix) => (v == null
           ? '<td class="num zero" data-val="">n/a</td>'
@@ -12374,7 +12433,7 @@ async function main() {
         return `<tr><td><a href="/${r.slug}-paycheck-calculator/">${esc(r.name)}</a></td>` +
           `<td class="num net" data-val="${Math.round(r.net)}">${usd0(r.net)}</td>` +
           `<td class="num net" data-val="${Math.round(h.net)}">${usd0(h.net)}</td>` +
-          cell(sales, '%') + cell(prop, '%') +
+          cell(sales, '%') +
           (mhi ? `<td class="num" data-val="${mhi}">${usd0(mhi)}</td>` : '<td class="num zero" data-val="">n/a</td>') +
           `</tr>`;
       }).join('\n');
@@ -12382,13 +12441,13 @@ async function main() {
     // lowest-take-home state, so the caveat is backed by numbers rather than assertion.
     const salesOf = (r) => {
       const p = payroll[r.slug];
-      return p && p.salesTax && typeof p.salesTax.combinedAvgRatePct === 'number' ? p.salesTax.combinedAvgRatePct : null;
+      return p && p.salesTax && typeof p.salesTax.stateBaseRatePct === 'number' ? p.salesTax.stateBaseRatePct : null;
     };
     const salesLeader = topTied.filter((r) => salesOf(r) != null).sort((a, b) => salesOf(b) - salesOf(a))[0];
     const worstSales = salesOf(worst);
     const colContrast = (salesLeader && worstSales != null)
       ? `${esc(salesLeader.name)} ${topTied.length > 1 ? 'ties for' : 'takes'} the most take-home pay ` +
-        `and also charges an average ${salesOf(salesLeader)}% combined sales tax, while ` +
+        `and also charges a ${salesOf(salesLeader)}% statewide sales tax, while ` +
         `${esc(worst.name)}, last on take-home pay, charges ${worstSales}%.`
       : '';
 
@@ -12482,8 +12541,8 @@ async function main() {
       federal_brackets: `IRS: ${year} inflation-adjusted tax brackets (Rev. Proc. 2025-32)`,
       standard_deduction: `IRS: ${year} standard deduction`,
       fica: 'Social Security Administration: Contribution and Benefit Base (Social Security wage base)',
-      additional_medicare: 'IRS: Topic no. 751, Additional Medicare Tax',
-      federal_brackets_hoh: `Tax Foundation: ${year} federal tax brackets`,
+      additional_medicare: 'IRS: Questions and answers for the Additional Medicare Tax (thresholds by filing status)',
+      federal_brackets_hoh: `IRS: Rev. Proc. 2025-32 (${year} brackets, all statuses)`,
     };
     const metaSources = (taxData._meta && taxData._meta.sources) || {};
     const srcSeen = new Set();

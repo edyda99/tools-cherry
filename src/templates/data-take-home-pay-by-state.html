@@ -205,22 +205,21 @@
     <section class="prose">
       <h2 id="cost-of-living">A bigger paycheck is not the same as being better off</h2>
       <p>This study measures one thing: what a payroll model leaves after federal income tax, FICA, state income tax and state payroll premiums, for a single filer with no other deductions. It says nothing about what those dollars buy. Cost of living is not modelled here at all.</p>
-      <p>States with no income tax still have to raise revenue somewhere, and they generally do it through sales and property taxes instead. Here are the states at the top and the bottom of the take-home ranking, next to the two taxes a paycheck calculator structurally cannot see:</p>
+      <p>States with no income tax still have to raise revenue somewhere, and they generally do it through sales and property taxes instead. Here are the states at the top and the bottom of the take-home ranking, next to the statewide sales tax rate, which a paycheck calculator structurally cannot see:</p>
       <div class="table-scroll">
         <table class="study" id="colTable" data-datatable>
           <thead><tr>
             <th data-sort="text"><span class="hd-main">State</span></th>
             <th class="num" data-sort="num"><span class="hd-main">Take-home</span><span class="hd-sub">on {{BASE_SALARY}}</span></th>
             <th class="num" data-sort="num"><span class="hd-main">Take-home</span><span class="hd-sub">on {{HIGH_SALARY}}</span></th>
-            <th class="num" data-sort="num"><span class="hd-main">Avg. combined sales tax</span></th>
-            <th class="num" data-sort="num"><span class="hd-main">Effective property tax</span></th>
+            <th class="num" data-sort="num"><span class="hd-main">Statewide sales tax</span></th>
             <th class="num" data-sort="num"><span class="hd-main">Median household income</span></th>
           </tr></thead>
           <tbody>{{COL_ROWS}}</tbody>
         </table>
       </div>
-      <p class="muted-small">Sales tax is the average combined state and local rate; property tax is the effective rate on owner-occupied housing; median household income is the latest American Community Survey figure via FRED. Sources are linked in full on each state's own page.</p>
-      <p>{{COL_CONTRAST}} Neither figure is in the take-home columns, and both are real money. Treat the take-home figures on this page as the payroll half of the question and nothing more.</p>
+      <p class="muted-small">Sales tax is the rate charged everywhere in the state; many cities and counties add their own on top. Median household income is the Census Bureau's 2024 estimate. Sources are linked in full on each state's own page.</p>
+      <p>{{COL_CONTRAST}} Sales tax is not in the take-home columns, and neither is property tax, but both are real money. Treat the take-home figures on this page as the payroll half of the question and nothing more.</p>
     </section>
 
     <section class="prose method">

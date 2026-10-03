@@ -227,10 +227,16 @@
     "massachusetts": {
       "name": "Massachusetts",
       "abbr": "MA",
-      "method": "regular",
+      "method": "flat",
+      "rate": 0.05,
+      "rateAbove": 0.09,
+      "rateAboveOver": 1107750,
+      "rateAboveFicaCap": 2000,
+      "rateAboveExemption": 4400,
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate supplemental rate; aggregate method. Massachusetts is 5% flat, plus a 4% surtax on the part of your income above $1,107,750 for 2026 (the threshold is adjusted every year)."
+      "source": "Massachusetts Department of Revenue, Circular M (withholding tables effective January 1, 2026, Rev. 12/25), section G: withhold 5% of a supplemental wage payment. When the payment, plus the year's annualized regular wages from the employer (less up to $2,000 of FICA and retirement deductions and the exemption factors), plus earlier supplemental payments that year, comes to more than $1,107,750, the part above $1,107,750 is withheld at 9%.",
+      "_sourceUrl": "https://www.mass.gov/doc/massachusetts-circular-m-income-tax-withholding-tables-at-50-effective-january-1-2026/download",
+      "note": "Massachusetts withholds a flat 5% on a bonus. Your employer adds up this bonus, your yearly pay from them (less up to $2,000 of Social Security and Medicare and a $4,400 exemption) and any bonuses they already paid you this year. If that total is more than $1,107,750 in 2026, the part of the bonus above that line is withheld at 9%, and this estimate does the same."
     },
     "michigan": {
       "name": "Michigan",
@@ -260,8 +266,9 @@
       "abbr": "MS",
       "method": "regular",
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate supplemental rate; aggregate method. Mississippi taxes income above an exemption at roughly 4.0%."
+      "source": "Mississippi Department of Revenue, Pub 89-700 withholding guide (revised January 13, 2026), section 9: supplemental wages are withheld as if added to regular wages (aggregate method).",
+      "note": "No separate supplemental rate; aggregate method. For 2026 Mississippi taxes the first $10,000 of taxable income at 0% and the rest at 4%.",
+      "_sourceUrl": "https://www.dor.ms.gov/sites/default/files/tax-forms/business/89700251revised1.13.2026.pdf"
     },
     "missouri": {
       "name": "Missouri",
@@ -337,7 +344,7 @@
       "verified": true,
       "source": "New York NYS-50-T-NYS (1/26)",
       "_sourceUrl": "https://www.tax.ny.gov/pdf/publications/withholding/nys50_t_nys.pdf",
-      "localNote": "New York City adds a 4.25% supplemental rate and Yonkers adds 1.61135% (resident) / 0.5% (non-resident) on top of the 11.7% state rate. Those local rates are not included in the headline figure."
+      "localNote": "New York City adds a 4.25% supplemental rate and Yonkers adds 1.95975% (resident) / 0.5% (non-resident) on top of the 11.7% state rate. Those local rates are not included in the headline figure."
     },
     "north-carolina": {
       "name": "North Carolina",
@@ -486,7 +493,7 @@
       "method": "none",
       "verified": true,
       "source": "repoTaxData",
-      "note": "No tax on wage income (the 7% tax applies only to large long-term capital gains); 0% on a bonus."
+      "note": "No tax on wage income; Washington's capital gains tax (7%, plus 2.9% on gains over $1 million) applies only to large long-term capital gains. 0% on a bonus."
     },
     "west-virginia": {
       "name": "West Virginia",

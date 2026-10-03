@@ -260,8 +260,13 @@ const run = (input) => computeBonus(input, taxData, suppData);
   // read (michigan.gov returns 403 to automated fetch of older editions, so how far back the same
   // sentence runs is unverified). The entry was simply mis-bucketed here, its source read
   // "repoTaxData" and it carried no source URL.
-  is('flat = 21', count('flat'), 21);
-  is('regular = 18', count('regular'), 18);
+  // 2026-10-03: massachusetts moved regular -> flat 5%, so flat 21->22 and regular 18->17.
+  // Circular M (2026), section G, gives a percentage method for supplemental wages: "If the
+  // result of step 4 is $1,107,750 or less, withhold 5% of the amount determined in step 3",
+  // and 9% on the part of combined annualized wages above $1,107,750. The entry carries that
+  // upper rate as rateAbove / rateAboveOver, tested below.
+  is('flat = 22', count('flat'), 22);
+  is('regular = 17', count('regular'), 17);
   is('special = 3', count('special'), 3);
   is('buckets cover all 51', count('none') + count('flat') + count('regular') + count('special'), 51);
   // every entry has verified + source; flagged ones carry singleSourced
@@ -468,13 +473,35 @@ const run = (input) => computeBonus(input, taxData, suppData);
   // check on payday, and an employer's withholding tables do not carry a Form 1 line
   // 11 deduction the filer claims on the return. So Massachusetts genuinely
   // over-withholds here, and the 23.50 gap is a real refund, not a rounding artifact.
-  eq('MA1 withheld state tax is the plain 5% aggregate delta', r.withheld.state, 500);
+  eq('MA1 withheld state tax is the flat 5% supplemental rate', r.withheld.state, 500);
   eq('MA1 the gap shows up as delta', r.delta - (r.withheld.federal - r.trueLiability.federal), 23.50);
   // Above the crossover the cap binds at BOTH ends and the deduction really does
   // cancel, so a high earner's answer is unchanged by this fix.
   const hi = run({ bonus: 10000, regIncome: 90000, filingStatus: 'single', stateSlug: 'massachusetts' });
   eq('MA2 above the crossover the deduction cancels', hi.trueLiability.state, 500);
   eq('MA2 and matches the withheld column', hi.withheld.state, 500);
+  // Circular M section G's own worked example (2026): $948,000 a year paid monthly, one
+  // exemption, a $350,000 bonus, no earlier bonuses. Step 4 = 350,000 + (948,000 - 2,000 of
+  // FICA, the capped deduction - 4,400 exemption) + 0 = 1,291,600; the part over $1,107,750
+  // is 183,850, so 0.09 x 183,850 + 0.05 x 166,150 = 16,546.50 + 8,307.50 = 24,854.
+  const ma = suppData.states.massachusetts;
+  eq('MA3 Circular M upper rate 9%', ma.rateAbove, 0.09);
+  eq('MA3 Circular M threshold $1,107,750', ma.rateAboveOver, 1107750);
+  eq('MA3 Circular M FICA deduction cap $2,000', ma.rateAboveFicaCap, 2000);
+  eq('MA3 Circular M one-exemption factor $4,400', ma.rateAboveExemption, 4400);
+  const big = run({ bonus: 350000, regIncome: 948000, filingStatus: 'single', stateSlug: 'massachusetts' });
+  eq('MA3 matches DOR\'s worked example, $24,854', big.withheld.state, 24854);
+  // Earlier bonuses count toward step 4. $900,000 of pay, $300,000 of earlier bonuses and a
+  // $100,000 bonus: 100,000 + (900,000 - 2,000 - 4,400) + 300,000 = 1,293,600, which is
+  // 193,600 over the line, more than the whole bonus, so all of it is withheld at 9%: 9,000.
+  // Without the earlier bonuses the same pay and bonus total 993,600 and stay at 5%: 5,000.
+  const withEarlier = run({ bonus: 100000, regIncome: 900000, ytdSupp: 300000, filingStatus: 'single', stateSlug: 'massachusetts' });
+  eq('MA3 earlier bonuses push the whole bonus to 9%', withEarlier.withheld.state, 9000);
+  const noEarlier = run({ bonus: 100000, regIncome: 900000, filingStatus: 'single', stateSlug: 'massachusetts' });
+  eq('MA3 the same bonus without earlier bonuses stays at 5%', noEarlier.withheld.state, 5000);
+  // Step 4 here: 10,000 + (1,000,000 - 2,000 - 4,400) = 1,003,600, under the line.
+  const under = run({ bonus: 10000, regIncome: 1000000, filingStatus: 'single', stateSlug: 'massachusetts' });
+  eq('MA3 all 5% while the year stays under the threshold', under.withheld.state, 500);
 }
 
 // --- ALABAMA / MISSOURI / OREGON: the federal-tax subtraction reaches the bonus tool ---------

@@ -1055,7 +1055,9 @@ const PAGES = [
     file: 'alabama-take-home-pay-70000/index.html',
     pins: [
       ['no-repeated-generic-source-title', absent('Alabama: source for the state figures on this page')],
-      ['source-title-tax-foundation', contains('>Tax Foundation: 2026 state income tax rates and brackets</a>')],
+      // 2026-10-03: the Tax Foundation link was replaced by the statute it summarized.
+      ['source-title-40-18-5', contains('>Code of Alabama Section 40-18-5: income tax rates for individuals</a>')],
+      ['no-tax-foundation-source', absent('taxfoundation.org/data/all/state/state-income-tax-rates-2026')],
       ['source-title-std-deduction-chart', contains('>Alabama Department of Revenue: standard deduction chart</a>')],
       ['source-title-40-18-15', contains('>Code of Alabama Section 40-18-15: deductions on the Alabama return</a>')],
       ['source-title-act-2026-604', contains('>Act 2026-604 (HB527): the overtime premium deduction, as enacted</a>')],
@@ -1127,6 +1129,17 @@ const PAGES = [
     pins: [
       ['senior-line-says-colorado-allows-it', contains('and Colorado allows it on your Colorado return too')],
       ['senior-line-no-longer-says-same-wages', absent('Colorado still applies its flat')],
+    ],
+  },
+  {
+    // Colorado has no standard deduction of its own: it taxes federal taxable income, so the
+    // federal deduction carries through (tax.deductionFromFederal). The page used to call
+    // the $16,100 "Colorado's state standard deduction".
+    file: 'colorado-paycheck-calculator/index.html',
+    pins: [
+      ['no-colorado-state-standard-deduction', absent("Colorado's state standard deduction")],
+      ['says-no-deduction-of-its-own', contains('Colorado has no standard deduction of its own. It starts from your federal taxable income, so the federal standard deduction carries through')],
+      ['how-line-says-federal-taxable-income', contains('Colorado levies a <strong>flat 4.4% state income tax</strong> for 2026, applied to your federal taxable income.')],
     ],
   },
   {
