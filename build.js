@@ -2923,17 +2923,25 @@ function stateNetLabel(state) {
   return `Based on a $75,000 salary in ${state.name}, single filer, paid every 2 weeks`;
 }
 
-// Each no-income-tax state's revenue model in a short phrase — condensed from
-// that state's NOTAX_FACTS / sales- & property-tax data below (same sources),
-// so ledes and FAQ answers differ in words because the funding models differ.
+// Each no-income-tax state's revenue model in a short phrase, so ledes and FAQ answers
+// differ in words because the funding models differ. These render with no citation of
+// their own, so each must restate something an official source already backs, not a
+// ranking. 2026-10-03: the property-tax data and its Tax Foundation rankings were dropped,
+// which left New Hampshire's "some of the nation's highest property taxes" and Texas's
+// "unusually high property taxes" with no source. Texas now restates the Comptroller
+// (6.25% state sales tax, comptroller.texas.gov/taxes/sales/; "Texas has no state property
+// tax ... That's up to local taxing units", comptroller.texas.gov/taxes/property-tax/).
+// New Hampshire restates NH DRA's Meals and Rooms page (8.5%, on restaurant meals, hotel
+// rooms and car rentals, revenue.nh.gov/taxes-glance/meals-rooms-rentals-tax), the same
+// fact the payroll file cites for it.
 const NOTAX_ANGLE = {
   alaska: 'oil revenues and the Permanent Fund',
   florida: 'sales tax and tourism revenue',
   nevada: 'gaming, tourism and sales taxes',
-  'new-hampshire': 'some of the nation\'s highest property taxes',
+  'new-hampshire': 'taxes such as its 8.5% tax on restaurant meals, hotel rooms and car rentals',
   'south-dakota': 'sales and property taxes, with no corporate income tax either',
   tennessee: 'sales taxes',
-  texas: 'unusually high property taxes plus sales tax',
+  texas: 'a 6.25% state sales tax and local property taxes',
   washington: 'sales tax plus a capital-gains excise on high earners',
   wyoming: 'mineral severance taxes and federal mineral royalties'
 };
@@ -2954,7 +2962,9 @@ const NOTAX_FACTS = {
   // requirement conflates the two and understates what it would take to undo.
   // The state's ladder hub already states it this way from _noTaxBasis.
   texas: 'Texas has no personal income tax, and a 2019 constitutional amendment (Article VIII, Section 24-a) prohibits the state from levying one outright, so introducing one would require amending the Texas Constitution again.',
-  washington: 'Washington has no tax on wage income, though since 2022 it applies a 7% excise tax on annual long-term capital gains above an inflation-adjusted threshold (around $270,000) — which does not touch ordinary paychecks.',
+  // RCW 82.87.040: 7% since 2022, plus an additional 2.9% on gains over $1,000,000
+  // "beginning January 1, 2025". The old copy gave only the 7% and an outdated threshold.
+  washington: 'Washington has no tax on wage income. It does tax large long-term capital gains, at 7% plus an extra 2.9% on gains over $1 million, and that tax never comes out of a paycheck.',
   wyoming: 'Wyoming has no individual or corporate income tax, relying on mineral severance taxes and federal mineral royalties to fund state government.'
 };
 
