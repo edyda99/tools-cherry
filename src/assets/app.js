@@ -741,6 +741,9 @@ function tipsSlice(input, r) {
   const sliceArgs = {
     base, top: W, filingStatus: filing, stateData, fed,
     preTaxIncome, preTaxFica,
+    // The 401(k) part of the pre-tax money, which Pennsylvania still taxes (the engine's
+    // statePreTax), so each state term here matches computePaycheck's own state figure.
+    retirement401k: clamp(input.adv.retirement401k),
     dependentsCredit: (input.adv && input.adv.dependentsCredit) || 0
   };
   const stateTax = stateTaxOnSlice({ ...sliceArgs, federalDeduction: d.deduction, stateDeduction: stateDed });
@@ -761,6 +764,7 @@ function tipsSlice(input, r) {
   // the deduction (Oregon) the two effects net inside one row, as before.
   const sAtFiling = stateDed > 0 ? null : stateDeductionAtFiling({
     income: W, filingStatus: filing, stateData, fed, preTaxIncome, preTaxFica,
+    retirement401k: sliceArgs.retirement401k,
     dependentsCredit: sliceArgs.dependentsCredit, federalDeduction: d.deduction, stateDeduction: 0
   });
   const stateKnockOn = sAtFiling ? Math.min(Math.max(0, sAtFiling.federalKnockOn), stateTax) : 0;
@@ -904,7 +908,7 @@ function stateAtFiling(input, ret, before, federalAmount, stateAmount) {
   if (!t.federalTaxSubtraction && !(stateAmount > 0)) return null;
   return stateDeductionAtFiling({
     income: ret.income, filingStatus: input.filingStatus, stateData, fed: taxData.federal,
-    preTaxIncome: ret.preTax, preTaxFica: ret.preTaxFica,
+    preTaxIncome: ret.preTax, preTaxFica: ret.preTaxFica, retirement401k: ret.retirement401k || 0,
     dependentsCredit: (input.adv && input.adv.dependentsCredit) || 0,
     federalDeductionBefore: before.federal, stateDeductionBefore: before.state,
     federalDeduction: federalAmount, stateDeduction: stateAmount
@@ -1351,7 +1355,8 @@ function renderAtFiling(input, r, mergeTips) {
   const ret = {
     income: returnIncome,
     preTax,
-    preTaxFica: input.adv ? (input.adv.cafeteria125 || 0) : 0
+    preTaxFica: input.adv ? (input.adv.cafeteria125 || 0) : 0,
+    retirement401k: input.adv ? (input.adv.retirement401k || 0) : 0
   };
   const { rows } = filingRows(input, magi, mergeTips, ret);
 

@@ -161,6 +161,33 @@ t('stateEmployeePrograms: caps, wage base, and empty for no-program states', () 
   approx(ca[0].annual, 780.0);
 });
 
+// --- programs charged on income-tax withholding wages ------------------------
+// Vermont's Child Care Contribution is charged on 26 U.S.C. 3401 wages and Oregon's transit tax on
+// ORS 316.162 wages (W-2 box 16), and both leave out 401(k) deferrals and Section 125 money.
+t('VT child care and OR transit tax come off pay after 401(k) and Section 125 money', () => {
+  const adv = { retirement401k: 6000, cafeteria125: 2000 };
+  const with401k = (slug) => computePaycheck({ wage: { type: 'salary', amount: 60000 }, filingStatus: 'single',
+    payFrequency: 'annual', stateSlug: slug, adv }, tax);
+  // (60,000 - 6,000 - 2,000) x 0.11% = 57.20, and 0.1% of the same 52,000 = 52.00
+  approx(progOf(with401k('vermont'), 'VT Child Care Contribution').amount, 57.20);
+  approx(progOf(with401k('oregon'), 'OR Transit Tax').amount, 52.00);
+  // Paid Leave Oregon is charged on gross wages, so the same plan leaves it at 0.6% x 60,000.
+  approx(progOf(with401k('oregon'), 'OR Paid Leave').amount, 360.00);
+  // With nothing pre-tax both are charged on the whole salary, as before.
+  approx(progOf(run('vermont', 60000), 'VT Child Care Contribution').amount, 66.00);
+  approx(progOf(run('oregon', 60000), 'OR Transit Tax').amount, 60.00);
+  // The helper defaults to no pre-tax money, so existing callers are unchanged.
+  approx(stateEmployeePrograms(60000, tax.states.oregon).find((p) => p.label === 'OR Transit Tax').annual, 60.00);
+  approx(stateEmployeePrograms(60000, tax.states.oregon, 8000).find((p) => p.label === 'OR Transit Tax').annual, 52.00);
+});
+t('every employeePrograms source is a URL, so pages can link and cite it', () => {
+  for (const [slug, s] of Object.entries(tax.states)) {
+    for (const pr of s.employeePrograms || []) {
+      assert.match(String(pr._source || ''), /^https?:\/\/\S+$/, `${slug} ${pr.label} _source is not a bare URL`);
+    }
+  }
+});
+
 // --- data-integrity: every modeled program has a rate + a valid cap shape ----
 t('all employeePrograms carry decimal rate and at most one cap type', () => {
   for (const [slug, s] of Object.entries(tax.states)) {

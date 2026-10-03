@@ -115,7 +115,11 @@ export function ficaTax(grossAnnual, filingStatus, fed, preTaxFica = 0) {
  * Optional income-tested reduction of a state's standard deduction. Opt-in: a state
  * without `tax.standardDeductionPhaseout` is untouched.
  *
- * Three users: South Carolina, Wisconsin (since 2026-08-02) and Alabama (since 2026-10-02).
+ * Users: South Carolina, Wisconsin (since 2026-08-02), Alabama (since 2026-10-02), and since
+ * 2026-10-03 Maine, Rhode Island, Ohio and Utah. Where a state's personal exemption is folded into
+ * `tax.standardDeduction` (Maine, Rhode Island, Alabama), or the figure IS the exemption (Ohio) or
+ * a credit expressed as the income it shelters (Utah), the row phases out that whole figure the way
+ * the state's own rule does.
  *
  * TWO ROW SHAPES. South Carolina and Wisconsin draw a straight line to zero
  * (`over` + `denominator`, below). Alabama steps down by a fixed dollar amount and then
@@ -178,13 +182,39 @@ export function phaseOutStandardDeduction(base, agi, filingStatus, cfg) {
   const row = cfg[filingStatus] ?? cfg.single;
   if (row && row.per > 0 && row.reduceBy > 0) {
     // Alabama's stepped shape, see above: whole steps only, never below the floor.
-    const steps = Math.floor(Math.max(0, agi - (row.over || 0)) / row.per);
+    // `roundUp` is for the statutes that count a part step as a whole one ("for each $7,450,
+    // or fraction thereof"): Rhode Island's phase-out, 44-30-2.6(c)(3)(C), and Ohio's
+    // exemption bands, ORC 5747.025, which change one dollar past each band edge ("$40,000
+    // or less", then "more than $40,000"). There a filer $1 over `over` already takes the
+    // first step, and one sitting exactly on a step edge takes no more steps than that edge.
+    // `noneFrom` is a cliff: at or above it nothing is allowed. Ohio allows its exemption only
+    // where modified AGI "is less than ... five hundred thousand dollars for taxable years
+    // beginning in 2026 or thereafter" (ORC 5747.025).
+    if (row.noneFrom != null && agi >= row.noneFrom) return 0;
+    const excess = Math.max(0, agi - (row.over || 0));
+    const steps = row.roundUp ? Math.ceil(excess / row.per) : Math.floor(excess / row.per);
     return Math.max(Math.min(base, row.minimum || 0), base - steps * row.reduceBy);
   }
+  // A row may be a LIST of linear pieces, each phasing out its own `amount` of the figure on
+  // its own schedule. Maine is the user: its personal exemption is carried in this figure, and
+  // 36 M.R.S. 5124-C(2) phases the standard deduction part out over one income range while
+  // 36 M.R.S. 5126-A phases the exemption part out over a much higher one.
+  if (Array.isArray(row)) {
+    const reduction = row.reduce(
+      (sum, piece) => sum + linearPhaseReduction(piece.amount || 0, agi, piece, cfg.roundReductionDownTo), 0);
+    return Math.max(0, base - reduction);
+  }
   if (!row || !row.denominator) return base;
+  return Math.max(0, base - linearPhaseReduction(base, agi, row, cfg.roundReductionDownTo));
+}
+
+// The straight-line reduction of `phasing` dollars: none at or below `over`, all of it from
+// `over + denominator`, and in between the share the excess bears to the denominator,
+// floored to `roundTo` (South Carolina's $10, otherwise $1).
+function linearPhaseReduction(phasing, agi, row, roundTo) {
   const excess = Math.max(0, agi - row.over);
-  if (excess >= row.denominator) return 0;
-  const step = cfg.roundReductionDownTo || 1;
+  if (excess >= row.denominator) return phasing;
+  const step = roundTo || 1;
   // Divide ONCE, at the end. Computing the fraction first and then multiplying
   // rounds twice, and the second rounding lands just under a $10 boundary often
   // enough to matter: at head-of-household AGI 62,970 the exact reduction is 810,
@@ -194,8 +224,7 @@ export function phaseOutStandardDeduction(base, agi, filingStatus, cfg) {
   // and married never do. Multiplying first keeps the numerator an exact integer
   // (well under 2^53 for every SCIAD base and denominator), so the single divide
   // is the only place rounding can happen and it rounds the way the statute says.
-  const reduction = Math.floor((base * excess) / (row.denominator * step)) * step;
-  return Math.max(0, base - reduction);
+  return Math.floor((phasing * excess) / (row.denominator * step)) * step;
 }
 
 /**
@@ -574,11 +603,36 @@ export function stateIncomeTax(grossAnnual, filingStatus, stateData, preTax = 0,
  * @returns {number} annual state income tax on the slice, never below zero
  */
 export function stateTaxOnSlice({ base, top, filingStatus, stateData, fed, preTaxIncome = 0,
-  preTaxFica = 0, dependentsCredit = 0, federalDeduction = 0, stateDeduction = 0 }) {
+  preTaxFica = 0, dependentsCredit = 0, federalDeduction = 0, stateDeduction = 0, retirement401k = 0 }) {
   const credit = Math.max(0, dependentsCredit || 0);
   const at = (income, fedDed, stDed) => stateTaxAt(income, filingStatus, stateData, fed,
-    preTaxIncome, preTaxFica, credit, fedDed, stDed);
+    preTaxIncome, preTaxFica, credit, fedDed, stDed, retirement401k);
   return Math.max(0, at(top, federalDeduction, stateDeduction) - at(base, 0, 0));
+}
+
+/**
+ * The pre-tax money that comes off a STATE's income, out of the pre-tax money that comes off the
+ * federal one (`preTaxIncome`, a 401(k)/403(b) deferral plus Section 125 money). States that follow
+ * the federal treatment take all of it. Opt-in and data-driven: a state carrying
+ * `tax.retirementDeferralsTaxable` adds the 401(k)/403(b) deferral back, so only the Section 125
+ * money comes off.
+ *
+ * One user: PENNSYLVANIA. The Department of Revenue's Personal Income Tax Guide, Gross
+ * Compensation (DSM-12, 08-2025), says contributions under a "cash or deferred arrangement ...
+ * 401(k) Plan or 403(b) plan ... are not excludable from the employee's Pennsylvania income", while
+ * health and accident insurance taken from salary is "not subject to PA PIT to the extent excluded
+ * for federal purposes". So a Pennsylvania filer saving $4,500 in a 401(k) pays the 3.07% on that
+ * $4,500 too, and the Section 125 health money still comes off.
+ *
+ * `retirement401k` is the deferral inside `preTaxIncome`. It defaults to 0, which reproduces the
+ * old figure for any caller that does not pass it; every caller in this repository that knows the
+ * deferral passes it.
+ */
+export function statePreTax(stateData, preTaxIncome, retirement401k = 0) {
+  const pre = Math.max(0, Number(preTaxIncome) || 0);
+  const t = stateData && stateData.tax;
+  if (!t || !t.retirementDeferralsTaxable) return pre;
+  return Math.max(0, pre - Math.max(0, Number(retirement401k) || 0));
 }
 
 /**
@@ -596,9 +650,9 @@ export function stateTaxOnSlice({ base, top, filingStatus, stateData, fed, preTa
  * federal-tax subtraction limit that the return still reads at the full AGI.
  */
 function stateTaxAt(income, filingStatus, stateData, fed, preTaxIncome, preTaxFica, credit,
-  federalDeduction, stateDeduction) {
+  federalDeduction, stateDeduction, retirement401k = 0) {
   return stateIncomeTax(income, filingStatus, stateData,
-    preTaxIncome,
+    statePreTax(stateData, preTaxIncome, retirement401k),
     ficaTax(income, filingStatus, fed, preTaxFica).total,
     Math.max(0, federalIncomeTax(income, filingStatus, fed, preTaxIncome + federalDeduction) - credit),
     0, stateDeduction);
@@ -651,7 +705,7 @@ function stateTaxAt(income, filingStatus, stateData, fed, preTaxIncome, preTaxFi
  */
 export function stateDeductionAtFiling({ income, filingStatus, stateData, fed, preTaxIncome = 0, preTaxFica = 0,
   dependentsCredit = 0, federalDeductionBefore = 0, stateDeductionBefore = 0, federalDeduction = 0,
-  stateDeduction = 0 }) {
+  stateDeduction = 0, retirement401k = 0 }) {
   if (!stateData || !stateData.hasIncomeTax || !stateData.tax || stateData.tax.type === 'none') return null;
   const credit = Math.max(0, dependentsCredit || 0);
   const fica = ficaTax(income, filingStatus, fed, preTaxFica).total;
@@ -661,10 +715,11 @@ export function stateDeductionAtFiling({ income, filingStatus, stateData, fed, p
   const fedAfter = fedBefore + Math.max(0, federalDeduction || 0);
   const stBefore = Math.max(0, stateDeductionBefore || 0);
   const stAfter = stBefore + Math.max(0, stateDeduction || 0);
+  const statePre = statePreTax(stateData, preTaxIncome, retirement401k);
   const at = (fedDed, stDed) =>
-    stateIncomeTax(income, filingStatus, stateData, preTaxIncome, fica, owed(fedDed), 0, stDed);
+    stateIncomeTax(income, filingStatus, stateData, statePre, fica, owed(fedDed), 0, stDed);
   const sub = (fedDed, stDed) =>
-    stateTaxableIncome(income, filingStatus, stateData, preTaxIncome, fica, owed(fedDed), 0, stDed).federalTaxSubtraction;
+    stateTaxableIncome(income, filingStatus, stateData, statePre, fica, owed(fedDed), 0, stDed).federalTaxSubtraction;
   const before = at(fedBefore, stBefore);
   const afterFederal = at(fedAfter, stBefore);
   const after = at(fedAfter, stAfter);
@@ -703,12 +758,12 @@ export function stateDeductionAtFiling({ income, filingStatus, stateData, fed, p
  */
 export function stateOvertimeAtFiling({ income, filingStatus, stateData, fed, preTaxIncome = 0, preTaxFica = 0,
   dependentsCredit = 0, federalDeductionBefore = 0, stateDeductionBefore = 0, federalOvertimeDeduction = 0,
-  premium = 0 }) {
+  premium = 0, retirement401k = 0 }) {
   const cfg = stateData && stateData.hasIncomeTax && stateData.tax && stateData.tax.overtimePremiumDeduction;
   if (!cfg) return null;
   const deduction = stateOvertimeDeduction(premium, cfg);
   const r = stateDeductionAtFiling({ income, filingStatus, stateData, fed, preTaxIncome, preTaxFica,
-    dependentsCredit, federalDeductionBefore, stateDeductionBefore,
+    dependentsCredit, federalDeductionBefore, stateDeductionBefore, retirement401k,
     federalDeduction: federalOvertimeDeduction, stateDeduction: deduction });
   return {
     deduction,
@@ -733,6 +788,10 @@ export function stateOvertimeAtFiling({ income, filingStatus, stateData, fed, pr
  *   wageBase   annual taxable-wage ceiling in USD; rate stops applying above it
  *   annualMax  hard annual contribution cap in USD (e.g. NY PFL $411.91)
  *   weeklyMax  per-WEEK contribution cap in USD (e.g. HI TDI $7.50, NY DBL $0.60)
+ *   afterPreTax  true where the program's legal base is income-tax withholding wages, which
+ *              leave out 401(k) deferrals and Section 125 money: Vermont's Child Care
+ *              Contribution (26 U.S.C. 3401 wages) and Oregon's statewide transit tax
+ *              (ORS 316.162 wages, W-2 box 16). Those are charged on gross less `preTaxIncome`.
  *
  * Cap math, honest across pay frequencies: the annual contribution is
  * rate × min(gross, wageBase), then clamped to an annual dollar ceiling.
@@ -743,12 +802,15 @@ export function stateOvertimeAtFiling({ income, filingStatus, stateData, fed, pr
  * approximation is introduced.
  * @param {number} grossAnnual
  * @param {object} stateData - the single-state entry from tax-data
+ * @param {number} [preTaxIncome=0] - 401(k) + Section 125 money, used only by `afterPreTax` programs
  * @returns {Array<{label:string, rate:number, annual:number}>}
  */
-export function stateEmployeePrograms(grossAnnual, stateData) {
+export function stateEmployeePrograms(grossAnnual, stateData, preTaxIncome = 0) {
   const list = stateData && Array.isArray(stateData.employeePrograms) ? stateData.employeePrograms : [];
-  const g = Math.max(0, grossAnnual);
+  const gross = Math.max(0, grossAnnual);
+  const afterPreTax = Math.max(0, gross - Math.max(0, preTaxIncome || 0));
   return list.map((pr) => {
+    const g = pr.afterPreTax ? afterPreTax : gross;
     const base = pr.wageBase != null ? Math.min(g, pr.wageBase) : g;
     let annual = base * (pr.rate || 0);
     const annualCap = pr.annualMax != null
@@ -828,12 +890,14 @@ export function computePaycheck({ wage, filingStatus, payFrequency, stateSlug, a
   const fedDedOnReturn = Math.max(0, Number(rd.federal) || 0);
   const stateDedOnReturn = Math.max(0, Number(rd.state) || 0);
   const state = stateTaxAt(grossAnnual, filingStatus, stateData, fed, preTaxIncome, preTaxFica,
-    dependentsCredit, fedDedOnReturn, stateDedOnReturn);
+    dependentsCredit, fedDedOnReturn, stateDedOnReturn, retirement401k);
 
   // State disability / paid-leave employee contributions: post-tax, on gross
   // wages, kept OUT of totalTax and out of annual.state (so tax-only rates and
-  // the pinned state-tax regression tests are unaffected).
-  const programs = stateEmployeePrograms(grossAnnual, stateData);
+  // the pinned state-tax regression tests are unaffected). The two charged on
+  // withholding wages (Vermont's child care contribution, Oregon's transit tax)
+  // are charged after the 401(k) and Section 125 money.
+  const programs = stateEmployeePrograms(grossAnnual, stateData, preTaxIncome);
   const statePrograms = programs.reduce((s, p) => s + p.annual, 0);
 
   const totalTax = federal + fica.total + state;

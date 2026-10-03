@@ -136,7 +136,7 @@ const PAYCHECK_PROBE_SALARY = 80000;
 const PAYCHECK_PROBE_STATES = ['ohio', 'california', 'texas', 'new-york'];
 // Ohio, single, biweekly, $80,000 gross. Pinned as a literal so the two-sided
 // comparison above cannot pass by both sides being equally wrong.
-const PAYCHECK_PROBE_OHIO_NET = '63294.38';
+const PAYCHECK_PROBE_OHIO_NET = '63353.50';
 
 // --- The gallery snippet itself. Two of its parts are load-bearing in a way that
 // nothing else on this site is, because they ship to somebody ELSE's page where no

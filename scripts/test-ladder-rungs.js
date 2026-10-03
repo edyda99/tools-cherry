@@ -105,7 +105,7 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
 // --- 5. FIVE STATES, one of each shape the ladder builds, each with its state
 // tax written out from the statutory schedule rather than read from the engine.
 //   texas      no income tax and no employee programs
-//   ohio       a 0% opening band PLUS ORC 5747.02(A)(3)'s flat $332 base amount
+//   ohio       a personal exemption, a 0% opening band PLUS ORC 5747.02(A)(3)'s flat $332 base amount
 //   california bracket schedule + an uncapped 1.30% SDI premium
 //   arkansas   bracket schedule opening on a 0% band
 //   wisconsin  a standard deduction that PHASES DOWN with income
@@ -117,19 +117,19 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
 }
 {
   const oh = net('ohio', RUNG);
-  // Ohio subtracts nothing, so taxable is the whole salary.
-  const ohTax = (75000 - 26050) * 0.0275 + 332;
+  // Ohio subtracts one personal exemption, $2,150 for income from $40,001 to $80,000 (ORC 5747.025).
+  const ohTax = (75000 - 2150 - 26050) * 0.0275 + 332;
   eq('ohio state tax includes the statutory $332', oh.state, ohTax);
-  eq('ohio state tax', oh.state, 1678.125);
+  eq('ohio state tax', oh.state, 1619);
   eq('ohio take-home', oh.net, 75000 - FED_TAX - SS - MED - ohTax);
 }
 {
   const ca = net('california', RUNG);
-  const caTaxable = 75000 - 5706;
-  const caTax = 11079 * 0.01 + (26264 - 11079) * 0.02 + (41452 - 26264) * 0.04
-    + (57542 - 41452) * 0.06 + (caTaxable - 57542) * 0.08;
+  const caTaxable = 75000 - 5900;
+  const caTax = 11456 * 0.01 + (27157 - 11456) * 0.02 + (42861 - 27157) * 0.04
+    + (59498 - 42861) * 0.06 + (caTaxable - 59498) * 0.08;
   eq('california income tax', ca.state, caTax);
-  eq('california income tax', ca.state, 2927.57);
+  eq('california income tax', ca.state, 2823.12);
   eq('california SDI is uncapped at this salary', ca.statePrograms, 75000 * 0.013);
   eq('california take-home', ca.net, 75000 - FED_TAX - SS - MED - caTax - 975);
 }
@@ -173,12 +173,11 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
   eq('share of the raise surviving', (a75 - a70) / 5000, 0.7035, 1e-9);
 }
 {
-  // California crosses its own 8% -> 9.3% edge between the rung and $80,000, so
-  // the two steps are NOT equal there. The $75,000 page prints both.
+  // California's 8% band runs to $75,197 of taxable income in 2026, $81,097 of salary, so both
+  // steps stay inside it and are equal. The $75,000 page prints both.
   const c70 = net('california', 70000).net, c75 = net('california', 75000).net, c80 = net('california', 80000).net;
-  is('california keeps less of the step above than the step below', (c80 - c75) < (c75 - c70), true);
-  eq('california step up from $70,000', c75 - c70, 3052.9, 0.5);
-  eq('california step on to $80,000', c80 - c75, 3032.36, 0.5);
+  eq('california step up from $70,000', c75 - c70, 3052.5, 0.005);
+  eq('california step on to $80,000', c80 - c75, 3052.5, 0.005);
 }
 
 // --- 7. THE FEDERAL-TAX SUBTRACTION on the $75,000 rung (added 2026-10-02). Alabama, Missouri
@@ -189,10 +188,10 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
   //   4.75% x 4,550 + 6.75% x 6,850 + 8.75% x 53,020 = 216.125 + 462.375 + 4,639.25 = 5,317.75
   eq('oregon $75k state tax, all 7,670 subtracted', net('oregon', RUNG).state,
     4550 * 0.0475 + 6850 * 0.0675 + (75000 - 2910 - FED_TAX - 11400) * 0.0875);
-  // Alabama: deduction at its 2,500 floor; 75,000 - 2,500 - 7,670 = 64,830;
-  //   2% x 500 + 4% x 2,500 + 5% x 61,830 = 3,201.50
+  // Alabama: deduction at its 2,500 floor plus the 1,500 personal exemption; 75,000 - 4,000 - 7,670
+  //   = 63,330; 2% x 500 + 4% x 2,500 + 5% x 60,330 = 3,126.50
   eq('alabama $75k state tax, all 7,670 subtracted', net('alabama', RUNG).state,
-    500 * 0.02 + 2500 * 0.04 + (75000 - 2500 - FED_TAX - 3000) * 0.05);
+    500 * 0.02 + 2500 * 0.04 + (75000 - 4000 - FED_TAX - 3000) * 0.05);
   // Missouri: 15% of 7,670 = 1,150.50; 75,000 - 16,100 - 1,150.50 = 57,749.50;
   //   262.86 below 9,436 (six 1,348 bands at 0/2/2.5/3/3.5/4/4.5%) + 4.7% x 48,313.50 = 2,533.5945
   eq('missouri $75k state tax, 15% of 7,670 subtracted', net('missouri', RUNG).state,
@@ -317,9 +316,10 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
 //                        40,000 -> 23,900 -> 1,240 + 12% x 11,500 = 2,620
 //                        50,000 -> 3,820;  70,000 -> 53,900 -> 5,800 + 22% x 3,500 = 6,570
 //   Alabama deduction:   30,000 -> 9 steps of $25 over 25,500 -> 2,775;  40,000 and up -> 2,500
-//   Alabama taxable:     30,000 - 2,775 - 1,420 = 25,805;  40,000 - 2,500 - 2,620 = 34,880
-//                        50,000 - 2,500 - 3,820 = 43,680;  70,000 - 2,500 - 6,570 = 60,930
-//   Alabama tax, 5% x T - 40 above $3,000: 1,250.25;  1,704.00;  2,144.00;  3,006.50
+//   Alabama taxable:     30,000 - 4,275 - 1,420 = 24,305;  40,000 - 4,000 - 2,620 = 33,380
+//                        50,000 - 4,000 - 3,820 = 42,180;  70,000 - 4,000 - 6,570 = 59,430
+//   (each deduction is the chart amount plus the $1,500 personal exemption)
+//   Alabama tax, 5% x T - 40 above $3,000: 1,175.25;  1,629.00;  2,069.00;  2,931.50
 //   $30,000 -> $40,000: deduction -275, subtraction +1,200, taxable +9,075, tax +453.75 (not 500.00)
 //   $30,000 -> $50,000: subtraction +2,400, taxable +17,875
 //   $50,000 -> $70,000: subtraction +2,750, taxable +17,250, tax +862.50 (not 1,000.00)
@@ -329,15 +329,15 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
     ficaTax(salary, 'single', taxData.federal).total, federalIncomeTax(salary, 'single', taxData.federal));
   const alTax = (salary) => computePaycheck({ wage: { type: 'salary', amount: salary }, filingStatus: 'single',
     payFrequency: 'annual', stateSlug: 'alabama' }, taxData).annual.state;
-  eq('alabama $30k deduction', parts(30000).standardDeduction, 2775, 0);
-  eq('alabama $40k deduction is the floor', parts(40000).standardDeduction, 2500, 0);
+  eq('alabama $30k deduction', parts(30000).standardDeduction, 4275, 0);
+  eq('alabama $40k deduction is the floor', parts(40000).standardDeduction, 4000, 0);
   eq('alabama $30k subtraction', parts(30000).federalTaxSubtraction, 1420, 0);
   eq('alabama $40k subtraction', parts(40000).federalTaxSubtraction, 2620, 0);
   eq('alabama $70k subtraction', parts(70000).federalTaxSubtraction, 6570, 0);
-  eq('alabama $30k taxable', parts(30000).taxable, 25805, 0);
-  eq('alabama $40k taxable', parts(40000).taxable, 34880, 0);
-  eq('alabama $50k taxable', parts(50000).taxable, 43680, 0);
-  eq('alabama $70k taxable', parts(70000).taxable, 60930, 0);
+  eq('alabama $30k taxable', parts(30000).taxable, 24305, 0);
+  eq('alabama $40k taxable', parts(40000).taxable, 33380, 0);
+  eq('alabama $50k taxable', parts(50000).taxable, 42180, 0);
+  eq('alabama $70k taxable', parts(70000).taxable, 59430, 0);
   eq('alabama tax on the $30k -> $40k raise', alTax(40000) - alTax(30000), 453.75, 0.005);
   eq('alabama tax on the $50k -> $70k raise', alTax(70000) - alTax(50000), 862.50, 0.005);
   is('alabama: the net of both effects is less than the band rate', alTax(40000) - alTax(30000) < 0.05 * 10000, true);
@@ -349,7 +349,7 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
   const p30 = page(30000), p50 = page(50000);
   if (p30 && p50) {
     is('$30k page measures the raise to $40,000 with both effects',
-      p30.includes("On the raise to $40,000 it grows by $1,200, while Alabama's standard deduction falls by $275, " +
+      p30.includes("On the raise to $40,000 it grows by $1,200, while Alabama's standard deduction plus personal exemption falls by $275, " +
         'so Alabama taxes $9,075 of the $10,000 raise and takes $453.75 of it, not the $500.00 its 5% rate on the ' +
         'whole raise would be.'), true);
     is('$30k deduction paragraph names the subtraction that outweighs it',
@@ -372,6 +372,85 @@ is('the rung is under the Social Security wage base', 75000 < taxData.federal.fi
       p50.includes('the gap between those two is a real cost of the raise that no bracket table shows'), false);
     is('$50k worth clause names the subtraction',
       p50.includes('The subtraction is worth $191.00 of Alabama income tax at this salary'), true);
+  }
+}
+
+// --- 12. UTAH'S CREDIT IS DESCRIBED AS A CREDIT (added 2026-10-03). The engine models Utah's
+// taxpayer tax credit as the deduction worth the same at 4.45% ($21,708 single), a figure Utah
+// never publishes. Pages that printed it implied about $1,704 of tax at $60,000, where Utah charges
+// $2,247. Every Utah page now says: 4.45% on every dollar, less a credit that shrinks. The same
+// section pins the October presentation fixes: prior-year amounts said to be prior-year, Ohio's
+// tiers, Maine's phase-out, and the Oregon transit tax citation.
+{
+  const DIST = join(__dirname, '..', 'dist');
+  const read = (p) => { try { return readFileSync(join(DIST, p, 'index.html'), 'utf8'); } catch { return null; } };
+  const visible = (h) => h.replace(/<script[\s\S]*?<\/script>/g, ' ').replace(/<style[\s\S]*?<\/style>/g, ' ');
+  const utahPages = existsSync(DIST) ? readdirSync(DIST).filter((d) => /^utah-/.test(d)) : [];
+  if (utahPages.length) {
+    const shared = ['bonus-tax-calculator', 'embed/paycheck-calculator', 'embed/bonus-tax-calculator'];
+    const leaks = [];
+    for (const d of [...utahPages, ...shared]) {
+      const h = read(d);
+      if (!h) continue;
+      if (h.includes('credit-equivalent')) leaks.push(`${d}: credit-equivalent`);
+      if (!/^utah-/.test(d)) continue;
+      const v = visible(h);
+      for (const bad of ['21,708', '21,707', '43,416', 'Utah taxable income', 'Utah subtracts', 'subtracts first',
+        'deduction is smaller at', 'not the published figure', 'neither applies to the whole salary']) {
+        if (v.includes(bad)) leaks.push(`${d}: "${bad}"`);
+      }
+    }
+    is('no Utah page prints the modelled deduction or calls the credit a deduction', leaks.slice(0, 6).join(' | '), '');
+    const pc = read('utah-paycheck-calculator');
+    is('Utah paycheck headline: the rate on every dollar, then the credit',
+      pc.includes('taxes every dollar of income at the single flat rate of <strong>4.45%</strong>, then subtracts a ' +
+        'taxpayer tax credit: up to $966 for single filers and $1,932 for married couples filing jointly. The credit ' +
+        'is cut by 1.3 cents for each dollar of income over $18,213 ($36,426 married), so it is gone by about ' +
+        '$92,500 ($185,000 married).'), true);
+    is('Utah paycheck headline: the $60,000 credit and tax, from the engine',
+      pc.includes('a single filer earning $60,000 gets a taxpayer tax credit of about $423, so pays about $2,247 ' +
+        'in Utah income tax'), true);
+    const p50 = read('utah-take-home-pay-50000');
+    const p100 = read('utah-take-home-pay-100000');
+    is('Utah $50k method line', p50.includes('4.45% on the whole $50,000 ($2,225), less the $553 taxpayer tax credit → $1,672.'), true);
+    is('Utah $50k: the raise from the bottom rung costs credit',
+      p50.includes('the same filer keeps $813 of it, so the raise from there to $50,000 costs $260 of credit on top of ' +
+        '4.45% of the extra pay'), true);
+    is('Utah $50k: the next dollar costs the rate plus the credit cut',
+      p50.includes('each extra dollar of pay costs 5.75% in Utah tax, the 4.45% rate plus the 1.3 cents of credit it ' +
+        'takes away'), true);
+    is('Utah $100k method line', p100.includes('4.45% on the whole $100,000 ($4,450), with the taxpayer tax credit run out ' +
+      'at this salary → $4,450.'), true);
+    is('Utah hub method clause',
+      read('utah-take-home-pay').includes('Utah income tax is 4.45% of the whole salary, less a taxpayer tax credit that ' +
+        'shrinks as the ladder climbs, from $813 at $30,000 to $0 at $200,000'), true);
+  }
+  const vt = read('vermont-paycheck-calculator');
+  if (vt) {
+    is('Vermont headline says its deduction is the 2025 amount',
+      vt.includes('Vermont has not published its 2026 standard deduction plus personal exemption yet, so this page ' +
+        'uses its 2025 amounts until it does: $12,950 for single filers'), true);
+    is('Vermont headline no longer calls it the 2026 figure',
+      vt.includes("For 2026, Vermont's state standard deduction plus personal exemption is"), false);
+    const oh = read('ohio-paycheck-calculator');
+    is('Ohio headline: 2025 amounts and each tier, including the $2,150 its $60,000 example uses',
+      oh.includes('Ohio has not published its 2026 personal exemption yet, so this page uses its 2025 amounts until it ' +
+        'does: $2,400 for single filers and $4,800 for married couples filing jointly, stepping down to $2,150 above ' +
+        '$40,000 of income and $1,900 above $80,000 ($4,300 and $3,800 for married couples filing jointly), and to ' +
+        'nothing from $500,000'), true);
+    is('Maine headline says where its deduction starts shrinking',
+      read('maine-paycheck-calculator').includes('shrinking above $102,250 of income for single filers and $204,550 ' +
+        'for married couples filing jointly'), true);
+    is('Rhode Island headline no longer says "to $0 and $0"',
+      read('rhode-island-paycheck-calculator').includes('shrinking above $261,000 of income and gone above $290,800'), true);
+    is('New Jersey calls its subtraction a personal exemption',
+      read('new-jersey-paycheck-calculator').includes("For 2026, New Jersey's state personal exemption is $1,000"), true);
+    const or50 = read('oregon-take-home-pay-50000');
+    if (or50) {
+      is('Oregon ladder cites the transit tax page by name',
+        or50.includes('<a href="https://www.oregon.gov/dor/programs/businesses/pages/statewide-transit-tax.aspx" ' +
+          'rel="noopener" target="_blank">Oregon Department of Revenue: statewide transit tax</a>'), true);
+    }
   }
 }
 

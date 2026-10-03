@@ -8,7 +8,8 @@ import {
   applyBrackets,
   annualizeGross,
   computePaycheck,
-  federalBracketBreakdown
+  federalBracketBreakdown,
+  statePreTax
 } from '../src/engine/paycheck-engine.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -245,10 +246,30 @@ t('extra withholding adds to federal; post-tax cuts net only', () => {
   approx(r.annual.net, plain.annual.net - 1200 - 3000);
 });
 
-t('state tax also respects pre-tax (Pennsylvania flat)', () => {
-  const base = { wage: { type: 'salary', amount: 60000 }, filingStatus: 'single', payFrequency: 'annual', stateSlug: 'pennsylvania' };
+t('state tax also respects pre-tax (Indiana flat)', () => {
+  const base = { wage: { type: 'salary', amount: 60000 }, filingStatus: 'single', payFrequency: 'annual', stateSlug: 'indiana' };
   const r = computePaycheck({ ...base, adv: { retirement401k: 10000 } }, taxData);
-  approx(r.annual.state, (60000 - 10000) * 0.0307);
+  approx(r.annual.state, (60000 - 10000 - 1000) * 0.0295);
+});
+
+t('Pennsylvania taxes 401(k) deferrals but not Section 125 money', () => {
+  const base = { wage: { type: 'salary', amount: 60000 }, filingStatus: 'single', payFrequency: 'annual', stateSlug: 'pennsylvania' };
+  const plain = computePaycheck(base, taxData);
+  const k = computePaycheck({ ...base, adv: { retirement401k: 10000 } }, taxData);
+  approx(k.annual.state, 60000 * 0.0307);
+  approx(k.annual.state, plain.annual.state);
+  const both = computePaycheck({ ...base, adv: { retirement401k: 10000, cafeteria125: 2000 } }, taxData);
+  approx(both.annual.state, (60000 - 2000) * 0.0307);
+  assert.ok(k.annual.federal < plain.annual.federal);
+});
+
+t('statePreTax: only a state that taxes deferrals adds them back', () => {
+  const pa = taxData.states.pennsylvania, ind = taxData.states.indiana;
+  assert.equal(statePreTax(pa, 12000, 10000), 2000);
+  assert.equal(statePreTax(pa, 12000), 12000);
+  assert.equal(statePreTax(pa, 5000, 9000), 0);
+  assert.equal(statePreTax(ind, 12000, 10000), 12000);
+  assert.equal(statePreTax(null, 12000, 10000), 12000);
 });
 
 // --- federal bracket breakdown ----------------------------------------------
