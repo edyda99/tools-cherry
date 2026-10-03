@@ -133,23 +133,39 @@ export function checkDirectPaymentForm({ amount, taxYear, paymentPurpose = 'serv
 /**
  * State 1099-K overlay note (network/card branches only — states do not layer
  * their own 1099-NEC/MISC thresholds in this dataset). Returns null when the
- * state isn't tracked; otherwise always returns the comparison so the caller
- * can decide whether to surface it (only when `triggered`).
+ * state isn't tracked, and also for a `followsFederal` state (one that only
+ * asks for copies of what is filed with the IRS, so it never lowers the
+ * federal test). Otherwise always returns the comparison so the caller can
+ * decide whether to surface it (only when `triggered`).
+ *
+ * Two per-row refinements, both data-driven:
+ *   amountByYear      states that tie their 1099-K line to the federal
+ *                     1099-NEC line (26 U.S.C. 6041(a)): $600 for 2025
+ *                     payments, $2,000 for 2026. Looked up by taxYear; any
+ *                     year not listed falls back to `amount`, the current one.
+ *   amountInequality  'exceeds' for a state whose law says "more than" (a
+ *                     strict `>`); every other row is "or more" (`>=`).
  * @param {object} a
  * @param {number} a.amount
  * @param {number} [a.transactions]
- * @param {string} [a.state]  two-letter USPS code
- * @param {object} a.data     parsed form-1099-thresholds.json
+ * @param {string} [a.state]    two-letter USPS code
+ * @param {number} [a.taxYear]  calendar year the money was paid in
+ * @param {object} a.data       parsed form-1099-thresholds.json
  */
-export function stateOverlayNote({ amount, transactions, state, data }) {
+export function stateOverlayNote({ amount, transactions, state, taxYear, data }) {
   const overrides = data.stateOverrides1099K;
   if (!state || !(state in overrides)) return null;
   const entry = overrides[state];
-  const amt = Math.max(0, amount || 0);
   const isObj = entry != null && typeof entry === 'object';
-  const stateAmount = isObj ? entry.amount : entry;
+  if (isObj && entry.followsFederal) return null;
+  const amt = Math.max(0, amount || 0);
+  const byYear = isObj && entry.amountByYear ? entry.amountByYear : null;
+  const stateAmount = byYear && taxYear != null && byYear[taxYear] != null
+    ? byYear[taxYear]
+    : (isObj ? entry.amount : entry);
+  const exceeds = isObj && entry.amountInequality === 'exceeds';
   const stateTxns = isObj && entry.txns != null ? entry.txns : null;
-  let triggered = amt >= stateAmount;
+  let triggered = exceeds ? amt > stateAmount : amt >= stateAmount;
   if (stateTxns != null) {
     const txns = Math.max(0, transactions || 0);
     triggered = triggered && txns >= stateTxns; // AND logic (e.g. Illinois)
@@ -157,6 +173,7 @@ export function stateOverlayNote({ amount, transactions, state, data }) {
   return {
     state,
     threshold: stateAmount,
+    exceeds,
     txnThreshold: stateTxns,
     condition: isObj && entry.condition ? entry.condition : null,
     triggered
@@ -223,7 +240,7 @@ export function check1099({
   // reporting trigger to layer a state note onto).
   let stateOverlay = null;
   if ((payerType === 'network' || payerType === 'card') && paymentNature !== 'personal') {
-    const overlay = stateOverlayNote({ amount, transactions, state, data });
+    const overlay = stateOverlayNote({ amount, transactions, state, taxYear, data });
     if (overlay && overlay.triggered) stateOverlay = overlay;
   }
 

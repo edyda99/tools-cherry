@@ -2,7 +2,8 @@
   "_meta": {
     "description": "Form 1099-K (IRC §6050W, restored by OBBBA §70432) and Form 1099-NEC/1099-MISC (IRC §6041/§6041A, amended by OBBBA §70433) reporting thresholds. Drives /1099-threshold-checker/. Federal figures verbatim from IRS Notice 2025-62 (read pp.2-6). STANDALONE dataset — NOT part of the OBBBA deductions cluster (obbba-deductions-2026.json): a 1099 threshold is a reporting-trigger lookup, not a deduction, so this tool needs no bracket/FICA engine reuse. State 1099-K thresholds are informational and volatile — re-verify each filing season.",
     "lastSourced": "2026-07-12",
-    "confidence": "high on all four federal headline numbers ($20,000 / 200 transactions / $2,000 / TY2026 effective date — Notice 2025-62 read verbatim); medium on the state 1099-K table (states revise yearly and secondary sources conflict on a few, e.g. NC/CA); the exact 2027 NEC/MISC inflation figure is not yet published by the IRS."
+    "confidence": "high on all four federal headline numbers ($20,000 / 200 transactions / $2,000 / TY2026 effective date — Notice 2025-62 and the enrolled text of Public Law 119-21 §70432/§70433 read verbatim); state 1099-K table re-verified row by row against each state's own statute or tax agency on 2026-10-03 (NC and MO follow the federal test; MD/VA/VT track the federal §6041(a) line, $600 for 2025 and $2,000 for 2026); the exact 2027 NEC/MISC inflation figure is not yet published by the IRS.",
+    "stateTableLastVerified": "2026-10-03"
   },
   "form1099K": {
     "network": {
@@ -41,7 +42,7 @@
         "approx": 2000,
         "indexed": true,
         "baseYear": 2025,
-        "note": "IRC §6041(h) requires an annual inflation adjustment for payments made after Dec 31, 2026, base year 2025, rounded to the nearest $100 per corroborating secondary sources (the Notice itself states only 'annual inflation adjustment'). The exact 2027 dollar figure has not yet been published by the IRS — do not fabricate one."
+        "note": "IRC §6041(h), added by Public Law 119-21 §70433(b), requires an annual inflation adjustment for calendar years after 2026, base year 2025, with any increase rounded to the nearest multiple of $100. The exact 2027 dollar figure has not yet been published by the IRS — do not fabricate one."
       }
     },
     "pegged": "IRC §6041A is pegged to §6041(a): 'an amount that equals or exceeds the dollar amount in effect for such taxable year under section 6041(a).' The 1099-NEC and 1099-MISC thresholds never diverge.",
@@ -50,18 +51,18 @@
     "statute": "IRC §6041(a) / §6041A, amended by OBBBA §70433"
   },
   "stateOverrides1099K": {
-    "_caveat": "State 1099-K thresholds change annually and secondary sources conflict on a few (notably NC/CA). Treat as informational — 'your state may also require reporting at a lower threshold' — not as an authoritative 51-state ruling. Re-verify each filing season.",
+    "_caveat": "State 1099-K rules change most years. Treat as informational ('your state may also require reporting at a lower threshold'), not as an authoritative 51-state ruling, and re-verify each filing season. Rows re-verified 2026-10-03 against each state's own statute or tax agency (see sources). followsFederal rows are states whose 1099-K rule is a copy of what is filed with the IRS, so they never lower the federal test. amountByYear rows track the federal 1099-NEC line (26 U.S.C. 6041(a)), which rose from $600 to $2,000 for payments made after Dec 31, 2025; 'amount' is the current (2026) figure.",
     "MA": 600,
-    "MD": 600,
-    "VA": 600,
-    "VT": 600,
+    "MD": { "amount": 2000, "amountByYear": { "2025": 600, "2026": 2000 }, "condition": "the same line as the federal 1099-NEC: $600 for money paid in 2025, $2,000 for 2026" },
+    "VA": { "amount": 2000, "amountByYear": { "2025": 600, "2026": 2000 }, "condition": "the same line as the federal 1099-NEC: $600 for money paid in 2025, $2,000 for 2026" },
+    "VT": { "amount": 2000, "amountByYear": { "2025": 600, "2026": 2000 }, "condition": "the same line as the federal 1099-NEC: $600 for money paid in 2025, $2,000 for 2026" },
     "DC": 600,
     "MT": 600,
-    "NC": 600,
     "NJ": 1000,
-    "IL": { "amount": 1000, "txns": 4, "logic": "AND" },
-    "MO": 1200,
-    "AR": { "amount": 2500, "condition": "when no state tax was withheld" }
+    "IL": { "amount": 1000, "amountInequality": "exceeds", "txns": 4, "logic": "AND" },
+    "AR": { "amount": 2500, "condition": "a general Form 1099 rule that covers only payers located in Arkansas" },
+    "NC": { "followsFederal": true, "note": "North Carolina only asks for copies of the 1099-Ks that are filed with the IRS" },
+    "MO": { "followsFederal": true, "note": "Missouri only asks for a 1099 when the same form is filed with the IRS" }
   },
   "mythBusts": [
     "“Venmo/PayPal will 1099 you at $600.” Gone. Payment apps now report only if you clear BOTH $20,000 and 200 goods-and-services transactions in a year — for 2025 and 2026 alike. The $600 rule was law on paper but never actually reached your forms; the IRS kept delaying it, and OBBBA repealed it outright.",
@@ -76,17 +77,19 @@
     { "claim": "Card processors report 'no matter how many payments you got or how much they were for'; network apps report only over $20,000 and 200 transactions; 'you must still report any income on your tax return.'", "url": "https://www.irs.gov/businesses/understanding-your-form-1099-k" },
     { "claim": "IRS FAQ confirming the 1099-K dollar limit reverts to $20,000 under OBBBA.", "url": "https://www.irs.gov/newsroom/irs-issues-faqs-on-form-1099-k-threshold-under-the-one-big-beautiful-bill-dollar-limit-reverts-to-20000" },
     { "claim": "The now-void ARPA transition-relief phase-in ($5,000 for 2024, $2,500 for 2025, $600 for 2026) that OBBBA erased.", "url": "https://www.irs.gov/pub/irs-drop/n-24-85.pdf" },
-    { "claim": "1099-NEC/1099-MISC $2,000 threshold FAQ corroboration.", "url": "https://www.anchin.com/articles/faqs-new-1099-nec-and-1099-misc-rules-beginning-in-2026/" },
-    { "claim": "Massachusetts: TPSOs file Form 1099-K for payees with gross payments over $600.", "url": "https://www.mass.gov/info-details/form-1099-filing-requirements" },
-    { "claim": "Maryland (Tax-General 10-825): TPSO reporting at the 26 U.S.C. 6041(a) threshold, $600 for 2025 payments.", "url": "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gtg&section=10-825&enactments=false" },
-    { "claim": "Virginia (Va. Code 58.1-356): TPSO reporting at the 26 U.S.C. 6041(a) de minimis, $600 for 2025 payments.", "url": "https://law.lis.virginia.gov/vacode/title58.1/chapter3/section58.1-356/" },
-    { "claim": "Vermont (32 V.S.A. 5862d): TPSO reporting at the 26 U.S.C. 6041(a) de minimis, $600 for 2025 payments.", "url": "https://legislature.vermont.gov/statutes/section/32/151/05862d" },
+    { "claim": "Public Law 119-21, sections 70432 and 70433: the $20,000 and 200-transaction 1099-K test restored as if included in the 2021 law; the 1099-NEC/1099-MISC line raised from $600 to $2,000 for payments made after December 31, 2025, then adjusted for inflation after 2026 and rounded to the nearest $100.", "url": "https://www.govinfo.gov/content/pkg/PLAW-119publ21/html/PLAW-119publ21.htm" },
+    { "claim": "Massachusetts: Form 1099-K is required when the gross amount paid in a calendar year is $600 or more, and Form M-1099-K is filed when no federal 1099-K is.", "url": "https://www.mass.gov/info-details/form-1099-filing-requirements" },
+    { "claim": "Maryland (Tax-General 10-825): payment apps report to Maryland when payments meet or exceed the federal 26 U.S.C. 6041(a) line, which is $600 for 2025 payments and $2,000 for 2026 payments.", "url": "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gtg&section=10-825&enactments=false" },
+    { "claim": "Virginia (Va. Code 58.1-356): payment apps report to Virginia using the federal 26 U.S.C. 6041(a) line instead of the federal 1099-K test, which is $600 for 2025 payments and $2,000 for 2026 payments.", "url": "https://law.lis.virginia.gov/vacode/title58.1/chapter3/section58.1-356/" },
+    { "claim": "Virginia (Va. Code 58.1-301): Virginia follows the federal tax code as it stood on December 31, 2025, which includes the $2,000 line for 2026 payments.", "url": "https://law.lis.virginia.gov/vacode/title58.1/chapter3/section58.1-301/" },
+    { "claim": "Vermont (32 V.S.A. 5862d): payment apps report to Vermont using the federal 26 U.S.C. 6041(a) line instead of the federal 1099-K test.", "url": "https://legislature.vermont.gov/statutes/section/32/151/05862d" },
+    { "claim": "Vermont Department of Taxes, 1099-K FAQ: a payment app, gig platform or marketplace that pays an individual $2,000 or more issues a 1099-K and sends it to the Department.", "url": "https://tax.vermont.gov/business-and-corp/withholding-tax/1099-k" },
     { "claim": "District of Columbia: copies of Forms 1099 required when $600 or more is reported (OTR 2025 filing specifications).", "url": "https://otr.cfo.dc.gov/sites/default/files/dc/sites/otr/publication/attachments/2025%20MyTax%201099_W2G%20instructions%20v1.0_Final.pdf" },
-    { "claim": "Montana (MCA 15-30-2616): information returns for income in excess of $600.", "url": "https://mca.legmt.gov/bills/mca/title_0150/chapter_0300/part_0260/section_0160/0150-0300-0260-0160.html" },
+    { "claim": "Montana Department of Revenue, Employer and Information Agent Guide (November 2025): Form 1099-K is filed with Montana for a Montana resident or business at $600.", "url": "https://revenuefiles.mt.gov/files/Forms/Montana_Employer_and_Information_Agent_Guide_with_Tax_Tables.pdf" },
     { "claim": "New Jersey: Form 1099 copies required when $1,000 or more is paid in a calendar year (NJ-WT instructions).", "url": "https://www.nj.gov/treasury/taxation/pdf/current/njwt.pdf" },
     { "claim": "Illinois: Form 1099-K due when the payee has 4 or more transactions totaling more than $1,000 (FY 2026-15).", "url": "https://tax.illinois.gov/research/publications/bulletins/fy-2026-15.html" },
-    { "claim": "Missouri: Form 1099 filing for Missouri-source payments of $1,200 or more (DOR 1099 handbook).", "url": "https://dor.mo.gov/taxation/business/tax-types/withholding/documents/Missouri1099FilingGuidelines.pdf" },
-    { "claim": "Arkansas (26 CAR 100-151): Form 1099 reporting of payments totaling $2,500 or more by payors located in Arkansas.", "url": "https://codeofarrules.arkansas.gov/Rules/Rule?levelType=section&titleID=26&chapterID=33&subChapterID=261&partID=941&subPartID=6195&sectionID=40258" },
-    { "claim": "OBBBA §70432/§70433 section-number and effective-date summary corroboration.", "url": "https://rsmus.com/insights/services/business-tax/irs-updates-obbba-new-reporting-thresholds.html" }
+    { "claim": "North Carolina (G.S. 105-251.2(c)): payment settlement entities send the Department copies of the 1099-Ks they file with the IRS, so the federal test decides.", "url": "https://www.ncdor.gov/file-pay/information-reporting/guidance-information-reporting" },
+    { "claim": "Missouri (DOR 1099 handbook): a 1099 is filed with Missouri only when the same form is filed with the IRS and the Missouri-source payments are $1,200 or more, so for a 1099-K the federal test decides.", "url": "https://dor.mo.gov/taxation/business/tax-types/withholding/documents/Missouri1099FilingGuidelines.pdf" },
+    { "claim": "Arkansas (26 CAR 100-151): payers located in Arkansas report payments totaling $2,500 or more on Form 1099; no withholding condition.", "url": "https://codeofarrules.arkansas.gov/Rules/Rule?levelType=section&titleID=26&chapterID=33&subChapterID=261&partID=941&subPartID=6195&sectionID=40258" }
   ]
 }

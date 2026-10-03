@@ -40,13 +40,16 @@ const PAYER = 0, NATURE = 1, AMOUNT = 2, TXN = 3, PURPOSE = 4, YEAR = 5, STATE =
 const STATE_NAME = {};
 STATES.forEach((s) => { STATE_NAME[s.abbr] = s.name; });
 
+// The year card's default, and the year every 1099-K branch is measured in.
+const DEFAULT_YEAR = 2026;
+
 // ---- Reading the cards ------------------------------------------------------
 function read() {
   return {
     payerType: radioOf('payerType', 'network'),
     paymentNature: radioOf('paymentNature', 'business'),
     paymentPurpose: radioOf('paymentPurpose', 'services'),
-    taxYear: parseInt(radioOf('taxYear', '2026'), 10) || 2026,
+    taxYear: parseInt(radioOf('taxYear', String(DEFAULT_YEAR)), 10) || DEFAULT_YEAR,
     amount: moneyOf('amount'),
     transactions: numOf('transactions'),
     state: selectOf('state')
@@ -81,8 +84,13 @@ const asksState = (s) => !isDirect(s) && !isPersonal(s);
 // still reads personal. Passing that through would suppress the card branch's
 // state overlay for a reason the visitor cannot see, so every off-path answer is
 // normalised back to its default here, exactly as the old script did.
+// The year belongs to the direct branch alone, but a few states tie their 1099-K
+// line to the federal 1099-NEC line, which moves by year. A 2025 left on the
+// year card from a visit to the direct branch would quietly move that state
+// line on a 1099-K branch that never asked the year, so off the direct branch
+// the engine always sees the default year, the one the state note describes.
 const compute = (s) => check1099({
-  taxYear: s.taxYear,
+  taxYear: asksYear(s) ? s.taxYear : DEFAULT_YEAR,
   payerType: s.payerType,
   amount: asksAmount(s) ? s.amount : 0,
   transactions: asksTxns(s) ? s.transactions : 0,
@@ -142,7 +150,7 @@ function fillStates() {
     });
 }
 
-const STATE_CAVEAT = 'State reporting rules change most years and sources disagree on a few of them. ' +
+const STATE_CAVEAT = 'State reporting rules change most years. ' +
   'Treat this as a heads-up rather than a ruling, and check with your own state\'s tax agency.';
 
 // The core opens this helper the first time each state renders, because the
@@ -168,7 +176,18 @@ function stateParts(abbr) {
     };
   }
   const isObj = entry != null && typeof entry === 'object';
+  // A state that only asks for copies of what is filed with the IRS has no line
+  // of its own below the federal one, so the federal answer is its answer too.
+  if (isObj && entry.followsFederal) {
+    return {
+      summary: `What about my state? ${name} follows the federal limit`,
+      body: `<strong>${name}:</strong> ${entry.note}, so the federal answer above is the ${name} answer too.` +
+        `<div class="otw-note">${STATE_CAVEAT}</div>`
+    };
+  }
   const stateAmt = isObj ? entry.amount : entry;
+  // "from $X" for an "or more" rule, "above $X" for a "more than" rule.
+  const from = isObj && entry.amountInequality === 'exceeds' ? 'above' : 'from';
   const stateTxns = isObj && entry.txns != null ? entry.txns : null;
   const cond = isObj && entry.condition ? ` (${entry.condition})` : '';
   const alsoTxns = stateTxns != null ? ` and ${count(stateTxns)} payments together` : '';
@@ -191,9 +210,9 @@ function stateParts(abbr) {
   // $1,000 line" would be a false sentence on that path.
   const phrase = r.stateOverlay
     ? (r.willIssue
-      ? `${name} also asks for a 1099-K from ${usd(stateAmt)}${alsoTxns}${cond}, and your ${yours} is past that, ` +
+      ? `${name} also asks for a 1099-K ${from} ${usd(stateAmt)}${alsoTxns}${cond}, and your ${yours} is past that, ` +
         `so a state copy may arrive alongside the federal one.`
-      : `Even with no federal 1099-K, ${name} asks for one from ${usd(stateAmt)}${alsoTxns}${cond}, and your ${yours} ` +
+      : `Even with no federal 1099-K, ${name} asks for one ${from} ${usd(stateAmt)}${alsoTxns}${cond}, and your ${yours} ` +
         `is past that, so you may still get one.`)
     : stateTxns != null && !asksTxns(s)
       // A two-part state rule on a branch we never asked the payment count on.
@@ -203,9 +222,9 @@ function stateParts(abbr) {
       ? `${name} pairs its ${usd(stateAmt)} limit with a count of ${count(stateTxns)} payments${cond}, and we only ask for a ` +
         `payment count on the payment-app branch. So this one is a question for ${name} rather than for us.`
       : stateTxns != null
-        ? `${name} asks for a 1099-K from ${usd(stateAmt)}${alsoTxns}${cond}, well under the federal ${usd(GROSS)}. ` +
+        ? `${name} asks for a 1099-K ${from} ${usd(stateAmt)}${alsoTxns}${cond}, well under the federal ${usd(GROSS)}. ` +
           `Your ${usd(s.amount)} across ${count(s.transactions)} payments does not clear both, so it changes nothing here.`
-        : `${name} asks for a 1099-K from ${usd(stateAmt)}${cond}, which is lower than the federal ${usd(GROSS)}. ` +
+        : `${name} asks for a 1099-K ${from} ${usd(stateAmt)}${cond}, which is lower than the federal ${usd(GROSS)}. ` +
           `Your ${usd(s.amount)} is under the ${name} line too, so it changes nothing here.`;
   return {
     summary: `What about my state? ${name} sets a lower limit of its own`,
