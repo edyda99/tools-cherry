@@ -173,6 +173,8 @@
           "married": 32200,
           "head_of_household": 24150
         },
+        "deductionFromFederal": true,
+        "_deductionFromFederal": "North Dakota has no standard deduction of its own. Its tax starts from federal taxable income (North Dakota Office of State Tax Commissioner, 2026 Form ND-1ES, cited in _source above), so the federal standard deduction carries through. standardDeduction above therefore mirrors the federal amounts, and pages must not call it a state deduction.",
         "brackets": {
           "single": [
             {
