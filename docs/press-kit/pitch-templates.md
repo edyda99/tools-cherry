@@ -22,7 +22,7 @@ Fill from (after regeneration):
 | `[$X]` | `cola.rows[0].monthlyIncrease` (the $1,200 check) |
 | `[$Y]` | `cola.rows[2].monthlyIncrease` (the $2,600 check) |
 
-At today's 3.6% estimate these would read $43 and $93. Do not send this variant
+At today's 3.5% estimate (TSCL's final) these would read $42 and $91. Do not send this variant
 with the estimate: it says "today's raise", which is only true on the day.
 
 ## Variant B: IRS day (2027 inflation adjustments, any day Oct 9 to Nov 9)
