@@ -625,6 +625,30 @@ t('Connecticut reproduces the printed Table D tax recapture', () => {
   assert.equal(checked, 43, 'measured the wrong number of Table D rows');
 });
 
+// The rendered disclaimer spells out every filing status's own Table D steps. It once said
+// head of household had "the same three steps" as single at other start points, which hid
+// that the step size ($8,000) and amounts ($40/$140/$80) differ. Each phrase is rebuilt
+// here from the ladder data, so a data change that is not carried into the copy fails.
+t('Connecticut disclaimer gives each filing status its own Table D steps, from the data', () => {
+  const ct = tax.states.connecticut;
+  const text = ct.disclaimer.join(' ');
+  const usd = (n) => '$' + n.toLocaleString('en-US');
+  const bands = ct.tax.steppedRecapture.slice(1);
+  assert.equal(bands.length, 3, 'Table D has three bands');
+  let n = 0;
+  for (const fs of ['single', 'head_of_household', 'married']) {
+    bands.forEach((b, i) => {
+      const x = b[fs];
+      const phrase = `${usd(x.amountPerStep)} for each ${usd(x.step)}` +
+        `${i === 0 && fs === 'single' ? ' of income' : ''} over ${usd(x.over)}, up to ${usd(x.max)}${i ? ' more' : ''}`;
+      assert.ok(text.includes(phrase), `connecticut disclaimer is missing "${phrase}" (${fs}, band ${i + 1})`);
+      n++;
+    });
+  }
+  assert.equal(n, 9);
+  assert.ok(!/same three steps/.test(text), 'the "same three steps" shorthand is back');
+});
+
 // --- ficaPaidDeduction: the opt-in FICA deduction, Massachusetts only ---------
 // M.G.L. c.62 s.3(B)(a)(3) deducts "Taxes paid to the United States under the provisions of
 // the Federal Insurance Contributions Act", then caps the aggregate "attributable to any one
