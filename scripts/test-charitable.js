@@ -135,8 +135,8 @@ is('firstYear 2026', CH.firstYear, 2026);
 // CORRECTION 3: §68 cap applies to ALL itemized deductions, not just charitable.
 is('s68 not charitable-specific', CH.topBracketCap.appliesToAllItemizedNotJustCharitable, true);
 eq('s68 effective benefit rate 0.35', CH.topBracketCap.effectiveBenefitRate, 0.35, 0.0001);
-// 9-source citation list per the spec.
-is('nine sources', CH.sources.length, 9);
+// 6-source citation list, all official (audit 2026-10-03 dropped the non-official ones).
+is('six sources', CH.sources.length, 6);
 
 console.log(`\nCharitable engine: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

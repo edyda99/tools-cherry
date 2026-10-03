@@ -8,11 +8,11 @@
       "federal_brackets_hoh": "https://www.irs.gov/pub/irs-drop/rp-25-32.pdf",
       "standard_deduction": "https://www.irs.gov/newsroom/irs-releases-tax-inflation-adjustments-for-tax-year-2026-including-amendments-from-the-one-big-beautiful-bill",
       "fica": "https://www.ssa.gov/oact/cola/cbb.html",
-      "additional_medicare": "https://www.irs.gov/taxtopics/tc751"
+      "additional_medicare": "https://www.irs.gov/businesses/small-businesses-self-employed/questions-and-answers-for-the-additional-medicare-tax"
     },
     "lastSourced": "2026-10-03",
     "revenueProcedure": {
-      "_comment": "Provenance of the federal block above, as renderable fields rather than prose in a page template. /2026-tax-brackets/ states the Revenue Procedure and its publication date on the page, and both must come from here so they cannot be typed into a template and drift from the figures they describe. ANNUAL REFRESH: replace with the next Revenue Procedure when the following tax year's figures land.",
+      "_comment": "Provenance of the federal block above, as renderable fields rather than prose in a page template. /2026-tax-brackets/ states the Revenue Procedure and its publication date on the page, and both must come from here so they cannot be typed into a template and drift from the figures they describe. The IRS re-issued the Rev. Proc. 2025-32 PDF at the same URL on 2025-10-17: it added a new section 2.05 (the section 42(h)(3)(I) housing credit change), renumbered the later section 2 items, and corrected a few section 4 figures (the married-filing-separately 24% bracket base, $17,996 to $17,966; one EITC completed-phaseout amount, $70,224 to $70,244; the low-income housing credit amounts). None of the corrected figures is used on this site; publishedDate stays 2025-10-09, the IR-2025-103 date. ANNUAL REFRESH: replace with the next Revenue Procedure when the following tax year's figures land.",
       "name": "Rev. Proc. 2025-32",
       "publishedDate": "2025-10-09",
       "sourceUrl": "https://www.irs.gov/pub/irs-drop/rp-25-32.pdf",
@@ -20,7 +20,7 @@
       "nextYear": {
         "taxYear": 2027,
         "expectedTiming": "in the autumn of 2026",
-        "timingBasis": "The IRS has no published deadline for the annual inflation Revenue Procedure. Recent years have landed in the second half of October — the tax-year-2026 procedure was published on 2025-10-09 — so autumn is a pattern, not a commitment, and the page must not state a date the IRS has not announced."
+        "timingBasis": "The IRS has no published deadline for the annual inflation Revenue Procedure. The last four were announced on October 18, 2022, November 9, 2023, October 22, 2024 and October 9, 2025 (the tax-year-2026 procedure, IR-2025-103). Autumn is a pattern, not a commitment, so the page must not state a date the IRS has not announced."
       }
     }
   },

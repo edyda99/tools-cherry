@@ -7703,7 +7703,7 @@ function caLadderSources(taxData, state) {
     federal_brackets_hoh: `IRS: Rev. Proc. 2025-32 (${taxData.taxYear} brackets, all statuses)`,
     standard_deduction: `IRS: ${taxData.taxYear} standard deduction`,
     fica: 'Social Security Administration: Contribution and Benefit Base',
-    additional_medicare: 'IRS: Topic no. 751, Additional Medicare Tax',
+    additional_medicare: 'IRS: Questions and answers for the Additional Medicare Tax (thresholds by filing status)',
   };
   Object.entries((taxData._meta && taxData._meta.sources) || {})
     .forEach(([k, u]) => add(SOURCE_TITLES[k] || k.replace(/_/g, ' '), u));
@@ -12523,8 +12523,8 @@ async function main() {
       federal_brackets: `IRS: ${year} inflation-adjusted tax brackets (Rev. Proc. 2025-32)`,
       standard_deduction: `IRS: ${year} standard deduction`,
       fica: 'Social Security Administration: Contribution and Benefit Base (Social Security wage base)',
-      additional_medicare: 'IRS: Topic no. 751, Additional Medicare Tax',
-      federal_brackets_hoh: `Tax Foundation: ${year} federal tax brackets`,
+      additional_medicare: 'IRS: Questions and answers for the Additional Medicare Tax (thresholds by filing status)',
+      federal_brackets_hoh: `IRS: Rev. Proc. 2025-32 (${year} brackets, all statuses)`,
     };
     const metaSources = (taxData._meta && taxData._meta.sources) || {};
     const srcSeen = new Set();
