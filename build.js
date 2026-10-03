@@ -3375,8 +3375,14 @@ function obbbaConformityBlock(state, obbba, year) {
   const tipVerdict = (v) => (v === 'partial' && tipCap > 0
     ? `${state.name}'s own deduction of up to ${usd0(tipCap)} of tips`
     : verdict(v));
-  const row = (label, d, say = verdict) =>
-    `<li><strong>${label}:</strong> 2025 — ${say(d.y2025)}; 2026–2028 — ${say(d.y2026)}.</li>`;
+  // `conformityThrough` marks a state whose law covers only part of 2026-2028 (Indiana adopted
+  // the deductions for tax year 2026 only), so the 2026 verdict is not stretched over 2027-2028.
+  const through = Number(e.conformityThrough) || 2028;
+  const laterYears = through + 1 >= 2028 ? '2028' : `${through + 1} to 2028`;
+  const row = (label, d, say = verdict) => (through >= 2028
+    ? `<li><strong>${label}:</strong> 2025 — ${say(d.y2025)}; 2026–2028 — ${say(d.y2026)}.</li>`
+    : `<li><strong>${label}:</strong> 2025: ${say(d.y2025)}; ${through > 2026 ? `2026 to ${through}` : '2026'}: ` +
+      `${say(d.y2026)}; ${laterYears}: not adopted by ${state.name} so far.</li>`);
   const srcHost = (() => { try { return new URL(e.source).hostname.replace(/^www\./, ''); } catch (_) { return ''; } })();
   const srcLink = e.source && srcHost
     ? ` <span class="muted-small">(source: <a href="${escHtml(e.source)}" rel="noopener" target="_blank">${escHtml(srcHost)}</a>)</span>`

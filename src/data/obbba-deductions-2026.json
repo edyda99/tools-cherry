@@ -923,6 +923,7 @@
     "indiana": {
       "name": "Indiana",
       "hasWageTax": true,
+      "conformityThrough": 2026,
       "overtime": {
         "y2025": "no",
         "y2026": "yes"
@@ -1335,10 +1336,11 @@
       },
       "tips": {
         "y2025": "no",
-        "y2026": "no"
+        "y2026": "yes"
       },
-      "note": "Hawaii has not adopted the federal tips/overtime deductions for state income tax as of mid-2026, so they reduce your federal tax only.",
-      "source": "https://www.tfhawaii.org/wordpress/blog/no-tax-on-tips/"
+      "note": "Act 35 (2026) brings Hawaii in line with the federal tips deduction from tax year 2026, so qualified tips come off your Hawaii taxable income too. Hawaii did not adopt the federal overtime deduction, so overtime premium pay is still taxed by Hawaii.",
+      "source": "https://files.hawaii.gov/tax/news/announce/ann26-06.pdf",
+      "sourceTitle": "Hawaii Department of Taxation: Announcement No. 2026-06, Act 35 federal conformity"
     },
     "rhode-island": {
       "name": "Rhode Island",
