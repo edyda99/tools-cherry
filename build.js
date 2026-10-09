@@ -13173,7 +13173,9 @@ async function main() {
       urls.push(`${SITE.url}/data/state-supplemental-withholding-rates-2026/`);
       await mkdir(join(DIST, 'embed', 'data', 'state-supplemental-withholding-rates-2026'), { recursive: true });
       await writeFile(join(DIST, 'embed', 'data', 'state-supplemental-withholding-rates-2026', 'index.html'),
-        fillDataEmbed(embedDataSuppTpl, suppMap));
+        // The embed renders inside a third-party iframe and /* sends X-Frame-Options: DENY,
+        // so its state links must open in a new tab or the paycheck page refuses to load.
+        fillDataEmbed(embedDataSuppTpl, { ...suppMap, TABLE_ROWS: suppRows.replace(/<a href="\/([a-z-]+)-paycheck-calculator\/">/g, '<a href="' + SITE.url + '/$1-paycheck-calculator/" target="_blank" rel="noopener">') }));
       await writeFile(join(DIST, 'data', 'state-supplemental-withholding-rates-2026.json'),
         JSON.stringify(stripInternal(suppData), null, 2) + '\n');
       // Flat CSV — journalist-liftable citation kit (same source JSON).
