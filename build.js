@@ -13084,6 +13084,10 @@ async function main() {
 
     // ---- 3. State Supplemental (Bonus) Withholding Rates — from state-supplemental-2026.json
     {
+      // Last substantive revision of state-supplemental-2026.json (Massachusetts
+      // Circular M rework and official-source citations), not the shared July date.
+      const SUPP_PUB_HUMAN = 'October 3, 2026';
+      const SUPP_PUB_ISO = '2026-10-03';
       const METHOD_LABEL = { flat: 'Flat', regular: 'Regular', none: 'None', special: 'Special' };
       const rateText = (s) => {
         if (s.method === 'none') return '0%';
@@ -13111,12 +13115,13 @@ async function main() {
       const entries = Object.values(suppData.states).sort((a, b) => a.name.localeCompare(b.name));
       const cnt = { flat: 0, regular: 0, none: 0, special: 0 };
       const suppRows = entries.map((s) => {
+        const slug = Object.keys(suppData.states).find((k) => suppData.states[k] === s);
         cnt[s.method] = (cnt[s.method] || 0) + 1;
         const rv = rateVal(s);
         const noteBits = [];
         if (s.note) noteBits.push(esc(s.note));
         if (s._sourceUrl) noteBits.push(`<a href="${esc(s._sourceUrl)}" rel="noopener" target="_blank">source</a>`);
-        return `<tr><td><strong>${esc(s.name)}</strong> (${esc(s.abbr)})</td>` +
+        return `<tr><td><a href="/${slug}-paycheck-calculator/"><strong>${esc(s.name)}</strong></a> (${esc(s.abbr)})</td>` +
           `<td><span class="chip m-${s.method}">${METHOD_LABEL[s.method] || esc(s.method)}</span></td>` +
           `<td class="rate" data-val="${rv === '' ? '' : rv}">${esc(rateText(s))}</td>` +
           `<td class="note">${noteBits.join(' ')}</td></tr>`;
@@ -13127,7 +13132,7 @@ async function main() {
         '@context': 'https://schema.org', '@type': 'Article',
         headline: '2026 State Supplemental (Bonus) Tax Withholding Rates',
         description: `The 2026 supplemental-wage withholding method and rate for all ${rowCount} US jurisdictions, plus the federal flat 22% / 37% rule. ${cnt.flat} states use their own flat bonus rate; ${cnt.regular} use the aggregate method; ${cnt.none} have no wage income tax; ${cnt.special} use a special formula.`,
-        datePublished: '2026-07-11', dateModified: DATA_PUB_ISO,
+        datePublished: '2026-07-11', dateModified: SUPP_PUB_ISO,
         author: { '@type': 'Person', '@id': `${SITE.url}/#edmond-daher`, name: 'Edmond Daher', url: `${SITE.url}/about/` },
         publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
         mainEntityOfPage: `${SITE.url}/data/state-supplemental-withholding-rates-2026/`,
@@ -13142,7 +13147,7 @@ async function main() {
         publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url },
         license: 'https://creativecommons.org/licenses/by/4.0/',
         temporalCoverage: '2026',
-        dateModified: DATA_PUB_ISO,
+        dateModified: SUPP_PUB_ISO,
         spatialCoverage: { '@type': 'Place', name: 'United States' },
         distribution: [
           { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: `${SITE.url}/data/state-supplemental-withholding-rates-2026.json` },
@@ -13160,7 +13165,7 @@ async function main() {
           `${cnt.flat} of the ${rowCount} US jurisdictions apply their own flat supplemental rate, ` +
           `${cnt.regular} withhold using the regular aggregate method instead, ${cnt.special} use a ` +
           `special formula, and ${cnt.none} have no state wage income tax at all.`),
-        PUB_DATE: DATA_PUB_HUMAN, ARTICLE_LD: articleLd, DATASET_LD: datasetLd,
+        PUB_DATE: SUPP_PUB_HUMAN, ARTICLE_LD: articleLd, DATASET_LD: datasetLd,
       };
       await mkdir(join(DIST, 'data', 'state-supplemental-withholding-rates-2026'), { recursive: true });
       await writeFile(join(DIST, 'data', 'state-supplemental-withholding-rates-2026', 'index.html'),

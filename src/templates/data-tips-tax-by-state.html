@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>Which States Still Tax Tips in 2026? All 51 Jurisdictions | Tools Berry</title>
-<meta name="description" content="A state-by-state study: after the 2025 One Big Beautiful Bill Act created a federal 'no tax on tips' deduction, which states still tax tip income in 2026? We computed conformity across all 50 states and DC, with primary sources.">
+<meta name="description" content="{{CNT_TAX}} of the 50 states and DC still tax tips in 2026. {{CNT_FREE}} now exempt them and {{CNT_NOWAGE}} have no wage income tax. Find your state's rule and its source.">
 <link rel="canonical" href="{{SITE_URL}}/data/tips-tax-by-state/">
 <meta property="og:title" content="Which States Still Tax Tips in 2026?">
 <meta property="og:description" content="We computed 'no tax on tips' state conformity across all 51 US jurisdictions for tax year 2026, with primary sources and a free embeddable calculator.">
@@ -14,6 +14,9 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/styles.css">
 <style>
+  .table-tools { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:14px 0 6px; }
+  .table-tools input[type=search] { flex:1 1 260px; min-width:200px; padding:9px 12px; border:1px solid var(--border-strong); border-radius:var(--radius); font-size:.95rem; background:var(--surface); color:var(--text); }
+  .table-tools .count { font-size:.85rem; color:var(--muted); white-space:nowrap; }
   .study-byline { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; font-size:.92rem; color:var(--muted); margin:2px 0 18px; }
   .study-byline .who { font-weight:600; color:var(--text); }
   /* The one-sentence computed answer, first thing under the H1. It is written to
@@ -97,6 +100,10 @@
 
     <h2>State-by-state: tips &amp; overtime conformity, tax year 2026</h2>
     <p class="muted-small">Tap a column header to sort. "Still taxed" means the state does not adopt the federal deduction, so tip income remains taxable on your state return. Figures are for tax year 2026 and reflect the federal <abbr title="One Big Beautiful Bill Act">OBBBA</abbr> tips deduction (with the overtime column shown for context).</p>
+    <div class="table-tools">
+      <input type="search" id="studyFilter" placeholder="Search — e.g. Texas, still taxed" aria-label="Search states">
+      <span class="count"><strong id="studyCount">51</strong> of <span id="studyTotal">51</span> shown</span>
+    </div>
     <div class="table-scroll">
       <table class="study" id="studyTable">
         <thead><tr>
@@ -163,6 +170,25 @@
   var table = document.getElementById('studyTable');
   if (!table) return;
   var tbody = table.querySelector('tbody');
+  var filter = document.getElementById('studyFilter');
+  var countEl = document.getElementById('studyCount');
+  var totalEl = document.getElementById('studyTotal');
+  var allRows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+  if (totalEl) totalEl.textContent = String(allRows.length);
+  if (countEl) countEl.textContent = String(allRows.length);
+  if (filter) {
+    filter.addEventListener('input', function () {
+      var terms = filter.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+      var shown = 0;
+      allRows.forEach(function (r) {
+        var hay = r.textContent.toLowerCase();
+        var ok = terms.every(function (t) { return hay.indexOf(t) !== -1; });
+        r.hidden = !ok;
+        if (ok) shown++;
+      });
+      if (countEl) countEl.textContent = String(shown);
+    });
+  }
   var headers = table.querySelectorAll('thead th');
   headers.forEach(function (th, col) {
     var dir = 1;
