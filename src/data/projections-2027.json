@@ -166,6 +166,12 @@
         "retrievedDate": "2026-10-14"
       }
     },
+    "officialCola": {
+      "percent": 3.6,
+      "announcedDate": "2026-10-14",
+      "sourceUrl": "https://www.ssa.gov/news/en/press/releases/2026-10-14.html",
+      "title": "Social Security Announces 3.6 Percent Benefit Increase for 2027"
+    },
     "schedule": {
       "2026-07": {
         "status": "published",
