@@ -1,6 +1,6 @@
 {
   "_comment": "Inputs for /2027-tax-brackets/ and /2027-social-security-cola/. REFRESH after each BLS CPI release (2026-08-12 for reference month July 2026, 2026-09-11 for August 2026, 2026-10-14 for September 2026). When SSA announces the COLA (expected 2026-10-14), ADD cpiw.officialCola and fill 2026-09; when the IRS Revenue Procedure for tax year 2027 lands (any day from about 2026-10-09 to mid-November), ADD official2027. build.js flips both pages to OFFICIAL from those keys. Delete nothing: the official pages still compare against the forecasts below. A month that BLS has not published is the literal null with a `due` date beside it in `schedule`: never interpolate it, never carry the previous month forward, never 'estimate the remaining months'.",
-  "retrievedDate": "2026-09-11",
+  "retrievedDate": "2026-10-14",
   "ccpiu": {
     "_what": "Chained CPI for All Urban Consumers (C-CPI-U), U.S. city average, all items, not seasonally adjusted. BLS series SUUR0000SA0. This is the index 26 U.S.C. 1(f)(6) uses to index federal tax figures, after the Tax Cuts and Jobs Act (P.L. 115-97) replaced CPI-U with it.",
     "seriesId": "SUUR0000SA0",
@@ -158,7 +158,19 @@
         "publishedDate": "2026-09-11",
         "retrievedDate": "2026-09-11"
       },
-      "2026-09": null
+      "2026-09": {
+        "value": 330.654,
+        "vintage": "final",
+        "sourceUrl": "https://data.bls.gov/timeseries/CWUR0000SA0",
+        "publishedDate": "2026-10-14",
+        "retrievedDate": "2026-10-14"
+      }
+    },
+    "officialCola": {
+      "percent": 3.6,
+      "announcedDate": "2026-10-14",
+      "sourceUrl": "https://www.ssa.gov/news/en/press/releases/2026-10-14.html",
+      "title": "Social Security Announces 3.6 Percent Benefit Increase for 2027"
     },
     "schedule": {
       "2026-07": {
@@ -174,9 +186,9 @@
         "sourceUrl": "https://www.bls.gov/schedule/news_release/cpi.htm"
       },
       "2026-09": {
-        "status": "scheduled",
+        "status": "published",
         "due": "2026-10-14",
-        "note": "September 2026 Consumer Price Index news release. The Social Security Administration normally announces the official COLA the same morning this release lands.",
+        "note": "September 2026 Consumer Price Index news release.",
         "sourceUrl": "https://www.bls.gov/schedule/news_release/cpi.htm"
       }
     },
