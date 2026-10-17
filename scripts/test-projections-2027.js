@@ -358,6 +358,7 @@ fsBroken('unknown period', (o) => { o.rows[1].per = 'week'; }, /per is not/);
 fsBroken('duplicate key', (o) => { o.rows[1].key = 'wageBase'; }, /appears twice/);
 fsBroken('em dash in a label', (o) => { o.rows[1].label = 'SSI \u2014 one person'; }, /em dash/);
 fsBroken('http source', (o) => { o.sourceUrl = 'http://www.ssa.gov/'; }, /sourceUrl/);
+fsBroken('unknown column basis', (o) => { o.rows[1].columns = 'years'; }, /columns is not "cola"/);
 ok(ssaFactSheetProblems(null).length > 0, 'a null ssaFactSheet2027 is rejected');
 
 if (data.ssaFactSheet2027 !== undefined) {
@@ -370,6 +371,8 @@ if (data.ssaFactSheet2027 !== undefined) {
     `ssaFactSheet2027 2026 wage base (${wb && wb.before}) matches tax-data-2026.json (${tax2026.federal.fica.socialSecurity.wageBase})`);
   // SSA's average-benefit estimate is the before figure raised by the COLA, rounded to the dollar.
   const avg = (fs.rows || []).find((r) => r.key === 'avgRetiredWorker');
+  // Both of its figures are January 2027 estimates; under a "2026" heading the first would be wrong.
+  if (avg) ok(avg.columns === 'cola', 'ssaFactSheet2027 avgRetiredWorker is marked columns: "cola"');
   if (avg && data.cpiw.officialCola)
     ok(Math.abs(avg.before * (1 + data.cpiw.officialCola.percent / 100) - avg.after) < 2,
       `ssaFactSheet2027 average retired benefit ${avg.before} -> ${avg.after} is the official ${data.cpiw.officialCola.percent}% increase`);

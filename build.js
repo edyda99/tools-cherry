@@ -11336,8 +11336,10 @@ async function main() {
         'from SSA&rsquo;s 2027 COLA fact sheet</caption>\n          <thead><tr><th scope="col">What</th>' +
         '<th scope="col">2026</th><th scope="col">2027</th></tr></thead>\n          <tbody>' +
         ssaFs2027.rows.map((r) =>
-          `<tr><th scope="row">${escHtml(r.label)}</th><td class="num">${usd0(r.before)} ${fsPer[r.per]}</td>` +
-          `<td class="num"><strong>${usd0(r.after)}</strong> ${fsPer[r.per]}</td></tr>` +
+          `<tr><th scope="row">${escHtml(r.label)}</th><td class="num">${usd0(r.before)} ${fsPer[r.per]}` +
+          `${r.columns === 'cola' ? ', without the increase' : ''}</td>` +
+          `<td class="num"><strong>${usd0(r.after)}</strong> ${fsPer[r.per]}` +
+          `${r.columns === 'cola' ? ', with it' : ''}</td></tr>` +
           (r.note || r.key === 'wageBase'
             ? `<tr><td colspan="3" class="cola-src">${r.note ? escHtml(r.note) : ''}` +
               (r.key === 'wageBase' ? ' <a href="/ss-wage-base-calculator/">Find the 2026 paycheck it stops on</a>.' : '') +

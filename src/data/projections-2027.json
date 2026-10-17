@@ -213,7 +213,7 @@
     ]
   },
   "ssaFactSheet2027": {
-    "_note": "SSA's 2027 COLA fact sheet, published with the 2026-10-14 announcement and read via r.jina.ai (ssa.gov answers automated fetches with 403). before/after are its 2026 and 2027 columns copied as printed, except avgRetiredWorker, which is SSA's own estimate of January 2027 payments before and after the COLA. Rendered on /2027-social-security-cola/ only while cpiw.officialCola exists; the wageBase row also feeds the one-line 2027 note on /ss-wage-base-calculator/, and build.js stops if its 2026 column disagrees with tax-data-2026.json. Not copied: tax rates (unchanged), quarter of coverage, SGA blind, trial work period, SSI resource limits and student exclusion, the other average-benefit lines.",
+    "_note": "SSA's 2027 COLA fact sheet, published with the 2026-10-14 announcement and read via r.jina.ai (ssa.gov answers automated fetches with 403). before/after are its 2026 and 2027 columns copied as printed, except avgRetiredWorker (columns: \"cola\"), which is SSA's own estimate of January 2027 payments before and after the COLA and renders that way, never under the 2026 heading (SSA's actual January 2026 average was $2,071). Rendered on /2027-social-security-cola/ only while cpiw.officialCola exists; the wageBase row also feeds the one-line 2027 note on /ss-wage-base-calculator/, and build.js stops if its 2026 column disagrees with tax-data-2026.json. Not copied: tax rates (unchanged), quarter of coverage, SGA blind, trial work period, SSI resource limits and student exclusion, the other average-benefit lines.",
     "title": "2027 Cost-of-Living Adjustment (COLA) Fact Sheet",
     "sourceUrl": "https://www.ssa.gov/news/en/cola/factsheets/2027.html",
     "publishedDate": "2026-10-14",
@@ -256,7 +256,8 @@
         "before": 2095,
         "after": 2170,
         "per": "month",
-        "note": "Social Security's own estimate for January 2027 payments, before and after the increase."
+        "columns": "cola",
+        "note": "Both figures are Social Security's estimate for January 2027 payments, without the increase and with it. Neither is the 2026 average."
       },
       {
         "key": "ssiIndividual",

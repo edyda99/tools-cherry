@@ -429,7 +429,7 @@ export function official2027Problems(o) {
 /**
  * Problems with ssaFactSheet2027, SSA's 2027 COLA fact sheet. Empty means it is
  * fit to render. Shape: { title, sourceUrl, publishedDate, rows: [{ key, label,
- * before, after, per: "year"|"month", note? }] }. before/after are the fact
+ * before, after, per: "year"|"month", columns?: "cola", note? }] }. before/after are the fact
  * sheet's two columns as printed, whole dollars. A wageBase row is required:
  * /ss-wage-base-calculator/ reads it.
  * @param {*} o
@@ -456,6 +456,9 @@ export function ssaFactSheetProblems(o) {
     if (Number.isInteger(r.before) && Number.isInteger(r.after) && r.after < r.before)
       p.push(`${at}.after (${r.after}) is below before (${r.before})`);
     if (r.per !== 'year' && r.per !== 'month') p.push(`${at}.per is not "year" or "month"`);
+    // "cola": both columns are SSA's same-month estimate without and with the
+    // increase, so they must not render under the 2026 / 2027 headings.
+    if (r.columns !== undefined && r.columns !== 'cola') p.push(`${at}.columns is not "cola"`);
     if (r.note !== undefined && (!isText(r.note) || r.note.includes('—')))
       p.push(`${at}.note is empty or contains an em dash`);
   });
