@@ -425,3 +425,40 @@ export function official2027Problems(o) {
   }
   return p;
 }
+
+/**
+ * Problems with ssaFactSheet2027, SSA's 2027 COLA fact sheet. Empty means it is
+ * fit to render. Shape: { title, sourceUrl, publishedDate, rows: [{ key, label,
+ * before, after, per: "year"|"month", note? }] }. before/after are the fact
+ * sheet's two columns as printed, whole dollars. A wageBase row is required:
+ * /ss-wage-base-calculator/ reads it.
+ * @param {*} o
+ * @returns {string[]}
+ */
+export function ssaFactSheetProblems(o) {
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return ['ssaFactSheet2027 is not an object'];
+  const p = [];
+  if (!isText(o.title) || o.title.includes('—')) p.push('ssaFactSheet2027.title is empty or contains an em dash');
+  if (!isHttps(o.sourceUrl)) p.push('ssaFactSheet2027.sourceUrl is not an https URL');
+  if (!ISO_DATE.test(o.publishedDate || '')) p.push('ssaFactSheet2027.publishedDate is not an ISO date');
+  if (!Array.isArray(o.rows) || o.rows.length === 0) return [...p, 'ssaFactSheet2027.rows is empty'];
+  const seen = new Set();
+  o.rows.forEach((r, i) => {
+    const at = `ssaFactSheet2027.rows[${i}]`;
+    if (!r || typeof r !== 'object') { p.push(`${at} is not an object`); return; }
+    if (typeof r.key !== 'string' || !/^[A-Za-z0-9]+$/.test(r.key)) p.push(`${at}.key is not a plain identifier`);
+    else if (seen.has(r.key)) p.push(`${at}.key "${r.key}" appears twice`);
+    else seen.add(r.key);
+    if (!isText(r.label) || r.label.includes('—')) p.push(`${at}.label is empty or contains an em dash`);
+    for (const k of ['before', 'after'])
+      if (!Number.isInteger(r[k]) || r[k] < 1 || r[k] > 1000000) p.push(`${at}.${k} is not a whole-dollar amount from $1 to $1,000,000`);
+    // Every dollar line on the fact sheet is indexed upward or held flat.
+    if (Number.isInteger(r.before) && Number.isInteger(r.after) && r.after < r.before)
+      p.push(`${at}.after (${r.after}) is below before (${r.before})`);
+    if (r.per !== 'year' && r.per !== 'month') p.push(`${at}.per is not "year" or "month"`);
+    if (r.note !== undefined && (!isText(r.note) || r.note.includes('—')))
+      p.push(`${at}.note is empty or contains an em dash`);
+  });
+  if (!seen.has('wageBase')) p.push('ssaFactSheet2027.rows has no wageBase row');
+  return p;
+}

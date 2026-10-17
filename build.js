@@ -44,6 +44,7 @@ import {
   assertComplete as p27AssertComplete, colaPercent as p27ColaPercent,
   thirdPartyBlockProblems as p27ThirdPartyBlockProblems, TP_STATUSES as P27_TP_STATUSES,
   officialColaProblems as p27OfficialColaProblems, official2027Problems as p27Official2027Problems,
+  ssaFactSheetProblems as p27SsaFactSheetProblems,
 } from './src/engine/projections-2027.js';
 import { verifyDist, reportFailures } from './scripts/verify-dist.js';
 import { DFT_PAGES, DFT_GROUPS } from './src/content/days-from-today.js';
@@ -8500,6 +8501,21 @@ async function main() {
   const pressKitTpl = await read(join(SRC, 'templates', 'press-kit-2027.html'));
   const wageBoxTpl = await read(join(SRC, 'templates', 'w2-box-1-vs-box-3-vs-box-5.html'));
   const proj2027 = await readJSON(join(SRC, 'data', 'projections-2027.json'));
+  // SSA's 2027 fact sheet: the other official numbers the COLA announcement
+  // moved. Shown only once cpiw.officialCola exists, so it can never sit beside
+  // an ESTIMATE banner. Its 2026 wage base is the same figure the paycheck
+  // engine uses, so a disagreement means one of the two files is wrong.
+  const ssaFs2027 = P27_MODE.colaOfficial ? (proj2027.ssaFactSheet2027 || null) : null;
+  if (ssaFs2027) {
+    const bad = p27SsaFactSheetProblems(ssaFs2027);
+    if (bad.length)
+      throw new Error(`projections-2027.json: ssaFactSheet2027 is malformed, refusing to render it:\n  ${bad.join('\n  ')}`);
+    const wb = ssaFs2027.rows.find((r) => r.key === 'wageBase');
+    if (taxData.taxYear === 2026 && wb.before !== taxData.federal.fica.socialSecurity.wageBase)
+      throw new Error(`Social Security wage base disagreement: ssaFactSheet2027 says 2026 is ${wb.before}, ` +
+        `tax-data-2026.json says ${taxData.federal.fica.socialSecurity.wageBase}.`);
+  }
+  const ssaFsWageBase = ssaFs2027 ? ssaFs2027.rows.find((r) => r.key === 'wageBase') : null;
   const wageBoxData = await readJSON(join(SRC, 'data', 'w2-wage-boxes.json'));
   const obbba = await readJSON(join(SRC, 'data', 'obbba-deductions-2026.json'));
   // Client-injected JSON for the OBBBA tools (internal _keys stripped).
@@ -11310,6 +11326,26 @@ async function main() {
     const offPct = colaOff ? `${colaOff.percent.toFixed(1)}%` : '';
     const offDate = colaOff ? humanDate(colaOff.announcedDate) : '';
 
+    // The other limits the same announcement moved, from SSA's fact sheet.
+    const fsPer = { year: 'a year', month: 'a month' };
+    const factSheetSection = colaOff && ssaFs2027
+      ? '<section class="prose" id="other-2027-numbers">\n      <h2>The other 2027 Social Security numbers</h2>\n      ' +
+        `<p>The same announcement moved these limits for 2027. Every figure is from Social Security&rsquo;s ` +
+        `${srcLink(ssaFs2027.sourceUrl, '2027 fact sheet')}.</p>\n      <div class="cola-wrap">\n        ` +
+        '<table class="cola-table">\n          <caption class="sr-only">Social Security limits for 2026 and 2027, ' +
+        'from SSA&rsquo;s 2027 COLA fact sheet</caption>\n          <thead><tr><th scope="col">What</th>' +
+        '<th scope="col">2026</th><th scope="col">2027</th></tr></thead>\n          <tbody>' +
+        ssaFs2027.rows.map((r) =>
+          `<tr><th scope="row">${escHtml(r.label)}</th><td class="num">${usd0(r.before)} ${fsPer[r.per]}</td>` +
+          `<td class="num"><strong>${usd0(r.after)}</strong> ${fsPer[r.per]}</td></tr>` +
+          (r.note || r.key === 'wageBase'
+            ? `<tr><td colspan="3" class="cola-src">${r.note ? escHtml(r.note) : ''}` +
+              (r.key === 'wageBase' ? ' <a href="/ss-wage-base-calculator/">Find the 2026 paycheck it stops on</a>.' : '') +
+              '</td></tr>'
+            : '')).join('') +
+        '</tbody>\n        </table>\n      </div>\n    </section>'
+      : '';
+
     const cpiwRow = (k, entry, sched, pendingClass) => {
       if (entry === null) {
         return `<tr class="${pendingClass}"><th scope="row">${escHtml(monthHuman(k))}</th>` +
@@ -11505,6 +11541,7 @@ async function main() {
       Q3_2026_STATUS: q3CurStatusText,
       Q3_2025_ROWS: q3PriorRows,
       Q3_2025_AVG: q3PriorAvg ? q3PriorAvg.toFixed(3) : 'not yet complete',
+      FACTSHEET_SECTION: factSheetSection,
       ...colaCopy,
       // The percentage box is pre-filled from the OFFICIAL figure once SSA has
       // announced it, and before that from a PUBLISHED third-party estimate,
@@ -11752,7 +11789,15 @@ async function main() {
   await mkdir(join(DIST, 'ss-wage-base-calculator'), { recursive: true });
   await writeFile(
     join(DIST, 'ss-wage-base-calculator', 'index.html'),
-    fillTool(ssMaxoutTpl, { SITE_NAME: SITE.name, SITE_URL: SITE.url, SSMAXOUT_PARAMS_JSON }, '/ss-wage-base-calculator/')
+    fillTool(ssMaxoutTpl, {
+      SITE_NAME: SITE.name, SITE_URL: SITE.url, SSMAXOUT_PARAMS_JSON,
+      // One line on next year's limit once SSA has published it; the calculator stays on 2026.
+      NEXT_CAP_NOTE: ssaFsWageBase
+        ? ` In 2027 the limit rises to <strong>${usd0(ssaFsWageBase.after)}</strong> (Social Security&rsquo;s ` +
+          `<a href="${escHtml(ssaFs2027.sourceUrl)}" rel="noopener" target="_blank">2027 fact sheet</a>); this ` +
+          'calculator is for 2026 paychecks.'
+        : '',
+    }, '/ss-wage-base-calculator/')
   );
   urls.push(`${SITE.url}/ss-wage-base-calculator/`);
 
