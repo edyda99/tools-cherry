@@ -212,6 +212,77 @@
       }
     ]
   },
+  "ssaFactSheet2027": {
+    "_note": "SSA's 2027 COLA fact sheet, published with the 2026-10-14 announcement and read via r.jina.ai (ssa.gov answers automated fetches with 403). before/after are its 2026 and 2027 columns copied as printed, except avgRetiredWorker (columns: \"cola\"), which is SSA's own estimate of January 2027 payments before and after the COLA and renders that way, never under the 2026 heading (SSA's actual January 2026 average was $2,071). Rendered on /2027-social-security-cola/ only while cpiw.officialCola exists; the wageBase row also feeds the one-line 2027 note on /ss-wage-base-calculator/, and build.js stops if its 2026 column disagrees with tax-data-2026.json. Not copied: tax rates (unchanged), quarter of coverage, SGA blind, trial work period, SSI resource limits and student exclusion, the other average-benefit lines.",
+    "title": "2027 Cost-of-Living Adjustment (COLA) Fact Sheet",
+    "sourceUrl": "https://www.ssa.gov/news/en/cola/factsheets/2027.html",
+    "publishedDate": "2026-10-14",
+    "retrievedDate": "2026-10-17",
+    "rows": [
+      {
+        "key": "wageBase",
+        "label": "Pay taxed for Social Security, yearly limit",
+        "before": 184500,
+        "after": 192300,
+        "per": "year",
+        "note": "The 6.2% Social Security tax stops once your pay at one job passes this limit."
+      },
+      {
+        "key": "earningsTestUnderFra",
+        "label": "Earnings limit while collecting, under full retirement age",
+        "before": 24480,
+        "after": 25560,
+        "per": "year",
+        "note": "Social Security holds back $1 of benefits for every $2 you earn above it."
+      },
+      {
+        "key": "earningsTestFraYear",
+        "label": "Earnings limit in the year you reach full retirement age",
+        "before": 65160,
+        "after": 67920,
+        "per": "year",
+        "note": "Counts only the months before you reach full retirement age, and $1 is held back for every $3 above it. From that month on there is no limit."
+      },
+      {
+        "key": "maxBenefitAtFra",
+        "label": "Highest benefit, retiring at full retirement age",
+        "before": 4152,
+        "after": 4188,
+        "per": "month"
+      },
+      {
+        "key": "avgRetiredWorker",
+        "label": "Average retired worker's benefit",
+        "before": 2095,
+        "after": 2170,
+        "per": "month",
+        "columns": "cola",
+        "note": "Both figures are Social Security's estimate for January 2027 payments, without the increase and with it. Neither is the 2026 average."
+      },
+      {
+        "key": "ssiIndividual",
+        "label": "SSI federal payment, one person",
+        "before": 994,
+        "after": 1029,
+        "per": "month"
+      },
+      {
+        "key": "ssiCouple",
+        "label": "SSI federal payment, couple",
+        "before": 1491,
+        "after": 1544,
+        "per": "month"
+      },
+      {
+        "key": "sgaNonBlind",
+        "label": "Disability: earnings limit (not blind)",
+        "before": 1690,
+        "after": 1770,
+        "per": "month",
+        "note": "Social Security calls this substantial gainful activity: earning more than this generally counts as being able to work."
+      }
+    ]
+  },
   "base2026": {
     "_note": "The official tax-year-2026 figures a 2027 projection would be indexed from are NOT copied here, and neither is their provenance. Both live once, in src/data/tax-data-2026.json — the figures under `federal`, the Revenue Procedure name, its publication date and its source URLs under `_meta.revenueProcedure`. This key exists only to say where to look; anything more would be a second copy that can silently disagree with the first.",
     "from": "src/data/tax-data-2026.json",

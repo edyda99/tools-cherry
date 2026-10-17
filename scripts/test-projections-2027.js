@@ -17,7 +17,7 @@ import {
   monthKeys, monthValue, windowStatus, average, partialAverage,
   assertComplete, colaPercent, applyCola, roundIncrease,
   thirdPartyProblems, thirdPartyBlockProblems, TP_RATES, TP_STATUSES, figureValues,
-  officialColaProblems, official2027Problems,
+  officialColaProblems, official2027Problems, ssaFactSheetProblems,
 } from '../src/engine/projections-2027.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -334,6 +334,48 @@ if (data.official2027 !== undefined) {
   if (f.standardDeduction)
     ok(f.standardDeduction.married === 2 * f.standardDeduction.single,
       'official2027: married-joint standard deduction is twice the single one');
+}
+
+// --- SSA's 2027 fact sheet ---------------------------------------------------
+// The other official numbers the COLA announcement moved. Copied by hand from
+// ssa.gov, so every way a row can be mistyped is pinned with a broken fixture.
+const goodFs = () => ({ title: 'Example fact sheet', sourceUrl: 'https://www.ssa.gov/news/en/cola/factsheets/2027.html',
+  publishedDate: '2026-10-14', rows: [
+    { key: 'wageBase', label: 'Pay taxed for Social Security, yearly limit', before: 184500, after: 192300, per: 'year' },
+    { key: 'ssiIndividual', label: 'SSI federal payment, one person', before: 994, after: 1029, per: 'month', note: 'Example.' },
+  ] });
+ok(ssaFactSheetProblems(goodFs()).length === 0, `the ssaFactSheet2027 fixture is valid: ${ssaFactSheetProblems(goodFs()).join(' | ')}`);
+const fsBroken = (label, mutate, re) => {
+  const o = goodFs(); mutate(o);
+  const probs = ssaFactSheetProblems(o);
+  ok(probs.some((m) => re.test(m)), `malformed ssaFactSheet2027 is rejected (${label}); problems were: ${probs.join(' | ') || 'none'}`);
+};
+fsBroken('no wage base row', (o) => { o.rows.shift(); }, /no wageBase row/);
+fsBroken('amount typed with a comma', (o) => { o.rows[0].after = '192,300'; }, /after is not a whole-dollar/);
+fsBroken('cents on a dollar line', (o) => { o.rows[1].after = 1029.5; }, /after is not a whole-dollar/);
+fsBroken('columns swapped', (o) => { o.rows[0].before = 192300; o.rows[0].after = 184500; }, /below before/);
+fsBroken('unknown period', (o) => { o.rows[1].per = 'week'; }, /per is not/);
+fsBroken('duplicate key', (o) => { o.rows[1].key = 'wageBase'; }, /appears twice/);
+fsBroken('em dash in a label', (o) => { o.rows[1].label = 'SSI \u2014 one person'; }, /em dash/);
+fsBroken('http source', (o) => { o.sourceUrl = 'http://www.ssa.gov/'; }, /sourceUrl/);
+fsBroken('unknown column basis', (o) => { o.rows[1].columns = 'years'; }, /columns is not "cola"/);
+ok(ssaFactSheetProblems(null).length > 0, 'a null ssaFactSheet2027 is rejected');
+
+if (data.ssaFactSheet2027 !== undefined) {
+  const fs = data.ssaFactSheet2027;
+  const live = ssaFactSheetProblems(fs);
+  ok(live.length === 0, `the live ssaFactSheet2027 validates cleanly: ${live.join(' | ')}`);
+  const tax2026 = JSON.parse(await readFile(join(ROOT, 'src', 'data', 'tax-data-2026.json'), 'utf8'));
+  const wb = (fs.rows || []).find((r) => r.key === 'wageBase');
+  ok(wb && wb.before === tax2026.federal.fica.socialSecurity.wageBase,
+    `ssaFactSheet2027 2026 wage base (${wb && wb.before}) matches tax-data-2026.json (${tax2026.federal.fica.socialSecurity.wageBase})`);
+  // SSA's average-benefit estimate is the before figure raised by the COLA, rounded to the dollar.
+  const avg = (fs.rows || []).find((r) => r.key === 'avgRetiredWorker');
+  // Both of its figures are January 2027 estimates; under a "2026" heading the first would be wrong.
+  if (avg) ok(avg.columns === 'cola', 'ssaFactSheet2027 avgRetiredWorker is marked columns: "cola"');
+  if (avg && data.cpiw.officialCola)
+    ok(Math.abs(avg.before * (1 + data.cpiw.officialCola.percent / 100) - avg.after) < 2,
+      `ssaFactSheet2027 average retired benefit ${avg.before} -> ${avg.after} is the official ${data.cpiw.officialCola.percent}% increase`);
 }
 
 // The whole reason the projected-brackets page ships without dollar figures.
