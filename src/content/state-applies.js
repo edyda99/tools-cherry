@@ -118,6 +118,9 @@ function bonusLine(name, supp, slug, pickFrame, wp) {
   if (m === 'special' && supp.special === 'pct_of_federal') {
     return `${name} withholds ${pct(supp.rate)} of your federal supplemental withholding on the extra pay`;
   }
+  if (m === 'special' && supp.special === 'az_a4') {
+    return `${name} withholds ${(supp.rate * 100).toFixed(1)}% of every paycheck, a bonus included, unless you picked another rate on Form A-4`;
+  }
   if (m === 'special') {
     return `${name} runs its own graduated supplemental scale rather than one flat rate`;
   }

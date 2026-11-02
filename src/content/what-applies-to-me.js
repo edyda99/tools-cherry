@@ -272,6 +272,8 @@ export function buildWamParts(deps) {
       suppLines.push('Vermont works out the tax on your bonus as 30% of the federal tax already taken off it, not 30% of the bonus itself. So if $220 of federal tax comes off a $1,000 bonus, Vermont\'s share is worked out from that $220.');
     } else if (sp.special === 'wi_banded') {
       suppLines.push('Wisconsin uses four bands, set by your annual gross wages: 3.54%, 4.65%, 5.30% and 7.65%.');
+    } else if (sp.special === 'az_a4') {
+      suppLines.push(`${name} has no separate bonus rate. It withholds ${(sp.rate * 100).toFixed(1)}% of every paycheck, a bonus included, unless you picked another rate on Form A-4. The income tax is a flat 2.5%, so that can leave a small balance due when you file.`);
     }
     if (suppLines.length) {
       cards1.push(

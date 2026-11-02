@@ -2,7 +2,7 @@
 // Encodes all 11 fixtures from docs/bonus-tax-calculator-spec.md §5, computed
 // against the SAME paycheck engine + tax-data-2026.json the tool ships, plus the
 // state-supplemental-2026.json rates. Also exercises the special code paths
-// (CA dual-rate, VT percent-of-federal, WI banded) and the $1M/37% federal edge.
+// (CA dual-rate, VT percent-of-federal, WI banded, AZ Form A-4) and the $1M/37% federal edge.
 // Run: node scripts/test-bonus-tax.js
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -216,6 +216,29 @@ const run = (input) => computeBonus(input, taxData, suppData);
   is('WI stateMethod', r.withheld.stateMethod, 'special');
 }
 
+// --- AZ Form A-4: a percentage of the bonus, 2.0% when no A-4 is on file ----
+// A.R.S. § 43-401(A),(E); Form A-4 (2026). Not the 2.5% income-tax rate, and not the
+// aggregate path.
+{
+  const az = suppData.states.arizona;
+  is('AZ method', az.method, 'special');
+  is('AZ special flag', az.special, 'az_a4');
+  eq('AZ default rate', az.rate, 0.02, 1e-9);
+  const r = run({ bonus: 10000, regIncome: 70000, filingStatus: 'single', stateSlug: 'arizona' });
+  eq('AZ $10,000 bonus withholds $200 state by default', r.withheld.state, 200);
+  is('AZ stateMethod', r.withheld.stateMethod, 'special');
+  // Same under the federal aggregate override: the A-4 election is not a flat
+  // supplemental rate, so it is not rerouted through the state tables.
+  const agg = run({ bonus: 10000, regIncome: 70000, filingStatus: 'single', stateSlug: 'arizona', method: 'aggregate' });
+  eq('AZ aggregate federal still $200 state', agg.withheld.state, 200);
+  // An explicit A-4 election drives the math; anything not on the form falls back to 2.0%.
+  eq('AZ A-4 3.5%', run({ bonus: 10000, regIncome: 70000, stateSlug: 'arizona', a4Rate: 0.035 }).withheld.state, 350);
+  eq('AZ A-4 0.5%', run({ bonus: 10000, regIncome: 70000, stateSlug: 'arizona', a4Rate: 0.005 }).withheld.state, 50);
+  eq('AZ A-4 bogus -> 2.0%', run({ bonus: 10000, regIncome: 70000, stateSlug: 'arizona', a4Rate: 0.07 }).withheld.state, 200);
+  // The true liability still runs on the flat 2.5% income tax: $250 on the bonus.
+  eq('AZ true state tax 2.5%', r.trueLiability.state, 250);
+}
+
 // --- Aggregate method reuses the graduated federal engine ------------------
 {
   const flat = run({ bonus: 10000, regIncome: 60000, filingStatus: 'single', stateSlug: 'texas' });
@@ -266,8 +289,14 @@ const run = (input) => computeBonus(input, taxData, suppData);
   // and 9% on the part of combined annualized wages above $1,107,750. The entry carries that
   // upper rate as rateAbove / rateAboveOver, tested below.
   is('flat = 22', count('flat'), 22);
-  is('regular = 17', count('regular'), 17);
-  is('special = 3', count('special'), 3);
+  // 2026-11-02: arizona moved regular -> special az_a4, so regular 17->16 and special 3->4.
+  // A.R.S. § 43-401(A),(E) and Arizona Form A-4 (2026, ADOR 10121 (25)): Arizona has no
+  // supplemental rate; every paycheck, a bonus included, is withheld at the percentage of gross
+  // taxable wages the employee elects on Form A-4 (0.5%-3.5%), and "If you do not give this form
+  // to your employer the department requires your employer to withhold 2.0% of your gross
+  // taxable wages." The old entry ran Arizona's flat 2.5% income tax through the aggregate path.
+  is('regular = 16', count('regular'), 16);
+  is('special = 4', count('special'), 4);
   is('buckets cover all 51', count('none') + count('flat') + count('regular') + count('special'), 51);
   // every entry has verified + source; flagged ones carry singleSourced
   for (const s of slugs) {

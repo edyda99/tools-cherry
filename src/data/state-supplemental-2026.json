@@ -46,11 +46,14 @@
     "arizona": {
       "name": "Arizona",
       "abbr": "AZ",
-      "method": "regular",
-      "incomeRate": 0.025,
+      "method": "special",
+      "special": "az_a4",
+      "rate": 0.02,
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate supplemental rate; aggregate method. Arizona income tax is a flat 2.5%, so a separately paid bonus is effectively withheld near 2.5%."
+      "source": "Arizona Form A-4 (2026), Arizona Department of Revenue: Arizona withholding is the percentage of gross taxable wages you pick on Form A-4 (0.5% to 3.5%), applied to every paycheck including a bonus, and 2.0% if you never filed one.",
+      "_source": "A.R.S. § 43-401(A),(E); Form A-4 (2026, ADOR 10121 (25)): 'If you do not give this form to your employer the department requires your employer to withhold 2.0% of your gross taxable wages.'",
+      "_sourceUrl": "https://azdor.gov/sites/default/files/document/FORMS_WITHHOLDING_2026_A-4_f.pdf",
+      "note": "No separate supplemental rate. A bonus is withheld at the employee's Form A-4 percentage (0.5%-3.5%), 2.0% by default. Arizona's income tax is a flat 2.5%, so withholding at 2.0% can leave a small balance due at filing."
     },
     "arkansas": {
       "name": "Arkansas",
@@ -438,7 +441,7 @@
       "method": "regular",
       "verified": true,
       "source": "repoTaxData",
-      "note": "No published flat supplemental rate; aggregate method (certain payments are withheld at the top marginal rate)."
+      "note": "No published flat supplemental rate; aggregate method."
     },
     "south-dakota": {
       "name": "South Dakota",
