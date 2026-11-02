@@ -309,3 +309,97 @@ export function compareDecJan(input, ctx) {
     .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta) || a.order - b.order);
   return { dec, jan, change, causes: ranked, ytd, ytdAssumed };
 }
+
+// ---------------------------------------------------------------------------
+// Plain-English wording, shared by the page and the build-time worked example so
+// the two can never word the same cause differently.
+
+const usdAbs = (n) => '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const usd0 = (n) => '$' + Math.round(n).toLocaleString('en-US');
+const pctText = (p) => `${Math.round(num(p) * 100) / 100}%`;
+/** Signed money for a take-home change, with a real minus sign. */
+export const signedUsd = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + usdAbs(n);
+
+/**
+ * One "what changed" item as plain text.
+ * @param {object} c       a cause from compareDecJan().causes
+ * @param {object} info
+ * @param {object} info.input        the compareDecJan input
+ * @param {'official'|'projected'} info.fedMode
+ * @param {string} info.stateName
+ * @param {boolean} info.stateHasIncomeTax
+ * @param {'taxData2027'|'override2027'|'tables2026'} info.stateBasis
+ * @param {string} [info.stateOverrideWhat]  the override's plain sentence
+ * @returns {{key:string, title:string, amount:string, text:string, changed:boolean}}
+ */
+export function describeCause(c, info) {
+  const L = c.lines || {};
+  const taxDown = -round2((L.federal || 0) + (L.state || 0) + (L.socialSecurity || 0) + (L.medicare || 0) + (L.statePrograms || 0));
+  const changed = c.delta !== 0;
+  const amount = changed ? signedUsd(c.delta) : '$0.00';
+  const inp = info.input;
+  const before = c.before, after = c.after;
+  const out = (title, text) => ({ key: c.key, changed, amount, title, text });
+  switch (c.key) {
+    case 'socialSecurity': {
+      if (!changed) {
+        return out('Social Security tax: no change',
+          `You had not reached the ${usd0(before.ss.wageBase)} Social Security limit before December, so you paid the full 6.2% in December and you pay it again in January.`);
+      }
+      const parts = [];
+      if (before.ss.capHitBefore) {
+        parts.push(`You passed the ${usd0(before.ss.wageBase)} Social Security limit before December, so your December paycheck had no Social Security tax.`);
+      } else if (before.ss.capHitOnThisCheck) {
+        parts.push(`You reached the ${usd0(before.ss.wageBase)} Social Security limit on your December paycheck, so it had only ${usdAbs(before.socialSecurity)} of Social Security tax.`);
+      }
+      if (L.socialSecurity) parts.push(`On January 1 the count starts again at $0, so the 6.2% comes back: ${usdAbs(after.socialSecurity)} on your first 2027 paycheck. The 2027 limit is ${usd0(after.ss.wageBase)}.`);
+      if (L.medicare) parts.push(L.medicare < 0
+        ? `The extra 0.9% Medicare tax on pay over $200,000 also starts counting from $0 again, so it stops for now: ${usdAbs(L.medicare)} less.`
+        : `The extra 0.9% Medicare tax on pay over $200,000 starts again in January: ${usdAbs(L.medicare)} more.`);
+      return out(L.socialSecurity ? 'Social Security tax starts again' : 'Extra Medicare tax resets', parts.join(' '));
+    }
+    case 'retirement': {
+      if (!changed) return out('401(k): no change',
+        num(inp.k401Pct2026) > 0 ? `You save ${pctText(inp.k401Pct2026)} of each paycheck in both years.` : 'You did not put in a 401(k) percentage.');
+      const more = L.retirement > 0;
+      return out(more ? 'You save more in your 401(k)' : 'You save less in your 401(k)',
+        `Your 401(k) goes from ${pctText(inp.k401Pct2026)} to ${pctText(inp.k401Pct2027)} of each paycheck, ${usdAbs(L.retirement || 0)} ${more ? 'more' : 'less'}. ` +
+        (taxDown ? `That money is not taxed now, so your income tax goes ${taxDown > 0 ? 'down' : 'up'} by ${usdAbs(taxDown)}, and take-home pay moves by less than the full amount.` : ''));
+    }
+    case 'premium': {
+      if (!changed) return out('Health insurance: no change',
+        num(inp.premium2026) > 0 ? `You pay ${usdAbs(before.premium)} a paycheck in both years.` : 'You did not put in a health insurance cost.');
+      const more = L.premium > 0;
+      return out(more ? 'Your health insurance costs more' : 'Your health insurance costs less',
+        `It goes from ${usdAbs(before.premium)} to ${usdAbs(after.premium)} a paycheck. ` +
+        (taxDown ? `It comes out before tax, so your taxes go ${taxDown > 0 ? 'down' : 'up'} by ${usdAbs(taxDown)}.` : ''));
+    }
+    case 'federalTables': {
+      const est = info.fedMode === 'projected'
+        ? ' This is an estimate: the IRS has not published the official 2027 tables yet, so we use projected ones.'
+        : ' This uses the official 2027 IRS tables.';
+      if (!changed) return out('Federal tax tables: no change on your pay',
+        `Your federal income tax comes out the same under the 2027 tables.${est}`);
+      return out('New federal tax tables',
+        `The 2027 tax brackets and standard deduction are higher, to keep up with prices, so federal income tax on each paycheck goes from ${usdAbs(before.federal)} to ${usdAbs(after.federal)}.${est}`);
+    }
+    case 'stateTables': {
+      if (!info.stateHasIncomeTax) return out('State tax: no change', `${info.stateName} has no income tax on wages.`);
+      if (info.stateBasis === 'tables2026') return out('State tax tables: not out yet',
+        `${info.stateName} has not published its 2027 tax tables, so we use its 2026 ones for January too. Any change in your state tax comes from your 401(k) or health insurance, not from new state rules.`);
+      if (!changed) return out('State tax tables: no change on your pay',
+        `Your ${info.stateName} income tax comes out the same under its 2027 rules.`);
+      return out(`New ${info.stateName} tax rules`,
+        `${info.stateOverrideWhat ? info.stateOverrideWhat + ' ' : ''}State income tax on each paycheck goes from ${usdAbs(before.state)} to ${usdAbs(after.state)}.`);
+    }
+    default:
+      return out(String(c.key), '');
+  }
+}
+
+/** The headline sentence: answer first. */
+export function headline(change) {
+  if (change < 0) return `Your January paycheck is about ${usdAbs(change)} smaller than December's.`;
+  if (change > 0) return `Your January paycheck is about ${usdAbs(change)} bigger than December's.`;
+  return 'Your January paycheck comes out the same as December\'s.';
+}

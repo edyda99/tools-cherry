@@ -46,6 +46,13 @@ import {
   officialColaProblems as p27OfficialColaProblems, official2027Problems as p27Official2027Problems,
   ssaFactSheetProblems as p27SsaFactSheetProblems,
 } from './src/engine/projections-2027.js';
+// /january-paycheck-change-calculator/: the December-vs-January diff engine. Its
+// federal2027() is the one place that decides whether January's federal tables
+// are the official IRS ones or the publishers' projections.
+import {
+  federal2027 as jpFederal2027, state2027 as jpState2027, compareDecJan as jpCompare,
+  describeCause as jpDescribe, headline as jpHeadline, signedUsd as jpSigned,
+} from './src/engine/january-paycheck.js';
 import { verifyDist, reportFailures } from './scripts/verify-dist.js';
 import { DFT_PAGES, DFT_GROUPS } from './src/content/days-from-today.js';
 import { dftPageParts, dftHubGroups, dftPath } from './src/content/days-from-today-blocks.js';
@@ -569,6 +576,7 @@ const DATED_TAX_TOOLS = new Set([
   '/2026-tax-brackets/',
   '/2027-tax-brackets/',
   '/2027-social-security-cola/',
+  '/january-paycheck-change-calculator/',
   '/w2-box-1-vs-box-3-vs-box-5/',
   '/1099-threshold-checker/',
   '/1099-vs-w2-calculator/',
@@ -615,6 +623,8 @@ const TOOL_DATED_BY_DATA = {
   '/2027-tax-brackets/': ['src/data/projections-2027.json',
     ...(P27_MODE.irsOfficial ? ['src/templates/2027-tax-brackets-official.html'] : [])],
   '/2027-social-security-cola/': ['src/data/projections-2027.json'],
+  // January's federal tables flip from projected to official with the same file.
+  '/january-paycheck-change-calculator/': ['src/data/projections-2027.json', 'src/data/january-paycheck-2027.json'],
   // The 2026 page only reads projections-2027.json for its "What about 2027?"
   // section, and only once the official 2027 figures exist.
   '/2026-tax-brackets/': P27_MODE.irsOfficial ? ['src/data/projections-2027.json'] : [],
@@ -694,6 +704,7 @@ const TOOLS = [
   { name: '2026 Federal Tax Brackets', path: '/2026-tax-brackets/', cat: 'money' },
   { name: P27_BRACKETS_NAME, path: '/2027-tax-brackets/', cat: 'money' },
   { name: P27_COLA_NAME, path: '/2027-social-security-cola/', cat: 'money' },
+  { name: 'Why Is My January Paycheck Different? (Dec vs Jan Calculator)', path: '/january-paycheck-change-calculator/', cat: 'money' },
   { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/', cat: 'money' },
   { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/', cat: 'money' },
   { name: 'Senior Bonus Deduction Calculator', path: '/senior-deduction-calculator/', cat: 'money' },
@@ -818,6 +829,9 @@ const TOOL_DESCRIPTIONS = {
   '/2027-social-security-cola/': P27_MODE.colaOfficial
     ? 'The official 2027 Social Security cost-of-living increase, as announced by the Social Security Administration. Type your monthly benefit to see the new payment, the monthly increase and the annual increase, plus the CPI-W months the figure is computed from.'
     : 'ESTIMATE, not official. Type your monthly benefit and any cost-of-living percentage to see the new payment, the monthly increase and the annual increase. Plus a tracker of the three CPI-W months the official 2027 COLA is computed from, with their release dates, and published third-party estimates attributed to whoever made them.',
+  '/january-paycheck-change-calculator/': P27_MODE.irsOfficial
+    ? 'Why is your first paycheck of the year smaller? Compare your last December 2026 paycheck with your first January 2027 one and see every line that changed, biggest first: Social Security restarting under its new $192,300 limit, your 401(k), your health premium, and the official 2027 federal tax tables.'
+    : 'Why is your first paycheck of the year smaller? Compare your last December 2026 paycheck with your first January 2027 one and see every line that changed, biggest first: Social Security restarting under its new $192,300 limit, your 401(k), your health premium, and the new tax tables. January federal tax is an ESTIMATE from published 2027 projections until the IRS releases the official tables.',
   '/w2-box-decoder/': 'Decode the three new 2026 W-2 Box 12 codes — TA (Trump account, excluded from Box 1), TP (reported tips) and TT (overtime premium, both still fully taxed inside Box 1, flagging the Schedule 1-A deduction) — plus a searchable lookup of all 71 Treasury Tipped Occupation Codes for Box 14b, including what code 000 means.',
   '/overtime-tax-calculator/': 'See how much of your overtime is deductible under the 2025 "no tax on overtime" law and what it saves you.',
   '/tips-tax-calculator/': 'See how much of your tips are deductible under the 2025 "no tax on tips" law (up to $25,000) and what it saves you.',
@@ -1130,8 +1144,17 @@ const RELATED_OVERRIDES = {
   // The 2027 seasonal trio + the official-2026 companion. Each points back at
   // the others so the projected page always has an official page to hand a
   // visitor who wants settled figures, and vice versa.
+  '/january-paycheck-change-calculator/': [
+    { name: 'Social Security Wage Base Max-Out Date Calculator', path: '/ss-wage-base-calculator/' },
+    { name: P27_BRACKETS_NAME, path: '/2027-tax-brackets/' },
+    { name: '401(k) Retirement Calculator', path: '/401k-calculator/' },
+    { name: 'Biweekly vs Semimonthly Paycheck Calculator', path: '/biweekly-vs-semimonthly/' },
+    { name: 'W-2 Box 1 vs Box 3 vs Box 5 Reconciliation', path: '/w2-box-1-vs-box-3-vs-box-5/' },
+    { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' }
+  ],
   '/2027-tax-brackets/': [
     { name: '2026 Federal Tax Brackets', path: '/2026-tax-brackets/' },
+    { name: 'Why Is My January Paycheck Different? (Dec vs Jan Calculator)', path: '/january-paycheck-change-calculator/' },
     { name: P27_COLA_NAME, path: '/2027-social-security-cola/' },
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
     { name: 'Inflation Calculator', path: '/inflation-calculator/' },
@@ -1192,6 +1215,7 @@ const RELATED_OVERRIDES = {
     { name: 'Charitable Deduction Calculator', path: '/charitable-deduction-calculator/' }
   ],
   '/ss-wage-base-calculator/': [
+    { name: 'Why Is My January Paycheck Different? (Dec vs Jan Calculator)', path: '/january-paycheck-change-calculator/' },
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
     { name: 'W-4 Overtime & Tips Withholding Calculator', path: '/w4-overtime-tips-withholding-calculator/' },
     { name: '1099 vs W-2 Calculator', path: '/1099-vs-w2-calculator/' },
@@ -8962,6 +8986,8 @@ async function main() {
   registerAsset('assets', '2027-social-security-cola.js');
   registerAsset('engine', 'ss-maxout-engine.js');
   registerAsset('assets', 'ss-wage-base-calculator.js');
+  registerAsset('engine', 'january-paycheck.js');
+  registerAsset('assets', 'january-paycheck-change-calculator.js');
   registerAsset('engine', 'student-loan-cap.js');
   registerAsset('assets', 'student-loan-cap-calculator.js');
   registerAsset('engine', 'able-contribution.js');
@@ -9007,6 +9033,7 @@ async function main() {
         ? [{ name: `${state.name} Take-Home Pay by Salary`, path: `/${ladderHubSlug(slug)}/` }]
         : []),
       { name: `${state.name} Bonus Tax Calculator`, path: `/${slug}-bonus-tax-calculator/` },
+      { name: 'Why Is My January Paycheck Different?', path: '/january-paycheck-change-calculator/' },
       { name: 'No Tax on Overtime Calculator', path: '/overtime-tax-calculator/' },
       { name: 'No Tax on Tips Calculator', path: '/tips-tax-calculator/' },
       { name: `Take-Home Pay by State on ${STUDY_SALARY_TEXT} (Data Study)`, path: '/data/take-home-pay-by-state/' },
@@ -9240,7 +9267,7 @@ async function main() {
         { name: `${NAME} Bonus Tax Calculator`, path: `/${ladderSlugKey}-bonus-tax-calculator/` },
         { name: `Take-Home Pay by State on ${STUDY_SALARY_TEXT} (Data Study)`, path: '/data/take-home-pay-by-state/' },
         { name: 'Salary to Hourly Calculator', path: '/salary-to-hourly/' },
-        { name: 'Biweekly vs Semimonthly Pay', path: '/biweekly-vs-semimonthly/' },
+        { name: 'Biweekly vs Semimonthly Paycheck Calculator', path: '/biweekly-vs-semimonthly/' },
       ]);
 
       for (let i = 0; i < rungs.length; i++) {
@@ -11797,11 +11824,218 @@ async function main() {
       NEXT_CAP_NOTE: ssaFsWageBase
         ? ` In 2027 the limit rises to <strong>${usd0(ssaFsWageBase.after)}</strong> (Social Security&rsquo;s ` +
           `<a href="${escHtml(ssaFs2027.sourceUrl)}" rel="noopener" target="_blank">2027 fact sheet</a>); this ` +
-          'calculator is for 2026 paychecks.'
+          'calculator is for 2026 paychecks. <a href="/january-paycheck-change-calculator/">See what the reset does to your January paycheck</a>.'
         : '',
     }, '/ss-wage-base-calculator/')
   );
   urls.push(`${SITE.url}/ss-wage-base-calculator/`);
+
+  // "Why is my January 2027 paycheck different?" — December 2026 vs January 2027,
+  // run through january-paycheck.js (paycheck-engine + ss-maxout-engine +
+  // pay-frequency). January's federal tables are the publishers' projections in
+  // projections-2027.json until official2027 lands (or tax-data-2027.json exists),
+  // and every label on the page switches with them, from the data alone, the same
+  // way /2027-tax-brackets/ does. State tables are 2026 except the statutory 2027
+  // changes listed in january-paycheck-2027.json, until tax-data-2027.json exists.
+  {
+    const jpPath = '/january-paycheck-change-calculator/';
+    const jpTpl = await read(join(SRC, 'templates', 'january-paycheck-change-calculator.html'));
+    const jpData = await readJSON(join(SRC, 'data', 'january-paycheck-2027.json'));
+    const td27Path = join(SRC, 'data', 'tax-data-2027.json');
+    const taxData2027 = existsSync(td27Path) ? await readJSON(td27Path) : null;
+    if (!taxData2027) {
+      if (!ssaFsWageBase)
+        throw new Error('january paycheck page: no 2027 Social Security wage base (projections-2027.json ssaFactSheet2027) and no tax-data-2027.json');
+      if (proj2027.official2027) {
+        const bad = p27Official2027Problems(proj2027.official2027);
+        if (bad.length) throw new Error(`january paycheck page: official2027 is malformed:\n  ${bad.join('\n  ')}`);
+      } else {
+        const bad = p27ThirdPartyBlockProblems(proj2027.thirdPartyProjections);
+        if (bad.length) throw new Error(`january paycheck page: thirdPartyProjections is malformed:\n  ${bad.join('\n  ')}`);
+      }
+    } else if (ssaFsWageBase && taxData2027.federal.fica.socialSecurity.wageBase !== ssaFsWageBase.after) {
+      throw new Error(`Social Security wage base disagreement: tax-data-2027.json says ${taxData2027.federal.fica.socialSecurity.wageBase}, ` +
+        `ssaFactSheet2027 says ${ssaFsWageBase.after}.`);
+    }
+    const fed27 = jpFederal2027({
+      fed2026: taxData.federal,
+      wageBase2027: ssaFsWageBase ? ssaFsWageBase.after : NaN,
+      taxData2027Federal: taxData2027 ? taxData2027.federal : null,
+      official2027: proj2027.official2027 || null,
+      projections: proj2027.thirdPartyProjections,
+    });
+    const projected = fed27.mode === 'projected';
+    const overrides = jpData.stateOverrides2027 || {};
+    const states2027 = {};
+    for (const slug of Object.keys(taxData.states)) {
+      const r = jpState2027({ slug, state2026: taxData.states[slug], taxData2027States: taxData2027 && taxData2027.states, overrides });
+      if (r.basis !== 'tables2026')
+        states2027[slug] = { state: stripInternal(r.state), basis: r.basis, what: r.override ? r.override.what : '' };
+    }
+    const overrideSlugs = Object.keys(states2027).filter((k) => states2027[k].basis === 'override2027');
+    const shell = { taxYear: taxData.taxYear, filingStatuses: taxData.filingStatuses };
+    const wb26 = taxData.federal.fica.socialSecurity.wageBase;
+    const wb27 = fed27.federal.fica.socialSecurity.wageBase;
+    const usd2 = (n) => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const pubName = (p) => String(p).replace(/\s*\([^)]*\)\s*$/, '');
+    const andList = (a) => (a.length <= 1 ? a.join('') : a.length === 2 ? `${a[0]} and ${a[1]}` : `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}`);
+    const rp = proj2027.official2027 && proj2027.official2027.revenueProcedure;
+    const STATUS_WORD = { single: 'single', married: 'married filing jointly', head_of_household: 'head of household' };
+
+    // ---- the status banner: what is an estimate and what is not ----
+    let bannerFederal;
+    if (projected) {
+      const items = proj2027.thirdPartyProjections.items;
+      const links = items.map((it) => `<a href="${escHtml(it.sourceUrl)}" rel="noopener" target="_blank">${escHtml(pubName(it.publisher))}</a>`);
+      const sdSpread = fed27.spreads.filter((s) => s.what === 'standardDeduction');
+      const brSpread = fed27.spreads.filter((s) => s.what === 'brackets');
+      bannerFederal = ' January\'s federal income tax is an <strong>estimate</strong>. The IRS has not published its official 2027 tax tables yet. ' +
+        `Until it does, we use the 2027 projections published by ${andList(links)}.` +
+        (brSpread.length ? '' : ' They agree on every tax bracket.') +
+        sdSpread.map((s) => ` For ${STATUS_WORD[s.status]} filers their standard deduction ranges from ${usd0(s.values[0])} to ` +
+          `${usd0(s.values[s.values.length - 1])}; we use the lowest, ${usd0(s.values[0])}, so January is never shown better than it may turn out.`).join('') +
+        brSpread.map((s) => ` Their ${STATUS_WORD[s.status]} brackets differ; we use ${escHtml(pubName(items[0].publisher))}'s.`).join('') +
+        ' This page switches to the official figures as soon as the IRS publishes them.';
+    } else if (fed27.basis === 'official2027') {
+      bannerFederal = ' January\'s federal income tax uses the <strong>official</strong> 2027 tax tables from the IRS, published in ' +
+        `<a href="${escHtml(rp.sourceUrl)}" rel="noopener" target="_blank">${escHtml(rp.name)}</a> on ${escHtml(humanDate(rp.publishedDate))}.`;
+    } else {
+      bannerFederal = ' January\'s federal income tax uses the <strong>official</strong> 2027 IRS tax tables.';
+    }
+    const bannerSs = `The 2027 Social Security limit of <strong>${usd0(wb27)}</strong> is official: it is on Social Security's ` +
+      (ssaFs2027 ? `<a href="${escHtml(ssaFs2027.sourceUrl)}" rel="noopener" target="_blank">2027 fact sheet</a>.` : '2027 figures.');
+    const overrideNames = overrideSlugs.map((k) => taxData.states[k].name);
+    const bannerState = taxData2027
+      ? 'State income tax for January uses each state\'s 2027 tables.'
+      : 'State income tax for January uses each state\'s <strong>2026</strong> tables, because states have not published their 2027 ones yet.' +
+        (overrideSlugs.length
+          ? ' The exception: ' + andList(overrideSlugs.map((k) => {
+            const o = overrides[k];
+            return `${escHtml(o.label)} is already set in state law (<a href="${escHtml(o.sourceUrl)}" rel="noopener" target="_blank">${escHtml(o.sourceTitle)}</a>), so we use it`;
+          })) + '.'
+          : '');
+
+    // ---- the worked example, computed here with the page's own engine ----
+    const exInput = { salary: 200000, payFrequency: 'biweekly', filingStatus: 'single', stateSlug: 'texas',
+      k401Pct2026: 6, k401Pct2027: 6, premium2026: 150, premium2027: 165, ytd2026: null };
+    const ex = jpCompare(exInput, {
+      federal2026: taxData.federal, federal2027: fed27.federal,
+      state2026: taxData.states.texas, state2027: taxData.states.texas, taxDataShell: shell,
+    });
+    if (ex.dec.socialSecurity !== 0 || !(ex.jan.socialSecurity > 0))
+      throw new Error('january paycheck page: the worked example no longer shows the Social Security reset it is written around');
+    const exItems = ex.causes.map((c) => jpDescribe(c, {
+      input: exInput, fedMode: fed27.mode, stateName: 'Texas', stateHasIncomeTax: taxData.states.texas.hasIncomeTax !== false, stateBasis: 'tables2026',
+    }));
+    const sd26 = taxData.federal.standardDeduction.single;
+    const sd27 = fed27.federal.standardDeduction.single;
+    const k401Year = Math.round(ex.dec.retirement * 26 * 100) / 100;
+    const taxable26 = Math.round((200000 - k401Year - 150 * 26 - sd26) * 100) / 100;
+    const taxable27 = Math.round((200000 - k401Year - 165 * 26 - sd27) * 100) / 100;
+    const exRows = [
+      ['Pay before anything comes out', 'gross'], ['401(k) savings (6%)', 'retirement'], ['Health insurance', 'premium'],
+      ['Federal income tax', 'federal'], ['Social Security tax', 'socialSecurity'], ['Medicare tax', 'medicare'],
+    ].map(([label, k]) => {
+      const d = Math.round((ex.jan[k] - ex.dec[k]) * 100) / 100;
+      return `<tr><th scope="row">${label}</th><td class="jp-n">${usd2(ex.dec[k])}</td><td class="jp-n">${usd2(ex.jan[k])}</td><td class="jp-n">${d ? jpSigned(d) : '$0.00'}</td></tr>`;
+    }).join('');
+    const workedExample =
+      `<p><strong>Sam earns $200,000 a year in Texas, is paid every two weeks and files single.</strong> Sam saves 6% in a 401(k) in both years. Sam's health insurance goes from $150 to $165 a paycheck in 2027. ${escHtml(jpHeadline(ex.change).replace('Your', 'Sam\'s'))}</p>` +
+      '<ul>' +
+      `<li><strong>Pay per paycheck:</strong> $200,000 ÷ 26 = ${usd2(ex.dec.gross)}. The 401(k) is 6% of that, ${usd2(ex.dec.retirement)}.</li>` +
+      `<li><strong>Social Security:</strong> before the last December paycheck Sam had earned 25 paychecks of ${usd2(ex.dec.gross)} minus the ${usd2(150)} health premium, which is ${usd2(ex.ytd)}. That is past the ${usd0(wb26)} limit, so December has <strong>$0</strong> of Social Security tax. In January the count restarts at $0: 6.2% × (${usd2(ex.jan.gross)} − ${usd2(165)}) = <strong>${usd2(ex.jan.socialSecurity)}</strong>.</li>` +
+      `<li><strong>Medicare:</strong> 1.45% of pay after the health premium, with no limit: ${usd2(ex.dec.medicare)} in December, ${usd2(ex.jan.medicare)} in January. Sam stays under $200,000 of Medicare pay at this job, so the extra 0.9% never starts.</li>` +
+      `<li><strong>Federal income tax:</strong> taxed yearly pay is $200,000 minus the 401(k) (${usd0(k401Year)}), the health premium and the standard deduction. In 2026 that is ${usd2(taxable26)} with a ${usd0(sd26)} standard deduction; in 2027 it is ${usd2(taxable27)} with ${usd0(sd27)}${projected ? ' (projected)' : ''}. Run through each year's brackets and split across 26 paychecks, that is ${usd2(ex.dec.federal)} in December and ${usd2(ex.jan.federal)} in January.</li>` +
+      '</ul>' +
+      '<div class="jp-wrap"><table class="jp-table"><caption class="sr-only">Worked example: December 2026 and January 2027 paychecks</caption>' +
+      '<thead><tr><th scope="col">Line</th><th scope="col" class="jp-n">December 2026</th><th scope="col" class="jp-n">January 2027</th><th scope="col" class="jp-n">Change</th></tr></thead>' +
+      `<tbody>${exRows}<tr class="jp-net"><th scope="row">Take-home pay</th><td class="jp-n">${usd2(ex.dec.net)}</td><td class="jp-n">${usd2(ex.jan.net)}</td><td class="jp-n">${jpSigned(ex.change)}</td></tr></tbody></table></div>` +
+      '<p>What changed, biggest first:</p><ol>' +
+      exItems.filter((i) => i.changed).map((i) => `<li><strong>${escHtml(i.title)}: ${escHtml(i.amount)}</strong>. ${escHtml(i.text)}</li>`).join('') +
+      '</ol>' +
+      `<p>Sam's January paycheck stays at this size until Sam passes ${usd0(wb27)} again, late in 2027. Then the Social Security tax stops and the paychecks grow again.</p>`;
+
+    // ---- FAQ (visible and FAQPage use the same text) ----
+    const faq = [
+      ['Why is my first paycheck of the year smaller?',
+        `Usually for one of five reasons. Social Security tax starts again if you earned more than its ${usd0(wb26)} limit in 2026. You may save more in your 401(k), or your health insurance may cost more. And the federal and state tax tables change on January 1. The calculator above shows which ones apply to you.`],
+      ['Why did Social Security tax come back in January?',
+        `Social Security tax is 6.2% of your pay, but only up to a yearly limit at each job: ${usd0(wb26)} in 2026 and ${usd0(wb27)} in 2027. Once you pass it, the tax stops for the rest of the year. On January 1 the count starts again at $0, so the tax comes back.`],
+      ['Does Medicare tax stop too?',
+        'No. Medicare tax (1.45%) has no yearly limit and comes out of every paycheck. Only the extra 0.9% Medicare tax, on pay over $200,000 at one job, starts counting again in January.'],
+      ['Will my paycheck stay smaller all year?',
+        `It depends on the reason. A higher 401(k) rate or health premium lasts all year. Social Security tax lasts until you pass the ${usd0(wb27)} limit again, which only happens if you earn more than that at one job.`],
+      ['Are the 2027 tax brackets final?',
+        projected
+          ? 'Not yet. The IRS has not published the official 2027 tax tables. This page uses the projections published by tax research firms, and switches to the official figures when the IRS releases them.'
+          : 'Yes. This page uses the official 2027 tax tables published by the IRS.'],
+      ['Why is my January paycheck bigger instead?',
+        'The new federal tax tables usually take a little less tax. And if you lowered your 401(k) savings or your health insurance got cheaper, take-home pay goes up.'],
+    ];
+    const faqHtml = faq.map(([q, a]) => `<p><strong>${escHtml(q)}</strong> ${escHtml(a)}</p>`).join('\n      ');
+    const ld = (o) => JSON.stringify(o).replace(/</g, '\\u003c');
+    const faqLd = ld({ '@context': 'https://schema.org', '@type': 'FAQPage',
+      mainEntity: faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) });
+    const appLd = ld({ '@context': 'https://schema.org', '@type': 'WebApplication',
+      name: 'Why Is My January Paycheck Different? December 2026 vs January 2027 Calculator',
+      applicationCategory: 'FinanceApplication', operatingSystem: 'Any',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      description: 'Compares a last December 2026 paycheck with a first January 2027 paycheck for the same salary and ranks what changed: the Social Security wage base reset ' +
+        `(${usd0(wb26)} in 2026, ${usd0(wb27)} in 2027), a 401(k) election change, a health premium change, the federal tax tables and the state tax tables. ` +
+        (projected ? 'The 2027 federal brackets and standard deduction are third-party projections, labelled as estimates, until the IRS publishes official figures.'
+          : 'Uses the official 2027 IRS federal tax tables.') });
+
+    // ---- where each 2027 number comes from ----
+    const statusRow = (what, status, from) => `<tr><th scope="row">${what}</th><td>${status}</td><td>${from}</td></tr>`;
+    const numbersHtml =
+      '<div class="jp-wrap"><table class="jp-table"><caption class="sr-only">Status of each 2027 figure this page uses</caption>' +
+      '<thead><tr><th scope="col">Figure</th><th scope="col">Status</th><th scope="col">Where it comes from</th></tr></thead><tbody>' +
+      statusRow(`Social Security limit: ${usd0(wb27)}`, '<strong>Official</strong>',
+        ssaFs2027 ? `Social Security, <a href="${escHtml(ssaFs2027.sourceUrl)}" rel="noopener" target="_blank">${escHtml(ssaFs2027.title)}</a>` : 'tax-data-2027') +
+      statusRow(`Federal standard deduction: ${usd0(fed27.federal.standardDeduction.single)} single, ${usd0(fed27.federal.standardDeduction.married)} married, ${usd0(fed27.federal.standardDeduction.head_of_household)} head of household`,
+        projected ? '<strong>Estimate</strong>' : '<strong>Official</strong>',
+        projected ? `Projections by ${andList(proj2027.thirdPartyProjections.items.map((it) => escHtml(pubName(it.publisher))))}` : (rp ? escHtml(rp.name) : 'IRS')) +
+      statusRow('Federal tax brackets', projected ? '<strong>Estimate</strong>' : '<strong>Official</strong>',
+        projected ? 'The same projections. See <a href="/2027-tax-brackets/">projected 2027 tax brackets</a>.' : '<a href="/2027-tax-brackets/">2027 tax brackets</a>') +
+      statusRow('Social Security 6.2%, Medicare 1.45%, extra Medicare 0.9% over $200,000', '<strong>Fixed in law</strong>', 'These rates and the $200,000 line do not change with inflation.') +
+      statusRow('State income tax', taxData2027 ? '<strong>Official</strong>' : '<strong>2026 tables</strong>',
+        taxData2027 ? 'Each state\'s 2027 tables.' : `Each state's 2026 tables${overrideNames.length ? `, except ${andList(overrideNames)}` : ''}.`) +
+      '</tbody></table></div>' +
+      '<p>We do not model the yearly 401(k) limit, catch-up savings, dependents, extra withholding you asked for on your W-4, or local taxes. Those can move a paycheck too.</p>';
+
+    const stateOptions = Object.values(taxData.states)
+      .slice().sort((a, b) => String(a.name).localeCompare(String(b.name)))
+      .map((s) => `<option value="${escHtml(s.slug)}"${s.slug === 'illinois' ? ' selected' : ''}>${escHtml(s.name)}</option>`).join('');
+    const filingOptions = taxData.filingStatuses
+      .map((f) => `<option value="${escHtml(f.id)}"${f.id === 'single' ? ' selected' : ''}>${escHtml(f.label)}</option>`).join('');
+    const JANPAY_JSON = JSON.stringify({
+      fedMode: fed27.mode,
+      federal2026: stripInternal(taxData.federal),
+      federal2027: stripInternal(fed27.federal),
+      states2026: stripInternal(taxData.states),
+      states2027,
+      shell,
+    }).replace(/</g, '\\u003c');
+
+    await mkdir(join(DIST, 'january-paycheck-change-calculator'), { recursive: true });
+    await writeFile(join(DIST, 'january-paycheck-change-calculator', 'index.html'), fillTool(jpTpl, {
+      SITE_NAME: SITE.name, SITE_URL: SITE.url,
+      APP_LD: appLd, FAQ_LD: faqLd,
+      BANNER_CLASS: projected ? '' : 'jp-official',
+      BANNER_TAG: projected ? 'ESTIMATE' : 'OFFICIAL',
+      BANNER_FEDERAL: bannerFederal, BANNER_SS: bannerSs, BANNER_STATE: bannerState,
+      STATE_OPTIONS: stateOptions, FILING_OPTIONS: filingOptions,
+      WAGE_BASE_2027: usd0(wb27),
+      WORKED_EXAMPLE: workedExample,
+      FAQ_HTML: faqHtml,
+      NUMBERS_HTML: numbersHtml,
+      RELATED_BRACKETS: P27_MODE.irsOfficial
+        ? '<a href="/2027-tax-brackets/">2027 federal tax brackets</a>: the official tables behind January\'s federal tax.'
+        : '<a href="/2027-tax-brackets/">Projected 2027 federal tax brackets</a>: the projections behind January\'s federal tax.',
+      JANPAY_JSON,
+    }, jpPath));
+    urls.push(`${SITE.url}${jpPath}`);
+  }
 
   // Federal student loan borrowing cap / funding gap calculator (P.L. 119-21
   // §81001 / 20 U.S.C. §1087e(a), effective July 1, 2026) — year-by-year
