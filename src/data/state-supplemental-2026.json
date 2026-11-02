@@ -80,32 +80,36 @@
       "method": "regular",
       "incomeRate": 0.044,
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate supplemental rate; aggregate method. Colorado income tax is a flat 4.4%."
+      "source": "Colorado Department of Revenue, DR 1098 (10/21/25), 2026 Colorado Withholding Worksheet for Employers: the prescribed wage-withholding calculation, with no separate supplemental rate, multiplies annualized wages after the allowance by 4.40% (0.044).",
+      "note": "No separate supplemental rate; aggregate method. Colorado income tax is a flat 4.4%.",
+      "_sourceUrl": "https://tax.colorado.gov/sites/default/files/documents/DR_1098_Colorado_Withholding_Worksheet_for_Employees.pdf"
     },
     "connecticut": {
       "name": "Connecticut",
       "abbr": "CT",
       "method": "regular",
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate supplemental rate; withhold using the graduated income-tax tables (aggregate method)."
+      "source": "Connecticut Department of Revenue Services, IP 2026(1), Connecticut Employer's Tax Guide (Circular CT), Supplemental Compensation: tax is withheld as if the supplemental and regular wages were a single payment for the regular payroll period (aggregate method).",
+      "note": "No separate supplemental rate; withhold using the graduated income-tax tables (aggregate method).",
+      "_sourceUrl": "https://portal.ct.gov/-/media/drs/publications/pubsip/2026/ip-2026-1.pdf"
     },
     "delaware": {
       "name": "Delaware",
       "abbr": "DE",
       "method": "regular",
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate flat supplemental rate for a regular bonus; aggregate method. (Delaware suggests a 5.0% rate only for deferred compensation.)"
+      "source": "Delaware Division of Revenue, Employer's Guide (Withholding Regulations and Employer's Duties), Section 14: a bonus paid with regular wages is withheld as one payment; a bonus paid separately is added to annualized regular wages and the difference in tax is withheld (aggregate method).",
+      "note": "No separate flat supplemental rate for a regular bonus; aggregate method. (Delaware suggests a 5.0% rate only for deferred compensation.)",
+      "_sourceUrl": "https://revenue.delaware.gov/employers-guide-withholding-regulations-employers-duties/"
     },
     "district-of-columbia": {
       "name": "District of Columbia",
       "abbr": "DC",
       "method": "regular",
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate supplemental rate; withhold using the graduated income-tax tables (aggregate method)."
+      "source": "D.C. Code § 47-1812.08(b): employers withhold on wages using the percentage method or the wage tables; the Code sets no separate supplemental rate.",
+      "note": "No separate supplemental rate; withhold using the graduated income-tax tables (aggregate method).",
+      "_sourceUrl": "https://code.dccouncil.gov/us/dc/council/code/sections/47-1812.08"
     },
     "florida": {
       "name": "Florida",
@@ -130,8 +134,9 @@
       "abbr": "HI",
       "method": "regular",
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate supplemental rate; withhold using the graduated income-tax tables (aggregate method)."
+      "source": "Hawaii Department of Taxation, Booklet A Employer's Tax Guide (Rev. 2025, with the 2026 tables), Section 14(e): supplemental wages such as bonuses are withheld as if aggregated with regular wages (aggregate method).",
+      "note": "No separate supplemental rate; withhold using the graduated income-tax tables (aggregate method).",
+      "_sourceUrl": "https://files.hawaii.gov/tax/news/pubs/25BkltA.pdf"
     },
     "idaho": {
       "name": "Idaho",
@@ -150,8 +155,9 @@
       "method": "regular",
       "incomeRate": 0.0495,
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate supplemental rate; aggregate method. Illinois income tax is a flat 4.95%."
+      "source": "Illinois Department of Revenue, 2026 Booklet IL-700-T, Illinois Withholding Tax Tables (effective January 1, 2026): wages and other compensation, less exemptions, are withheld at 4.95 percent.",
+      "note": "No separate supplemental rate; aggregate method. Illinois income tax is a flat 4.95%.",
+      "_sourceUrl": "https://tax.illinois.gov/content/dam/soi/en/web/tax/forms/withholding/documents/currentyear/il-700-t.pdf"
     },
     "indiana": {
       "name": "Indiana",
@@ -159,8 +165,9 @@
       "method": "regular",
       "incomeRate": 0.0295,
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate supplemental rate; aggregate method. Indiana income tax is a flat 2.95% (county income taxes apply on top and are not modeled)."
+      "source": "Indiana Department of Revenue, Departmental Notice #1 (R47 / 10-26): withholding on a one-time payment such as a bonus check is computed without exemptions; the 2026 state rate is 2.95%.",
+      "note": "No separate supplemental rate; aggregate method. Indiana income tax is a flat 2.95% (county income taxes apply on top and are not modeled).",
+      "_sourceUrl": "https://www.in.gov/dor/files/reference/dn01.pdf"
     },
     "iowa": {
       "name": "Iowa",
@@ -190,8 +197,9 @@
       "method": "regular",
       "incomeRate": 0.035,
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate supplemental rate; aggregate method. Kentucky income tax is a flat 3.5%."
+      "source": "Kentucky Department of Revenue, 42A003 Withholding Kentucky Income Tax Instructions for Employers (revised March 2026): all Kentucky wage earners are taxed at a flat 3.5% rate, and bonuses are subject to withholding.",
+      "note": "No separate supplemental rate; aggregate method. Kentucky income tax is a flat 3.5%.",
+      "_sourceUrl": "https://revenue.ky.gov/Forms/42A003-March%202026.pdf"
     },
     "louisiana": {
       "name": "Louisiana",
@@ -321,8 +329,9 @@
       "abbr": "NJ",
       "method": "regular",
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate flat supplemental rate; withhold using the graduated income-tax tables (aggregate method)."
+      "source": "New Jersey Division of Taxation, NJ-WT Income Tax Withholding Instructions (September 2025), Withholding on Supplemental Wage Payments: a bonus paid with regular wages is withheld on the combined payment; one paid separately is withheld without the NJ-W4 exemption allowances.",
+      "note": "No separate flat supplemental rate; withhold using the graduated income-tax tables (aggregate method).",
+      "_sourceUrl": "https://www.nj.gov/treasury/taxation/pdf/current/njwt.pdf"
     },
     "new-mexico": {
       "name": "New Mexico",
@@ -407,8 +416,9 @@
       "method": "regular",
       "incomeRate": 0.0307,
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate supplemental rate; aggregate method. Pennsylvania income tax is a flat 3.07% with no standard deduction, so a separately paid bonus is effectively withheld at 3.07% (local earned-income taxes apply on top and are not modeled)."
+      "source": "61 Pa. Code § 113.3(a)(2) and Pennsylvania Department of Revenue REV-415, Employer Withholding Information Guide: supplemental compensation such as bonuses is added to the current payroll period's pay and withheld at the 3.07% rate.",
+      "note": "No separate supplemental rate; aggregate method. Pennsylvania income tax is a flat 3.07% with no standard deduction, so a separately paid bonus is effectively withheld at 3.07% (local earned-income taxes apply on top and are not modeled).",
+      "_sourceUrl": "https://www.pacodeandbulletin.gov/secure/pacode/data/061/chapter113/061_0113.pdf"
     },
     "rhode-island": {
       "name": "Rhode Island",
@@ -500,8 +510,9 @@
       "abbr": "WV",
       "method": "regular",
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate supplemental rate; withhold using the graduated income-tax tables (aggregate method)."
+      "source": "West Virginia Tax Division, Withholding Help and General Information, To Calculate Supplemental Withholding: the bonus is withheld at the rate it reaches on the published annual table once added to annualized standard pay (aggregate method).",
+      "note": "No separate supplemental rate; withhold using the graduated income-tax tables (aggregate method).",
+      "_sourceUrl": "https://tax.wv.gov/business/withholding/helpandgeneralinformation/Pages/WithholdingHelpAndGeneralInformation.aspx"
     },
     "wisconsin": {
       "name": "Wisconsin",

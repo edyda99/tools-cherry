@@ -13133,8 +13133,8 @@ async function main() {
     {
       // Last substantive revision of state-supplemental-2026.json (Massachusetts
       // Circular M rework and official-source citations), not the shared July date.
-      const SUPP_PUB_HUMAN = 'October 3, 2026';
-      const SUPP_PUB_ISO = '2026-10-03';
+      const SUPP_PUB_HUMAN = 'November 2, 2026';
+      const SUPP_PUB_ISO = '2026-11-02';
       const METHOD_LABEL = { flat: 'Flat', regular: 'Regular', none: 'None', special: 'Special' };
       const rateText = (s) => {
         if (s.method === 'none') return '0%';
