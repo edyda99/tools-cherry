@@ -91,8 +91,8 @@ function render() {
       `<li><strong>${esc(i.title)}: <span class="jp-amt">${esc(i.amount)}</span></strong>. ${esc(i.text)}</li>`).join('') + '</ol>'
     : '<p>Nothing on the list changed for your pay.</p>';
   const sameList = same.length
-    ? '<p class="jp-same"><strong>Did not change your take-home pay:</strong></p><ul class="jp-same">' +
-      same.map((i) => `<li>${esc(i.title)}. ${esc(i.text)}</li>`).join('') + '</ul>'
+    ? `<details class="jp-same"><summary>What did not change (${same.length})</summary><ul>` +
+      same.map((i) => `<li>${esc(i.title)}. ${esc(i.text)}</li>`).join('') + '</ul></details>'
     : '';
 
   const rows = ROWS.filter(([k]) => k !== 'statePrograms' || r.dec[k] || r.jan[k]).map(([k, label]) => {
@@ -108,18 +108,15 @@ function render() {
   const ytdNote = r.ytdAssumed
     ? `<p class="muted-small">We assumed you earned ${usd(r.ytd)} at this job in 2026 before your last December paycheck: a full year at this salary. Change it above if you started partway through the year.</p>`
     : '';
-  const fedNote = CFG.fedMode === 'projected'
-    ? '<p class="muted-small">January\'s federal tax is an <strong>estimate</strong> from projected 2027 tables. The IRS has not published the official ones yet.</p>'
-    : '';
 
   out.innerHTML =
-    `<p class="jp-headline">${esc(headline(r.change))}</p>` +
+    `<p class="jp-headline">${esc(headline(r.change))}${moved.length && r.change ? ' Biggest change: ' + esc(moved[0].title) + '.' : ''}</p>` +
     '<div class="jp-pair">' +
     `<div class="jp-cell"><span class="jp-k">Last December 2026 paycheck</span><span class="jp-v">${usd(r.dec.net)}</span></div>` +
     `<div class="jp-cell"><span class="jp-k">First January 2027 paycheck</span><span class="jp-v">${usd(r.jan.net)}</span></div>` +
     `<div class="jp-cell"><span class="jp-k">Change</span><span class="jp-v">${r.change ? esc(signedUsd(r.change)) : '$0.00'}</span></div>` +
     '</div>' +
-    '<h2 style="font-size:1.05rem;margin:14px 0 4px">What changed, biggest first</h2>' + list + sameList + table + ytdNote + fedNote;
+    '<h2 style="font-size:1.05rem;margin:14px 0 4px">What changed, biggest first</h2>' + list + sameList + table + ytdNote;
 }
 
 function init() {
