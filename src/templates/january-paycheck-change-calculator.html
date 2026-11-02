@@ -37,6 +37,7 @@
   .jp-causes li { margin:0 0 10px; }
   .jp-causes .jp-amt { font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
   .jp-same { font-size:.9rem; opacity:.85; }
+  details.jp-same > summary { cursor:pointer; font-weight:600; }
   .jp-wrap { overflow-x:auto; margin-top:10px; }
   .jp-table { width:100%; border-collapse:collapse; font-size:.92rem; }
   .jp-table th, .jp-table td { text-align:left; padding:7px 9px; border-bottom:1px solid rgba(128,128,128,.22); }
@@ -81,7 +82,7 @@
            rendered at build time so it works with JavaScript off. -->
       <form id="jpForm" autocomplete="off" onsubmit="return false">
         <div class="field">
-          <label for="salary">What is your yearly salary, before tax?</label>
+          <label for="salary">What do you earn in a year, before tax? (Paid hourly: your rate × hours a week × 52)</label>
           <input type="text" id="salary" inputmode="decimal" data-money autocomplete="off" value="75,000">
         </div>
         <div class="field">
@@ -108,7 +109,7 @@
           </div>
           <div class="field">
             <label for="k401_2027">And in 2027?</label>
-            <input type="text" id="k401_2027" inputmode="decimal" autocomplete="off" value="6" min="0" max="75" aria-describedby="k401Note">
+            <input type="text" id="k401_2027" inputmode="decimal" autocomplete="off" value="5" min="0" max="75" aria-describedby="k401Note">
           </div>
         </div>
         <p class="muted-small" id="k401Note">A 401(k) is retirement savings taken straight from your pay before income tax. Use 0 if you do not have one (75 at most). If you hit the yearly 401(k) limit before December and your savings stopped, put 0 for 2026: that is why they seem to start again in January.</p>
@@ -119,7 +120,7 @@
           </div>
           <div class="field">
             <label for="prem2027">And in 2027 (optional)</label>
-            <input type="text" id="prem2027" inputmode="decimal" data-money autocomplete="off" value="105">
+            <input type="text" id="prem2027" inputmode="decimal" data-money autocomplete="off" value="95">
           </div>
         </div>
         <p class="muted-small" id="premNote">The amount taken out of each paycheck for your health, dental or vision plan, before tax. Your pay stub may call it a medical or Section 125 deduction. Leave both blank if you have none.</p>
