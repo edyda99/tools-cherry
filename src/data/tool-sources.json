@@ -462,6 +462,33 @@
    "publisher": "Internal Revenue Service"
   }
  ],
+ "january-paycheck-change-calculator": [
+  {
+   "title": "2027 Cost-of-Living Adjustment (COLA) Fact Sheet — the 2027 Social Security wage base",
+   "url": "https://www.ssa.gov/news/en/cola/factsheets/2027.html",
+   "publisher": "Social Security Administration"
+  },
+  {
+   "title": "Contribution and Benefit Base — the annual Social Security taxable maximum",
+   "url": "https://www.ssa.gov/oact/cola/cbb.html",
+   "publisher": "Social Security Administration"
+  },
+  {
+   "title": "Publication 15-T, Federal Income Tax Withholding Methods",
+   "url": "https://www.irs.gov/publications/p15t",
+   "publisher": "Internal Revenue Service"
+  },
+  {
+   "title": "Topic no. 751, Social Security and Medicare withholding rates",
+   "url": "https://www.irs.gov/taxtopics/tc751",
+   "publisher": "Internal Revenue Service"
+  },
+  {
+   "title": "Questions and answers for the Additional Medicare Tax — employers withhold it on wages over $200,000",
+   "url": "https://www.irs.gov/businesses/small-businesses-self-employed/questions-and-answers-for-the-additional-medicare-tax",
+   "publisher": "Internal Revenue Service"
+  }
+ ],
  "2027-social-security-cola": [
   {
    "title": "Cost-of-Living Adjustment (COLA) — how the increase is computed from third-quarter CPI-W",

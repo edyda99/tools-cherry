@@ -1,0 +1,17 @@
+{
+  "_comment": "Inputs for /january-paycheck-change-calculator/ that live nowhere else. The 2027 federal figures are NOT here: they come from projections-2027.json (official2027 once the IRS Revenue Procedure is in, the publishers' thirdPartyProjections until then) or from tax-data-2027.json once that file exists, which also replaces every state below. The 2027 Social Security wage base comes from projections-2027.json ssaFactSheet2027.",
+  "stateOverrides2027": {
+    "_rule": "Only a 2027 figure already set in statute AND already recorded in this repo goes here, patched over the state's 2026 `tax` block for the January paycheck. Everything else uses the 2026 tables, and the page says so. North Carolina's 2027 rate was considered on 2026-11-02 and left out: the repo names Session Law 2026-41 for it, but a search could not tie that law to the rate (one firm attributes the schedule to S.B. 257), so it waits for tax-data-2027.json.",
+    "virginia": {
+      "tax": {
+        "standardDeduction": { "single": 10130, "married": 20260, "head_of_household": 10130 }
+      },
+      "label": "Virginia's 2027 standard deduction",
+      "what": "Virginia's standard deduction goes up in 2027, to $9,200 for a single filer and $18,400 for a married couple, under state law. Its $930 personal exemption does not change.",
+      "_math": "The engine's Virginia standardDeduction field carries the standard deduction plus the personal exemption (see the virginia _source in tax-data-2026.json, 'PERSONAL EXEMPTION FOLDED IN 2026-10-03'): 9,200 + 930 = 10,130 single and head of household; 18,400 + 2 x 930 = 20,260 married filing jointly.",
+      "_quote": "Va. Code 58.1-322.03(1)(b), currency 8/1/2026: '(vi) for taxable years beginning on and after January 1, 2027, but before January 1, 2028, $9,200 for single individuals and $18,400 for married persons'. Recorded in tax-data-2026.json virginia _watch and _source.",
+      "sourceUrl": "https://law.lis.virginia.gov/vacode/title58.1/chapter3/section58.1-322.03/",
+      "sourceTitle": "Va. Code § 58.1-322.03"
+    }
+  }
+}
