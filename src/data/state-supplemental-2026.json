@@ -205,10 +205,12 @@
       "name": "Louisiana",
       "abbr": "LA",
       "method": "regular",
-      "incomeRate": 0.03,
+      "incomeRate": 0.0309,
+      "flatTaxRate": 0.03,
       "verified": true,
-      "source": "repoTaxData",
-      "note": "No separate supplemental rate; aggregate method. Louisiana income tax is a flat 3.0%."
+      "source": "Louisiana Department of Revenue, R-1306 Withholding Tables and Formulas (effective January 1, 2026): wages are withheld at 3.09%, and the Department says bonuses are withheld the same as regular pay even when paid separately. The 3.09% rate is slightly above the 3% income tax to reduce the chance of a balance due, and any excess is refunded.",
+      "_sourceUrl": "https://dam.ldr.la.gov/taxforms/1306-1-26.pdf",
+      "note": "No separate supplemental rate; a bonus is withheld like regular pay. The 2026 withholding formula uses 3.09%, slightly above the flat 3% income tax, and any excess is refunded at filing."
     },
     "maine": {
       "name": "Maine",
