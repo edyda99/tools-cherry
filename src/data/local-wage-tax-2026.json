@@ -1,5 +1,5 @@
 {
-  "_source": "Optional local income tax input on the state paycheck calculators (/<state>-paycheck-calculator/). One entry per state whose paycheck page shows the input. Every preset rate below was read on the official city, county or state page or document in its `url` on 2026-11-02 (several of those sites refuse scripted fetches with HTTP 403 but load in a browser). Rates are percent of pay. The input is a flat percent of wages (gross pay less Section 125 health money, the FICA wage base); `hint` says where that is an approximation. `replacesDisclaimer` lists the opening words of the tax-data-2026.json disclaimer sentences that say local tax is not included: on the paycheck page only (the salary-ladder pages have no input) those sentences are swapped for `disclaimer`. Dropped because no official page stating the rate could be read: Birmingham AL 1% (the city's Tax and License page names no rate), St. Louis City 1% (stlouis-mo.gov refused every fetch), Cincinnati 1.8% (cincinnati-oh.gov refused every fetch). States with local taxes that get no input, and why, are in `_skipped`.",
+  "_source": "Optional local income tax input on the state paycheck calculators (/<state>-paycheck-calculator/). One entry per state whose paycheck page shows the input. Every preset rate below was read on the official city, county or state page or document in its `url` on 2026-11-02 (several of those sites refuse scripted fetches with HTTP 403 but load in a browser). Rates are percent of pay. The input is a flat percent of wages (gross pay less Section 125 health money, the FICA wage base), or of the state's own taxable income where `base` is \"stateTaxable\" (Maryland and Indiana county taxes are levied on it); `hint` says where that is an approximation. `faqSuffix` is appended to the state's local-tax FAQ answer. `replacesDisclaimer` lists the opening words of the tax-data-2026.json disclaimer sentences that say local tax is not included: on the paycheck page only (the salary-ladder pages have no input) those sentences are swapped for `disclaimer`. Dropped because no official page stating the rate could be read: Birmingham AL 1% (the city's Tax and License page names no rate), St. Louis City 1% (stlouis-mo.gov refused every fetch), Cincinnati 1.8% (cincinnati-oh.gov refused every fetch). States with local taxes that get no input, and why, are in `_skipped`.",
   "_skipped": {
     "oregon": "Portland Metro SHS and Multnomah County Preschool for All taxes are charged only on income above high thresholds ($125,000+ single), at 1% to 3% of the excess. A flat percent of all pay would misstate them, so the Oregon page offers no input and keeps saying they are not included.",
     "iowa": "Iowa's school district surtax is a percent of your Iowa income TAX, not of your pay, and is settled on the state return. A percent-of-pay input would misstate it, so the Iowa page offers none.",
@@ -10,95 +10,251 @@
     "pennsylvania": {
       "hint": "The usual rate is 1% of your pay: it is the limit for most Pennsylvania towns, split between the town and the school district. Some towns charge more, and Philadelphia charges its own, higher Wage Tax.",
       "presets": [
-        { "label": "Most towns", "rate": 1, "source": "PA DCED Act 32 manual", "url": "https://dced.pa.gov/download/act-32-of-2008-procedure-manual/?wpdmdl=56767", "quote": "In general, all other municipalities and school districts adopting income taxes under the Local Tax Enabling Act are limited to a combined rate of one percent." },
-        { "label": "Live in Philadelphia", "rate": 3.735, "source": "City of Philadelphia", "url": "https://www.phila.gov/services/payments-assistance-taxes/business-taxes/wage-tax-employers/", "quote": "Tax rate 3.735 % for residents of Philadelphia, or 3.425% for non-residents (effective July 1, 2026; 3.74% / 3.43% from July 1, 2025)" },
-        { "label": "Work in Philadelphia, live elsewhere", "rate": 3.425, "source": "City of Philadelphia", "url": "https://www.phila.gov/services/payments-assistance-taxes/business-taxes/wage-tax-employers/" }
+        {
+          "label": "Most towns",
+          "rate": 1,
+          "source": "PA DCED Act 32 manual",
+          "url": "https://dced.pa.gov/download/act-32-of-2008-procedure-manual/?wpdmdl=56767",
+          "quote": "In general, all other municipalities and school districts adopting income taxes under the Local Tax Enabling Act are limited to a combined rate of one percent."
+        },
+        {
+          "label": "Live in Philadelphia",
+          "rate": 3.735,
+          "source": "City of Philadelphia",
+          "url": "https://www.phila.gov/services/payments-assistance-taxes/business-taxes/wage-tax-employers/",
+          "quote": "Tax rate 3.735 % for residents of Philadelphia, or 3.425% for non-residents (effective July 1, 2026; 3.74% / 3.43% from July 1, 2025)"
+        },
+        {
+          "label": "Work in Philadelphia, live elsewhere",
+          "rate": 3.425,
+          "source": "City of Philadelphia",
+          "url": "https://www.phila.gov/services/payments-assistance-taxes/business-taxes/wage-tax-employers/"
+        }
       ],
-      "lookup": { "label": "Look up your town's exact rate (PA DCED)", "url": "https://apps.dced.pa.gov/Munstats-Public/FindLocalTax.aspx" },
-      "replacesDisclaimer": ["Separate local Earned Income Taxes", "Philadelphia runs its own wage tax"],
-      "disclaimer": "Your local earned income tax (set by your town and school district) and Philadelphia's Wage Tax (3.735% if you live there and 3.425% if you only work there since 1 July 2026, 3.74% and 3.43% before that) are included only if you enter your rate in the Local income tax box above."
+      "lookup": {
+        "label": "Look up your town's exact rate (PA DCED)",
+        "url": "https://apps.dced.pa.gov/Munstats-Public/FindLocalTax.aspx"
+      },
+      "replacesDisclaimer": [
+        "Separate local Earned Income Taxes",
+        "Philadelphia runs its own wage tax"
+      ],
+      "disclaimer": "Your local earned income tax (set by your town and school district) and Philadelphia's Wage Tax (3.735% if you live there and 3.425% if you only work there since 1 July 2026, 3.74% and 3.43% before that) are included only if you enter your rate in the Local income tax box above.",
+      "faqSuffix": "To include yours, enter your town's rate (or Philadelphia's) in the calculator at the top of this page."
     },
     "ohio": {
       "hint": "Most Ohio cities and villages tax the pay of people who work there, and many tax their residents too. Columbus and Cleveland take 2.5%. A school district income tax, where there is one, is separate.",
       "presets": [
-        { "label": "Columbus", "rate": 2.5, "source": "City of Columbus", "url": "https://www.columbus.gov/Government/City-Auditor/Income-Tax-Division/General-Income-Tax-Information", "quote": "Multiply the largest of these wage figures by the Columbus tax rate of 2.5%." },
-        { "label": "Cleveland", "rate": 2.5, "source": "Cleveland Central Collection Agency", "url": "https://www.ccaohio.gov/sites/default/files/2025-12/2026%20Withholding%20Form.pdf", "quote": "Cleveland 2.5 200 (2026 withholding form rate table)" }
+        {
+          "label": "Columbus",
+          "rate": 2.5,
+          "source": "City of Columbus",
+          "url": "https://www.columbus.gov/Government/City-Auditor/Income-Tax-Division/General-Income-Tax-Information",
+          "quote": "Multiply the largest of these wage figures by the Columbus tax rate of 2.5%."
+        },
+        {
+          "label": "Cleveland",
+          "rate": 2.5,
+          "source": "Cleveland Central Collection Agency",
+          "url": "https://www.ccaohio.gov/sites/default/files/2025-12/2026%20Withholding%20Form.pdf",
+          "quote": "Cleveland 2.5 200 (2026 withholding form rate table)"
+        }
       ],
-      "lookup": { "label": "Find your city and school district rates (Ohio's The Finder)", "url": "https://thefinder.tax.ohio.gov/" },
-      "replacesDisclaimer": ["Local income taxes are not included. Ohio municipalities"],
-      "disclaimer": "Ohio city and school district income taxes are included only if you enter your rate in the Local income tax box above."
+      "lookup": {
+        "label": "Find your city and school district rates (Ohio's The Finder)",
+        "url": "https://thefinder.tax.ohio.gov/"
+      },
+      "replacesDisclaimer": [
+        "Local income taxes are not included. Ohio municipalities"
+      ],
+      "disclaimer": "Ohio city and school district income taxes are included only if you enter your rate in the Local income tax box above.",
+      "faqSuffix": "To include yours, enter your city's rate in the calculator at the top of this page."
     },
     "michigan": {
-      "hint": "Some Michigan cities tax pay, at a lower rate for people who work there but live elsewhere. Detroit takes off a small personal exemption first, so for Detroit this runs slightly high.",
+      "hint": "Some Michigan cities tax pay, at a lower rate for people who work there but live elsewhere. Detroit takes off a small personal exemption first, so for Detroit this runs slightly high. If you put money in a 401(k), this runs a little high.",
       "presets": [
-        { "label": "Live in Detroit", "rate": 2.4, "source": "2026 City of Detroit withholding guide", "url": "https://www.michigan.gov/taxes/-/media/Project/Websites/taxes/Forms/City-Withholding/TY2026/5469_ty2026.pdf", "quote": "The City of Detroit income tax rate for residents is 2.4% (multiply by 0.024). The City of Detroit income tax rate for nonresidents is 1.2% (multiply by 0.012)." },
-        { "label": "Work in Detroit, live elsewhere", "rate": 1.2, "source": "2026 City of Detroit withholding guide", "url": "https://www.michigan.gov/taxes/-/media/Project/Websites/taxes/Forms/City-Withholding/TY2026/5469_ty2026.pdf" },
-        { "label": "Live in Grand Rapids", "rate": 1.5, "source": "City of Grand Rapids", "url": "https://www.grandrapidsmi.gov/departments/fiscal-services/income-tax/individual-taxpayers/income-tax-guide-for-individuals/", "quote": "July 1, 2010 - Present Individual Tax Rate Residents 1.5% Nonresidents 0.75%" }
+        {
+          "label": "Live in Detroit",
+          "rate": 2.4,
+          "source": "2026 City of Detroit withholding guide",
+          "url": "https://www.michigan.gov/taxes/-/media/Project/Websites/taxes/Forms/City-Withholding/TY2026/5469_ty2026.pdf",
+          "quote": "The City of Detroit income tax rate for residents is 2.4% (multiply by 0.024). The City of Detroit income tax rate for nonresidents is 1.2% (multiply by 0.012)."
+        },
+        {
+          "label": "Work in Detroit, live elsewhere",
+          "rate": 1.2,
+          "source": "2026 City of Detroit withholding guide",
+          "url": "https://www.michigan.gov/taxes/-/media/Project/Websites/taxes/Forms/City-Withholding/TY2026/5469_ty2026.pdf"
+        },
+        {
+          "label": "Live in Grand Rapids",
+          "rate": 1.5,
+          "source": "City of Grand Rapids",
+          "url": "https://www.grandrapidsmi.gov/departments/fiscal-services/income-tax/individual-taxpayers/income-tax-guide-for-individuals/",
+          "quote": "July 1, 2010 - Present Individual Tax Rate Residents 1.5% Nonresidents 0.75%"
+        }
       ],
-      "replacesDisclaimer": ["Several Michigan cities"],
-      "disclaimer": "Michigan city income taxes (Detroit, Grand Rapids and others) are included only if you enter your rate in the Local income tax box above."
+      "replacesDisclaimer": [
+        "Several Michigan cities"
+      ],
+      "disclaimer": "Michigan city income taxes (Detroit, Grand Rapids and others) are included only if you enter your rate in the Local income tax box above.",
+      "faqSuffix": "To include yours, enter your city's rate in the calculator at the top of this page."
     },
     "kentucky": {
       "hint": "Many Kentucky cities and counties take an occupational tax from the pay of people who work there. If both your city and your county charge one, add the two rates together.",
       "presets": [
-        { "label": "Live in Louisville", "rate": 2.2, "source": "Louisville Metro Revenue Commission 2026 regulations", "url": "https://louisvilleky.gov/sites/default/files/2026-01/Louisville%20Metro%20Revenue%20Commission%20Regulations%20(2026).1.pdf", "note": "Paraphrase of the regulations: one and one-fourth percent of all wages and compensation, plus the transit tax (one-fifth of one percent) and the school boards tax (three-fourths of one percent), which non-resident individuals do not pay: 2.2% resident, 1.45% non-resident" },
-        { "label": "Work in Louisville, live elsewhere", "rate": 1.45, "source": "Louisville Metro Revenue Commission 2026 regulations", "url": "https://louisvilleky.gov/sites/default/files/2026-01/Louisville%20Metro%20Revenue%20Commission%20Regulations%20(2026).1.pdf" },
-        { "label": "Lexington", "rate": 2.25, "source": "Lexington-Fayette Urban County Government", "url": "https://www.lexingtonky.gov/working/business-licensing-taxes/occupational-license-fee-rates-current-forms", "quote": "The Lexington-Fayette Urban County Government assesses an occupational license fee of 2.25%." }
+        {
+          "label": "Live and work in Louisville",
+          "rate": 2.2,
+          "source": "Louisville Metro Revenue Commission 2026 regulations",
+          "url": "https://louisvilleky.gov/sites/default/files/2026-01/Louisville%20Metro%20Revenue%20Commission%20Regulations%20(2026).1.pdf",
+          "note": "Paraphrase of the regulations: one and one-fourth percent of all wages and compensation, plus the transit tax (one-fifth of one percent) and the school boards tax (three-fourths of one percent), which non-resident individuals do not pay: 2.2% resident, 1.45% non-resident"
+        },
+        {
+          "label": "Work in Louisville, live elsewhere",
+          "rate": 1.45,
+          "source": "Louisville Metro Revenue Commission 2026 regulations",
+          "url": "https://louisvilleky.gov/sites/default/files/2026-01/Louisville%20Metro%20Revenue%20Commission%20Regulations%20(2026).1.pdf"
+        },
+        {
+          "label": "Lexington",
+          "rate": 2.25,
+          "source": "Lexington-Fayette Urban County Government",
+          "url": "https://www.lexingtonky.gov/working/business-licensing-taxes/occupational-license-fee-rates-current-forms",
+          "quote": "The Lexington-Fayette Urban County Government assesses an occupational license fee of 2.25%."
+        }
       ],
-      "replacesDisclaimer": ["Some Kentucky localities"],
-      "disclaimer": "Kentucky city and county occupational taxes are included only if you enter your rate in the Local income tax box above."
+      "replacesDisclaimer": [
+        "Some Kentucky localities"
+      ],
+      "disclaimer": "Kentucky city and county occupational taxes are included only if you enter your rate in the Local income tax box above.",
+      "faqSuffix": "To include yours, enter your city and county rates added together in the calculator at the top of this page."
     },
     "indiana": {
-      "hint": "Every Indiana county has its own income tax, and the county you lived in on January 1 sets your rate.",
+      "hint": "Every Indiana county has its own income tax, and the county you lived in on January 1 sets your rate. It is charged on your Indiana taxable pay, after your 401(k) and exemption, and this estimate does the same.",
       "presets": [
-        { "label": "Marion County (Indianapolis)", "rate": 2.02, "source": "Indiana DOR Departmental Notice #1", "url": "https://www.in.gov/dor/files/dn01.pdf", "quote": "Indiana County Tax Rates: Effective Oct. 1, 2026 ... Marion 49 0.0202 ... Hamilton 29 0.011 ... Allen 02 0.0159" },
-        { "label": "Allen County (Fort Wayne)", "rate": 1.59, "source": "Indiana DOR Departmental Notice #1", "url": "https://www.in.gov/dor/files/dn01.pdf" },
-        { "label": "Hamilton County", "rate": 1.1, "source": "Indiana DOR Departmental Notice #1", "url": "https://www.in.gov/dor/files/dn01.pdf" }
+        {
+          "label": "Marion County (Indianapolis)",
+          "rate": 2.02,
+          "source": "Indiana DOR Departmental Notice #1",
+          "url": "https://www.in.gov/dor/files/dn01.pdf",
+          "quote": "Indiana County Tax Rates: Effective Oct. 1, 2026 ... Marion 49 0.0202 ... Hamilton 29 0.011 ... Allen 02 0.0159"
+        },
+        {
+          "label": "Allen County (Fort Wayne)",
+          "rate": 1.59,
+          "source": "Indiana DOR Departmental Notice #1",
+          "url": "https://www.in.gov/dor/files/dn01.pdf"
+        },
+        {
+          "label": "Hamilton County",
+          "rate": 1.1,
+          "source": "Indiana DOR Departmental Notice #1",
+          "url": "https://www.in.gov/dor/files/dn01.pdf"
+        }
       ],
-      "lookup": { "label": "All 92 county rates (Indiana DOR)", "url": "https://www.in.gov/dor/files/dn01.pdf" },
-      "replacesDisclaimer": ["Indiana county income taxes"],
-      "disclaimer": "Indiana county income taxes are included only if you enter your county's rate in the Local income tax box above."
+      "lookup": {
+        "label": "All 92 county rates (Indiana DOR)",
+        "url": "https://www.in.gov/dor/files/dn01.pdf"
+      },
+      "replacesDisclaimer": [
+        "Indiana county income taxes"
+      ],
+      "disclaimer": "Indiana county income taxes are included only if you enter your county's rate in the Local income tax box above.",
+      "base": "stateTaxable",
+      "faqSuffix": "To include yours, enter your county's rate in the calculator at the top of this page."
     },
     "missouri": {
       "hint": "Only Kansas City and the City of St. Louis tax pay in Missouri. Kansas City takes 1% from residents and from people who work there.",
       "presets": [
-        { "label": "Kansas City", "rate": 1, "source": "City of Kansas City, Missouri", "url": "https://www.kcmo.gov/city-hall/departments/finance/earnings-tax", "quote": "The earnings tax (sometimes referred to as \"e-tax\") is a 1 percent tax on an individual's earned income such as salaries, wages, commissions, tips and other compensation." }
+        {
+          "label": "Kansas City",
+          "rate": 1,
+          "source": "City of Kansas City, Missouri",
+          "url": "https://www.kcmo.gov/city-hall/departments/finance/earnings-tax",
+          "quote": "The earnings tax (sometimes referred to as \"e-tax\") is a 1 percent tax on an individual's earned income such as salaries, wages, commissions, tips and other compensation."
+        }
       ],
-      "replacesDisclaimer": ["Local income taxes are not included. Missouri cities"],
-      "disclaimer": "The Kansas City and St. Louis earnings taxes are included only if you enter the rate in the Local income tax box above."
+      "replacesDisclaimer": [
+        "Local income taxes are not included. Missouri cities"
+      ],
+      "disclaimer": "The Kansas City and St. Louis earnings taxes are included only if you enter the rate in the Local income tax box above.",
+      "faqSuffix": "To include yours, enter 1% in the calculator at the top of this page if you live or work in Kansas City."
     },
     "new-york": {
       "hint": "If you work in Yonkers but live elsewhere, Yonkers takes 0.5% of that pay. New York City's tax is not one rate (it climbs from 3.078% to 3.876% of your NYC taxable income), so it cannot be entered here and is not included.",
       "presets": [
-        { "label": "Work in Yonkers, live elsewhere", "rate": 0.5, "source": "NYS-50-T-Y (2026)", "url": "https://www.tax.ny.gov/pdf/publications/withholding/nys50_t_y.pdf", "quote": "Effective January 1, 2026 ... Yonkers nonresident ... 0.50% (0.0050)" }
+        {
+          "label": "Work in Yonkers, live elsewhere",
+          "rate": 0.5,
+          "source": "NYS-50-T-Y (2026)",
+          "url": "https://www.tax.ny.gov/pdf/publications/withholding/nys50_t_y.pdf",
+          "quote": "Effective January 1, 2026 ... Yonkers nonresident ... 0.50% (0.0050)"
+        }
       ],
-      "replacesDisclaimer": ["Local income taxes are not included. New York City and Yonkers"],
-      "disclaimer": "New York City income tax and the Yonkers resident surcharge are not included: neither is a flat share of pay. The Yonkers non-resident earnings tax (0.50%) is included only if you enter it in the Local income tax box above."
+      "replacesDisclaimer": [
+        "Local income taxes are not included. New York City and Yonkers"
+      ],
+      "disclaimer": "New York City income tax and the Yonkers resident surcharge are not included: neither is a flat share of pay. The Yonkers non-resident earnings tax (0.50%) is included only if you enter it in the Local income tax box above.",
+      "faqSuffix": "To include the Yonkers non-resident tax, enter 0.5% in the calculator at the top of this page."
     },
     "delaware": {
       "hint": "Only Wilmington taxes pay in Delaware: 1.25%, for people who live there and for people who work there.",
       "presets": [
-        { "label": "Wilmington", "rate": 1.25, "source": "City of Wilmington Earned Income Tax Regulations", "url": "https://www.wilmingtonde.gov/home/showpublisheddocument/462/638206223264700000", "quote": "An annual tax for general revenue purposes is imposed on residents of the City regardless of the place where their services are performed and on nonresidents of the City, for work done or services rendered in the City on salaries, wages, commissions, and other compensation earned on and after July 1, 1978, at the rate of one and one quarter percent (1.25%)." }
+        {
+          "label": "Wilmington",
+          "rate": 1.25,
+          "source": "City of Wilmington Earned Income Tax Regulations",
+          "url": "https://www.wilmingtonde.gov/home/showpublisheddocument/462/638206223264700000",
+          "quote": "An annual tax for general revenue purposes is imposed on residents of the City regardless of the place where their services are performed and on nonresidents of the City, for work done or services rendered in the City on salaries, wages, commissions, and other compensation earned on and after July 1, 1978, at the rate of one and one quarter percent (1.25%)."
+        }
       ],
-      "replacesDisclaimer": ["Local income taxes are not included. The Wilmington"],
-      "disclaimer": "The Wilmington earned income tax (1.25%) is included only if you enter it in the Local income tax box above."
+      "replacesDisclaimer": [
+        "Local income taxes are not included. The Wilmington"
+      ],
+      "disclaimer": "The Wilmington earned income tax (1.25%) is included only if you enter it in the Local income tax box above.",
+      "faqSuffix": "To include it, enter 1.25% in the calculator at the top of this page if you live or work in Wilmington."
     },
     "alabama": {
       "hint": "Some Alabama cities take an occupational tax from the pay of everyone who works there, whether or not they live there. Ask your city or check your pay stub for the rate.",
       "presets": [
-        { "label": "Gadsden", "rate": 2, "source": "City of Gadsden", "url": "https://www.cityofgadsden.com/DocumentCenter/View/752", "quote": "The City of Gadsden requires a 2% occupation tax based on gross wages of employees" }
+        {
+          "label": "Gadsden",
+          "rate": 2,
+          "source": "City of Gadsden",
+          "url": "https://www.cityofgadsden.com/DocumentCenter/View/752",
+          "quote": "The City of Gadsden requires a 2% occupation tax based on gross wages of employees"
+        }
       ],
-      "replacesDisclaimer": ["Local income taxes are not included. Some Alabama cities"],
-      "disclaimer": "Alabama city occupational taxes on wages are included only if you enter your city's rate in the Local income tax box above."
+      "replacesDisclaimer": [
+        "Local income taxes are not included. Some Alabama cities"
+      ],
+      "disclaimer": "Alabama city occupational taxes on wages are included only if you enter your city's rate in the Local income tax box above.",
+      "faqSuffix": "To include yours, enter your city's rate in the calculator at the top of this page."
     },
     "maryland": {
-      "hint": "Every Maryland county and Baltimore City adds its own income tax, set by where you live: 2.25% to 3.30%. Maryland applies it to your Maryland taxable pay, a little less than your full pay, so this runs slightly high.",
+      "hint": "Every Maryland county and Baltimore City adds its own income tax, set by where you live: 2.25% to 3.30%. It is charged on your Maryland taxable pay, after your 401(k) and the state deduction, and this estimate does the same.",
       "presets": [
-        { "label": "Baltimore City, Montgomery or Prince George's", "rate": 3.2, "source": "Comptroller of Maryland 2026 withholding memo", "url": "https://www.marylandcomptroller.gov/content/dam/mdcomp/md/state-payroll/memos/2026/2026-maryland-state-and-local-withholding-information.pdf", "quote": "Local Income Tax Withholding Rates for 2026 (Percentage of MD Taxable Wage) ... Baltimore City 04 3.20 ... Montgomery County 16 3.20 ... Prince George's County 17 3.20 ... Dorchester County 10 3.30 ... Worcester County 24 2.25" },
-        { "label": "Worcester (the lowest)", "rate": 2.25, "source": "Comptroller of Maryland 2026 withholding memo", "url": "https://www.marylandcomptroller.gov/content/dam/mdcomp/md/state-payroll/memos/2026/2026-maryland-state-and-local-withholding-information.pdf" }
+        {
+          "label": "Baltimore City, Montgomery or Prince George's",
+          "rate": 3.2,
+          "source": "Comptroller of Maryland 2026 withholding memo",
+          "url": "https://www.marylandcomptroller.gov/content/dam/mdcomp/md/state-payroll/memos/2026/2026-maryland-state-and-local-withholding-information.pdf",
+          "quote": "Local Income Tax Withholding Rates for 2026 (Percentage of MD Taxable Wage) ... Baltimore City 04 3.20 ... Montgomery County 16 3.20 ... Prince George's County 17 3.20 ... Dorchester County 10 3.30 ... Worcester County 24 2.25"
+        },
+        {
+          "label": "Worcester (the lowest)",
+          "rate": 2.25,
+          "source": "Comptroller of Maryland 2026 withholding memo",
+          "url": "https://www.marylandcomptroller.gov/content/dam/mdcomp/md/state-payroll/memos/2026/2026-maryland-state-and-local-withholding-information.pdf"
+        }
       ],
-      "replacesDisclaimer": ["Local income taxes are not included. Maryland counties"],
-      "disclaimer": "Maryland's county and Baltimore City income tax (2.25% to 3.30% of Maryland taxable pay) is included only if you enter your county's rate in the Local income tax box above. At moderate incomes it can rival the state tax."
+      "replacesDisclaimer": [
+        "Local income taxes are not included. Maryland counties"
+      ],
+      "disclaimer": "Maryland's county and Baltimore City income tax (2.25% to 3.30% of Maryland taxable pay) is included only if you enter your county's rate in the Local income tax box above. At moderate incomes it can rival the state tax.",
+      "base": "stateTaxable",
+      "faqSuffix": "To include yours, enter your county's rate in the calculator at the top of this page."
     }
   }
 }

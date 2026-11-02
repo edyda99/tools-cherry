@@ -1775,6 +1775,8 @@ const LOCAL_TAX_CSS = '<style>' +
   '#paycheckWizard .otw-pct{position:relative;max-width:10em;margin-top:10px}' +
   '#paycheckWizard .otw-pct::after{content:"%";position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:17px;color:var(--muted);pointer-events:none}' +
   '#paycheckWizard .otw-pct .otw-in{padding-right:32px}' +
+  '#paycheckWizard .otw-local-flag{margin:8px 0 0;font-size:14px;color:var(--text)}' +
+  '#paycheckWizard .otw-local-flag button{font:inherit;font-weight:600;color:var(--link);background:none;border:0;padding:0;text-decoration:underline;cursor:pointer}' +
   '</style>';
 
 // The input itself, on the answer card under the results table. Blank by default
@@ -1800,7 +1802,10 @@ function localTaxBoxHtml(state) {
   return LOCAL_TAX_CSS + `<div class="otw-local" id="localTaxBox">` +
     `<p class="otw-local-q"><label for="localTaxRate">Local income tax <span class="otw-local-opt">(optional)</span></label></p>` +
     `<p class="otw-note" id="localTaxHint">${escHtml(e.hint)}</p>` +
-    `<div class="otw-pct"><input id="localTaxRate" class="otw-in otw-in-sm" type="text" inputmode="decimal" autocomplete="off" value="" placeholder="0" aria-describedby="localTaxHint"></div>` +
+    `<div class="otw-pct"><input id="localTaxRate" class="otw-in otw-in-sm" type="text" inputmode="decimal" autocomplete="off" value="" placeholder="0" aria-describedby="localTaxHint"` +
+    (e.base === 'stateTaxable' ? ` data-local-base="stateTaxable"` : '') + `></div>` +
+    // Filled by app.js only when the typed rate is not a plausible local rate (over 10%).
+    `<p class="otw-local-flag" data-otw-slot="localNote" role="status" hidden></p>` +
     (chips ? `<div class="otw-chips" role="group" aria-label="Example local rates">${chips}</div>` : '') +
     `<p class="otw-note">` +
     (srcLinks.length ? `Example rates from ${srcLinks.join(', ')}.` : '') +
@@ -3637,8 +3642,11 @@ function stateUniqueFaq(state, p, year) {
   if (lt && lt.exists && lt.notes) {
     return {
       q: `Do cities or counties in ${state.name} take a local income tax out of paychecks?`,
-      a: String(lt.notes) + (localTaxEntry(state.slug)
-        ? ' To include yours, enter your local rate in the calculator at the top of this page.'
+      // Each state's own sentence (local-wage-tax-2026.json faqSuffix): a generic "enter
+      // your rate" after New York's notes would point at the NYC and Yonkers-resident taxes,
+      // which the input cannot take.
+      a: String(lt.notes) + (localTaxEntry(state.slug) && localTaxEntry(state.slug).faqSuffix
+        ? ' ' + localTaxEntry(state.slug).faqSuffix
         : '')
     };
   }

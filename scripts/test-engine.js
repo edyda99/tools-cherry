@@ -341,6 +341,31 @@ t('local tax: charged on wages after Section 125, not after a 401(k)', () => {
   approx(r.annual.local, 580, 0.001);
 });
 
+t('local tax: Maryland county tax is on Maryland taxable income, $60,000 single at 3.2%', () => {
+  const md = (adv) => computePaycheck({ wage: { type: 'salary', amount: 60000 }, filingStatus: 'single',
+    payFrequency: 'biweekly', stateSlug: 'maryland', adv }, taxData);
+  const base = md();
+  const r = md({ localTaxRate: 0.032, localTaxBase: 'stateTaxable' });
+  // 60,000 - 3,350 Maryland standard deduction = 56,650 x 3.2%
+  approx(r.annual.local, 56650 * 0.032, 0.001);
+  approx(base.annual.net - r.annual.net, 1812.8, 0.001);
+  // with a 6% 401(k): 60,000 - 3,600 - 3,350 = 53,050 x 3.2%
+  const k = md({ localTaxRate: 0.032, localTaxBase: 'stateTaxable', retirement401k: 3600 });
+  approx(k.annual.local, 53050 * 0.032, 0.001);
+  // the wages base would have charged the full 60,000
+  approx(md({ localTaxRate: 0.032 }).annual.local, 1920, 0.001);
+  assert.equal(r.annual.state, base.annual.state);
+});
+
+t('local tax: Indiana county tax (Marion 2.02%) is after the $1,000 exemption', () => {
+  const ind = (adv) => computePaycheck({ wage: { type: 'salary', amount: 60000 }, filingStatus: 'single',
+    payFrequency: 'biweekly', stateSlug: 'indiana', adv }, taxData);
+  const r = ind({ localTaxRate: 0.0202, localTaxBase: 'stateTaxable' });
+  approx(r.annual.local, 59000 * 0.0202, 0.001);
+  approx(ind().annual.net - r.annual.net, 1191.8, 0.001);
+  approx(ind({ localTaxRate: 0.0202, localTaxBase: 'stateTaxable', retirement401k: 3600 }).annual.local, 55400 * 0.0202, 0.001);
+});
+
 t('local tax: a mistyped rate is clamped, not allowed to wipe out the check', () => {
   approx(localWageTax(60000, 1), 60000 * LOCAL_TAX_RATE_MAX, 0.001);
   const r = pa60({ localTaxRate: 5 });

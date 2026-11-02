@@ -184,11 +184,46 @@ const countValue = (id) => {
 // and handed to the engine as a fraction. Only the paycheck pages of states that
 // have local wage taxes ship the #localTaxRate field; everywhere else this is 0,
 // which is exactly the figure every page computed before the field existed.
-function localTaxRateValue() {
+// The highest local rate anyone can mean, in percent. Over it the figure is a slip
+// (32 for 3.2), so it is NOT counted and localTaxNote() says so, rather than being
+// quietly cut down to something the visitor never typed.
+const LOCAL_RATE_PLAUSIBLE_MAX = 10;
+
+// The typed percent, or 0. A leading minus is 0, never its absolute value.
+function localTaxPercent() {
   const el = $('localTaxRate');
   if (!el) return 0;
-  const v = parseFloat(String(el.value).replace(/,/g, '.').replace(/[^0-9.]/g, ''));
-  return Number.isFinite(v) && v > 0 ? v / 100 : 0;
+  const raw = String(el.value).trim();
+  if (raw.startsWith('-') || raw.startsWith('−')) return 0;
+  const v = parseFloat(raw.replace(/,/g, '.').replace(/[^0-9.]/g, ''));
+  return Number.isFinite(v) && v > 0 ? v : 0;
+}
+
+function localTaxRateValue() {
+  const v = localTaxPercent();
+  return v > 0 && v <= LOCAL_RATE_PLAUSIBLE_MAX ? v / 100 : 0;
+}
+
+// What the local rate is charged on, as build.js tells this page (data-local-base).
+function localTaxBaseValue() {
+  const el = $('localTaxRate');
+  return el && el.dataset && el.dataset.localBase === 'stateTaxable' ? 'stateTaxable' : 'wages';
+}
+
+// The one-line note under the field when the typed rate is implausible. The suggestion is
+// the same digits with the decimal point moved left until it is a possible rate (32 -> 3.2,
+// 125 -> 1.25), offered as a button that fills it in.
+function localTaxNote() {
+  const note = slot('localNote');
+  if (!note) return;
+  const v = localTaxPercent();
+  if (!(v > LOCAL_RATE_PLAUSIBLE_MAX)) { note.hidden = true; note.innerHTML = ''; return; }
+  let s = v;
+  while (s > LOCAL_RATE_PLAUSIBLE_MAX) s /= 10;
+  const sug = +s.toFixed(3);
+  note.hidden = false;
+  note.innerHTML = `Local taxes are under 4%, so ${escLbl(String(v))}% is not counted. Did you mean ` +
+    `<button type="button" data-otw-fill="localTaxRate" data-otw-value="${sug}">${sug}</button>?`;
 }
 
 function dependentsCreditValue() {
@@ -291,7 +326,8 @@ function readForm() {
       dependentsCredit: answeredYes('qDeps') ? dependentsCreditValue() : 0,
       extraWithholding: advMoney('qExtra', 'extraWithholding'),
       postTax: advMoney('qPost', 'postTax'),
-      localTaxRate: localTaxRateValue()
+      localTaxRate: localTaxRateValue(),
+      localTaxBase: localTaxBaseValue()
     }
   };
 }
@@ -2042,6 +2078,7 @@ function render() {
     localLineEl.style.display = localOn ? '' : 'none';
   }
   if (rLocalEl) rLocalEl.textContent = localOn ? '−' + usd2(p.local) : usd2(p.local || 0);
+  localTaxNote();
 
   renderBreakdown(r, tips);
   renderTipsBlock(input, r, tips, annualView);
