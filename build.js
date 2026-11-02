@@ -11907,7 +11907,7 @@ async function main() {
     const overrideNames = overrideSlugs.map((k) => taxData.states[k].name);
     const bannerState = taxData2027
       ? 'State income tax for January uses each state\'s 2027 tables.'
-      : 'State income tax for January uses each state\'s <strong>2026</strong> tables, because states have not published their 2027 ones yet.' +
+      : 'State income tax for January uses each state\'s <strong>2026</strong> tables, until 2027 state tables are in our data.' +
         (overrideSlugs.length
           ? ' The exception: ' + andList(overrideSlugs.map((k) => {
             const o = overrides[k];
@@ -11945,7 +11945,7 @@ async function main() {
       `<li><strong>Pay per paycheck:</strong> $200,000 ÷ 26 = ${usd2(ex.dec.gross)}. The 401(k) is 6% of that, ${usd2(ex.dec.retirement)}.</li>` +
       `<li><strong>Social Security:</strong> before the last December paycheck Sam had earned 25 paychecks of ${usd2(ex.dec.gross)} minus the ${usd2(150)} health premium, which is ${usd2(ex.ytd)}. That is past the ${usd0(wb26)} limit, so December has <strong>$0</strong> of Social Security tax. In January the count restarts at $0: 6.2% × (${usd2(ex.jan.gross)} − ${usd2(165)}) = <strong>${usd2(ex.jan.socialSecurity)}</strong>.</li>` +
       `<li><strong>Medicare:</strong> 1.45% of pay after the health premium, with no limit: ${usd2(ex.dec.medicare)} in December, ${usd2(ex.jan.medicare)} in January. Sam stays under $200,000 of Medicare pay at this job, so the extra 0.9% never starts.</li>` +
-      `<li><strong>Federal income tax:</strong> taxed yearly pay is $200,000 minus the 401(k) (${usd0(k401Year)}), the health premium and the standard deduction. In 2026 that is ${usd2(taxable26)} with a ${usd0(sd26)} standard deduction; in 2027 it is ${usd2(taxable27)} with ${usd0(sd27)}${projected ? ' (projected)' : ''}. Run through each year's brackets and split across 26 paychecks, that is ${usd2(ex.dec.federal)} in December and ${usd2(ex.jan.federal)} in January.</li>` +
+      `<li><strong>Federal income tax:</strong> taxed yearly pay is $200,000 minus the 401(k) (26 × ${usd2(ex.dec.retirement)} = ${usd2(k401Year)}), the health premium (26 × $150 or 26 × $165) and the standard deduction. In 2026 that is ${usd2(taxable26)} with a ${usd0(sd26)} standard deduction; in 2027 it is ${usd2(taxable27)} with ${usd0(sd27)}${projected ? ' (projected)' : ''}. Run through each year's brackets and split across 26 paychecks, that is ${usd2(ex.dec.federal)} in December and ${usd2(ex.jan.federal)} in January.</li>` +
       '</ul>' +
       '<div class="jp-wrap"><table class="jp-table"><caption class="sr-only">Worked example: December 2026 and January 2027 paychecks</caption>' +
       '<thead><tr><th scope="col">Line</th><th scope="col" class="jp-n">December 2026</th><th scope="col" class="jp-n">January 2027</th><th scope="col" class="jp-n">Change</th></tr></thead>' +

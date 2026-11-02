@@ -46,7 +46,10 @@ const DEC_PAY_DATE = '2026-12-31';
 const JAN_PAY_DATE = '2027-01-15';
 
 /** The order the "what changed" chain swaps things in. */
-export const CAUSE_ORDER = ['socialSecurity', 'retirement', 'premium', 'federalTables', 'stateTables'];
+// The Social Security reset goes LAST, so it is measured with January's own 401(k),
+// premium and tables in place: its amount is then exactly January's Social Security
+// line (plus any extra-Medicare reset), which is the number a reader sees on the table.
+export const CAUSE_ORDER = ['retirement', 'premium', 'federalTables', 'stateTables', 'socialSecurity'];
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 const num = (v, d = 0) => {
@@ -282,11 +285,11 @@ export function compareDecJan(input, ctx) {
     { key: null, k401Pct: input.k401Pct2026, premium: input.premium2026, federal: ctx.federal2026, state: ctx.state2026, ssMode: 'dec' },
   ];
   const swap = (key, patch) => steps.push({ ...steps[steps.length - 1], key, ...patch });
-  swap('socialSecurity', { ssMode: 'jan' });
   swap('retirement', { k401Pct: input.k401Pct2027 });
   swap('premium', { premium: input.premium2027 });
   swap('federalTables', { federal: ctx.federal2027 });
   swap('stateTables', { state: ctx.state2027 });
+  swap('socialSecurity', { ssMode: 'jan' });
 
   const runs = steps.map((st) => paycheckLines({ ...base, ...st }));
   const LINE_KEYS = ['retirement', 'premium', 'federal', 'socialSecurity', 'medicare', 'state', 'statePrograms'];
@@ -303,6 +306,7 @@ export function compareDecJan(input, ctx) {
   const dec = runs[0];
   const jan = runs[runs.length - 1];
   const change = round2(jan.net - dec.net);
+  for (const c of causes) { c.dec = dec; c.jan = jan; }
   // Biggest effect on take-home pay first; ties keep the chain order.
   const ranked = causes
     .map((c, i) => ({ ...c, order: i }))
@@ -347,12 +351,13 @@ export function describeCause(c, info) {
           `You had not reached the ${usd0(before.ss.wageBase)} Social Security limit before December, so you paid the full 6.2% in December and you pay it again in January.`);
       }
       const parts = [];
-      if (before.ss.capHitBefore) {
-        parts.push(`You passed the ${usd0(before.ss.wageBase)} Social Security limit before December, so your December paycheck had no Social Security tax.`);
-      } else if (before.ss.capHitOnThisCheck) {
-        parts.push(`You reached the ${usd0(before.ss.wageBase)} Social Security limit on your December paycheck, so it had only ${usdAbs(before.socialSecurity)} of Social Security tax.`);
+      const dec = c.dec || before, jan = c.jan || after;
+      if (dec.ss.capHitBefore) {
+        parts.push(`You passed the ${usd0(dec.ss.wageBase)} Social Security limit before December, so your December paycheck had no Social Security tax.`);
+      } else if (dec.ss.capHitOnThisCheck) {
+        parts.push(`You reached the ${usd0(dec.ss.wageBase)} Social Security limit on your December paycheck, so it had only ${usdAbs(dec.socialSecurity)} of Social Security tax.`);
       }
-      if (L.socialSecurity) parts.push(`On January 1 the count starts again at $0, so the 6.2% comes back: ${usdAbs(after.socialSecurity)} on your first 2027 paycheck. The 2027 limit is ${usd0(after.ss.wageBase)}.`);
+      if (L.socialSecurity) parts.push(`On January 1 the count starts again at $0, so the 6.2% comes back: ${usdAbs(jan.socialSecurity)} on your first 2027 paycheck. The 2027 limit is ${usd0(jan.ss.wageBase)}.`);
       if (L.medicare) parts.push(L.medicare < 0
         ? `The extra 0.9% Medicare tax on pay over $200,000 also starts counting from $0 again, so it stops for now: ${usdAbs(L.medicare)} less.`
         : `The extra 0.9% Medicare tax on pay over $200,000 starts again in January: ${usdAbs(L.medicare)} more.`);
@@ -381,16 +386,16 @@ export function describeCause(c, info) {
       if (!changed) return out('Federal tax tables: no change on your pay',
         `Your federal income tax comes out the same under the 2027 tables.${est}`);
       return out('New federal tax tables',
-        `The 2027 tax brackets and standard deduction are higher, to keep up with prices, so federal income tax on each paycheck goes from ${usdAbs(before.federal)} to ${usdAbs(after.federal)}.${est}`);
+        `The 2027 tax brackets and standard deduction are ${c.delta > 0 ? 'higher, to keep up with prices' : 'different'}, so federal income tax on each paycheck is ${usdAbs(L.federal || 0)} ${(L.federal || 0) < 0 ? 'lower' : 'higher'} than the 2026 tables would take.${est}`);
     }
     case 'stateTables': {
       if (!info.stateHasIncomeTax) return out('State tax: no change', `${info.stateName} has no income tax on wages.`);
-      if (info.stateBasis === 'tables2026') return out('State tax tables: not out yet',
-        `${info.stateName} has not published its 2027 tax tables, so we use its 2026 ones for January too. Any change in your state tax comes from your 401(k) or health insurance, not from new state rules.`);
+      if (info.stateBasis === 'tables2026') return out('State tax tables: 2026 ones used',
+        `We use ${info.stateName}'s 2026 tax tables for January too, until its 2027 tables are in our data. Any change in your state tax above comes from your 401(k) or health insurance, not from new state rules.`);
       if (!changed) return out('State tax tables: no change on your pay',
         `Your ${info.stateName} income tax comes out the same under its 2027 rules.`);
       return out(`New ${info.stateName} tax rules`,
-        `${info.stateOverrideWhat ? info.stateOverrideWhat + ' ' : ''}State income tax on each paycheck goes from ${usdAbs(before.state)} to ${usdAbs(after.state)}.`);
+        `${info.stateOverrideWhat ? info.stateOverrideWhat + ' ' : ''}State income tax on each paycheck is ${usdAbs(L.state || 0)} ${(L.state || 0) < 0 ? 'lower' : 'higher'} than the 2026 rules would take.`);
     }
     default:
       return out(String(c.key), '');

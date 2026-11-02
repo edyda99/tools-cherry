@@ -169,7 +169,7 @@ const ctxFor = (slug) => ({
   is('premium: line +60', pr.lines.premium, 60);
   ok('premium: lowers Social Security and Medicare too', pr.lines.socialSecurity < 0 && pr.lines.medicare < 0);
   is('premium ranks first', r.causes[0].key, 'premium');
-  is('chain order exported', CAUSE_ORDER.join(), 'socialSecurity,retirement,premium,federalTables,stateTables');
+  is('chain order exported', CAUSE_ORDER.join(), 'retirement,premium,federalTables,stateTables,socialSecurity');
 }
 
 // --- Virginia's 2027 deduction shows up as a state-table cause ------------------
@@ -179,6 +179,20 @@ const ctxFor = (slug) => ({
   const r = compareDecJan(input, ctxFor('virginia'));
   // 450 more deduction x 5.75% = 25.875 a year / 12 = 2.16 less a month.
   is('Virginia: state-table cause', r.causes.find((c) => c.key === 'stateTables').lines.state, -2.16);
+}
+
+// --- the page's worked example: the Social Security cause equals the table line --
+// $200,000 biweekly single Texas, 401(k) 6% both years, premium 150 -> 165, YTD blank.
+// January SS = 6.2% x (7,692.31 - 165) = 6.2% x 7,527.31 = 466.69. Because the reset is
+// measured last, its amount is exactly that line, not 6.2% of December's premium.
+{
+  const r = compareDecJan({ salary: 200000, payFrequency: 'biweekly', filingStatus: 'single', stateSlug: 'texas',
+    k401Pct2026: 6, k401Pct2027: 6, premium2026: 150, premium2027: 165, ytd2026: null }, ctxFor('texas'));
+  const ssc = r.causes.find((c) => c.key === 'socialSecurity');
+  is('example: January SS', r.jan.socialSecurity, 466.69);
+  is('example: SS cause = -January SS line', ssc.delta, -466.69);
+  is('example: assumed YTD = 25 x (7,692.31 - 150)', r.ytd, 188557.75);
+  ok('example: causes sum to the change', Math.abs(r.causes.reduce((s, c) => s + c.delta, 0) - r.change) < 0.005);
 }
 
 // --- guards ------------------------------------------------------------------------
