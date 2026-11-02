@@ -678,6 +678,17 @@ select.otw-in { appearance: none; -webkit-appearance: none; padding-right: 38px;
   border: 1px solid var(--border-strong); border-radius: var(--radius-pill); }
 .otw-chips button:hover { border-color: var(--accent); }
 
+/* The optional local income tax box on the state paycheck answer card. Scoped to
+   the paycheck calculator's own wrapper (#paycheckWizard): styles.css serves every
+   page, and these selectors must not reach any other one. */
+#paycheckWizard .otw-local { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+#paycheckWizard .otw-local-q { margin: 0; font-size: 15px; font-weight: 600; }
+#paycheckWizard .otw-local-opt { font-weight: 400; color: var(--muted); }
+#paycheckWizard .otw-pct { position: relative; max-width: 10em; margin-top: 10px; }
+#paycheckWizard .otw-pct::after { content: "%"; position: absolute; right: 14px; top: 50%;
+  transform: translateY(-50%); font-size: 17px; color: var(--muted); pointer-events: none; }
+#paycheckWizard .otw-pct .otw-in { padding-right: 32px; }
+
 /* Filing status. Real radios rather than the prototype's plain buttons: the
    card has to work before JavaScript runs, and a <button> that only a listener
    makes meaningful would leave the no-JS reader with no way to answer at all. */
