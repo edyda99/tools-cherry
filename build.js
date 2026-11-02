@@ -1163,6 +1163,7 @@ const RELATED_OVERRIDES = {
   ],
   '/2026-tax-brackets/': [
     { name: P27_BRACKETS_NAME, path: '/2027-tax-brackets/' },
+    { name: 'Why Is My January Paycheck Different? (Dec vs Jan Calculator)', path: '/january-paycheck-change-calculator/' },
     { name: 'Bonus Tax Calculator by State', path: '/bonus-tax-calculator/' },
     { name: 'W-2 Box 1 vs Box 3 vs Box 5 Reconciliation', path: '/w2-box-1-vs-box-3-vs-box-5/' },
     { name: 'Social Security Wage Base Max-Out Date Calculator', path: '/ss-wage-base-calculator/' },
