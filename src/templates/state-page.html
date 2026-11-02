@@ -577,6 +577,7 @@
             <div class="line"><span class="lbl">Social Security</span><span id="rSS">{{ROW_SS}}</span></div>
             <div class="line"><span class="lbl">Medicare</span><span id="rMedicare">{{ROW_MEDICARE}}</span></div>
             {{STATE_TAX_ROW}}
+            {{LOCAL_TAX_ROW}}
             <div id="programLines">{{PROGRAM_LINES}}</div>
             <div class="line" id="preTaxLine" hidden><span class="lbl">Pre-tax deductions</span><span id="rPreTax">$0.00</span></div>
             <div class="line" id="postTaxLine" hidden><span class="lbl">Post-tax deductions</span><span id="rPostTax">$0.00</span></div>
@@ -586,6 +587,12 @@
               <span>Effective tax rate: <strong id="rEff">{{RATE_EFF}}</strong></span>
               <span>Take-home: <strong id="rTake">{{RATE_TAKE}}</strong></span>
             </div>
+
+            <!-- The optional local income tax (city, county or school district). Only
+                 on the states listed in src/data/local-wage-tax-2026.json; empty
+                 everywhere else. Blank means 0%, so the figures above are unchanged
+                 until the visitor enters a rate. -->
+            {{LOCAL_TAX_BOX}}
 
             <!-- WHAT HAPPENS TO TIPS THAT ARE ON TOP OF THE PAY. Filled by
                  app.js from the same three engines the rows above it come from

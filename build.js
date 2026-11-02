@@ -1745,6 +1745,74 @@ const NOINDEX_TOOLS = new Set([
 // this build works to avoid. Every URL was fetched and content-checked when added.
 let TOOL_SOURCES = {};
 
+// The optional local income tax input on the state paycheck pages
+// (src/data/local-wage-tax-2026.json). Only the states listed there get the input,
+// its example-rate chips and the hidden "Local income tax" row; every other state
+// page is byte-for-byte what it was. Loaded in main().
+let LOCAL_WAGE_TAX = {};
+const localTaxEntry = (slug) => (LOCAL_WAGE_TAX && LOCAL_WAGE_TAX[slug]) || null;
+
+// "3.735" -> "3.735%", 1 -> "1%". Presets are written in percent in the data file.
+const localPctText = (n) => `${+Number(n).toFixed(3)}%`;
+const escAttrLocal = (s) => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// The results-table row. Ships hidden and at $0.00, exactly what app.js's first
+// render writes for a blank rate, so hydration changes nothing.
+function localTaxRowHtml(state) {
+  if (!localTaxEntry(state.slug)) return '';
+  return `<div class="line" id="localLine" hidden><span class="lbl">Local income tax</span><span id="rLocal">$0.00</span></div>`;
+}
+
+// Its styles ship inline with the box, on these pages only, rather than in
+// styles.css: styles.css is content-hashed into every page's <link>, so one line
+// added there would change the HTML of all 800+ pages. Every selector is scoped to
+// the paycheck calculator's own wrapper (#paycheckWizard).
+const LOCAL_TAX_CSS = '<style>' +
+  '#paycheckWizard .otw-local{margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}' +
+  '#paycheckWizard .otw-local-q{margin:0;font-size:15px;font-weight:600}' +
+  '#paycheckWizard .otw-local-opt{font-weight:400;color:var(--muted)}' +
+  '#paycheckWizard .otw-pct{position:relative;max-width:10em;margin-top:10px}' +
+  '#paycheckWizard .otw-pct::after{content:"%";position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:17px;color:var(--muted);pointer-events:none}' +
+  '#paycheckWizard .otw-pct .otw-in{padding-right:32px}' +
+  '#paycheckWizard .otw-local-flag{margin:8px 0 0;font-size:14px;color:var(--text)}' +
+  '#paycheckWizard .otw-local-flag button{font:inherit;font-weight:600;color:var(--link);background:none;border:0;padding:0;text-decoration:underline;cursor:pointer}' +
+  '</style>';
+
+// The input itself, on the answer card under the results table. Blank by default
+// (0%), so the figure above it is unchanged until the visitor types a rate or taps
+// one of the sourced examples. The chips are wizard-core [data-otw-fill] buttons
+// (hidden without JavaScript, like every other chip row); the field, the hint and
+// the source links work without it.
+function localTaxBoxHtml(state) {
+  const e = localTaxEntry(state.slug);
+  if (!e) return '';
+  const chips = (e.presets || []).map((pr) =>
+    `<button type="button" data-otw-fill="localTaxRate" data-otw-value="${escAttrLocal(pr.rate)}">` +
+    `${escHtml(pr.label)} &rarr; ${escHtml(localPctText(pr.rate))}</button>`).join('');
+  const seen = new Set();
+  const srcLinks = (e.presets || []).filter((pr) => {
+    if (!pr.url || seen.has(pr.url)) return false;
+    seen.add(pr.url);
+    return true;
+  }).map((pr) => `<a href="${escAttrLocal(pr.url)}" rel="noopener" target="_blank">${escHtml(pr.source)}</a>`);
+  const lookup = e.lookup
+    ? ` <a href="${escAttrLocal(e.lookup.url)}" rel="noopener" target="_blank">${escHtml(e.lookup.label)}</a>.`
+    : '';
+  return LOCAL_TAX_CSS + `<div class="otw-local" id="localTaxBox">` +
+    `<p class="otw-local-q"><label for="localTaxRate">Local income tax <span class="otw-local-opt">(optional)</span></label></p>` +
+    `<p class="otw-note" id="localTaxHint">${escHtml(e.hint)}</p>` +
+    `<div class="otw-pct"><input id="localTaxRate" class="otw-in otw-in-sm" type="text" inputmode="decimal" autocomplete="off" value="" placeholder="0" aria-describedby="localTaxHint"` +
+    (e.base === 'stateTaxable' ? ` data-local-base="stateTaxable"` : '') + `></div>` +
+    // Filled by app.js only when the typed rate is not a plausible local rate (over 10%).
+    `<p class="otw-local-flag" data-otw-slot="localNote" role="status" hidden></p>` +
+    (chips ? `<div class="otw-chips" role="group" aria-label="Example local rates">${chips}</div>` : '') +
+    `<p class="otw-note">` +
+    (srcLinks.length ? `Example rates from ${srcLinks.join(', ')}.` : '') +
+    lookup + `</p>` +
+    `</div>`;
+}
+
 // The date we last checked the tax figures against their primary sources, read from
 // tax-data-2026.json's _meta.lastSourced once the file loads. It exists because the
 // bonus-page sources block used to hard-code "verified 2026-06-16" as a string
@@ -2709,6 +2777,8 @@ function statePanel(state, taxData, net75) {
     ROW_MEDICARE: APP_MINUS + usd2App(p.medicare),
     ROW_NET: usd2App(p.net),
     STATE_TAX_ROW: stateTaxRow,
+    LOCAL_TAX_ROW: localTaxRowHtml(state),
+    LOCAL_TAX_BOX: localTaxBoxHtml(state),
     PROGRAM_LINES: programLines,
     RATE_MARGINAL: ratePctApp(bb.marginalRate),
     RATE_EFF: pctApp(a.effectiveRate),
@@ -2756,6 +2826,11 @@ function statePanel(state, taxData, net75) {
     // the served figure is never read, but it still has to be the true one.
     rPreTax: { expect: usd2App(p.preTax) },
     rPostTax: { expect: usd2App(p.postTax) },
+    // The local income tax row: only on the states that offer the input, and $0.00
+    // there because the rate field ships blank.
+    rLocal: localTaxEntry(state.slug)
+      ? { expect: usd2App(0) }
+      : { absent: `${state.name} offers no local income tax input, so no such row is served` },
     // syncAdvancedQuestions() writes usd(0) here before the first render.
     depCredit: { expect: usdApp(0) },
     // renderCompare() clears this until a state is picked, and populateCompare()
@@ -3038,6 +3113,11 @@ const BASELINE_DISCLAIMER =
   'City, county or school-district income taxes where they apply, court-ordered deductions, ' +
   'union dues, and anything else your specific employer withholds are not in this figure; ' +
   'your pay stub is the authority on those.';
+// The same note on a page that offers the local income tax input.
+const BASELINE_DISCLAIMER_LOCAL =
+  'Court-ordered deductions, union dues, and anything else your specific employer withholds are ' +
+  'not in this figure, and a local income tax is in it only if you enter your rate; ' +
+  'your pay stub is the authority on those.';
 
 // The no-income-tax pages need one extra line: "no income tax" is routinely
 // misread as "nothing comes out for the state". WHICH line is a function of the
@@ -3179,8 +3259,26 @@ function grossPayHelp(state) {
 // sourced sentences stay first and unchanged; the baseline sentence is appended
 // to every state, and the no-income-tax line only to the nine that need it.
 function stateDisclaimerNote(state, noTax) {
-  const disclaimers = (state.disclaimer || []).slice();
-  disclaimers.push(BASELINE_DISCLAIMER);
+  let disclaimers = (state.disclaimer || []).slice();
+  const local = localTaxEntry(state.slug);
+  if (local) {
+    // This page HAS the local input, so the sentences saying local tax "is not
+    // included" are no longer true as written. Swap them, at the position of the
+    // first one, for the state's own sentence saying how to include it. The ladder
+    // pages, which have no input, keep the original sentences (stateDisclaimerItems).
+    const starts = local.replacesDisclaimer || [];
+    const hits = disclaimers.map((d, i) => (starts.some((st) => String(d).startsWith(st)) ? i : -1)).filter((i) => i >= 0);
+    if (hits.length !== starts.length) {
+      throw new Error(
+        `local-wage-tax-2026.json: ${state.slug} lists ${starts.length} disclaimer(s) to replace but ` +
+        `${hits.length} matched tax-data-2026.json. A "not included" sentence would survive next to the input.`
+      );
+    }
+    const at = hits.length ? hits[0] : 0;
+    disclaimers = disclaimers.filter((_, i) => !hits.includes(i));
+    disclaimers.splice(at, 0, local.disclaimer);
+  }
+  disclaimers.push(local ? BASELINE_DISCLAIMER_LOCAL : BASELINE_DISCLAIMER);
   if (noTax) disclaimers.push(notaxDisclaimer(state, withholdingProfile(state)));
   return `<p class="note"><strong>What this estimate doesn't include:</strong> ` +
     disclaimers.join(' ') + `</p>`;
@@ -3544,7 +3642,12 @@ function stateUniqueFaq(state, p, year) {
   if (lt && lt.exists && lt.notes) {
     return {
       q: `Do cities or counties in ${state.name} take a local income tax out of paychecks?`,
-      a: String(lt.notes)
+      // Each state's own sentence (local-wage-tax-2026.json faqSuffix): a generic "enter
+      // your rate" after New York's notes would point at the NYC and Yonkers-resident taxes,
+      // which the input cannot take.
+      a: String(lt.notes) + (localTaxEntry(state.slug) && localTaxEntry(state.slug).faqSuffix
+        ? ' ' + localTaxEntry(state.slug).faqSuffix
+        : '')
     };
   }
   const pc = (p && p.payrollContributions) || [];
@@ -7852,9 +7955,15 @@ function stateDisclaimerItems(state, year) {
       && t.includes(String(year))
       && /\bpublish(ed|es)?\b/i.test(t);
   };
-  return (state.disclaimer || [])
+  const items = (state.disclaimer || [])
     .filter((d) => !isBannerEcho(d))
     .map((n) => `<li>${esc(String(n))}</li>`);
+  // This page has no input for a local income tax; the state's paycheck calculator does.
+  if (localTaxEntry(state.slug)) {
+    items.push(`<li>To include your local income tax, enter its rate in the ` +
+      `<a href="/${state.slug}-paycheck-calculator/">${esc(state.name)} paycheck calculator</a>.</li>`);
+  }
+  return items;
 }
 
 // The state income-tax section of a rung page: heading, intro, table, note.
@@ -8327,6 +8436,7 @@ async function main() {
   LAST_SOURCED = (taxData._meta && taxData._meta.lastSourced) || '';
   const roster = await readJSON(join(SRC, 'data', 'states.json'));
   TOOL_SOURCES = await readJSON(join(SRC, 'data', 'tool-sources.json'));
+  LOCAL_WAGE_TAX = ((await readJSON(join(SRC, 'data', 'local-wage-tax-2026.json'))) || {}).states || {};
   const payrollData = await readJSON(join(SRC, 'data', 'state-payroll-2026.json'));
   const payroll = (payrollData && payrollData.states) || {};
   const stateTpl = await read(join(SRC, 'templates', 'state-page.html'));

@@ -180,6 +180,52 @@ const countValue = (id) => {
 
 // Dollar credit derived from the two dependent counts. Falls back to a plain
 // dollar field if a page still ships one instead of the counts.
+// The optional local income tax, typed as a PERCENT of pay ("1", "1.25", "3.735%")
+// and handed to the engine as a fraction. Only the paycheck pages of states that
+// have local wage taxes ship the #localTaxRate field; everywhere else this is 0,
+// which is exactly the figure every page computed before the field existed.
+// The highest local rate anyone can mean, in percent. Over it the figure is a slip
+// (32 for 3.2), so it is NOT counted and localTaxNote() says so, rather than being
+// quietly cut down to something the visitor never typed.
+const LOCAL_RATE_PLAUSIBLE_MAX = 10;
+
+// The typed percent, or 0. A leading minus is 0, never its absolute value.
+function localTaxPercent() {
+  const el = $('localTaxRate');
+  if (!el) return 0;
+  const raw = String(el.value).trim();
+  if (raw.startsWith('-') || raw.startsWith('−')) return 0;
+  const v = parseFloat(raw.replace(/,/g, '.').replace(/[^0-9.]/g, ''));
+  return Number.isFinite(v) && v > 0 ? v : 0;
+}
+
+function localTaxRateValue() {
+  const v = localTaxPercent();
+  return v > 0 && v <= LOCAL_RATE_PLAUSIBLE_MAX ? v / 100 : 0;
+}
+
+// What the local rate is charged on, as build.js tells this page (data-local-base).
+function localTaxBaseValue() {
+  const el = $('localTaxRate');
+  return el && el.dataset && el.dataset.localBase === 'stateTaxable' ? 'stateTaxable' : 'wages';
+}
+
+// The one-line note under the field when the typed rate is implausible. The suggestion is
+// the same digits with the decimal point moved left until it is a possible rate (32 -> 3.2,
+// 125 -> 1.25), offered as a button that fills it in.
+function localTaxNote() {
+  const note = slot('localNote');
+  if (!note) return;
+  const v = localTaxPercent();
+  if (!(v > LOCAL_RATE_PLAUSIBLE_MAX)) { note.hidden = true; note.innerHTML = ''; return; }
+  let s = v;
+  while (s > LOCAL_RATE_PLAUSIBLE_MAX) s /= 10;
+  const sug = +s.toFixed(3);
+  note.hidden = false;
+  note.innerHTML = `Local taxes are under 4%, so ${escLbl(String(v))}% is not counted. Did you mean ` +
+    `<button type="button" data-otw-fill="localTaxRate" data-otw-value="${sug}">${sug}</button>?`;
+}
+
 function dependentsCreditValue() {
   if (!$('depChildren') && !$('depOther')) return num('dependentsCredit');
   return countValue('depChildren') * CREDIT_PER_CHILD + countValue('depOther') * CREDIT_PER_OTHER;
@@ -279,7 +325,9 @@ function readForm() {
       cafeteria125: advMoney('qHealth', 'cafeteria125'),
       dependentsCredit: answeredYes('qDeps') ? dependentsCreditValue() : 0,
       extraWithholding: advMoney('qExtra', 'extraWithholding'),
-      postTax: advMoney('qPost', 'postTax')
+      postTax: advMoney('qPost', 'postTax'),
+      localTaxRate: localTaxRateValue(),
+      localTaxBase: localTaxBaseValue()
     }
   };
 }
@@ -2019,6 +2067,18 @@ function render() {
   $('postTaxLine').hidden = !postTaxOn;
   $('postTaxLine').style.display = postTaxOn ? '' : 'none';
   $('rPostTax').textContent = postTaxOn ? '−' + usd2(p.postTax) : usd2(p.postTax);
+  // The local income tax row. Only the pages of states with local wage taxes ship
+  // it (build.js serves no row anywhere else), so every use is null-checked. Same
+  // two switches as the deduction rows above, for the same reason.
+  const localLineEl = $('localLine');
+  const rLocalEl = $('rLocal');
+  const localOn = !isZero && (p.local || 0) > 0;
+  if (localLineEl) {
+    localLineEl.hidden = !localOn;
+    localLineEl.style.display = localOn ? '' : 'none';
+  }
+  if (rLocalEl) rLocalEl.textContent = localOn ? '−' + usd2(p.local) : usd2(p.local || 0);
+  localTaxNote();
 
   renderBreakdown(r, tips);
   renderTipsBlock(input, r, tips, annualView);
@@ -2115,7 +2175,12 @@ function renderCompare() {
   const annualView = currentView() === 'annual';
   const netOf = (r) => (annualView ? r.annual.net : r.perPaycheck.net);
   const here = computePaycheck({ ...input, stateSlug }, fullData);
-  const there = computePaycheck({ ...input, stateSlug: other }, fullData);
+  // A local rate belongs to a place in THIS state, so the other state is worked out
+  // without it. The note below says so whenever one was entered.
+  const there = computePaycheck({ ...input, stateSlug: other, adv: { ...input.adv, localTaxRate: 0 } }, fullData);
+  const localNote = here.annual.local > 0
+    ? `<p class="cmp-delta">The local tax you entered is counted for ${fullData.states[stateSlug].name} only.</p>`
+    : '';
   const hereNet = netOf(here), thereNet = netOf(there);
   const diff = thereNet - hereNet;
   const hereName = fullData.states[stateSlug].name, otherName = fullData.states[other].name;
@@ -2131,7 +2196,8 @@ function renderCompare() {
     `<div class="cmp-row"><span>${otherName}${fyTag(other)}</span><strong>${usd2(thereNet)}</strong></div>` +
     (diff === 0
       ? `<p class="cmp-delta">Same take-home in both states for these inputs.</p>`
-      : `<p class="cmp-delta">${otherName} take-home is <strong>${usd2(Math.abs(diff))}${per}</strong> ${verb} ${hereName}.</p>`);
+      : `<p class="cmp-delta">${otherName} take-home is <strong>${usd2(Math.abs(diff))}${per}</strong> ${verb} ${hereName}.</p>`) +
+    localNote;
 }
 
 function renderBrackets(bb) {
@@ -2290,6 +2356,11 @@ function init() {
   // wired by wizard-core from the card list below.
   document.querySelectorAll('input[name="view"]').forEach((el) =>
     el.addEventListener('change', render));
+  // The local income tax field lives on the answer card too, outside the flow's
+  // question set, so it is wired here the same way. Its example-rate chips are
+  // wizard-core [data-otw-fill] buttons, which fire an input event on it.
+  const localRateEl = $('localTaxRate');
+  if (localRateEl) ['input', 'change'].forEach((evt) => localRateEl.addEventListener(evt, render));
 
   // The tips sub-question is the SECOND radio group on the tips card, and
   // wizard-core takes one per card — that slot belongs to qTips, which is the
@@ -2411,6 +2482,9 @@ function init() {
       // the next visitor's tips silently stopped moving the headline.
       const onTop = document.querySelector('input[name="tipsInside"][value="ontop"]');
       if (onTop) onTop.checked = true;
+      // Not one of the core's fields, so put back here: blank, which is 0%.
+      const localRate = $('localTaxRate');
+      if (localRate) localRate.value = '';
       otRateTouched = false;
       answerReached = false;
       payIsOurs = true;

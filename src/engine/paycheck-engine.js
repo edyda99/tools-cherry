@@ -872,8 +872,45 @@ export function stateEmployeePrograms(grossAnnual, stateData, preTaxIncome = 0) 
  * @property {number} dependentsCredit W-4 step 3 tax credits ($2,000/child etc.): cuts federal tax.
  * @property {number} extraWithholding W-4 step 4(c): flat extra federal withholding.
  * @property {number} postTax         After-tax deductions (Roth, garnishments…): cut net only.
+ * @property {number} localTaxRate    Local wage/income tax as a FRACTION (0.01 = 1%): a city,
+ *   county or school-district tax the visitor types in (Pennsylvania EIT, Ohio municipal,
+ *   Detroit, Louisville, Maryland county...). Default 0, which leaves every other figure
+ *   exactly as it was.
+ * @property {'wages'|'stateTaxable'} localTaxBase  What the local rate is charged on.
+ *   'wages' (default): gross pay less Section 125 money. 'stateTaxable': the state's own
+ *   taxable income, for the local taxes levied on it (Maryland county tax, Indiana county
+ *   tax), which come after the 401(k), the health money and the state's deduction.
  */
-const ZERO_ADV = { retirement401k: 0, cafeteria125: 0, dependentsCredit: 0, extraWithholding: 0, postTax: 0 };
+const ZERO_ADV = { retirement401k: 0, cafeteria125: 0, dependentsCredit: 0, extraWithholding: 0, postTax: 0,
+  localTaxRate: 0, localTaxBase: 'wages' };
+
+// The most any local wage tax in the country charges is well under 5% (Philadelphia's
+// resident Wage Tax is the top at under 4%), so a typed rate above this is almost certainly
+// a slip (10 for 1.0) rather than a real levy. Clamped, so one stray digit cannot wipe out
+// the whole paycheck.
+export const LOCAL_TAX_RATE_MAX = 0.1;
+
+/**
+ * Local wage tax for a year, flat on the local wage base.
+ *
+ * This is the WAGES base: gross pay minus Section 125 money (health premiums, HSA/FSA), i.e.
+ * the same wages FICA is charged on. That is how Pennsylvania EIT, Philadelphia's Wage Tax and
+ * Ohio municipal tax count wages: all three tax 401(k) deferrals. computePaycheck() uses the
+ * state's taxable income instead where the local tax is levied on that (Maryland, Indiana;
+ * `localTaxBase: 'stateTaxable'`). Michigan city tax stays on this base but excludes a
+ * 401(k), so with a retirement deferral it runs a little high there; the page's hint says so.
+ * EXPORTED for the tests and for any page that wants the same arithmetic.
+ * @param {number} grossAnnual
+ * @param {number} rate - fraction, 0.01 = 1%
+ * @param {number} [cafeteria125=0]
+ * @returns {number}
+ */
+export function localWageTax(grossAnnual, rate, cafeteria125 = 0) {
+  const r = Math.min(Math.max(0, Number(rate) || 0), LOCAL_TAX_RATE_MAX);
+  if (r === 0) return 0;
+  const base = Math.max(0, Math.max(0, grossAnnual) - Math.max(0, cafeteria125 || 0));
+  return base * r;
+}
 
 /**
  * Full paycheck computation.
@@ -907,6 +944,8 @@ export function computePaycheck({ wage, filingStatus, payFrequency, stateSlug, a
   const dependentsCredit = Math.max(0, a.dependentsCredit);
   const extraWithholding = Math.max(0, a.extraWithholding);
   const postTax = Math.max(0, a.postTax);
+  const localTaxRate = Math.min(Math.max(0, Number(a.localTaxRate) || 0), LOCAL_TAX_RATE_MAX);
+  const localTaxBase = a.localTaxBase === 'stateTaxable' ? 'stateTaxable' : 'wages';
 
   const preTaxIncome = retirement401k + cafeteria125;   // reduces income-tax base (fed + state)
   const preTaxFica = cafeteria125;                       // only cafeteria reduces FICA wages
@@ -942,7 +981,18 @@ export function computePaycheck({ wage, filingStatus, payFrequency, stateSlug, a
   const programs = stateEmployeePrograms(grossAnnual, stateData, preTaxIncome);
   const statePrograms = programs.reduce((s, p) => s + p.annual, 0);
 
-  const totalTax = federal + fica.total + state;
+  // Local wage tax: a city, county or school-district tax the visitor typed in. It changes
+  // nothing else (no state or federal figure reads it), and it is part of totalTax, so the
+  // effective rate and the take-home share both include it. Zero by default.
+  // On the state's own taxable income where the local tax is levied on it (Maryland, Indiana):
+  // the same pre-tax money the state side subtracts and the state's deduction for this
+  // filing status, so the 401(k), the health money and the exemption all come off first.
+  const local = localTaxBase === 'stateTaxable'
+    ? localTaxRate * stateTaxableIncome(grossAnnual, filingStatus, stateData,
+      statePreTax(stateData, preTaxIncome, retirement401k)).taxable
+    : localWageTax(grossAnnual, localTaxRate, cafeteria125);
+
+  const totalTax = federal + fica.total + state + local;
   const preTaxDeductions = preTaxIncome;                 // 401k + cafeteria leave the paycheck too
   const netAnnual = Math.max(0, grossAnnual - totalTax - preTaxDeductions - postTax - statePrograms);
 
@@ -955,6 +1005,8 @@ export function computePaycheck({ wage, filingStatus, payFrequency, stateSlug, a
     socialSecurity: fica.socialSecurity,
     medicare: fica.medicare + fica.additionalMedicare,
     state,
+    local,
+    localTaxRate,
     statePrograms,
     programs: programs.map((p) => ({ label: p.label, rate: p.rate, amount: p.annual })),
     preTax: preTaxDeductions,
@@ -971,6 +1023,7 @@ export function computePaycheck({ wage, filingStatus, payFrequency, stateSlug, a
     socialSecurity: perPeriod(annual.socialSecurity),
     medicare: perPeriod(annual.medicare),
     state: perPeriod(annual.state),
+    local: perPeriod(local),
     statePrograms: perPeriod(statePrograms),
     programs: programs.map((p) => ({ label: p.label, rate: p.rate, amount: perPeriod(p.annual) })),
     preTax: perPeriod(annual.preTax),

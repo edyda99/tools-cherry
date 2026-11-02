@@ -9,7 +9,9 @@ import {
   annualizeGross,
   computePaycheck,
   federalBracketBreakdown,
-  statePreTax
+  statePreTax,
+  localWageTax,
+  LOCAL_TAX_RATE_MAX
 } from '../src/engine/paycheck-engine.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -292,6 +294,83 @@ t('bracketBreakdown: zero taxable -> first-band marginal, no tax', () => {
   const bb = federalBracketBreakdown(5000, 'single', taxData.federal); // below std deduction
   assert.equal(bb.taxable, 0);
   approx(bb.bands.reduce((s, b) => s + b.tax, 0), 0, 0.001);
+});
+
+// --- local wage tax (optional, typed by the visitor) -------------------------
+const pa60 = (adv) => computePaycheck({ wage: { type: 'salary', amount: 60000 }, filingStatus: 'single',
+  payFrequency: 'biweekly', stateSlug: 'pennsylvania', adv }, taxData);
+
+t('local tax: 0, blank or missing leaves every figure unchanged', () => {
+  const base = pa60();
+  for (const adv of [undefined, {}, { localTaxRate: 0 }, { localTaxRate: '' }, { localTaxRate: NaN }, { localTaxRate: -0.01 }]) {
+    const r = pa60(adv);
+    assert.equal(r.annual.net, base.annual.net);
+    assert.equal(r.annual.totalTax, base.annual.totalTax);
+    assert.equal(r.annual.local, 0);
+    assert.equal(r.perPaycheck.net, base.perPaycheck.net);
+  }
+});
+
+t('local tax: PA $60,000 at 1% (Act 32 EIT) is $600/yr less take-home', () => {
+  const base = pa60();
+  const r = pa60({ localTaxRate: 0.01 });
+  approx(r.annual.local, 600, 0.001);
+  approx(base.annual.net - r.annual.net, 600, 0.001);
+  approx(r.annual.totalTax - base.annual.totalTax, 600, 0.001);
+  // nothing else moves
+  assert.equal(r.annual.federal, base.annual.federal);
+  assert.equal(r.annual.state, base.annual.state);
+  assert.equal(r.annual.socialSecurity, base.annual.socialSecurity);
+  // per paycheck: 600 / 26
+  approx(r.perPaycheck.local, 600 / 26, 0.0001);
+  approx(base.perPaycheck.net - r.perPaycheck.net, 600 / 26, 0.0001);
+});
+
+t('local tax: Philadelphia resident Wage Tax 3.735% on $60,000', () => {
+  const base = pa60();
+  const r = pa60({ localTaxRate: 0.03735 });
+  approx(r.annual.local, 2241, 0.001);
+  approx(base.annual.net - r.annual.net, 2241, 0.001);
+  // and the rounded 3.74% some payroll guides quote
+  approx(pa60({ localTaxRate: 0.0374 }).annual.local, 2244, 0.001);
+});
+
+t('local tax: charged on wages after Section 125, not after a 401(k)', () => {
+  approx(localWageTax(60000, 0.01, 5000), 550, 0.001);
+  const r = pa60({ localTaxRate: 0.01, retirement401k: 6000, cafeteria125: 2000 });
+  approx(r.annual.local, 580, 0.001);
+});
+
+t('local tax: Maryland county tax is on Maryland taxable income, $60,000 single at 3.2%', () => {
+  const md = (adv) => computePaycheck({ wage: { type: 'salary', amount: 60000 }, filingStatus: 'single',
+    payFrequency: 'biweekly', stateSlug: 'maryland', adv }, taxData);
+  const base = md();
+  const r = md({ localTaxRate: 0.032, localTaxBase: 'stateTaxable' });
+  // 60,000 - 3,350 Maryland standard deduction = 56,650 x 3.2%
+  approx(r.annual.local, 56650 * 0.032, 0.001);
+  approx(base.annual.net - r.annual.net, 1812.8, 0.001);
+  // with a 6% 401(k): 60,000 - 3,600 - 3,350 = 53,050 x 3.2%
+  const k = md({ localTaxRate: 0.032, localTaxBase: 'stateTaxable', retirement401k: 3600 });
+  approx(k.annual.local, 53050 * 0.032, 0.001);
+  // the wages base would have charged the full 60,000
+  approx(md({ localTaxRate: 0.032 }).annual.local, 1920, 0.001);
+  assert.equal(r.annual.state, base.annual.state);
+});
+
+t('local tax: Indiana county tax (Marion 2.02%) is after the $1,000 exemption', () => {
+  const ind = (adv) => computePaycheck({ wage: { type: 'salary', amount: 60000 }, filingStatus: 'single',
+    payFrequency: 'biweekly', stateSlug: 'indiana', adv }, taxData);
+  const r = ind({ localTaxRate: 0.0202, localTaxBase: 'stateTaxable' });
+  approx(r.annual.local, 59000 * 0.0202, 0.001);
+  approx(ind().annual.net - r.annual.net, 1191.8, 0.001);
+  approx(ind({ localTaxRate: 0.0202, localTaxBase: 'stateTaxable', retirement401k: 3600 }).annual.local, 55400 * 0.0202, 0.001);
+});
+
+t('local tax: a mistyped rate is clamped, not allowed to wipe out the check', () => {
+  approx(localWageTax(60000, 1), 60000 * LOCAL_TAX_RATE_MAX, 0.001);
+  const r = pa60({ localTaxRate: 5 });
+  approx(r.annual.local, 60000 * LOCAL_TAX_RATE_MAX, 0.001);
+  assert.ok(r.annual.net > 0);
 });
 
 console.log(`\n${pass} passing`);
