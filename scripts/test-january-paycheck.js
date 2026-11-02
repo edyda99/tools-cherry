@@ -8,7 +8,7 @@
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { compareDecJan, federal2027, state2027, paycheckLines, defaultYtd, CAUSE_ORDER } from '../src/engine/january-paycheck.js';
+import { compareDecJan, federal2027, state2027, paycheckLines, defaultYtd, CAUSE_ORDER, describeCause, signedUsd } from '../src/engine/january-paycheck.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const readJSON = (p) => JSON.parse(readFileSync(join(ROOT, p), 'utf8'));
@@ -169,7 +169,7 @@ const ctxFor = (slug) => ({
   is('premium: line +60', pr.lines.premium, 60);
   ok('premium: lowers Social Security and Medicare too', pr.lines.socialSecurity < 0 && pr.lines.medicare < 0);
   is('premium ranks first', r.causes[0].key, 'premium');
-  is('chain order exported', CAUSE_ORDER.join(), 'retirement,premium,federalTables,stateTables,socialSecurity');
+  is('chain order exported', CAUSE_ORDER.join(), 'retirement,premium,federalTables,stateTables,socialSecurity,statePrograms');
 }
 
 // --- Virginia's 2027 deduction shows up as a state-table cause ------------------
@@ -193,6 +193,74 @@ const ctxFor = (slug) => ({
   is('example: SS cause = -January SS line', ssc.delta, -466.69);
   is('example: assumed YTD = 25 x (7,692.31 - 150)', r.ytd, 188557.75);
   ok('example: causes sum to the change', Math.abs(r.causes.reduce((s, c) => s + c.delta, 0) - r.change) < 0.005);
+}
+
+// --- capped state payroll programs reset in January -------------------------------
+const sumsTo = (r) => Math.abs(r.causes.reduce((s, c) => s + c.delta, 0) - r.change) < 0.005;
+const prog = (pc, label) => pc.programs.find((p) => p.label === label).amount;
+{
+  // New York, $250,000 weekly, single, nothing else changes. Gross 250,000 / 52 = 4,807.69.
+  // NY PFL 0.432% of 4,807.69 = 20.77 a week, capped at $411.91 a year. Before the last
+  // December paycheck: 51 x 4,807.69 = 245,192.19 earned, 0.432% of that is far past
+  // 411.91, so December's PFL is $0 and January's is 20.77. NY DBL is a weekly cap
+  // (0.5%, at most $0.60 a week) and is $0.60 both weeks.
+  const input = { salary: 250000, payFrequency: 'weekly', filingStatus: 'single', stateSlug: 'new-york',
+    k401Pct2026: 0, k401Pct2027: 0, premium2026: 0, premium2027: 0, ytd2026: null };
+  const r = compareDecJan(input, { ...ctxFor('new-york'), federal2027: { ...tax.federal } });
+  is('NY: December PFL is $0', prog(r.dec, 'NY PFL'), 0);
+  is('NY: January PFL', prog(r.jan, 'NY PFL'), 20.77);
+  is('NY: DBL same both weeks (Dec)', prog(r.dec, 'NY DBL'), 0.6);
+  is('NY: DBL same both weeks (Jan)', prog(r.jan, 'NY DBL'), 0.6);
+  is('NY: December programs line', r.dec.statePrograms, 0.6);
+  is('NY: January programs line', r.jan.statePrograms, 21.37);
+  const c = r.causes.find((x) => x.key === 'statePrograms');
+  is('NY: program-reset cause', c.delta, -20.77);
+  ok('NY: reasons sum to the total', sumsTo(r));
+  const d = describeCause(c, { input, fedMode: 'official', stateName: 'New York', stateHasIncomeTax: true, stateBasis: 'tables2026' });
+  is('NY: cause title', d.title, 'State payroll program limits reset');
+  ok('NY: names the program', d.text.includes('NY PFL') && d.text.includes('$20.77'));
+}
+{
+  // New Jersey, $60,000 biweekly, single. Gross 2,307.69. UI 0.3825% (8.83) + WF 0.0425%
+  // (0.98) = 9.81, both stopping at $44,800 of wages; 25 x 2,307.69 = 57,692.25 is past
+  // that, so December has $0 of them. TDI (0.19%, 4.38) and FLI (0.23%, 5.31) stop at
+  // $171,100 and are still being charged in December.
+  const input = { salary: 60000, payFrequency: 'biweekly', filingStatus: 'single', stateSlug: 'new-jersey',
+    k401Pct2026: 0, k401Pct2027: 0, premium2026: 0, premium2027: 0, ytd2026: null };
+  const r = compareDecJan(input, { ...ctxFor('new-jersey'), federal2027: { ...tax.federal } });
+  is('NJ: December UI', prog(r.dec, 'NJ UI'), 0);
+  is('NJ: January UI', prog(r.jan, 'NJ UI'), 8.83);
+  is('NJ: January WF', prog(r.jan, 'NJ WF/SWF'), 0.98);
+  is('NJ: TDI unchanged', prog(r.dec, 'NJ TDI'), prog(r.jan, 'NJ TDI'));
+  is('NJ: TDI amount', prog(r.jan, 'NJ TDI'), 4.38);
+  const c = r.causes.find((x) => x.key === 'statePrograms');
+  is('NJ: UI + WF reset = 9.81', c.delta, -9.81);
+  is('NJ: whole change is the reset', r.change, -9.81);
+  ok('NJ: reasons sum to the total', sumsTo(r));
+  // Crossing the $44,800 limit on the December check: 800 left -> UI 3.06, WF 0.34.
+  const p = compareDecJan({ ...input, ytd2026: 44000 }, { ...ctxFor('new-jersey'), federal2027: { ...tax.federal } });
+  is('NJ: partial December UI', prog(p.dec, 'NJ UI'), 3.06);
+  is('NJ: partial December WF', prog(p.dec, 'NJ WF/SWF'), 0.34);
+  ok('NJ partial: reasons sum to the total', sumsTo(p));
+}
+{
+  // An uncapped program (California SDI) is the same both months.
+  const r = compareDecJan({ salary: 300000, payFrequency: 'semimonthly', filingStatus: 'single', stateSlug: 'california',
+    k401Pct2026: 0, k401Pct2027: 0, ytd2026: null }, { ...ctxFor('california'), federal2027: { ...tax.federal } });
+  is('CA SDI: no program reset', r.causes.find((x) => x.key === 'statePrograms').delta, 0);
+  ok('CA: reasons sum to the total', sumsTo(r));
+}
+
+// --- input clamps and money formatting ------------------------------------------
+{
+  const base = { salary: 52000, payFrequency: 'biweekly', filingStatus: 'single', stateSlug: 'texas',
+    premium2026: 0, premium2027: 0, ytd2026: 1000 };
+  const hi = compareDecJan({ ...base, k401Pct2026: 75, k401Pct2027: 150 }, ctxFor('texas'));
+  is('401(k) % clamps to 75', hi.jan.retirement, 1500);
+  const neg = compareDecJan({ ...base, k401Pct2026: -5, k401Pct2027: 0 }, ctxFor('texas'));
+  is('401(k) % clamps to 0', neg.dec.retirement, 0);
+  is('negative money reads -$47.23', signedUsd(-47.23), '-$47.23');
+  is('positive money reads +$47.23', signedUsd(47.23), '+$47.23');
 }
 
 // --- guards ------------------------------------------------------------------------

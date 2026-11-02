@@ -49,7 +49,12 @@ const JAN_PAY_DATE = '2027-01-15';
 // The Social Security reset goes LAST, so it is measured with January's own 401(k),
 // premium and tables in place: its amount is then exactly January's Social Security
 // line (plus any extra-Medicare reset), which is the number a reader sees on the table.
-export const CAUSE_ORDER = ['retirement', 'premium', 'federalTables', 'stateTables', 'socialSecurity'];
+// State payroll programs with a yearly limit reset the same way and go after it.
+export const CAUSE_ORDER = ['retirement', 'premium', 'federalTables', 'stateTables', 'socialSecurity', 'statePrograms'];
+
+/** The highest 401(k) percentage the page accepts. Plans cap elective deferrals well
+ * below 100% of pay, and a typo of 100 would leave nothing to tax or take home. */
+export const MAX_401K_PCT = 75;
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 const num = (v, d = 0) => {
@@ -165,6 +170,42 @@ function ssOnPaycheck({ ssWages, ytd, taxYear, payFrequency, payDate, ss }) {
 }
 
 /**
+ * The state's employee payroll programs (disability, paid leave, unemployment) on
+ * ONE paycheck, given what was already paid in that year. paycheck-engine.js
+ * stateEmployeePrograms() spreads the yearly amount evenly, which is right for a
+ * year and wrong for December: a program with a wage limit (wageBase) or a yearly
+ * dollar cap (annualMax) stops once it is reached, exactly like Social Security,
+ * and starts again on January 1. A per-week cap (weeklyMax) never builds up, so it
+ * is the same on every paycheck. Same program shape as paycheck-engine.js;
+ * afterPreTax programs are charged on pay after the 401(k) and premium and have no
+ * yearly limit.
+ * @param {Array} list    stateData.employeePrograms
+ * @param {number} gross  this paycheck's gross
+ * @param {number} preTax this paycheck's 401(k) + premium
+ * @param {number} periods
+ * @param {number} ytd    program wages already paid this year at this job (0 in January)
+ * @returns {Array<{label:string, amount:number, limited:boolean}>}
+ */
+export function programsOnPaycheck(list, gross, preTax, periods, ytd) {
+  if (!Array.isArray(list)) return [];
+  return list.map((pr) => {
+    const rate = pr.rate || 0;
+    const g = pr.afterPreTax ? Math.max(0, gross - preTax) : gross;
+    const before = pr.afterPreTax ? 0 : Math.max(0, ytd);
+    let taxed = g;
+    if (pr.wageBase != null) taxed = Math.max(0, Math.min(g, pr.wageBase - before));
+    let amount = taxed * rate;
+    if (pr.annualMax != null) {
+      const paid = Math.min(rate * (pr.wageBase != null ? Math.min(before, pr.wageBase) : before), pr.annualMax);
+      amount = Math.max(0, Math.min(amount, pr.annualMax - paid));
+    } else if (pr.weeklyMax != null) {
+      amount = Math.min(amount, pr.weeklyMax * 52 / periods);
+    }
+    return { label: pr.label, amount: round2(amount), limited: pr.wageBase != null || pr.annualMax != null };
+  });
+}
+
+/**
  * Every line of one paycheck, each rounded to the cent, and take-home pay as the
  * sum of the rounded lines.
  * @param {object} s
@@ -189,7 +230,7 @@ export function paycheckLines(s) {
   if (!periods || periods === 1) throw new Error(`january-paycheck: unsupported pay frequency "${s.payFrequency}"`);
   const salary = Math.max(0, num(s.salary));
   const gross = round2(perPaycheck(salary, periods));
-  const pct = Math.min(100, Math.max(0, num(s.k401Pct)));
+  const pct = Math.min(MAX_401K_PCT, Math.max(0, num(s.k401Pct)));
   const retirement = round2(gross * pct / 100);
   // The premium cannot take more than is left after the 401(k).
   const premium = round2(Math.min(Math.max(0, num(s.premium)), Math.max(0, gross - retirement)));
@@ -217,6 +258,11 @@ export function paycheckLines(s) {
   const medicareBase = round2(ficaWages * medRate);
   const medicareExtra = round2(addlWages * addlRate);
 
+  // State payroll programs: in December they see the year's earnings so far, in
+  // January they start again from $0 (progMode, swapped on its own in the chain).
+  const progYtd = s.progMode === 'jan' ? 0 : Math.max(0, num(s.progYtd));
+  const programs = programsOnPaycheck(s.state && s.state.employeePrograms, gross, retirement + premium, periods, progYtd);
+
   const lines = {
     gross,
     retirement,
@@ -225,13 +271,14 @@ export function paycheckLines(s) {
     socialSecurity: ssr.tax,
     medicare: round2(medicareBase + medicareExtra),
     state: round2(pc.perPaycheck.state),
-    statePrograms: round2(pc.perPaycheck.statePrograms),
+    statePrograms: round2(programs.reduce((t, p) => t + p.amount, 0)),
   };
   const net = round2(lines.gross - lines.retirement - lines.premium - lines.federal - lines.socialSecurity -
     lines.medicare - lines.state - lines.statePrograms);
   return {
     ...lines, net, periods,
     medicareExtra,
+    programs,
     ss: { ...ssr, wageBase: ss.wageBase, ytd },
   };
 }
@@ -276,13 +323,19 @@ export function compareDecJan(input, ctx) {
   const ytd = ytdAssumed ? defaultYtd(input) : Math.max(0, num(input.ytd2026));
   const ss2026 = { wageBase: ctx.federal2026.fica.socialSecurity.wageBase, rate: ctx.federal2026.fica.socialSecurity.rate };
   const ss2027 = { wageBase: ctx.federal2027.fica.socialSecurity.wageBase, rate: ctx.federal2027.fica.socialSecurity.rate };
+  // State payroll programs charge on gross pay, so their year-to-date is gross pay
+  // before the last December paycheck: a full year at this salary when the question
+  // was left blank, otherwise the visitor's figure (which a health premium makes a
+  // little smaller than gross, so the limit is met a little later, never sooner).
+  const periods = PAY_PERIODS[input.payFrequency] || 26;
+  const progYtd = ytdAssumed ? round2(round2(perPaycheck(Math.max(0, num(input.salary)), periods)) * (periods - 1)) : ytd;
   const base = {
     salary: input.salary, payFrequency: input.payFrequency, filingStatus: input.filingStatus,
-    stateSlug: input.stateSlug, ytd, ss2026, ss2027, taxDataShell: ctx.taxDataShell,
+    stateSlug: input.stateSlug, ytd, progYtd, ss2026, ss2027, taxDataShell: ctx.taxDataShell,
   };
   // The chain. Each step changes one thing from the step before it.
   const steps = [
-    { key: null, k401Pct: input.k401Pct2026, premium: input.premium2026, federal: ctx.federal2026, state: ctx.state2026, ssMode: 'dec' },
+    { key: null, k401Pct: input.k401Pct2026, premium: input.premium2026, federal: ctx.federal2026, state: ctx.state2026, ssMode: 'dec', progMode: 'dec' },
   ];
   const swap = (key, patch) => steps.push({ ...steps[steps.length - 1], key, ...patch });
   swap('retirement', { k401Pct: input.k401Pct2027 });
@@ -290,6 +343,7 @@ export function compareDecJan(input, ctx) {
   swap('federalTables', { federal: ctx.federal2027 });
   swap('stateTables', { state: ctx.state2027 });
   swap('socialSecurity', { ssMode: 'jan' });
+  swap('statePrograms', { progMode: 'jan' });
 
   const runs = steps.map((st) => paycheckLines({ ...base, ...st }));
   const LINE_KEYS = ['retirement', 'premium', 'federal', 'socialSecurity', 'medicare', 'state', 'statePrograms'];
@@ -322,7 +376,7 @@ const usdAbs = (n) => '$' + Math.abs(n).toLocaleString('en-US', { minimumFractio
 const usd0 = (n) => '$' + Math.round(n).toLocaleString('en-US');
 const pctText = (p) => `${Math.round(num(p) * 100) / 100}%`;
 /** Signed money for a take-home change, with a real minus sign. */
-export const signedUsd = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + usdAbs(n);
+export const signedUsd = (n) => (n > 0 ? '+' : n < 0 ? '-' : '') + usdAbs(n);
 
 /**
  * One "what changed" item as plain text.
@@ -358,9 +412,8 @@ export function describeCause(c, info) {
         parts.push(`You reached the ${usd0(dec.ss.wageBase)} Social Security limit on your December paycheck, so it had only ${usdAbs(dec.socialSecurity)} of Social Security tax.`);
       }
       if (L.socialSecurity) parts.push(`On January 1 the count starts again at $0, so the 6.2% comes back: ${usdAbs(jan.socialSecurity)} on your first 2027 paycheck. The 2027 limit is ${usd0(jan.ss.wageBase)}.`);
-      if (L.medicare) parts.push(L.medicare < 0
-        ? `The extra 0.9% Medicare tax on pay over $200,000 also starts counting from $0 again, so it stops for now: ${usdAbs(L.medicare)} less.`
-        : `The extra 0.9% Medicare tax on pay over $200,000 starts again in January: ${usdAbs(L.medicare)} more.`);
+      // In January the count is back at $0, so the extra 0.9% can only drop off, never start.
+      if (L.medicare < 0) parts.push(`The extra 0.9% Medicare tax on pay over $200,000 restarts its count on January 1 too, so it drops off your January paycheck: ${usdAbs(L.medicare)} less.`);
       return out(L.socialSecurity ? 'Social Security tax starts again' : 'Extra Medicare tax resets', parts.join(' '));
     }
     case 'retirement': {
@@ -396,6 +449,25 @@ export function describeCause(c, info) {
         `Your ${info.stateName} income tax comes out the same under its 2027 rules.`);
       return out(`New ${info.stateName} tax rules`,
         `${info.stateOverrideWhat ? info.stateOverrideWhat + ' ' : ''}State income tax on each paycheck is ${usdAbs(L.state || 0)} ${(L.state || 0) < 0 ? 'lower' : 'higher'} than the 2026 rules would take.`);
+    }
+    case 'statePrograms': {
+      const dec = c.dec || before, jan = c.jan || after;
+      const jp = jan.programs || [];
+      const reset = jp.map((p, i) => ({ p, d: dec.programs && dec.programs[i] }))
+        .filter(({ p, d }) => p.limited && d && p.amount !== d.amount);
+      if (!changed || !reset.length) {
+        return out('State payroll programs: no change', jp.length
+          ? `Your state's disability, paid-leave or unemployment deductions (${jp.map((p) => p.label).join(', ')}) are the same on both paychecks.`
+          : 'Your state takes no disability, paid-leave or unemployment deduction from pay.');
+      }
+      const many = reset.length > 1;
+      const names = reset.map(({ p }) => p.label).join(', ');
+      const was = round2(reset.reduce((t, { d }) => t + d.amount, 0));
+      const now = round2(reset.reduce((t, { p }) => t + p.amount, 0));
+      return out('State payroll program limits reset',
+        `${names} ${many ? 'are state disability, paid-leave or unemployment deductions' : 'is a state disability, paid-leave or unemployment deduction'} with a yearly limit. ` +
+        `You reached ${many ? 'those limits' : 'that limit'} before your last December paycheck, so December had ${usdAbs(was)} of ${many ? 'them' : 'it'}. ` +
+        `On January 1 the count starts again at $0, so ${many ? 'they come' : 'it comes'} back: ${usdAbs(now)} on your first 2027 paycheck.`);
     }
     default:
       return out(String(c.key), '');
