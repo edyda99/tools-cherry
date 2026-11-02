@@ -10,7 +10,6 @@ const $ = (id) => document.getElementById(id);
 const RC = window.__ROTHCATCHUP__;
 
 const usd = (n) => '$' + Math.round(Math.max(0, n || 0)).toLocaleString('en-US');
-const usdSigned = (n) => (n < 0 ? '−$' : '+$') + Math.abs(Math.round(n)).toLocaleString('en-US');
 const pct = (n) => Math.round(Math.max(0, n || 0) * 100) + '%';
 
 // "wages" and "catchUp" carry live thousands separators (money fields); read
@@ -132,9 +131,11 @@ function render() {
     let fvBlock = '';
     if (r.rothAdvantage != null) {
       const wins = r.rothAdvantage >= 0;
+      // Plain dollars with the direction in words: a minus sign after "costs
+      // you" read as a double negative ("costs you about −$287").
       const verdict = wins
-        ? `<span class="ok-flag">forced-Roth leaves you about ${usdSigned(r.rothAdvantage)} ahead</span>`
-        : `<span class="warn-flag">forced-Roth costs you about ${usdSigned(r.rothAdvantage)}</span>`;
+        ? `<span class="ok-flag">Roth leaves you about ${usd(r.rothAdvantage)} ahead</span>`
+        : `<span class="warn-flag">Roth leaves you about ${usd(-r.rothAdvantage)} behind</span>`;
       const why = rateRetire === rateNow
         ? `Your retirement rate equals your current rate, so it’s essentially a wash.`
         : (wins
