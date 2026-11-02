@@ -11883,14 +11883,19 @@ async function main() {
     const STATUS_WORD = { single: 'single', married: 'married filing jointly', head_of_household: 'head of household' };
 
     // ---- the status banner: what is an estimate and what is not ----
+    // One sentence up top (the answer has to be reachable on a phone); the publisher
+    // list and any spread between them sit in "Where the 2027 numbers come from".
     let bannerFederal;
+    let bannerDetail = '';
     if (projected) {
       const items = proj2027.thirdPartyProjections.items;
       const links = items.map((it) => `<a href="${escHtml(it.sourceUrl)}" rel="noopener" target="_blank">${escHtml(pubName(it.publisher))}</a>`);
       const sdSpread = fed27.spreads.filter((s) => s.what === 'standardDeduction');
       const brSpread = fed27.spreads.filter((s) => s.what === 'brackets');
-      bannerFederal = ' January\'s federal income tax is an <strong>estimate</strong>. The IRS has not published its official 2027 tax tables yet. ' +
-        `Until it does, we use the 2027 projections published by ${andList(links)}.` +
+      bannerFederal = ' January\'s federal tax is an <strong>estimate</strong> from projected 2027 tables until the IRS publishes the official ones; ' +
+        '<a href="#numbers">see where each 2027 number comes from</a>.';
+      bannerDetail = 'The IRS has not published its official 2027 tax tables yet. ' +
+        `Until it does, January's federal tax uses the 2027 projections published by ${andList(links)}.` +
         (brSpread.length ? '' : ' They agree on every tax bracket.') +
         sdSpread.map((s) => ` For ${STATUS_WORD[s.status]} filers their standard deduction ranges from ${usd0(s.values[0])} to ` +
           `${usd0(s.values[s.values.length - 1])}; we use the lowest, ${usd0(s.values[0])}, so January is never shown better than it may turn out.`).join('') +
@@ -11899,8 +11904,10 @@ async function main() {
     } else if (fed27.basis === 'official2027') {
       bannerFederal = ' January\'s federal income tax uses the <strong>official</strong> 2027 tax tables from the IRS, published in ' +
         `<a href="${escHtml(rp.sourceUrl)}" rel="noopener" target="_blank">${escHtml(rp.name)}</a> on ${escHtml(humanDate(rp.publishedDate))}.`;
+      bannerDetail = bannerFederal.trim();
     } else {
       bannerFederal = ' January\'s federal income tax uses the <strong>official</strong> 2027 IRS tax tables.';
+      bannerDetail = bannerFederal.trim();
     }
     const bannerSs = `The 2027 Social Security limit of <strong>${usd0(wb27)}</strong> is official: it is on Social Security's ` +
       (ssaFs2027 ? `<a href="${escHtml(ssaFs2027.sourceUrl)}" rel="noopener" target="_blank">2027 fact sheet</a>.` : '2027 figures.');
@@ -12023,7 +12030,7 @@ async function main() {
       APP_LD: appLd, FAQ_LD: faqLd,
       BANNER_CLASS: projected ? '' : 'jp-official',
       BANNER_TAG: projected ? 'ESTIMATE' : 'OFFICIAL',
-      BANNER_FEDERAL: bannerFederal, BANNER_SS: bannerSs, BANNER_STATE: bannerState,
+      BANNER_FEDERAL: bannerFederal, BANNER_DETAIL: bannerDetail, BANNER_SS: bannerSs, BANNER_STATE: bannerState,
       STATE_OPTIONS: stateOptions, FILING_OPTIONS: filingOptions,
       WAGE_BASE_2027: usd0(wb27),
       WORKED_EXAMPLE: workedExample,

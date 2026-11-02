@@ -6,21 +6,27 @@
 // federal blocks, every state's 2026 entry, the 2027 state entries that differ,
 // and whether the 2027 federal tables are official or projected. Nothing is
 // uploaded.
-import { compareDecJan, describeCause, headline, signedUsd } from '/assets/january-paycheck.js';
+import { compareDecJan, describeCause, headline, signedUsd, MAX_401K_PCT } from '/assets/january-paycheck.js';
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 
 const $ = (id) => document.getElementById(id);
 const CFG = (typeof window !== 'undefined' && window.__JANPAY__) || {};
 
-const usd = (n) => '$' + (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// "-$47.23", never "$-47.23".
+const usd = (n) => {
+  const v = Number(n) || 0;
+  return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
 const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 
+// 401(k) percent, held to 0-75 (the engine clamps too; this keeps the page honest
+// about what it computed with).
 function pct(id) {
   const el = $(id);
   const raw = el ? String(el.value || '').replace(/[%\s,]/g, '') : '';
   const n = parseFloat(raw);
-  return Number.isFinite(n) ? n : 0;
+  return Number.isFinite(n) ? Math.min(MAX_401K_PCT, Math.max(0, n)) : 0;
 }
 function money(id) {
   const el = $(id);

@@ -45,6 +45,11 @@
   .jp-table tr.jp-moved td { background:rgba(42,93,143,.07); }
   .jp-two { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
   @media (max-width:520px) { .jp-two { grid-template-columns:1fr; } }
+  /* The calc section is a grid; without this the nowrap table's min-content width
+     stretches its column past a 375px screen. The table scrolls inside .jp-wrap. */
+  section.calc > #jpForm, section.calc > .calc-answer { min-width:0; }
+  #jpOut, #example { min-width:0; max-width:100%; }
+  .jp-wrap { max-width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
 </style>
 <script type="application/ld+json">{{APP_LD}}</script>
 <script type="application/ld+json">{{FAQ_LD}}</script>
@@ -62,12 +67,10 @@
   <div class="wrap">
     <h1>Why is my January paycheck different?</h1>
 
-    <p class="lede">Your first paycheck of 2027 can be smaller than your last one of 2026 even with no change in pay. There are five usual reasons. <strong>Social Security tax starts again</strong> if you passed its yearly limit in 2026. Your <strong>401(k)</strong> savings or your <strong>health insurance cost</strong> may have gone up. And the <strong>federal and state tax tables</strong> change on January 1. Put in your pay below and we will show which of these hit you, biggest first. Everything runs in your browser. Nothing is uploaded.</p>
+    <p class="lede">A first paycheck of the year is often smaller even with no change in pay: <strong>Social Security tax starts again</strong>, your <strong>401(k)</strong> or <strong>health insurance</strong> takes more, or the <strong>tax tables</strong> change. Put in your pay to see which hit you, biggest first. Nothing is uploaded.</p>
 
     <div class="jp-banner {{BANNER_CLASS}}" id="jpStatus">
       <p><strong class="jp-tag">{{BANNER_TAG}}</strong>{{BANNER_FEDERAL}}</p>
-      <p>{{BANNER_SS}}</p>
-      <p>{{BANNER_STATE}}</p>
     </div>
 
     <section class="calc" aria-label="December versus January paycheck calculator">
@@ -101,14 +104,14 @@
         <div class="jp-two">
           <div class="field">
             <label for="k401_2026">How much of each paycheck went to your 401(k) in 2026, in percent?</label>
-            <input type="text" id="k401_2026" inputmode="decimal" autocomplete="off" value="5" aria-describedby="k401Note">
+            <input type="text" id="k401_2026" inputmode="decimal" autocomplete="off" value="5" min="0" max="75" aria-describedby="k401Note">
           </div>
           <div class="field">
             <label for="k401_2027">And in 2027?</label>
-            <input type="text" id="k401_2027" inputmode="decimal" autocomplete="off" value="6">
+            <input type="text" id="k401_2027" inputmode="decimal" autocomplete="off" value="6" min="0" max="75" aria-describedby="k401Note">
           </div>
         </div>
-        <p class="muted-small" id="k401Note">A 401(k) is retirement savings taken straight from your pay before income tax. Use 0 if you do not have one. If you hit the yearly 401(k) limit before December and your savings stopped, put 0 for 2026: that is why they seem to start again in January.</p>
+        <p class="muted-small" id="k401Note">A 401(k) is retirement savings taken straight from your pay before income tax. Use 0 if you do not have one (75 at most). If you hit the yearly 401(k) limit before December and your savings stopped, put 0 for 2026: that is why they seem to start again in January.</p>
         <div class="jp-two">
           <div class="field">
             <label for="prem2026">Health insurance cost per paycheck in 2026 (optional)</label>
@@ -141,7 +144,7 @@
     <section class="prose" id="reasons">
       <h2>The five reasons a January paycheck changes</h2>
       <ol>
-        <li><strong>Social Security tax starts again.</strong> Social Security tax is 6.2% of your pay, but only up to a yearly limit. In 2026 the limit is $184,500. If you earned more than that at one job, the tax stopped partway through the year, and your last paychecks were bigger. On January 1 the count starts from $0, so the 6.2% comes back on your first 2027 paycheck. The 2027 limit is {{WAGE_BASE_2027}}. The same thing happens to the extra 0.9% Medicare tax on pay over $200,000.</li>
+        <li><strong>Social Security tax starts again.</strong> Social Security tax is 6.2% of your pay, but only up to a yearly limit. In 2026 the limit is $184,500. If you earned more than that at one job, the tax stopped partway through the year, and your last paychecks were bigger. On January 1 the count starts from $0, so the 6.2% comes back on your first 2027 paycheck. The 2027 limit is {{WAGE_BASE_2027}}. The extra 0.9% Medicare tax on pay over $200,000 restarts its count on January 1 too, so it drops off your January paycheck. State disability, paid-leave and unemployment deductions with a yearly limit (in New Jersey and New York, for example) restart the same way and come back.</li>
         <li><strong>You save more in your 401(k).</strong> Many people raise their savings rate for the new year. More saving means less take-home pay, but less of it than you might think, because the 401(k) money is not taxed now.</li>
         <li><strong>Your health insurance costs more.</strong> Most employers set new prices on January 1. A higher premium takes more out of each paycheck, though it also lowers your taxes a little.</li>
         <li><strong>The federal tax tables change.</strong> Each year the IRS raises the tax brackets and the standard deduction (the part of your income that is not taxed) for inflation. That usually means a little <em>less</em> federal tax in January.</li>
@@ -164,6 +167,9 @@
 
     <section class="prose" id="numbers">
       <h2>Where the 2027 numbers come from</h2>
+      <p>{{BANNER_DETAIL}}</p>
+      <p>{{BANNER_SS}}</p>
+      <p>{{BANNER_STATE}}</p>
       {{NUMBERS_HTML}}
     </section>
 
