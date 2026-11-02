@@ -61,7 +61,7 @@ function render() {
       : `<div class="obbba-note">Only <strong>cash</strong> gifts to public charities count toward the non-itemizer deduction — non-cash gifts and gifts to donor-advised funds or private foundations don't.</div>`);
 
   const stdBlock =
-    `<div class="line"><span>If you take the standard deduction (§170(p) bonus)</span><span class="num">${usd(r.nonItemizerDed)}</span></div>` +
+    `<div class="line"><span>Extra charity deduction on top of the standard deduction <span class="muted-small">(IRC §170(p))</span></span><span class="num">${usd(r.nonItemizerDed)}</span></div>` +
     capBindNote;
 
   // --- Itemize-vs-standard verdict ------------------------------------------
