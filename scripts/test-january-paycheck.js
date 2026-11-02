@@ -193,6 +193,24 @@ const ctxFor = (slug) => ({
   is('North Carolina: state-table cause', r.causes.find((c) => c.key === 'stateTables').lines.state, -19.69);
 }
 
+// --- 2027 statutory cuts in IN, MS, NE, MT, NY all lower January state tax ------
+for (const [slug, salary] of [['indiana', 60000], ['mississippi', 60000], ['nebraska', 90000], ['montana', 120000], ['new-york', 60000]]) {
+  const st = state2027({ slug, state2026: tax.states[slug], overrides: jp.stateOverrides2027 });
+  is(`${slug}: statutory 2027 override applied`, st.basis, 'override2027');
+  is(`${slug}: 2026 type kept`, st.state.tax.type, tax.states[slug].tax.type);
+  const input = { salary, payFrequency: 'monthly', filingStatus: 'single', stateSlug: slug,
+    k401Pct2026: 0, k401Pct2027: 0, premium2026: 0, premium2027: 0, ytd2026: 55000 };
+  const r = compareDecJan(input, ctxFor(slug));
+  const c = r.causes.find((x) => x.key === 'stateTables');
+  is(`${slug}: 2027 state cut lowers state tax`, !!(c && c.lines.state < 0), true);
+}
+// Montana's single 4.7% band widens from 47,500 to 65,000 and the top rate falls to 5.4%.
+{
+  const mt = state2027({ slug: 'montana', state2026: tax.states.montana, overrides: jp.stateOverrides2027 });
+  is('Montana 2027 single first band', mt.state.tax.brackets.single[0].upTo, 65000);
+  is('Montana 2027 top rate', mt.state.tax.brackets.single[mt.state.tax.brackets.single.length - 1].rate, 0.054);
+}
+
 // --- the page's worked example: the Social Security cause equals the table line --
 // $200,000 biweekly single Texas, 401(k) 6% both years, premium 150 -> 165, YTD blank.
 // January SS = 6.2% x (7,692.31 - 165) = 6.2% x 7,527.31 = 466.69. Because the reset is
