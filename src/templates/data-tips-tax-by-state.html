@@ -47,6 +47,12 @@
   .changed { display:inline-block; margin-left:6px; font-size:.74rem; color:#b26b00; font-weight:600; }
   td.note { color:var(--muted); font-size:.86rem; }
   td.note a { color:inherit; }
+  /* Long notes fold their remainder so one state cannot push the table down.
+     Scoped to #studyTable: this <style> is this page's own, but keep the
+     selector narrow anyway. */
+  #studyTable td.note details.note-more { margin-top:4px; }
+  #studyTable td.note details.note-more > summary { cursor:pointer; font-weight:600; color:var(--text); font-size:.84rem; }
+  #studyTable td.note details.note-more[open] > summary { margin-bottom:4px; }
   .author-box { display:flex; gap:14px; align-items:flex-start; border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin:22px 0; background:var(--surface); }
   .author-box .av { flex:0 0 44px; width:44px; height:44px; border-radius:50%; background:var(--brand); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.1rem; }
   .author-box .bio { font-size:.9rem; color:var(--muted); }
