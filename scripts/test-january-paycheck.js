@@ -181,6 +181,18 @@ const ctxFor = (slug) => ({
   is('Virginia: state-table cause', r.causes.find((c) => c.key === 'stateTables').lines.state, -2.16);
 }
 
+// --- North Carolina's 2027 rate cut (S.L. 2026-41: 3.99% -> 3.49%) ---------------
+{
+  const nc = state2027({ slug: 'north-carolina', state2026: tax.states['north-carolina'], overrides: jp.stateOverrides2027 });
+  is('North Carolina gets its statutory 2027 rate', nc.state.tax.rate, 0.0349);
+  is('North Carolina 2026 data not mutated', tax.states['north-carolina'].tax.rate, 0.0399);
+  const input = { salary: 60000, payFrequency: 'monthly', filingStatus: 'single', stateSlug: 'north-carolina',
+    k401Pct2026: 0, k401Pct2027: 0, premium2026: 0, premium2027: 0, ytd2026: 55000 };
+  const r = compareDecJan(input, ctxFor('north-carolina'));
+  // (60,000 - 12,750) x 0.5% = 236.25 a year / 12 = 19.69 less a month.
+  is('North Carolina: state-table cause', r.causes.find((c) => c.key === 'stateTables').lines.state, -19.69);
+}
+
 // --- the page's worked example: the Social Security cause equals the table line --
 // $200,000 biweekly single Texas, 401(k) 6% both years, premium 150 -> 165, YTD blank.
 // January SS = 6.2% x (7,692.31 - 165) = 6.2% x 7,527.31 = 466.69. Because the reset is
