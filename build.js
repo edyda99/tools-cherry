@@ -1764,6 +1764,19 @@ function localTaxRowHtml(state) {
   return `<div class="line" id="localLine" hidden><span class="lbl">Local income tax</span><span id="rLocal">$0.00</span></div>`;
 }
 
+// Its styles ship inline with the box, on these pages only, rather than in
+// styles.css: styles.css is content-hashed into every page's <link>, so one line
+// added there would change the HTML of all 800+ pages. Every selector is scoped to
+// the paycheck calculator's own wrapper (#paycheckWizard).
+const LOCAL_TAX_CSS = '<style>' +
+  '#paycheckWizard .otw-local{margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}' +
+  '#paycheckWizard .otw-local-q{margin:0;font-size:15px;font-weight:600}' +
+  '#paycheckWizard .otw-local-opt{font-weight:400;color:var(--muted)}' +
+  '#paycheckWizard .otw-pct{position:relative;max-width:10em;margin-top:10px}' +
+  '#paycheckWizard .otw-pct::after{content:"%";position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:17px;color:var(--muted);pointer-events:none}' +
+  '#paycheckWizard .otw-pct .otw-in{padding-right:32px}' +
+  '</style>';
+
 // The input itself, on the answer card under the results table. Blank by default
 // (0%), so the figure above it is unchanged until the visitor types a rate or taps
 // one of the sourced examples. The chips are wizard-core [data-otw-fill] buttons
@@ -1784,7 +1797,7 @@ function localTaxBoxHtml(state) {
   const lookup = e.lookup
     ? ` <a href="${escAttrLocal(e.lookup.url)}" rel="noopener" target="_blank">${escHtml(e.lookup.label)}</a>.`
     : '';
-  return `<div class="otw-local" id="localTaxBox">` +
+  return LOCAL_TAX_CSS + `<div class="otw-local" id="localTaxBox">` +
     `<p class="otw-local-q"><label for="localTaxRate">Local income tax <span class="otw-local-opt">(optional)</span></label></p>` +
     `<p class="otw-note" id="localTaxHint">${escHtml(e.hint)}</p>` +
     `<div class="otw-pct"><input id="localTaxRate" class="otw-in otw-in-sm" type="text" inputmode="decimal" autocomplete="off" value="" placeholder="0" aria-describedby="localTaxHint"></div>` +
