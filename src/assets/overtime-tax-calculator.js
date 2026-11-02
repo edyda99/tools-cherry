@@ -393,7 +393,7 @@ function render() {
       `<div class="line"><span>Effective federal rate on this deduction</span><span class="num">${pct(r.marginalRate)}</span></div>` +
       // Which income tax, in step with the state box above (see whichIncomeTax).
       `<div class="obbba-note">Social Security and Medicare (FICA) still apply to this overtime: the deduction lowers ${whichIncomeTax('overtime')}, claimed when you file.</div>` +
-      `<div class="obbba-note">Your weekly paycheck and its withholding don't change now.</div>` +
+      `<div class="obbba-note">Your weekly paycheck and its withholding stay the same unless you hand your employer a new W-4.</div>` +
     `</details>`;
 
   // Preserve the user's open/closed choice across re-renders (default closed).

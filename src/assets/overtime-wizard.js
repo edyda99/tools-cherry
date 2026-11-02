@@ -449,7 +449,7 @@ function render() {
   const plain = benefits
     ? `<div class="otw-plain">Skipping federal tax on ${usd(r.deduction)} puts about ${usd(r.taxSaved)} back in your ` +
       `pocket, as a bigger refund (or a smaller bill) when you file. Social Security and Medicare still come out of ` +
-      `your overtime, and your paycheck during the year does not change.</div>`
+      `your overtime, and your paycheck during the year does not change unless you hand your employer a new W-4.</div>`
     : `<div class="otw-plain">${zeroBenefitNote(r, direct, s, b)}</div>`;
 
   out.innerHTML = warnBox + head + lead + rows + capFlag + plain + extraNote;
