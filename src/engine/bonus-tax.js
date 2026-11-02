@@ -37,16 +37,24 @@ export function wisconsinBandedRate(annualGross, bands) {
   return bands.length ? bands[bands.length - 1].rate : 0;
 }
 
+// The seven percentages Form A-4 offers. Anything else (missing, a typo) falls back
+// to the state default in the data, 2.0%.
+const A4_RATES = [0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.035];
+function a4RateOf(chosen, fallback) {
+  const c = Number(chosen);
+  return A4_RATES.some((r) => Math.abs(r - c) < 1e-9) ? c : (fallback ?? 0.02);
+}
+
 /**
  * State supplemental WITHHOLDING for the "withheld now" column.
- * Handles none / flat / special (ca_dual, pct_of_federal, wi_banded).
+ * Handles none / flat / special (ca_dual, pct_of_federal, wi_banded, az_a4).
  * The `regular` (aggregate) method is NOT handled here — it needs the paycheck
  * engine and is computed in computeBonus(); calling this with a regular-method
  * state returns null so the caller routes it to the aggregate path.
  * @param {number} bonus
  * @param {object} supp - the state's entry from state-supplemental-2026.json
  * @param {{annualGross:number, regIncome:number, regFica:number, ytdSupp:number,
- *   federalWithheld:number, paymentType:string}} ctx
+ *   federalWithheld:number, paymentType:string, a4Rate?:number}} ctx
  * @returns {number|null} withholding, or null for the regular/aggregate path
  */
 export function supplementalStateWithholding(bonus, supp, ctx = {}) {
@@ -83,6 +91,12 @@ export function supplementalStateWithholding(bonus, supp, ctx = {}) {
       }
       if (supp.special === 'wi_banded') {
         return b * wisconsinBandedRate(ctx.annualGross ?? b, supp.bands);
+      }
+      if (supp.special === 'az_a4') {
+        // Arizona (A.R.S. 43-401(A),(E); Form A-4): no supplemental rate. Every paycheck,
+        // a bonus included, is withheld at the percentage of gross taxable wages the
+        // employee elected on Form A-4 (0.5%-3.5%), or 2.0% when none is on file.
+        return b * a4RateOf(ctx.a4Rate, supp.rate);
       }
       return 0;
     case 'regular':
@@ -222,6 +236,7 @@ export function trueTaxOnBonus(bonus, regIncome, filingStatus, stateData, fed, h
  * @param {number} [input.ytdSupp=0] - supplemental wages already paid this year (for the $1M/37% edge)
  * @param {'flat'|'aggregate'} [input.method='flat'] - federal withholding method
  * @param {'bonus'|'other'} [input.paymentType='bonus'] - CA dual-rate selector
+ * @param {number} [input.a4Rate] - Arizona Form A-4 election (0.005-0.035); default 0.02
  * @param {object} taxData - parsed tax-data-2026.json
  * @param {object} suppData - parsed state-supplemental-2026.json
  */
@@ -266,7 +281,7 @@ export function computeBonus(input, taxData, suppData) {
   const regFica = Math.min(regIncome, fed.fica.socialSecurity.wageBase) * fed.fica.socialSecurity.rate +
     regIncome * fed.fica.medicare.rate;
   let stateWithheld = supplementalStateWithholding(bonus, supp, {
-    annualGross, regIncome, regFica, ytdSupp, federalWithheld, paymentType
+    annualGross, regIncome, regFica, ytdSupp, federalWithheld, paymentType, a4Rate: input.a4Rate
   });
   let stateWithholdingMethod = supp ? supp.method : 'none';
   // regular-method states (or the aggregate override) -> paycheck-engine aggregate delta

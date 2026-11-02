@@ -183,7 +183,7 @@ function render() {
         `<div class="line"><span>What you actually keep</span><span class="num ok-flag">${usd2(t.keep)}</span></div>` +
         `<div class="obbba-note">The bonus is ordinary income taxed at your <strong>marginal rate</strong> once your whole year runs through the brackets — this is the number that sticks.</div>` +
       `</div>` +
-      `<div class="obbba-note muted-small">${stateName} uses ${methodLabel(supp.method)}${supp.method === 'flat' ? ` (${pct1(supp.rate)})` : ''}${supp.special === 'pct_of_federal' ? ' — 30% of the federal withholding, not of the bonus' : ''}${supp.special === 'wi_banded' ? ' — a graduated rate by annual income' : ''}. FICA (7.65%) is a true tax and is the same in both columns. Estimate only, not tax advice.</div>` +
+      `<div class="obbba-note muted-small">${stateName} uses ${methodLabel(supp.method)}${supp.method === 'flat' ? ` (${pct1(supp.rate)})` : ''}${supp.special === 'pct_of_federal' ? ' — 30% of the federal withholding, not of the bonus' : ''}${supp.special === 'wi_banded' ? ' — a graduated rate by annual income' : ''}${supp.special === 'az_a4' ? ` — ${((supp.rate ?? 0.02) * 100).toFixed(1)}% unless you picked another rate on Form A-4 (Arizona's income tax is 2.5%, so that can leave a small balance due)` : ''}. FICA (7.65%) is a true tax and is the same in both columns. Estimate only, not tax advice.</div>` +
     `</details>`;
 
   // Preserve the user's open/closed choice across re-renders (default closed).

@@ -1907,6 +1907,9 @@ function studyRulesPhrase(states, year, scope) {
 // Matches the client-side `ratePct` in src/assets/app.js so the server-rendered
 // prose and the live calculator never disagree.
 const pctStr = (r) => (+(r * 100).toFixed(3)).toString() + '%';
+// Arizona's Form A-4 percentages are printed with one decimal on the form itself
+// (0.5%, 1.0%, ... 3.5%), so its default reads "2.0%", never "2%".
+const a4Pct = (supp) => ((supp.rate ?? 0.02) * 100).toFixed(1) + '%';
 // (Retired) A two-decimal formatter used to serve the FAQ answers alone, so
 // those strings — which are the page's FAQPage JSON-LD as well as its visible
 // FAQ — stayed byte-identical to what was already indexed while a title/markup
@@ -3861,6 +3864,7 @@ function bonusTitle(state, supp, year) {
   if (supp.special === 'ca_dual') return `${state.name} Bonus Tax Calculator ${year}: 10.23% Supplemental Rate (${a})`;
   if (supp.special === 'pct_of_federal') return `${state.name} Bonus Tax Calculator ${year} (${a}) — 30% of Federal Withholding`;
   if (supp.special === 'wi_banded') return `${state.name} Bonus Tax Calculator ${year} (${a}) — Graduated Supplemental Rate`;
+  if (supp.special === 'az_a4') return `${state.name} Bonus Tax Calculator ${year} (${a}) — Your Form A-4 Rate, 2.0% by Default`;
   return `${state.name} Bonus Tax Calculator ${year} (${a}) — Withholding vs. Real Tax`;
 }
 
@@ -3886,6 +3890,7 @@ function bonusRateWord(supp) {
   if (supp.special === 'ca_dual') return '10.23% / 6.6%';
   if (supp.special === 'pct_of_federal') return '30% of the federal amount';
   if (supp.special === 'wi_banded') return 'a graduated 3.54%–7.65%';
+  if (supp.special === 'az_a4') return 'your Form A-4 rate (2.0% by default)';
   return supp.incomeRate ? `the aggregate method (~${pctStr(supp.incomeRate)})` : 'the aggregate method';
 }
 
@@ -3951,6 +3956,7 @@ function bonusLede(state, supp, year) {
   else if (supp.special === 'ca_dual') stateBit = `California adds <strong>10.23%</strong> on bonuses (6.6% on other supplemental pay) on top of the <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a>.`;
   else if (supp.special === 'pct_of_federal') stateBit = `Vermont adds <strong>30% of the federal amount</strong> (not of the bonus) on top of the <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a>.`;
   else if (supp.special === 'wi_banded') stateBit = `Wisconsin uses a <strong>graduated</strong> state rate (3.54%–7.65% by income) on top of the <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a>.`;
+  else if (supp.special === 'az_a4') stateBit = `Arizona holds back <strong>${a4Pct(supp)}</strong> unless you picked another rate on Form A-4 (0.5% to 3.5%), on top of the <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a>.`;
   else stateBit = `${state.name} has no separate bonus rate, so it withholds using the <strong>aggregate method</strong>${supp.incomeRate ? ` (about ${pctStr(supp.incomeRate)})` : ''} on top of the <strong>22%</strong> federal prepayment and <a href="/tax-glossary/#fica">FICA</a>.`;
   const open = pickFrame(state.slug, 'btlede', [
     `In ${state.name}, a bonus is ordinary income — the slice that vanishes on payday is <a href="/tax-glossary/#withholding">withholding</a>, not a higher tax rate.`,
@@ -3996,6 +4002,7 @@ function bonusAnswerBlock(state, supp) {
   else if (supp.special === 'ca_dual') stateClause = `<strong>10.23%</strong> for California (6.6% on non-bonus supplemental pay)`;
   else if (supp.special === 'pct_of_federal') stateClause = `<strong>30% of that federal amount</strong> for Vermont`;
   else if (supp.special === 'wi_banded') stateClause = `a <strong>graduated Wisconsin rate (3.54%–7.65%)</strong> by income`;
+  else if (supp.special === 'az_a4') stateClause = `<strong>${a4Pct(supp)}</strong> for Arizona unless you picked another rate on Form A-4`;
   else stateClause = `no separate ${state.name} rate — it's withheld as ordinary wages${supp.incomeRate ? ` (about <strong>${pctStr(supp.incomeRate)}</strong>)` : ''}`;
   const tail = pickFrame(state.slug, 'btans', [
     `That's a prepayment, not your final tax — the bonus is really taxed at your <a href="/tax-glossary/#marginal-tax-rate">marginal rate</a> when you file, and the calculator above shows the refund or amount you'll owe.`,
@@ -4147,6 +4154,10 @@ function bonusHowItWorks(state, supp, year) {
     st = `<p><strong>California: two rates.</strong> California withholds <strong>10.23%</strong> on bonuses and stock options, and <strong>6.6%</strong> on other supplemental wages (${src}).</p>`;
   } else if (supp.special === 'pct_of_federal') {
     st = `<p><strong>Vermont: 30% of the federal amount.</strong> Vermont's supplemental withholding is <strong>30% of the federal income tax withheld</strong> on the bonus, not a percent of the bonus — about 6.6% of the bonus on the flat 22% federal (6% for nonqualified deferred comp), per ${src}.</p>`;
+  } else if (supp.special === 'az_a4') {
+    // A.R.S. § 43-401(A),(E) and Form A-4: no supplemental rate at all. Every
+    // paycheck, a bonus included, is withheld at the percentage the employee chose.
+    st = `<p><strong>Arizona: your Form A-4 rate.</strong> Arizona has no separate bonus rate. Your employer withholds the percentage of gross pay you picked on <strong>Form A-4</strong> (0.5%, 1.0%, 1.5%, 2.0%, 2.5%, 3.0% or 3.5%) from every paycheck, a bonus included, and <strong>${a4Pct(supp)}</strong> if you never filed one (${src}). Arizona's income tax is a flat ${pctStr(state.tax && state.tax.rate ? state.tax.rate : 0.025)}, so withholding at ${a4Pct(supp)} can leave a small balance due when you file.</p>`;
   } else if (supp.special === 'wi_banded') {
     st = `<p><strong>Wisconsin: a graduated rate.</strong> Wisconsin sets the supplemental rate by annual gross wages — <strong>3.54%</strong> under $12,760, <strong>4.65%</strong> to $25,520, <strong>5.30%</strong> to $280,950, and <strong>7.65%</strong> above that (${src}).</p>`;
   } else {
@@ -4195,6 +4206,7 @@ function bonusNeighborTable(state, supp, roster, builtSlugs, taxData, suppData) 
     if (sp.special === 'ca_dual') return '10.23% / 6.6%';
     if (sp.special === 'pct_of_federal') return '30% of federal';
     if (sp.special === 'wi_banded') return 'graduated 3.54–7.65%';
+    if (sp.special === 'az_a4') return `Form A-4 rate (${a4Pct(sp)} default)`;
     return sp.incomeRate ? `aggregate (~${pctStr(sp.incomeRate)})` : 'aggregate method';
   };
   const rows = slugs.map((sl) => {
@@ -4394,6 +4406,7 @@ function bonusFaqEntries(state, supp, year) {
     : supp.special === 'ca_dual' ? '10.23% (6.6% on other supplemental pay)'
     : supp.special === 'pct_of_federal' ? '30% of the federal withholding'
     : supp.special === 'wi_banded' ? '3.54%–7.65% by income band'
+    : supp.special === 'az_a4' ? `${a4Pct(supp)} unless you picked another rate on Form A-4`
     : supp.incomeRate ? `about ${pctStr(supp.incomeRate)} (aggregate method)` : 'the aggregate method';
   const e = [];
   const wp = withholdingProfile(state);
@@ -4468,6 +4481,7 @@ function bonusFaqEntries(state, supp, year) {
   ]));
   if (supp.special === 'pct_of_federal') e.push({ q: `Why is Vermont's bonus withholding based on the federal amount?`, a: `Vermont sets it at 30% of the federal income tax withheld on the bonus, rather than a percent of the bonus. On the flat 22% federal, that's about 6.6% of the bonus.` });
   else if (supp.special === 'wi_banded') e.push({ q: `How does Wisconsin's graduated bonus rate work?`, a: `Wisconsin picks the rate from your annual gross wages: 3.54% under $12,760, 4.65% to $25,520, 5.30% to $280,950, and 7.65% above that.` });
+  else if (supp.special === 'az_a4') e.push({ q: `What rate does Arizona withhold on a bonus?`, a: `Arizona has no separate bonus rate. Your employer withholds the percentage of gross pay you picked on Form A-4 (0.5% to 3.5%) from every paycheck, a bonus included, and ${a4Pct(supp)} if you never filed one. Arizona's income tax is a flat ${pctStr(state.tax && state.tax.rate ? state.tax.rate : 0.025)}, so withholding at ${a4Pct(supp)} can leave a small balance due when you file. You can file a new Form A-4 with your employer at any time to pick a higher rate.` });
   else if (supp.special === 'ca_dual') e.push({ q: `Does California withhold a different rate on stock options?`, a: `California uses 10.23% for bonuses and stock options, and 6.6% for other supplemental wages. Pick the payment type in the calculator to switch.` });
   else if (state.slug === 'north-carolina') e.push({ q: `Is North Carolina's 4.09% bonus rate the same as its income tax rate?`, a: `No. The flat income tax is 3.99%, but the supplemental withholding rate is a distinct 4.09% (NC-30, 2026).` });
   else if (supp.method === 'regular') e.push({ q: `Does ${state.name} have a separate bonus withholding rate?`, a: `No. ${state.name} has no separate supplemental rate, so a bonus is withheld with the aggregate method — as if it were part of your regular wages${supp.incomeRate ? `, effectively near ${pctStr(supp.incomeRate)}` : ''}.` });
@@ -4485,7 +4499,7 @@ function bonusSourcesBlock(state, supp) {
   const lis = [];
   lis.push(`<li><a href="https://www.irs.gov/publications/p15" rel="noopener" target="_blank">IRS Publication 15 (2026) — Supplemental Wages</a> (flat 22% / 37% above $1M)</li>`);
   if (supp._sourceUrl) {
-    lis.push(`<li>${state.name} supplemental rate: <a href="${escHtml(supp._sourceUrl)}" rel="noopener" target="_blank">${escHtml(supp.source || 'state source')}</a></li>`);
+    lis.push(`<li>${state.name} ${supp.special === 'az_a4' ? 'withholding rate' : 'supplemental rate'}: <a href="${escHtml(supp._sourceUrl)}" rel="noopener" target="_blank">${escHtml(supp.source || 'state source')}</a></li>`);
   } else if (supp.method === 'regular' || supp.method === 'none') {
     lis.push(`<li>${state.name} income-tax status &amp; rate: see the <a href="/${state.slug}-paycheck-calculator/">${state.name} paycheck calculator</a> sources (state DOR${LAST_SOURCED ? `, verified ${LAST_SOURCED}` : ''}).</li>`);
   }
@@ -13400,6 +13414,7 @@ async function main() {
           if (s.special === 'ca_dual') return `${pct(s.rate)} / ${pct(s.rateOther)} other`;
           if (s.special === 'pct_of_federal') return `${pct(s.rate)} of federal tax`;
           if (s.special === 'wi_banded' && s.bands) return `${pct(s.bands[0].rate)}–${pct(s.bands[s.bands.length - 1].rate)}`;
+          if (s.special === 'az_a4') return `${(s.rate * 100).toFixed(1)}% default (Form A-4 rate)`;
         }
         return '';
       };
@@ -13412,6 +13427,7 @@ async function main() {
           if (s.special === 'ca_dual') return s.rate * 100;
           if (s.special === 'pct_of_federal') return s.rate * 100;
           if (s.special === 'wi_banded' && s.bands) return s.bands[s.bands.length - 1].rate * 100;
+          if (s.special === 'az_a4') return s.rate * 100;
         }
         return '';
       };

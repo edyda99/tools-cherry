@@ -175,7 +175,7 @@ function methodLabel(m) {
   if (m === 'special') return 'uses a formula of its own';
   return 'holds back its own flat rate on a bonus';
 }
-// "A formula of its own" on its own tells a reader nothing, so the three states
+// "A formula of its own" on its own tells a reader nothing, so the four states
 // that have one say which. Keyed on the data's `special` field, never on a slug,
 // so a fourth one starts explaining itself the day it is added.
 function methodDetail(supp) {
@@ -184,6 +184,7 @@ function methodDetail(supp) {
   if (supp.special === 'ca_dual') return ' — 10.23% on bonuses and stock options, 6.6% on every other kind of extra pay';
   if (supp.special === 'pct_of_federal') return ' — 30% of the federal amount held back, not of the bonus';
   if (supp.special === 'wi_banded') return ' — a graduated rate set by your yearly pay';
+  if (supp.special === 'az_a4') return ` — ${((supp.rate ?? 0.02) * 100).toFixed(1)}% unless you picked another rate on Form A-4. Arizona's income tax is 2.5%, so that can leave a small balance due when you file`;
   return '';
 }
 function stateParts(slug) {
