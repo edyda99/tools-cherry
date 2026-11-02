@@ -192,7 +192,7 @@
       "rate": 0.05,
       "verified": true,
       "singleSourced": false,
-      "source": "Kansas DOR KW-100 withholding guide",
+      "source": "Kansas Department of Revenue, KW-100 Withholding Tax Guide: Kansas withholding on supplemental wages paid separately is 5% of the gross payment.",
       "_sourceUrl": "https://www.ksrevenue.gov/kw100.html",
       "note": "Applied when the bonus is paid separately."
     },
@@ -292,7 +292,7 @@
       "rate": 0.047,
       "verified": true,
       "singleSourced": false,
-      "source": "Missouri Department of Revenue Employer's Tax Guide, Form 4282 (Revised 12-2025), Section 7A: withhold a flat 4.7 percent on supplemental wages paid separately from regular wages. The same flat 4.7 percent option appears in the 2026 Missouri Withholding Tax Formula.",
+      "source": "Missouri Department of Revenue Employer's Tax Guide, Form 4282 (Revised 03-2026), Section 7A: withhold a flat 4.7 percent on supplemental wages paid separately from regular wages. The same flat 4.7 percent option appears in the 2026 Missouri Withholding Tax Formula.",
       "_sourceUrl": "https://dor.mo.gov/forms/4282_2026.pdf"
     },
     "montana": {
@@ -312,7 +312,7 @@
       "rate": 0.035,
       "verified": true,
       "singleSourced": false,
-      "source": "Nebraska DOR Circular EN (2026): flat 3.5%",
+      "source": "Nebraska Department of Revenue, 2026 Circular EN (Employer's Nebraska Withholding Tax Guide): an employer may withhold on supplemental wages at a flat 3.5% rate.",
       "_sourceUrl": "https://revenue.nebraska.gov/sites/default/files/doc/business/Cir_En_2025/2026cir_en_whole.pdf"
     },
     "nevada": {
@@ -358,7 +358,7 @@
       "method": "flat",
       "rate": 0.117,
       "verified": true,
-      "source": "New York NYS-50-T-NYS (1/26)",
+      "source": "New York State Department of Taxation and Finance, NYS-50-T-NYS (January 2026): supplemental wages are withheld at the New York State supplemental rate of 11.70% for 2026.",
       "_sourceUrl": "https://www.tax.ny.gov/pdf/publications/withholding/nys50_t_nys.pdf",
       "localNote": "New York City adds a 4.25% supplemental rate and Yonkers adds 1.95975% (resident) / 0.5% (non-resident) on top of the 11.7% state rate. Those local rates are not included in the headline figure."
     },
@@ -391,7 +391,7 @@
       "rate": 0.0275,
       "verified": true,
       "singleSourced": false,
-      "source": "Ohio Administrative Rule 5703-7-10 / ODT: supplemental rate dropped 3.5% -> 2.75% eff. 1/1/2026 (flat-tax alignment)",
+      "source": "Ohio Department of Taxation and Ohio Administrative Code 5703-7-10: from January 1, 2026, a separately paid bonus may be withheld at a flat 2.75%, Ohio's income tax rate for 2026.",
       "_sourceUrl": "https://codes.ohio.gov/ohio-administrative-code/rule-5703-7-10",
       "note": "Ohio's supplemental withholding rate fell to 2.75% for 2026 to match its new flat income-tax rate (was 3.5% in 2025)."
     },
