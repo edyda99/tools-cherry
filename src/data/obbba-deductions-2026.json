@@ -38,12 +38,12 @@
       },
       "sources": [
         {
-          "claim": "Cap $12,500 single / $25,000 joint; MAGI phase-out over $150,000/$300,000 at $100 per $1,000; only the FLSA premium qualifies; SSN + MFJ required; FICA still applies.",
-          "url": "https://www.irs.gov/newsroom/questions-and-answers-about-the-new-deduction-for-qualified-overtime-compensation"
+          "claim": "IRS FS-2026-13 (August 2026), which supersedes the January 2026 overtime FAQs: cap $12,500 per return ($25,000 joint); reduced when MAGI exceeds $150,000 ($300,000 joint); only the FLSA-required premium qualifies; from tax year 2026 employers must report it on Form W-2, box 12, code TT, and only the amount reported there (or on a Form W-2c) can be deducted; the employee needs an SSN valid for employment issued before the return's due date, and married couples must file jointly.",
+          "url": "https://www.irs.gov/pub/taxpros/fs-2026-13.pdf"
         },
         {
           "claim": "Above-the-line deduction available to itemizers and non-itemizers; effective tax years 2025–2028.",
-          "url": "https://www.irs.gov/newsroom/one-big-beautiful-bill-act-tax-deductions-for-working-americans-and-seniors"
+          "url": "https://www.irs.gov/newsroom/working-families-tax-cuts-tax-deductions-for-working-americans-and-seniors"
         },
         {
           "claim": "P.L. 119-21 section 70202 (new IRC section 225, 'Qualified overtime compensation'): only overtime pay required by section 7 of the Fair Labor Standards Act 'that is in excess of the regular rate' counts, which is the extra half in time-and-a-half.",
@@ -77,7 +77,7 @@
       "sources": [
         {
           "claim": "Cap $25,000 per return (same single and joint); MAGI phase-out over $150,000/$300,000 at $100 per $1,000; above-the-line; SSN + MFJ required; FICA still applies; tax years 2025–2028.",
-          "url": "https://www.irs.gov/newsroom/one-big-beautiful-bill-act-tax-deductions-for-working-americans-and-seniors"
+          "url": "https://www.irs.gov/newsroom/working-families-tax-cuts-tax-deductions-for-working-americans-and-seniors"
         },
         {
           "claim": "P.L. 119-21 section 70201 (new IRC section 224): qualified tips are cash tips (including charged and shared tips) received in an occupation that customarily and regularly received tips on or before December 31, 2024; they must be voluntary, not negotiated and set by the payor; tips in a specified service trade or business (section 199A(d)(2)) do not count; a self-employed person counts tips only up to the business's gross income above its other deductions.",
@@ -88,8 +88,8 @@
           "url": "https://www.irs.gov/newsroom/treasury-irs-issue-final-regulations-listing-occupations-where-workers-customarily-and-regularly-receive-tips-under-the-one-big-beautiful-bill"
         },
         {
-          "claim": "Treasury detailed tipped-occupation list (published 2025-08-27).",
-          "url": "https://home.treasury.gov/system/files/136/Tipped-Occupations-Detailed-8-27-2025.pdf"
+          "claim": "IRS Internal Revenue Bulletin 2026-18 (April 27, 2026), T.D. 10044: final regulations listing the Treasury Tipped Occupation Codes and defining qualified tips, including that only tips reported on Form W-2, a Form 1099, or Form 4137 count.",
+          "url": "https://www.irs.gov/pub/irs-irbs/irb26-18.pdf"
         }
       ]
     },
@@ -123,7 +123,7 @@
         },
         {
           "claim": "Per eligible individual ($12,000 total for a married couple where both spouses qualify); available to itemizers and non-itemizers; in addition to the existing extra standard deduction for 65+.",
-          "url": "https://www.irs.gov/newsroom/one-big-beautiful-bill-act-tax-deductions-for-working-americans-and-seniors"
+          "url": "https://www.irs.gov/newsroom/working-families-tax-cuts-tax-deductions-for-working-americans-and-seniors"
         },
         {
           "claim": "Schedule 1-A Part V: 'born before January 2, 1961'; enter $75,000 ($150,000 if married filing jointly); multiply the MAGI above that by 6% and subtract it from $6,000 for each qualifying person; if married you must file jointly. Part VI carries the total to Form 1040 line 13b, below AGI (line 11b), so it does not reduce AGI. Arithmetic: 6% is $60 per $1,000, so each $6,000 reaches $0 at $175,000 of MAGI ($250,000 joint), because 75,000 + 6,000 / 0.06 = 175,000.",
@@ -248,7 +248,7 @@
         },
         {
           "claim": "Deduction for car loan interest 2025–2028; phases out for MAGI over $100,000 ($200,000 joint); vehicle must have final assembly in the United States and original use starting with the taxpayer; available to itemizers and non-itemizers.",
-          "url": "https://www.irs.gov/newsroom/one-big-beautiful-bill-act-tax-deductions-for-working-americans-and-seniors"
+          "url": "https://www.irs.gov/newsroom/working-families-tax-cuts-tax-deductions-for-working-americans-and-seniors"
         },
         {
           "claim": "Claimed on new Schedule 1-A (Part IV), flowing to Form 1040 line 13b after AGI — reduces taxable income, not AGI; VIN reported on the return.",

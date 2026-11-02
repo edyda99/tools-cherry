@@ -204,7 +204,7 @@ function renderResult({ state: s, result: r }) {
   const plain = benefits
     ? `<div class="otw-plain">Skipping federal tax on ${usd(r.deduction)} of tips puts about ${usd(r.taxSaved)} back in ` +
       `your pocket, as a bigger refund (or a smaller bill) when you file. Social Security and Medicare are still owed ` +
-      `on all of your tips, and your paycheck during the year does not change.</div>`
+      `on all of your tips, and your paycheck during the year does not change unless you hand your employer a new W-4.</div>`
     : `<div class="otw-plain">${zeroBenefitNote(r)}</div>`;
 
   return warnBox + head + lead + rows + capFlag + plain;

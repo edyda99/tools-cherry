@@ -163,7 +163,7 @@ function render() {
       // Moved verbatim off the end of the .takeaway below: it answers "so when do I
       // see this?", which is a second question, and the takeaway only has room for
       // the first one.
-      `<div class="obbba-note">Your paychecks and their withholding don't change now.</div>` +
+      `<div class="obbba-note">Your paychecks and their withholding stay the same unless you hand your employer a new W-4.</div>` +
     `</details>`;
 
   // Out of the collapsed panel on purpose: both benchmark personas said that
