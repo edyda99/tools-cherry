@@ -34,7 +34,7 @@ function num(id) {
 function colB(r, { standalone = false, winB = false } = {}) {
   const verdictLine = r.resB.itemize
     ? `Itemizes (beats the ${usd(r.resB.standardDeduction)} standard deduction)`
-    : `Takes the standard deduction${r.resB.nonItemizerDed > 0 ? ` (+${usd(r.resB.nonItemizerDed)} §170(p) bonus)` : ''}`;
+    : `Takes the standard deduction${r.resB.nonItemizerDed > 0 ? `, plus ${usd(r.resB.nonItemizerDed)} for the gift, a charity deduction you get without itemizing <span class="muted-small">(IRC §170(p))</span>` : ''}`;
   return (
     `<p><strong>Take the distribution, then deduct it${winB ? ' — wins' : ''}${standalone ? ' (your only option here)' : ''}</strong></p>` +
     `<div class="line"><span>AGI</span><span class="num">${usd(r.agiB)}</span></div>` +

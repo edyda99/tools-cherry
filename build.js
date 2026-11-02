@@ -12041,7 +12041,21 @@ async function main() {
         ? ' <span class="changed">changed from 2025</span>' : '';
       const src = s.source
         ? `<a href="${esc(s.source)}" rel="noopener" target="_blank">source</a>` : '';
-      const note = [s.note ? esc(s.note) : '', src].filter(Boolean).join(' ');
+      // A handful of notes run 250-750 characters and stretch their row to many
+      // times the height of the rest, pushing the table down. Keep the first
+      // sentence visible and fold the remainder into <details>. The split needs
+      // two lowercase letters or digits before the period, so "D.C. Act" or
+      // "U.S." never count as a sentence end. The source link stays visible.
+      const NOTE_FOLD_AT = 200;
+      let noteHtml = s.note ? esc(s.note) : '', moreHtml = '';
+      if (s.note && s.note.length > NOTE_FOLD_AT) {
+        const m = /^(.{40,}?[a-z0-9)]{2}[.!?])\s+(?=[A-Z"'(])/.exec(s.note);
+        if (m && s.note.length - m[0].length > 40) {
+          noteHtml = esc(m[1]);
+          moreHtml = `<details class="note-more"><summary>More detail</summary>${esc(s.note.slice(m[0].length))}</details>`;
+        }
+      }
+      const note = [noteHtml, src].filter(Boolean).join(' ') + moreHtml;
       return `<tr id="state-${slug}"><td><a href="/${slug}-paycheck-calculator/">${esc(s.name)}</a></td>` +
         `<td data-rank="${tpC.rank}">${tpC.html}${changed}</td>` +
         `<td data-rank="${otC.rank}">${otC.html}</td>` +
@@ -13133,8 +13147,8 @@ async function main() {
     {
       // Last substantive revision of state-supplemental-2026.json (Massachusetts
       // Circular M rework and official-source citations), not the shared July date.
-      const SUPP_PUB_HUMAN = 'October 3, 2026';
-      const SUPP_PUB_ISO = '2026-10-03';
+      const SUPP_PUB_HUMAN = 'November 2, 2026';
+      const SUPP_PUB_ISO = '2026-11-02';
       const METHOD_LABEL = { flat: 'Flat', regular: 'Regular', none: 'None', special: 'Special' };
       const rateText = (s) => {
         if (s.method === 'none') return '0%';

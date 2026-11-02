@@ -35,11 +35,12 @@ const ASK_STEPS = [YEAR, AGE, WAGES, PLAN, CATCHUP, RATENOW, FUTURE];
 // percentages, so "24.0%" names a precision the visitor was never offered and
 // reads as a computed figure rather than the band they picked.
 const bp = (n) => Math.round(Math.max(0, n || 0) * 100) + '%';
-// Signed, for the one figure on the page that can legitimately be negative.
-const usdSigned = (n) => {
+// The one figure on the page that can be negative. Plain dollars with the
+// direction in words, so a non-expert never has to read a minus sign.
+const longRunAmt = (n) => {
   const v = Math.round(n || 0);
-  if (v === 0) return '$0';
-  return (v < 0 ? '−$' : '+$') + Math.abs(v).toLocaleString('en-US');
+  if (v === 0) return 'about even';
+  return `${usd(Math.abs(v))} ${v < 0 ? 'behind' : 'ahead'}`;
 };
 
 // A <select> whose value may be the empty "I would rather not guess" option.
@@ -243,7 +244,7 @@ function storyOf(s, r) {
       ? `${count(s.years)} years out at ${count(s.growth * 100)}% a year`
       : 'the day you take it out';
     rows += `<li class="otw-after"><span>Roth against before tax, ${horizon}</span>` +
-      `<span class="otw-amt${adv > 0 ? ' otw-free' : (adv < 0 ? ' otw-taxed' : '')}">${usdSigned(adv)}</span></li>`;
+      `<span class="otw-amt${adv > 0 ? ' otw-free' : (adv < 0 ? ' otw-taxed' : '')}">${longRunAmt(adv)}</span></li>`;
   }
 
   return { lead, rows: rows + `</ul>` };
