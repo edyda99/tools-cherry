@@ -12041,9 +12041,11 @@ async function main() {
       ? 'State income tax for January uses each state\'s 2027 tables.'
       : 'State income tax for January uses each state\'s <strong>2026</strong> tables, until 2027 state tables are in our data.' +
         (overrideSlugs.length
-          ? ' The exception: ' + andList(overrideSlugs.map((k) => {
+          ? (overrideSlugs.length === 1 ? ' The exception: ' : ' The exceptions, already set in state law, so we use them: ') + andList(overrideSlugs.map((k) => {
             const o = overrides[k];
-            return `${escHtml(o.label)} is already set in state law (<a href="${escHtml(o.sourceUrl)}" rel="noopener" target="_blank">${escHtml(o.sourceTitle)}</a>), so we use it`;
+            return overrideSlugs.length === 1
+              ? `${escHtml(o.label)} is already set in state law (<a href="${escHtml(o.sourceUrl)}" rel="noopener" target="_blank">${escHtml(o.sourceTitle)}</a>), so we use it`
+              : `${escHtml(o.label)} (<a href="${escHtml(o.sourceUrl)}" rel="noopener" target="_blank">${escHtml(o.sourceTitle)}</a>)`;
           })) + '.'
           : '');
 

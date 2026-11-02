@@ -1,10 +1,14 @@
 {
   "_comment": "Inputs for /january-paycheck-change-calculator/ that live nowhere else. The 2027 federal figures are NOT here: they come from projections-2027.json (official2027 once the IRS Revenue Procedure is in, the publishers' thirdPartyProjections until then) or from tax-data-2027.json once that file exists, which also replaces every state below. The 2027 Social Security wage base comes from projections-2027.json ssaFactSheet2027.",
   "stateOverrides2027": {
-    "_rule": "Only a 2027 figure already set in statute AND already recorded in this repo goes here, patched over the state's 2026 `tax` block for the January paycheck. Everything else uses the 2026 tables, and the page says so. North Carolina's 2027 rate was considered on 2026-11-02 and left out: the repo names Session Law 2026-41 for it, but a search could not tie that law to the rate (one firm attributes the schedule to S.B. 257), so it waits for tax-data-2027.json.",
+    "_rule": "Only a 2027 figure already set in statute AND already recorded in this repo goes here, patched over the state's 2026 `tax` block for the January paycheck. Everything else uses the 2026 tables, and the page says so. North Carolina added 2026-11-03: S.B. 257 (the 2026 Appropriations Act) is Session Law 2026-41 (ncleg summary title 'S257 - 2026 Appropriations Act. (SL 2026-41)'), already cited in state-payroll-2026.json.",
     "virginia": {
       "tax": {
-        "standardDeduction": { "single": 10130, "married": 20260, "head_of_household": 10130 }
+        "standardDeduction": {
+          "single": 10130,
+          "married": 20260,
+          "head_of_household": 10130
+        }
       },
       "label": "Virginia's 2027 standard deduction",
       "what": "Virginia's standard deduction goes up in 2027, to $9,200 for a single filer and $18,400 for a married couple, under state law. Its $930 personal exemption does not change.",
@@ -12,6 +16,16 @@
       "_quote": "Va. Code 58.1-322.03(1)(b), currency 8/1/2026: '(vi) for taxable years beginning on and after January 1, 2027, but before January 1, 2028, $9,200 for single individuals and $18,400 for married persons'. Recorded in tax-data-2026.json virginia _watch and _source.",
       "sourceUrl": "https://law.lis.virginia.gov/vacode/title58.1/chapter3/section58.1-322.03/",
       "sourceTitle": "Va. Code § 58.1-322.03"
+    },
+    "north-carolina": {
+      "tax": {
+        "rate": 0.0349
+      },
+      "label": "North Carolina's 2027 income tax rate",
+      "what": "North Carolina's flat income tax rate drops from 3.99% to 3.49% in 2027 under state law, so a little less state tax comes out of each check.",
+      "_quote": "S.L. 2026-41 (S.B. 257, 2026 Appropriations Act, signed 2026-07-07): 3.49% for taxable years 2027-2029, triggers repealed (EY Tax News 2026-1630; ncleg summary S257-SMSA-88(sl)). NCDOR: 3.99% for taxable years after 2025.",
+      "sourceUrl": "https://www.ncleg.gov/EnactedLegislation/SessionLaws/HTML/2025-2026/SL2026-41.html",
+      "sourceTitle": "N.C. Session Law 2026-41 (Senate Bill 257)"
     }
   }
 }
