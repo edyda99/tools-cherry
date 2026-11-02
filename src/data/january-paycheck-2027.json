@@ -1,7 +1,7 @@
 {
   "_comment": "Inputs for /january-paycheck-change-calculator/ that live nowhere else. The 2027 federal figures are NOT here: they come from projections-2027.json (official2027 once the IRS Revenue Procedure is in, the publishers' thirdPartyProjections until then) or from tax-data-2027.json once that file exists, which also replaces every state below. The 2027 Social Security wage base comes from projections-2027.json ssaFactSheet2027.",
   "stateOverrides2027": {
-    "_rule": "Only a 2027 figure already set in statute AND already recorded in this repo goes here, patched over the state's 2026 `tax` block for the January paycheck. Everything else uses the 2026 tables, and the page says so. North Carolina added 2026-11-03: S.B. 257 (the 2026 Appropriations Act) is Session Law 2026-41 (ncleg summary title 'S257 - 2026 Appropriations Act. (SL 2026-41)'), already cited in state-payroll-2026.json.",
+    "_rule": "Only a 2027 figure already set in statute AND already recorded in this repo goes here, patched over the state's 2026 `tax` block for the January paycheck. Everything else uses the 2026 tables, and the page says so. North Carolina added 2026-11-03: S.B. 257 (the 2026 Appropriations Act) is Session Law 2026-41 (ncleg summary title 'S257 - 2026 Appropriations Act. (SL 2026-41)'), already cited in state-payroll-2026.json. Indiana, Mississippi, Nebraska, Montana and New York added 2026-11-03 after a research pass plus an independent refute pass (all 5 CONFIRMED). Nebraska keeps 2026 thresholds and standard deduction (2027 indexed values only in a draft 1040N-ES); Montana's standard deduction follows the federal figure, not yet published.",
     "virginia": {
       "tax": {
         "standardDeduction": {
@@ -26,6 +26,288 @@
       "_quote": "S.L. 2026-41 (S.B. 257, 2026 Appropriations Act, signed 2026-07-07): 3.49% for taxable years 2027-2029, triggers repealed (EY Tax News 2026-1630; ncleg summary S257-SMSA-88(sl)). NCDOR: 3.99% for taxable years after 2025.",
       "sourceUrl": "https://www.ncleg.gov/EnactedLegislation/SessionLaws/HTML/2025-2026/SL2026-41.html",
       "sourceTitle": "N.C. Session Law 2026-41 (Senate Bill 257)"
+    },
+    "indiana": {
+      "tax": {
+        "rate": 0.029
+      },
+      "label": "Indiana's 2027 income tax rate",
+      "what": "Indiana's flat state income tax rate drops from 2.95% to 2.9% in 2027 under state law, so slightly less state tax comes out of each check.",
+      "_quote": "Indiana DOR, Rates, Fees & Penalties: 'The Indiana Individual adjusted gross income tax rate for 2026 is 2.95% and will adjust in 2027 to 2.90%.' LSA/SBA 2024 Tax Expenditure Review, Table 1: '2026 2.95% / 2027 and after 2.90% / SOURCE: IC 6-3-2-1'. State Budget Agency, Dec 17 2024 forecast presentation: '2.95% in CY 2026 / 2.90% in CY 2027'.",
+      "sourceUrl": "https://www.in.gov/dor/resources/tax-rates-and-reports/rates-fees-and-penalties/",
+      "sourceTitle": "Indiana Department of Revenue: Rates, Fees & Penalties"
+    },
+    "mississippi": {
+      "tax": {
+        "brackets": {
+          "single": [
+            {
+              "rate": 0,
+              "upTo": 10000
+            },
+            {
+              "rate": 0.0375,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0,
+              "upTo": 10000
+            },
+            {
+              "rate": 0.0375,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0,
+              "upTo": 10000
+            },
+            {
+              "rate": 0.0375,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "label": "Mississippi's 2027 income tax rate",
+      "what": "Mississippi's tax on income over $10,000 drops from 4% to 3.75% in 2027 under state law, so a little less state tax comes out of each check.",
+      "_quote": "H.B. 1 (2025 Reg. Sess., As Sent to Governor; billstatus history: Approved by Governor), amending Miss. Code 27-7-5(1): '4. For calendar year 2027, on such taxable income, the rate shall be three and three-quarters percent (3.75%)'. MS DOR General Information: 'Tax Year 2027 Excess of $10,000 of Taxable Income is taxed @ 3.75%'.",
+      "sourceUrl": "https://billstatus.ls.state.ms.us/documents/2025/pdf/HB/0001-0099/HB0001SG.pdf",
+      "sourceTitle": "Mississippi H.B. 1 (2025), Build Up Mississippi Act"
+    },
+    "nebraska": {
+      "tax": {
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.0246,
+              "upTo": 4130
+            },
+            {
+              "rate": 0.0351,
+              "upTo": 24760
+            },
+            {
+              "rate": 0.0399,
+              "upTo": 39900
+            },
+            {
+              "rate": 0.0399,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.0246,
+              "upTo": 8250
+            },
+            {
+              "rate": 0.0351,
+              "upTo": 49530
+            },
+            {
+              "rate": 0.0399,
+              "upTo": 79800
+            },
+            {
+              "rate": 0.0399,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.0246,
+              "upTo": 7700
+            },
+            {
+              "rate": 0.0351,
+              "upTo": 39620
+            },
+            {
+              "rate": 0.0399,
+              "upTo": 59160
+            },
+            {
+              "rate": 0.0399,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "label": "Nebraska's 2027 income tax rate",
+      "what": "Nebraska's top income tax rate drops from 4.55% to 3.99% in 2027 under state law, so a little less state tax comes out of each check for most earners.",
+      "_quote": "Governor Pillen release: 'The 2026 income tax rate will fall from 5.2% to 4.55%, with the final stage of the income tax reduction taking effect in 2027, when the rate drops again to 3.99%.' NE DOR 2027 Form 1040N-ES (DRAFT 9/25/2026): 'The tax year 2027 individual income tax rates for the third and fourth brackets are at the same rate of 3.99% per Neb. Rev. Stat. § 77-2715.03(2)(c)(v).' Thresholds kept at 2026 indexed values; the draft's 2027 indexed thresholds (single 4,270/25,570/41,200; MFJ 8,520/51,150/82,410; HoH 7,960/40,910/61,100) and standard deduction (9,100/18,200/13,400) wait for the final form.",
+      "sourceUrl": "https://governor.nebraska.gov/gov-pillens-historic-income-tax-cuts-effective-january",
+      "sourceTitle": "Office of Governor Jim Pillen: income tax cuts effective in January"
+    },
+    "montana": {
+      "tax": {
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.047,
+              "upTo": 65000
+            },
+            {
+              "rate": 0.054,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.047,
+              "upTo": 130000
+            },
+            {
+              "rate": 0.054,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.047,
+              "upTo": 97500
+            },
+            {
+              "rate": 0.054,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "label": "Montana's 2027 income tax brackets",
+      "what": "In 2027 Montana's 4.7% rate covers more of your income (up to $65,000 single, $130,000 married) and the top rate drops from 5.65% to 5.4%, under state law.",
+      "_quote": "HB 337 (2025, Ch. 227) section 2 amending MCA 15-30-2103: '(c) ... on the first $20,500 $65,000 of Montana taxable income ... 4.7%; (ii) ... in excess of $20,500 $65,000 ... 5.9%, 5.4%' (MFJ $130,000; HoH $97,500); section 4: the modified inflation factor 'does not apply until tax year 2028'; section 5(3): '[Section 2] is effective January 1, 2027.' MT DOR HB 337 notice, 2027 table: Single '$0.00 to $65,000' 4.7%, 'over $65,000' 5.4%; MFJ $130,000; HoH $97,500.",
+      "sourceUrl": "https://revenue.mt.gov/news/recent-news/HB-337",
+      "sourceTitle": "Montana Department of Revenue: HB 337 income tax changes"
+    },
+    "new-york": {
+      "tax": {
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.038,
+              "upTo": 8500
+            },
+            {
+              "rate": 0.043,
+              "upTo": 11700
+            },
+            {
+              "rate": 0.0505,
+              "upTo": 13900
+            },
+            {
+              "rate": 0.053,
+              "upTo": 80650
+            },
+            {
+              "rate": 0.058,
+              "upTo": 215400
+            },
+            {
+              "rate": 0.0685,
+              "upTo": 1077550
+            },
+            {
+              "rate": 0.0965,
+              "upTo": 5000000
+            },
+            {
+              "rate": 0.103,
+              "upTo": 25000000
+            },
+            {
+              "rate": 0.109,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.038,
+              "upTo": 17150
+            },
+            {
+              "rate": 0.043,
+              "upTo": 23600
+            },
+            {
+              "rate": 0.0505,
+              "upTo": 27900
+            },
+            {
+              "rate": 0.053,
+              "upTo": 161550
+            },
+            {
+              "rate": 0.058,
+              "upTo": 323200
+            },
+            {
+              "rate": 0.0685,
+              "upTo": 2155350
+            },
+            {
+              "rate": 0.0965,
+              "upTo": 5000000
+            },
+            {
+              "rate": 0.103,
+              "upTo": 25000000
+            },
+            {
+              "rate": 0.109,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.038,
+              "upTo": 12800
+            },
+            {
+              "rate": 0.043,
+              "upTo": 17650
+            },
+            {
+              "rate": 0.0505,
+              "upTo": 20900
+            },
+            {
+              "rate": 0.053,
+              "upTo": 107650
+            },
+            {
+              "rate": 0.058,
+              "upTo": 269300
+            },
+            {
+              "rate": 0.0685,
+              "upTo": 1616450
+            },
+            {
+              "rate": 0.0965,
+              "upTo": 5000000
+            },
+            {
+              "rate": 0.103,
+              "upTo": 25000000
+            },
+            {
+              "rate": 0.109,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "label": "New York's 2027 income tax rates",
+      "what": "New York cuts its five lowest income tax rates by another 0.1 point in 2027 under state law, so most middle-income workers see slightly less state tax per check.",
+      "_quote": "N.Y. Tax Law 601(c)(1)(viii) 'For taxable years beginning after two thousand twenty-six and before two thousand thirty-three': 'Not over $8,500 3.80% ... Over $13,900 but not over $80,650 $572 plus 5.30% ... Over $80,650 but not over $215,400 $4,110 plus 5.80%' (601(a) and (b) item (viii) the same for joint and head of household). NYS Tax Expenditure Report FY2027: 'Beginning with the 2026 tax year, an additional 0.2 percentage point rate reduction will be phased in over two years for all taxpayers with taxable income up to $215,400 ($323,200 for joint filers). The reduction will be fully phased in by tax year 2027'.",
+      "sourceUrl": "https://www.nysenate.gov/legislation/laws/TAX/601",
+      "sourceTitle": "N.Y. Tax Law § 601"
     }
   }
 }
