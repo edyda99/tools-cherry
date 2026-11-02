@@ -288,14 +288,15 @@ const run = (input) => computeBonus(input, taxData, suppData);
   // result of step 4 is $1,107,750 or less, withhold 5% of the amount determined in step 3",
   // and 9% on the part of combined annualized wages above $1,107,750. The entry carries that
   // upper rate as rateAbove / rateAboveOver, tested below.
-  is('flat = 22', count('flat'), 22);
+  // 2026-11-03: Georgia regular -> flat 4.99% (GA DOR 2026 Employer's Withholding Tax Guide, O.C.G.A. 48-7-101(f)(5): bonuses withheld at the flat income tax rate).
+  is('flat = 23', count('flat'), 23);
   // 2026-11-02: arizona moved regular -> special az_a4, so regular 17->16 and special 3->4.
   // A.R.S. § 43-401(A),(E) and Arizona Form A-4 (2026, ADOR 10121 (25)): Arizona has no
   // supplemental rate; every paycheck, a bonus included, is withheld at the percentage of gross
   // taxable wages the employee elects on Form A-4 (0.5%-3.5%), and "If you do not give this form
   // to your employer the department requires your employer to withhold 2.0% of your gross
   // taxable wages." The old entry ran Arizona's flat 2.5% income tax through the aggregate path.
-  is('regular = 16', count('regular'), 16);
+  is('regular = 15', count('regular'), 15);
   is('special = 4', count('special'), 4);
   is('buckets cover all 51', count('none') + count('flat') + count('regular') + count('special'), 51);
   // every entry has verified + source; flagged ones carry singleSourced

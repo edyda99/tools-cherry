@@ -125,12 +125,14 @@
     "georgia": {
       "name": "Georgia",
       "abbr": "GA",
-      "method": "regular",
-      "incomeRate": 0.0499,
+      "method": "flat",
+      "rate": 0.0499,
       "verified": true,
-      "source": "Georgia HB 463 (signed 5/11/2026), 5.19% -> 4.99% eff. 1/1/2026",
-      "_sourceUrl": "https://gov.georgia.gov/press-releases/2026-05-11/gov-kemp-signs-legislation-lowering-taxes-and-supporting-economic-growth",
-      "note": "No separate supplemental rate; aggregate method. Georgia income tax is a flat 4.99% for 2026 (verified against HB 463; further trigger-based cuts toward 3.99% are future)."
+      "singleSourced": false,
+      "source": "Georgia's 2026 Employer's Withholding Tax Guide (Georgia Department of Revenue, revised September 2026): a bonus is withheld at Georgia's flat income tax rate in effect when it is paid, which is 4.99% from May 11, 2026.",
+      "_sourceQuote": "GA DOR Employer's Withholding Tax Guide 2026 (Rev. September 2026), p.14, O.C.G.A. § 48-7-101(f)(5): 'For tax year 2026, bonuses and other compensation are subject to Georgia withholding at the applicable income tax rate in effect at the time the compensation is paid. Employers must continue to withhold at the rate of 5.19% before the effective date of the rate change and may begin withholding at the new rate of 4.99% starting May 11, 2026.' Dec 2025 edition: 'bonuses and other compensation are withheld at a rate of 5.19%.'",
+      "_sourceUrl": "https://dor.georgia.gov/document/document/2026-employers-tax-guide-updated-june-2026/download",
+      "note": "A bonus paid separately is withheld at a flat 4.99%, the same as Georgia's 2026 flat income tax rate (HB 463). Bonuses paid before May 11, 2026 were withheld at the old 5.19% rate, and the extra comes back when you file."
     },
     "hawaii": {
       "name": "Hawaii",
