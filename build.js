@@ -2839,6 +2839,9 @@ function statePanel(state, taxData, net75) {
     // announceResult() returns before the boot render (booted is still false),
     // so the live region ships and stays empty until the visitor edits something.
     outStatus: { expect: '' },
+    // Empty and hidden on every 2026 render: app.js fills it only once the browser's
+    // date reaches 2027 and the calculator is on the 2027 tables.
+    taxYearNote: { expect: '' },
     // No state page carries this element: the "example" kicker lives on other
     // templates. app.js null-checks it, and it is written only after the visitor
     // first touches the form, never on the boot render.
