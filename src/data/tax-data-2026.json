@@ -1470,9 +1470,9 @@
       "hasIncomeTax": true,
       "figureYear": 2026,
       "_watch": {
-        "until": "2026-11-03",
-        "what": "North Carolina's future rates changed in 2026. Session Law 2026-41 removed the revenue triggers: 3.99% for 2026, 3.49% for 2027 through 2029, 3.24% for 2030 through 2032 and 2.99% after 2032. Separately, S.B. 1080 puts a 3.5% cap on the income tax rate in the state constitution to the voters on November 3, 2026, for tax years beginning on or after January 1, 2027. Re-verify after the vote, then use 3.49% in the 2027 data and check any copy that quotes future rates.",
-        "decided": "Audit 2026-10-03: tax year 2026 (3.99%) is unaffected."
+        "until": "2026-12-01",
+        "what": "North Carolina's future rates changed in 2026. Session Law 2026-41 removed the revenue triggers: 3.99% for 2026, 3.49% for 2027 through 2029, 3.24% for 2030 through 2032 and 2.99% after 2032. Separately, S.B. 1080 put a 3.5% cap on the income tax rate in the state constitution to the voters on November 3, 2026, for tax years beginning on or after January 1, 2027. The State Board of Elections' results, still unofficial, show it passing with all 2,626 precincts reporting: For 2,559,740 (61.92%), Against 1,574,257 (38.08%), https://er.ncsbe.gov/contest_details.html?election_dt=11/03/2026&county_id=0&contest_id=1392 read 2026-11-06. Re-verify once the result is certified, then clear this watch.",
+        "decided": "Audit 2026-10-03: tax year 2026 (3.99%) is unaffected. Re-checked 2026-11-06 after the vote: the 3.49% rate for 2027 sits under the 3.5% cap and is already in january-paycheck-2027.json, and the future-rate fact in state-payroll-2026.json still holds, so no figure or copy changes."
       },
       "tax": {
         "type": "flat",
