@@ -20,9 +20,9 @@
       "_rule": "A figure whose primary source is not out yet keeps its 2026 value and is named here or in the state's _pending2027 field. A state with no _pending2027 is final for 2027. A state still pending must equal its tax-data-2026.json entry plus its january-paycheck-2027.json override, and scripts/test-tax-data-2027.js holds that.",
       "states": "State tax tables: states publish 2027 figures from December 2026 into early 2027, see each state's _pending2027.",
       "pub15T": "IRS Publication 15-T (2027 withholding tables), expected December 2026. The engine does not read it: it works out yearly tax from the brackets and standard deduction, so nothing here waits on it.",
-      "stateProgramWageBases": "Eight state paid-leave programs carry the 2026 Social Security wage base of $184,500 as their wage limit. Their 2027 rates and limits are pending, so they stay at 2026 values."
+      "statePrograms": "State payroll programs: Washington and New York carry their published 2027 figures. Every other program keeps its 2026 values until checked against its state agency, including seven paid-leave programs whose wage limit is the 2026 Social Security wage base of $184,500 (DE, CO, MA, MN, CT, OR, ME). Some of those states may already have published 2027 figures."
     },
-    "_mfsNote": "The site has no separate married filing separately status: 'single' also stands for it. For 2027 Table 4 of the Rev. Proc. stops the 35% bracket at $396,825, not $661,375, so that shared status overstates take-home above that income. The 2026 file has the same limit."
+    "_mfsNote": "The site has no separate married filing separately status: 'single' also stands for it. For 2027 Table 4 of the Rev. Proc. stops the 35% bracket at $396,825, not $661,375, so that shared status overstates take-home above that income. Additional Medicare for a separate return starts at $125,000, not $200,000, which overstates take-home from that lower income too. The 2026 file has the same limit."
   },
   "filingStatuses": [
     {
@@ -228,7 +228,7 @@
         "source": "IRS Rev. Proc. 2026-35, section 3.15",
         "sourceUrl": "https://www.irs.gov/pub/irs-drop/rp-26-35.pdf"
       },
-      "_pending2027": "North Dakota 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_pending2027": "North Dakota 2027 state tax figures not yet published by the state; values other than the override below are the 2026 figures from tax-data-2026.json.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from IRS Rev. Proc. 2026-35, section 3.15 recorded in january-paycheck-2027.json."
     },
     "district-of-columbia": {
@@ -537,7 +537,7 @@
           "afterPreTax": true
         }
       ],
-      "_pending2027": "Vermont 2027 state tax figures not yet published by the state; values are the 2025 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_pending2027": "Vermont 2027 state tax figures not yet published by the state; values are the 2025 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet checked against the state agency; values are the 2026 ones.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
     },
     "west-virginia": {
@@ -687,7 +687,7 @@
         "source": "Montana Department of Revenue: HB 337 income tax changes",
         "sourceUrl": "https://revenue.mt.gov/news/recent-news/HB-337"
       },
-      "_pending2027": "Montana 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_pending2027": "Montana 2027 state tax figures not yet published by the state; values other than the override below are the 2026 figures from tax-data-2026.json.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from Montana Department of Revenue: HB 337 income tax changes recorded in january-paycheck-2027.json."
     },
     "delaware": {
@@ -809,7 +809,7 @@
         "Delaware Paid Leave is now included. It is 0.4% of your wages, the most your employer may take out of your pay, and it stops at the $184,500 wage base, so on $75,000 it is $300 a year."
       ],
       "notes": "Graduated 0%–6.6% (top rate over $60,000); same brackets for all filing statuses.",
-      "_pending2027": "Delaware 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_pending2027": "Delaware 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet checked against the state agency; values are the 2026 ones.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
     },
     "new-york": {
@@ -819,8 +819,8 @@
       "employeePrograms": [
         {
           "label": "NY PFL",
-          "rate": 0.00432,
-          "annualMax": 411.91
+          "rate": 0.00452,
+          "annualMax": 451.81
         },
         {
           "label": "NY DBL",
@@ -965,7 +965,7 @@
         "source": "N.Y. Tax Law § 601",
         "sourceUrl": "https://www.nysenate.gov/legislation/laws/TAX/601"
       },
-      "_pending2027": "New York 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_pending2027": "New York 2027 state tax figures not yet published by the state; values other than the override below are the 2026 figures from tax-data-2026.json; 2027 employee payroll program figures applied from the state agency.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from N.Y. Tax Law § 601 recorded in january-paycheck-2027.json."
     },
     "virginia": {
@@ -1050,7 +1050,7 @@
         "source": "Va. Code § 58.1-322.03",
         "sourceUrl": "https://law.lis.virginia.gov/vacode/title58.1/chapter3/section58.1-322.03/"
       },
-      "_pending2027": "Virginia 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_pending2027": "Virginia 2027 state tax figures not yet published by the state; values other than the override below are the 2026 figures from tax-data-2026.json.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from Va. Code § 58.1-322.03 recorded in january-paycheck-2027.json."
     },
     "texas": {
@@ -1082,8 +1082,8 @@
       "employeePrograms": [
         {
           "label": "WA PFML",
-          "rate": 0.0080716,
-          "wageBase": 184500
+          "rate": 0.008484,
+          "wageBase": 192300
         },
         {
           "label": "WA Cares",
@@ -1098,8 +1098,13 @@
       "disclaimer": [
         "Washington employers take part of the state's workers' compensation premium (Labor & Industries) from your pay. It is charged for each hour you work and depends on the kind of work you do, so it is not included in this estimate."
       ],
-      "_pending2027": "2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
-      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+      "yearNoteLabel": "Washington's 2027 paid leave premium",
+      "_override2027": {
+        "source": "Washington Paid Leave: 2027 premiums",
+        "sourceUrl": "https://paidleave.wa.gov/updates"
+      },
+      "_pending2027": "2027 employee payroll program figures applied from the state agency.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from Washington Paid Leave: 2027 premiums recorded in january-paycheck-2027.json."
     },
     "nevada": {
       "name": "Nevada",
@@ -1161,7 +1166,7 @@
         "type": "none"
       },
       "notes": "No state income tax.",
-      "_pending2027": "2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_pending2027": "2027 employee payroll program rates and wage limits not yet checked against the state agency; values are the 2026 ones.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
     },
     "new-hampshire": {
@@ -1199,7 +1204,7 @@
         "Pennsylvania taxes the money you put into a 401(k) or 403(b), so this estimate does not subtract those contributions from your Pennsylvania taxable pay. Pre-tax health insurance premiums still lower it. Dependent care contributions are taxed by Pennsylvania too, which this estimate does not account for."
       ],
       "notes": "Flat 3.07% on wages, no deductions. 401(k) and 403(b) contributions are taxed.",
-      "_pending2027": "Pennsylvania 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_pending2027": "Pennsylvania 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet checked against the state agency; values are the 2026 ones.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
     },
     "illinois": {
@@ -1272,7 +1277,7 @@
         "source": "N.C. Session Law 2026-41 (Senate Bill 257)",
         "sourceUrl": "https://www.ncleg.gov/EnactedLegislation/SessionLaws/HTML/2025-2026/SL2026-41.html"
       },
-      "_pending2027": "North Carolina 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_pending2027": "North Carolina 2027 state tax figures not yet published by the state; values other than the override below are the 2026 figures from tax-data-2026.json.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from N.C. Session Law 2026-41 (Senate Bill 257) recorded in january-paycheck-2027.json."
     },
     "utah": {
@@ -1420,7 +1425,7 @@
         "source": "IRS Rev. Proc. 2026-35, section 3.15",
         "sourceUrl": "https://www.irs.gov/pub/irs-drop/rp-26-35.pdf"
       },
-      "_pending2027": "Colorado 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_pending2027": "Colorado 2027 state tax figures not yet published by the state; values other than the override below are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet checked against the state agency; values are the 2026 ones.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from IRS Rev. Proc. 2026-35, section 3.15 recorded in january-paycheck-2027.json."
     },
     "indiana": {
@@ -1449,7 +1454,7 @@
         "source": "Indiana Department of Revenue: Rates, Fees & Penalties",
         "sourceUrl": "https://www.in.gov/dor/resources/tax-rates-and-reports/rates-fees-and-penalties/"
       },
-      "_pending2027": "Indiana 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_pending2027": "Indiana 2027 state tax figures not yet published by the state; values other than the override below are the 2026 figures from tax-data-2026.json.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from Indiana Department of Revenue: Rates, Fees & Penalties recorded in january-paycheck-2027.json."
     },
     "kentucky": {
@@ -1527,7 +1532,7 @@
         "source": "Mississippi H.B. 1 (2025), Build Up Mississippi Act",
         "sourceUrl": "https://billstatus.ls.state.ms.us/documents/2025/pdf/HB/0001-0099/HB0001SG.pdf"
       },
-      "_pending2027": "Mississippi 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_pending2027": "Mississippi 2027 state tax figures not yet published by the state; values other than the override below are the 2026 figures from tax-data-2026.json.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from Mississippi H.B. 1 (2025), Build Up Mississippi Act recorded in january-paycheck-2027.json."
     },
     "georgia": {
@@ -1601,9 +1606,9 @@
         "type": "flat",
         "rate": 0.038,
         "standardDeduction": {
-          "single": 16100,
-          "married": 32200,
-          "head_of_household": 24150
+          "single": 16600,
+          "married": 33200,
+          "head_of_household": 24925
         }
       },
       "disclaimer": [
@@ -1611,8 +1616,13 @@
         "Many Iowa school districts, and a few counties for emergency medical services, add a surtax: a percentage of your Iowa income tax, set by where you live on the last day of the year. It is worked out on your Iowa return and is not included in this estimate."
       ],
       "notes": "Flat 3.8% on federal taxable income.",
-      "_pending2027": "Iowa 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 standard deduction (Iowa has not published its 2027 figures).",
-      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+      "yearNoteLabel": "Iowa's 2027 deduction, which is the federal standard deduction",
+      "_override2027": {
+        "source": "IRS Rev. Proc. 2026-35, section 3.15",
+        "sourceUrl": "https://www.irs.gov/pub/irs-drop/rp-26-35.pdf"
+      },
+      "_pending2027": "Iowa 2027 state tax figures not yet published by the state; values other than the override below are the 2026 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from IRS Rev. Proc. 2026-35, section 3.15 recorded in january-paycheck-2027.json."
     },
     "idaho": {
       "name": "Idaho",
@@ -1733,7 +1743,7 @@
         "Massachusetts lets you deduct the Social Security and Medicare tax you paid, up to $2,000 a year, and that IS included in the figures above. Anyone earning about $26,150 or more pays more than $2,000 in Social Security and Medicare tax, so for most people the deduction is the full $2,000 and saves $100 a year in Massachusetts tax. One catch for married couples filing jointly: the $2,000 is per person and cannot be shared, so if your spouse also works they get their own deduction on top. This calculator only knows about one salary, so it only counts one."
       ],
       "notes": "Flat 5%, plus a 4% surtax above $1,107,750. The M.G.L. c.62 s.3(B)(a)(3) deduction for FICA paid (capped at $2,000 per taxpayer) is modeled for the one earner this calculator sees.",
-      "_pending2027": "Massachusetts 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 paid family and medical leave share (Chapter 101 of the Acts of 2026); 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_pending2027": "Massachusetts 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 paid family and medical leave share (Chapter 101 of the Acts of 2026); 2027 employee payroll program rates and wage limits not yet checked against the state agency; values are the 2026 ones.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
     },
     "new-jersey": {
@@ -1880,7 +1890,7 @@
         "2026 brackets are statutory (not inflation-indexed) and unchanged from prior years per the NJ Division of Taxation."
       ],
       "notes": "Progressive 1.4%-10.75% (statutory). No standard deduction; the $1,000 personal exemption ($2,000 filing jointly) is applied, dependent and age-65 exemptions are not.",
-      "_pending2027": "New Jersey 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_pending2027": "New Jersey 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet checked against the state agency; values are the 2026 ones.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
     },
     "ohio": {
@@ -2205,7 +2215,7 @@
         "Minnesota's dependent exemption ($5,300/dependent), Social Security subtraction, working family credit, and other credits/subtractions are not modeled."
       ],
       "notes": "Progressive 5.35%-9.85% (official 2026 inflation-indexed brackets). No local income tax.",
-      "_pending2027": "Minnesota 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_pending2027": "Minnesota 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet checked against the state agency; values are the 2026 ones.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
     },
     "wisconsin": {
@@ -2506,7 +2516,7 @@
         "Single bracket key also covers Married Filing Separately (CT Code F uses the same Code A schedule)."
       ],
       "notes": "Progressive 2%-6.99% (7 brackets, 2026 statutory rates from official DRS IP 2026(7)). No standard deduction; the 2% tax-rate phase-out add-back IS modeled (Conn. Gen. Stat. 12-700(a)(10)(A)(ii)/(B)(ii)/(C)(ii), IP 2026(7) Table C); so is the Table D tax recapture (12-700(a)(10)(A)(iii)-(v), (B)(iii)-(v), (C)(iii)-(v)); the personal exemption is not. No local income tax.",
-      "_pending2027": "Connecticut 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_pending2027": "Connecticut 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet checked against the state agency; values are the 2026 ones.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
     },
     "oregon": {
@@ -2680,7 +2690,7 @@
         "Oregon's personal exemption credit ($260/exemption for 2026), Earned Income Credit, and other credits/subtractions are not modeled."
       ],
       "notes": "Progressive 4.75%-9.9% (4 brackets, official 2026 inflation-indexed/statutory charts). Federal income tax subtraction included (up to $8,750, phased out from $125,000 single or $250,000 joint). Separate Portland/Multnomah local income taxes not modeled.",
-      "_pending2027": "Oregon 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_pending2027": "Oregon 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet checked against the state agency; values are the 2026 ones.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
     },
     "california": {
@@ -2849,7 +2859,7 @@
         "Credits for dependents and itemized deductions are not included."
       ],
       "notes": "Progressive 1%-12.3% (nine brackets, 2026 FTB schedules), less the personal exemption credit ($158 single, $316 joint for 2026; phase-out thresholds are the 2025 ones). +1% surcharge over $1M and dependent credits not modeled.",
-      "_pending2027": "California 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_pending2027": "California 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet checked against the state agency; values are the 2026 ones.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
     },
     "missouri": {
@@ -3157,7 +3167,7 @@
         "source": "Office of Governor Jim Pillen: income tax cuts effective in January",
         "sourceUrl": "https://governor.nebraska.gov/gov-pillens-historic-income-tax-cuts-effective-january"
       },
-      "_pending2027": "Nebraska 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_pending2027": "Nebraska 2027 state tax figures not yet published by the state; values other than the override below are the 2026 figures from tax-data-2026.json.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from Office of Governor Jim Pillen: income tax cuts effective in January recorded in january-paycheck-2027.json."
     },
     "oklahoma": {
@@ -3629,7 +3639,7 @@
         "Maine has no local or city income tax on wages."
       ],
       "notes": "Graduated 5.8% / 6.75% / 7.15% (2026, inflation-indexed), with a new 2% surcharge above $1M (single) / $1.5M (married, head of household) shown as a 9.15% top band. Standard deduction $15,700 single / $31,400 married / $23,550 head of household plus the $5,300 personal exemption ($10,600 married); both phase out at higher incomes. No local income tax.",
-      "_pending2027": "Maine 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 standard deduction (36 M.R.S. 5124-C); 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_pending2027": "Maine 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 standard deduction (36 M.R.S. 5124-C); 2027 employee payroll program rates and wage limits not yet checked against the state agency; values are the 2026 ones.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
     },
     "hawaii": {
@@ -3812,7 +3822,7 @@
         "Hawaii has no local or county income tax on wages."
       ],
       "notes": "Twelve graduated brackets 1.4%–11% (Act 46 widened schedule, unchanged for 2026). 2026 standard deduction (raised by Act 46): $8,000 single / $16,000 married / $12,000 head of household. No local income tax.",
-      "_pending2027": "Hawaii 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 rate schedules (Act 24, SLH 2026); 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_pending2027": "Hawaii 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 rate schedules (Act 24, SLH 2026); 2027 employee payroll program rates and wage limits not yet checked against the state agency; values are the 2026 ones.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
     },
     "rhode-island": {
@@ -3911,7 +3921,7 @@
         "Rhode Island has no local or city income tax on wages."
       ],
       "notes": "Three graduated brackets 3.75% / 4.75% / 5.99% (2026, inflation-indexed), same thresholds for all filing statuses: 3.75% to $82,050, 4.75% to $186,450, 5.99% above. Standard deduction $11,200 single / $22,400 married / $16,800 head of household plus the $5,250 personal exemption ($10,500 married); both phase out between $261,000 and $290,800 of MAGI for 2026. No local income tax.",
-      "_pending2027": "Rhode Island 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 high-income surtax (FY2027 budget); 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_pending2027": "Rhode Island 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 high-income surtax (FY2027 budget); 2027 employee payroll program rates and wage limits not yet checked against the state agency; values are the 2026 ones.",
       "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
     }
   }

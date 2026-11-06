@@ -45,10 +45,10 @@ export function taxYearNote(taxData, slug) {
   const yr = taxData.taxYear;
   const federal = `Federal tax and the Social Security limit use the official ${yr} figures.`;
   const st = taxData.states && taxData.states[slug];
-  if (!st || !st.hasIncomeTax) return federal;
+  if (!st) return federal;
+  const also = st.yearNoteLabel ? ` We also use ${st.yearNoteLabel}.` : '';
+  if (!st.hasIncomeTax) return federal + also;
   const fy = st.figureYear;
-  if (st.yearNoteLabel)
-    return `${federal} ${st.yearNoteLabel} is used here. ${st.name}'s other state figures stay at ${fy} ` +
-      `until the state publishes ${yr}.`;
+  if (also) return `${federal}${also} ${st.name}'s other state figures stay at ${fy} until the state publishes ${yr}.`;
   return `${federal} ${st.name}'s state tax uses its ${fy} figures until the state publishes ${yr}.`;
 }

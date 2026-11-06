@@ -230,25 +230,26 @@ const sumsTo = (r) => Math.abs(r.causes.reduce((s, c) => s + c.delta, 0) - r.cha
 const prog = (pc, label) => pc.programs.find((p) => p.label === label).amount;
 {
   // New York, $250,000 weekly, single, nothing else changes. Gross 250,000 / 52 = 4,807.69.
-  // NY PFL 0.432% of 4,807.69 = 20.77 a week, capped at $411.91 a year. Before the last
-  // December paycheck: 51 x 4,807.69 = 245,192.19 earned, 0.432% of that is far past
-  // 411.91, so December's PFL is $0 and January's is 20.77. NY DBL is a weekly cap
+  // NY PFL in 2026: 0.432%, capped at $411.91 a year. Before the last December paycheck:
+  // 51 x 4,807.69 = 245,192.19 earned, 0.432% of that is far past 411.91, so December's
+  // PFL is $0. January uses the published 2027 rate, 0.452% of 4,807.69 = 21.73 a week,
+  // capped at $451.81 a year (paidfamilyleave.ny.gov/2027). NY DBL is a weekly cap
   // (0.5%, at most $0.60 a week) and is $0.60 both weeks.
   const input = { salary: 250000, payFrequency: 'weekly', filingStatus: 'single', stateSlug: 'new-york',
     k401Pct2026: 0, k401Pct2027: 0, premium2026: 0, premium2027: 0, ytd2026: null };
   const r = compareDecJan(input, { ...ctxFor('new-york'), federal2027: { ...tax.federal } });
   is('NY: December PFL is $0', prog(r.dec, 'NY PFL'), 0);
-  is('NY: January PFL', prog(r.jan, 'NY PFL'), 20.77);
+  is('NY: January PFL', prog(r.jan, 'NY PFL'), 21.73);
   is('NY: DBL same both weeks (Dec)', prog(r.dec, 'NY DBL'), 0.6);
   is('NY: DBL same both weeks (Jan)', prog(r.jan, 'NY DBL'), 0.6);
   is('NY: December programs line', r.dec.statePrograms, 0.6);
-  is('NY: January programs line', r.jan.statePrograms, 21.37);
+  is('NY: January programs line', r.jan.statePrograms, 22.33);
   const c = r.causes.find((x) => x.key === 'statePrograms');
-  is('NY: program-reset cause', c.delta, -20.77);
+  is('NY: program-reset cause', c.delta, -21.73);
   ok('NY: reasons sum to the total', sumsTo(r));
   const d = describeCause(c, { input, fedMode: 'official', stateName: 'New York', stateHasIncomeTax: true, stateBasis: 'tables2026' });
   is('NY: cause title', d.title, 'State payroll program limits reset');
-  ok('NY: names the program', d.text.includes('NY PFL') && d.text.includes('$20.77'));
+  ok('NY: names the program', d.text.includes('NY PFL') && d.text.includes('$21.73'));
 }
 {
   // New Jersey, $60,000 biweekly, single. Gross 2,307.69. UI 0.3825% (8.83) + WF 0.0425%

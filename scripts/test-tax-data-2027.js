@@ -55,7 +55,7 @@ for (const [slug, s] of Object.entries(t27.states)) {
   is(`${slug}: pending state equals 2026 plus its override`, rest, JSON.parse(JSON.stringify(strip(r.state)).replaceAll(' \u2014 ', ', ')));
   is(`${slug}: label only where there is an override`, !!yearNoteLabel, !!overrides[slug]);
 }
-for (const slug of ['colorado', 'north-dakota', 'montana'])
+for (const slug of ['colorado', 'north-dakota', 'montana', 'iowa'])
   is(`${slug}: starts from federal taxable income, so the deduction is federal`,
     strip(t27.states[slug].tax.standardDeduction), strip(t27.federal.standardDeduction));
 assert.ok(!JSON.stringify(t27).includes('—'), 'no em dashes'); n++;
@@ -86,6 +86,7 @@ is('2027 federal tax on $250,000', fed(firstOf2027), 50381);
 is('no 2027 note on 2026 tables', taxYearNote(t26, 'georgia'), '');
 assert.match(taxYearNote(t27, 'texas'), /official 2027 figures\.$/); n++;
 assert.match(taxYearNote(t27, 'georgia'), /Georgia's state tax uses its 2026 figures until the state publishes 2027\.$/); n++;
-assert.match(taxYearNote(t27, 'north-carolina'), /North Carolina's 2027 income tax rate is used here\./); n++;
+assert.match(taxYearNote(t27, 'washington'), /We also use Washington's 2027 paid leave premium\.$/); n++;
+assert.match(taxYearNote(t27, 'north-carolina'), /We also use North Carolina's 2027 income tax rate\./); n++;
 
 console.log(`test-tax-data-2027: ${n} checks passed`);

@@ -1,7 +1,7 @@
 {
   "_comment": "Inputs for /january-paycheck-change-calculator/ that live nowhere else. The 2027 federal figures are NOT here: they come from projections-2027.json (official2027 once the IRS Revenue Procedure is in, the publishers' thirdPartyProjections until then) or from tax-data-2027.json once that file exists, which also replaces every state below. The 2027 Social Security wage base comes from projections-2027.json ssaFactSheet2027.",
   "stateOverrides2027": {
-    "_rule": "Only a 2027 figure already set in statute AND already recorded in this repo goes here, patched over the state's 2026 `tax` block for the January paycheck. Everything else uses the 2026 tables, and the page says so. North Carolina added 2026-11-03: S.B. 257 (the 2026 Appropriations Act) is Session Law 2026-41 (ncleg summary title 'S257 - 2026 Appropriations Act. (SL 2026-41)'), already cited in state-payroll-2026.json. Indiana, Mississippi, Nebraska, Montana and New York added 2026-11-03 after a research pass plus an independent refute pass (all 5 CONFIRMED). Nebraska keeps 2026 thresholds and standard deduction (2027 indexed values only in a draft 1040N-ES); Montana, Colorado and North Dakota start from federal taxable income, so their 2027 deduction is the federal amount in Rev. Proc. 2026-35 section 3.15 (added 2026-11-06).",
+    "_rule": "Only a 2027 figure already set in statute AND already recorded in this repo goes here, patched over the state's 2026 `tax` block for the January paycheck. Everything else uses the 2026 tables, and the page says so. North Carolina added 2026-11-03: S.B. 257 (the 2026 Appropriations Act) is Session Law 2026-41 (ncleg summary title 'S257 - 2026 Appropriations Act. (SL 2026-41)'), already cited in state-payroll-2026.json. Indiana, Mississippi, Nebraska, Montana and New York added 2026-11-03 after a research pass plus an independent refute pass (all 5 CONFIRMED). Nebraska keeps 2026 thresholds and standard deduction (2027 indexed values only in a draft 1040N-ES); Montana, Colorado, North Dakota and Iowa start from federal taxable income, so their 2027 deduction is the federal amount in Rev. Proc. 2026-35 section 3.15 (added 2026-11-06). employeePrograms, where present, replaces the whole list with the state's published 2027 payroll program figures (Washington and New York, added 2026-11-06).",
     "virginia": {
       "tax": {
         "standardDeduction": {
@@ -309,10 +309,24 @@
         }
       },
       "label": "New York's 2027 income tax rates",
-      "what": "New York cuts its five lowest income tax rates by another 0.1 point in 2027 under state law, so most middle-income workers see slightly less state tax per check.",
+      "what": "New York cuts its five lowest income tax rates by another 0.1 point in 2027 under state law, so most middle-income workers see slightly less state tax per check. Paid Family Leave also changes in 2027: 0.452% of pay, up to $451.81 for the year.",
       "_quote": "N.Y. Tax Law 601(c)(1)(viii) 'For taxable years beginning after two thousand twenty-six and before two thousand thirty-three': 'Not over $8,500 3.80% ... Over $13,900 but not over $80,650 $572 plus 5.30% ... Over $80,650 but not over $215,400 $4,110 plus 5.80%' (601(a) and (b) item (viii) the same for joint and head of household). NYS Tax Expenditure Report FY2027: 'Beginning with the 2026 tax year, an additional 0.2 percentage point rate reduction will be phased in over two years for all taxpayers with taxable income up to $215,400 ($323,200 for joint filers). The reduction will be fully phased in by tax year 2027'.",
       "sourceUrl": "https://www.nysenate.gov/legislation/laws/TAX/601",
-      "sourceTitle": "N.Y. Tax Law § 601"
+      "sourceTitle": "N.Y. Tax Law § 601",
+      "employeePrograms": [
+        {
+          "label": "NY PFL",
+          "rate": 0.00452,
+          "annualMax": 451.81
+        },
+        {
+          "label": "NY DBL",
+          "rate": 0.005,
+          "weeklyMax": 0.6
+        }
+      ],
+      "_programQuote": "paidfamilyleave.ny.gov/2027: 'For 2027, employees will contribute 0.452% of their gross wages per pay period, with a maximum annual contribution of $451.81.'",
+      "_programSourceUrl": "https://paidfamilyleave.ny.gov/2027"
     },
     "colorado": {
       "tax": {
@@ -341,6 +355,38 @@
       "_quote": "Rev. Proc. 2026-35 section 3.15(1): 'For taxable years beginning in 2027, the standard deduction amounts under § 63(c)(2) are as follows:' with $33,200 joint, $24,925 head of household, $16,600 unmarried. The state link is tax.deductionFromFederal in tax-data-2026.json.",
       "sourceUrl": "https://www.irs.gov/pub/irs-drop/rp-26-35.pdf",
       "sourceTitle": "IRS Rev. Proc. 2026-35, section 3.15"
+    },
+    "iowa": {
+      "tax": {
+        "standardDeduction": {
+          "single": 16600,
+          "married": 33200,
+          "head_of_household": 24925
+        }
+      },
+      "label": "Iowa's 2027 deduction, which is the federal standard deduction",
+      "what": "Iowa starts from federal taxable income, so the 2027 federal standard deduction carries through to the state tax.",
+      "_quote": "Rev. Proc. 2026-35 section 3.15(1): 'For taxable years beginning in 2027, the standard deduction amounts under § 63(c)(2) are as follows:' with $33,200 joint, $24,925 head of household, $16,600 unmarried. The state link is tax.deductionFromFederal in tax-data-2026.json.",
+      "sourceUrl": "https://www.irs.gov/pub/irs-drop/rp-26-35.pdf",
+      "sourceTitle": "IRS Rev. Proc. 2026-35, section 3.15"
+    },
+    "washington": {
+      "employeePrograms": [
+        {
+          "label": "WA PFML",
+          "rate": 0.008484,
+          "wageBase": 192300
+        },
+        {
+          "label": "WA Cares",
+          "rate": 0.0058
+        }
+      ],
+      "label": "Washington's 2027 paid leave premium",
+      "what": "Washington's paid leave premium goes up in 2027: 1.2% of pay, 70.7% of it paid by you, up to the 2027 Social Security limit.",
+      "_quote": "paidleave.wa.gov/updates: 'The premium rate will be 1.2%.' 'Employers will pay 29.3% of the total premium and employees will pay 70.7%.' 'collect premiums up to the Social Security cap.' 0.012 x 0.707 = 0.008484; cap $192,300 from SSA's 2027 fact sheet.",
+      "sourceUrl": "https://paidleave.wa.gov/updates",
+      "sourceTitle": "Washington Paid Leave: 2027 premiums"
     }
   }
 }
