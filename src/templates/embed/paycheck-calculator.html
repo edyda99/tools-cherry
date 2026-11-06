@@ -66,13 +66,15 @@
       </div>
     </form>
     <div id="out" aria-live="polite"></div>
-    <p class="muted-small">Estimate for even wages across {{TAX_YEAR}}, before local city or county income taxes. Not tax advice.</p>
+    <p id="taxYearNote" class="muted-small" hidden></p>
+    <p class="muted-small">Estimate for even wages across <span id="taxYearLabel">{{TAX_YEAR}}</span>, before local city or county income taxes. Not tax advice.</p>
   </section>
   <p class="embed-credit">Free <a href="{{SITE_URL}}/data/take-home-pay-by-state/" target="_blank" rel="noopener">Take-Home Paycheck Calculator</a> by {{SITE_NAME}}</p>
 </div>
 
 <script>
   window.__PAYCHECK_EMBED__ = {{PAYCHECK_EMBED_JSON}};
+  window.__PAYCHECK_EMBED_2027__ = {{PAYCHECK_EMBED_2027_JSON}};
 </script>
 <script type="module" src="/assets/embed-paycheck.js"></script>
 </body>

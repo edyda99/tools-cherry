@@ -87,7 +87,9 @@ import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 // count() quotes an hours figure back with its fractions intact, so 12.5 hours
 // is never read back as "13". Imported rather than re-derived, like the readers.
 import { createWizard, radioOf, selectOf, numOf, count } from '/assets/wizard-core.js';
-const taxData = window.__TAX_DATA__;
+import { pickTaxData, taxYearNote } from '/assets/tax-year.js';
+// 2026 tables until 31 December 2026, 2027 tables from 1 January 2027 (tax-year.js).
+const taxData = pickTaxData(window.__TAX_DATA__, window.__TAX_DATA_2027__);
 const stateSlug = window.__STATE_SLUG__;
 
 const usd = (n) =>
@@ -1387,7 +1389,7 @@ function renderAtFiling(input, r, mergeTips) {
   const returnIncome = income + onTopTips;
   const magi = Math.max(0, returnIncome - preTax);
   if (ruleDataState === 'failed') {
-    box.innerHTML = `<p class="otw-note">We could not load the 2026 deduction figures just now, so these are not ` +
+    box.innerHTML = `<p class="otw-note">We could not load the ${taxData.taxYear} deduction figures just now, so these are not ` +
       `worked out here. The links below still do it in full.</p>`;
     return;
   }
@@ -2149,7 +2151,7 @@ let fullData = null;
 
 async function ensureFullData() {
   if (fullData) return fullData;
-  try { fullData = await fetch('/data/tax-data-2026.json').then((r) => r.json()); }
+  try { fullData = await fetch(`/data/tax-data-${taxData.taxYear}.json`).then((r) => r.json()); }
   catch (e) { fullData = null; }
   return fullData;
 }
@@ -2491,6 +2493,15 @@ function init() {
       try { document.dispatchEvent(new CustomEvent('tb:paycheck-reset')); } catch (_) { /* older browsers */ }
     }
   });
+
+  // Only from 1 January 2027: the calculator has moved to 2027 tables while the page
+  // around it is still written for 2026, so it says which is which.
+  const yearNote = taxYearNote(taxData, stateSlug);
+  const yearNoteEl = $('taxYearNote');
+  if (yearNote && yearNoteEl) {
+    yearNoteEl.textContent = `${yearNote} The tables and examples elsewhere on this page are still for 2026.`;
+    yearNoteEl.hidden = false;
+  }
 
   // start() renders once, THEN sets data-js="on" and shows card one, in that
   // order on purpose: a throw in the render leaves the plain stacked form on

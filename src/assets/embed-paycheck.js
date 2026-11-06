@@ -4,11 +4,13 @@
 // tax-data-2026.json); if this widget ever disagreed with a state page, that is a
 // bug. All math runs in the visitor's browser; nothing is uploaded.
 import { computePaycheck } from '/assets/paycheck-engine.js';
+import { pickTaxData, taxYearNote } from '/assets/tax-year.js';
 import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
-const taxData = window.__PAYCHECK_EMBED__ || { federal: {}, states: {} };
+// 2026 tables until 31 December 2026, 2027 tables from 1 January 2027 (tax-year.js).
+const taxData = pickTaxData(window.__PAYCHECK_EMBED__ || { federal: {}, states: {} }, window.__PAYCHECK_EMBED_2027__);
 
 const usd = (n) => '$' + Math.round(Math.max(0, n || 0)).toLocaleString('en-US');
 const usd2 = (n) => '$' + (Math.max(0, n || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -59,6 +61,14 @@ function render() {
   const slug = $('state').value;
   const st = taxData.states[slug];
   if (!st) return;
+  const yearNote = taxYearNote(taxData, slug);
+  const yearNoteEl = $('taxYearNote');
+  if (yearNote && yearNoteEl) {
+    yearNoteEl.textContent = yearNote;
+    yearNoteEl.hidden = false;
+    const label = $('taxYearLabel');
+    if (label) label.textContent = String(taxData.taxYear);
+  }
   const freq = $('frequency').value;
   const r = computePaycheck({
     wage: { type: 'salary', amount: Math.max(0, salary || 0) },

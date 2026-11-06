@@ -5,12 +5,14 @@
 // uploaded. Works on the hub page (state <select>) and on a fixed state page
 // (window.__BONUS_STATE__ set).
 import { computeBonus } from '/assets/bonus-tax.js';
+import { pickTaxData, taxYearNote } from '/assets/tax-year.js';
 import { initMoneyInputs, moneyValue } from '/assets/money-input.js';
 
 import { showCalculatorLoadError } from '/assets/calc-error-banner.js';
 const $ = (id) => document.getElementById(id);
 const DATA = window.__BONUS_TAX__ || {};
-const taxData = DATA.taxData || { federal: {}, states: {} };
+// 2026 tables until 31 December 2026, 2027 tables from 1 January 2027 (tax-year.js).
+const taxData = pickTaxData(DATA.taxData || { federal: {}, states: {} }, DATA.taxData2027);
 const suppData = DATA.supp || { federal: {}, states: {} };
 const FIXED_STATE = window.__BONUS_STATE__ || null;
 
@@ -44,6 +46,9 @@ function currentState() {
 // behind starts being labelled with no code change. Returns '' on a fixed-state
 // page so the server-rendered banner is not repeated inside the answer.
 function figureYearNote(slug, stateName) {
+  // From 1 January 2027 this is the page's only 2027 notice, on the state pages too.
+  const yearNote = taxYearNote(taxData, slug);
+  if (yearNote) return `<p class="year-fallback" role="note">${yearNote}</p>`;
   if (FIXED_STATE) return '';
   const st = taxData.states && taxData.states[slug];
   const fy = st && Number(st.figureYear);
