@@ -51,8 +51,9 @@ for (const [slug, s] of Object.entries(t27.states)) {
   if (!s._pending2027) { is(`${slug}: final state is unchanged no-tax entry`, strip(s).hasIncomeTax, false); continue; }
   const r = state2027({ slug, state2026: old, taxData2027States: t27.states, overrides });
   const { yearNoteLabel, ...rest } = strip(s);
-  // The 2027 file carries the 2026 reader text with its dashes turned into commas.
-  is(`${slug}: pending state equals 2026 plus its override`, rest, JSON.parse(JSON.stringify(strip(r.state)).replaceAll(' \u2014 ', ', ')));
+  // notes and disclaimer describe 2026 figures, so they are not carried over.
+  const { notes, disclaimer, ...expected } = strip(r.state);
+  is(`${slug}: pending state equals 2026 plus its override`, rest, expected);
   is(`${slug}: label only where there is an override`, !!yearNoteLabel, !!overrides[slug]);
 }
 for (const slug of ['colorado', 'north-dakota', 'montana', 'iowa'])

@@ -326,7 +326,8 @@
         }
       ],
       "_programQuote": "paidfamilyleave.ny.gov/2027: 'For 2027, employees will contribute 0.452% of their gross wages per pay period, with a maximum annual contribution of $451.81.'",
-      "_programSourceUrl": "https://paidfamilyleave.ny.gov/2027"
+      "_programSourceUrl": "https://paidfamilyleave.ny.gov/2027",
+      "yearNoteLabel": "New York's 2027 income tax rates and Paid Family Leave rate"
     },
     "colorado": {
       "tax": {
@@ -366,9 +367,10 @@
       },
       "label": "Iowa's 2027 deduction, which is the federal standard deduction",
       "what": "Iowa starts from federal taxable income, so the 2027 federal standard deduction carries through to the state tax.",
-      "_quote": "Rev. Proc. 2026-35 section 3.15(1): 'For taxable years beginning in 2027, the standard deduction amounts under § 63(c)(2) are as follows:' with $33,200 joint, $24,925 head of household, $16,600 unmarried. The state link is tax.deductionFromFederal in tax-data-2026.json.",
+      "_quote": "Rev. Proc. 2026-35 section 3.15(1) for the amounts. Iowa Department of Revenue, IA 1040 expanded instructions, Conformity with the Internal Revenue Code: 'For tax years beginning on or after January 1, 2023, the starting point for taxation is federal taxable income. Iowa has also adopted rolling conformity'.",
       "sourceUrl": "https://www.irs.gov/pub/irs-drop/rp-26-35.pdf",
-      "sourceTitle": "IRS Rev. Proc. 2026-35, section 3.15"
+      "sourceTitle": "IRS Rev. Proc. 2026-35, section 3.15",
+      "_conformityUrl": "https://revenue.iowa.gov/taxes/tax-guidance/individual-income-tax/1040-expanded-instructions/conformity-irc"
     },
     "washington": {
       "employeePrograms": [
