@@ -30,10 +30,12 @@
 // between them. FICA is identical in both columns on purpose: it is a real tax
 // on the bonus, not a prepayment, and it is the one part that never comes back.
 import { computeBonus } from '/assets/bonus-tax.js';
+import { pickTaxData, taxYearNote } from '/assets/tax-year.js';
 import { mountWizard, $, moneyOf, radioOf, selectOf, usd, pct } from '/assets/wizard-core.js';
 
 const DATA = window.__BONUS_TAX__ || {};
-const taxData = DATA.taxData || { federal: {}, states: {} };
+// 2026 tables until 31 December 2026, 2027 tables from 1 January 2027 (tax-year.js).
+const taxData = pickTaxData(DATA.taxData || { federal: {}, states: {} }, DATA.taxData2027);
 const suppData = DATA.supp || { federal: {}, states: {} };
 // Set on the 51 state pages, null on the hub. It is also what decides whether a
 // state card exists at all, so it is read once and trusted everywhere below.
@@ -153,6 +155,9 @@ function fillStates() {
 // slug list on either side, so a state stops being labelled the moment its
 // current tables land and starts being labelled the moment it falls behind.
 function figureYearNote(slug, stateName) {
+  // From 1 January 2027 this is the page's only 2027 notice, on the state pages too.
+  const yearNote = taxYearNote(taxData, slug);
+  if (yearNote) return `<p class="year-fallback" role="note">${yearNote}</p>`;
   if (FIXED_STATE) return '';
   const st = taxData.states && taxData.states[slug];
   const fy = st && Number(st.figureYear);

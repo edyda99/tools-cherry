@@ -8433,6 +8433,9 @@ async function rewriteHtmlAssetRefs(dir, hashMap) {
 
 async function main() {
   const taxData = await readJSON(join(SRC, 'data', 'tax-data-2026.json'));
+  // Never rendered into a page's prose. The calculators switch to it in the browser
+  // on 1 January 2027 (src/engine/tax-year.js); every static figure stays on taxData.
+  const taxData2027 = await readJSON(join(SRC, 'data', 'tax-data-2027.json'));
   LAST_SOURCED = (taxData._meta && taxData._meta.lastSourced) || '';
   const roster = await readJSON(join(SRC, 'data', 'states.json'));
   TOOL_SOURCES = await readJSON(join(SRC, 'data', 'tool-sources.json'));
@@ -8794,6 +8797,7 @@ async function main() {
   // only their own state, below).
   const BONUS_TAX_ALL_JSON = JSON.stringify({
     taxData: stripInternal({ taxYear: taxData.taxYear, federal: taxData.federal, states: taxData.states }),
+    taxData2027: stripInternal({ taxYear: taxData2027.taxYear, federal: taxData2027.federal, states: taxData2027.states }),
     supp: { federal: suppFederalLean, states: leanSuppStates(suppData.states) }
   });
   // All-states payload for the take-home paycheck widget at /embed/paycheck-calculator/.
@@ -8803,6 +8807,7 @@ async function main() {
   // states from this injected copy AND from the source file to prove stripInternal
   // (which drops _source/_note provenance) never touched a figure.
   const PAYCHECK_EMBED_JSON = JSON.stringify(stripInternal({ taxYear: taxData.taxYear, federal: taxData.federal, states: taxData.states }));
+  const PAYCHECK_EMBED_2027_JSON = JSON.stringify(stripInternal({ taxYear: taxData2027.taxYear, federal: taxData2027.federal, states: taxData2027.states }));
   const biweeklyTpl = await read(join(SRC, 'templates', 'biweekly-mortgage-calculator.html'));
   const photoSpecs = await readJSON(join(SRC, 'data', 'photo-specs.json'));
   const cpiUs = await readJSON(join(SRC, 'data', 'cpi-us.json'));
@@ -9124,6 +9129,7 @@ async function main() {
   registerAsset('engine', 'bonus-tax.js');
   registerAsset('assets', 'bonus-tax-calculator.js');
   registerAsset('assets', 'embed-gallery.js');
+  registerAsset('engine', 'tax-year.js'); // picks 2026 or 2027 tables by the browser's date
   registerAsset('assets', 'embed-paycheck.js'); // the /embed/paycheck-calculator/ widget (reuses paycheck-engine.js)
   registerAsset('assets', 'data-table.js');
   registerAsset('engine', 'employment-tax.js');
@@ -9273,6 +9279,8 @@ async function main() {
       STUDY_RULES: studyRulesText,
       FAQ_JSONLD: faqJsonLd(faqEntries),
       TAX_DATA_JSON: JSON.stringify(payload),
+      // Sits in the page unused until the browser's date reaches 2027 (tax-year.js).
+      TAX_DATA_2027_JSON: JSON.stringify(stripInternal({ taxYear: taxData2027.taxYear, federal: taxData2027.federal, states: { [slug]: taxData2027.states[slug] } })),
       YEAR: year,
       VERIFIED: verified,
       // The same date, spelled for a reader. The byline it feeds is now a <time>
@@ -9921,6 +9929,7 @@ async function main() {
     if (!suppEntry) { console.warn(`⚠  no supplemental entry for ${slug} — skipping bonus page`); continue; }
     const bonusPayload = {
       taxData: stripInternal({ taxYear: taxData.taxYear, federal: taxData.federal, states: { [slug]: state } }),
+      taxData2027: stripInternal({ taxYear: taxData2027.taxYear, federal: taxData2027.federal, states: { [slug]: taxData2027.states[slug] } }),
       supp: { federal: suppFederalLean, states: { [slug]: leanSupp(suppEntry) } }
     };
     const faqEntries = bonusFaqEntries(state, suppEntry, year);
@@ -11966,26 +11975,23 @@ async function main() {
     const jpPath = '/january-paycheck-change-calculator/';
     const jpTpl = await read(join(SRC, 'templates', 'january-paycheck-change-calculator.html'));
     const jpData = await readJSON(join(SRC, 'data', 'january-paycheck-2027.json'));
-    const td27Path = join(SRC, 'data', 'tax-data-2027.json');
-    const taxData2027 = existsSync(td27Path) ? await readJSON(td27Path) : null;
-    if (!taxData2027) {
-      if (!ssaFsWageBase)
-        throw new Error('january paycheck page: no 2027 Social Security wage base (projections-2027.json ssaFactSheet2027) and no tax-data-2027.json');
-      if (proj2027.official2027) {
-        const bad = p27Official2027Problems(proj2027.official2027);
-        if (bad.length) throw new Error(`january paycheck page: official2027 is malformed:\n  ${bad.join('\n  ')}`);
-      } else {
-        const bad = p27ThirdPartyBlockProblems(proj2027.thirdPartyProjections);
-        if (bad.length) throw new Error(`january paycheck page: thirdPartyProjections is malformed:\n  ${bad.join('\n  ')}`);
-      }
-    } else if (ssaFsWageBase && taxData2027.federal.fica.socialSecurity.wageBase !== ssaFsWageBase.after) {
+    // A state with _pending2027 is still on 2026 tables plus any statutory change, so
+    // this page may only say "each state's 2027 tables" once none is left.
+    const states27Final = Object.values(taxData2027.states).every((s) => !s._pending2027);
+    if (!ssaFsWageBase)
+      throw new Error('january paycheck page: no 2027 Social Security wage base (projections-2027.json ssaFactSheet2027)');
+    if (taxData2027.federal.fica.socialSecurity.wageBase !== ssaFsWageBase.after) {
       throw new Error(`Social Security wage base disagreement: tax-data-2027.json says ${taxData2027.federal.fica.socialSecurity.wageBase}, ` +
         `ssaFactSheet2027 says ${ssaFsWageBase.after}.`);
+    }
+    if (proj2027.official2027) {
+      const bad = p27Official2027Problems(proj2027.official2027);
+      if (bad.length) throw new Error(`january paycheck page: official2027 is malformed:\n  ${bad.join('\n  ')}`);
     }
     const fed27 = jpFederal2027({
       fed2026: taxData.federal,
       wageBase2027: ssaFsWageBase ? ssaFsWageBase.after : NaN,
-      taxData2027Federal: taxData2027 ? taxData2027.federal : null,
+      taxData2027Federal: taxData2027.federal,
       official2027: proj2027.official2027 || null,
       projections: proj2027.thirdPartyProjections,
     });
@@ -12026,7 +12032,7 @@ async function main() {
           `${usd0(s.values[s.values.length - 1])}; we use the lowest, ${usd0(s.values[0])}, so January is never shown better than it may turn out.`).join('') +
         brSpread.map((s) => ` Their ${STATUS_WORD[s.status]} brackets differ; we use ${escHtml(pubName(items[0].publisher))}'s.`).join('') +
         ' This page switches to the official figures as soon as the IRS publishes them.';
-    } else if (fed27.basis === 'official2027') {
+    } else if (rp) {
       bannerFederal = ' January\'s federal income tax uses the <strong>official</strong> 2027 tax tables from the IRS, published in ' +
         `<a href="${escHtml(rp.sourceUrl)}" rel="noopener" target="_blank">${escHtml(rp.name)}</a> on ${escHtml(humanDate(rp.publishedDate))}.`;
       bannerDetail = bannerFederal.trim();
@@ -12037,7 +12043,7 @@ async function main() {
     const bannerSs = `The 2027 Social Security limit of <strong>${usd0(wb27)}</strong> is official: it is on Social Security's ` +
       (ssaFs2027 ? `<a href="${escHtml(ssaFs2027.sourceUrl)}" rel="noopener" target="_blank">2027 fact sheet</a>.` : '2027 figures.');
     const overrideNames = overrideSlugs.map((k) => taxData.states[k].name);
-    const bannerState = taxData2027
+    const bannerState = states27Final
       ? 'State income tax for January uses each state\'s 2027 tables.'
       : 'State income tax for January uses each state\'s <strong>2026</strong> tables, until 2027 state tables are in our data.' +
         (overrideSlugs.length
@@ -12132,8 +12138,8 @@ async function main() {
       statusRow('Federal tax brackets', projected ? '<strong>Estimate</strong>' : '<strong>Official</strong>',
         projected ? 'The same projections. See <a href="/2027-tax-brackets/">projected 2027 tax brackets</a>.' : '<a href="/2027-tax-brackets/">2027 tax brackets</a>') +
       statusRow('Social Security 6.2%, Medicare 1.45%, extra Medicare 0.9% over $200,000', '<strong>Fixed in law</strong>', 'These rates and the $200,000 line do not change with inflation.') +
-      statusRow('State income tax', taxData2027 ? '<strong>Official</strong>' : '<strong>2026 tables</strong>',
-        taxData2027 ? 'Each state\'s 2027 tables.' : `Each state's 2026 tables${overrideNames.length ? `, except ${andList(overrideNames)}` : ''}.`) +
+      statusRow('State income tax', states27Final ? '<strong>Official</strong>' : '<strong>2026 tables</strong>',
+        states27Final ? 'Each state\'s 2027 tables.' : `Each state's 2026 tables${overrideNames.length ? `, except ${andList(overrideNames)}` : ''}.`) +
       '</tbody></table></div>' +
       '<p>We do not model the yearly 401(k) limit, catch-up savings, dependents, extra withholding you asked for on your W-4, or local taxes. Those can move a paycheck too.</p>';
 
@@ -13632,7 +13638,7 @@ async function main() {
   // Still gets MODULE_ERROR_LISTENER injected below (same page-level module-load-
   // failure banner every full page gets via fill()) — bypassing fill() shouldn't
   // mean losing that defense-in-depth too.
-  const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON, ROTHCATCHUP_JSON, BONUS_TAX_JSON: BONUS_TAX_ALL_JSON, FORM1099_JSON, FORM1099_STATES_JSON, TTOC_JSON, SSMAXOUT_PARAMS_JSON, STUDENT_LOAN_LIMITS_JSON, ABLE_LIMITS_JSON, ABLE_STATES_JSON, SECTION127_JSON, ADOPTION_DATA_JSON, PAYCHECK_EMBED_JSON, TAX_YEAR: year };
+  const embedMap = { SITE_NAME: SITE.name, SITE_URL: SITE.url, OBBBA_JSON: OBBBA_FED_JSON, FED_JSON: OBBBA_FED_TAX_JSON, STATES_JSON: OBBBA_STATES_JSON, ROTHCATCHUP_JSON, BONUS_TAX_JSON: BONUS_TAX_ALL_JSON, FORM1099_JSON, FORM1099_STATES_JSON, TTOC_JSON, SSMAXOUT_PARAMS_JSON, STUDENT_LOAN_LIMITS_JSON, ABLE_LIMITS_JSON, ABLE_STATES_JSON, SECTION127_JSON, ADOPTION_DATA_JSON, PAYCHECK_EMBED_JSON, PAYCHECK_EMBED_2027_JSON, TAX_YEAR: year };
   const fillEmbed = (tpl) => {
     let out = tpl.replace(/{{(\w+)}}/g, (m, k) => (k in embedMap ? embedMap[k] : m));
     if (out.includes('</head>')) out = out.replace('</head>', `${MODULE_ERROR_LISTENER}</head>`);
@@ -13718,6 +13724,7 @@ async function main() {
   await mkdir(join(DIST, 'data'), { recursive: true });
   await mkdir(join(DIST, 'data'), { recursive: true });
   await writeFile(join(DIST, 'data', 'tax-data-2026.json'), JSON.stringify(stripInternal(taxData), null, 2) + '\n');
+  await writeFile(join(DIST, 'data', 'tax-data-2027.json'), JSON.stringify(stripInternal(taxData2027), null, 2) + '\n');
   await writeFile(join(DIST, 'data', 'obbba-deductions-2026.json'), JSON.stringify(stripInternal(obbba), null, 2) + '\n');
   await writeFile(join(DIST, 'data', 'secure2-catchup-2026.json'), JSON.stringify(stripInternal(secure2), null, 2) + '\n');
 

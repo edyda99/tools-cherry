@@ -135,13 +135,15 @@ export function federal2027({ fed2026, wageBase2027, taxData2027Federal, officia
 
 /**
  * The state entry a January 2027 paycheck is computed with. A tax-data-2027.json
- * state wins outright. Otherwise the 2026 entry, with a statutory 2027 change
- * from january-paycheck-2027.json patched into its `tax` block where the repo has
- * one (Virginia's standard deduction, North Carolina's rate).
+ * state wins outright once it is final, meaning it has no _pending2027 field.
+ * Otherwise the 2026 entry, with a statutory 2027 change from
+ * january-paycheck-2027.json patched into its `tax` block where the repo has one
+ * (Virginia's standard deduction, North Carolina's rate). A pending state in
+ * tax-data-2027.json is exactly that same result, so the two cannot disagree.
  * @returns {{state:object|null, basis:'taxData2027'|'override2027'|'tables2026', override:object|null}}
  */
 export function state2027({ slug, state2026, taxData2027States, overrides }) {
-  if (taxData2027States && taxData2027States[slug])
+  if (taxData2027States && taxData2027States[slug] && !taxData2027States[slug]._pending2027)
     return { state: taxData2027States[slug], basis: 'taxData2027', override: null };
   const o = overrides && overrides[slug];
   if (o && o.tax && state2026) {

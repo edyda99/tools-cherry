@@ -1,0 +1,3918 @@
+{
+  "taxYear": 2027,
+  "_meta": {
+    "description": "2027 US federal payroll and income tax parameters, plus per-state tables. Same schema as tax-data-2026.json. The paycheck calculators use this file from 2027-01-01 (see src/engine/tax-year.js); pages keep tax-data-2026.json until then.",
+    "federalConfirmed": "Federal 2027 figures are from IRS Rev. Proc. 2026-35 (section 3.01 tax rate tables, section 3.15 standard deduction), read from the PDF on 2026-11-06, and must equal projections-2027.json official2027. The 2027 Social Security wage base of $192,300 is from SSA's 2027 COLA fact sheet. FICA rates and the Additional Medicare thresholds are fixed in statute.",
+    "sources": {
+      "federal_brackets": "https://www.irs.gov/pub/irs-drop/rp-26-35.pdf",
+      "standard_deduction": "https://www.irs.gov/pub/irs-drop/rp-26-35.pdf",
+      "fica": "https://www.ssa.gov/news/en/cola/factsheets/2027.html",
+      "additional_medicare": "https://www.irs.gov/businesses/small-businesses-self-employed/questions-and-answers-for-the-additional-medicare-tax"
+    },
+    "lastSourced": "2026-11-06",
+    "revenueProcedure": {
+      "name": "Rev. Proc. 2026-35",
+      "publishedDate": "2026-11-05",
+      "sourceUrl": "https://www.irs.gov/pub/irs-drop/rp-26-35.pdf",
+      "newsroomUrl": "https://www.irs.gov/newsroom/irs-releases-tax-inflation-adjustments-for-tax-year-2027-taxpayers-continue-to-benefit-from-the-working-families-tax-cuts"
+    },
+    "pending2027": {
+      "_rule": "A figure whose primary source is not out yet keeps its 2026 value and is named here or in the state's _pending2027 field. A state with no _pending2027 is final for 2027. A state still pending must equal its tax-data-2026.json entry plus its january-paycheck-2027.json override, and scripts/test-tax-data-2027.js holds that.",
+      "states": "State tax tables: states publish 2027 figures from December 2026 into early 2027, see each state's _pending2027.",
+      "pub15T": "IRS Publication 15-T (2027 withholding tables), expected December 2026. The engine does not read it: it works out yearly tax from the brackets and standard deduction, so nothing here waits on it.",
+      "stateProgramWageBases": "Eight state paid-leave programs carry the 2026 Social Security wage base of $184,500 as their wage limit. Their 2027 rates and limits are pending, so they stay at 2026 values."
+    },
+    "_mfsNote": "The site has no separate married filing separately status: 'single' also stands for it. For 2027 Table 4 of the Rev. Proc. stops the 35% bracket at $396,825, not $661,375, so that shared status overstates take-home above that income. The 2026 file has the same limit."
+  },
+  "filingStatuses": [
+    {
+      "id": "single",
+      "label": "Single / Married filing separately"
+    },
+    {
+      "id": "married",
+      "label": "Married filing jointly"
+    },
+    {
+      "id": "head_of_household",
+      "label": "Head of household"
+    }
+  ],
+  "federal": {
+    "standardDeduction": {
+      "_source": "Rev. Proc. 2026-35 section 3.15(1).",
+      "single": 16600,
+      "married": 33200,
+      "head_of_household": 24925
+    },
+    "brackets": {
+      "_source": "Rev. Proc. 2026-35 section 3.01, Tables 1 to 3.",
+      "single": [
+        {
+          "rate": 0.1,
+          "upTo": 12800
+        },
+        {
+          "rate": 0.12,
+          "upTo": 52025
+        },
+        {
+          "rate": 0.22,
+          "upTo": 109125
+        },
+        {
+          "rate": 0.24,
+          "upTo": 208325
+        },
+        {
+          "rate": 0.32,
+          "upTo": 264550
+        },
+        {
+          "rate": 0.35,
+          "upTo": 661375
+        },
+        {
+          "rate": 0.37,
+          "upTo": null
+        }
+      ],
+      "married": [
+        {
+          "rate": 0.1,
+          "upTo": 25600
+        },
+        {
+          "rate": 0.12,
+          "upTo": 104050
+        },
+        {
+          "rate": 0.22,
+          "upTo": 218250
+        },
+        {
+          "rate": 0.24,
+          "upTo": 416650
+        },
+        {
+          "rate": 0.32,
+          "upTo": 529100
+        },
+        {
+          "rate": 0.35,
+          "upTo": 793650
+        },
+        {
+          "rate": 0.37,
+          "upTo": null
+        }
+      ],
+      "head_of_household": [
+        {
+          "rate": 0.1,
+          "upTo": 18250
+        },
+        {
+          "rate": 0.12,
+          "upTo": 69650
+        },
+        {
+          "rate": 0.22,
+          "upTo": 109100
+        },
+        {
+          "rate": 0.24,
+          "upTo": 208300
+        },
+        {
+          "rate": 0.32,
+          "upTo": 264550
+        },
+        {
+          "rate": 0.35,
+          "upTo": 661350
+        },
+        {
+          "rate": 0.37,
+          "upTo": null
+        }
+      ]
+    },
+    "fica": {
+      "_note": "Employee-side rates. 2027 Social Security wage base $192,300 from SSA's 2027 COLA fact sheet.",
+      "socialSecurity": {
+        "rate": 0.062,
+        "wageBase": 192300
+      },
+      "medicare": {
+        "rate": 0.0145,
+        "wageBase": null
+      },
+      "additionalMedicare": {
+        "rate": 0.009,
+        "threshold": {
+          "_note": "Liability threshold by filing status. Employer flat-withholds at 200000 regardless of status; this estimate uses status thresholds.",
+          "single": 200000,
+          "married": 250000,
+          "head_of_household": 200000
+        }
+      }
+    }
+  },
+  "states": {
+    "north-dakota": {
+      "name": "North Dakota",
+      "abbr": "ND",
+      "slug": "north-dakota",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 16600,
+          "married": 33200,
+          "head_of_household": 24925
+        },
+        "deductionFromFederal": true,
+        "brackets": {
+          "single": [
+            {
+              "rate": 0,
+              "upTo": 49575
+            },
+            {
+              "rate": 0.0195,
+              "upTo": 250400
+            },
+            {
+              "rate": 0.025,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0,
+              "upTo": 82800
+            },
+            {
+              "rate": 0.0195,
+              "upTo": 304850
+            },
+            {
+              "rate": 0.025,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0,
+              "upTo": 66400
+            },
+            {
+              "rate": 0.0195,
+              "upTo": 277600
+            },
+            {
+              "rate": 0.025,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "disclaimer": [
+        "Local income taxes are not included."
+      ],
+      "notes": "0% / 1.95% / 2.5% (2026); large 0% bracket.",
+      "yearNoteLabel": "North Dakota's 2027 deduction, which is the federal standard deduction",
+      "_override2027": {
+        "source": "IRS Rev. Proc. 2026-35, section 3.15",
+        "sourceUrl": "https://www.irs.gov/pub/irs-drop/rp-26-35.pdf"
+      },
+      "_pending2027": "North Dakota 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from IRS Rev. Proc. 2026-35, section 3.15 recorded in january-paycheck-2027.json."
+    },
+    "district-of-columbia": {
+      "name": "District of Columbia",
+      "abbr": "DC",
+      "slug": "district-of-columbia",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 15000,
+          "married": 30000,
+          "head_of_household": 22500
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.04,
+              "upTo": 10000
+            },
+            {
+              "rate": 0.06,
+              "upTo": 40000
+            },
+            {
+              "rate": 0.065,
+              "upTo": 60000
+            },
+            {
+              "rate": 0.085,
+              "upTo": 250000
+            },
+            {
+              "rate": 0.0925,
+              "upTo": 500000
+            },
+            {
+              "rate": 0.0975,
+              "upTo": 1000000
+            },
+            {
+              "rate": 0.1075,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.04,
+              "upTo": 10000
+            },
+            {
+              "rate": 0.06,
+              "upTo": 40000
+            },
+            {
+              "rate": 0.065,
+              "upTo": 60000
+            },
+            {
+              "rate": 0.085,
+              "upTo": 250000
+            },
+            {
+              "rate": 0.0925,
+              "upTo": 500000
+            },
+            {
+              "rate": 0.0975,
+              "upTo": 1000000
+            },
+            {
+              "rate": 0.1075,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.04,
+              "upTo": 10000
+            },
+            {
+              "rate": 0.06,
+              "upTo": 40000
+            },
+            {
+              "rate": 0.065,
+              "upTo": 60000
+            },
+            {
+              "rate": 0.085,
+              "upTo": 250000
+            },
+            {
+              "rate": 0.0925,
+              "upTo": 500000
+            },
+            {
+              "rate": 0.0975,
+              "upTo": 1000000
+            },
+            {
+              "rate": 0.1075,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "disclaimer": [
+        "District income tax. DC uses the same bracket thresholds for all filing statuses.",
+        "The District sets its own standard deduction and does not follow the federal amount. For 2026 it is $15,000 single, $30,000 married filing jointly and $22,500 head of household, the same as 2025, because DC's yearly inflation increase does not start until 2027.",
+        "These amounts first came from short-term DC laws passed in late 2025, the last of which ended on September 25, 2026. For 2026 the same amounts are now set by an emergency DC law in effect until November 11, 2026, and by the District's 2027 budget law, which Congress is reviewing and which is expected to take effect around November 20, 2026.",
+        "Congress voted in February 2026 to undo the earlier temporary law and could vote to block the budget law too. If it does, DC would likely switch to the federal amounts: $16,100 single, $32,200 married filing jointly, $24,150 head of household. The District's 2026 estimated-tax form, printed in March before the Council passed the budget law, already shows those federal amounts."
+      ],
+      "notes": "Graduated 4%–10.75% (2026).",
+      "_pending2027": "District of Columbia 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "new-mexico": {
+      "name": "New Mexico",
+      "abbr": "NM",
+      "slug": "new-mexico",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 16100,
+          "married": 32200,
+          "head_of_household": 24150
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.015,
+              "upTo": 5500
+            },
+            {
+              "rate": 0.032,
+              "upTo": 16500
+            },
+            {
+              "rate": 0.043,
+              "upTo": 33500
+            },
+            {
+              "rate": 0.047,
+              "upTo": 66500
+            },
+            {
+              "rate": 0.049,
+              "upTo": 210000
+            },
+            {
+              "rate": 0.059,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.015,
+              "upTo": 8000
+            },
+            {
+              "rate": 0.032,
+              "upTo": 25000
+            },
+            {
+              "rate": 0.043,
+              "upTo": 50000
+            },
+            {
+              "rate": 0.047,
+              "upTo": 100000
+            },
+            {
+              "rate": 0.049,
+              "upTo": 315000
+            },
+            {
+              "rate": 0.059,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.015,
+              "upTo": 8000
+            },
+            {
+              "rate": 0.032,
+              "upTo": 25000
+            },
+            {
+              "rate": 0.043,
+              "upTo": 50000
+            },
+            {
+              "rate": 0.047,
+              "upTo": 100000
+            },
+            {
+              "rate": 0.049,
+              "upTo": 315000
+            },
+            {
+              "rate": 0.059,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "disclaimer": [
+        "Local income taxes are not included.",
+        "New Mexico's $4,000-per-dependent deduction and low/middle-income exemptions are not modeled.",
+        "Married filing separately has its own rate table under Section 7-2-7 NMSA 1978 and is not modeled separately.",
+        "New Mexico charges every worker covered by its Workers' Compensation Act a fee of $2.25 a quarter, $9 a year, collected through the employer's quarterly return. It is not included in this estimate."
+      ],
+      "notes": "Graduated 1.5%–5.9% (2026, HB 252 structure).",
+      "_pending2027": "New Mexico 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 standard deduction (New Mexico has not published its 2027 figures).",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "vermont": {
+      "name": "Vermont",
+      "abbr": "VT",
+      "slug": "vermont",
+      "hasIncomeTax": true,
+      "figureYear": 2025,
+      "figureYearScope": "standardDeduction",
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 12950,
+          "married": 25900,
+          "head_of_household": 16750
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.0335,
+              "upTo": 50750
+            },
+            {
+              "rate": 0.066,
+              "upTo": 122850
+            },
+            {
+              "rate": 0.076,
+              "upTo": 256300
+            },
+            {
+              "rate": 0.0875,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.0335,
+              "upTo": 84700
+            },
+            {
+              "rate": 0.066,
+              "upTo": 204750
+            },
+            {
+              "rate": 0.076,
+              "upTo": 312050
+            },
+            {
+              "rate": 0.0875,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.0335,
+              "upTo": 68000
+            },
+            {
+              "rate": 0.066,
+              "upTo": 175500
+            },
+            {
+              "rate": 0.076,
+              "upTo": 284150
+            },
+            {
+              "rate": 0.0875,
+              "upTo": null
+            }
+          ]
+        },
+        "deductionName": "standard deduction plus personal exemption"
+      },
+      "disclaimer": [
+        "Local income taxes are not included.",
+        "This estimate includes Vermont's personal exemption at its tax year 2025 amount, $5,300, added to the standard deduction: one for a single or head-of-household filer and two for a married couple filing jointly. The exemption for each dependent is not included.",
+        "The standard deduction and personal exemption shown are Vermont's tax year 2025 amounts, because the Department of Taxes has not yet published its tax year 2026 amounts.",
+        "Vermont employers pay a 0.44% Child Care Contribution on wages and may take up to 0.11% of your pay toward it. This estimate assumes your employer takes the full 0.11%."
+      ],
+      "notes": "Graduated 3.35%–8.75% (2026).",
+      "employeePrograms": [
+        {
+          "label": "VT Child Care Contribution",
+          "rate": 0.0011,
+          "afterPreTax": true
+        }
+      ],
+      "_pending2027": "Vermont 2027 state tax figures not yet published by the state; values are the 2025 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "west-virginia": {
+      "name": "West Virginia",
+      "abbr": "WV",
+      "slug": "west-virginia",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 2000,
+          "married": 4000,
+          "head_of_household": 2000
+        },
+        "deductionName": "personal exemption",
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.0211,
+              "upTo": 10000
+            },
+            {
+              "rate": 0.0281,
+              "upTo": 25000
+            },
+            {
+              "rate": 0.0316,
+              "upTo": 40000
+            },
+            {
+              "rate": 0.0422,
+              "upTo": 60000
+            },
+            {
+              "rate": 0.0458,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.0211,
+              "upTo": 10000
+            },
+            {
+              "rate": 0.0281,
+              "upTo": 25000
+            },
+            {
+              "rate": 0.0316,
+              "upTo": 40000
+            },
+            {
+              "rate": 0.0422,
+              "upTo": 60000
+            },
+            {
+              "rate": 0.0458,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.0211,
+              "upTo": 10000
+            },
+            {
+              "rate": 0.0281,
+              "upTo": 25000
+            },
+            {
+              "rate": 0.0316,
+              "upTo": 40000
+            },
+            {
+              "rate": 0.0422,
+              "upTo": 60000
+            },
+            {
+              "rate": 0.0458,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "disclaimer": [
+        "West Virginia has no local income tax, but some cities, Charleston among them, take a flat weekly city service fee out of the pay of everyone who works there ($3 a week in Charleston, $5 in Huntington), and this calculator leaves it out.",
+        "WV has no standard deduction; we model one $2,000 personal exemption ($4,000 MFJ). Each dependent adds another $2,000 not modeled, estimates run slightly high for filers with dependents."
+      ],
+      "notes": "Graduated 2.11% to 4.58% for 2026 after the Senate Bill 392 rate cut, with the same brackets for single, joint and head of household filers.",
+      "_pending2027": "West Virginia 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "montana": {
+      "name": "Montana",
+      "abbr": "MT",
+      "slug": "montana",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 16600,
+          "married": 33200,
+          "head_of_household": 24925
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.047,
+              "upTo": 65000
+            },
+            {
+              "rate": 0.054,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.047,
+              "upTo": 130000
+            },
+            {
+              "rate": 0.054,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.047,
+              "upTo": 97500
+            },
+            {
+              "rate": 0.054,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "disclaimer": [
+        "Local income taxes are not included.",
+        "Montana taxes net long-term capital gains at lower rates and has credits not modeled here."
+      ],
+      "notes": "Two rates 4.70% / 5.65% (2026).",
+      "yearNoteLabel": "Montana's 2027 income tax brackets",
+      "_override2027": {
+        "source": "Montana Department of Revenue: HB 337 income tax changes",
+        "sourceUrl": "https://revenue.mt.gov/news/recent-news/HB-337"
+      },
+      "_pending2027": "Montana 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from Montana Department of Revenue: HB 337 income tax changes recorded in january-paycheck-2027.json."
+    },
+    "delaware": {
+      "name": "Delaware",
+      "abbr": "DE",
+      "slug": "delaware",
+      "employeePrograms": [
+        {
+          "label": "DE Paid Leave",
+          "rate": 0.004,
+          "wageBase": 184500
+        }
+      ],
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 3250,
+          "married": 6500,
+          "head_of_household": 3250
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0,
+              "upTo": 2000
+            },
+            {
+              "rate": 0.022,
+              "upTo": 5000
+            },
+            {
+              "rate": 0.039,
+              "upTo": 10000
+            },
+            {
+              "rate": 0.048,
+              "upTo": 20000
+            },
+            {
+              "rate": 0.052,
+              "upTo": 25000
+            },
+            {
+              "rate": 0.0555,
+              "upTo": 60000
+            },
+            {
+              "rate": 0.066,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0,
+              "upTo": 2000
+            },
+            {
+              "rate": 0.022,
+              "upTo": 5000
+            },
+            {
+              "rate": 0.039,
+              "upTo": 10000
+            },
+            {
+              "rate": 0.048,
+              "upTo": 20000
+            },
+            {
+              "rate": 0.052,
+              "upTo": 25000
+            },
+            {
+              "rate": 0.0555,
+              "upTo": 60000
+            },
+            {
+              "rate": 0.066,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0,
+              "upTo": 2000
+            },
+            {
+              "rate": 0.022,
+              "upTo": 5000
+            },
+            {
+              "rate": 0.039,
+              "upTo": 10000
+            },
+            {
+              "rate": 0.048,
+              "upTo": 20000
+            },
+            {
+              "rate": 0.052,
+              "upTo": 25000
+            },
+            {
+              "rate": 0.0555,
+              "upTo": 60000
+            },
+            {
+              "rate": 0.066,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "disclaimer": [
+        "Local income taxes are not included. The Wilmington local earned-income/wage tax (~1.25%) is NOT included.",
+        "Delaware's personal-credit ($110 single / $220 MFJ) and itemized deductions are not modeled, estimates run slightly high.",
+        "Delaware Paid Leave is now included. It is 0.4% of your wages, the most your employer may take out of your pay, and it stops at the $184,500 wage base, so on $75,000 it is $300 a year."
+      ],
+      "notes": "Graduated 0%–6.6% (top rate over $60,000); same brackets for all filing statuses.",
+      "_pending2027": "Delaware 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "new-york": {
+      "name": "New York",
+      "abbr": "NY",
+      "slug": "new-york",
+      "employeePrograms": [
+        {
+          "label": "NY PFL",
+          "rate": 0.00432,
+          "annualMax": 411.91
+        },
+        {
+          "label": "NY DBL",
+          "rate": 0.005,
+          "weeklyMax": 0.6
+        }
+      ],
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 8000,
+          "married": 16050,
+          "head_of_household": 11200
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.038,
+              "upTo": 8500
+            },
+            {
+              "rate": 0.043,
+              "upTo": 11700
+            },
+            {
+              "rate": 0.0505,
+              "upTo": 13900
+            },
+            {
+              "rate": 0.053,
+              "upTo": 80650
+            },
+            {
+              "rate": 0.058,
+              "upTo": 215400
+            },
+            {
+              "rate": 0.0685,
+              "upTo": 1077550
+            },
+            {
+              "rate": 0.0965,
+              "upTo": 5000000
+            },
+            {
+              "rate": 0.103,
+              "upTo": 25000000
+            },
+            {
+              "rate": 0.109,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.038,
+              "upTo": 17150
+            },
+            {
+              "rate": 0.043,
+              "upTo": 23600
+            },
+            {
+              "rate": 0.0505,
+              "upTo": 27900
+            },
+            {
+              "rate": 0.053,
+              "upTo": 161550
+            },
+            {
+              "rate": 0.058,
+              "upTo": 323200
+            },
+            {
+              "rate": 0.0685,
+              "upTo": 2155350
+            },
+            {
+              "rate": 0.0965,
+              "upTo": 5000000
+            },
+            {
+              "rate": 0.103,
+              "upTo": 25000000
+            },
+            {
+              "rate": 0.109,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.038,
+              "upTo": 12800
+            },
+            {
+              "rate": 0.043,
+              "upTo": 17650
+            },
+            {
+              "rate": 0.0505,
+              "upTo": 20900
+            },
+            {
+              "rate": 0.053,
+              "upTo": 107650
+            },
+            {
+              "rate": 0.058,
+              "upTo": 269300
+            },
+            {
+              "rate": 0.0685,
+              "upTo": 1616450
+            },
+            {
+              "rate": 0.0965,
+              "upTo": 5000000
+            },
+            {
+              "rate": 0.103,
+              "upTo": 25000000
+            },
+            {
+              "rate": 0.109,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "disclaimer": [
+        "Local income taxes are not included. New York City and Yonkers local income taxes are NOT included.",
+        "NY's tax-benefit recapture (which phases out lower-bracket benefit for high earners) is not modeled.",
+        "These 2026 rates and income brackets match the 2026 New York State tax rate schedules published by the Department of Taxation and Finance (Form IT-2105-I)."
+      ],
+      "notes": "Progressive 3.9%-10.9% (2026 statutory rates). NYC/Yonkers local tax not included.",
+      "yearNoteLabel": "New York's 2027 income tax rates",
+      "_override2027": {
+        "source": "N.Y. Tax Law § 601",
+        "sourceUrl": "https://www.nysenate.gov/legislation/laws/TAX/601"
+      },
+      "_pending2027": "New York 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from N.Y. Tax Law § 601 recorded in january-paycheck-2027.json."
+    },
+    "virginia": {
+      "name": "Virginia",
+      "abbr": "VA",
+      "slug": "virginia",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 10130,
+          "married": 20260,
+          "head_of_household": 10130
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.02,
+              "upTo": 3000
+            },
+            {
+              "rate": 0.03,
+              "upTo": 5000
+            },
+            {
+              "rate": 0.05,
+              "upTo": 17000
+            },
+            {
+              "rate": 0.0575,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.02,
+              "upTo": 3000
+            },
+            {
+              "rate": 0.03,
+              "upTo": 5000
+            },
+            {
+              "rate": 0.05,
+              "upTo": 17000
+            },
+            {
+              "rate": 0.0575,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.02,
+              "upTo": 3000
+            },
+            {
+              "rate": 0.03,
+              "upTo": 5000
+            },
+            {
+              "rate": 0.05,
+              "upTo": 17000
+            },
+            {
+              "rate": 0.0575,
+              "upTo": null
+            }
+          ]
+        },
+        "deductionName": "standard deduction plus personal exemption"
+      },
+      "disclaimer": [
+        "Virginia has no local/city wage income tax.",
+        "This estimate includes Virginia's $930 personal exemption, added to the standard deduction: one for a single or head-of-household filer and two for a married couple filing jointly. The $930 exemption for each dependent and the $12,000 age 65+ deduction are not modeled.",
+        "The $8,750/$17,500 standard deduction is set in statute for 2026. The 2026 General Assembly extended and raised it, so it goes to $9,200/$18,400 for 2027 and $9,300/$18,600 for 2028 and 2029, and only drops back to $3,000/$6,000 for tax years beginning in 2030."
+      ],
+      "notes": "Progressive 2%-5.75% (statutory), top rate begins at just $17,000 taxable income.",
+      "yearNoteLabel": "Virginia's 2027 standard deduction",
+      "_override2027": {
+        "source": "Va. Code § 58.1-322.03",
+        "sourceUrl": "https://law.lis.virginia.gov/vacode/title58.1/chapter3/section58.1-322.03/"
+      },
+      "_pending2027": "Virginia 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from Va. Code § 58.1-322.03 recorded in january-paycheck-2027.json."
+    },
+    "texas": {
+      "name": "Texas",
+      "abbr": "TX",
+      "slug": "texas",
+      "hasIncomeTax": false,
+      "tax": {
+        "type": "none"
+      },
+      "notes": "No state income tax. Net pay = gross − federal withholding − FICA.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "florida": {
+      "name": "Florida",
+      "abbr": "FL",
+      "slug": "florida",
+      "hasIncomeTax": false,
+      "tax": {
+        "type": "none"
+      },
+      "notes": "No state income tax.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "washington": {
+      "name": "Washington",
+      "abbr": "WA",
+      "slug": "washington",
+      "employeePrograms": [
+        {
+          "label": "WA PFML",
+          "rate": 0.0080716,
+          "wageBase": 184500
+        },
+        {
+          "label": "WA Cares",
+          "rate": 0.0058
+        }
+      ],
+      "hasIncomeTax": false,
+      "tax": {
+        "type": "none"
+      },
+      "notes": "No state income tax on wages.",
+      "disclaimer": [
+        "Washington employers take part of the state's workers' compensation premium (Labor & Industries) from your pay. It is charged for each hour you work and depends on the kind of work you do, so it is not included in this estimate."
+      ],
+      "_pending2027": "2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "nevada": {
+      "name": "Nevada",
+      "abbr": "NV",
+      "slug": "nevada",
+      "hasIncomeTax": false,
+      "tax": {
+        "type": "none"
+      },
+      "notes": "No state income tax.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "tennessee": {
+      "name": "Tennessee",
+      "abbr": "TN",
+      "slug": "tennessee",
+      "hasIncomeTax": false,
+      "tax": {
+        "type": "none"
+      },
+      "notes": "No state income tax.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "south-dakota": {
+      "name": "South Dakota",
+      "abbr": "SD",
+      "slug": "south-dakota",
+      "hasIncomeTax": false,
+      "tax": {
+        "type": "none"
+      },
+      "notes": "No state income tax.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "wyoming": {
+      "name": "Wyoming",
+      "abbr": "WY",
+      "slug": "wyoming",
+      "hasIncomeTax": false,
+      "tax": {
+        "type": "none"
+      },
+      "notes": "No state income tax.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "alaska": {
+      "name": "Alaska",
+      "abbr": "AK",
+      "slug": "alaska",
+      "employeePrograms": [
+        {
+          "label": "AK SUI (employee)",
+          "rate": 0.005,
+          "wageBase": 54200
+        }
+      ],
+      "hasIncomeTax": false,
+      "tax": {
+        "type": "none"
+      },
+      "notes": "No state income tax.",
+      "_pending2027": "2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "new-hampshire": {
+      "name": "New Hampshire",
+      "abbr": "NH",
+      "slug": "new-hampshire",
+      "hasIncomeTax": false,
+      "tax": {
+        "type": "none"
+      },
+      "notes": "No state income tax on wages.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "pennsylvania": {
+      "name": "Pennsylvania",
+      "abbr": "PA",
+      "slug": "pennsylvania",
+      "employeePrograms": [
+        {
+          "label": "PA UC",
+          "rate": 0.0007
+        }
+      ],
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "flat",
+        "rate": 0.0307,
+        "retirementDeferralsTaxable": true
+      },
+      "disclaimer": [
+        "Separate local Earned Income Taxes (Act 32 EIT) are levied by Pennsylvania municipalities and school districts and are not included in this estimate.",
+        "Philadelphia runs its own wage tax, separate from the Act 32 earned income taxes. Effective 1 July 2026 it is 3.735% if you live in Philadelphia and 3.425% if you work there but live elsewhere. It is not included here.",
+        "Many Pennsylvania municipalities also withhold a Local Services Tax where you work. State law caps it at $52 a year and it comes out a little at a time each pay period. It depends on your work municipality, so it is not computed here.",
+        "Pennsylvania taxes the money you put into a 401(k) or 403(b), so this estimate does not subtract those contributions from your Pennsylvania taxable pay. Pre-tax health insurance premiums still lower it. Dependent care contributions are taxed by Pennsylvania too, which this estimate does not account for."
+      ],
+      "notes": "Flat 3.07% on wages, no deductions. 401(k) and 403(b) contributions are taxed.",
+      "_pending2027": "Pennsylvania 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "illinois": {
+      "name": "Illinois",
+      "abbr": "IL",
+      "slug": "illinois",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "flat",
+        "rate": 0.0495,
+        "standardDeduction": {
+          "single": 2925,
+          "married": 5850,
+          "head_of_household": 2925
+        },
+        "standardDeductionPhaseout": {
+          "single": {
+            "over": 250000,
+            "per": 1,
+            "reduceBy": 2925,
+            "minimum": 0,
+            "roundUp": true
+          },
+          "married": {
+            "over": 500000,
+            "per": 1,
+            "reduceBy": 5850,
+            "minimum": 0,
+            "roundUp": true
+          },
+          "head_of_household": {
+            "over": 250000,
+            "per": 1,
+            "reduceBy": 2925,
+            "minimum": 0,
+            "roundUp": true
+          }
+        },
+        "deductionName": "personal exemption"
+      },
+      "disclaimer": [
+        "Estimate assumes 1 personal exemption allowance ($2,925) for single/head of household and 2 for married filing jointly. Illinois allows no exemption at all once federal adjusted gross income is over $250,000 ($500,000 for married couples filing jointly), and this estimate applies that."
+      ],
+      "notes": "Flat 4.95% after a $2,925-per-allowance personal exemption.",
+      "_pending2027": "Illinois 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "north-carolina": {
+      "name": "North Carolina",
+      "abbr": "NC",
+      "slug": "north-carolina",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "flat",
+        "rate": 0.0349,
+        "standardDeduction": {
+          "single": 12750,
+          "married": 25500,
+          "head_of_household": 19125
+        }
+      },
+      "notes": "Flat 3.99% after the NC standard deduction.",
+      "disclaimer": [
+        "North Carolina's 2026 income tax rate is 3.99%, and this estimate uses it. Employers withhold at 4.09% (the rate plus 0.1%), so a little more comes out of each paycheck than the tax shown, and the difference comes back to you when you file."
+      ],
+      "yearNoteLabel": "North Carolina's 2027 income tax rate",
+      "_override2027": {
+        "source": "N.C. Session Law 2026-41 (Senate Bill 257)",
+        "sourceUrl": "https://www.ncleg.gov/EnactedLegislation/SessionLaws/HTML/2025-2026/SL2026-41.html"
+      },
+      "_pending2027": "North Carolina 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from N.C. Session Law 2026-41 (Senate Bill 257) recorded in january-paycheck-2027.json."
+    },
+    "utah": {
+      "name": "Utah",
+      "abbr": "UT",
+      "slug": "utah",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "flat",
+        "rate": 0.0445,
+        "standardDeduction": {
+          "single": 21707.87,
+          "married": 43415.73,
+          "head_of_household": 32561.8
+        },
+        "creditAsDeduction": {
+          "name": "taxpayer tax credit",
+          "phaseoutFigureYear": 2025
+        },
+        "standardDeductionPhaseout": {
+          "single": {
+            "over": 18213,
+            "denominator": 74307.69
+          },
+          "married": {
+            "over": 36426,
+            "denominator": 148615.38
+          },
+          "head_of_household": {
+            "over": 27320,
+            "denominator": 111461.54
+          }
+        }
+      },
+      "disclaimer": [
+        "Utah has no standard deduction. It taxes every dollar of income at 4.45% and then subtracts a taxpayer tax credit: 6% of the federal standard deduction, which is $966 for a single filer ($1,932 married filing jointly, $1,449 head of household), cut by 1.3 cents for each dollar of income over $18,213 ($36,426 married filing jointly, $27,320 head of household), so a single filer's credit is gone by about $92,500.",
+        "The income levels where the credit starts to shrink are Utah's 2025 amounts, because Utah has not yet published its 2026 ones. The extra credit for each dependent is not included."
+      ],
+      "notes": "Flat 4.45% (SB60, TY2026) on Utah taxable income, which starts from federal adjusted gross income, less the taxpayer tax credit (6% of the federal standard deduction, reduced by 1.3% of income over Utah's 2025 base amounts). The engine models the credit as the deduction worth the same at the 4.45% rate; pages describe it as the credit.",
+      "_pending2027": "Utah 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "michigan": {
+      "name": "Michigan",
+      "abbr": "MI",
+      "slug": "michigan",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "flat",
+        "rate": 0.0425,
+        "standardDeduction": {
+          "single": 5900,
+          "married": 11800,
+          "head_of_household": 5900
+        },
+        "deductionName": "personal exemption"
+      },
+      "disclaimer": [
+        "Estimate assumes 1 personal exemption ($5,900) for single/head of household and 2 for married filing jointly.",
+        "Several Michigan cities (Detroit, Grand Rapids, etc.) levy separate local income taxes not included here."
+      ],
+      "notes": "Flat 4.25% after a $5,900-per-exemption allowance.",
+      "_pending2027": "Michigan 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "arizona": {
+      "name": "Arizona",
+      "abbr": "AZ",
+      "slug": "arizona",
+      "hasIncomeTax": true,
+      "figureYear": 2025,
+      "figureYearScope": "standardDeduction",
+      "tax": {
+        "type": "flat",
+        "rate": 0.025,
+        "standardDeduction": {
+          "single": 15750,
+          "married": 31500,
+          "head_of_household": 23625
+        }
+      },
+      "disclaimer": [
+        "The standard deduction used here is Arizona's published 2025 amount. Arizona releases each year's amount alongside that year's Form 140, and the 2026 amount had not been published as of 30 July 2026.",
+        "Arizona also allows an extra standard deduction for charitable contributions if you do not itemize. This calculator does not include it, so your Arizona tax may be slightly lower than shown."
+      ],
+      "notes": "Flat 2.5% after the AZ standard deduction.",
+      "_pending2027": "Arizona 2027 state tax figures not yet published by the state; values are the 2025 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "colorado": {
+      "name": "Colorado",
+      "abbr": "CO",
+      "slug": "colorado",
+      "employeePrograms": [
+        {
+          "label": "CO FAMLI",
+          "rate": 0.0044,
+          "wageBase": 184500
+        }
+      ],
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "flat",
+        "rate": 0.044,
+        "standardDeduction": {
+          "single": 16600,
+          "married": 33200,
+          "head_of_household": 24925
+        },
+        "deductionFromFederal": true,
+        "standardDeductionPhaseout": {
+          "single": {
+            "over": 300000,
+            "per": 1,
+            "reduceBy": 10000000,
+            "minimum": 1000,
+            "roundUp": true
+          },
+          "married": {
+            "over": 300000,
+            "per": 1,
+            "reduceBy": 10000000,
+            "minimum": 2000,
+            "roundUp": true
+          },
+          "head_of_household": {
+            "over": 300000,
+            "per": 1,
+            "reduceBy": 10000000,
+            "minimum": 1000,
+            "roundUp": true
+          }
+        }
+      },
+      "disclaimer": [
+        "Rate applies to federal taxable income; base approximated as wages minus the federal standard deduction. The rate can be temporarily reduced below 4.40% in TABOR-refund years, not modeled.",
+        "From tax year 2026, Proposition MM limits the federal deduction Colorado lets you keep once your federal adjusted gross income is over $300,000: $1,000, or $2,000 for married couples filing jointly. The rest is added back to your Colorado taxable income. This estimate applies that limit."
+      ],
+      "notes": "Flat 4.40% on federal taxable income.",
+      "yearNoteLabel": "Colorado's 2027 deduction, which is the federal standard deduction",
+      "_override2027": {
+        "source": "IRS Rev. Proc. 2026-35, section 3.15",
+        "sourceUrl": "https://www.irs.gov/pub/irs-drop/rp-26-35.pdf"
+      },
+      "_pending2027": "Colorado 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from IRS Rev. Proc. 2026-35, section 3.15 recorded in january-paycheck-2027.json."
+    },
+    "indiana": {
+      "name": "Indiana",
+      "abbr": "IN",
+      "slug": "indiana",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "flat",
+        "rate": 0.029,
+        "standardDeduction": {
+          "single": 1000,
+          "married": 2000,
+          "head_of_household": 1000
+        },
+        "deductionName": "personal exemption"
+      },
+      "disclaimer": [
+        "Estimate assumes a $1,000 personal exemption (single/HoH) / $2,000 (MFJ); dependent exemptions not modeled.",
+        "Indiana county income taxes apply on top of the state rate and vary by county, not included here."
+      ],
+      "notes": "Flat 2.95% state rate (county taxes separate).",
+      "yearNoteLabel": "Indiana's 2027 income tax rate",
+      "_override2027": {
+        "source": "Indiana Department of Revenue: Rates, Fees & Penalties",
+        "sourceUrl": "https://www.in.gov/dor/resources/tax-rates-and-reports/rates-fees-and-penalties/"
+      },
+      "_pending2027": "Indiana 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from Indiana Department of Revenue: Rates, Fees & Penalties recorded in january-paycheck-2027.json."
+    },
+    "kentucky": {
+      "name": "Kentucky",
+      "abbr": "KY",
+      "slug": "kentucky",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "flat",
+        "rate": 0.035,
+        "standardDeduction": {
+          "single": 3360,
+          "married": 3360,
+          "head_of_household": 3360
+        }
+      },
+      "disclaimer": [
+        "Some Kentucky localities levy separate occupational/payroll taxes not included here."
+      ],
+      "notes": "Flat 3.5% after the $3,360 standard deduction.",
+      "_pending2027": "Kentucky 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "mississippi": {
+      "name": "Mississippi",
+      "abbr": "MS",
+      "slug": "mississippi",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 8300,
+          "married": 16600,
+          "head_of_household": 12900
+        },
+        "deductionName": "standard deduction plus personal exemption",
+        "brackets": {
+          "single": [
+            {
+              "rate": 0,
+              "upTo": 10000
+            },
+            {
+              "rate": 0.0375,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0,
+              "upTo": 10000
+            },
+            {
+              "rate": 0.0375,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0,
+              "upTo": 10000
+            },
+            {
+              "rate": 0.0375,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "notes": "0% on the first $10,000 of taxable income, then 4.0%.",
+      "yearNoteLabel": "Mississippi's 2027 income tax rate",
+      "_override2027": {
+        "source": "Mississippi H.B. 1 (2025), Build Up Mississippi Act",
+        "sourceUrl": "https://billstatus.ls.state.ms.us/documents/2025/pdf/HB/0001-0099/HB0001SG.pdf"
+      },
+      "_pending2027": "Mississippi 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from Mississippi H.B. 1 (2025), Build Up Mississippi Act recorded in january-paycheck-2027.json."
+    },
+    "georgia": {
+      "name": "Georgia",
+      "abbr": "GA",
+      "slug": "georgia",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "flat",
+        "rate": 0.0499,
+        "standardDeduction": {
+          "single": 15000,
+          "married": 30000,
+          "head_of_household": 15000
+        },
+        "overtimePremiumDeduction": {
+          "label": "Overtime exclusion",
+          "cap": 1750,
+          "capPer": "employee",
+          "hourlyOnly": true,
+          "firstTaxYear": 2026,
+          "lastTaxYear": 2028,
+          "inWithholdingFormula": false
+        },
+        "cashTipsDeduction": {
+          "label": "Cash tips exclusion",
+          "cap": 1750,
+          "tippedOccupationsOnly": true,
+          "firstTaxYear": 2026,
+          "lastTaxYear": 2028,
+          "inWithholdingFormula": false
+        }
+      },
+      "disclaimer": [
+        "Georgia's $5,000-per-dependent exemption is not modeled."
+      ],
+      "notes": "Flat 4.99% after the GA standard deduction.",
+      "_pending2027": "Georgia 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 flat rate (scheduled to fall, Georgia DOR has not confirmed it).",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "louisiana": {
+      "name": "Louisiana",
+      "abbr": "LA",
+      "slug": "louisiana",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "flat",
+        "rate": 0.03,
+        "standardDeduction": {
+          "single": 12875,
+          "married": 25750,
+          "head_of_household": 25750
+        }
+      },
+      "notes": "Flat 3.0% after the combined standard deduction (provisional 2026 amount from the Department of Revenue's withholding tables).",
+      "disclaimer": [
+        "Louisiana's 2026 standard deduction is not final. This estimate uses $12,875 single and $25,750 for married couples filing jointly and heads of household, the amounts the Louisiana Department of Revenue used for its 2026 withholding tables. The Department says the official 2026 amounts may be slightly different."
+      ],
+      "_pending2027": "Louisiana 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "iowa": {
+      "name": "Iowa",
+      "abbr": "IA",
+      "slug": "iowa",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "flat",
+        "rate": 0.038,
+        "standardDeduction": {
+          "single": 16100,
+          "married": 32200,
+          "head_of_household": 24150
+        }
+      },
+      "disclaimer": [
+        "Iowa's small personal-exemption tax credits ($40 single or married filing separately, $80 married filing jointly or head of household, $40 per dependent, plus $20 for each filer who is 65 or older or blind) are post-tax credits and are not modeled.",
+        "Many Iowa school districts, and a few counties for emergency medical services, add a surtax: a percentage of your Iowa income tax, set by where you live on the last day of the year. It is worked out on your Iowa return and is not included in this estimate."
+      ],
+      "notes": "Flat 3.8% on federal taxable income.",
+      "_pending2027": "Iowa 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 standard deduction (Iowa has not published its 2027 figures).",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "idaho": {
+      "name": "Idaho",
+      "abbr": "ID",
+      "slug": "idaho",
+      "hasIncomeTax": true,
+      "figureYear": 2025,
+      "figureYearScope": "brackets",
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 16100,
+          "married": 32200,
+          "head_of_household": 24150
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0,
+              "upTo": 4811
+            },
+            {
+              "rate": 0.053,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0,
+              "upTo": 9622
+            },
+            {
+              "rate": 0.053,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0,
+              "upTo": 9622
+            },
+            {
+              "rate": 0.053,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "notes": "Flat 5.3% on taxable income above a zero-rate threshold: $4,811 for a single filer and $9,622 for a married couple filing jointly or a head of household. Idaho treats a head of household return as a joint return, so both use the same threshold.",
+      "disclaimer": [
+        "Local income taxes are not included.",
+        "The zero-rate thresholds used here are Idaho's 2025 inflation-adjusted amounts, because the Idaho State Tax Commission had not published a 2026 rate schedule. Idaho re-indexes them each year, so the 2026 thresholds will be slightly higher and your tax slightly lower than shown.",
+        "Idaho charges a $10 Permanent Building Fund tax per return, which this calculator does not include.",
+        "Idaho's grocery credit, now called the food tax credit, is $155 per person, or up to $250 with receipts for sales tax paid on food. You claim it on your Idaho return, so it is not included in this estimate."
+      ],
+      "_pending2027": "Idaho 2027 state tax figures not yet published by the state; values are the 2025 figures from tax-data-2026.json; Known open item: the 2027 standard deduction, which depends on Idaho conformity to the Internal Revenue Code.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "massachusetts": {
+      "name": "Massachusetts",
+      "abbr": "MA",
+      "slug": "massachusetts",
+      "employeePrograms": [
+        {
+          "label": "MA PFML",
+          "rate": 0.0046,
+          "wageBase": 184500
+        }
+      ],
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 4400,
+          "married": 8800,
+          "head_of_household": 6800
+        },
+        "deductionName": "personal exemption",
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.05,
+              "upTo": 1107750
+            },
+            {
+              "rate": 0.09,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.05,
+              "upTo": 1107750
+            },
+            {
+              "rate": 0.09,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.05,
+              "upTo": 1107750
+            },
+            {
+              "rate": 0.09,
+              "upTo": null
+            }
+          ]
+        },
+        "ficaPaidDeduction": {
+          "cap": 2000
+        }
+      },
+      "disclaimer": [
+        "Massachusetts' $1,000-per-dependent exemption is not modeled. The 4% surtax applies only to taxable income above $1,107,750.",
+        "Massachusetts lets you deduct the Social Security and Medicare tax you paid, up to $2,000 a year, and that IS included in the figures above. Anyone earning about $26,150 or more pays more than $2,000 in Social Security and Medicare tax, so for most people the deduction is the full $2,000 and saves $100 a year in Massachusetts tax. One catch for married couples filing jointly: the $2,000 is per person and cannot be shared, so if your spouse also works they get their own deduction on top. This calculator only knows about one salary, so it only counts one."
+      ],
+      "notes": "Flat 5%, plus a 4% surtax above $1,107,750. The M.G.L. c.62 s.3(B)(a)(3) deduction for FICA paid (capped at $2,000 per taxpayer) is modeled for the one earner this calculator sees.",
+      "_pending2027": "Massachusetts 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 paid family and medical leave share (Chapter 101 of the Acts of 2026); 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "new-jersey": {
+      "name": "New Jersey",
+      "abbr": "NJ",
+      "slug": "new-jersey",
+      "employeePrograms": [
+        {
+          "label": "NJ UI",
+          "rate": 0.003825,
+          "wageBase": 44800
+        },
+        {
+          "label": "NJ WF/SWF",
+          "rate": 0.000425,
+          "wageBase": 44800
+        },
+        {
+          "label": "NJ TDI",
+          "rate": 0.0019,
+          "wageBase": 171100
+        },
+        {
+          "label": "NJ FLI",
+          "rate": 0.0023,
+          "wageBase": 171100
+        }
+      ],
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 1000,
+          "married": 2000,
+          "head_of_household": 1000
+        },
+        "deductionName": "personal exemption",
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.014,
+              "upTo": 20000
+            },
+            {
+              "rate": 0.0175,
+              "upTo": 35000
+            },
+            {
+              "rate": 0.035,
+              "upTo": 40000
+            },
+            {
+              "rate": 0.05525,
+              "upTo": 75000
+            },
+            {
+              "rate": 0.0637,
+              "upTo": 500000
+            },
+            {
+              "rate": 0.0897,
+              "upTo": 1000000
+            },
+            {
+              "rate": 0.1075,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.014,
+              "upTo": 20000
+            },
+            {
+              "rate": 0.0175,
+              "upTo": 50000
+            },
+            {
+              "rate": 0.0245,
+              "upTo": 70000
+            },
+            {
+              "rate": 0.035,
+              "upTo": 80000
+            },
+            {
+              "rate": 0.05525,
+              "upTo": 150000
+            },
+            {
+              "rate": 0.0637,
+              "upTo": 500000
+            },
+            {
+              "rate": 0.0897,
+              "upTo": 1000000
+            },
+            {
+              "rate": 0.1075,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.014,
+              "upTo": 20000
+            },
+            {
+              "rate": 0.0175,
+              "upTo": 50000
+            },
+            {
+              "rate": 0.0245,
+              "upTo": 70000
+            },
+            {
+              "rate": 0.035,
+              "upTo": 80000
+            },
+            {
+              "rate": 0.05525,
+              "upTo": 150000
+            },
+            {
+              "rate": 0.0637,
+              "upTo": 500000
+            },
+            {
+              "rate": 0.0897,
+              "upTo": 1000000
+            },
+            {
+              "rate": 0.1075,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "disclaimer": [
+        "New Jersey has no local wage income tax for residents (Newark payroll tax is employer-side).",
+        "New Jersey has no standard deduction. What this calculator subtracts is New Jersey's $1,000 personal exemption ($2,000 for a couple filing jointly, because each spouse gets one).",
+        "New Jersey's other exemptions are not included: $1,500 for each dependent, $1,000 more if you are 65 or older, and $1,000 more if you are blind or disabled. If any apply to you, your real New Jersey tax is lower than shown.",
+        "2026 brackets are statutory (not inflation-indexed) and unchanged from prior years per the NJ Division of Taxation."
+      ],
+      "notes": "Progressive 1.4%-10.75% (statutory). No standard deduction; the $1,000 personal exemption ($2,000 filing jointly) is applied, dependent and age-65 exemptions are not.",
+      "_pending2027": "New Jersey 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "ohio": {
+      "name": "Ohio",
+      "abbr": "OH",
+      "slug": "ohio",
+      "hasIncomeTax": true,
+      "figureYear": 2025,
+      "figureYearScope": "standardDeduction",
+      "tax": {
+        "type": "bracket",
+        "baseAmount": {
+          "over": 26050,
+          "amount": 332.0
+        },
+        "standardDeduction": {
+          "single": 2400,
+          "married": 4800,
+          "head_of_household": 2400
+        },
+        "deductionName": "personal exemption",
+        "standardDeductionPhaseout": {
+          "single": {
+            "over": 40000,
+            "per": 40000,
+            "reduceBy": 250,
+            "minimum": 1900,
+            "roundUp": true,
+            "noneFrom": 500000
+          },
+          "married": {
+            "over": 40000,
+            "per": 40000,
+            "reduceBy": 500,
+            "minimum": 3800,
+            "roundUp": true,
+            "noneFrom": 500000
+          },
+          "head_of_household": {
+            "over": 40000,
+            "per": 40000,
+            "reduceBy": 250,
+            "minimum": 1900,
+            "roundUp": true,
+            "noneFrom": 500000
+          }
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0,
+              "upTo": 26050
+            },
+            {
+              "rate": 0.0275,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0,
+              "upTo": 26050
+            },
+            {
+              "rate": 0.0275,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0,
+              "upTo": 26050
+            },
+            {
+              "rate": 0.0275,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "disclaimer": [
+        "Local income taxes are not included. Ohio municipalities and school districts levy separate local income taxes (commonly 1%-3%) that are NOT included in this estimate.",
+        "This estimate includes Ohio's personal exemption at its 2025 amounts, because Ohio has not yet published its 2026 amounts: $2,400 per person with income of $40,000 or less, $2,150 up to $80,000 and $1,900 above that, with none from $500,000. A married couple filing jointly gets two. Exemptions for dependents, the joint filing credit, and other credits are not modeled."
+      ],
+      "notes": "One rate since 2026 (HB 96), per ORC 5747.02(A)(3), on income after the personal exemption (2025 amounts until Ohio publishes 2026 ones): nothing up to $26,050, then $332.00 plus 2.75% of the amount in excess of $26,050. The $332 is a flat statutory step, not a rate, so 2.75% alone under-states the tax by $332 at every income above the threshold. Local municipal income taxes not included.",
+      "_pending2027": "Ohio 2027 state tax figures not yet published by the state; values are the 2025 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "maryland": {
+      "name": "Maryland",
+      "abbr": "MD",
+      "slug": "maryland",
+      "hasIncomeTax": true,
+      "figureYear": 2025,
+      "figureYearScope": "standardDeduction",
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 3350,
+          "married": 6700,
+          "head_of_household": 6700
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.02,
+              "upTo": 1000
+            },
+            {
+              "rate": 0.03,
+              "upTo": 2000
+            },
+            {
+              "rate": 0.04,
+              "upTo": 3000
+            },
+            {
+              "rate": 0.0475,
+              "upTo": 100000
+            },
+            {
+              "rate": 0.05,
+              "upTo": 125000
+            },
+            {
+              "rate": 0.0525,
+              "upTo": 150000
+            },
+            {
+              "rate": 0.055,
+              "upTo": 250000
+            },
+            {
+              "rate": 0.0575,
+              "upTo": 500000
+            },
+            {
+              "rate": 0.0625,
+              "upTo": 1000000
+            },
+            {
+              "rate": 0.065,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.02,
+              "upTo": 1000
+            },
+            {
+              "rate": 0.03,
+              "upTo": 2000
+            },
+            {
+              "rate": 0.04,
+              "upTo": 3000
+            },
+            {
+              "rate": 0.0475,
+              "upTo": 150000
+            },
+            {
+              "rate": 0.05,
+              "upTo": 175000
+            },
+            {
+              "rate": 0.0525,
+              "upTo": 225000
+            },
+            {
+              "rate": 0.055,
+              "upTo": 300000
+            },
+            {
+              "rate": 0.0575,
+              "upTo": 600000
+            },
+            {
+              "rate": 0.0625,
+              "upTo": 1200000
+            },
+            {
+              "rate": 0.065,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.02,
+              "upTo": 1000
+            },
+            {
+              "rate": 0.03,
+              "upTo": 2000
+            },
+            {
+              "rate": 0.04,
+              "upTo": 3000
+            },
+            {
+              "rate": 0.0475,
+              "upTo": 150000
+            },
+            {
+              "rate": 0.05,
+              "upTo": 175000
+            },
+            {
+              "rate": 0.0525,
+              "upTo": 225000
+            },
+            {
+              "rate": 0.055,
+              "upTo": 300000
+            },
+            {
+              "rate": 0.0575,
+              "upTo": 600000
+            },
+            {
+              "rate": 0.0625,
+              "upTo": 1200000
+            },
+            {
+              "rate": 0.065,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "disclaimer": [
+        "Local income taxes are not included. Maryland counties and Baltimore City levy a separate LOCAL income tax (roughly 2.25%-3.30% of Maryland taxable income, varying by county) that is NOT included in this estimate. At moderate incomes the local piece can rival or exceed the state tax.",
+        "Maryland's tax rates for 2026 are current, but its standard deduction here is the 2025 amount, $3,350 for a single filer and $6,700 for a joint return or head of household. Maryland indexes the deduction to the cost of living for tax years after 2025 but has not announced the 2026 figure, so this page uses the 2025 one until it does.",
+        "The 2% Maryland surtax on net capital gains (for filers with federal AGI over $350,000) is not modeled.",
+        "Personal exemptions and itemized-deduction phase-outs are not modeled; this estimate assumes the standard deduction."
+      ],
+      "notes": "Progressive 2%-6.5% (2026 statutory rates, incl. new 6.25%/6.5% high-income brackets). County/Baltimore City local income tax NOT included.",
+      "_pending2027": "Maryland 2027 state tax figures not yet published by the state; values are the 2025 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "minnesota": {
+      "name": "Minnesota",
+      "abbr": "MN",
+      "slug": "minnesota",
+      "employeePrograms": [
+        {
+          "label": "MN Paid Leave",
+          "rate": 0.0044,
+          "wageBase": 184500
+        }
+      ],
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 15300,
+          "married": 30600,
+          "head_of_household": 23000
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.0535,
+              "upTo": 33310
+            },
+            {
+              "rate": 0.068,
+              "upTo": 109430
+            },
+            {
+              "rate": 0.0785,
+              "upTo": 203150
+            },
+            {
+              "rate": 0.0985,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.0535,
+              "upTo": 48700
+            },
+            {
+              "rate": 0.068,
+              "upTo": 193480
+            },
+            {
+              "rate": 0.0785,
+              "upTo": 337930
+            },
+            {
+              "rate": 0.0985,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.0535,
+              "upTo": 41010
+            },
+            {
+              "rate": 0.068,
+              "upTo": 164800
+            },
+            {
+              "rate": 0.0785,
+              "upTo": 270060
+            },
+            {
+              "rate": 0.0985,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "disclaimer": [
+        "Minnesota has no local/city income tax on wages.",
+        "The 'Single / Married filing separately' option uses Minnesota's Single bracket schedule; actual Married-Filing-Separately filers in Minnesota use narrower brackets (5.35% to $24,350, 6.80% to $96,740, 7.85% to $168,965).",
+        "Minnesota's dependent exemption ($5,300/dependent), Social Security subtraction, working family credit, and other credits/subtractions are not modeled."
+      ],
+      "notes": "Progressive 5.35%-9.85% (official 2026 inflation-indexed brackets). No local income tax.",
+      "_pending2027": "Minnesota 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "wisconsin": {
+      "name": "Wisconsin",
+      "abbr": "WI",
+      "slug": "wisconsin",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 13960,
+          "married": 25840,
+          "head_of_household": 13960
+        },
+        "standardDeductionPhaseout": {
+          "single": {
+            "over": 20120,
+            "denominator": 116333.33333333333
+          },
+          "married": {
+            "over": 29040,
+            "denominator": 130650.21741328748
+          },
+          "head_of_household": {
+            "over": 20120,
+            "denominator": 116333.33333333333
+          }
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.035,
+              "upTo": 15110
+            },
+            {
+              "rate": 0.044,
+              "upTo": 51950
+            },
+            {
+              "rate": 0.053,
+              "upTo": 332720
+            },
+            {
+              "rate": 0.0765,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.035,
+              "upTo": 20150
+            },
+            {
+              "rate": 0.044,
+              "upTo": 69260
+            },
+            {
+              "rate": 0.053,
+              "upTo": 443630
+            },
+            {
+              "rate": 0.0765,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.035,
+              "upTo": 15110
+            },
+            {
+              "rate": 0.044,
+              "upTo": 51950
+            },
+            {
+              "rate": 0.053,
+              "upTo": 332720
+            },
+            {
+              "rate": 0.0765,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "disclaimer": [
+        "Wisconsin does not levy local/municipal income taxes, but this estimate excludes any credits.",
+        "Wisconsin's standard deduction slides down as income rises rather than being one flat amount, and this calculator now applies it. For 2026 a single filer starts at $13,960 and loses 12 cents of it for every dollar of Wisconsin income above $20,120, reaching zero at $136,453; a couple filing jointly starts at $25,840 and loses 19.778 cents per dollar above $29,040, reaching zero at $159,690.",
+        "Head of household is close but not exact. Wisconsin gives head-of-household filers a bigger starting deduction ($18,030) that shrinks faster at first, and this calculator cannot bend the line twice, so it uses Wisconsin's own second segment. That matches the state exactly once your income reaches $58,827, and below that it gives you less deduction than Wisconsin does, so the tax shown runs high by up to about $145 a year.",
+        "Wisconsin measures the sliding deduction against your Wisconsin income. We use your wages minus pre-tax deductions, so if you have income or adjustments outside your paycheck your real deduction may differ from the one used here.",
+        "Wisconsin personal exemptions ($700/person, +$250 if 65+), the married-couple credit, school-property-tax credit, and other credits are not modeled.",
+        "The single column uses Wisconsin Schedule A (Single/Head of Household). Married-filing-separately filers use the narrower Schedule C, which is not separately modeled.",
+        "A 2023 flat-tax proposal (3.25%) was not enacted; Wisconsin remains a graduated 4-bracket system for 2026."
+      ],
+      "notes": "Graduated 4-bracket (official 2026 DOR schedule): 3.5% / 4.4% / 5.3% / 7.65%. Wisconsin's sliding-scale standard deduction is now applied: $13,960 single and $25,840 married filing jointly at the top, shrinking to zero at $136,453 and $159,690. Head of household is exact from $58,827 up. No local income tax.",
+      "_pending2027": "Wisconsin 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "connecticut": {
+      "name": "Connecticut",
+      "abbr": "CT",
+      "slug": "connecticut",
+      "employeePrograms": [
+        {
+          "label": "CT Paid Leave",
+          "rate": 0.005,
+          "wageBase": 184500
+        }
+      ],
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.02,
+              "upTo": 10000
+            },
+            {
+              "rate": 0.045,
+              "upTo": 50000
+            },
+            {
+              "rate": 0.055,
+              "upTo": 100000
+            },
+            {
+              "rate": 0.06,
+              "upTo": 200000
+            },
+            {
+              "rate": 0.065,
+              "upTo": 250000
+            },
+            {
+              "rate": 0.069,
+              "upTo": 500000
+            },
+            {
+              "rate": 0.0699,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.02,
+              "upTo": 20000
+            },
+            {
+              "rate": 0.045,
+              "upTo": 100000
+            },
+            {
+              "rate": 0.055,
+              "upTo": 200000
+            },
+            {
+              "rate": 0.06,
+              "upTo": 400000
+            },
+            {
+              "rate": 0.065,
+              "upTo": 500000
+            },
+            {
+              "rate": 0.069,
+              "upTo": 1000000
+            },
+            {
+              "rate": 0.0699,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.02,
+              "upTo": 16000
+            },
+            {
+              "rate": 0.045,
+              "upTo": 80000
+            },
+            {
+              "rate": 0.055,
+              "upTo": 160000
+            },
+            {
+              "rate": 0.06,
+              "upTo": 320000
+            },
+            {
+              "rate": 0.065,
+              "upTo": 400000
+            },
+            {
+              "rate": 0.069,
+              "upTo": 800000
+            },
+            {
+              "rate": 0.0699,
+              "upTo": null
+            }
+          ]
+        },
+        "steppedRecapture": [
+          {
+            "label": "2% tax-rate phase-out add-back",
+            "single": {
+              "over": 56500,
+              "step": 5000,
+              "amountPerStep": 25,
+              "max": 250
+            },
+            "married": {
+              "over": 100500,
+              "step": 5000,
+              "amountPerStep": 50,
+              "max": 500
+            },
+            "head_of_household": {
+              "over": 78500,
+              "step": 4000,
+              "amountPerStep": 40,
+              "max": 400
+            }
+          },
+          {
+            "label": "First tax recapture band",
+            "single": {
+              "over": 105000,
+              "step": 5000,
+              "amountPerStep": 25,
+              "max": 250
+            },
+            "married": {
+              "over": 210000,
+              "step": 10000,
+              "amountPerStep": 50,
+              "max": 500
+            },
+            "head_of_household": {
+              "over": 168000,
+              "step": 8000,
+              "amountPerStep": 40,
+              "max": 400
+            }
+          },
+          {
+            "label": "Second tax recapture band",
+            "single": {
+              "over": 200000,
+              "step": 5000,
+              "amountPerStep": 90,
+              "max": 2700
+            },
+            "married": {
+              "over": 400000,
+              "step": 10000,
+              "amountPerStep": 180,
+              "max": 5400
+            },
+            "head_of_household": {
+              "over": 320000,
+              "step": 8000,
+              "amountPerStep": 140,
+              "max": 4200
+            }
+          },
+          {
+            "label": "Third tax recapture band",
+            "single": {
+              "over": 500000,
+              "step": 5000,
+              "amountPerStep": 50,
+              "max": 450
+            },
+            "married": {
+              "over": 1000000,
+              "step": 10000,
+              "amountPerStep": 100,
+              "max": 900
+            },
+            "head_of_household": {
+              "over": 800000,
+              "step": 8000,
+              "amountPerStep": 80,
+              "max": 720
+            }
+          }
+        ]
+      },
+      "disclaimer": [
+        "Connecticut has no local/municipal income tax.",
+        "Connecticut has no standard deduction. It gives a personal exemption instead: up to $15,000 if you are single, $24,000 married filing jointly, $19,000 head of household, and $12,000 married filing separately. The exemption shrinks by $1,000 for every $1,000 of Connecticut income above $30,000 single, $48,000 jointly, $38,000 head of household and $24,000 filing separately, so it runs out entirely a little way above those points. Neither the exemption nor Connecticut's personal tax credits are modeled here, so this estimate runs HIGH for lower incomes.",
+        "Connecticut's 2% tax-rate phase-out (the Table C add-back) IS now included in the figures above, and it is not just a high-earner rule. For a single filer it starts at $56,500 of Connecticut income and adds $25 for every $5,000 above that, up to $250; head of household starts at $78,500 and adds $40 per $4,000, up to $400; married filing jointly starts at $100,500 and adds $50 per $5,000, up to $500. Any amount over the starting point counts as a full step, so a single filer $1 past $56,500 already pays the first $25. We measure it against your wages only, so if you also have interest, dividends or self-employment income, your real Connecticut income is higher and the add-back could be a step or two bigger. Connecticut's tax recapture (Table D) is included too. A single filer pays $25 for each $5,000 of income over $105,000, up to $250; then $90 for each $5,000 over $200,000, up to $2,700 more; then $50 for each $5,000 over $500,000, up to $450 more. A head of household filer pays $40 for each $8,000 over $168,000, up to $400; then $140 for each $8,000 over $320,000, up to $4,200 more; then $80 for each $8,000 over $800,000, up to $720 more. Married couples filing jointly pay $50 for each $10,000 over $210,000, up to $500; then $180 for each $10,000 over $400,000, up to $5,400 more; then $100 for each $10,000 over $1,000,000, up to $900 more. If you are married but filing separately, Connecticut starts that add-back earlier than the single ladder used here, at $50,250 in $2,500 steps rather than $56,500 in $5,000 steps, so your real Connecticut tax can run somewhat higher than shown, by up to about $150 from the add-back alone; your personal exemption is smaller too, $12,000 rather than the $15,000 above.",
+        "Single bracket key also covers Married Filing Separately (CT Code F uses the same Code A schedule)."
+      ],
+      "notes": "Progressive 2%-6.99% (7 brackets, 2026 statutory rates from official DRS IP 2026(7)). No standard deduction; the 2% tax-rate phase-out add-back IS modeled (Conn. Gen. Stat. 12-700(a)(10)(A)(ii)/(B)(ii)/(C)(ii), IP 2026(7) Table C); so is the Table D tax recapture (12-700(a)(10)(A)(iii)-(v), (B)(iii)-(v), (C)(iii)-(v)); the personal exemption is not. No local income tax.",
+      "_pending2027": "Connecticut 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "oregon": {
+      "name": "Oregon",
+      "abbr": "OR",
+      "slug": "oregon",
+      "employeePrograms": [
+        {
+          "label": "OR Paid Leave",
+          "rate": 0.006,
+          "wageBase": 184500
+        },
+        {
+          "label": "OR Transit Tax",
+          "rate": 0.001,
+          "afterPreTax": true
+        }
+      ],
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "federalTaxSubtraction": {
+          "label": "Federal income tax subtraction",
+          "inWithholdingFormula": true,
+          "capByAgi": {
+            "single": [
+              {
+                "agiUnder": 125000,
+                "cap": 8750
+              },
+              {
+                "agiUnder": 130000,
+                "cap": 7000
+              },
+              {
+                "agiUnder": 135000,
+                "cap": 5250
+              },
+              {
+                "agiUnder": 140000,
+                "cap": 3500
+              },
+              {
+                "agiUnder": 145000,
+                "cap": 1750
+              },
+              {
+                "cap": 0
+              }
+            ],
+            "married": [
+              {
+                "agiUnder": 250000,
+                "cap": 8750
+              },
+              {
+                "agiUnder": 260000,
+                "cap": 7000
+              },
+              {
+                "agiUnder": 270000,
+                "cap": 5250
+              },
+              {
+                "agiUnder": 280000,
+                "cap": 3500
+              },
+              {
+                "agiUnder": 290000,
+                "cap": 1750
+              },
+              {
+                "cap": 0
+              }
+            ],
+            "head_of_household": [
+              {
+                "agiUnder": 250000,
+                "cap": 8750
+              },
+              {
+                "agiUnder": 260000,
+                "cap": 7000
+              },
+              {
+                "agiUnder": 270000,
+                "cap": 5250
+              },
+              {
+                "agiUnder": 280000,
+                "cap": 3500
+              },
+              {
+                "agiUnder": 290000,
+                "cap": 1750
+              },
+              {
+                "cap": 0
+              }
+            ]
+          }
+        },
+        "standardDeduction": {
+          "single": 2910,
+          "married": 5820,
+          "head_of_household": 4650
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.0475,
+              "upTo": 4550
+            },
+            {
+              "rate": 0.0675,
+              "upTo": 11400
+            },
+            {
+              "rate": 0.0875,
+              "upTo": 125000
+            },
+            {
+              "rate": 0.099,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.0475,
+              "upTo": 9100
+            },
+            {
+              "rate": 0.0675,
+              "upTo": 22800
+            },
+            {
+              "rate": 0.0875,
+              "upTo": 250000
+            },
+            {
+              "rate": 0.099,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.0475,
+              "upTo": 9100
+            },
+            {
+              "rate": 0.0675,
+              "upTo": 22800
+            },
+            {
+              "rate": 0.0875,
+              "upTo": 250000
+            },
+            {
+              "rate": 0.099,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "disclaimer": [
+        "Local income taxes are not included. Oregon localities (e.g. Portland Metro Supportive Housing Services tax and Multnomah County Preschool For All tax) levy SEPARATE local personal income taxes that are not modeled here.",
+        "Oregon lets you subtract the federal income tax you owe from the income it taxes, up to $8,750 for 2026, and this estimate applies it. It uses the federal income tax this estimate works out from your pay, so other income or credits on your real return would change it. The limit steps down once federal adjusted gross income reaches $125,000 ($250,000 for married filing jointly and head of household) and is zero from $145,000 ($290,000). Married filing separately gets half the limit, which this estimate does not apply.",
+        "Head of household uses Oregon's Chart J brackets (same as married filing jointly) but its own $4,650 standard deduction, per the DOR rate charts.",
+        "Oregon's Statewide Transit Tax is now included. It is one-tenth of 1% of your wages, comes out of your pay, and has no wage cap, so on $75,000 it is $75 a year.",
+        "Oregon's personal exemption credit ($260/exemption for 2026), Earned Income Credit, and other credits/subtractions are not modeled."
+      ],
+      "notes": "Progressive 4.75%-9.9% (4 brackets, official 2026 inflation-indexed/statutory charts). Federal income tax subtraction included (up to $8,750, phased out from $125,000 single or $250,000 joint). Separate Portland/Multnomah local income taxes not modeled.",
+      "_pending2027": "Oregon 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "california": {
+      "name": "California",
+      "abbr": "CA",
+      "slug": "california",
+      "employeePrograms": [
+        {
+          "label": "CA SDI",
+          "rate": 0.013
+        }
+      ],
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 5900,
+          "married": 11800,
+          "head_of_household": 11800
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.01,
+              "upTo": 11456
+            },
+            {
+              "rate": 0.02,
+              "upTo": 27157
+            },
+            {
+              "rate": 0.04,
+              "upTo": 42861
+            },
+            {
+              "rate": 0.06,
+              "upTo": 59498
+            },
+            {
+              "rate": 0.08,
+              "upTo": 75197
+            },
+            {
+              "rate": 0.093,
+              "upTo": 384109
+            },
+            {
+              "rate": 0.103,
+              "upTo": 460927
+            },
+            {
+              "rate": 0.113,
+              "upTo": 768213
+            },
+            {
+              "rate": 0.123,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.01,
+              "upTo": 22912
+            },
+            {
+              "rate": 0.02,
+              "upTo": 54314
+            },
+            {
+              "rate": 0.04,
+              "upTo": 85722
+            },
+            {
+              "rate": 0.06,
+              "upTo": 118996
+            },
+            {
+              "rate": 0.08,
+              "upTo": 150394
+            },
+            {
+              "rate": 0.093,
+              "upTo": 768218
+            },
+            {
+              "rate": 0.103,
+              "upTo": 921854
+            },
+            {
+              "rate": 0.113,
+              "upTo": 1536426
+            },
+            {
+              "rate": 0.123,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.01,
+              "upTo": 22927
+            },
+            {
+              "rate": 0.02,
+              "upTo": 54316
+            },
+            {
+              "rate": 0.04,
+              "upTo": 70018
+            },
+            {
+              "rate": 0.06,
+              "upTo": 86654
+            },
+            {
+              "rate": 0.08,
+              "upTo": 102356
+            },
+            {
+              "rate": 0.093,
+              "upTo": 522385
+            },
+            {
+              "rate": 0.103,
+              "upTo": 626864
+            },
+            {
+              "rate": 0.113,
+              "upTo": 1044771
+            },
+            {
+              "rate": 0.123,
+              "upTo": null
+            }
+          ]
+        },
+        "exemptionCredit": {
+          "name": "personal exemption credit",
+          "amount": {
+            "single": 158,
+            "married": 316,
+            "head_of_household": 158
+          },
+          "exemptions": {
+            "single": 1,
+            "married": 2,
+            "head_of_household": 1
+          },
+          "phaseout": {
+            "over": {
+              "single": 252203,
+              "married": 504411,
+              "head_of_household": 378310
+            },
+            "per": 2500,
+            "reduceBy": 6
+          },
+          "phaseoutFigureYear": 2025
+        }
+      },
+      "disclaimer": [
+        "These are California's 2026 tax brackets and standard deduction as announced by the Franchise Tax Board in October 2026. The board says its complete 2026 tables will be on its website in late December.",
+        "The California 1% Behavioral Health Services Tax (formerly Mental Health Services Act) surcharge on taxable income over $1,000,000, which raises the top effective rate to 13.3%, is NOT modeled here.",
+        "California's personal exemption credit is included: $158 off the tax for a single or head of household filer and $316 for a married couple filing jointly, the 2026 amounts. It shrinks once income passes $252,203 for a single filer ($504,411 married filing jointly, $378,310 head of household), which are California's 2025 limits because its 2026 ones are not out yet.",
+        "Credits for dependents and itemized deductions are not included."
+      ],
+      "notes": "Progressive 1%-12.3% (nine brackets, 2026 FTB schedules), less the personal exemption credit ($158 single, $316 joint for 2026; phase-out thresholds are the 2025 ones). +1% surcharge over $1M and dependent credits not modeled.",
+      "_pending2027": "California 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "missouri": {
+      "name": "Missouri",
+      "abbr": "MO",
+      "slug": "missouri",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "federalTaxSubtraction": {
+          "label": "Federal income tax deduction",
+          "inWithholdingFormula": false,
+          "shareByAgi": [
+            {
+              "agiUpTo": 25000,
+              "share": 0.35
+            },
+            {
+              "agiUpTo": 50000,
+              "share": 0.25
+            },
+            {
+              "agiUpTo": 100000,
+              "share": 0.15
+            },
+            {
+              "agiUpTo": 125000,
+              "share": 0.05
+            },
+            {
+              "share": 0
+            }
+          ],
+          "capByAgi": {
+            "single": [
+              {
+                "cap": 5000
+              }
+            ],
+            "married": [
+              {
+                "cap": 10000
+              }
+            ],
+            "head_of_household": [
+              {
+                "cap": 5000
+              }
+            ]
+          }
+        },
+        "standardDeduction": {
+          "single": 16100,
+          "married": 32200,
+          "head_of_household": 25550
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.0,
+              "upTo": 1348
+            },
+            {
+              "rate": 0.02,
+              "upTo": 2696
+            },
+            {
+              "rate": 0.025,
+              "upTo": 4044
+            },
+            {
+              "rate": 0.03,
+              "upTo": 5392
+            },
+            {
+              "rate": 0.035,
+              "upTo": 6740
+            },
+            {
+              "rate": 0.04,
+              "upTo": 8088
+            },
+            {
+              "rate": 0.045,
+              "upTo": 9436
+            },
+            {
+              "rate": 0.047,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.0,
+              "upTo": 1348
+            },
+            {
+              "rate": 0.02,
+              "upTo": 2696
+            },
+            {
+              "rate": 0.025,
+              "upTo": 4044
+            },
+            {
+              "rate": 0.03,
+              "upTo": 5392
+            },
+            {
+              "rate": 0.035,
+              "upTo": 6740
+            },
+            {
+              "rate": 0.04,
+              "upTo": 8088
+            },
+            {
+              "rate": 0.045,
+              "upTo": 9436
+            },
+            {
+              "rate": 0.047,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.0,
+              "upTo": 1348
+            },
+            {
+              "rate": 0.02,
+              "upTo": 2696
+            },
+            {
+              "rate": 0.025,
+              "upTo": 4044
+            },
+            {
+              "rate": 0.03,
+              "upTo": 5392
+            },
+            {
+              "rate": 0.035,
+              "upTo": 6740
+            },
+            {
+              "rate": 0.04,
+              "upTo": 8088
+            },
+            {
+              "rate": 0.045,
+              "upTo": 9436
+            },
+            {
+              "rate": 0.047,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "disclaimer": [
+        "Local income taxes are not included. Missouri cities of Kansas City and St. Louis levy a separate 1% local earnings tax on wages, which is not included in this estimate.",
+        "Missouri's standard deduction conforms to the federal standard deduction. For a head of household the figure used here also includes the extra $1,400 Missouri allows on the annual return (Section 143.161 RSMo), so it is $25,550 rather than $24,150. Not modeled here: the additional standard deduction for taxpayers age 65 or older or blind, the same $1,400 for a qualifying surviving spouse, and Missouri tax credits.",
+        "Missouri lets you deduct part of your federal income tax on your annual return, under Section 143.171 RSMo, and this estimate applies it. It uses the federal income tax this estimate works out from your pay, so other income or credits on your real return would change it. The share depends on your Missouri adjusted gross income: 35% at $25,000 or less, 25% from $25,001 to $50,000, 15% from $50,001 to $100,000, 5% from $100,001 to $125,000, and 0% at $125,001 or more. It is capped at $5,000 per return, or $10,000 on a married filing combined return. Missouri's withholding formula leaves this deduction out, so your employer will usually withhold a little more Missouri tax than this estimate shows, and you get the difference back when you file Form MO-1040."
+      ],
+      "notes": "Progressive 0%-4.70% (official 2026 inflation-indexed brackets, top band over $9,436 of taxable income). Federal-conformed standard deduction. Partial federal income tax deduction (Section 143.171 RSMo) applied. Separate 1% local earnings tax in Kansas City and St. Louis not included.",
+      "_pending2027": "Missouri 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 top rate (revenue trigger, Section 143.011 RSMo).",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "kansas": {
+      "name": "Kansas",
+      "abbr": "KS",
+      "slug": "kansas",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 12765,
+          "married": 26560,
+          "head_of_household": 17660
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.052,
+              "upTo": 23000
+            },
+            {
+              "rate": 0.0558,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.052,
+              "upTo": 46000
+            },
+            {
+              "rate": 0.0558,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.052,
+              "upTo": 23000
+            },
+            {
+              "rate": 0.0558,
+              "upTo": null
+            }
+          ]
+        },
+        "deductionName": "standard deduction plus personal exemption"
+      },
+      "disclaimer": [
+        "Kansas has no local/city income tax on wages.",
+        "This estimate includes Kansas's personal exemption, added to the standard deduction: $9,160 single, $18,320 married filing jointly and $11,480 head of household, because a head-of-household filer gets an extra $2,320. With the standard deduction ($3,605, $8,240 and $6,180) that comes to $12,765, $26,560 and $17,660. The extra $2,320 exemption for each dependent is not included.",
+        "Kansas itemized deductions, tax credits (e.g. child/dependent care), and the additional standard deduction for filers age 65+ or blind are not modeled."
+      ],
+      "notes": "Two-bracket 5.20% / 5.58% (Senate Bill 1, 2024; unchanged for 2026). The amount subtracted is the standard deduction plus the personal exemption. No local income tax.",
+      "_pending2027": "Kansas 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 rates (revenue trigger, K.S.A. 79-32,110c).",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "nebraska": {
+      "name": "Nebraska",
+      "abbr": "NE",
+      "slug": "nebraska",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 8850,
+          "married": 17700,
+          "head_of_household": 12950
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.0246,
+              "upTo": 4130
+            },
+            {
+              "rate": 0.0351,
+              "upTo": 24760
+            },
+            {
+              "rate": 0.0399,
+              "upTo": 39900
+            },
+            {
+              "rate": 0.0399,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.0246,
+              "upTo": 8250
+            },
+            {
+              "rate": 0.0351,
+              "upTo": 49530
+            },
+            {
+              "rate": 0.0399,
+              "upTo": 79800
+            },
+            {
+              "rate": 0.0399,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.0246,
+              "upTo": 7700
+            },
+            {
+              "rate": 0.0351,
+              "upTo": 39620
+            },
+            {
+              "rate": 0.0399,
+              "upTo": 59160
+            },
+            {
+              "rate": 0.0399,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "disclaimer": [
+        "Nebraska has no local/city income tax on wages.",
+        "Nebraska's $176-per-exemption personal exemption credit, the additional standard deduction for filers age 65+ or blind, and other credits/subtractions (including the Social Security benefit exemption) are not modeled."
+      ],
+      "notes": "Progressive 2.46% / 3.51% / 4.55% bracket schedule (official 2026 Nebraska Estimated Income Tax Rate Schedule; LB754 dropped the top rate from 5.20% to 4.55% for 2026). No local income tax.",
+      "yearNoteLabel": "Nebraska's 2027 income tax rate",
+      "_override2027": {
+        "source": "Office of Governor Jim Pillen: income tax cuts effective in January",
+        "sourceUrl": "https://governor.nebraska.gov/gov-pillens-historic-income-tax-cuts-effective-january"
+      },
+      "_pending2027": "Nebraska 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from Office of Governor Jim Pillen: income tax cuts effective in January recorded in january-paycheck-2027.json."
+    },
+    "oklahoma": {
+      "name": "Oklahoma",
+      "abbr": "OK",
+      "slug": "oklahoma",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 7350,
+          "married": 14700,
+          "head_of_household": 10350
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0,
+              "upTo": 3750
+            },
+            {
+              "rate": 0.025,
+              "upTo": 4900
+            },
+            {
+              "rate": 0.035,
+              "upTo": 7200
+            },
+            {
+              "rate": 0.045,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0,
+              "upTo": 7500
+            },
+            {
+              "rate": 0.025,
+              "upTo": 9800
+            },
+            {
+              "rate": 0.035,
+              "upTo": 14400
+            },
+            {
+              "rate": 0.045,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0,
+              "upTo": 7500
+            },
+            {
+              "rate": 0.025,
+              "upTo": 9800
+            },
+            {
+              "rate": 0.035,
+              "upTo": 14400
+            },
+            {
+              "rate": 0.045,
+              "upTo": null
+            }
+          ]
+        },
+        "deductionName": "standard deduction plus personal exemption"
+      },
+      "disclaimer": [
+        "Oklahoma has no local/city income tax on wages.",
+        "This estimate includes Oklahoma's $1,000 personal exemption, added to the standard deduction: one for a single or head-of-household filer and two for a married couple filing jointly. Exemptions for dependents, the child-care/child tax credit, the earned income credit, and the sales-tax-relief credit are not modeled."
+      ],
+      "notes": "Progressive four-band schedule for 2026: 0%, 2.5%, 3.5%, 4.5% (HB2764, effective Jan 1 2026, replacing the six-bracket 0.25%-4.75% schedule that applied only to tax years 2024 and 2025). Married/HoH/QSS share one bracket schedule. No local income tax.",
+      "_pending2027": "Oklahoma 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 rate (State Board of Equalization certification, final February 2027).",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "arkansas": {
+      "name": "Arkansas",
+      "abbr": "AR",
+      "slug": "arkansas",
+      "hasIncomeTax": true,
+      "figureYear": 2025,
+      "figureYearScope": "thresholdsAndDeduction",
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 2470,
+          "married": 4940,
+          "head_of_household": 2470
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.0,
+              "upTo": 5599
+            },
+            {
+              "rate": 0.02,
+              "upTo": 11199
+            },
+            {
+              "rate": 0.03,
+              "upTo": 15999
+            },
+            {
+              "rate": 0.034,
+              "upTo": 26399
+            },
+            {
+              "rate": 0.037,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.0,
+              "upTo": 5599
+            },
+            {
+              "rate": 0.02,
+              "upTo": 11199
+            },
+            {
+              "rate": 0.03,
+              "upTo": 15999
+            },
+            {
+              "rate": 0.034,
+              "upTo": 26399
+            },
+            {
+              "rate": 0.037,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.0,
+              "upTo": 5599
+            },
+            {
+              "rate": 0.02,
+              "upTo": 11199
+            },
+            {
+              "rate": 0.03,
+              "upTo": 15999
+            },
+            {
+              "rate": 0.034,
+              "upTo": 26399
+            },
+            {
+              "rate": 0.037,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "disclaimer": [
+        "Arkansas has no local or city income tax on wages.",
+        "Arkansas gives a $29 personal tax credit for each withholding exemption claimed on Form AR4EC, plus dependent credits. Those are not modeled here, so estimates run slightly high for most filers.",
+        "Once net taxable income passes $94,700, Arkansas phases out the benefit of the lower brackets, so the effective rate moves toward a flat 3.7% on all income. That taper is not modeled, so estimates above roughly $95,000 run modestly low.",
+        "Arkansas lowered its top rate to 3.7% in May 2026, backdated to January 1, 2026. Withholding tables printed before the cut still use 3.9%, so the tax actually taken out of your paycheck may be a little higher than shown here until your employer updates its tables.",
+        "Arkansas's 2026 rates are current, but the bracket thresholds and the $2,470 standard deduction used here are its 2025 inflation-adjusted amounts. Arkansas adjusts them every year and has not yet published its 2026 amounts."
+      ],
+      "notes": "Progressive 0% to 3.7% for tax year 2026, on Arkansas's 2025 inflation-adjusted bracket thresholds and standard deduction until it publishes 2026 ones. The top 3.7% rate begins at $26,400 of net taxable income. Arkansas uses the same rate schedule for every filing status; the standard deduction is $2,470 per taxpayer (2025 amount). No local or city income tax.",
+      "_pending2027": "Arkansas 2027 state tax figures not yet published by the state; values are the 2025 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "alabama": {
+      "name": "Alabama",
+      "abbr": "AL",
+      "slug": "alabama",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeductionPhaseout": {
+          "single": {
+            "over": 25500,
+            "per": 500,
+            "reduceBy": 25,
+            "minimum": 4000
+          },
+          "married": {
+            "over": 25500,
+            "per": 500,
+            "reduceBy": 175,
+            "minimum": 8000
+          },
+          "head_of_household": {
+            "over": 25500,
+            "per": 500,
+            "reduceBy": 135,
+            "minimum": 5500
+          }
+        },
+        "federalTaxSubtraction": {
+          "label": "Federal income tax deduction",
+          "inWithholdingFormula": true
+        },
+        "overtimePremiumDeduction": {
+          "label": "Overtime premium deduction",
+          "cap": 1000,
+          "firstTaxYear": 2026,
+          "lastTaxYear": 2028,
+          "inWithholdingFormula": false
+        },
+        "standardDeduction": {
+          "single": 4500,
+          "married": 11500,
+          "head_of_household": 8200
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.02,
+              "upTo": 500
+            },
+            {
+              "rate": 0.04,
+              "upTo": 3000
+            },
+            {
+              "rate": 0.05,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.02,
+              "upTo": 1000
+            },
+            {
+              "rate": 0.04,
+              "upTo": 6000
+            },
+            {
+              "rate": 0.05,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.02,
+              "upTo": 500
+            },
+            {
+              "rate": 0.04,
+              "upTo": 3000
+            },
+            {
+              "rate": 0.05,
+              "upTo": null
+            }
+          ]
+        },
+        "deductionName": "standard deduction plus personal exemption"
+      },
+      "disclaimer": [
+        "Alabama's standard deduction shrinks as income rises, and this estimate follows Alabama's own chart: a single filer gets $3,000, reduced by $25 for each full $500 of Alabama adjusted gross income over $25,500, and $2,500 from $35,500 up. Married filing jointly goes from $8,500 down to $5,000, and head of family from $5,200 down to $2,500, over the same income range.",
+        "This estimate also includes Alabama's personal exemption, which does not shrink with income: $1,500 single, $3,000 married filing jointly and $3,000 head of family. The amounts shown combine it with the standard deduction, so a single filer's goes from $4,500 down to $4,000. The dependent exemption is not modeled.",
+        "Local income taxes are not included. Some Alabama cities levy a separate LOCAL occupational tax on wages (for example 1% in Birmingham and 2% in Gadsden) that is not included in this estimate.",
+        "Alabama lets you deduct all of the federal income tax you owe, with no cap, and this estimate applies it. It uses the federal income tax this estimate works out from your pay, so other income or credits on your real return would change it.",
+        "The Alabama tax in this estimate does not include Alabama's 2026 overtime deduction, because you claim it on your Alabama return when you file and it does not change what comes out of your paychecks. It lets you deduct the extra part of your overtime pay above your normal rate (the \"half\" in time and a half), up to $1,000 a year. The overtime question on the Alabama paycheck calculator works out what it saves you at filing."
+      ],
+      "notes": "Progressive 2%-5% (statutory, Ala. Code § 40-18-5), top 5% rate begins at just $3,000 taxable income (single) / $6,000 (married). Standard deduction phases down with income per the ADOR chart, and the full federal income tax deduction is applied. Separate local occupational taxes apply in some cities.",
+      "_pending2027": "Alabama 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "south-carolina": {
+      "name": "South Carolina",
+      "abbr": "SC",
+      "slug": "south-carolina",
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 15000,
+          "married": 30000,
+          "head_of_household": 22500
+        },
+        "standardDeductionPhaseout": {
+          "roundReductionDownTo": 10,
+          "single": {
+            "over": 40000,
+            "denominator": 55000
+          },
+          "married": {
+            "over": 80000,
+            "denominator": 110000
+          },
+          "head_of_household": {
+            "over": 60000,
+            "denominator": 82500
+          }
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.0199,
+              "upTo": 30000
+            },
+            {
+              "rate": 0.0521,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.0199,
+              "upTo": 30000
+            },
+            {
+              "rate": 0.0521,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.0199,
+              "upTo": 30000
+            },
+            {
+              "rate": 0.0521,
+              "upTo": null
+            }
+          ]
+        }
+      },
+      "disclaimer": [
+        "South Carolina rewrote its income tax for 2026 (H. 4216, Act 110): 1.99% on taxable income below $30,000 and 5.21% above, with the South Carolina Income Adjusted Deduction (SCIAD) replacing the federal standard deduction. The SCIAD starts at $15,000 for single or married filing separately, $22,500 for head of household and $30,000 for married filing jointly, and shrinks as income rises until it reaches zero at $95,000, $142,500 and $190,000 respectively. This calculator now applies that reduction. The statute measures it against your federal adjusted gross income; we use your wages less pre-tax deductions, so if you have income or adjustments outside your paycheck your real deduction may be smaller than shown.",
+        "South Carolina starts from federal AGI; this estimate approximates taxable income as wages minus the SCIAD and does not model federal-AGI adjustments, the capped state EITC ($200), or other SC credits.",
+        "South Carolina has no local/city income tax on wages.",
+        "Under H.4216 the top rate may be reduced further in future years if state revenue triggers are met; figures shown are the enacted 2026 rates.",
+        "Paycheck withholding is a separate calculation from the yearly tax. The 2026 SC Withholding Tax Formula the SC Department of Revenue currently publishes (form WH-1603F, Rev. 11/4/25) was issued before H. 4216 was signed and still withholds at the older 0%, 3% and 6% rates using a $5,000 personal allowance. Until the SCDOR reissues it, the South Carolina tax withheld on a 2026 paystub may not match the yearly estimate shown here."
+      ],
+      "notes": "Two-rate 1.99% / 5.21% (H.4216 / Act 110, new for tax year 2026), 5.21% begins above $30,000 taxable income. New SC Income-Adjusted Deduction (SCIAD) replaces the federal standard deduction; it phases down with income. No local income tax.",
+      "_pending2027": "South Carolina 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 top rate (can fall automatically under S.C. Code 12-6-510).",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "maine": {
+      "name": "Maine",
+      "abbr": "ME",
+      "slug": "maine",
+      "employeePrograms": [
+        {
+          "label": "ME PFML",
+          "rate": 0.005,
+          "wageBase": 184500
+        }
+      ],
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 21000,
+          "married": 42000,
+          "head_of_household": 28850
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.058,
+              "upTo": 27400
+            },
+            {
+              "rate": 0.0675,
+              "upTo": 64850
+            },
+            {
+              "rate": 0.0715,
+              "upTo": 1000000
+            },
+            {
+              "rate": 0.0915,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.058,
+              "upTo": 54850
+            },
+            {
+              "rate": 0.0675,
+              "upTo": 129750
+            },
+            {
+              "rate": 0.0715,
+              "upTo": 1500000
+            },
+            {
+              "rate": 0.0915,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.058,
+              "upTo": 41100
+            },
+            {
+              "rate": 0.0675,
+              "upTo": 97300
+            },
+            {
+              "rate": 0.0715,
+              "upTo": 1500000
+            },
+            {
+              "rate": 0.0915,
+              "upTo": null
+            }
+          ]
+        },
+        "deductionName": "standard deduction plus personal exemption",
+        "standardDeductionPhaseout": {
+          "single": [
+            {
+              "over": 102250,
+              "denominator": 75000,
+              "amount": 15700
+            },
+            {
+              "over": 341000,
+              "denominator": 125000,
+              "amount": 5300
+            }
+          ],
+          "married": [
+            {
+              "over": 204550,
+              "denominator": 150000,
+              "amount": 31400
+            },
+            {
+              "over": 409150,
+              "denominator": 125000,
+              "amount": 10600
+            }
+          ],
+          "head_of_household": [
+            {
+              "over": 153400,
+              "denominator": 112500,
+              "amount": 23550
+            },
+            {
+              "over": 375050,
+              "denominator": 125000,
+              "amount": 5300
+            }
+          ]
+        }
+      },
+      "disclaimer": [
+        "This estimate includes Maine's $5,300 personal exemption ($10,600 for a married couple filing jointly), added to the standard deduction. Both shrink at higher incomes and both reductions are applied: for a single filer the $15,700 standard deduction shrinks away between $102,250 and $177,250 of income, and the exemption between $341,000 and $466,000. Maine rounds the share it takes away slightly differently, so the result can differ from your return by a few dollars.",
+        "For 2026 Maine adds a 2% surcharge on taxable income above $1,000,000 (single), $1,500,000 (married filing jointly / head of household), or $750,000 (married filing separately). This estimate models the single/joint thresholds; married-filing-separately filers reach the surcharge sooner.",
+        "The age-65+/blindness additional deduction and Maine tax credits are not modeled.",
+        "Maine has no local or city income tax on wages."
+      ],
+      "notes": "Graduated 5.8% / 6.75% / 7.15% (2026, inflation-indexed), with a new 2% surcharge above $1M (single) / $1.5M (married, head of household) shown as a 9.15% top band. Standard deduction $15,700 single / $31,400 married / $23,550 head of household plus the $5,300 personal exemption ($10,600 married); both phase out at higher incomes. No local income tax.",
+      "_pending2027": "Maine 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 standard deduction (36 M.R.S. 5124-C); 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "hawaii": {
+      "name": "Hawaii",
+      "abbr": "HI",
+      "slug": "hawaii",
+      "employeePrograms": [
+        {
+          "label": "HI TDI",
+          "rate": 0.005,
+          "weeklyMax": 7.5
+        }
+      ],
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 9144,
+          "married": 18288,
+          "head_of_household": 13144
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.014,
+              "upTo": 9600
+            },
+            {
+              "rate": 0.032,
+              "upTo": 14400
+            },
+            {
+              "rate": 0.055,
+              "upTo": 19200
+            },
+            {
+              "rate": 0.064,
+              "upTo": 24000
+            },
+            {
+              "rate": 0.068,
+              "upTo": 36000
+            },
+            {
+              "rate": 0.072,
+              "upTo": 48000
+            },
+            {
+              "rate": 0.076,
+              "upTo": 125000
+            },
+            {
+              "rate": 0.079,
+              "upTo": 175000
+            },
+            {
+              "rate": 0.0825,
+              "upTo": 225000
+            },
+            {
+              "rate": 0.09,
+              "upTo": 275000
+            },
+            {
+              "rate": 0.1,
+              "upTo": 325000
+            },
+            {
+              "rate": 0.11,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.014,
+              "upTo": 19200
+            },
+            {
+              "rate": 0.032,
+              "upTo": 28800
+            },
+            {
+              "rate": 0.055,
+              "upTo": 38400
+            },
+            {
+              "rate": 0.064,
+              "upTo": 48000
+            },
+            {
+              "rate": 0.068,
+              "upTo": 72000
+            },
+            {
+              "rate": 0.072,
+              "upTo": 96000
+            },
+            {
+              "rate": 0.076,
+              "upTo": 250000
+            },
+            {
+              "rate": 0.079,
+              "upTo": 350000
+            },
+            {
+              "rate": 0.0825,
+              "upTo": 450000
+            },
+            {
+              "rate": 0.09,
+              "upTo": 550000
+            },
+            {
+              "rate": 0.1,
+              "upTo": 650000
+            },
+            {
+              "rate": 0.11,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.014,
+              "upTo": 14400
+            },
+            {
+              "rate": 0.032,
+              "upTo": 21600
+            },
+            {
+              "rate": 0.055,
+              "upTo": 28800
+            },
+            {
+              "rate": 0.064,
+              "upTo": 36000
+            },
+            {
+              "rate": 0.068,
+              "upTo": 54000
+            },
+            {
+              "rate": 0.072,
+              "upTo": 72000
+            },
+            {
+              "rate": 0.076,
+              "upTo": 187500
+            },
+            {
+              "rate": 0.079,
+              "upTo": 262500
+            },
+            {
+              "rate": 0.0825,
+              "upTo": 337500
+            },
+            {
+              "rate": 0.09,
+              "upTo": 412500
+            },
+            {
+              "rate": 0.1,
+              "upTo": 487500
+            },
+            {
+              "rate": 0.11,
+              "upTo": null
+            }
+          ]
+        },
+        "deductionName": "standard deduction plus personal exemption"
+      },
+      "disclaimer": [
+        "This estimate includes Hawaii's $1,144 personal exemption, added to the standard deduction: one for a single or head-of-household filer and two for a married couple filing jointly. The exemption for each dependent, the extra exemption for filers 65 or older, itemized deductions, and tax credits (the refundable food/excise tax credit, state EITC, and child & dependent care credit) are not modeled, so actual tax for many filers is lower than shown.",
+        "Hawaii's standard deduction rose for 2026 under Act 46 to $8,000 single / $16,000 married / $12,000 head of household; the 12-bracket rate schedule is unchanged from 2025.",
+        "Hawaii has no local or county income tax on wages."
+      ],
+      "notes": "Twelve graduated brackets 1.4%–11% (Act 46 widened schedule, unchanged for 2026). 2026 standard deduction (raised by Act 46): $8,000 single / $16,000 married / $12,000 head of household. No local income tax.",
+      "_pending2027": "Hawaii 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 rate schedules (Act 24, SLH 2026); 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    },
+    "rhode-island": {
+      "name": "Rhode Island",
+      "abbr": "RI",
+      "slug": "rhode-island",
+      "employeePrograms": [
+        {
+          "label": "RI TDI/TCI",
+          "rate": 0.011,
+          "wageBase": 100000
+        }
+      ],
+      "hasIncomeTax": true,
+      "figureYear": 2026,
+      "tax": {
+        "type": "bracket",
+        "standardDeduction": {
+          "single": 16450,
+          "married": 32900,
+          "head_of_household": 22050
+        },
+        "brackets": {
+          "single": [
+            {
+              "rate": 0.0375,
+              "upTo": 82050
+            },
+            {
+              "rate": 0.0475,
+              "upTo": 186450
+            },
+            {
+              "rate": 0.0599,
+              "upTo": null
+            }
+          ],
+          "married": [
+            {
+              "rate": 0.0375,
+              "upTo": 82050
+            },
+            {
+              "rate": 0.0475,
+              "upTo": 186450
+            },
+            {
+              "rate": 0.0599,
+              "upTo": null
+            }
+          ],
+          "head_of_household": [
+            {
+              "rate": 0.0375,
+              "upTo": 82050
+            },
+            {
+              "rate": 0.0475,
+              "upTo": 186450
+            },
+            {
+              "rate": 0.0599,
+              "upTo": null
+            }
+          ]
+        },
+        "deductionName": "standard deduction plus personal exemption",
+        "standardDeductionPhaseout": {
+          "single": {
+            "over": 261000,
+            "per": 7450,
+            "reduceBy": 3290,
+            "minimum": 0,
+            "roundUp": true
+          },
+          "married": {
+            "over": 261000,
+            "per": 7450,
+            "reduceBy": 6580,
+            "minimum": 0,
+            "roundUp": true
+          },
+          "head_of_household": {
+            "over": 261000,
+            "per": 7450,
+            "reduceBy": 4410,
+            "minimum": 0,
+            "roundUp": true
+          }
+        }
+      },
+      "disclaimer": [
+        "Rhode Island's standard deduction and personal exemptions shrink for higher-income filers, and this estimate applies that. For 2026 they lose 20% for each $7,450 (or part of $7,450) of modified adjusted gross income over $261,000, so above $290,800 you get neither.",
+        "The standard deductions used here are Rhode Island's official 2026 amounts: $11,200 single, $22,400 married filing jointly, and $16,800 head of household. All three are printed in the RI Division of Taxation's Advisory ADV 2025-22 (2026 inflation-adjusted personal income tax amounts, issued November 3, 2025).",
+        "This estimate includes Rhode Island's $5,250 personal exemption for 2026, added to the standard deduction: one for a single or head-of-household filer and two for a married couple filing jointly. Exemptions for dependents and Rhode Island tax credits (property-tax relief, EITC, child & dependent care) are not modeled.",
+        "Rhode Island has no local or city income tax on wages."
+      ],
+      "notes": "Three graduated brackets 3.75% / 4.75% / 5.99% (2026, inflation-indexed), same thresholds for all filing statuses: 3.75% to $82,050, 4.75% to $186,450, 5.99% above. Standard deduction $11,200 single / $22,400 married / $16,800 head of household plus the $5,250 personal exemption ($10,500 married); both phase out between $261,000 and $290,800 of MAGI for 2026. No local income tax.",
+      "_pending2027": "Rhode Island 2027 state tax figures not yet published by the state; values are the 2026 figures from tax-data-2026.json; Known open item: the 2027 high-income surtax (FY2027 budget); 2027 employee payroll program rates and wage limits not yet applied; values are the 2026 ones.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+    }
+  }
+}

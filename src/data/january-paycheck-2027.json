@@ -1,7 +1,7 @@
 {
   "_comment": "Inputs for /january-paycheck-change-calculator/ that live nowhere else. The 2027 federal figures are NOT here: they come from projections-2027.json (official2027 once the IRS Revenue Procedure is in, the publishers' thirdPartyProjections until then) or from tax-data-2027.json once that file exists, which also replaces every state below. The 2027 Social Security wage base comes from projections-2027.json ssaFactSheet2027.",
   "stateOverrides2027": {
-    "_rule": "Only a 2027 figure already set in statute AND already recorded in this repo goes here, patched over the state's 2026 `tax` block for the January paycheck. Everything else uses the 2026 tables, and the page says so. North Carolina added 2026-11-03: S.B. 257 (the 2026 Appropriations Act) is Session Law 2026-41 (ncleg summary title 'S257 - 2026 Appropriations Act. (SL 2026-41)'), already cited in state-payroll-2026.json. Indiana, Mississippi, Nebraska, Montana and New York added 2026-11-03 after a research pass plus an independent refute pass (all 5 CONFIRMED). Nebraska keeps 2026 thresholds and standard deduction (2027 indexed values only in a draft 1040N-ES); Montana's standard deduction follows the federal figure, not yet published.",
+    "_rule": "Only a 2027 figure already set in statute AND already recorded in this repo goes here, patched over the state's 2026 `tax` block for the January paycheck. Everything else uses the 2026 tables, and the page says so. North Carolina added 2026-11-03: S.B. 257 (the 2026 Appropriations Act) is Session Law 2026-41 (ncleg summary title 'S257 - 2026 Appropriations Act. (SL 2026-41)'), already cited in state-payroll-2026.json. Indiana, Mississippi, Nebraska, Montana and New York added 2026-11-03 after a research pass plus an independent refute pass (all 5 CONFIRMED). Nebraska keeps 2026 thresholds and standard deduction (2027 indexed values only in a draft 1040N-ES); Montana, Colorado and North Dakota start from federal taxable income, so their 2027 deduction is the federal amount in Rev. Proc. 2026-35 section 3.15 (added 2026-11-06).",
     "virginia": {
       "tax": {
         "standardDeduction": {
@@ -176,10 +176,15 @@
               "upTo": null
             }
           ]
+        },
+        "standardDeduction": {
+          "single": 16600,
+          "married": 33200,
+          "head_of_household": 24925
         }
       },
       "label": "Montana's 2027 income tax brackets",
-      "what": "In 2027 Montana's 4.7% rate covers more of your income (up to $65,000 single, $130,000 married) and the top rate drops from 5.65% to 5.4%, under state law.",
+      "what": "In 2027 Montana's 4.7% rate covers more of your income (up to $65,000 single, $130,000 married) and the top rate drops from 5.65% to 5.4%, under state law. Montana starts from federal taxable income, so the 2027 federal standard deduction carries through too.",
       "_quote": "HB 337 (2025, Ch. 227) section 2 amending MCA 15-30-2103: '(c) ... on the first $20,500 $65,000 of Montana taxable income ... 4.7%; (ii) ... in excess of $20,500 $65,000 ... 5.9%, 5.4%' (MFJ $130,000; HoH $97,500); section 4: the modified inflation factor 'does not apply until tax year 2028'; section 5(3): '[Section 2] is effective January 1, 2027.' MT DOR HB 337 notice, 2027 table: Single '$0.00 to $65,000' 4.7%, 'over $65,000' 5.4%; MFJ $130,000; HoH $97,500.",
       "sourceUrl": "https://revenue.mt.gov/news/recent-news/HB-337",
       "sourceTitle": "Montana Department of Revenue: HB 337 income tax changes"
@@ -308,6 +313,34 @@
       "_quote": "N.Y. Tax Law 601(c)(1)(viii) 'For taxable years beginning after two thousand twenty-six and before two thousand thirty-three': 'Not over $8,500 3.80% ... Over $13,900 but not over $80,650 $572 plus 5.30% ... Over $80,650 but not over $215,400 $4,110 plus 5.80%' (601(a) and (b) item (viii) the same for joint and head of household). NYS Tax Expenditure Report FY2027: 'Beginning with the 2026 tax year, an additional 0.2 percentage point rate reduction will be phased in over two years for all taxpayers with taxable income up to $215,400 ($323,200 for joint filers). The reduction will be fully phased in by tax year 2027'.",
       "sourceUrl": "https://www.nysenate.gov/legislation/laws/TAX/601",
       "sourceTitle": "N.Y. Tax Law § 601"
+    },
+    "colorado": {
+      "tax": {
+        "standardDeduction": {
+          "single": 16600,
+          "married": 33200,
+          "head_of_household": 24925
+        }
+      },
+      "label": "Colorado's 2027 deduction, which is the federal standard deduction",
+      "what": "Colorado starts from federal taxable income, so the 2027 federal standard deduction carries through to the state tax.",
+      "_quote": "Rev. Proc. 2026-35 section 3.15(1): 'For taxable years beginning in 2027, the standard deduction amounts under § 63(c)(2) are as follows:' with $33,200 joint, $24,925 head of household, $16,600 unmarried. The state link is tax.deductionFromFederal in tax-data-2026.json.",
+      "sourceUrl": "https://www.irs.gov/pub/irs-drop/rp-26-35.pdf",
+      "sourceTitle": "IRS Rev. Proc. 2026-35, section 3.15"
+    },
+    "north-dakota": {
+      "tax": {
+        "standardDeduction": {
+          "single": 16600,
+          "married": 33200,
+          "head_of_household": 24925
+        }
+      },
+      "label": "North Dakota's 2027 deduction, which is the federal standard deduction",
+      "what": "North Dakota starts from federal taxable income, so the 2027 federal standard deduction carries through to the state tax.",
+      "_quote": "Rev. Proc. 2026-35 section 3.15(1): 'For taxable years beginning in 2027, the standard deduction amounts under § 63(c)(2) are as follows:' with $33,200 joint, $24,925 head of household, $16,600 unmarried. The state link is tax.deductionFromFederal in tax-data-2026.json.",
+      "sourceUrl": "https://www.irs.gov/pub/irs-drop/rp-26-35.pdf",
+      "sourceTitle": "IRS Rev. Proc. 2026-35, section 3.15"
     }
   }
 }

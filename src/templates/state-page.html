@@ -527,6 +527,7 @@
                fallback was to sniff for a polite live region, which is exactly how the
                "Report a wrong result" and "Copy result" controls silently vanished from
                all 51 state pages once before. Keep this attribute. -->
+          <p id="taxYearNote" class="year-fallback" role="note" hidden></p>
           <div class="results" data-tb-result>
             <div class="breakdown" id="breakdown" aria-hidden="true">
               <!-- The fourth segment is TIPS ON TOP, and it ships at zero width
@@ -762,6 +763,7 @@
 
 <script>
   window.__TAX_DATA__ = {{TAX_DATA_JSON}};
+  window.__TAX_DATA_2027__ = {{TAX_DATA_2027_JSON}};
   window.__STATE_SLUG__ = "{{STATE_SLUG}}";
 </script>
 <script type="module" src="/assets/app.js"></script>
