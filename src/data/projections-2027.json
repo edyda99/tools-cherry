@@ -1,6 +1,6 @@
 {
   "_comment": "Inputs for /2027-tax-brackets/ and /2027-social-security-cola/. REFRESH after each BLS CPI release (2026-08-12 for reference month July 2026, 2026-09-11 for August 2026, 2026-10-14 for September 2026). When SSA announces the COLA (expected 2026-10-14), ADD cpiw.officialCola and fill 2026-09; when the IRS Revenue Procedure for tax year 2027 lands (any day from about 2026-10-09 to mid-November), ADD official2027. build.js flips both pages to OFFICIAL from those keys. Delete nothing: the official pages still compare against the forecasts below. A month that BLS has not published is the literal null with a `due` date beside it in `schedule`: never interpolate it, never carry the previous month forward, never 'estimate the remaining months'.",
-  "retrievedDate": "2026-10-14",
+  "retrievedDate": "2026-11-06",
   "ccpiu": {
     "_what": "Chained CPI for All Urban Consumers (C-CPI-U), U.S. city average, all items, not seasonally adjusted. BLS series SUUR0000SA0. This is the index 26 U.S.C. 1(f)(6) uses to index federal tax figures, after the Tax Cuts and Jobs Act (P.L. 115-97) replaced CPI-U with it.",
     "seriesId": "SUUR0000SA0",
@@ -315,6 +315,113 @@
       "cite": "26 U.S.C. § 63(c)(7) (rounding clause), as amended by P.L. 119-21 (One Big Beautiful Bill Act)",
       "quote": "If any increase under this clause is not a multiple of $50, such increase shall be rounded to the next lowest multiple of $50.",
       "sourceUrl": "https://www.law.cornell.edu/uscode/text/26/63"
+    }
+  },
+  "official2027": {
+    "revenueProcedure": {
+      "name": "Rev. Proc. 2026-35",
+      "publishedDate": "2026-11-05",
+      "sourceUrl": "https://www.irs.gov/pub/irs-drop/rp-26-35.pdf",
+      "newsroomUrl": "https://www.irs.gov/newsroom/irs-releases-tax-inflation-adjustments-for-tax-year-2027-taxpayers-continue-to-benefit-from-the-working-families-tax-cuts"
+    },
+    "federal": {
+      "standardDeduction": {
+        "single": 16600,
+        "married": 33200,
+        "head_of_household": 24925
+      },
+      "brackets": {
+        "single": [
+          {
+            "rate": 0.1,
+            "upTo": 12800
+          },
+          {
+            "rate": 0.12,
+            "upTo": 52025
+          },
+          {
+            "rate": 0.22,
+            "upTo": 109125
+          },
+          {
+            "rate": 0.24,
+            "upTo": 208325
+          },
+          {
+            "rate": 0.32,
+            "upTo": 264550
+          },
+          {
+            "rate": 0.35,
+            "upTo": 661375
+          },
+          {
+            "rate": 0.37,
+            "upTo": null
+          }
+        ],
+        "married": [
+          {
+            "rate": 0.1,
+            "upTo": 25600
+          },
+          {
+            "rate": 0.12,
+            "upTo": 104050
+          },
+          {
+            "rate": 0.22,
+            "upTo": 218250
+          },
+          {
+            "rate": 0.24,
+            "upTo": 416650
+          },
+          {
+            "rate": 0.32,
+            "upTo": 529100
+          },
+          {
+            "rate": 0.35,
+            "upTo": 793650
+          },
+          {
+            "rate": 0.37,
+            "upTo": null
+          }
+        ],
+        "head_of_household": [
+          {
+            "rate": 0.1,
+            "upTo": 18250
+          },
+          {
+            "rate": 0.12,
+            "upTo": 69650
+          },
+          {
+            "rate": 0.22,
+            "upTo": 109100
+          },
+          {
+            "rate": 0.24,
+            "upTo": 208300
+          },
+          {
+            "rate": 0.32,
+            "upTo": 264550
+          },
+          {
+            "rate": 0.35,
+            "upTo": 661350
+          },
+          {
+            "rate": 0.37,
+            "upTo": null
+          }
+        ]
+      }
     }
   },
   "thirdPartyProjections": {
