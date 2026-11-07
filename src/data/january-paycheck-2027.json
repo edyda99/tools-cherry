@@ -1,7 +1,7 @@
 {
   "_comment": "Inputs for /january-paycheck-change-calculator/ that live nowhere else. The 2027 federal figures are NOT here: they come from projections-2027.json (official2027 once the IRS Revenue Procedure is in, the publishers' thirdPartyProjections until then) or from tax-data-2027.json once that file exists, which also replaces every state below. The 2027 Social Security wage base comes from projections-2027.json ssaFactSheet2027.",
   "stateOverrides2027": {
-    "_rule": "Only a 2027 figure already set in statute AND already recorded in this repo goes here, patched over the state's 2026 `tax` block for the January paycheck. Everything else uses the 2026 tables, and the page says so. North Carolina added 2026-11-03: S.B. 257 (the 2026 Appropriations Act) is Session Law 2026-41 (ncleg summary title 'S257 - 2026 Appropriations Act. (SL 2026-41)'), already cited in state-payroll-2026.json. Indiana, Mississippi, Nebraska, Montana and New York added 2026-11-03 after a research pass plus an independent refute pass (all 5 CONFIRMED). Nebraska keeps 2026 thresholds and standard deduction (2027 indexed values only in a draft 1040N-ES); Montana, Colorado, North Dakota and Iowa start from federal taxable income, so their 2027 deduction is the federal amount in Rev. Proc. 2026-35 section 3.15 (added 2026-11-06). employeePrograms, where present, replaces the whole list with the state's published 2027 payroll program figures (Washington and New York, added 2026-11-06).",
+    "_rule": "Only a 2027 figure already set in statute AND already recorded in this repo goes here, patched over the state's 2026 `tax` block for the January paycheck. Everything else uses the 2026 tables, and the page says so. North Carolina added 2026-11-03: S.B. 257 (the 2026 Appropriations Act) is Session Law 2026-41 (ncleg summary title 'S257 - 2026 Appropriations Act. (SL 2026-41)'), already cited in state-payroll-2026.json. Indiana, Mississippi, Nebraska, Montana and New York added 2026-11-03 after a research pass plus an independent refute pass (all 5 CONFIRMED). Nebraska keeps 2026 thresholds and standard deduction (2027 indexed values only in a draft 1040N-ES); Montana, Colorado, North Dakota and Iowa start from federal taxable income, so their 2027 deduction is the federal amount in Rev. Proc. 2026-35 section 3.15 (added 2026-11-06). employeePrograms, where present, replaces the whole list with the state's published 2027 payroll program figures (Washington and New York, added 2026-11-06; Maryland FAMLI, a program that starts in 2027 with no 2026 entry, added 2026-11-07).",
     "virginia": {
       "tax": {
         "standardDeduction": {
@@ -389,6 +389,22 @@
       "_quote": "paidleave.wa.gov/updates: 'The premium rate will be 1.2%.' 'Employers will pay 29.3% of the total premium and employees will pay 70.7%.' 'collect premiums up to the Social Security cap.' 0.012 x 0.707 = 0.008484; cap $192,300 from SSA's 2027 fact sheet.",
       "sourceUrl": "https://paidleave.wa.gov/updates",
       "sourceTitle": "Washington Paid Leave: 2027 premiums"
+    },
+    "maryland": {
+      "employeePrograms": [
+        {
+          "label": "MD FAMLI",
+          "rate": 0.0045,
+          "wageBase": 192300
+        }
+      ],
+      "label": "Maryland's new 2027 paid leave contribution",
+      "what": "Maryland's new paid leave program, FAMLI, starts January 1, 2027. Your employer can take up to 0.45% of your pay, up to the 2027 Social Security limit of $192,300, and we show the full 0.45%. Your employer may choose to pay some or all of it for you, so your deduction could be smaller. It applies to jobs based in Maryland, which depends on where you work, not where you live, and it does not apply to federal employees. Maryland income tax stays on its 2026 tables until its 2027 tables are in our data.",
+      "_quote": "paidleave.maryland.gov/employers/make-contributions: 'MD Labor set the initial contribution rate at 0.9% of wages up to the Social Security wage cap.' 'This rate will apply to wages paid from January 1, 2027 through December 31, 2027.' 'split equally between employers and employees (0.45% each).' FAMLI FAQ, Contributions, April 2026: Q1 'Employers may withhold up to half the contribution rate (0.45%) from their employees' pay.' Q4 'employers can choose to pay the full contribution amount.' Q15 'Payroll deductions begin on January 1, 2027'. Q23 'employees working in a position localized in Maryland.' paidleave.maryland.gov/about-the-program: 'Federal employees who work in Maryland will not be eligible for FAMLI benefits and will not contribute to the fund.' Cap $192,300 from SSA's 2027 fact sheet.",
+      "sourceUrl": "https://paidleave.maryland.gov/employers/make-contributions/",
+      "sourceTitle": "Maryland FAMLI: Make Contributions",
+      "_faqUrl": "https://paidleave.maryland.gov/files/famli-faqs-contributions-april-2026.pdf",
+      "_federalUrl": "https://paidleave.maryland.gov/about-the-program/"
     }
   }
 }

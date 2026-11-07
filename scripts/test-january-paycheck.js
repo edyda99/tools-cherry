@@ -282,6 +282,47 @@ const prog = (pc, label) => pc.programs.find((p) => p.label === label).amount;
   ok('CA: reasons sum to the total', sumsTo(r));
 }
 
+// --- a program that starts in 2027: Maryland FAMLI --------------------------------
+{
+  const md = state2027({ slug: 'maryland', state2026: tax.states.maryland, overrides: jp.stateOverrides2027 });
+  is('MD: override applied', md.basis, 'override2027');
+  is('MD: no 2026 program', tax.states.maryland.employeePrograms, undefined);
+  is('MD: 2026 income tax kept', JSON.stringify(md.state.tax), JSON.stringify(tax.states.maryland.tax));
+  const ctx = { ...ctxFor('maryland'), federal2027: readJSON('src/data/tax-data-2027.json').federal };
+  const say = (r, input, key) => describeCause(r.causes.find((c) => c.key === key),
+    { input, fedMode: 'official', stateName: 'Maryland', stateHasIncomeTax: true, stateBasis: md.basis, stateOverrideWhat: md.override.what });
+  // $80,000 biweekly single. Gross 3,076.92; 0.45% = 13.85. Federal tables give back
+  // 10.79, so take-home falls 3.06.
+  const input = { salary: 80000, payFrequency: 'biweekly', filingStatus: 'single', stateSlug: 'maryland',
+    k401Pct2026: 0, k401Pct2027: 0, premium2026: 0, premium2027: 0, ytd2026: null };
+  const r = compareDecJan(input, ctx);
+  is('MD: December has no program', r.dec.statePrograms, 0);
+  is('MD: January FAMLI', prog(r.jan, 'MD FAMLI'), 13.85);
+  is('MD: take-home change', r.change, -3.06);
+  ok('MD: reasons sum to the total', sumsTo(r));
+  const st = say(r, input, 'stateTables');
+  is('MD: state step moved', st.changed, true);
+  is('MD: state step amount', st.amount, '-$13.85');
+  is('MD: title names the new deduction', st.title, 'New Maryland payroll deduction');
+  ok('MD: no "no change" wording on a line that moved', !/no change/i.test(st.title + st.text));
+  ok('MD: says what it is and the amount', st.text.includes('0.45%') && st.text.includes('$13.85') && st.text.includes('MD FAMLI'));
+  ok('MD: employer and federal caveats', st.text.includes('may choose to pay') && st.text.includes('federal employees'));
+  ok('MD: keeps the 2026 income tax disclosure', st.text.includes('2026 tables'));
+  const pr = say(r, input, 'statePrograms');
+  is('MD: reset step did not move', pr.changed, false);
+  is('MD: nothing to reset', pr.title, 'State payroll program limits: nothing to reset');
+  ok('MD: does not claim the deduction is on both paychecks', !pr.text.includes('same on both'));
+  // $250,000: past the $192,300 limit by December, but FAMLI did not exist in 2026, so
+  // the whole 0.45% of 9,615.38 = 43.27 is new, not a limit reset.
+  const hi = { ...input, salary: 250000 };
+  const h = compareDecJan(hi, ctx);
+  is('MD high earner: January FAMLI', prog(h.jan, 'MD FAMLI'), 43.27);
+  is('MD high earner: all on the state step', h.causes.find((c) => c.key === 'stateTables').lines.statePrograms, 43.27);
+  is('MD high earner: nothing on the reset step', h.causes.find((c) => c.key === 'statePrograms').delta, 0);
+  is('MD high earner: title', say(h, hi, 'stateTables').title, 'New Maryland payroll deduction');
+  ok('MD high earner: reasons sum to the total', sumsTo(h));
+}
+
 // --- input clamps and money formatting ------------------------------------------
 {
   const base = { salary: 52000, payFrequency: 'biweekly', filingStatus: 'single', stateSlug: 'texas',

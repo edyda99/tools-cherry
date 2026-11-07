@@ -1838,6 +1838,13 @@
       "name": "Maryland",
       "abbr": "MD",
       "slug": "maryland",
+      "employeePrograms": [
+        {
+          "label": "MD FAMLI",
+          "rate": 0.0045,
+          "wageBase": 192300
+        }
+      ],
       "hasIncomeTax": true,
       "figureYear": 2025,
       "figureYearScope": "standardDeduction",
@@ -1977,8 +1984,13 @@
           ]
         }
       },
-      "_pending2027": "Maryland 2027 state tax figures not yet published by the state; values are the 2025 figures from tax-data-2026.json.",
-      "_source": "All values copied from tax-data-2026.json (see its _source for this state)."
+      "yearNoteLabel": "Maryland's new 2027 paid leave contribution",
+      "_override2027": {
+        "source": "Maryland FAMLI: Make Contributions",
+        "sourceUrl": "https://paidleave.maryland.gov/employers/make-contributions/"
+      },
+      "_pending2027": "Maryland 2027 state tax figures not yet published by the state; values are the 2025 figures from tax-data-2026.json. FAMLI payroll contribution applied from the state agency.",
+      "_source": "All values copied from tax-data-2026.json (see its _source for this state), except the 2027 change from Maryland FAMLI: Make Contributions recorded in january-paycheck-2027.json."
     },
     "minnesota": {
       "name": "Minnesota",

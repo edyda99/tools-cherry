@@ -182,20 +182,21 @@ function ssOnPaycheck({ ssWages, ytd, taxYear, payFrequency, payDate, ss }) {
  * and starts again on January 1. A per-week cap (weeklyMax) never builds up, so it
  * is the same on every paycheck. Same program shape as paycheck-engine.js;
  * afterPreTax programs are charged on pay after the 401(k) and premium and have no
- * yearly limit.
+ * yearly limit. A program flagged isNew (see compareDecJan) did not exist in 2026, so
+ * nothing counts toward its limit yet.
  * @param {Array} list    stateData.employeePrograms
  * @param {number} gross  this paycheck's gross
  * @param {number} preTax this paycheck's 401(k) + premium
  * @param {number} periods
  * @param {number} ytd    program wages already paid this year at this job (0 in January)
- * @returns {Array<{label:string, amount:number, limited:boolean}>}
+ * @returns {Array<{label:string, amount:number, limited:boolean, isNew:boolean}>}
  */
 export function programsOnPaycheck(list, gross, preTax, periods, ytd) {
   if (!Array.isArray(list)) return [];
   return list.map((pr) => {
     const rate = pr.rate || 0;
     const g = pr.afterPreTax ? Math.max(0, gross - preTax) : gross;
-    const before = pr.afterPreTax ? 0 : Math.max(0, ytd);
+    const before = pr.afterPreTax || pr.isNew ? 0 : Math.max(0, ytd);
     let taxed = g;
     if (pr.wageBase != null) taxed = Math.max(0, Math.min(g, pr.wageBase - before));
     let amount = taxed * rate;
@@ -205,7 +206,7 @@ export function programsOnPaycheck(list, gross, preTax, periods, ytd) {
     } else if (pr.weeklyMax != null) {
       amount = Math.min(amount, pr.weeklyMax * 52 / periods);
     }
-    return { label: pr.label, amount: round2(amount), limited: pr.wageBase != null || pr.annualMax != null };
+    return { label: pr.label, amount: round2(amount), limited: pr.wageBase != null || pr.annualMax != null, isNew: !!pr.isNew };
   });
 }
 
@@ -337,6 +338,12 @@ export function compareDecJan(input, ctx) {
     salary: input.salary, payFrequency: input.payFrequency, filingStatus: input.filingStatus,
     stateSlug: input.stateSlug, ytd, progYtd, ss2026, ss2027, taxDataShell: ctx.taxDataShell,
   };
+  // A program with no 2026 entry starts from $0 whatever was earned in 2026, so it
+  // lands whole on the state step and the January reset has nothing to add.
+  const had = new Set(((ctx.state2026 && ctx.state2026.employeePrograms) || []).map((p) => p.label));
+  const state2027 = ctx.state2027 && ctx.state2027.employeePrograms
+    ? { ...ctx.state2027, employeePrograms: ctx.state2027.employeePrograms.map((p) => (had.has(p.label) ? p : { ...p, isNew: true })) }
+    : ctx.state2027;
   // The chain. Each step changes one thing from the step before it.
   const steps = [
     { key: null, k401Pct: input.k401Pct2026, premium: input.premium2026, federal: ctx.federal2026, state: ctx.state2026, ssMode: 'dec', progMode: 'dec' },
@@ -345,7 +352,7 @@ export function compareDecJan(input, ctx) {
   swap('retirement', { k401Pct: input.k401Pct2027 });
   swap('premium', { premium: input.premium2027 });
   swap('federalTables', { federal: ctx.federal2027 });
-  swap('stateTables', { state: ctx.state2027 });
+  swap('stateTables', { state: state2027 });
   swap('socialSecurity', { ssMode: 'jan' });
   swap('statePrograms', { progMode: 'jan' });
 
@@ -446,6 +453,13 @@ export function describeCause(c, info) {
         `The 2027 tax brackets and standard deduction are ${c.delta > 0 ? 'higher, to keep up with prices' : 'different'}, so federal income tax on each paycheck is ${usdAbs(L.federal || 0)} ${(L.federal || 0) < 0 ? 'lower' : 'higher'} than the 2026 tables would take.${est}`);
     }
     case 'stateTables': {
+      // A payroll program that starts in 2027 and no income tax change: naming it here
+      // keeps "no change" off a line that moved. stateOverrideWhat says what it is.
+      const fresh = (after.programs || []).filter((p) => p.isNew);
+      if (fresh.length && changed && !L.state) {
+        return out(`New ${info.stateName} payroll deduction`,
+          `${usdAbs(L.statePrograms || 0)} of ${fresh.map((p) => p.label).join(', ')} comes out of this paycheck.${info.stateOverrideWhat ? ' ' + info.stateOverrideWhat : ''}`);
+      }
       if (!info.stateHasIncomeTax) return out('State tax: no change', `${info.stateName} has no income tax on wages.`);
       if (info.stateBasis === 'tables2026') return out('State tax tables: 2026 ones used',
         `We use ${info.stateName}'s 2026 tax tables for January too, until its 2027 tables are in our data. Any change in your state tax above comes from your 401(k) or health insurance, not from new state rules.`);
@@ -457,11 +471,14 @@ export function describeCause(c, info) {
     case 'statePrograms': {
       const dec = c.dec || before, jan = c.jan || after;
       const jp = jan.programs || [];
-      const reset = jp.map((p, i) => ({ p, d: dec.programs && dec.programs[i] }))
+      const reset = jp.map((p) => ({ p, d: (dec.programs || []).find((x) => x.label === p.label) }))
         .filter(({ p, d }) => p.limited && d && p.amount !== d.amount);
       if (!changed || !reset.length) {
-        return out('State payroll programs: no change', jp.length
-          ? `Your state's disability, paid-leave or unemployment deductions (${jp.map((p) => p.label).join(', ')}) are the same on both paychecks.`
+        const carried = jp.filter((p) => !p.isNew);
+        if (jp.length && !carried.length) return out('State payroll program limits: nothing to reset',
+          'Your December paycheck had no state disability, paid-leave or unemployment deduction, so no yearly limit starts over in January.');
+        return out('State payroll programs: no change', carried.length
+          ? `Your state's disability, paid-leave or unemployment deductions (${carried.map((p) => p.label).join(', ')}) are the same on both paychecks.`
           : 'Your state takes no disability, paid-leave or unemployment deduction from pay.');
       }
       const many = reset.length > 1;

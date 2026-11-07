@@ -1366,8 +1366,8 @@
           "source": "https://www.marylandcomptroller.gov/content/dam/mdcomp/tax/legal-publications/alerts/tax-alert-changes-to-standard-and-itemized-deductions-and-to-state-and-local-income-tax-rates-from-the-2025-legislative-session.pdf"
         },
         {
-          "fact": "Maryland's FAMLI paid family and medical leave program has no employee payroll deduction in 2026; contributions were delayed to begin January 1, 2027, with benefits starting in 2028.",
-          "source": "https://paidleave.maryland.gov/employees/"
+          "fact": "Maryland's FAMLI paid family and medical leave program has no employee payroll deduction in 2026. Starting January 1, 2027, your employer can take up to 0.45% of your wages, up to the Social Security wage limit, though it may choose to pay that share for you. It applies to jobs based in Maryland, not to federal employees, and benefits start in 2028.",
+          "source": "https://paidleave.maryland.gov/about-the-program/"
         }
       ],
       "confidence": "high"

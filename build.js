@@ -12045,7 +12045,7 @@ async function main() {
     }
     const bannerSs = `The 2027 Social Security limit of <strong>${usd0(wb27)}</strong> is official: it is on Social Security's ` +
       (ssaFs2027 ? `<a href="${escHtml(ssaFs2027.sourceUrl)}" rel="noopener" target="_blank">2027 fact sheet</a>.` : '2027 figures.');
-    const overrideNames = overrideSlugs.map((k) => taxData.states[k].name);
+    const overrideNames = overrideSlugs.filter((k) => overrides[k].tax).map((k) => taxData.states[k].name);
     const bannerState = states27Final
       ? 'State income tax for January uses each state\'s 2027 tables.'
       : 'State income tax for January uses each state\'s <strong>2026</strong> tables, until 2027 state tables are in our data.' +
