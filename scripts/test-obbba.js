@@ -545,7 +545,9 @@ eq('CL ineligible saved 0', estimateCarLoan({ year: 2025, filingStatus: 'single'
   is('DC car loan 2026 is yes', dc.y2026, 'yes');
   is('OR car loan source is the enrolled SB 1507', or.source,
     'https://olis.oregonlegislature.gov/liz/2026R1/Downloads/MeasureDocument/SB1507/Enrolled');
-  is('DC car loan source is the signed Act 26-416', /B26-0724-Signed_Act\.pdf/.test(dc.source || ''), true);
+  // 2026-11-12: Act 26-418 became permanent D.C. Law 26-189 (effective 2026-10-02) and emergency
+  // Act 26-416 expired 2026-11-11, so the row now cites the permanent act's signed text.
+  is('DC car loan source is the signed Act 26-418 (D.C. Law 26-189)', /B26-0661-Signed_Act\.pdf/.test(dc.source || ''), true);
   for (const [nm, r] of [['OR', or], ['DC', dc]]) {
     is(`${nm} car loan note has no em or en dash`, /[\u2013\u2014]/.test(r.note || ''), false);
     is(`${nm} car loan has a citation title`, typeof r.sourceTitle === 'string' && r.sourceTitle.length > 5, true);

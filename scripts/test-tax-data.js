@@ -840,8 +840,9 @@ t('legal-status watches: well-formed, none expired', () => {
       }
     }
     assert.ok(withOwnDate >= 1, 'expected at least one row (DC) with its own checkedOn');
-    assert.ok(verdictBlock('district-of-columbia').includes('We last checked this on 2 October 2026.'),
-      'DC verdict cards should carry their own 2 October 2026 check date');
+    // Re-checked 2026-11-12 when D.C. Act 26-418 was confirmed as D.C. Law 26-189 (LIMS B26-0661).
+    assert.ok(verdictBlock('district-of-columbia').includes('We last checked this on 12 November 2026.'),
+      'DC verdict cards should carry their own 12 November 2026 check date');
   });
 
   // The federal senior and car loan cards carry a state-return line for each state whose

@@ -1087,7 +1087,7 @@ const PAGES = [
     file: 'district-of-columbia-paycheck-calculator/index.html',
     pins: [
       ['car-loan-line', contains('<strong>Car loan interest:</strong> DC does not allow the federal car loan interest deduction on your 2025 DC return. From 2026 it does.')],
-      ['car-loan-source-named', contains('>D.C. Act 26-416, D.C. Code 47-1803.04(d)(8) and (e)(5)</a>')],
+      ['car-loan-source-named', contains('>D.C. Law 26-189 (D.C. Act 26-418), D.C. Code 47-1803.04(d)(8) and (e)(5)</a>')],
     ],
   },
   {
