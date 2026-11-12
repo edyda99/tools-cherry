@@ -175,15 +175,38 @@ eq('cost zero catchup', rothCatchUpCost({ effectiveCatchUp: 0, currentMarginalRa
   is('status 2025 not enforced -> transition relief', s.reason, 'transition_relief_2025');
   is('status 2025 transition note', s.notes.includes('transition_relief'), true);
 }
-// Pending-year gate (2027 constants not published): pending_irs_guidance, no fabricated numbers.
+// 2027 constants from IRS Notice 2026-66 (IR-2026-136, 2026-11-12).
 {
-  const s = rothCatchUpStatus({ taxYear: 2027, age: 55, priorYearFicaWages: 300000, params: RC });
-  is('2027 reason pending', s.reason, 'pending_irs_guidance');
-  is('2027 threshold null', s.threshold, null);
-  is('2027 maxCatchUp null', s.maxCatchUp, null);
-  const e = est({ taxYear: 2027, age: 55, priorYearFicaWages: 300000, catchUpAmount: 8000, currentMarginalRate: 0.24 });
-  is('2027 extraTax n/a', e.extraTaxThisYear, null);
-  is('2027 pending note', e.notes.includes('pending_irs_guidance'), true);
+  const y = RC.byYear['2027'];
+  eq('2027 deferral', y.deferral, 25500);
+  eq('2027 cStd', y.cStd, 8500);
+  eq('2027 cSuper', y.cSuper, 11750);
+  eq('2027 threshold', y.threshold, 155000);
+  is('2027 enforced', y.enforced, true);
+  // 2026 figures stay in place next to 2027.
+  eq('2026 deferral kept', RC.byYear['2026'].deferral, 24500);
+  eq('2026 threshold kept', RC.byYear['2026'].threshold, 150000);
+  // Strict "exceed" at the 2027 line.
+  is('2027 at 155000 not subject', rothCatchUpStatus({ taxYear: 2027, age: 55, priorYearFicaWages: 155000, params: RC }).reason, 'wages_at_or_below_threshold');
+  is('2027 at 155001 must be roth', rothCatchUpStatus({ taxYear: 2027, age: 55, priorYearFicaWages: 155001, params: RC }).reason, 'must_be_roth');
+  // A 2026 wage of 152,000 is over the 2026 line but under the 2027 one.
+  is('2026 at 152000 subject', rothCatchUpStatus({ taxYear: 2026, age: 55, priorYearFicaWages: 152000, params: RC }).reason, 'must_be_roth');
+  is('2027 at 152000 not subject', rothCatchUpStatus({ taxYear: 2027, age: 55, priorYearFicaWages: 152000, params: RC }).reason, 'wages_at_or_below_threshold');
+  eq('2027 age 55 -> 8500', rothCatchUpStatus({ taxYear: 2027, age: 55, priorYearFicaWages: 0, params: RC }).maxCatchUp, 8500);
+  eq('2027 age 61 -> 11750', rothCatchUpStatus({ taxYear: 2027, age: 61, priorYearFicaWages: 0, params: RC }).maxCatchUp, 11750);
+  eq('2027 age 64 -> 8500', rothCatchUpStatus({ taxYear: 2027, age: 64, priorYearFicaWages: 0, params: RC }).maxCatchUp, 8500);
+  const e = est({ taxYear: 2027, age: 61, priorYearFicaWages: 300000, catchUpAmount: 11750, currentMarginalRate: 0.35 });
+  eq('2027 extraTax 11750 x 35%', e.extraTaxThisYear, 4112.5);
+}
+// Pending-year gate (2028 constants not published): pending_irs_guidance, no fabricated numbers.
+{
+  const s = rothCatchUpStatus({ taxYear: 2028, age: 55, priorYearFicaWages: 300000, params: RC });
+  is('2028 reason pending', s.reason, 'pending_irs_guidance');
+  is('2028 threshold null', s.threshold, null);
+  is('2028 maxCatchUp null', s.maxCatchUp, null);
+  const e = est({ taxYear: 2028, age: 55, priorYearFicaWages: 300000, catchUpAmount: 8000, currentMarginalRate: 0.24 });
+  is('2028 extraTax n/a', e.extraTaxThisYear, null);
+  is('2028 pending note', e.notes.includes('pending_irs_guidance'), true);
 }
 // Band boundaries by age (2026 dollar maxima).
 eq('age 50 -> standard 8000', rothCatchUpStatus({ taxYear: 2026, age: 50, priorYearFicaWages: 0, params: RC }).maxCatchUp, 8000);

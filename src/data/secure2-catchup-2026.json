@@ -1,7 +1,7 @@
 {
   "_meta": {
-    "description": "SECURE 2.0 Act §603 mandatory Roth catch-up parameters (IRC §414(v)(7); final reg 26 CFR 1.414(v)-2). Drives /roth-catchup-calculator/. High earners (prior-year FICA/Box 3 wages over the threshold, from the plan-sponsoring employer) must make age-50+ catch-up contributions as designated Roth (after-tax) instead of pre-tax. NOT an OBBBA provision — a separate SECURE 2.0 retirement-plan rule. Constants are year-keyed: 2026 figures are from IRS Notice 2025-67; 2027 COLA figures are not yet published and are deliberately absent (do not fabricate).",
-    "lastSourced": "2026-07-11",
+    "description": "SECURE 2.0 Act §603 mandatory Roth catch-up parameters (IRC §414(v)(7); final reg 26 CFR 1.414(v)-2). Drives /roth-catchup-calculator/. High earners (prior-year FICA/Box 3 wages over the threshold, from the plan-sponsoring employer) must make age-50+ catch-up contributions as designated Roth (after-tax) instead of pre-tax. NOT an OBBBA provision — a separate SECURE 2.0 retirement-plan rule. Constants are year-keyed: 2026 figures are from IRS Notice 2025-67; 2027 figures are from IRS Notice 2026-66 (published 2026-11-12); 2028 figures are not yet published and are deliberately absent (do not fabricate).",
+    "lastSourced": "2026-11-12",
     "confidence": "high — every 2026 hard number traced to IRS Notice 2025-67 and 26 CFR 1.414(v)-2; 0 of 10 adversarial refute attempts succeeded (see docs/roth-catchup-spec.md §5)"
   },
   "rothCatchUp": {
@@ -12,14 +12,23 @@
     "statutoryThresholdBase": 145000,
     "byYear": {
       "2025": { "deferral": 23500, "cStd": 7500, "cSuper": 11250, "threshold": 145000, "enforced": false },
-      "2026": { "deferral": 24500, "cStd": 8000, "cSuper": 11250, "threshold": 150000, "enforced": true }
+      "2026": { "deferral": 24500, "cStd": 8000, "cSuper": 11250, "threshold": 150000, "enforced": true },
+      "2027": { "deferral": 25500, "cStd": 8500, "cSuper": 11750, "threshold": 155000, "enforced": true }
     },
-    "pendingGuidanceYears": [2027, 2028],
+    "pendingGuidanceYears": [2028],
     "coveredPlans": ["401(k)", "403(b)", "governmental 457(b)", "federal Thrift Savings Plan (TSP)"],
     "excludedPlans": ["SEP (§408(k))", "SIMPLE IRA (§408(p))"],
-    "notIndexedNote": "The $150,000 threshold is a flat per-person wage test with no filing-status or MAGI phase-out. The statutory base is $145,000, indexed like §415(d) from the calendar quarter beginning July 1, 2023, rounded down to the next lower $5,000; it first moved to $150,000 for 2026.",
-    "qualifies": "A participant age 50 or older whose Social Security (FICA, Box 3) wages for the immediately preceding calendar year, from the same employer that sponsors the plan, EXCEED the threshold ($150,000 for 2026 contributions, tested against 2025 wages) must make every catch-up contribution as a designated Roth (after-tax) contribution — no pre-tax catch-up option remains. The full catch-up amount is unchanged: $8,000 (ages 50–59 and 64+) or $11,250 (ages 60–63) for 2026. Exactly $150,000 is NOT over the line (the test is 'exceed'). Someone with no FICA wages from the plan sponsor (e.g. a partner or sole proprietor with self-employment/SECA income only) is not subject. Applies to 401(k)/403(b)/governmental 457(b)/TSP; SEP and SIMPLE IRA plans are excluded. In force for 2026 under a reasonable good-faith standard (Notice 2023-62 transition relief ended Dec 31, 2025); strict compliance with the final regs from 2027; later still for many collectively bargained and governmental plans. If the participant's plan offers no Roth option, it may bar high earners from catch-ups entirely rather than being forced to add Roth.",
+    "notIndexedNote": "The $150,000 threshold is a flat per-person wage test with no filing-status or MAGI phase-out. The statutory base is $145,000, indexed like §415(d) from the calendar quarter beginning July 1, 2023, rounded down to the next lower $5,000; it first moved to $150,000 for 2026 and to $155,000 for 2027 (IRS Notice 2026-66).",
+    "qualifies": "A participant age 50 or older whose Social Security (FICA, Box 3) wages for the immediately preceding calendar year, from the same employer that sponsors the plan, EXCEED the threshold ($150,000 for 2026 contributions, tested against 2025 wages) must make every catch-up contribution as a designated Roth (after-tax) contribution — no pre-tax catch-up option remains. The full catch-up amount is unchanged: $8,000 (ages 50–59 and 64+) or $11,250 (ages 60–63) for 2026, and $8,500 or $11,750 for 2027. For 2027 contributions the threshold is $155,000, tested against 2026 wages. Exactly $150,000 is NOT over the line (the test is 'exceed'). Someone with no FICA wages from the plan sponsor (e.g. a partner or sole proprietor with self-employment/SECA income only) is not subject. Applies to 401(k)/403(b)/governmental 457(b)/TSP; SEP and SIMPLE IRA plans are excluded. In force for 2026 under a reasonable good-faith standard (Notice 2023-62 transition relief ended Dec 31, 2025); strict compliance with the final regs from 2027; later still for many collectively bargained and governmental plans. If the participant's plan offers no Roth option, it may bar high earners from catch-ups entirely rather than being forced to add Roth.",
     "sources": [
+      {
+        "claim": "2027: $155,000 Roth catch-up wage threshold (up from $150,000); $25,500 §402(g) deferral limit (up from $24,500); $8,500 age-50 catch-up (up from $8,000); $11,750 age-60–63 catch-up (up from $11,250).",
+        "url": "https://www.irs.gov/pub/irs-drop/n-26-66.pdf"
+      },
+      {
+        "claim": "Same 2027 figures in plain language (IR-2026-136, 401(k) limit increases to $25,500 for 2027).",
+        "url": "https://www.irs.gov/newsroom/401k-limit-increases-to-25500-for-2027-ira-limit-remains-7500"
+      },
       {
         "claim": "$150,000 threshold for 2026 (up from $145,000); $24,500 §402(g) deferral limit; $8,000 age-50 catch-up; $11,250 age-60–63 super catch-up remains $11,250; SEP/SIMPLE (§408(k)/(p)) excluded.",
         "url": "https://www.irs.gov/pub/irs-drop/n-25-67.pdf"
